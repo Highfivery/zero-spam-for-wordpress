@@ -8,7 +8,7 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch without all the bloated options. Just install, activate and say goodbye to spam. Based on work by David Walsh.
+Zero Spam makes blocking spam a cinch without all the bloated options. Just install, activate and say goodbye to spam. Based on work by David Walsh.
 
 == Description ==
 
