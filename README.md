@@ -18,7 +18,7 @@ Most spambots will crawl a form, enter a value for all fields, then submit the f
 
 ## Frequently Asked Questions
 
-<b>I keep getting 'There was a problem processing your comment.'</b><br>
+* <b>I keep getting 'There was a problem processing your comment.'</b><br>
 Be sure JavaScript is enabled and there are no JS errors.
 
 ## Development
