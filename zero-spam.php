@@ -86,7 +86,7 @@ class Zero_Spam {
      */
     public function wp_enqueue_scripts() {
         if ( function_exists( 'wp_enqueue_script' ) ) {
-          wp_enqueue_script( 'zero-spam', plugins_url( '/zero-spam.js' , __FILE__ ), array( 'jquery' ), '1.0.0', true );
+          wp_enqueue_script( 'zero-spam', plugins_url( '/zero-spam.min.js' , __FILE__ ), array( 'jquery' ), '1.0.0', true );
         }
     }
 }

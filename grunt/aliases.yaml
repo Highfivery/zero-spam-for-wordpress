@@ -1,2 +1,4 @@
 default:
     - 'jshint'
+    - 'uglify'
+    - 'watch'
