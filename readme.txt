@@ -1,18 +1,18 @@
-=== Plugin Name ===
+=== WordPress Zero Spam ===
 Contributors: bmarshall511
 Donate link: https://www.gittip.com/bmarshall511/
-Tags: comments, spam
+Tags: comments, spam, antispam
 Requires at least: 3.0.0
 Tested up to: 3.9.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Zero Spam makes blocking spam a cinch without all the bloated options. Just install, activate and say goodbye to spam. Based on work by David Walsh.
+Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site.
 
 == Description ==
 
-Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch without all the bloated options. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
+<a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/" target="_blank">WordPress Zero Spam</a> is a plugin that makes blocking spam comments a cinch. Just install, activate and enjoy a spam-free site. It was initially built based on the work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
 
 == Installation ==
 
