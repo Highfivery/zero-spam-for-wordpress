@@ -2,8 +2,8 @@
 /**
  * Plugin Name: WordPress Zero Spam
  * Plugin URI: http://www.benmarshall.me/wordpress-zero-spam-plugin
- * Description: Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch without all the bloated options. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version: 1.0.0
+ * Description: Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
+ * Version: 1.1.0
  * Author: Ben Marshall
  * Author URI: http://www.benmarshall.me
  * License: GPL2
@@ -40,6 +40,7 @@ class Zero_Spam {
      */
     public function __construct() {
         $this->_actions();
+        $this->_filters();
     }
 
     /**
@@ -57,6 +58,43 @@ class Zero_Spam {
             add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
             add_action( 'preprocess_comment', array( $this, 'preprocess_comment' ) );
         }
+
+        if ( function_exists( 'remove_action' ) ) {
+            remove_action( 'wp_head', 'wp_generator' );
+        }
+    }
+
+    /**
+     * WordPress filters.
+     *
+     * Adds WordPress filters.
+     *
+     * @since 1.1.0
+     * @access private
+     *
+     * @link http://codex.wordpress.org/Function_Reference/add_filter
+     */
+    private function _filters() {
+        if ( function_exists( 'add_filter' ) ) {
+            add_filter( 'plugin_row_meta', array( &$this, 'plugin_row_meta' ), 10, 2 );
+        }
+    }
+
+    /**
+     * Plugin meta links.
+     *
+     * Adds links to the plugins meta.
+     *
+     * @since 1.1.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
+     */
+    public function plugin_row_meta( $links, $file ) {
+        if ( strpos( $file, 'zero-spam.php' ) !== false ) {
+            $links = array_merge( $links, array( '<a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/">WordPress Zero Spam</a>' ) );
+            $links = array_merge( $links, array( '<a href="https://www.gittip.com/bmarshall511/">Donate</a>' ) );
+        }
+        return $links;
     }
 
     /**

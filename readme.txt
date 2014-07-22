@@ -1,18 +1,28 @@
-=== Plugin Name ===
+=== WordPress Zero Spam ===
 Contributors: bmarshall511
 Donate link: https://www.gittip.com/bmarshall511/
-Tags: comments, spam
+Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer
 Requires at least: 3.0.0
 Tested up to: 3.9.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Zero Spam makes blocking spam a cinch without all the bloated options. Just install, activate and say goodbye to spam. Based on work by David Walsh.
+Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site.
 
 == Description ==
 
-Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch without all the bloated options. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
+**Why should your users prove that they are humans by filling captchas? Lets bots prove their are not bots the <a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/" target="_blank">WordPress Zero Spam plugin</a>.**
+
+Zero Spam It was initially built based on the work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
+
+Major features in WordPress Zero Spam include:
+
+* Blocks spam comments with this use of JavaScript
+
+**Languages:** English
+
+Follow me on Twitter to keep up with the latest updates <a href="http://www.benmarshall.me" target="_blank">Ben Marshall</a>.
 
 == Installation ==
 
@@ -29,5 +39,12 @@ Be sure JavaScript is enabled and there are no JS errors.
 
 == Changelog ==
 
+= 1.1.0 =
+* Updated theme documentation.
+* WordPress generator meta tag removed to help hide WordPress sites from spambots.
+
 = 1.0.0 =
 * Initial release.
+
+== Credits ==
+* Thanks to [David Walsh](http://davidwalsh.name) [@davidwalshblog](https://twitter.com/davidwalshblog) for the inspiration behind this plugin.
