@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker
 Requires at least: 3.0.0
 Tested up to: 3.9.1
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -42,6 +42,9 @@ Be sure JavaScript is enabled and there are no JS errors.
 == Screenshots ==
 
 == Changelog ==
+
+= 1.2.0 =
+* Removed testing for core function testing
 
 = 1.1.0 =
 * Updated theme documentation.
