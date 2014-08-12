@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker
 Requires at least: 3.0.0
 Tested up to: 3.9.2
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a sp
 
 == Description ==
 
-**Why should your users prove that they are humans by filling captchas? Let bots prove their are not bots the <a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/" target="_blank">WordPress Zero Spam plugin</a>.**
+**Why should your users prove that they're humans by filling out captchas? Let bots prove their not bots with the <a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/" target="_blank">WordPress Zero Spam plugin</a>.**
 
 WordPress Zero Spam blocks spam in comments automatically without any additional config or setup. Just install, activate and enjoy a spam-free site.
 
@@ -42,6 +42,9 @@ Be sure JavaScript is enabled and there are no JS errors.
 == Screenshots ==
 
 == Changelog ==
+
+= 1.2.1 =
+* Fixed some typos in the readme.txt file
 
 = 1.2.0 =
 * Removed testing for core function testing
