@@ -84,7 +84,7 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
      */
     public function plugin_row_meta( $links, $file ) {
-        if ( strpos( $file, 'zero-spam.php' ) !== false ) {
+        if ( false !== strpos( $file, 'zero-spam.php' ) ) {
             $links = array_merge( $links, array( '<a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/">WordPress Zero Spam</a>' ) );
             $links = array_merge( $links, array( '<a href="https://www.gittip.com/bmarshall511/">Donate</a>' ) );
         }
