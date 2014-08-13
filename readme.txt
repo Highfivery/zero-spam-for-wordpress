@@ -45,7 +45,7 @@ Be sure JavaScript is enabled and there are no JS errors.
 == Changelog ==
 
 = 1.3.0 =
-* Removed Grunt creation of the trunk directoy
+* Removed Grunt creation of the trunk directory
 * Added spam detection script to registration form
 
 = 1.2.1 =
