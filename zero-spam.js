@@ -13,13 +13,13 @@
 ( function( $ ) {
     'use strict';
 
-    var form = $( "#commentform" );
+    var forms = "#commentform, #registerform";
 
-    $( form ).submit( function() {
+    $( forms ).submit( function() {
         $( "<input>" ).attr( "type", "hidden" )
             .attr( "name", "zero-spam" )
             .attr( "value", "1" )
-            .appendTo( form );
+            .appendTo( forms );
 
         return true;
     });

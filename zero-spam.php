@@ -3,7 +3,7 @@
  * Plugin Name: WordPress Zero Spam
  * Plugin URI: http://www.benmarshall.me/wordpress-zero-spam-plugin
  * Description: Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version: 1.2.1
+ * Version: 1.3.0
  * Author: Ben Marshall
  * Author URI: http://www.benmarshall.me
  * License: GPL2
@@ -55,6 +55,7 @@ class Zero_Spam {
      */
     private function _actions() {
         add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
+        add_action( 'login_footer', array( $this, 'wp_enqueue_scripts' ) );
         add_action( 'preprocess_comment', array( $this, 'preprocess_comment' ) );
 
         remove_action( 'wp_head', 'wp_generator' );
@@ -72,6 +73,7 @@ class Zero_Spam {
      */
     private function _filters() {
         add_filter( 'plugin_row_meta', array( &$this, 'plugin_row_meta' ), 10, 2 );
+        add_filter( 'registration_errors', array( &$this, 'preprocess_registration' ), 10, 3 );
     }
 
     /**
@@ -84,7 +86,7 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
      */
     public function plugin_row_meta( $links, $file ) {
-        if ( strpos( $file, 'zero-spam.php' ) !== false ) {
+        if ( false !== strpos( $file, 'zero-spam.php' ) ) {
             $links = array_merge( $links, array( '<a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/">WordPress Zero Spam</a>' ) );
             $links = array_merge( $links, array( '<a href="https://www.gittip.com/bmarshall511/">Donate</a>' ) );
         }
@@ -92,19 +94,38 @@ class Zero_Spam {
     }
 
     /**
-     * WordPress actions.
+     * Preprocess comment fields.
      *
-     * Adds WordPress actions using the plugin API.
+     * An action hook that is applied to the comment data prior to any other processing of the
+     * comment's information when saving a comment data to the database.
      *
      * @since 1.0.0
      *
      * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
      */
     public function preprocess_comment( $commentdata ) {
-        if( ! isset ( $_POST['zero-spam'] ) || ! current_user_can( 'moderate_comments' ) ) {
-          die( __('There was a problem processing your comment.', 'zerospam') );
+        if ( ! isset ( $_POST['zero-spam'] ) && ! current_user_can( 'moderate_comments' ) ) {
+          die( __( 'There was a problem processing your comment.', 'zerospam' ) );
         }
         return $commentdata;
+    }
+
+    /**
+     * Preprocess registration fields.
+     *
+     * Used to create custom validation rules on user registration. This fires
+     * when the form is submitted but before user information is saved to the
+     * database.
+     *
+     * @since 1.3.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/register_post
+     */
+    public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
+        if ( ! isset ( $_POST['zero-spam'] ) ) {
+            $errors->add( 'spam_error', __( '<strong>ERROR</strong>: There was a problem processing your registration.', 'zerospam' ) );
+        }
+        return $errors;
     }
 
     /**
@@ -117,7 +138,7 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Function_Reference/wp_enqueue_script
      */
     public function wp_enqueue_scripts() {
-        wp_enqueue_script( 'zero-spam', plugins_url( '/zero-spam.min.js' , __FILE__ ), array( 'jquery' ), '1.0.0', true );
+        wp_enqueue_script( 'zero-spam', plugins_url( '/zero-spam.min.js' , __FILE__ ), array( 'jquery' ), '1.1.0', true );
     }
 }
 
