@@ -1,7 +1,7 @@
 === WordPress Zero Spam ===
 Contributors: bmarshall511, afragen
 Donate link: https://www.gittip.com/bmarshall511/
-Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker
+Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 3.9.2
 Stable tag: 1.3.0
