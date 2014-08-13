@@ -86,7 +86,7 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
      */
     public function plugin_row_meta( $links, $file ) {
-        if ( strpos( $file, 'zero-spam.php' ) !== false ) {
+        if ( false !== strpos( $file, 'zero-spam.php' ) ) {
             $links = array_merge( $links, array( '<a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/">WordPress Zero Spam</a>' ) );
             $links = array_merge( $links, array( '<a href="https://www.gittip.com/bmarshall511/">Donate</a>' ) );
         }
@@ -104,8 +104,8 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
      */
     public function preprocess_comment( $commentdata ) {
-        if( ! isset ( $_POST['zero-spam'] ) || ! current_user_can( 'moderate_comments' ) ) {
-          die( __('There was a problem processing your comment.', 'zerospam') );
+        if ( ! isset ( $_POST['zero-spam'] ) && ! current_user_can( 'moderate_comments' ) ) {
+          die( __( 'There was a problem processing your comment.', 'zerospam' ) );
         }
         return $commentdata;
     }
