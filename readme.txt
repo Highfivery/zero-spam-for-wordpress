@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 3.9.2
-Stable tag: 1.3.2
+Stable tag: 1.3.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,9 @@ Be sure JavaScript is enabled and there are no JS errors.
 == Screenshots ==
 
 == Changelog ==
+
+= 1.3.1 - 1.3.3 =
+* Minor fixes to WP SVN repo
 
 = 1.3.0 =
 * Removed Grunt creation of the trunk directory
