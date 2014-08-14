@@ -105,6 +105,7 @@ class Zero_Spam {
      */
     public function preprocess_comment( $commentdata ) {
         if ( ! isset ( $_POST['zero-spam'] ) && ! current_user_can( 'moderate_comments' ) ) {
+          do_action( 'zero_spam_found_spam_comment', $commentdata );
           die( __( 'There was a problem processing your comment.', 'zerospam' ) );
         }
         return $commentdata;
@@ -123,6 +124,7 @@ class Zero_Spam {
      */
     public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
         if ( ! isset ( $_POST['zero-spam'] ) ) {
+            do_action( 'zero_spam_found_spam_registration', $errors, $sanitized_user_login, $user_email );
             $errors->add( 'spam_error', __( '<strong>ERROR</strong>: There was a problem processing your registration.', 'zerospam' ) );
         }
         return $errors;
