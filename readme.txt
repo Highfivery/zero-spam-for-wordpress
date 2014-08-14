@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 3.9.2
-Stable tag: 1.3.3
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -27,7 +27,7 @@ Major features in WordPress Zero Spam include:
 
 **Languages:** English
 
-If you have suggestions for a new add-on, feel free to email me at me@benmarshall.me. Want regular updates? Follow me on Twitter <a href="http://www.benmarshall.me" target="_blank">Ben Marshall</a>.
+If you have suggestions for a new add-on, feel free to email me at me@benmarshall.me. Want regular updates? <a href="https://twitter.com/bmarshall0511">Follow me on Twitter</a> or <a href="http://www.benmarshall.me" target="_blank">visit my blog</a>.
 
 == Installation ==
 
@@ -43,6 +43,9 @@ Be sure JavaScript is enabled and there are no JS errors.
 == Screenshots ==
 
 == Changelog ==
+
+= 1.4.0 =
+* Minor updates to the readme file
 
 = 1.3.1 - 1.3.3 =
 * Minor fixes to WP SVN repo
