@@ -1,10 +1,10 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511, afragen
+Contributors: bmarshall511, afragen, tangrufus
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 3.9.2
-Stable tag: 1.3.3
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,12 +22,12 @@ Major features in WordPress Zero Spam include:
 
 * **No captcha**, because spam is not users' problem
 * **No moderation queues**, because spam is not administrators' problem
-* **Blocks spam comments** with the use of JavaScript
-* **Blocks spam registrations** with the use of JavaScript
+* **Blocks spam registrations & comments** with the use of JavaScript
+* **Extend the plugin** with action hooks
 
 **Languages:** English
 
-If you have suggestions for a new add-on, feel free to email me at me@benmarshall.me. Want regular updates? Follow me on Twitter <a href="http://www.benmarshall.me" target="_blank">Ben Marshall</a>.
+If you have suggestions for a new add-on, feel free to email me at me@benmarshall.me. Want regular updates? <a href="https://twitter.com/bmarshall0511">Follow me on Twitter</a> or <a href="http://www.benmarshall.me" target="_blank">visit my blog</a>.
 
 == Installation ==
 
@@ -36,13 +36,28 @@ If you have suggestions for a new add-on, feel free to email me at me@benmarshal
 
 == Frequently Asked Questions ==
 
+= Is JavaScript required for this plugin to work? =
+
+Yes, that's what does the magic and keeps spam bots out.
+
 = I keep getting 'There was a problem processing your comment.' =
 
 Be sure JavaScript is enabled and there are no JS errors.
 
+= Can I extend the plugin with action hooks? =
+
+Yes, currently there's two hooks available:
+
+* `zero_spam_found_spam_registration` - Runs after a spam registration is detected
+* `zero_spam_found_spam_comment` - Runs after a spam comment is detected
+
 == Screenshots ==
 
 == Changelog ==
+
+= 1.4.0 =
+* Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)
+* Minor updates to the readme file
 
 = 1.3.1 - 1.3.3 =
 * Minor fixes to WP SVN repo
@@ -70,4 +85,6 @@ Be sure JavaScript is enabled and there are no JS errors.
 * Thanks to [David Walsh](http://davidwalsh.name) [@davidwalshblog](https://twitter.com/davidwalshblog) for the inspiration behind this plugin.
 
 == Contributors ==
+* [Ben Marshall](https://github.com/bmarshall511)
 * [Andy Fragen](https://github.com/afragen)
+* [Tang Rufus](https://github.com/TangRufus)

@@ -3,7 +3,7 @@
  * Plugin Name: WordPress Zero Spam
  * Plugin URI: http://www.benmarshall.me/wordpress-zero-spam-plugin
  * Description: Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version: 1.3.3
+ * Version: 1.4.0
  * Author: Ben Marshall
  * Author URI: http://www.benmarshall.me
  * License: GPL2
@@ -105,6 +105,7 @@ class Zero_Spam {
      */
     public function preprocess_comment( $commentdata ) {
         if ( ! isset ( $_POST['zero-spam'] ) && ! current_user_can( 'moderate_comments' ) ) {
+          do_action( 'zero_spam_found_spam_comment', $commentdata );
           die( __( 'There was a problem processing your comment.', 'zerospam' ) );
         }
         return $commentdata;
@@ -123,6 +124,7 @@ class Zero_Spam {
      */
     public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
         if ( ! isset ( $_POST['zero-spam'] ) ) {
+            do_action( 'zero_spam_found_spam_registration', $errors, $sanitized_user_login, $user_email );
             $errors->add( 'spam_error', __( '<strong>ERROR</strong>: There was a problem processing your registration.', 'zerospam' ) );
         }
         return $errors;
