@@ -3,7 +3,7 @@
  * Plugin Name: WordPress Zero Spam
  * Plugin URI: http://www.benmarshall.me/wordpress-zero-spam-plugin
  * Description: Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version: 1.4.0
+ * Version: 1.5.0
  * Author: Ben Marshall
  * Author URI: http://www.benmarshall.me
  * License: GPL2
@@ -104,9 +104,9 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
      */
     public function preprocess_comment( $commentdata ) {
-        if ( ! isset ( $_POST['zero-spam'] ) && ! current_user_can( 'moderate_comments' ) ) {
-          do_action( 'zero_spam_found_spam_comment', $commentdata );
-          die( __( 'There was a problem processing your comment.', 'zerospam' ) );
+        if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) && ! current_user_can( 'moderate_comments' ) ) {
+            do_action( 'zero_spam_found_spam_comment', $commentdata );
+            die( __( 'There was a problem processing your comment.', 'zerospam' ) );
         }
         return $commentdata;
     }
@@ -123,7 +123,7 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Action_Reference/register_post
      */
     public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
-        if ( ! isset ( $_POST['zero-spam'] ) ) {
+        if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
             do_action( 'zero_spam_found_spam_registration', $errors, $sanitized_user_login, $user_email );
             $errors->add( 'spam_error', __( '<strong>ERROR</strong>: There was a problem processing your registration.', 'zerospam' ) );
         }
@@ -140,7 +140,11 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Function_Reference/wp_enqueue_script
      */
     public function wp_enqueue_scripts() {
-        wp_enqueue_script( 'zero-spam', plugins_url( '/zero-spam.min.js' , __FILE__ ), array( 'jquery' ), '1.1.0', true );
+        wp_register_script( 'zero-spam', plugins_url( '/zero-spam.min.js' , __FILE__ ), array( 'jquery' ), '1.1.0', true );
+        wp_localize_script( 'zero-spam', 'zerospam', array(
+            'nonce' => wp_create_nonce( 'zerospam' )
+        ) );
+        wp_enqueue_script( 'zero-spam' );
     }
 }
 

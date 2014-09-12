@@ -15,13 +15,15 @@
 
     var forms = "#commentform, #registerform";
 
-    $( forms ).submit( function() {
-        $( "<input>" ).attr( "type", "hidden" )
-            .attr( "name", "zero-spam" )
-            .attr( "value", "1" )
-            .appendTo( forms );
+    if ( typeof zerospam.nonce != 'undefined') {
+      $( forms ).submit( function() {
+          $( "<input>" ).attr( "type", "hidden" )
+              .attr( "name", "zero-spam" )
+              .attr( "value", zerospam.nonce )
+              .appendTo( forms );
 
-        return true;
-    });
+          return true;
+      });
+    }
 
 })( jQuery );
