@@ -57,8 +57,6 @@ class Zero_Spam {
         add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
         add_action( 'login_footer', array( $this, 'wp_enqueue_scripts' ) );
         add_action( 'preprocess_comment', array( $this, 'preprocess_comment' ) );
-
-        remove_action( 'wp_head', 'wp_generator' );
     }
 
     /**
