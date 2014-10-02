@@ -1,0 +1,50 @@
+.zero-spam__info {
+  border: 1px solid #ddd;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.zero-spam__inner {
+  padding: 10px;
+}
+
+.zero-spam__info a {
+  color: #ff183a;
+  text-decoration: none;
+  transition: all .3s;
+}
+
+.zero-spam__info a:hover {
+  color: #0086c6;
+}
+
+.wrap .zero-spam__info h2 {
+  margin: 0 0 5px 0;
+  padding: 0;
+  font-weight: 400;
+}
+
+.zero-spam__info h2 a {
+  color: #000;
+}
+
+.zero-spam__info .fa-star {
+  color: #fddb5a;
+}
+
+.zero-spam__button {
+  display: inline-block;
+  background: #00639e;
+  color: #fff !important;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  padding: 10px 15px;
+  font-weight: 600;
+}
+
+.zero-spam__button:hover {
+  background: #0086c6;
+}

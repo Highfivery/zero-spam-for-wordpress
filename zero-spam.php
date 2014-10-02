@@ -28,9 +28,21 @@
 /**
  * Security Note: Blocks direct access to the plugin PHP files.
  */
-defined('ABSPATH') or die("No script kiddies please!");
+defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 class Zero_Spam {
+    /*
+     * For easier overriding we declared the keys
+     * here as well as our tabs array which is populated
+     * when registering settings
+     */
+    private $settings = array(
+        'zerospam_general_settings' => array()
+    );
+    private $tabs = array(
+        'zerospam_general_settings' => 'General Settings'
+    );
+
     /**
      * Plugin initilization.
      *
@@ -44,6 +56,198 @@ class Zero_Spam {
     }
 
     /**
+     * Uses init.
+     *
+     * Adds WordPress actions using the plugin API.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/init
+     */
+    public function init() {
+        // Merge with defaults
+        $this->settings['zerospam_general_settings'] = array_merge( array(
+            'wp_generator' => 'remove',
+            'spammer_msg_comment' => 'There was a problem processing your comment.',
+            'spammer_msg_registration' => '<strong>ERROR</strong>: There was a problem processing your registration.'
+        ), $this->settings['zerospam_general_settings'] );
+    }
+
+    /**
+     * Uses admin_menu.
+     *
+     * Used to add extra submenus and menu options to the admin panel's menu structure.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/admin_menu
+     */
+    public function admin_menu() {
+        // Register plugin settings page
+        $hook_suffix = add_options_page(
+            __( 'Zero Spam Settings', 'zerospam' ),
+            __( 'Zero Spam', 'zerospam' ),
+            'manage_options',
+            'zerospam',
+            array( &$this, 'settings_page' )
+        );
+        // Add styles to hook
+        add_action( "load-{$hook_suffix}", array( &$this, 'load_zerospam_settings' ) );
+    }
+
+    public function load_zerospam_settings() {
+        if ( 'options-general.php' !== $GLOBALS['pagenow'] )
+            return;
+
+        wp_enqueue_style( 'zerospam-fontawesome', plugins_url( 'assets/css/font-awesome.min.css', __FILE__ ) );
+        wp_enqueue_style( 'zerospam-admin', plugins_url( 'assets/css/style.css', __FILE__ ) );
+    }
+
+    /*
+     * Plugin options page.
+     *
+     * Rendering goes here, checks for active tab and replaces key with the related
+     * settings key. Uses the _options_tabs method to render the tabs.
+     *
+     * @since 1.5.0
+     */
+    public function settings_page() {
+        $plugin = get_plugin_data( __FILE__ );
+        $tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
+        ?>
+        <div class="wrap">
+            <table>
+                <tbody>
+                    <tr>
+                        <td valign="top">
+                            <h2><?php echo __( 'WordPress Zero Spam Settings', 'zerospam' ); ?></h2>
+                            <?php $this->_options_tabs(); ?>
+                            <form method="post" action="options.php">
+                                <?php wp_nonce_field( 'zerospam-options' ); ?>
+                                <?php settings_fields( $tab ); ?>
+                                <?php do_settings_sections( $tab ); ?>
+                                <?php submit_button(); ?>
+                            </form>
+                        </td>
+                        <td valign="top" width="422">
+                            <div class="zero-spam__info">
+                                <a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><img src="//ps.w.org/zero-spam/assets/banner-772x250.png" width="100%" class="zero-spam__thumbnail"></a>
+                                <div class="zero-spam__inner">
+                                    <h2><a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><?php echo __( $plugin['Name'], 'zerospam' ); ?></a></h2>
+                                    <b><?php echo __( 'Rate', 'zerospam' ); ?>:</b> <a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" target="_blank"><i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i>
+                                    <i class="fa fa-star"></i></a> |
+                                    <b>Version:</b> <?php echo $plugin['Version']; ?> | <b>Author:</b> <?php echo $plugin['Author']; ?>
+                                    <p><?php echo $plugin['Description']; ?></p>
+                                    <p><small>If you have suggestions for a new add-on, feel free to email me at <a href="mailto:me@benmarshall.me">me@benmarshall.me</a>. Want regular updates? Follow me on <a href="https://twitter.com/bmarshall0511" target="_blank">Twitter</a> or <a href="http://www.benmarshall.me/" target="_blank">visit my blog</a>.</small></p>
+                                    <p>
+                                        <a href="https://www.gittip.com/bmarshall511/" class="zero-spam__button" target="_blank"><?php echo __( 'Show Support &mdash; Donate!', 'zerospam' ); ?></a>
+                                        <a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" class="zero-spam__button" target="_blank"><?php echo __( 'Spread the Love &mdash; Rate!', 'zerospam' ); ?></a>
+                                    </p>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <?php
+    }
+
+    /**
+     * Uses admin_init.
+     *
+     * Triggered before any other hook when a user accesses the admin area.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/admin_init
+     */
+    public function admin_init() {
+        $this->_register_settings();
+    }
+
+    /*
+     * WP generator meta tag option.
+     *
+     * Field callback, renders radio inputs, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    function field_wp_generator() {
+        ?>
+        <input type="radio" id="wp_generator_remove" name="zerospam_general_settings[wp_generator]" value="remove"<?php if( $this->settings['zerospam_general_settings']['wp_generator'] == 'remove' ): ?> checked="checked"<?php endif; ?>> <label for="wp_generator_remove"><?php echo __( 'Hide', 'zerospam' ); ?></label>&nbsp;&nbsp;&nbsp;&nbsp;
+
+        <input type="radio" id="wp_generator_show" name="zerospam_general_settings[wp_generator]" value="show"<?php if( $this->settings['zerospam_general_settings']['wp_generator'] == 'show' ): ?> checked="checked"<?php endif; ?>> <label for="wp_generator_show"><?php echo __( 'Show', 'zerospam' ); ?></label>
+
+        <p class="description"><?php echo __( 'It can be considered a security risk to make your WordPress version visible and public you should hide it.', 'zerospam' ); ?></p>
+        <?php
+    }
+
+    /*
+     * Spam comment message option.
+     *
+     * Field callback, renders a text input, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    function field_spammer_msg_comment() {
+        ?>
+        <input type="text" class="regular-text" anme="zerospam_general_settings[spammer_msg_comment]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_comment'] ); ?>">
+        <p class="description"><?php echo __( 'Enter a short message to display when a spam comment has been detected.', 'zerospam' ); ?></p>
+        <?php
+    }
+
+    /*
+     * Spam registration message option.
+     *
+     * Field callback, renders a text input, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    function field_spammer_msg_registration() {
+        ?>
+        <input type="text" class="regular-text" anme="zerospam_general_settings[spammer_msg_registration]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_registration'] ); ?>">
+        <p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected.', 'zerospam' ); ?></p>
+        <?php
+    }
+
+    /*
+     * Renders setting tabs.
+     *
+     * Walks through the object's tabs array and prints them one by one.
+     * Provides the heading for the settings_page method.
+     *
+     * @since 1.5.0
+     */
+    private function _options_tabs() {
+        $current_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
+        echo '<h2 class="nav-tab-wrapper">';
+        foreach ( $this->tabs as $key => $name ) {
+            $active = $current_tab == $key ? 'nav-tab-active' : '';
+            echo '<a class="nav-tab ' . $active . '" href="?page=zerospam&tab=' . $key . '">' . $name . '</a>';
+        }
+        echo '</h2>';
+    }
+
+    /*
+     * Registers the settings.
+     *
+     * Appends the key to the plugin settings tabs array.
+     *
+     * @since 1.5.0
+     */
+    private function _register_settings() {
+        register_setting( 'zerospam_general_settings', 'zerospam_general_settings' );
+        add_settings_section( 'section_general', __( 'General Settings', 'zerospam' ), false, 'zerospam_general_settings' );
+        add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
+        add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
+        add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
+    }
+
+    /**
      * WordPress actions.
      *
      * Adds WordPress actions using the plugin API.
@@ -54,11 +258,18 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Action_Reference
      */
     private function _actions() {
-        add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
-        add_action( 'login_footer', array( $this, 'wp_enqueue_scripts' ) );
-        add_action( 'preprocess_comment', array( $this, 'preprocess_comment' ) );
+        $this->settings['zerospam_general_settings'] = (array) get_option( 'zerospam_general_settings' );
 
-        remove_action( 'wp_head', 'wp_generator' );
+        add_action( 'init', array( &$this, 'init' ) );
+        add_action( 'admin_init', array( &$this, 'admin_init' ) );
+        add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
+        add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
+        add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
+        add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
+
+        if( $this->settings['zerospam_general_settings']['wp_generator'] == 'remove' ) {
+            remove_action( 'wp_head', 'wp_generator' );
+        }
     }
 
     /**
@@ -106,7 +317,7 @@ class Zero_Spam {
     public function preprocess_comment( $commentdata ) {
         if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) && ! current_user_can( 'moderate_comments' ) ) {
             do_action( 'zero_spam_found_spam_comment', $commentdata );
-            die( __( 'There was a problem processing your comment.', 'zerospam' ) );
+            die( __( $this->settings['zerospam_general_settings']['spammer_msg_comment'], 'zerospam' ) );
         }
         return $commentdata;
     }
@@ -125,7 +336,7 @@ class Zero_Spam {
     public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
         if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
             do_action( 'zero_spam_found_spam_registration', $errors, $sanitized_user_login, $user_email );
-            $errors->add( 'spam_error', __( '<strong>ERROR</strong>: There was a problem processing your registration.', 'zerospam' ) );
+            $errors->add( 'spam_error', __( $this->settings['zerospam_general_settings']['spammer_msg_registration'], 'zerospam' ) );
         }
         return $errors;
     }
