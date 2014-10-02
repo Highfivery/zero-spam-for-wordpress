@@ -3,13 +3,17 @@
  */
 
 .zero-spam__info {
-  margin-bottom: 10px;
-  border: 1px solid #e8e8e8;
+  margin-bottom: 40px;
+  border: 1px solid #ddd;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;
   background: #fff;
   overflow: hidden;
+}
+
+.zero-spam__info p {
+  margin-bottom: 20px;
 }
 
 .zero-spam__inner {
@@ -27,7 +31,7 @@
 }
 
 .wrap .zero-spam__info h2 {
-  margin: 0 0 5px 0;
+  margin: 10px 0 5px 0;
   padding: 0;
   font-weight: 400;
 }
@@ -55,9 +59,13 @@
   background: #0086c6;
 }
 
+.zero-spam__description {
+  margin: 0 0 20px 0;
+}
+
 .wrap .zero-spam__info h2.zero-spam__title {
   display: block;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid #ddd;
   padding: 10px;
   font-size: 15px;
   font-weight: 600;

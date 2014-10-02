@@ -15,12 +15,12 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
     <a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><img src="//ps.w.org/zero-spam/assets/banner-772x250.png" width="100%" class="zero-spam__thumbnail"></a>
     <div class="zero-spam__inner">
         <h2><a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><?php echo __( $plugin['Name'], 'zerospam' ); ?></a></h2>
-        <b><?php echo __( 'Rate', 'zerospam' ); ?>:</b> <a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" target="_blank"><i class="fa fa-star"></i>
+        <p class="zero-spam__description"><b><?php echo __( 'Rate', 'zerospam' ); ?>:</b> <a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" target="_blank"><i class="fa fa-star"></i>
         <i class="fa fa-star"></i>
         <i class="fa fa-star"></i>
         <i class="fa fa-star"></i>
         <i class="fa fa-star"></i></a> |
-        <b>Version:</b> <?php echo $plugin['Version']; ?> | <b><?php echo __( 'Author', 'zerospam' ); ?></b> <?php echo $plugin['Author']; ?>
+        <b>Version:</b> <?php echo $plugin['Version']; ?> | <b><?php echo __( 'Author', 'zerospam' ); ?></b> <?php echo $plugin['Author']; ?></p>
         <p><?php echo $plugin['Description']; ?></p>
         <p><small>If you have suggestions for a new add-on, feel free to email me at <a href="mailto:me@benmarshall.me">me@benmarshall.me</a>. Want regular updates? Follow me on <a href="https://twitter.com/bmarshall0511" target="_blank">Twitter</a> or <a href="http://www.benmarshall.me/" target="_blank">visit my blog</a>.</small></p>
         <p>
@@ -29,3 +29,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
         </p>
     </div>
 </div>
+
+<h3><?php echo __( 'Are you a WordPress developer?', 'zerospam' ); ?></h3>
+
+<p><?php echo __( 'Help grow this plugin, integrate into your own or add new features by contributing.', 'zerospam' ); ?></p>
+<p><a href="https://github.com/bmarshall511/wordpress-zero-spam/fork" target="_blank" class="button button-large button-primary"><?php echo __( 'Fork it on GitHub!', 'zerospam' ); ?></a></p>

@@ -179,7 +179,7 @@ class Zero_Spam {
      *
      * @since 1.5.0
      */
-    function field_spammer_msg_comment() {
+    public function field_spammer_msg_comment() {
         ?>
         <input type="text" class="regular-text" anme="zerospam_general_settings[spammer_msg_comment]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_comment'] ); ?>">
         <p class="description"><?php echo __( 'Enter a short message to display when a spam comment has been detected.', 'zerospam' ); ?></p>
@@ -193,11 +193,25 @@ class Zero_Spam {
      *
      * @since 1.5.0
      */
-    function field_spammer_msg_registration() {
+    public function field_spammer_msg_registration() {
         ?>
         <input type="text" class="regular-text" anme="zerospam_general_settings[spammer_msg_registration]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_registration'] ); ?>">
         <p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
         <?php
+    }
+
+    /**
+     * Add setting link to plugin.
+     *
+     * Applied to the list of links to display on the plugins page (beside the activate/deactivate links).
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/plugin_action_links_(plugin_file_name)
+     */
+    public function plugin_action_links( $links ) {
+        $link = array( '<a href="' . admin_url( 'options-general.php?page=zerospam' ) . '">' . __( 'Settings', 'zerospam' ) . '</a>' );
+        return array_merge( $links, $link );
     }
 
     /*
@@ -270,6 +284,7 @@ class Zero_Spam {
      */
     private function _filters() {
         add_filter( 'plugin_row_meta', array( &$this, 'plugin_row_meta' ), 10, 2 );
+        add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( &$this, 'plugin_action_links' ) );
         add_filter( 'registration_errors', array( &$this, 'preprocess_registration' ), 10, 3 );
     }
 
