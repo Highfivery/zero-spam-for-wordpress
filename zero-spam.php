@@ -30,6 +30,9 @@
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
+// Define constants
+define( 'ZEROSPAM_ROOT', dirname( __FILE__ ) . '/' );
+
 class Zero_Spam {
     /*
      * For easier overriding we declared the keys
@@ -119,7 +122,7 @@ class Zero_Spam {
             <table>
                 <tbody>
                     <tr>
-                        <td valign="top">
+                        <td valign="top" style="padding-right: 17px">
                             <h2><?php echo __( 'WordPress Zero Spam Settings', 'zerospam' ); ?></h2>
                             <?php $this->_options_tabs(); ?>
                             <form method="post" action="options.php">
@@ -130,24 +133,7 @@ class Zero_Spam {
                             </form>
                         </td>
                         <td valign="top" width="422">
-                            <div class="zero-spam__info">
-                                <a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><img src="//ps.w.org/zero-spam/assets/banner-772x250.png" width="100%" class="zero-spam__thumbnail"></a>
-                                <div class="zero-spam__inner">
-                                    <h2><a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><?php echo __( $plugin['Name'], 'zerospam' ); ?></a></h2>
-                                    <b><?php echo __( 'Rate', 'zerospam' ); ?>:</b> <a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" target="_blank"><i class="fa fa-star"></i>
-                                    <i class="fa fa-star"></i>
-                                    <i class="fa fa-star"></i>
-                                    <i class="fa fa-star"></i>
-                                    <i class="fa fa-star"></i></a> |
-                                    <b>Version:</b> <?php echo $plugin['Version']; ?> | <b>Author:</b> <?php echo $plugin['Author']; ?>
-                                    <p><?php echo $plugin['Description']; ?></p>
-                                    <p><small>If you have suggestions for a new add-on, feel free to email me at <a href="mailto:me@benmarshall.me">me@benmarshall.me</a>. Want regular updates? Follow me on <a href="https://twitter.com/bmarshall0511" target="_blank">Twitter</a> or <a href="http://www.benmarshall.me/" target="_blank">visit my blog</a>.</small></p>
-                                    <p>
-                                        <a href="https://www.gittip.com/bmarshall511/" class="zero-spam__button" target="_blank"><?php echo __( 'Show Support &mdash; Donate!', 'zerospam' ); ?></a>
-                                        <a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" class="zero-spam__button" target="_blank"><?php echo __( 'Spread the Love &mdash; Rate!', 'zerospam' ); ?></a>
-                                    </p>
-                                </div>
-                            </div>
+                            <?php require_once( ZEROSPAM_ROOT . 'inc/admin-sidebar.tpl.php' ); ?>
                         </td>
                     </tr>
                 </tbody>
@@ -210,7 +196,7 @@ class Zero_Spam {
     function field_spammer_msg_registration() {
         ?>
         <input type="text" class="regular-text" anme="zerospam_general_settings[spammer_msg_registration]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_registration'] ); ?>">
-        <p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected.', 'zerospam' ); ?></p>
+        <p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
         <?php
     }
 

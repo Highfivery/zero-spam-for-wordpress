@@ -1,9 +1,15 @@
+/**
+ * WordPress Zero Spam Settings Page Styles
+ */
+
 .zero-spam__info {
-  border: 1px solid #ddd;
+  margin-bottom: 10px;
+  border: 1px solid #e8e8e8;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;
   background: #fff;
+  overflow: hidden;
 }
 
 .zero-spam__inner {
@@ -47,4 +53,12 @@
 
 .zero-spam__button:hover {
   background: #0086c6;
+}
+
+.wrap .zero-spam__info h2.zero-spam__title {
+  display: block;
+  border-bottom: 1px solid #e8e8e8;
+  padding: 10px;
+  font-size: 15px;
+  font-weight: 600;
 }
