@@ -170,6 +170,9 @@ class Zero_Spam {
      * @since 1.5.0
      */
     function field_wp_generator() {
+	    if ( ! isset( $this->settings['zerospam_general_settings']['wp_generator'] ) ) {
+		    $this->settings['zerospam_general_settings']['wp_generator'] = '0';
+	    }
         ?>
 	    <label for="wp_generator_remove">
 		    <input type="checkbox" id="wp_generator_remove" name="zerospam_general_settings[wp_generator]" value="1" <?php checked( $this->settings['zerospam_general_settings']['wp_generator'] ) ?> /> <?php echo __( 'Hide WP Generator Meta Tag', 'zerospam' ); ?>
