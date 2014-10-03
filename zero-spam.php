@@ -33,7 +33,7 @@
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 // Define constants
-define( 'ZEROSPAM_ROOT', dirname( __FILE__ ) . '/' );
+define( 'ZEROSPAM_ROOT', dirname( __FILE__ ) );
 
 class Zero_Spam {
     /*
@@ -44,12 +44,13 @@ class Zero_Spam {
     private $settings = array(
         'zerospam_general_settings' => array()
     );
+
     private $tabs = array(
         'zerospam_general_settings' => 'General Settings'
     );
 
     /**
-     * Plugin initilization.
+     * Plugin initialization.
      *
      * Initializes the plugins functionality.
      *
@@ -101,8 +102,9 @@ class Zero_Spam {
     }
 
     public function load_zerospam_settings() {
-        if ( 'options-general.php' !== $GLOBALS['pagenow'] )
-            return;
+        if ( 'options-general.php' !== $GLOBALS['pagenow'] ) {
+	        return false;
+        }
 
         wp_enqueue_style( 'zerospam-fontawesome', plugins_url( 'assets/css/font-awesome.min.css', __FILE__ ) );
         wp_enqueue_style( 'zerospam-admin', plugins_url( 'assets/css/style.css', __FILE__ ) );
@@ -135,7 +137,7 @@ class Zero_Spam {
                             </form>
                         </td>
                         <td valign="top" width="422">
-                            <?php require_once( ZEROSPAM_ROOT . 'inc/admin-sidebar.tpl.php' ); ?>
+                            <?php require_once( ZEROSPAM_ROOT . '/inc/admin-sidebar.tpl.php' ); ?>
                         </td>
                     </tr>
                 </tbody>
@@ -304,6 +306,7 @@ class Zero_Spam {
             $links = array_merge( $links, array( '<a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/">WordPress Zero Spam</a>' ) );
             $links = array_merge( $links, array( '<a href="https://www.gittip.com/bmarshall511/">Donate</a>' ) );
         }
+
         return $links;
     }
 
@@ -322,6 +325,7 @@ class Zero_Spam {
             do_action( 'zero_spam_found_spam_comment', $commentdata );
             die( __( $this->settings['zerospam_general_settings']['spammer_msg_comment'], 'zerospam' ) );
         }
+
         return $commentdata;
     }
 
@@ -341,6 +345,7 @@ class Zero_Spam {
             do_action( 'zero_spam_found_spam_registration', $errors, $sanitized_user_login, $user_email );
             $errors->add( 'spam_error', __( $this->settings['zerospam_general_settings']['spammer_msg_registration'], 'zerospam' ) );
         }
+
         return $errors;
     }
 
