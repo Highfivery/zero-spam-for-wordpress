@@ -316,7 +316,7 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
      */
     public function preprocess_comment( $commentdata ) {
-        if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) && ! current_user_can( 'moderate_comments' ) ) {
+        if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) && ! current_user_can( 'moderate_comments' ) && is_user_logged_in() ) {
             do_action( 'zero_spam_found_spam_comment', $commentdata );
             die( __( $this->settings['zerospam_general_settings']['spammer_msg_comment'], 'zerospam' ) );
         }
