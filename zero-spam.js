@@ -13,8 +13,7 @@
 ( function( $ ) {
     'use strict';
 
-    var forms = "#commentform, #registerform";
-
+    var forms = "#commentform, #registerform, .wpcf7-form";
     $( forms ).submit( function() {
         $( "<input>" ).attr( "type", "hidden" )
             .attr( "name", "zero-spam" )
