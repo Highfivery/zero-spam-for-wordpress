@@ -33,6 +33,11 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 // Define constants
 define( 'ZEROSPAM_ROOT', dirname( __FILE__ ) . '/' );
 
+/**
+ * Detect plugin
+ */
+include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+
 class Zero_Spam {
     /*
      * For easier overriding we declared the keys
@@ -40,11 +45,15 @@ class Zero_Spam {
      * when registering settings
      */
     private $settings = array(
-        'zerospam_general_settings' => array()
+        'zerospam_general_settings' => array(),
     );
 
     private $tabs = array(
         'zerospam_general_settings' => 'General Settings'
+    );
+
+    private $plugins = array(
+    	'cf7' => false
     );
 
     private $db_version = "1.0.0";
@@ -59,6 +68,7 @@ class Zero_Spam {
     public function __construct() {
     	register_activation_hook( __FILE__, array( &$this, 'install' ) );
 
+    	$this->_plugin_check();
     	$this->_load_settings();
         $this->_actions();
         $this->_filters();
@@ -163,6 +173,13 @@ class Zero_Spam {
         <?php
     }
 
+    private function _plugin_check() {
+    	// Contact From 7 support
+    	if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
+    		$this->plugins['cf7'] = true;
+		}
+    }
+
     /**
      * Parses the spammer ary from the DB
      *
@@ -174,6 +191,7 @@ class Zero_Spam {
             'raw' => $ary,
             'comment_spam' => 0,
             'registration_spam' => 0,
+            'cf7_spam' => 0,
             'unique_spammers' => array(),
         );
 
@@ -183,7 +201,8 @@ class Zero_Spam {
                 $return['by_date'][ substr( $obj->date, 0, 10) ] = array(
                     'data' => array(),
                     'comment_spam' => 0,
-                    'registration_spam' => 0
+                    'registration_spam' => 0,
+                    'cf7_spam' => 0
                 );
             }
 
@@ -206,6 +225,11 @@ class Zero_Spam {
                 // Comment spam
                 $return['by_date'][ substr( $obj->date, 0, 10) ]['comment_spam']++;
                 $return['comment_spam']++;
+            } elseif ( $obj->type == 3 ) {
+
+                // Contact Form 7 spam
+                $return['by_date'][ substr( $obj->date, 0, 10) ]['cf7_spam']++;
+                $return['cf7_spam']++;
             }
 
             // Unique spammers
@@ -405,7 +429,11 @@ class Zero_Spam {
         add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
         add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
         add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
-        add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
+
+        if ( $this->plugins['cf7'] ) {
+        	add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
+        }
+
         add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
     }
 
@@ -428,7 +456,7 @@ class Zero_Spam {
             case 'comment':
                 $type = 2;
             break;
-            case 'CF7':
+            case 'cf7':
                 $type = 3;
             break;
         }
@@ -628,6 +656,8 @@ class Zero_Spam {
 
             $result['valid'] = false;
             $result['reason']['zero_spam'] = __( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'], 'zerospam' );
+
+            $this->_log_spam( 'cf7' );
         }
         return $result;
     }

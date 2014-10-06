@@ -18,6 +18,25 @@ $per_day = $this->num_days( end( $spam['raw'] )->date ) ? number_format( ( count
 $num_days = $this->num_days( end( $spam['raw'] )->date );
 $starting_date = end( $spam['raw'] )->date;
 
+$stats_summary = ucfirst( $this->num_to_word( $spam['registration_spam'] ) ) . ' (';
+$stats_summary .= '<b>' . ( $spam['registration_spam'] / count( $spam['raw'] ) * 100 ) . '%) were from registrations</b>';
+if ( $this->plugins['cf7'] ):
+	$stats_summary .= ', ';
+else:
+	$stats_summary .= ' and ';
+endif;
+$stats_summary .= '<b>' . $this->num_to_word( $spam['comment_spam'] )  . ' (';
+$stats_summary .= ( $spam['comment_spam'] / count( $spam['raw'] ) * 100 ) . '%) from comments</b>';
+if ( $this->plugins['cf7'] ):
+	$stats_summary .= ' and ';
+else:
+	$stats_summary .= '.';
+endif;
+if ( $this->plugins['cf7'] ):
+	$stats_summary .= '<b>' . $this->num_to_word( $spam['cf7_spam'] )  . ' (';
+	$stats_summary .= ( $spam['cf7_spam'] / count( $spam['raw'] ) * 100 ) . '%) from Contact Form 7 submissions</b>.';
+endif;
+
 ?><div class="zero-spam__row">
 	<div class="zero-spam__cell">
 		<div class="zero-spam__widget zero-spam__bg--secondary">
@@ -61,20 +80,21 @@ $starting_date = end( $spam['raw'] )->date;
 				<h3><?php echo __( 'Stats', 'zerospam' ); ?></h3>
 				<div class="zero-spam__row">
 					<div class="zero-spam__stat">
-						<?php echo __( 'Comment Spam', 'zerospam' ); ?>
+						<?php echo __( 'Comments', 'zerospam' ); ?>
 						<b><?php echo number_format( $spam['comment_spam'], 0 ); ?></b>
 					</div>
 					<div class="zero-spam__stat">
-						<?php echo __( 'Registration Spam', 'zerospam' ); ?>
+						<?php echo __( 'Registrations', 'zerospam' ); ?>
 						<b><?php echo number_format( $spam['registration_spam'], 0 ); ?></b>
 					</div>
+					<?php if ( $this->plugins['cf7'] ): ?>
+						<div class="zero-spam__stat">
+							<?php echo __( 'Contact Form 7', 'zerospam' ); ?>
+							<b><?php echo number_format( $spam['cf7_spam'], 0 ); ?></b>
+						</div>
+					<?php endif; ?>
 				</div>
-				<?php
-				echo ucfirst( $this->num_to_word( $spam['registration_spam'] ) ) . ' (';
-				echo '<b>' . ( $spam['registration_spam'] / count( $spam['raw'] ) * 100 ) . '%) were from registrations</b> and ';
-				echo '<b>' . $this->num_to_word( $spam['comment_spam'] )  . ' (';
-				echo ( $spam['comment_spam'] / count( $spam['raw'] ) * 100 ) . '%) from comments</b>.';
-				?>
+				<p><?php echo $stats_summary; ?></p>
 			</div>
 		</div>
 	</div>
@@ -96,17 +116,27 @@ $starting_date = end( $spam['raw'] )->date;
 					{
 					    'date': '<?php echo $date; ?>',
 					    'spam_comments': <?php echo $ary['comment_spam']; ?>,
-					    'spam_registrations': <?php echo $ary['registration_spam']; ?>
+					    'spam_registrations': <?php echo $ary['registration_spam']; ?>,
+					    <?php if ( $this->plugins['cf7'] ): ?>'spam_cf7': <?php echo $ary['cf7_spam']; ?><?php endif; ?>
 					},
 					<?php endforeach; ?>
 				],
 				xkey: 'date',
-				ykeys: ['spam_comments', 'spam_registrations'],
-				labels: ['<?php echo __( 'Spam Comments', 'zerospam' ); ?>', '<?php echo __( 'Spam Registrations', 'zerospam' ); ?>'],
+				ykeys: [
+					'spam_comments',
+					'spam_registrations',
+					<?php if ( $this->plugins['cf7'] ): ?>'spam_cf7',<?php endif; ?>
+				],
+				labels: [
+					'<?php echo __( 'Spam Comments', 'zerospam' ); ?>',
+					'<?php echo __( 'Spam Registrations', 'zerospam' ); ?>',
+					<?php if ( $this->plugins['cf7'] ): ?>'<?php echo __( 'Contact Form 7', 'zerospam' ); ?>',<?php endif; ?>
+				],
 				xLabels: 'day',
 				lineColors: [
 					'#00639e',
-					'#ff183a'
+					'#ff183a',
+					'#1b1e24'
 				],
 		  	});
 
@@ -114,13 +144,15 @@ $starting_date = end( $spam['raw'] )->date;
 				element: 'zero-spam__donut',
 				data: [
 					{value: <?php echo ( $spam['comment_spam'] / count( $spam['raw'] ) * 100 ); ?>, label: 'Comments'},
-					{value: <?php echo ( $spam['registration_spam'] / count( $spam['raw'] ) * 100 ); ?>, label: 'Registrations'}
+					{value: <?php echo ( $spam['registration_spam'] / count( $spam['raw'] ) * 100 ); ?>, label: 'Registrations'},
+					<?php if ( $this->plugins['cf7'] ): ?>{value: <?php echo ( $spam['cf7_spam'] / count( $spam['raw'] ) * 100 ); ?>, label: 'Contact Form 7'}<?php endif; ?>
 				],
 				backgroundColor: '#ff183a',
 				labelColor: '#ffffff',
 				colors: [
 					'#fd687e',
-					'#fbacb8'
+					'#fbacb8',
+					'#fbc3cb'
 				],
 				formatter: function (x) { return x + "%"}
 			});
@@ -144,6 +176,9 @@ $starting_date = end( $spam['raw'] )->date;
                         break;
                         case 2:
                             $type = __( 'Comment', 'zerospam' );
+                        break;
+                        case 3:
+                            $type = __( 'Contact Form 7', 'zerospam' );
                         break;
                     }
                 ?>

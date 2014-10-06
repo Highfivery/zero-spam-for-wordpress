@@ -51,7 +51,7 @@ Yes, currently there are three hooks available:
 
 * `zero_spam_found_spam_registration` - Runs after a spam registration is detected
 * `zero_spam_found_spam_comment` - Runs after a spam comment is detected
-* `zero_spam_found_spam_cf7_form_submission` - Runs after a spam contact form 7 form submission is detected
+* `zero_spam_found_spam_cf7_form_submission` - Runs after a spam Contact Form 7 form submission is detected
 
 == Screenshots ==
 
