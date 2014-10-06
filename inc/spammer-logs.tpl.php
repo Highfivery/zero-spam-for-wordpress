@@ -125,11 +125,13 @@ endif;
 				ykeys: [
 					'spam_comments',
 					'spam_registrations',
-					<?php if ( $this->plugins['cf7'] ): ?>'spam_cf7'],<?php endif; ?>
+					<?php if ( $this->plugins['cf7'] ): ?>'spam_cf7',<?php endif; ?>
+				],
 				labels: [
 					'<?php echo __( 'Spam Comments', 'zerospam' ); ?>',
 					'<?php echo __( 'Spam Registrations', 'zerospam' ); ?>',
-					<?php if ( $this->plugins['cf7'] ): ?>'<?php echo __( 'Contact Form 7', 'zerospam' ); ?>'],<?php endif; ?>
+					<?php if ( $this->plugins['cf7'] ): ?>'<?php echo __( 'Contact Form 7', 'zerospam' ); ?>',<?php endif; ?>
+				],
 				xLabels: 'day',
 				lineColors: [
 					'#00639e',
