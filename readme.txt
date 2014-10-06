@@ -58,6 +58,11 @@ Yes, currently there's two hooks available:
 = 1.5.0 =
 * Switched to using a nonce to validate form submissions that support WordPress Zero Spam
 * Added Zero Spam plugin settings page for advanced control
+* Fix for for non-logged in users (https://github.com/bmarshall511/wordpress-zero-spam/pull/27, thanks @afragen)
+* Added blank index.php files to prevent directory browsing (https://github.com/bmarshall511/wordpress-zero-spam/pull/24, thanks @TangRufus)
+* Added uninstall.php (https://github.com/bmarshall511/wordpress-zero-spam/pull/23, thanks @TangRufus)
+* Addded support for GitHub Updater plugin (https://github.com/bmarshall511/wordpress-zero-spam/pull/21, thanks @afragen)
+* Added support for Contact Form 7 form submissions (https://github.com/bmarshall511/wordpress-zero-spam/pull/26, thanks @leewillis77)
 
 = 1.4.0 =
 * Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)
