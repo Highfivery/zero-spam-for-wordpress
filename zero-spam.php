@@ -140,7 +140,11 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Function_Reference/wp_enqueue_script
      */
     public function wp_enqueue_scripts() {
-        wp_enqueue_script( 'zero-spam', plugins_url( '/zero-spam.min.js' , __FILE__ ), array( 'jquery' ), '1.1.0', true );
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            wp_enqueue_script( 'zero-spam', plugins_url( '/zero-spam.js' , __FILE__ ), array( 'jquery' ), '1.1.0', true );
+        } else {
+            wp_enqueue_script( 'zero-spam', plugins_url( '/zero-spam.min.js' , __FILE__ ), array( 'jquery' ), '1.1.0', true );
+        }
     }
 }
 
