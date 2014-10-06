@@ -265,6 +265,7 @@ class Zero_Spam {
         add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
         add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
         add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
+        add_action( 'wpcf7_validate', array( $this, 'wpcf7_validate' ) );
 
         if( $this->settings['zerospam_general_settings']['wp_generator'] == 'remove' ) {
             remove_action( 'wp_head', 'wp_generator' );
@@ -339,6 +340,24 @@ class Zero_Spam {
             $errors->add( 'spam_error', __( $this->settings['zerospam_general_settings']['spammer_msg_registration'], 'zerospam' ) );
         }
         return $errors;
+    }
+
+     /**
+     * Validate Contact Form 7 (https://wordpress.org/plugins/contact-form-7/) form submissions.
+     *
+     * Validates the contact form 7 form submission, and flags the form submission as invalid if
+     * the zero-spam post data isn't present.
+     *
+     * @since  1.5.0
+     *
+     */
+    public function wpcf7_validate( $result ) {
+        if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
+            do_action( 'zero_spam_found_spam_cf7_form_submission' );
+            $result['valid'] = false;
+            $result['reason']['zero_spam'] = __( 'There was a problem with your form submission.', 'zerospam' );
+        }
+        return $result;
     }
 
     /**
