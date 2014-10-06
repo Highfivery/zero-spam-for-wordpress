@@ -171,7 +171,10 @@ class Zero_Spam {
     private function _parse_spam_ary( $ary ) {
         $return = array(
             'by_date' => array(),
-            'raw' => $ary
+            'raw' => $ary,
+            'comment_spam' => 0,
+            'registration_spam' => 0,
+            'unique_spammers' => array()
         );
 
         foreach( $ary as $key => $obj ) {
@@ -192,15 +195,24 @@ class Zero_Spam {
                 'date' => $obj->date
             );
 
+            // Spam type
             if ( $obj->type == 1 ) {
 
                 // Registration spam
                 $return['by_date'][ substr( $obj->date, 0, 10) ]['registration_spam']++;
+                $return['registration_spam']++;
             } elseif ( $obj->type == 2 ) {
 
                 // Comment spam
                 $return['by_date'][ substr( $obj->date, 0, 10) ]['comment_spam']++;
+                $return['comment_spam']++;
             }
+
+            // Unique spammers
+            if ( ! in_array( $obj->ip, $return['unique_spammers'] ) ) {
+            	$return['unique_spammers'][] = $obj->ip;
+            }
+
         }
 
         return $return;
@@ -619,6 +631,129 @@ class Zero_Spam {
         ) );
         wp_enqueue_script( 'zero-spam' );
     }
+
+    private function num_days( $date ) {
+    	$datediff = time() - strtotime( $date );
+    	return floor( $datediff / ( 60 * 60 * 24) );
+    }
+
+    /**
+     * Converts numbers to words.
+     *
+     * @since 1.5.0
+     *
+     * @link http://www.karlrixon.co.uk/writing/convert-numbers-to-words-with-php/
+     */
+    private function num_to_word( $num ) {
+	    $hyphen      = '-';
+	    $conjunction = ' and ';
+	    $separator   = ', ';
+	    $negative    = 'negative ';
+	    $decimal     = ' point ';
+	    $dictionary  = array(
+	        0                   => 'zero',
+	        1                   => 'one',
+	        2                   => 'two',
+	        3                   => 'three',
+	        4                   => 'four',
+	        5                   => 'five',
+	        6                   => 'six',
+	        7                   => 'seven',
+	        8                   => 'eight',
+	        9                   => 'nine',
+	        10                  => 'ten',
+	        11                  => 'eleven',
+	        12                  => 'twelve',
+	        13                  => 'thirteen',
+	        14                  => 'fourteen',
+	        15                  => 'fifteen',
+	        16                  => 'sixteen',
+	        17                  => 'seventeen',
+	        18                  => 'eighteen',
+	        19                  => 'nineteen',
+	        20                  => 'twenty',
+	        30                  => 'thirty',
+	        40                  => 'fourty',
+	        50                  => 'fifty',
+	        60                  => 'sixty',
+	        70                  => 'seventy',
+	        80                  => 'eighty',
+	        90                  => 'ninety',
+	        100                 => 'hundred',
+	        1000                => 'thousand',
+	        1000000             => 'million',
+	        1000000000          => 'billion',
+	        1000000000000       => 'trillion',
+	        1000000000000000    => 'quadrillion',
+	        1000000000000000000 => 'quintillion'
+	    );
+
+	    if (!is_numeric($num)) {
+	        return false;
+	    }
+
+	    if (($num >= 0 && (int) $num < 0) || (int) $num < 0 - PHP_INT_MAX) {
+	        // overflow
+	        trigger_error(
+	            'convert_number_to_words only accepts numbers between -' . PHP_INT_MAX . ' and ' . PHP_INT_MAX,
+	            E_USER_WARNING
+	        );
+	        return false;
+	    }
+
+	    if ($num < 0) {
+	        return $negative . convert_number_to_words(abs($num));
+	    }
+
+	    $string = $fraction = null;
+
+	    if (strpos($num, '.') !== false) {
+	        list($num, $fraction) = explode('.', $num);
+	    }
+
+	    switch (true) {
+	        case $num < 21:
+	            $string = $dictionary[$num];
+	            break;
+	        case $num < 100:
+	            $tens   = ((int) ($num / 10)) * 10;
+	            $units  = $num % 10;
+	            $string = $dictionary[$tens];
+	            if ($units) {
+	                $string .= $hyphen . $dictionary[$units];
+	            }
+	            break;
+	        case $num < 1000:
+	            $hundreds  = $num / 100;
+	            $remainder = $num % 100;
+	            $string = $dictionary[$hundreds] . ' ' . $dictionary[100];
+	            if ($remainder) {
+	                $string .= $conjunction . convert_number_to_words($remainder);
+	            }
+	            break;
+	        default:
+	            $baseUnit = pow(1000, floor(log($num, 1000)));
+	            $numBaseUnits = (int) ($num / $baseUnit);
+	            $remainder = $num % $baseUnit;
+	            $string = convert_number_to_words($numBaseUnits) . ' ' . $dictionary[$baseUnit];
+	            if ($remainder) {
+	                $string .= $remainder < 100 ? $conjunction : $separator;
+	                $string .= convert_number_to_words($remainder);
+	            }
+	            break;
+	    }
+
+	    if (null !== $fraction && is_numeric($fraction)) {
+	        $string .= $decimal;
+	        $words = array();
+	        foreach (str_split((string) $fraction) as $num) {
+	            $words[] = $dictionary[$num];
+	        }
+	        $string .= implode(' ', $words);
+	    }
+
+	    return $string;
+	}
 }
 
 $zero_spam = new Zero_Spam;

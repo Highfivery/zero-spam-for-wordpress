@@ -4,7 +4,6 @@
 
 .zero-spam__widget {
   margin: 20px 0;
-  border: 1px solid #ddd;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;
@@ -14,6 +13,13 @@
 
 .zero-spam__inner {
   padding: 20px;
+}
+
+.zero-spam__widget h3 {
+	margin-top: 0;
+	text-transform: uppercase;
+	font-size: 10.5px;
+	color: #1b1e24;
 }
 
 .zero-spam__inner h3:first-child {
@@ -100,3 +106,67 @@
 .zero-spam__table tbody td {
   border-top: 1px solid #e8edf1;
 }
+
+.zero-spam__bg--primary {
+	background: #ff183a;
+	color: #fff;
+}
+
+.zero-spam__bg--secondary {
+  background: #00639e;
+  color: #fff;
+}
+
+.zero-spam__bg--trinary {
+  background: #fddb5a;
+  color: #1b1e24;
+}
+
+.zero-spam__row {
+	overflow: hidden;
+}
+
+.zero-spam__row .zero-spam__cell:first-child {
+	padding-right: 10px;
+}
+
+.zero-spam__row .zero-spam__cell:last-child {
+	padding-left: 10px;
+}
+
+.zero-spam__cell {
+	display: inline-block;
+	float: left;
+	width: 50%;
+	box-sizing: border-box;
+}
+
+.zero-spam__row .zero-spam__stat:last-child {
+	border-right: 0;
+}
+
+.zero-spam__cell .zero-spam__widget {
+	margin-bottom: 0;
+}
+
+.zero-spam__stat {
+	display: inline-block;
+	float: left;
+	border-right: 1px solid rgba(0, 0, 0, 0.2);
+	margin: 0 10px 10px 0;
+	padding-right: 10px;
+	font-size: 12px;
+}
+
+.zero-spam__stat b {
+	font-size: 15px;
+	text-align: right;
+	display: block;
+}
+
+.zero-spam__donut {
+	width: 190px;
+	height: 190px;
+	float: right
+}
+
