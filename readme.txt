@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 4.0.0
-Stable tag: 1.5.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -54,10 +54,6 @@ Yes, currently there's two hooks available:
 == Screenshots ==
 
 == Changelog ==
-
-= 1.5.0 =
-* Switched to using a nonce to validate form submissions that support WordPress Zero Spam
-* Added Zero Spam plugin settings page for advanced control
 
 = 1.4.0 =
 * Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)
