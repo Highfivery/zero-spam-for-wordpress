@@ -1,5 +1,5 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511, afragen, tangrufus
+Contributors: bmarshall511, afragen, tangrufus, leewillis77
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
@@ -66,6 +66,7 @@ Yes, currently there are three hooks available:
 * Addded support for GitHub Updater plugin (https://github.com/bmarshall511/wordpress-zero-spam/pull/21, thanks @afragen)
 * Added support for Contact Form 7 form submissions (https://github.com/bmarshall511/wordpress-zero-spam/pull/26, thanks @leewillis77)
 * Added ability to log spam detections
+* Fix for warnings cause by default settings not being set before actions run (https://github.com/bmarshall511/wordpress-zero-spam/pull/31, thanks @leewillis77)
 
 = 1.4.0 =
 * Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)
@@ -100,3 +101,4 @@ Yes, currently there are three hooks available:
 * [Ben Marshall](https://github.com/bmarshall511)
 * [Andy Fragen](https://github.com/afragen)
 * [Tang Rufus](https://github.com/TangRufus)
+* [Lee Willis](https://github.com/leewillis77)
