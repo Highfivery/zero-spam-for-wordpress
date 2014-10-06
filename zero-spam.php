@@ -42,9 +42,12 @@ class Zero_Spam {
     private $settings = array(
         'zerospam_general_settings' => array()
     );
+
     private $tabs = array(
         'zerospam_general_settings' => 'General Settings'
     );
+
+    private $db_version = "1.0.0";
 
     /**
      * Plugin initilization.
@@ -54,9 +57,26 @@ class Zero_Spam {
      * @since 1.0.0
      */
     public function __construct() {
+    	register_activation_hook( __FILE__, array( &$this, 'install' ) );
+
     	$this->_load_settings();
         $this->_actions();
         $this->_filters();
+    }
+
+    /**
+     * Uses init.
+     *
+     * Adds WordPress actions using the plugin API.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/init
+     */
+    public function init() {
+        if ( $this->settings['zerospam_general_settings']['log_spammers'] == 'yes' ) {
+            $this->tabs['zerospam_spammer_logs'] = 'Spammer Log';
+        }
     }
 
     /**
@@ -87,6 +107,9 @@ class Zero_Spam {
 
         wp_enqueue_style( 'zerospam-fontawesome', plugins_url( 'assets/css/font-awesome.min.css', __FILE__ ) );
         wp_enqueue_style( 'zerospam-admin', plugins_url( 'assets/css/style.css', __FILE__ ) );
+        wp_enqueue_style( 'morris', plugins_url( 'assets/css/morris.css', __FILE__ ) );
+        wp_enqueue_script( 'raphael', plugins_url( 'assets/js/raphael-min.js', __FILE__ ), array( 'jquery' ) );
+        wp_enqueue_script( 'morris', plugins_url( 'assets/js/morris.min.js', __FILE__ ), array( 'jquery', 'raphael' ) );
     }
 
     /*
@@ -102,18 +125,33 @@ class Zero_Spam {
         $tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
         ?>
         <div class="wrap">
-            <table>
+            <h2><?php echo __( 'WordPress Zero Spam', 'zerospam' ); ?></h2>
+            <?php $this->_options_tabs(); ?>
+            <table width="100%">
                 <tbody>
                     <tr>
                         <td valign="top" style="padding-right: 17px">
-                            <h2><?php echo __( 'WordPress Zero Spam Settings', 'zerospam' ); ?></h2>
-                            <?php $this->_options_tabs(); ?>
-                            <form method="post" action="options.php">
-                                <?php wp_nonce_field( 'zerospam-options' ); ?>
-                                <?php settings_fields( $tab ); ?>
-                                <?php do_settings_sections( $tab ); ?>
-                                <?php submit_button(); ?>
-                            </form>
+                            <?php
+                            if (
+                                $tab == 'zerospam_spammer_logs' &&
+                                $this->settings['zerospam_general_settings']['log_spammers'] == 'yes'
+                            ) {
+                                $spam = $this->_get_spam();
+                                $spam = $this->_parse_spam_ary( $spam );
+
+                                require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
+                            } else { ?>
+                            <div class="zero-spam__widget">
+                                <div class="zero-spam__inner">
+                                    <form method="post" action="options.php">
+                                        <?php wp_nonce_field( 'zerospam-options' ); ?>
+                                        <?php settings_fields( $tab ); ?>
+                                        <?php do_settings_sections( $tab ); ?>
+                                        <?php submit_button(); ?>
+                                    </form>
+                                </div>
+                            </div>
+                            <?php } ?>
                         </td>
                         <td valign="top" width="422">
                             <?php require_once( ZEROSPAM_ROOT . 'inc/admin-sidebar.tpl.php' ); ?>
@@ -123,6 +161,64 @@ class Zero_Spam {
             </table>
         </div>
         <?php
+    }
+
+    /**
+     * Parses the spammer ary from the DB
+     *
+     * @since 1.5.0
+     */
+    private function _parse_spam_ary( $ary ) {
+        $return = array(
+            'by_date' => array(),
+            'raw' => $ary
+        );
+
+        foreach( $ary as $key => $obj ) {
+            // By date
+            if ( ! isset( $return['by_date'][ substr( $obj->date, 0, 10) ] ) ) {
+                $return['by_date'][ substr( $obj->date, 0, 10) ] = array(
+                    'data' => array(),
+                    'comment_spam' => 0,
+                    'registration_spam' => 0
+                );
+            }
+
+            // By date
+            $return['by_date'][ substr( $obj->date, 0, 10) ]['data'][] = array(
+                'zerospam_id' => $obj->zerospam_id,
+                'type' => $obj->type,
+                'ip' => $obj->ip,
+                'date' => $obj->date
+            );
+
+            if ( $obj->type == 1 ) {
+
+                // Registration spam
+                $return['by_date'][ substr( $obj->date, 0, 10) ]['registration_spam']++;
+            } elseif ( $obj->type == 2 ) {
+
+                // Comment spam
+                $return['by_date'][ substr( $obj->date, 0, 10) ]['comment_spam']++;
+            }
+        }
+
+        return $return;
+    }
+
+    /**
+     * Returns spammer array from DB
+     *
+     * @since 1.5.0
+     */
+    private function _get_spam() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'zerospam_log';
+
+        $results = $wpdb->get_results( 'SELECT * FROM ' . $table_name . ' ORDER BY date DESC' );
+
+        return $results;
     }
 
     /**
@@ -145,13 +241,28 @@ class Zero_Spam {
      *
      * @since 1.5.0
      */
-    function field_wp_generator() {
+    public function field_wp_generator() {
         ?>
         <input type="radio" id="wp_generator_remove" name="zerospam_general_settings[wp_generator]" value="remove"<?php if( $this->settings['zerospam_general_settings']['wp_generator'] == 'remove' ): ?> checked="checked"<?php endif; ?>> <label for="wp_generator_remove"><?php echo __( 'Hide', 'zerospam' ); ?></label>&nbsp;&nbsp;&nbsp;&nbsp;
 
         <input type="radio" id="wp_generator_show" name="zerospam_general_settings[wp_generator]" value="show"<?php if( $this->settings['zerospam_general_settings']['wp_generator'] == 'show' ): ?> checked="checked"<?php endif; ?>> <label for="wp_generator_show"><?php echo __( 'Show', 'zerospam' ); ?></label>
 
         <p class="description"><?php echo __( 'It can be considered a security risk to make your WordPress version visible and public you should hide it.', 'zerospam' ); ?></p>
+        <?php
+    }
+
+    /*
+     * Log spammers option.
+     *
+     * Field callback, renders radio inputs, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    public function field_log_spammers() {
+        ?>
+        <input type="radio" id="log_spammers_yes" name="zerospam_general_settings[log_spammers]" value="yes"<?php if( $this->settings['zerospam_general_settings']['log_spammers'] == 'yes' ): ?> checked="checked"<?php endif; ?>> <label for="log_spammers_remove"><?php echo __( 'Yes', 'zerospam' ); ?></label>&nbsp;&nbsp;&nbsp;&nbsp;
+
+        <input type="radio" id="log_spammers_no" name="zerospam_general_settings[log_spammers]" value="no"<?php if( $this->settings['zerospam_general_settings']['log_spammers'] == 'no' ): ?> checked="checked"<?php endif; ?>> <label for="log_spammers_no"><?php echo __( 'No', 'zerospam' ); ?></label>
         <?php
     }
 
@@ -197,7 +308,138 @@ class Zero_Spam {
         return array_merge( $links, $link );
     }
 
-    /*
+    /**
+     * Uses plugins_loaded.
+     *
+     * This hook is called once any activated plugins have been loaded. Is
+     * generally used for immediate filter setup, or plugin overrides.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/plugins_loaded
+     */
+    public function plugins_loaded() {
+        if ( get_site_option( 'zerospam_db_version' ) != $this->db_version ) {
+            $this->install();
+        }
+    }
+
+    /**
+     * Installs the plugins DB tables.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Creating_Tables_with_Plugins
+     */
+    public function install() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'zerospam_log';
+
+        /*
+         * We'll set the default character set and collation for this table.
+         * If we don't do this, some characters could end up being converted
+         * to just ?'s when saved in our table.
+         */
+        $charset_collate = '';
+
+        if ( ! empty( $wpdb->charset ) ) {
+          $charset_collate = "DEFAULT CHARACTER SET {$wpdb->charset}";
+        }
+
+        if ( ! empty( $wpdb->collate ) ) {
+          $charset_collate .= " COLLATE {$wpdb->collate}";
+        }
+
+        $sql = "CREATE TABLE $table_name (
+            zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
+            type int(1) unsigned NOT NULL,
+            ip int(15) unsigned NOT NULL,
+            date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (zerospam_id),
+            KEY `type` (type)
+        ) $charset_collate;";
+
+        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        dbDelta( $sql );
+
+        add_option( 'zerospam_db_version', $this->db_version );
+    }
+
+    /**
+     * Registers the settings.
+     *
+     * Appends the key to the plugin settings tabs array.
+     *
+     * @since 1.5.0
+     */
+    private function _register_settings() {
+        register_setting( 'zerospam_general_settings', 'zerospam_general_settings' );
+        add_settings_section( 'section_general', __( 'General Settings', 'zerospam' ), false, 'zerospam_general_settings' );
+        add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
+        add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
+        add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
+        add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
+    }
+
+    /**
+     * Logs spam.
+     *
+     * @since 1.5.0
+     *
+     * @param string (registration|comment) Type of spam
+     */
+    private function _log_spam( $type ) {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'zerospam_log';
+
+        switch( $type ) {
+            case 'registration':
+                $type = 1;
+            break;
+            case 'comment':
+                $type = 2;
+            break;
+        }
+
+        $wpdb->insert( $table_name, array(
+            'type' => $type,
+            'ip' => ip2long( $this->_get_ip() )
+        ),
+        array(
+            '%s',
+            '%d'
+        ));
+    }
+
+    /**
+     * Returns a user's IP address
+     *
+     * @since 1.5.0
+     *
+     * @return string The current user's IP address.
+     */
+    private function _get_ip() {
+        $ipaddress = '';
+        if (getenv('HTTP_CLIENT_IP'))
+            $ipaddress = getenv('HTTP_CLIENT_IP');
+        else if(getenv('HTTP_X_FORWARDED_FOR'))
+            $ipaddress = getenv('HTTP_X_FORWARDED_FOR');
+        else if(getenv('HTTP_X_FORWARDED'))
+            $ipaddress = getenv('HTTP_X_FORWARDED');
+        else if(getenv('HTTP_FORWARDED_FOR'))
+            $ipaddress = getenv('HTTP_FORWARDED_FOR');
+        else if(getenv('HTTP_FORWARDED'))
+           $ipaddress = getenv('HTTP_FORWARDED');
+        else if(getenv('REMOTE_ADDR'))
+            $ipaddress = getenv('REMOTE_ADDR');
+        else
+            $ipaddress = 'UNKNOWN';
+        return $ipaddress;
+    }
+
+    /**
      * Renders setting tabs.
      *
      * Walks through the object's tabs array and prints them one by one.
@@ -213,21 +455,6 @@ class Zero_Spam {
             echo '<a class="nav-tab ' . $active . '" href="?page=zerospam&tab=' . $key . '">' . $name . '</a>';
         }
         echo '</h2>';
-    }
-
-    /*
-     * Registers the settings.
-     *
-     * Appends the key to the plugin settings tabs array.
-     *
-     * @since 1.5.0
-     */
-    private function _register_settings() {
-        register_setting( 'zerospam_general_settings', 'zerospam_general_settings' );
-        add_settings_section( 'section_general', __( 'General Settings', 'zerospam' ), false, 'zerospam_general_settings' );
-        add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
-        add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
-        add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
     }
 
     /**
@@ -260,6 +487,8 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Action_Reference
      */
     private function _actions() {
+        add_action( 'plugins_loaded', array( &$this, 'plugins_loaded' ) );
+        add_action( 'init', array( &$this, 'init' ) );
         add_action( 'admin_init', array( &$this, 'admin_init' ) );
         add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
         add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
@@ -318,6 +547,11 @@ class Zero_Spam {
     public function preprocess_comment( $commentdata ) {
         if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) && ! current_user_can( 'moderate_comments' ) && is_user_logged_in() ) {
             do_action( 'zero_spam_found_spam_comment', $commentdata );
+
+            if ( $this->settings['zerospam_general_settings']['log_spammers'] == 'yes' ) {
+                $this->_log_spam( 'comment' );
+            }
+
             die( __( $this->settings['zerospam_general_settings']['spammer_msg_comment'], 'zerospam' ) );
         }
         return $commentdata;
@@ -337,6 +571,11 @@ class Zero_Spam {
     public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
         if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
             do_action( 'zero_spam_found_spam_registration', $errors, $sanitized_user_login, $user_email );
+
+            if ( $this->settings['zerospam_general_settings']['log_spammers'] == 'yes' ) {
+                $this->_log_spam( 'registration' );
+            }
+
             $errors->add( 'spam_error', __( $this->settings['zerospam_general_settings']['spammer_msg_registration'], 'zerospam' ) );
         }
         return $errors;

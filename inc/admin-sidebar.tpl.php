@@ -11,7 +11,7 @@
  * Security Note: Blocks direct access to the plugin PHP files.
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
-?><div class="zero-spam__info">
+?><div class="zero-spam__widget">
     <a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><img src="//ps.w.org/zero-spam/assets/banner-772x250.png" width="100%" class="zero-spam__thumbnail"></a>
     <div class="zero-spam__inner">
         <h2><a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><?php echo __( $plugin['Name'], 'zerospam' ); ?></a></h2>
@@ -30,7 +30,11 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
     </div>
 </div>
 
-<h3><?php echo __( 'Are you a WordPress developer?', 'zerospam' ); ?></h3>
+<div class="zero-spam__widget">
+    <div class="zero-spam__inner">
+        <h3><?php echo __( 'Are you a WordPress developer?', 'zerospam' ); ?></h3>
 
-<p><?php echo __( 'Help grow this plugin, integrate into your own or add new features by contributing.', 'zerospam' ); ?></p>
-<p><a href="https://github.com/bmarshall511/wordpress-zero-spam/fork" target="_blank" class="button button-large button-primary"><?php echo __( 'Fork it on GitHub!', 'zerospam' ); ?></a></p>
+        <p><?php echo __( 'Help grow this plugin, integrate into your own or add new features by contributing.', 'zerospam' ); ?></p>
+        <p><a href="https://github.com/bmarshall511/wordpress-zero-spam/fork" target="_blank" class="button button-large button-primary"><?php echo __( 'Fork it on GitHub!', 'zerospam' ); ?></a></p>
+    </div>
+</div>

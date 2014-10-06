@@ -24,6 +24,7 @@ Major features in WordPress Zero Spam include:
 * **No moderation queues**, because spam is not administrators' problem
 * **Blocks spam registrations & comments** with the use of JavaScript
 * **Extend the plugin** with action hooks
+* **Optional logging**, so you can see who's trying to spam
 
 **Languages:** English
 
@@ -64,6 +65,7 @@ Yes, currently there are three hooks available:
 * Added uninstall.php (https://github.com/bmarshall511/wordpress-zero-spam/pull/23, thanks @TangRufus)
 * Addded support for GitHub Updater plugin (https://github.com/bmarshall511/wordpress-zero-spam/pull/21, thanks @afragen)
 * Added support for Contact Form 7 form submissions (https://github.com/bmarshall511/wordpress-zero-spam/pull/26, thanks @leewillis77)
+* Added ability to log spam detections
 
 = 1.4.0 =
 * Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)
