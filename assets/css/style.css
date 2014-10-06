@@ -2,9 +2,8 @@
  * WordPress Zero Spam Settings Page Styles
  */
 
-.zero-spam__info {
-  margin-bottom: 40px;
-  border: 1px solid #ddd;
+.zero-spam__widget {
+  margin: 20px 0;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;
@@ -12,35 +11,50 @@
   overflow: hidden;
 }
 
-.zero-spam__info p {
+.zero-spam__inner {
+  padding: 20px;
+}
+
+.zero-spam__widget h3 {
+	margin-top: 0;
+	text-transform: uppercase;
+	font-size: 10.5px;
+	color: #1b1e24;
+}
+
+.zero-spam__inner h3:first-child {
+  margin-top: 0;
+}
+
+.zero-spam__inner p:last-child {
+  margin-bottom: 0;
+}
+
+.zero-spam__widget p {
   margin-bottom: 20px;
 }
 
-.zero-spam__inner {
-  padding: 10px;
-}
-
-.zero-spam__info a {
+.zero-spam__widget a {
   color: #ff183a;
   text-decoration: none;
   transition: all .3s;
 }
 
-.zero-spam__info a:hover {
+.zero-spam__widget a:hover {
   color: #0086c6;
 }
 
-.wrap .zero-spam__info h2 {
-  margin: 10px 0 5px 0;
+.wrap .zero-spam__widget h2 {
+  margin: 0px 0 5px 0;
   padding: 0;
   font-weight: 400;
 }
 
-.zero-spam__info h2 a {
+.zero-spam__widget h2 a {
   color: #000;
 }
 
-.zero-spam__info .fa-star {
+.zero-spam__widget .fa-star {
   color: #fddb5a;
 }
 
@@ -63,10 +77,96 @@
   margin: 0 0 20px 0;
 }
 
-.wrap .zero-spam__info h2.zero-spam__title {
+.wrap .zero-spam__widget h2.zero-spam__title {
   display: block;
   border-bottom: 1px solid #ddd;
   padding: 10px;
   font-size: 15px;
   font-weight: 600;
 }
+
+.zero-spam__table {
+  width: 100%;
+}
+
+.zero-spam__table th,
+.zero-spam__table tbody td {
+  padding: 10px 12px;
+}
+
+.zero-spam__table th {
+  text-align: left;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 12px;
+  line-height: 1.42857143;
+
+}
+
+.zero-spam__table tbody td {
+  border-top: 1px solid #e8edf1;
+}
+
+.zero-spam__bg--primary {
+	background: #ff183a;
+	color: #fff;
+}
+
+.zero-spam__bg--secondary {
+  background: #00639e;
+  color: #fff;
+}
+
+.zero-spam__bg--trinary {
+  background: #fddb5a;
+  color: #1b1e24;
+}
+
+.zero-spam__row {
+	overflow: hidden;
+}
+
+.zero-spam__row .zero-spam__cell:first-child {
+	padding-right: 10px;
+}
+
+.zero-spam__row .zero-spam__cell:last-child {
+	padding-left: 10px;
+}
+
+.zero-spam__cell {
+	display: inline-block;
+	float: left;
+	width: 50%;
+	box-sizing: border-box;
+}
+
+.zero-spam__row .zero-spam__stat:last-child {
+	border-right: 0;
+}
+
+.zero-spam__cell .zero-spam__widget {
+	margin-bottom: 0;
+}
+
+.zero-spam__stat {
+	display: inline-block;
+	float: left;
+	border-right: 1px solid rgba(0, 0, 0, 0.2);
+	margin: 0 10px 10px 0;
+	padding-right: 10px;
+	font-size: 12px;
+}
+
+.zero-spam__stat b {
+	font-size: 15px;
+	text-align: right;
+	display: block;
+}
+
+.zero-spam__donut {
+	width: 190px;
+	height: 190px;
+	float: right
+}
+
