@@ -54,6 +54,7 @@ class Zero_Spam {
      * @since 1.0.0
      */
     public function __construct() {
+    	$this->_load_settings();
         $this->_actions();
         $this->_filters();
     }
@@ -230,6 +231,25 @@ class Zero_Spam {
     }
 
     /**
+     * Load the settings / defaults.
+     *
+     * Load the settings from the database, and merge with the defaults where required.
+     *
+     * @since 1.5.0
+     * @access private
+     */
+    private function _load_settings() {
+        // Retrieve the settings
+        $this->settings['zerospam_general_settings'] = (array) get_option( 'zerospam_general_settings' );
+        // Merge with defaults
+        $this->settings['zerospam_general_settings'] = array_merge( array(
+            'wp_generator' => 'remove',
+            'spammer_msg_comment' => 'There was a problem processing your comment.',
+            'spammer_msg_registration' => '<strong>ERROR</strong>: There was a problem processing your registration.'
+        ), $this->settings['zerospam_general_settings'] );
+    }
+
+    /**
      * WordPress actions.
      *
      * Adds WordPress actions using the plugin API.
@@ -240,15 +260,6 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Action_Reference
      */
     private function _actions() {
-    	// Retrieve the settings
-        $this->settings['zerospam_general_settings'] = (array) get_option( 'zerospam_general_settings' );
-        // Merge with defaults
-        $this->settings['zerospam_general_settings'] = array_merge( array(
-            'wp_generator' => 'remove',
-            'spammer_msg_comment' => 'There was a problem processing your comment.',
-            'spammer_msg_registration' => '<strong>ERROR</strong>: There was a problem processing your registration.'
-        ), $this->settings['zerospam_general_settings'] );
-
         add_action( 'admin_init', array( &$this, 'admin_init' ) );
         add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
         add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
