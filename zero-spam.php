@@ -59,24 +59,6 @@ class Zero_Spam {
     }
 
     /**
-     * Uses init.
-     *
-     * Adds WordPress actions using the plugin API.
-     *
-     * @since 1.5.0
-     *
-     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/init
-     */
-    public function init() {
-        // Merge with defaults
-        $this->settings['zerospam_general_settings'] = array_merge( array(
-            'wp_generator' => 'remove',
-            'spammer_msg_comment' => 'There was a problem processing your comment.',
-            'spammer_msg_registration' => '<strong>ERROR</strong>: There was a problem processing your registration.'
-        ), $this->settings['zerospam_general_settings'] );
-    }
-
-    /**
      * Uses admin_menu.
      *
      * Used to add extra submenus and menu options to the admin panel's menu structure.
@@ -258,9 +240,15 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Action_Reference
      */
     private function _actions() {
+    	// Retrieve the settings
         $this->settings['zerospam_general_settings'] = (array) get_option( 'zerospam_general_settings' );
+        // Merge with defaults
+        $this->settings['zerospam_general_settings'] = array_merge( array(
+            'wp_generator' => 'remove',
+            'spammer_msg_comment' => 'There was a problem processing your comment.',
+            'spammer_msg_registration' => '<strong>ERROR</strong>: There was a problem processing your registration.'
+        ), $this->settings['zerospam_general_settings'] );
 
-        add_action( 'init', array( &$this, 'init' ) );
         add_action( 'admin_init', array( &$this, 'admin_init' ) );
         add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
         add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
