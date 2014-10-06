@@ -174,7 +174,7 @@ class Zero_Spam {
             'raw' => $ary,
             'comment_spam' => 0,
             'registration_spam' => 0,
-            'unique_spammers' => array()
+            'unique_spammers' => array(),
         );
 
         foreach( $ary as $key => $obj ) {
@@ -306,6 +306,20 @@ class Zero_Spam {
         <?php
     }
 
+    /*
+     * Contact Form 7 spam message option.
+     *
+     * Field callback, renders a text input, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    public function field_spammer_msg_contact_form_7() {
+        ?>
+        <input type="text" class="regular-text" anme="zerospam_general_settings[spammer_msg_contact_form_7]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'] ); ?>">
+        <p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
+        <?php
+    }
+
     /**
      * Add setting link to plugin.
      *
@@ -391,6 +405,7 @@ class Zero_Spam {
         add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
         add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
         add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
+        add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
         add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
     }
 
@@ -412,6 +427,9 @@ class Zero_Spam {
             break;
             case 'comment':
                 $type = 2;
+            break;
+            case 'CF7':
+                $type = 3;
             break;
         }
 
@@ -484,7 +502,8 @@ class Zero_Spam {
         $this->settings['zerospam_general_settings'] = array_merge( array(
             'wp_generator' => 'remove',
             'spammer_msg_comment' => 'There was a problem processing your comment.',
-            'spammer_msg_registration' => '<strong>ERROR</strong>: There was a problem processing your registration.'
+            'spammer_msg_registration' => '<strong>ERROR</strong>: There was a problem processing your registration.',
+            'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
         ), $this->settings['zerospam_general_settings'] );
     }
 
@@ -506,7 +525,7 @@ class Zero_Spam {
         add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
         add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
         add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
-        add_action( 'wpcf7_validate', array( $this, 'wpcf7_validate' ) );
+        add_action( 'wpcf7_validate', array( &$this, 'wpcf7_validate' ) );
 
         if( $this->settings['zerospam_general_settings']['wp_generator'] == 'remove' ) {
             remove_action( 'wp_head', 'wp_generator' );
@@ -594,10 +613,11 @@ class Zero_Spam {
     }
 
      /**
-     * Validate Contact Form 7 (https://wordpress.org/plugins/contact-form-7/) form submissions.
+     * Validate Contact Form 7 form submissions.
      *
-     * Validates the contact form 7 form submission, and flags the form submission as invalid if
-     * the zero-spam post data isn't present.
+     * Validates the Contact Form 7 (https://wordpress.org/plugins/contact-form-7/)
+     * form submission, and flags the form submission as invalid if the zero-spam
+     * post data isn't present.
      *
      * @since  1.5.0
      *
@@ -605,8 +625,9 @@ class Zero_Spam {
     public function wpcf7_validate( $result ) {
         if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
             do_action( 'zero_spam_found_spam_cf7_form_submission' );
+
             $result['valid'] = false;
-            $result['reason']['zero_spam'] = __( 'There was a problem with your form submission.', 'zerospam' );
+            $result['reason']['zero_spam'] = __( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'], 'zerospam' );
         }
         return $result;
     }
