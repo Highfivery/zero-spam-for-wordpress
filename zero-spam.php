@@ -137,38 +137,35 @@ class Zero_Spam {
         <div class="wrap">
             <h2><?php echo __( 'WordPress Zero Spam', 'zerospam' ); ?></h2>
             <?php $this->_options_tabs(); ?>
-            <table width="100%">
-                <tbody>
-                    <tr>
-                        <td valign="top" style="padding-right: 17px">
-                            <?php
-                            if (
-                                $tab == 'zerospam_spammer_logs' &&
-                                $this->settings['zerospam_general_settings']['log_spammers'] == 'yes'
-                            ) {
-                                $spam = $this->_get_spam();
-                                $spam = $this->_parse_spam_ary( $spam );
+            <div class="zerospam__row">
+            	<div class="zerospam__right">
+            		<?php require_once( ZEROSPAM_ROOT . 'inc/admin-sidebar.tpl.php' ); ?>
+            	</div>
+            	<div class="zerospam__left">
+            		<?php
+                    if (
+                        $tab == 'zerospam_spammer_logs' &&
+                        $this->settings['zerospam_general_settings']['log_spammers'] == 'yes'
+                    ) {
+                        $spam = $this->_get_spam();
+                        $spam = $this->_parse_spam_ary( $spam );
 
-                                require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
-                            } else { ?>
-                            <div class="zero-spam__widget">
-                                <div class="zero-spam__inner">
-                                    <form method="post" action="options.php">
-                                        <?php wp_nonce_field( 'zerospam-options' ); ?>
-                                        <?php settings_fields( $tab ); ?>
-                                        <?php do_settings_sections( $tab ); ?>
-                                        <?php submit_button(); ?>
-                                    </form>
-                                </div>
-                            </div>
-                            <?php } ?>
-                        </td>
-                        <td valign="top" width="422">
-                            <?php require_once( ZEROSPAM_ROOT . 'inc/admin-sidebar.tpl.php' ); ?>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                        require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
+                    } else { ?>
+                    <div class="zero-spam__widget">
+                        <div class="zero-spam__inner">
+                            <form method="post" action="options.php">
+                                <?php wp_nonce_field( 'zerospam-options' ); ?>
+                                <?php settings_fields( $tab ); ?>
+                                <?php do_settings_sections( $tab ); ?>
+                                <?php submit_button(); ?>
+                            </form>
+                        </div>
+                    </div>
+                    <?php } ?>
+            	</div>
+
+            </div>
         </div>
         <?php
     }
