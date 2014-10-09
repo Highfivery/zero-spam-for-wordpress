@@ -371,6 +371,7 @@ class Zero_Spam {
             type int(1) unsigned NOT NULL,
             ip int(15) unsigned NOT NULL,
             date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            page varchar(255) DEFAULT NULL,
             PRIMARY KEY (zerospam_id),
             KEY `type` (type)
         ) $charset_collate;";
@@ -428,12 +429,37 @@ class Zero_Spam {
 
         $wpdb->insert( $table_name, array(
             'type' => $type,
-            'ip' => ip2long( $this->_get_ip() )
+            'ip' => ip2long( $this->_get_ip() ),
+            'page' =>$this->_get_url()
         ),
         array(
             '%s',
-            '%d'
+            '%d',
+            '%s'
         ));
+    }
+
+    /**
+     * Returns the current URL.
+     *
+     * @since 1.5.0
+     *
+     * @return string The current URL the user is on.
+     */
+    private function _get_url() {
+        $pageURL = 'http';
+
+        if ($_SERVER["HTTPS"] == "on") $pageURL .= "s";
+
+        $pageURL .= "://";
+
+        if ($_SERVER["SERVER_PORT"] != "80") {
+            $pageURL .= $_SERVER["SERVER_NAME"] . ":" . $_SERVER["SERVER_PORT"] . $_SERVER["REQUEST_URI"];
+        } else {
+            $pageURL .= $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"];
+        }
+
+        return $pageURL;
     }
 
     /**

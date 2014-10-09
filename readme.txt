@@ -26,6 +26,7 @@ Major features in WordPress Zero Spam include:
 * **Contact Form 7 support** if installed and activated
 * **Extend the plugin** with action hooks
 * **Optional logging**, so you can see who's trying to spam
+* **Advanced settings** for complete control
 
 **Languages:** English
 
@@ -72,6 +73,7 @@ Yes! Thanks to @leewillis77.
 * Added support for Contact Form 7 form submissions (https://github.com/bmarshall511/wordpress-zero-spam/pull/26, thanks @leewillis77)
 * Added ability to log spam detections
 * Fix for warnings cause by default settings not being set before actions run (https://github.com/bmarshall511/wordpress-zero-spam/pull/31, thanks @leewillis77)
+* Installed Compass (http://compass-style.org/)
 
 = 1.4.0 =
 * Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)

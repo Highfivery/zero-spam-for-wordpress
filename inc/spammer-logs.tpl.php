@@ -116,6 +116,7 @@ $starting_date = end( $spam['raw'] )->date;
                     <th><?php echo __( 'Date', 'zerospam' ); ?></th>
                     <th><?php echo __( 'Type', 'zerospam' ); ?></th>
                     <th><?php echo __( 'IP', 'zerospam' ); ?></th>
+                    <th><?php echo __( 'Page', 'zerospam' ); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -138,6 +139,7 @@ $starting_date = end( $spam['raw'] )->date;
                     <td><?php echo date( 'l, F j, Y  g:i:sa', strtotime( $obj->date ) ); ?></td>
                     <td><?php echo $type; ?></td>
                     <td><?php echo long2ip( $obj->ip ); ?></td>
+                    <td><a href="<?php echo esc_url( $obj->page ); ?>" target="_blank"><?php echo $obj->page; ?> <i class="fa fa-external-link-square"></i></a></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
