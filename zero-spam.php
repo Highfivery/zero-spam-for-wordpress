@@ -32,6 +32,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 // Define constants
 define( 'ZEROSPAM_ROOT', dirname( __FILE__ ) . '/' );
+define( 'ZEROSPAM_PLUGIN', __FILE__ );
 
 /**
  * Detect plugin

@@ -81,8 +81,13 @@ class Zero_Spam {
         if ( 'options-general.php' !== $GLOBALS['pagenow'] )
             return;
 
-        wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css/style.css', __FILE__ ) );
-        wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js/charts.min.js', __FILE__ ), array( 'jquery' ) );
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+            wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css-dev/style.css', ZEROSPAM_PLUGIN ) );
+            wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js-dev/charts.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
+        } else {
+            wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css/style.css', ZEROSPAM_PLUGIN ) );
+            wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js/charts.min.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
+        }
     }
 
     /*
@@ -94,7 +99,7 @@ class Zero_Spam {
      * @since 1.5.0
      */
     public function settings_page() {
-        $plugin = get_plugin_data( __FILE__ );
+        $plugin = get_plugin_data( ZEROSPAM_PLUGIN );
         $tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
         ?>
         <div class="wrap">
@@ -633,9 +638,9 @@ class Zero_Spam {
      */
     public function wp_enqueue_scripts() {
         if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-            wp_register_script( 'zero-spam', plugins_url( '/src/js/zero-spam.js' , __FILE__ ), array( 'jquery' ), '1.1.0', true );
+            wp_register_script( 'zero-spam', plugins_url( '/build/js-dev/zero-spam.js' , ZEROSPAM_PLUGIN ), array( 'jquery' ), '1.1.0', true );
         } else {
-            wp_register_script( 'zero-spam', plugins_url( '/build/js/zero-spam.min.js' , __FILE__ ), array( 'jquery' ), '1.1.0', true );
+            wp_register_script( 'zero-spam', plugins_url( '/build/js/zero-spam.min.js' , ZEROSPAM_PLUGIN ), array( 'jquery' ), '1.1.0', true );
         }
         wp_localize_script( 'zero-spam', 'zerospam', array(
             'nonce' => wp_create_nonce( 'zerospam' )

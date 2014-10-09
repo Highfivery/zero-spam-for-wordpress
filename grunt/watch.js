@@ -3,8 +3,8 @@ module.exports = {
         files: ['Gruntfile.js'],
         tasks: ['jshint:gruntfile']
     },
-    src: {
+    dev: {
         files: ['src/js/zero-spam.js'],
-        tasks: ['jshint:src', 'uglify']
+        tasks: ['jshint:src', 'uglify:dev']
     }
 };
