@@ -5,3 +5,6 @@ tags
 trunk
 tmp
 .DS_Store
+.sass-cache
+js-dev
+css-dev

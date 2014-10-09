@@ -1,3 +1,9 @@
+// Import Font Awesome styles
+@import "font-awesome/font-awesome";
+
+// Import Morris Chart styles
+@import "morris";
+
 /**
  * WordPress Zero Spam Settings Page Styles
  */
@@ -16,10 +22,10 @@
 }
 
 .zero-spam__widget h3 {
-	margin-top: 0;
-	text-transform: uppercase;
-	font-size: 10.5px;
-	color: #1b1e24;
+  margin-top: 0;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  color: #1b1e24;
 }
 
 .zero-spam__inner h3:first-child {
@@ -108,8 +114,8 @@
 }
 
 .zero-spam__bg--primary {
-	background: #ff183a;
-	color: #fff;
+  background: #ff183a;
+  color: #fff;
 }
 
 .zero-spam__bg--secondary {
@@ -123,89 +129,89 @@
 }
 
 .zero-spam__row {
-	overflow: hidden;
+  overflow: hidden;
 }
 
 .zero-spam__row .zero-spam__cell:first-child {
-	padding-right: 10px;
+  padding-right: 10px;
 }
 
 .zero-spam__row .zero-spam__cell:last-child {
-	padding-left: 10px;
+  padding-left: 10px;
 }
 
 .zero-spam__cell {
-	display: inline-block;
-	float: left;
-	width: 50%;
-	box-sizing: border-box;
+  display: inline-block;
+  float: left;
+  width: 50%;
+  box-sizing: border-box;
 }
 
 @media all and (max-width: 1640px) {
-	.zero-spam__cell {
-  		display: block;
-  		float: none;
-  		width: 100%;
-  	}
+  .zero-spam__cell {
+      display: block;
+      float: none;
+      width: 100%;
+    }
 
-	.zero-spam__row .zero-spam__cell:first-child {
-		padding-right: 0;
-	}
+  .zero-spam__row .zero-spam__cell:first-child {
+    padding-right: 0;
+  }
 
-	.zero-spam__row .zero-spam__cell:last-child {
-		padding-left: 0;
-	}
+  .zero-spam__row .zero-spam__cell:last-child {
+    padding-left: 0;
+  }
 }
 
 .zero-spam__row .zero-spam__stat:last-child {
-	border-right: 0;
+  border-right: 0;
 }
 
 .zero-spam__cell .zero-spam__widget {
-	margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .zero-spam__stat {
-	display: inline-block;
-	float: left;
-	border-right: 1px solid rgba(0, 0, 0, 0.2);
-	margin: 0 10px 10px 0;
-	padding-right: 10px;
-	font-size: 12px;
+  display: inline-block;
+  float: left;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  margin: 0 10px 10px 0;
+  padding-right: 10px;
+  font-size: 12px;
 }
 
 .zero-spam__stat b {
-	font-size: 15px;
-	text-align: right;
-	display: block;
+  font-size: 15px;
+  text-align: right;
+  display: block;
 }
 
 .zerospam__left {
-	padding-right: 450px;
+  padding-right: 450px;
 }
 
 .zerospam__right {
-	width: 422px;
-	float: right;
+  width: 422px;
+  float: right;
 }
 
 @media all and (max-width: 1140px) {
-	.zerospam__left {
-		padding-right: 0;
-	}
+  .zerospam__left {
+    padding-right: 0;
+  }
 
-	.zerospam__right {
-		width: 100%;
-		float: none;
-	}
+  .zerospam__right {
+    width: 100%;
+    float: none;
+  }
 }
 
 .zero-spam__label {
-	display: inline-block;
-	padding: 3px 5px;
-	font-size: 11px;
-	-webkit-border-radius: 3px;
-  	-moz-border-radius: 3px;
+  display: inline-block;
+  padding: 3px 5px;
+  font-size: 11px;
+  -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
 }
 
 
