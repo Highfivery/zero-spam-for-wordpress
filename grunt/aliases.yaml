@@ -3,5 +3,5 @@ default:
 
 prod:
     - 'jshint'
-    - 'uglify'
+    - 'uglify:prod'
     - 'compass:prod'
