@@ -1,4 +1,4 @@
 module.exports = {
     gruntfile: ['Gruntfile.js'],
-    src: ['zero-spam.js']
+    src: ['src/js/zero-spam.js']
 };

@@ -5,3 +5,4 @@ tags
 trunk
 tmp
 .DS_Store
+.sass-cache
