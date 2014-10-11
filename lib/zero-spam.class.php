@@ -50,7 +50,7 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Action_Reference/init
      */
     public function init() {
-        if ( $this->settings['zerospam_general_settings']['log_spammers'] == 'yes' ) {
+        if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) {
             $this->tabs['zerospam_spammer_logs'] = 'Spammer Log';
         }
     }
@@ -113,7 +113,7 @@ class Zero_Spam {
                 <?php
                     if (
                         $tab == 'zerospam_spammer_logs' &&
-                        $this->settings['zerospam_general_settings']['log_spammers'] == 'yes'
+                        '1' == $this->settings['zerospam_general_settings']['log_spammers']
                     ) {
                         $spam = $this->_get_spam();
                         $spam = $this->_parse_spam_ary( $spam );
@@ -243,10 +243,13 @@ class Zero_Spam {
      * @since 1.5.0
      */
     public function field_wp_generator() {
+	    if ( ! isset( $this->settings['zerospam_general_settings']['wp_generator'] ) ) {
+			$this->settings['zerospam_general_settings']['wp_generator'] = '0';
+	    }
         ?>
-        <input type="radio" id="wp_generator_remove" name="zerospam_general_settings[wp_generator]" value="remove"<?php if( $this->settings['zerospam_general_settings']['wp_generator'] == 'remove' ): ?> checked="checked"<?php endif; ?>> <label for="wp_generator_remove"><?php echo __( 'Hide', 'zerospam' ); ?></label>&nbsp;&nbsp;&nbsp;&nbsp;
-
-        <input type="radio" id="wp_generator_show" name="zerospam_general_settings[wp_generator]" value="show"<?php if( $this->settings['zerospam_general_settings']['wp_generator'] == 'show' ): ?> checked="checked"<?php endif; ?>> <label for="wp_generator_show"><?php echo __( 'Show', 'zerospam' ); ?></label>
+	    <label for="wp_generator_remove">
+			<input type="checkbox" id="wp_generator_remove" name="zerospam_general_settings[wp_generator]" value="1" <?php checked( $this->settings['zerospam_general_settings']['wp_generator'] ) ?> /> <?php echo __( 'Hide WP Generator Meta Tag', 'zerospam' ); ?>
+		 </label>
 
         <p class="description"><?php echo __( 'It can be considered a security risk to make your WordPress version visible and public you should hide it.', 'zerospam' ); ?></p>
         <?php
@@ -261,9 +264,9 @@ class Zero_Spam {
      */
     public function field_log_spammers() {
         ?>
-        <input type="radio" id="log_spammers_yes" name="zerospam_general_settings[log_spammers]" value="yes"<?php if( $this->settings['zerospam_general_settings']['log_spammers'] == 'yes' ): ?> checked="checked"<?php endif; ?>> <label for="log_spammers_remove"><?php echo __( 'Yes', 'zerospam' ); ?></label>&nbsp;&nbsp;&nbsp;&nbsp;
-
-        <input type="radio" id="log_spammers_no" name="zerospam_general_settings[log_spammers]" value="no"<?php if( $this->settings['zerospam_general_settings']['log_spammers'] == 'no' ): ?> checked="checked"<?php endif; ?>> <label for="log_spammers_no"><?php echo __( 'No', 'zerospam' ); ?></label>
+	    <label for="log_spammers">
+	        <input type="checkbox" id="log_spammers" name="zerospam_general_settings[log_spammers]" value="1" <?php checked( $this->settings['zerospam_general_settings']['log_spammers'] ) ?> /> <?php echo __( 'Log Spammers', 'zerospam' ); ?>
+	    </label>
         <?php
     }
 
@@ -276,8 +279,10 @@ class Zero_Spam {
      */
     public function field_spammer_msg_comment() {
         ?>
-        <input type="text" class="regular-text" anme="zerospam_general_settings[spammer_msg_comment]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_comment'] ); ?>">
+	    <label for="spammer_msg_comment">
+            <input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_comment]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_comment'] ); ?>">
         <p class="description"><?php echo __( 'Enter a short message to display when a spam comment has been detected.', 'zerospam' ); ?></p>
+	    </label>
         <?php
     }
 
@@ -290,8 +295,10 @@ class Zero_Spam {
      */
     public function field_spammer_msg_registration() {
         ?>
-        <input type="text" class="regular-text" anme="zerospam_general_settings[spammer_msg_registration]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_registration'] ); ?>">
+	    <label for="spammer_msg_registration">
+            <input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_registration]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_registration'] ); ?>">
         <p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
+	    </label>
         <?php
     }
 
@@ -304,8 +311,10 @@ class Zero_Spam {
      */
     public function field_spammer_msg_contact_form_7() {
         ?>
-        <input type="text" class="regular-text" anme="zerospam_general_settings[spammer_msg_contact_form_7]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'] ); ?>">
+	    <label for="spammer_msg_contact_form_7">
+            <input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_contact_form_7]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'] ); ?>">
         <p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
+	    </label>
         <?php
     }
 
@@ -517,14 +526,21 @@ class Zero_Spam {
     private function _load_settings() {
         // Retrieve the settings
         $this->settings['zerospam_general_settings'] = (array) get_option( 'zerospam_general_settings' );
-        // Merge with defaults
-        $this->settings['zerospam_general_settings'] = array_merge( array(
-            'wp_generator' => 'remove',
-            'spammer_msg_comment' => 'There was a problem processing your comment.',
-            'spammer_msg_registration' => '<strong>ERROR</strong>: There was a problem processing your registration.',
-            'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
-        ), $this->settings['zerospam_general_settings'] );
-    }
+
+	    // Merge with defaults, return if already set
+	    if ( isset( $this->settings['zerospam_general_settings'] ) ) {
+		    return true;
+	    }
+        $this->settings['zerospam_general_settings'] = array_merge(
+	        array(
+				'wp_generator'               => '1',
+				'spammer_msg_comment'        => 'There was a problem processing your comment.',
+				'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
+				'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
+		        'log_spammers'               => '1',
+            ),
+	        $this->settings['zerospam_general_settings'] );
+	}
 
     /**
      * WordPress actions.
@@ -546,7 +562,7 @@ class Zero_Spam {
         add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
         add_action( 'wpcf7_validate', array( &$this, 'wpcf7_validate' ) );
 
-        if( $this->settings['zerospam_general_settings']['wp_generator'] == 'remove' ) {
+	    if ( isset( $this->settings['zerospam_general_settings']['wp_generator'] ) && ( '1' == $this->settings['zerospam_general_settings']['wp_generator'] ) ) {
             remove_action( 'wp_head', 'wp_generator' );
         }
     }
@@ -598,9 +614,9 @@ class Zero_Spam {
         if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) && ! current_user_can( 'moderate_comments' ) && is_user_logged_in() ) {
             do_action( 'zero_spam_found_spam_comment', $commentdata );
 
-            if ( $this->settings['zerospam_general_settings']['log_spammers'] == 'yes' ) {
-                $this->_log_spam( 'comment' );
-            }
+	        if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
+		        $this->_log_spam( 'comment' );
+	        }
 
             die( __( $this->settings['zerospam_general_settings']['spammer_msg_comment'], 'zerospam' ) );
         }
@@ -622,7 +638,7 @@ class Zero_Spam {
         if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
             do_action( 'zero_spam_found_spam_registration', $errors, $sanitized_user_login, $user_email );
 
-            if ( $this->settings['zerospam_general_settings']['log_spammers'] == 'yes' ) {
+	        if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
                 $this->_log_spam( 'registration' );
             }
 
