@@ -11,30 +11,28 @@
  * Security Note: Blocks direct access to the plugin PHP files.
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
-
-$total_spam = count( $spam['raw'] );
-$unique_spammers = count( $spam['unique_spammers'] );
-$per_day = $this->num_days( end( $spam['raw'] )->date ) ? number_format( ( count( $spam['raw'] ) / $this->num_days( end( $spam['raw'] )->date ) ), 2 ) : 0;
-$num_days = $this->num_days( end( $spam['raw'] )->date );
-$starting_date = end( $spam['raw'] )->date;
 ?><div class="zero-spam__row">
 	<div class="zero-spam__cell">
 		<div class="zero-spam__widget zero-spam__bg--secondary">
 			<div class="zero-spam__inner">
 				<h3><?php echo __( 'Summary', 'zerospam' ); ?></h3>
 				<div class="zero-spam__row">
+          <?php if ( isset( $num_days ) ): ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Protected', 'zerospam' ); ?>
 						<b><?php echo number_format( $num_days, 0 ); ?> <?php echo __( 'days', 'zerospam' ); ?></b>
 					</div>
+          <?php endif; ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Total Spam', 'zerospam' ); ?>
 						<b><?php echo number_format( $total_spam, 0 ); ?></b>
 					</div>
+          <?php if ( isset( $per_day ) ): ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Per day', 'zerospam' ); ?>
 						<b><?php echo number_format( $per_day, 0 ); ?></b>
 					</div>
+          <?php endif; ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Unique Spammers', 'zerospam' ); ?>
 						<b><?php echo number_format( $unique_spammers, 0 ); ?></b>
