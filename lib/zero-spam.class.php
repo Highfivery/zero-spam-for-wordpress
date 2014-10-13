@@ -381,8 +381,8 @@ class Zero_Spam {
             ip int(15) unsigned NOT NULL,
             date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
             page varchar(255) DEFAULT NULL,
-            PRIMARY KEY (zerospam_id),
-            KEY `type` (type)
+            PRIMARY KEY  (zerospam_id),
+            KEY type (type)
         ) $charset_collate;";
 
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
