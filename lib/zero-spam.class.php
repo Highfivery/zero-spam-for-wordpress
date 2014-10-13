@@ -118,6 +118,15 @@ class Zero_Spam {
                         $spam = $this->_get_spam();
                         $spam = $this->_parse_spam_ary( $spam );
 
+                        $total_spam = count( $spam['raw'] );
+                        $unique_spammers = count( $spam['unique_spammers'] );
+
+                        if ( $total_spam ) {
+                          $per_day = $this->num_days( end( $spam['raw'] )->date ) ? number_format( ( count( $spam['raw'] ) / $this->num_days( end( $spam['raw'] )->date ) ), 2 ) : 0;
+                          $num_days = $this->num_days( end( $spam['raw'] )->date );
+                          $starting_date = end( $spam['raw'] )->date;
+                        }
+
                         require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
                     } else { ?>
                     <div class="zero-spam__widget">
