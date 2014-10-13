@@ -115,6 +115,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                     <th><?php echo __( 'Type', 'zerospam' ); ?></th>
                     <th><?php echo __( 'IP', 'zerospam' ); ?></th>
                     <th><?php echo __( 'Page', 'zerospam' ); ?></th>
+                    <th>&nbsp;</th>
                 </tr>
             </thead>
             <tbody>
@@ -132,12 +133,26 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                         break;
                     }
                 ?>
-                <tr>
+                <tr id="row-<?php echo $obj->zerospam_id; ?>">
                     <td><?php echo $obj->zerospam_id; ?></td>
-                    <td><?php echo date( 'l, F j, Y  g:i:sa', strtotime( $obj->date ) ); ?></td>
+                    <td>
+                      <?php echo date(
+                        'l, F j, Y  g:i:sa',
+                        strtotime( $obj->date )
+                      ); ?>
+                    </td>
                     <td><?php echo $type; ?></td>
                     <td><?php echo long2ip( $obj->ip ); ?></td>
                     <td><a href="<?php echo esc_url( $obj->page ); ?>" target="_blank"><?php echo $obj->page; ?> <i class="fa fa-external-link-square"></i></a></td>
+                    <td class="zero-spam__text-center">
+                        <i class="fa fa-circle-o-notch fa-spin"></i>
+                        <i class="fa fa-edit"></i>
+                        <a href="#" class="button button-small zero-spam__block-ip"
+                            data-ip="<?php echo long2ip( $obj->ip ); ?>"
+                      >
+                            <?php echo __( 'Block IP', 'zerospam' ); ?>
+                        </a>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

@@ -15,7 +15,8 @@ class Zero_Spam {
     );
 
     private $tabs = array(
-        'zerospam_general_settings' => 'General Settings'
+        'zerospam_general_settings' => 'General Settings',
+        'zerospam_ip_block' => 'IP Block'
     );
 
     private $plugins = array(
@@ -128,18 +129,11 @@ class Zero_Spam {
                         }
 
                         require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
-                    } else { ?>
-                    <div class="zero-spam__widget">
-                        <div class="zero-spam__inner">
-                            <form method="post" action="options.php">
-                                <?php wp_nonce_field( 'zerospam-options' ); ?>
-                                <?php settings_fields( $tab ); ?>
-                                <?php do_settings_sections( $tab ); ?>
-                                <?php submit_button(); ?>
-                            </form>
-                        </div>
-                    </div>
-                    <?php } ?>
+                    } elseif ( $tab == 'zerospam_ip_block' ) {
+                        require_once( ZEROSPAM_ROOT . 'inc/ip-block.tpl.php' );
+                    } else {
+                        require_once( ZEROSPAM_ROOT . 'inc/general-settings.tpl.php' );
+                    } ?>
               </div>
 
             </div>
@@ -214,21 +208,6 @@ class Zero_Spam {
         }
 
         return $return;
-    }
-
-    /**
-     * Returns spammer array from DB
-     *
-     * @since 1.5.0
-     */
-    private function _get_spam() {
-        global $wpdb;
-
-        $table_name = $wpdb->prefix . 'zerospam_log';
-
-        $results = $wpdb->get_results( 'SELECT * FROM ' . $table_name . ' ORDER BY date DESC' );
-
-        return $results;
     }
 
     /**
@@ -328,6 +307,21 @@ class Zero_Spam {
     }
 
     /**
+     * Returns spammer array from DB
+     *
+     * @since 1.5.0
+     */
+    private function _get_spam() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'zerospam_log';
+
+        $results = $wpdb->get_results( 'SELECT * FROM ' . $table_name . ' ORDER BY date DESC' );
+
+        return $results;
+    }
+
+    /**
      * Add setting link to plugin.
      *
      * Applied to the list of links to display on the plugins page (beside the activate/deactivate links).
@@ -367,7 +361,8 @@ class Zero_Spam {
     public function install() {
         global $wpdb;
 
-        $table_name = $wpdb->prefix . 'zerospam_log';
+        $log_table_name = $wpdb->prefix . 'zerospam_log';
+        $ip_table_name = $wpdb->prefix . 'zerospam_blocked_ips';
 
         /*
          * We'll set the default character set and collation for this table.
@@ -384,7 +379,7 @@ class Zero_Spam {
           $charset_collate .= " COLLATE {$wpdb->collate}";
         }
 
-        $sql = "CREATE TABLE $table_name (
+        $sql = "CREATE TABLE $log_table_name (
             zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
             type int(1) unsigned NOT NULL,
             ip int(15) unsigned NOT NULL,
@@ -392,6 +387,17 @@ class Zero_Spam {
             page varchar(255) DEFAULT NULL,
             PRIMARY KEY  (zerospam_id),
             KEY type (type)
+        ) $charset_collate;";
+
+        $sql .= "CREATE TABLE $ip_table_name (
+          zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
+          ip int(15) unsigned NOT NULL,
+          type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
+          start_date datetime DEFAULT NULL,
+          end_date datetime DEFAULT NULL,
+          reason varchar(255) DEFAULT NULL,
+          PRIMARY KEY  (zerospam_ip_id),
+          UNIQUE KEY ip (ip)
         ) $charset_collate;";
 
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
@@ -453,6 +459,45 @@ class Zero_Spam {
         array(
             '%s',
             '%d',
+            '%s'
+        ));
+    }
+
+    /**
+     * Blocks an IP address.
+     *
+     * Adds an IP to the blocked list so the user can't access the site.
+     *
+     * @since 1.5.0
+     *
+     * @param array $args Array of arguments.
+     */
+    private function _block_ip( $args ) {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+        $type = isset( $args['type'] ) ? $args['type'] : 'temporary';
+
+        $insert = array(
+            'ip' => ip2long( $this->_get_ip() ),
+            'type' => $type
+        );
+
+        if ( 'temporary' == $type ) {
+            $insert['start_date'] = $args['start_date'];
+            $insert['end_date'] = $args['end_date'];
+        }
+
+        if ( isset( $args['reason'] ) && $args['reason'] ) {
+            $insert['reason'] = $args['reason'];
+        }
+
+        $wpdb->insert( $table_name, $insert,
+        array(
+            '%d',
+            '%s',
+            '%s',
+            '%s',
             '%s'
         ));
     }
@@ -566,6 +611,9 @@ class Zero_Spam {
         add_action( 'init', array( &$this, 'init' ) );
         add_action( 'admin_init', array( &$this, 'admin_init' ) );
         add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
+        add_action( 'admin_footer', array( &$this, 'admin_footer' ) );
+        add_action( 'wp_ajax_block_ip', array( &$this, 'wp_ajax_block_ip' ) );
+        add_action( 'wp_ajax_block_ip_form', array( &$this, 'wp_ajax_block_ip_form' ) );
         add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
         add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
         add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
@@ -590,6 +638,117 @@ class Zero_Spam {
         add_filter( 'plugin_row_meta', array( &$this, 'plugin_row_meta' ), 10, 2 );
         add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( &$this, 'plugin_action_links' ) );
         add_filter( 'registration_errors', array( &$this, 'preprocess_registration' ), 10, 3 );
+    }
+
+    /**
+     * Uses admin_footer.
+     *
+     * Triggered just after closing the <div id="wpfooter"> tag and right before
+     * admin_print_footer_scripts action call of the admin-footer.php page.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/admin_footer
+     */
+    public function admin_footer() {
+        $ajax_nonce = wp_create_nonce( 'zero-spam' );
+        ?>
+        <script>
+        jQuery( document ).ready( function( $ ) {
+            $( ".zero-spam__block-ip" ).click( function( e ) {
+                e.preventDefault();
+
+                closeForms();
+
+                var row = $( this ).closest( "tr" );
+
+                row.addClass( "zero-spam__loading" );
+
+                var row = $( this ).closest( "tr" ),
+                    form_row = $( "<tr class='zero-spam__row-highlight'>" ),
+                    ip = $( this ).data( "ip" ),
+                    btn_cell = $( this ).parent();
+
+                $.post( ajaxurl, {
+                    action: 'block_ip_form',
+                    security: '<?php echo $ajax_nonce; ?>',
+                    ip: ip
+                }, function( data ) {
+                    row.removeClass( "zero-spam__loading" );
+                    row.addClass( "zero-spam__loaded" );
+
+                    form_row.append( "<td colspan='6'>" + data + "</td>" );
+                });
+
+                row.before( form_row );
+            });
+        });
+
+        function closeForms() {
+            jQuery( ".zero-spam__row-highlight" ).remove();
+            jQuery( "tr" ).removeClass( "zero-spam__loading" );
+            jQuery( "tr" ).removeClass( "zero-spam__loaded" );
+        }
+        </script>
+        <?php
+    }
+
+    /**
+     * Uses wp_ajax_(action).
+     *
+     * Renders the block IP form.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/wp_ajax_(action)
+     */
+    public function wp_ajax_block_ip_form() {
+        global $wpdb;
+        check_ajax_referer( 'zero-spam', 'security' );
+
+        $ip = $_REQUEST['ip'];
+        require_once( ZEROSPAM_ROOT . 'inc/block-ip-form.tpl.php' );
+
+        die();
+    }
+
+    /**
+     * Uses wp_ajax_(action).
+     *
+     * AJAX function to block a user's IP address.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/wp_ajax_(action)
+     */
+    public function wp_ajax_block_ip() {
+        check_ajax_referer( 'zero-spam', 'security' );
+
+        if ( ! $_POST['zerospam-type'] == 'temporary' ) {
+            $start_date = false;
+            $end_date = false;
+        } else {
+            $start_date = date( 'Y-m-d G:i:s', strtotime(
+                $_POST['zerospam-startdate-year'] . '-' .
+                $_POST['zerospam-startdate-month'] . '-' .
+                $_POST['zerospam-startdate-day']
+            ));
+
+            $end_date = date( 'Y-m-d G:i:s', strtotime(
+                $_POST['zerospam-enddate-year'] . '-' .
+                $_POST['zerospam-enddate-month'] . '-' .
+                $_POST['zerospam-enddate-day']
+            ));
+        }
+
+        $this->_block_ip( array(
+            'type' => $_POST['zerospam-type'],
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'reason' => $_POST['reason']
+        ));
+
+        die();
     }
 
     /**
