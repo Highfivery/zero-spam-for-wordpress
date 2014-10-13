@@ -85,6 +85,19 @@ $border-color: #e8edf1;
     }
 }
 
+// Messages
+
+.zero-spam__msg {
+  display: block;
+  margin: 7px 0;
+  padding: 15px 20px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background: #529e00;
+  color: #fff;
+}
+
 .zero-spam__row-highlight {
   background: lighten($border-color, 5%);
 }
@@ -185,6 +198,10 @@ $border-color: #e8edf1;
 .zero-spam__bg--trinary {
   background: #fddb5a;
   color: #1b1e24;
+}
+
+.zero-spam__bg--blocked {
+  background: rgba($primary-color, .1)
 }
 
 .zero-spam__row {

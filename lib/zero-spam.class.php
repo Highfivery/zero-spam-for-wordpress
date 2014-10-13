@@ -123,8 +123,8 @@ class Zero_Spam {
                         $unique_spammers = count( $spam['unique_spammers'] );
 
                         if ( $total_spam ) {
-                          $per_day = $this->num_days( end( $spam['raw'] )->date ) ? number_format( ( count( $spam['raw'] ) / $this->num_days( end( $spam['raw'] )->date ) ), 2 ) : 0;
-                          $num_days = $this->num_days( end( $spam['raw'] )->date );
+                          $per_day = $this->_num_days( end( $spam['raw'] )->date ) ? number_format( ( count( $spam['raw'] ) / $this->_num_days( end( $spam['raw'] )->date ) ), 2 ) : 0;
+                          $num_days = $this->_num_days( end( $spam['raw'] )->date );
                           $starting_date = end( $spam['raw'] )->date;
                         }
 
@@ -382,7 +382,7 @@ class Zero_Spam {
         $sql = "CREATE TABLE $log_table_name (
             zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
             type int(1) unsigned NOT NULL,
-            ip int(15) unsigned NOT NULL,
+            ip varchar(15) NOT NULL,
             date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
             page varchar(255) DEFAULT NULL,
             PRIMARY KEY  (zerospam_id),
@@ -391,7 +391,7 @@ class Zero_Spam {
 
         $sql .= "CREATE TABLE $ip_table_name (
           zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
-          ip int(15) unsigned NOT NULL,
+          ip varchar(15) NOT NULL,
           type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
           start_date datetime DEFAULT NULL,
           end_date datetime DEFAULT NULL,
@@ -453,7 +453,7 @@ class Zero_Spam {
 
         $wpdb->insert( $table_name, array(
             'type' => $type,
-            'ip' => ip2long( $this->_get_ip() ),
+            'ip' => $this->_get_ip(),
             'page' =>$this->_get_url()
         ),
         array(
@@ -476,30 +476,57 @@ class Zero_Spam {
         global $wpdb;
 
         $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+        $ip = $this->_get_ip();
+
         $type = isset( $args['type'] ) ? $args['type'] : 'temporary';
 
-        $insert = array(
-            'ip' => ip2long( $this->_get_ip() ),
-            'type' => $type
-        );
+        // Check is IP has already been blocked.
+        if ( $this->_is_blocked( $ip, false ) ) {
 
-        if ( 'temporary' == $type ) {
-            $insert['start_date'] = $args['start_date'];
-            $insert['end_date'] = $args['end_date'];
+            // Update existing record.
+            $wpdb->update(
+                $table_name,
+                array(
+                    'type' => $type,
+                    'start_date' => $args['start_date'],
+                    'end_date' => $args['end_date'],
+                    'reason' => $args['reason']
+                ),
+                array( 'ip' => $ip ),
+                array(
+                    '%s',
+                    '%s',
+                    '%s',
+                    '%s'
+                ),
+                array( '%s' )
+            );
+        } else {
+
+            // Insert new record.
+            $insert = array(
+                'ip' => $this->_get_ip(),
+                'type' => $type
+            );
+
+            if ( 'temporary' == $type ) {
+                $insert['start_date'] = $args['start_date'];
+                $insert['end_date'] = $args['end_date'];
+            }
+
+            if ( isset( $args['reason'] ) && $args['reason'] ) {
+                $insert['reason'] = $args['reason'];
+            }
+
+            $wpdb->insert( $table_name, $insert,
+            array(
+                '%s',
+                '%s',
+                '%s',
+                '%s',
+                '%s'
+            ));
         }
-
-        if ( isset( $args['reason'] ) && $args['reason'] ) {
-            $insert['reason'] = $args['reason'];
-        }
-
-        $wpdb->insert( $table_name, $insert,
-        array(
-            '%d',
-            '%s',
-            '%s',
-            '%s',
-            '%s'
-        ));
     }
 
     /**
@@ -706,7 +733,29 @@ class Zero_Spam {
         global $wpdb;
         check_ajax_referer( 'zero-spam', 'security' );
 
-        $ip = $_REQUEST['ip'];
+        $ajax_nonce = wp_create_nonce( 'zero-spam' );
+
+        $date = new DateTime();
+        $end_date = $date->modify('+1 day');
+
+        $start_date_year = date( 'Y' );
+        $start_date_month = date( 'n' );
+        $start_date_day = date( 'd' );
+
+        $end_date_year = $end_date->format( 'Y' );
+        $end_date_month = $end_date->format( 'n' );
+        $end_date_day = $end_date->format( 'd' );
+
+        if ( isset( $_REQUEST['ip'] ) ) {
+            $ip = $_REQUEST['ip'];
+            $data = $this->_get_blocked_ip( $_REQUEST['ip'] );
+
+            if ( $data ) {
+                list( $start_date_year, $start_date_month, $start_date_day ) = explode( '-', $data->start_date );
+                list( $end_date_year, $end_date_month, $end_date_day ) = explode( '-', $data->end_date );
+            }
+        }
+
         require_once( ZEROSPAM_ROOT . 'inc/block-ip-form.tpl.php' );
 
         die();
@@ -741,11 +790,14 @@ class Zero_Spam {
             ));
         }
 
+        $reason = isset( $_POST['reason'] ) ? $_POST['reason'] : NULL;
+
+        // Add/update the blocked IP.
         $this->_block_ip( array(
             'type' => $_POST['zerospam-type'],
             'start_date' => $start_date,
             'end_date' => $end_date,
-            'reason' => $_POST['reason']
+            'reason' => $reason
         ));
 
         die();
@@ -866,7 +918,68 @@ class Zero_Spam {
         wp_enqueue_script( 'zero-spam' );
     }
 
-    private function num_days( $date ) {
+    /**
+     *  Returns a blocked IP.
+     *
+     * @since 1.5.0
+     *
+     * @param $ip string The IP address to get.
+     */
+    private function _get_blocked_ip( $ip ) {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+
+        $query = $wpdb->get_row( "SELECT * FROM $table_name WHERE ip = '" . $ip . "'" );
+
+        if ( $query == null ) return false;
+
+        return $query;
+    }
+
+    /**
+     * Checks if an IP is blocked.
+     *
+     * @since 1.5.0
+     *
+     * @return boolean True if blocked, false if not.
+     */
+    private function _is_blocked( $ip, $time = true ) {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+
+        $check = $this->_get_blocked_ip( $ip );
+
+        if ( $check ) {
+
+            if ( $time ) {
+                // Check block type
+                if (
+                    'temporary' == $check->type &&
+                    time() >= strtotime( $check->start_date ) &&
+                    time() <= strtotime( $check->end_date )
+                ) {
+                    return true;
+                } elseif( 'permanent' == $check->type ) {
+                    return true;
+                }
+            } else {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns number of days since a date.
+     *
+     * @since 1.5.0
+     *
+     * @return int Number of days since the specified date.
+     */
+    private function _num_days( $date ) {
       $datediff = time() - strtotime( $date );
       return floor( $datediff / ( 60 * 60 * 24) );
     }

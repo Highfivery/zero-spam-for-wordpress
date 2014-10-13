@@ -133,7 +133,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                         break;
                     }
                 ?>
-                <tr id="row-<?php echo $obj->zerospam_id; ?>">
+                <tr id="row-<?php echo $obj->zerospam_id; ?>"<?php if( $this->_is_blocked( $obj->ip ) ): ?> class="zero-spam__bg--blocked"<?php endif; ?>>
                     <td><?php echo $obj->zerospam_id; ?></td>
                     <td>
                       <?php echo date(
@@ -142,15 +142,15 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                       ); ?>
                     </td>
                     <td><?php echo $type; ?></td>
-                    <td><?php echo long2ip( $obj->ip ); ?></td>
+                    <td><?php echo $obj->ip; ?></td>
                     <td><a href="<?php echo esc_url( $obj->page ); ?>" target="_blank"><?php echo $obj->page; ?> <i class="fa fa-external-link-square"></i></a></td>
                     <td class="zero-spam__text-center">
                         <i class="fa fa-circle-o-notch fa-spin"></i>
                         <i class="fa fa-edit"></i>
                         <a href="#" class="button button-small zero-spam__block-ip"
-                            data-ip="<?php echo long2ip( $obj->ip ); ?>"
+                            data-ip="<?php echo $obj->ip; ?>"
                       >
-                            <?php echo __( 'Block IP', 'zerospam' ); ?>
+                            <?php echo __( 'Configure Block', 'zerospam' ); ?>
                         </a>
                     </td>
                 </tr>
