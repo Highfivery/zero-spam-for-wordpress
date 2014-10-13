@@ -24,6 +24,7 @@ Major features in WordPress Zero Spam include:
 * **No moderation queues**, because spam is not administrators' problem
 * **Blocks spam registrations & comments** with the use of JavaScript
 * **Contact Form 7 support** if installed and activated
+* **Gravity Form support** if installed and activated
 * **Extend the plugin** with action hooks
 * **Optional logging**, so you can see who's trying to spam
 * **Advanced settings** for complete control
@@ -54,10 +55,15 @@ Yes, currently there are three hooks available:
 * `zero_spam_found_spam_registration` - Runs after a spam registration is detected
 * `zero_spam_found_spam_comment` - Runs after a spam comment is detected
 * `zero_spam_found_spam_cf7_form_submission` - Runs after a spam Contact Form 7 form submission is detected
+* `zero_spam_found_spam_gf_form_submission` - Runs after a spam Gravity Form submission is detected
 
 = Does this plugin support Contact Form 7 forms? =
 
 Yes! Thanks to @leewillis77.
+
+= Does this plugin support Gravity Forms forms? =
+
+Yes! Thanks to @shazahm1.
 
 == Screenshots ==
 
@@ -74,6 +80,7 @@ Yes! Thanks to @leewillis77.
 * Added ability to log spam detections
 * Fix for warnings cause by default settings not being set before actions run (https://github.com/bmarshall511/wordpress-zero-spam/pull/31, thanks @leewillis77)
 * Installed Compass (http://compass-style.org/)
+* Added support for Gravity Forms
 
 = 1.4.0 =
 * Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)

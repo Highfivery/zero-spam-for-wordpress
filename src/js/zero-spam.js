@@ -13,7 +13,7 @@
 ( function( $ ) {
     'use strict';
 
-    var forms = "#commentform, #registerform, .wpcf7-form";
+    var forms = "#commentform, #registerform, .wpcf7-form, .gform_wrapper form";
 
     if ( typeof zerospam.nonce != 'undefined') {
       $( forms ).submit( function() {

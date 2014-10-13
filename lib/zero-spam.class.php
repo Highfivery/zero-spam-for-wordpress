@@ -20,7 +20,8 @@ class Zero_Spam {
     );
 
     private $plugins = array(
-      'cf7' => false
+      'cf7' => false,
+      'gf' => false
     );
 
     private $db_version = "0.0.1";
@@ -149,6 +150,11 @@ class Zero_Spam {
       	if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
         	$this->plugins['cf7'] = true;
     	}
+
+        // Gravity Form support.
+        if ( is_plugin_active( 'gravity-form/wp-contact-form-7.php' ) ) {
+            $this->plugins['gf'] = true;
+        }
     }
 
     /**
@@ -163,6 +169,7 @@ class Zero_Spam {
             'comment_spam' => 0,
             'registration_spam' => 0,
             'cf7_spam' => 0,
+            'gf_spam' => 0,
             'unique_spammers' => array(),
         );
 
@@ -188,19 +195,24 @@ class Zero_Spam {
             // Spam type
             if ( $obj->type == 1 ) {
 
-                // Registration spam
+                // Registration spam.
                 $return['by_date'][ substr( $obj->date, 0, 10) ]['registration_spam']++;
                 $return['registration_spam']++;
             } elseif ( $obj->type == 2 ) {
 
-                // Comment spam
+                // Comment spam.
                 $return['by_date'][ substr( $obj->date, 0, 10) ]['comment_spam']++;
                 $return['comment_spam']++;
             } elseif ( $obj->type == 3 ) {
 
-                // Contact Form 7 spam
+                // Contact Form 7 spam.
                 $return['by_date'][ substr( $obj->date, 0, 10) ]['cf7_spam']++;
                 $return['cf7_spam']++;
+            } elseif ( $obj->type == 4 ) {
+
+                // Gravity Form spam.
+                $return['by_date'][ substr( $obj->date, 0, 10) ]['gf_spam']++;
+                $return['gf_spam']++;
             }
 
             // Unique spammers
@@ -535,6 +547,9 @@ class Zero_Spam {
             case 'cf7':
                 $type = 3;
             break;
+            case 'gf':
+                $type = 4;
+            break;
         }
 
         $wpdb->insert( $table_name, array(
@@ -760,6 +775,9 @@ class Zero_Spam {
         if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
             add_filter( 'registration_errors', array( &$this, 'preprocess_registration' ), 10, 3 );
         }
+
+        // Gravity Forms support.
+        add_filter( 'gform_validation', array( &$this, 'preprocess_registration' ) );
     }
 
     /**
@@ -996,6 +1014,26 @@ class Zero_Spam {
         ));
 
         die();
+    }
+
+    /**
+     * Validate Gravity Form submissions.
+     *
+     * @since 1.5.0
+     *
+     * @link http://www.gravityhelp.com/documentation/page/Gform_validation
+     */
+    public function gfrom_validation( $result ) {
+        if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
+
+            do_action( 'zero_spam_found_spam_gf_form_submission' );
+
+            $result['is_valid'] = false;
+
+            $this->_log_spam( 'gf' );
+        }
+
+        return $result;
     }
 
     /**
