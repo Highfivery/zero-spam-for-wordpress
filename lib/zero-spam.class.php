@@ -33,10 +33,10 @@ class Zero_Spam {
      * @since 1.0.0
      */
     public function __construct() {
-      register_activation_hook( __FILE__, array( &$this, 'install' ) );
+        register_activation_hook( __FILE__, array( &$this, 'install' ) );
 
-      $this->_plugin_check();
-      $this->_load_settings();
+        $this->_plugin_check();
+        $this->_load_settings();
         $this->_actions();
         $this->_filters();
     }
@@ -419,12 +419,12 @@ class Zero_Spam {
         add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
         add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
         add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
+        add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
 
+        // Contact Form 7 support.
         if ( $this->plugins['cf7'] ) {
           add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
         }
-
-        add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
     }
 
     /**
@@ -512,7 +512,8 @@ class Zero_Spam {
     private function _get_url() {
         $pageURL = 'http';
 
-        if ($_SERVER["HTTPS"] == "on") $pageURL .= "s";
+        if ( isset( $_SERVER["HTTPS"] ) && $_SERVER["HTTPS"] == "on")
+            $pageURL .= "s";
 
         $pageURL .= "://";
 
@@ -578,22 +579,21 @@ class Zero_Spam {
      * @access private
      */
     private function _load_settings() {
-        // Retrieve the settings
-        $this->settings['zerospam_general_settings'] = (array) get_option( 'zerospam_general_settings' );
+        $default_settings =  array(
+            'wp_generator'               => '1',
+            'spammer_msg_comment'        => 'There was a problem processing your comment.',
+            'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
+            'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
+            'log_spammers'               => '1',
+        );
 
-	    // Merge with defaults, return if already set
-	    if ( isset( $this->settings['zerospam_general_settings'] ) ) {
-		    return true;
-	    }
+        // Retrieve the settings
+        $saved_settings = (array) get_option( 'zerospam_general_settings' );
+
         $this->settings['zerospam_general_settings'] = array_merge(
-	        array(
-				'wp_generator'               => '1',
-				'spammer_msg_comment'        => 'There was a problem processing your comment.',
-				'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
-				'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
-		        'log_spammers'               => '1',
-            ),
-	        $this->settings['zerospam_general_settings'] );
+	        $default_settings,
+            $saved_settings
+        );
 	}
 
     /**
@@ -779,7 +779,15 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
      */
     public function preprocess_comment( $commentdata ) {
-        if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) && ! current_user_can( 'moderate_comments' ) && is_user_logged_in() ) {
+        if (
+            ( ! isset( $_POST['zero-spam'] ) ) ||
+            (
+                isset( $_POST['zero-spam'] ) &&
+                ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) &&
+                ! current_user_can( 'moderate_comments' ) &&
+                is_user_logged_in()
+            )
+        ) {
             do_action( 'zero_spam_found_spam_comment', $commentdata );
 
 	        if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
