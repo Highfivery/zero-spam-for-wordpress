@@ -115,6 +115,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                     <th><?php echo __( 'Type', 'zerospam' ); ?></th>
                     <th><?php echo __( 'IP', 'zerospam' ); ?></th>
                     <th><?php echo __( 'Page', 'zerospam' ); ?></th>
+                    <th><?php echo __( 'Status', 'zerospam' ); ?></th>
                     <th>&nbsp;</th>
                 </tr>
             </thead>
@@ -133,7 +134,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                         break;
                     }
                 ?>
-                <tr id="row-<?php echo $obj->zerospam_id; ?>"<?php if( $this->_is_blocked( $obj->ip ) ): ?> class="zero-spam__bg--blocked"<?php endif; ?>>
+                <tr data-ip="<?php echo $obj->ip; ?>" id="row-<?php echo $obj->zerospam_id; ?>">
                     <td><?php echo $obj->zerospam_id; ?></td>
                     <td>
                       <?php echo date(
@@ -144,6 +145,13 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                     <td><?php echo $type; ?></td>
                     <td><?php echo $obj->ip; ?></td>
                     <td><a href="<?php echo esc_url( $obj->page ); ?>" target="_blank"><?php echo $obj->page; ?> <i class="fa fa-external-link-square"></i></a></td>
+                    <td class="zero-spam__status">
+                      <?php if( $this->_is_blocked( $obj->ip ) ): ?>
+                      <span class="zero-spam__label zero-spam__bg--primary"><?php echo __( 'Blocked', 'zerospam' ); ?></span>
+                      <?php else: ?>
+                      <span class="zero-spam__label zero-spam__bg--trinary"><?php echo __( 'Unblocked', 'zerospam' ); ?></span>
+                      <?php endif; ?>
+                    </td>
                     <td class="zero-spam__text-center">
                         <i class="fa fa-circle-o-notch fa-spin"></i>
                         <i class="fa fa-edit"></i>

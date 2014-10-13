@@ -130,6 +130,8 @@ class Zero_Spam {
 
                         require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
                     } elseif ( $tab == 'zerospam_ip_block' ) {
+                        $ips = $this->_get_blocked_ips();
+
                         require_once( ZEROSPAM_ROOT . 'inc/ip-block.tpl.php' );
                     } else {
                         require_once( ZEROSPAM_ROOT . 'inc/general-settings.tpl.php' );
@@ -641,6 +643,7 @@ class Zero_Spam {
         add_action( 'admin_footer', array( &$this, 'admin_footer' ) );
         add_action( 'wp_ajax_block_ip', array( &$this, 'wp_ajax_block_ip' ) );
         add_action( 'wp_ajax_block_ip_form', array( &$this, 'wp_ajax_block_ip_form' ) );
+        add_action( 'wp_ajax_get_blocked_ip', array( &$this, 'wp_ajax_get_blocked_ip' ) );
         add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
         add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
         add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
@@ -704,7 +707,7 @@ class Zero_Spam {
                     row.removeClass( "zero-spam__loading" );
                     row.addClass( "zero-spam__loaded" );
 
-                    form_row.append( "<td colspan='6'>" + data + "</td>" );
+                    form_row.append( "<td colspan='10'>" + data + "</td>" );
                 });
 
                 row.before( form_row );
@@ -715,6 +718,29 @@ class Zero_Spam {
             jQuery( ".zero-spam__row-highlight" ).remove();
             jQuery( "tr" ).removeClass( "zero-spam__loading" );
             jQuery( "tr" ).removeClass( "zero-spam__loaded" );
+        }
+
+        function updateRow( ip ) {
+            jQuery.post( ajaxurl, {
+                action: 'get_blocked_ip',
+                security: '<?php echo $ajax_nonce; ?>',
+                ip: ip
+            }, function( data ) {
+                var d = jQuery.parseJSON( data ),
+                    row = jQuery( "tr[data-ip='" + d.ip + "']" ),
+                    label;
+
+                if ( true == d.is_blocked ) {
+                    label = '<span class="zero-spam__label zero-spam__bg--primary">Blocked</span>';
+                } else {
+                    label = '<span class="zero-spam__label zero-spam__bg--trinary">Unblocked</span>';
+                }
+
+                jQuery( ".zero-spam__reason", row ).text( d.reason );
+                jQuery( ".zero-spam__start-date", row ).text( d.start_date_txt );
+                jQuery( ".zero-spam__end-date", row ).text( d.end_date_txt );
+                jQuery( ".zero-spam__status", row ).html( label );
+            });
         }
         </script>
         <?php
@@ -764,6 +790,34 @@ class Zero_Spam {
     /**
      * Uses wp_ajax_(action).
      *
+     * Get the blocked IP data.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/wp_ajax_(action)
+     */
+    public function wp_ajax_get_blocked_ip() {
+        global $wpdb;
+        check_ajax_referer( 'zero-spam', 'security' );
+
+        $ajax_nonce = wp_create_nonce( 'zero-spam' );
+
+        $ip = $_REQUEST['ip'];
+
+        $data = $this->_get_blocked_ip( $ip );
+
+        $data->is_blocked = $this->_is_blocked( $ip );
+        $data->start_date_txt = date( 'l, F j, Y', strtotime( $data->start_date ) );
+        $data->end_date_txt = date( 'l, F j, Y', strtotime( $data->end_date ) );
+
+        echo json_encode( (array) $data );
+
+        die();
+    }
+
+    /**
+     * Uses wp_ajax_(action).
+     *
      * AJAX function to block a user's IP address.
      *
      * @since 1.5.0
@@ -790,7 +844,7 @@ class Zero_Spam {
             ));
         }
 
-        $reason = isset( $_POST['reason'] ) ? $_POST['reason'] : NULL;
+        $reason = isset( $_POST['zerospam-reason'] ) ? $_POST['zerospam-reason'] : NULL;
 
         // Add/update the blocked IP.
         $this->_block_ip( array(
@@ -931,6 +985,25 @@ class Zero_Spam {
         $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
 
         $query = $wpdb->get_row( "SELECT * FROM $table_name WHERE ip = '" . $ip . "'" );
+
+        if ( $query == null ) return false;
+
+        return $query;
+    }
+
+    /**
+     *  Returns an array of blocked IPs.
+     *
+     * @since 1.5.0
+     *
+     * @return array An array of blocked IPs from the database.
+     */
+    private function _get_blocked_ips() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+
+        $query = $wpdb->get_results( "SELECT * FROM $table_name" );
 
         if ( $query == null ) return false;
 

@@ -200,10 +200,6 @@ $border-color: #e8edf1;
   color: #1b1e24;
 }
 
-.zero-spam__bg--blocked {
-  background: rgba($primary-color, .1)
-}
-
 .zero-spam__row {
   overflow: hidden;
 }
@@ -269,6 +265,19 @@ $border-color: #e8edf1;
 .zerospam__right {
   width: 422px;
   float: right;
+}
+
+.zero-spam__label {
+  display: inline-block;
+  padding: 3px 5px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+
+}
+
+.zero-spam__period {
+  display: none;
 }
 
 @media all and (max-width: 1140px) {

@@ -10,7 +10,7 @@
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 ?>
-<h2><?php echo __( 'Block', 'zerospam' ); ?> <?php echo $ip; ?></h2>
+<h2><?php echo __( 'Configure Block for', 'zerospam' ); ?> <?php echo $ip; ?></h2>
 <form method="post" action="options.php" id="zero-spam__block-ip-form">
 <table class="form-table">
   <tr>
@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       </select>
     </td>
   </tr>
-  <tr>
+  <tr class="zero-spam__period"<?php if( isset( $data->type ) && 'temporary' == $data->type ): ?> style="display: table-row;"<?php endif; ?>>
     <th><label for="zerospam-startdate"><?php echo __( 'Start Date', 'zerospam' ); ?>:</th>
     <td>
       <select name="zerospam-startdate-month" id="zerospam-startdate">
@@ -57,7 +57,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       </select>
     </td>
   </tr>
-  <tr>
+  <tr class="zero-spam__period"<?php if( isset( $data->type ) && 'temporary' == $data->type ): ?> style="display: table-row;"<?php endif; ?>>
     <th><label for="zerospam-enddate"><?php echo __( 'End Date', 'zerospam' ); ?>:</th>
     <td>
       <select name="zerospam-enddate-month" id="zerospam-enddate">
@@ -74,7 +74,6 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
         <option value="11"<?php if( isset( $end_date_month ) && '11' == $end_date_month ): ?> selected="selected"<?php endif; ?>><?php echo __( 'November', 'zerospam' ); ?></option>
         <option value="12"<?php if( isset( $end_date_month ) && '12' == $end_date_month ): ?> selected="selected"<?php endif; ?>><?php echo __( 'December', 'zerospam' ); ?></option>
       </select>
-
       <select name="zerospam-enddate-day">
         <?php for ($i = 1; $i <= 31; $i++): ?>
           <option value="<?php echo $i; ?>"<?php if( isset( $end_date_day ) && $i == $end_date_day ): ?> selected="selected"<?php endif; ?>><?php echo $i; ?></option>
@@ -106,6 +105,7 @@ jQuery( document ).ready( function( $ ) {
         var form = $( this );
 
         $( "input[type='submit']", form ).attr( "disabled", true );
+        $( ".zero-spam__msg" ).remove();
 
         var data = $( "#zero-spam__block-ip-form" ).serialize();
         data += '&security=<?php echo $ajax_nonce; ?>';
@@ -115,7 +115,18 @@ jQuery( document ).ready( function( $ ) {
             $( "input[type='submit']", form ).attr( "disabled", false );
 
             form.prepend( "<div class='zero-spam__msg'>This IP address has been updated.</div>" );
+
+            <? if ( $ip ): ?>updateRow( '<?php echo $ip; ?>' );<?php endif; ?>
         });
+    });
+
+    $( "#zerospam-type" ).change( function() {
+        var val = $( this ).val();
+        if ( "permanent" == val ) {
+          $( ".zero-spam__period" ).hide();
+        } else {
+          $( ".zero-spam__period" ).show();
+        }
     });
 });
 </script>
