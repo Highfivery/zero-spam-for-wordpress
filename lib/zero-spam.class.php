@@ -114,7 +114,7 @@ class Zero_Spam {
               <div class="zerospam__left">
                 <?php
                     if (
-                        'zerospam_spammer_logs' == $tab  &&
+                        'zerospam_spammer_logs' == $tab &&
                         '1' == $this->settings['zerospam_general_settings']['log_spammers']
                     ) {
                         $spam = $this->_get_spam();
