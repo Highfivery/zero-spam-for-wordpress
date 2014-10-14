@@ -12,9 +12,9 @@ Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a sp
 
 == Description ==
 
-**Why should your users prove that they're humans by filling out captchas? Let bots prove their not bots with the <a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/" target="_blank">WordPress Zero Spam plugin</a>.**
+**Why should your users prove that they're humans by filling out captchas? Let bots prove they're not bots with the <a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/" target="_blank">WordPress Zero Spam plugin</a>.**
 
-WordPress Zero Spam blocks registration spam and spam in comments automatically without any additional config or setup. Just install, activate and enjoy a spam-free site.
+WordPress Zero Spam blocks registration spam and spam in comments automatically without any additional config or setup. Just install, activate, and enjoy a spam-free site.
 
 Zero Spam was initially built based on the work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
 
