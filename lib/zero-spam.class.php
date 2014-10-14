@@ -152,7 +152,7 @@ class Zero_Spam {
     	}
 
         // Gravity Form support.
-        if ( is_plugin_active( 'gravity-form/wp-contact-form-7.php' ) ) {
+        if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
             $this->plugins['gf'] = true;
         }
     }
@@ -337,6 +337,21 @@ class Zero_Spam {
     }
 
     /*
+     * Gravity Forms support option.
+     *
+     * Field callback, renders a checkbox input, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    public function field_gf_support() {
+        ?>
+        <label for="gf_support">
+            <input type="checkbox" id="gf_support" name="zerospam_general_settings[gf_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['gf_support'] ) ) : checked( $this->settings['zerospam_general_settings']['gf_support'] ); endif; ?> /> <?php echo __( 'Enable', 'zerospam' ); ?>
+        </label>
+        <?php
+    }
+
+    /*
      * Comment support option.
      *
      * Field callback, renders a checkbox input, note the name and value.
@@ -471,6 +486,7 @@ class Zero_Spam {
         $options['log_spammers'] = 1;
         $options['wp_generator'] = 1;
         $options['cf7_support'] = 1;
+        $options['gf_support'] = 1;
         update_option( 'zerospam_general_settings', $options );
     }
 
@@ -504,6 +520,11 @@ class Zero_Spam {
             if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
                 add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
             }
+        }
+
+        // Gravity Forms support.
+        if ( $this->plugins['gf'] ) {
+            add_settings_field( 'gf_support', __( 'Gravity Forms Support', 'zerospam' ), array( &$this, 'field_gf_support' ), 'zerospam_general_settings', 'section_general' );
         }
     }
 
@@ -711,6 +732,7 @@ class Zero_Spam {
 			'spammer_msg_comment'        => 'There was a problem processing your comment.',
 			'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
 			'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
+            'spammer_msg_gf'             => 'There was a problem processing your submission.',
 		);
 
 		// Retrieve the settings
@@ -777,7 +799,7 @@ class Zero_Spam {
         }
 
         // Gravity Forms support.
-        add_filter( 'gform_validation', array( &$this, 'preprocess_registration' ) );
+        add_filter( 'gform_validation', array( &$this, 'gform_validation' ) );
     }
 
     /**
@@ -1023,7 +1045,7 @@ class Zero_Spam {
      *
      * @link http://www.gravityhelp.com/documentation/page/Gform_validation
      */
-    public function gfrom_validation( $result ) {
+    public function gform_validation( $result ) {
         if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
 
             do_action( 'zero_spam_found_spam_gf_form_submission' );
