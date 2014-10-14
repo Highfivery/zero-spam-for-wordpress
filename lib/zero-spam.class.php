@@ -37,6 +37,7 @@ class Zero_Spam {
 
         $this->_plugin_check();
         $this->_load_settings();
+        $this->_ip_check();
         $this->_actions();
         $this->_filters();
     }
@@ -427,6 +428,24 @@ class Zero_Spam {
         if ( $this->plugins['cf7'] ) {
           add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
         }
+    }
+
+    /**
+     * Checks if the current IP is blocked.
+     *
+     * @since 1.5.0
+     */
+    private function _ip_check() {
+    	$ips = $this->_get_blocked_ips();
+    	$ip = $this->_get_ip();
+
+    	if ( is_array( $ips ) && count( $ips ) ) {
+	    	foreach( $ips as $key => $obj ) {
+	    		if( $obj->ip == $ip ) {
+	    			die( "Access denied." );
+	    		}
+	    	}
+	    }
     }
 
     /**
