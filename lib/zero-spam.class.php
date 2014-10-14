@@ -114,7 +114,7 @@ class Zero_Spam {
               <div class="zerospam__left">
                 <?php
                     if (
-                        $tab == 'zerospam_spammer_logs' &&
+                        'zerospam_spammer_logs' == $tab &&
                         '1' == $this->settings['zerospam_general_settings']['log_spammers']
                     ) {
                         $spam = $this->_get_spam();
@@ -627,21 +627,21 @@ class Zero_Spam {
      * @access private
      */
     private function _load_settings() {
-        $default_settings =  array(
-            'wp_generator'               => '1',
-            'spammer_msg_comment'        => 'There was a problem processing your comment.',
-            'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
-            'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
-            'log_spammers'               => '1',
-        );
+		$default_settings =  array(
+			//'wp_generator'               => '1',
+			'spammer_msg_comment'        => 'There was a problem processing your comment.',
+			'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
+			'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
+			//'log_spammers'               => '1',
+		);
 
-        // Retrieve the settings
-        $saved_settings = (array) get_option( 'zerospam_general_settings' );
+		// Retrieve the settings
+		$saved_settings = (array) get_option( 'zerospam_general_settings' );
 
-        $this->settings['zerospam_general_settings'] = array_merge(
-	        $default_settings,
-            $saved_settings
-        );
+		$this->settings['zerospam_general_settings'] = array_merge(
+			$default_settings,
+			$saved_settings
+		);
 	}
 
     /**
