@@ -13,13 +13,13 @@
 ( function( $ ) {
     'use strict';
 
-    var forms = "#commentform, #registerform, .wpcf7-form";
+    var forms = "#commentform, #registerform, .wpcf7-form, .gform_wrapper form";
 
-    if ( typeof zerospam.nonce != 'undefined') {
+    if ( typeof zerospam.key != 'undefined') {
       $( forms ).submit( function() {
           $( "<input>" ).attr( "type", "hidden" )
-              .attr( "name", "zero-spam" )
-              .attr( "value", zerospam.nonce )
+              .attr( "name", "zerospam_key" )
+              .attr( "value", zerospam.key )
               .appendTo( forms );
 
           return true;

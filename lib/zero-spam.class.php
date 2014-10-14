@@ -20,7 +20,8 @@ class Zero_Spam {
     );
 
     private $plugins = array(
-      'cf7' => false
+      'cf7' => false,
+      'gf' => false
     );
 
     private $db_version = "0.0.1";
@@ -149,6 +150,11 @@ class Zero_Spam {
       	if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
         	$this->plugins['cf7'] = true;
     	}
+
+        // Gravity Form support.
+        if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
+            $this->plugins['gf'] = true;
+        }
     }
 
     /**
@@ -163,6 +169,7 @@ class Zero_Spam {
             'comment_spam' => 0,
             'registration_spam' => 0,
             'cf7_spam' => 0,
+            'gf_spam' => 0,
             'unique_spammers' => array(),
         );
 
@@ -188,19 +195,24 @@ class Zero_Spam {
             // Spam type
             if ( $obj->type == 1 ) {
 
-                // Registration spam
+                // Registration spam.
                 $return['by_date'][ substr( $obj->date, 0, 10) ]['registration_spam']++;
                 $return['registration_spam']++;
             } elseif ( $obj->type == 2 ) {
 
-                // Comment spam
+                // Comment spam.
                 $return['by_date'][ substr( $obj->date, 0, 10) ]['comment_spam']++;
                 $return['comment_spam']++;
             } elseif ( $obj->type == 3 ) {
 
-                // Contact Form 7 spam
+                // Contact Form 7 spam.
                 $return['by_date'][ substr( $obj->date, 0, 10) ]['cf7_spam']++;
                 $return['cf7_spam']++;
+            } elseif ( $obj->type == 4 ) {
+
+                // Gravity Form spam.
+                $return['by_date'][ substr( $obj->date, 0, 10) ]['gf_spam']++;
+                $return['gf_spam']++;
             }
 
             // Unique spammers
@@ -320,6 +332,21 @@ class Zero_Spam {
         ?>
         <label for="cf7_support">
             <input type="checkbox" id="cf7_support" name="zerospam_general_settings[cf7_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) ) : checked( $this->settings['zerospam_general_settings']['cf7_support'] ); endif; ?> /> <?php echo __( 'Enable', 'zerospam' ); ?>
+        </label>
+        <?php
+    }
+
+    /*
+     * Gravity Forms support option.
+     *
+     * Field callback, renders a checkbox input, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    public function field_gf_support() {
+        ?>
+        <label for="gf_support">
+            <input type="checkbox" id="gf_support" name="zerospam_general_settings[gf_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['gf_support'] ) ) : checked( $this->settings['zerospam_general_settings']['gf_support'] ); endif; ?> /> <?php echo __( 'Enable', 'zerospam' ); ?>
         </label>
         <?php
     }
@@ -459,6 +486,7 @@ class Zero_Spam {
         $options['log_spammers'] = 1;
         $options['wp_generator'] = 1;
         $options['cf7_support'] = 1;
+        $options['gf_support'] = 1;
         update_option( 'zerospam_general_settings', $options );
     }
 
@@ -492,6 +520,11 @@ class Zero_Spam {
             if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
                 add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
             }
+        }
+
+        // Gravity Forms support.
+        if ( $this->plugins['gf'] ) {
+            add_settings_field( 'gf_support', __( 'Gravity Forms Support', 'zerospam' ), array( &$this, 'field_gf_support' ), 'zerospam_general_settings', 'section_general' );
         }
     }
 
@@ -534,6 +567,9 @@ class Zero_Spam {
             break;
             case 'cf7':
                 $type = 3;
+            break;
+            case 'gf':
+                $type = 4;
             break;
         }
 
@@ -696,6 +732,7 @@ class Zero_Spam {
 			'spammer_msg_comment'        => 'There was a problem processing your comment.',
 			'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
 			'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
+            'spammer_msg_gf'             => 'There was a problem processing your submission.',
 		);
 
 		// Retrieve the settings
@@ -760,6 +797,9 @@ class Zero_Spam {
         if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
             add_filter( 'registration_errors', array( &$this, 'preprocess_registration' ), 10, 3 );
         }
+
+        // Gravity Forms support.
+        add_filter( 'gform_validation', array( &$this, 'gform_validation' ) );
     }
 
     /**
@@ -1016,6 +1056,26 @@ class Zero_Spam {
     }
 
     /**
+     * Validate Gravity Form submissions.
+     *
+     * @since 1.5.0
+     *
+     * @link http://www.gravityhelp.com/documentation/page/Gform_validation
+     */
+    public function gform_validation( $result ) {
+        if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
+
+            do_action( 'zero_spam_found_spam_gf_form_submission' );
+
+            $result['is_valid'] = false;
+
+            $this->_log_spam( 'gf' );
+        }
+
+        return $result;
+    }
+
+    /**
      * Preprocess comment fields.
      *
      * An action hook that is applied to the comment data prior to any other processing of the
@@ -1026,15 +1086,13 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
      */
     public function preprocess_comment( $commentdata ) {
-        if (
-            ( ! isset( $_POST['zero-spam'] ) ) ||
+        if ( ! isset( $_POST['zerospam_key'] ) ||
             (
-                isset( $_POST['zero-spam'] ) &&
-                ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) &&
+                $_POST['zerospam_key'] != $this->_get_key() ) &&
                 ! current_user_can( 'moderate_comments' ) &&
                 is_user_logged_in()
             )
-        ) {
+        {
             do_action( 'zero_spam_found_spam_comment', $commentdata );
 
 	        if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
@@ -1043,6 +1101,7 @@ class Zero_Spam {
 
             die( __( $this->settings['zerospam_general_settings']['spammer_msg_comment'], 'zerospam' ) );
         }
+
         return $commentdata;
     }
 
@@ -1058,7 +1117,7 @@ class Zero_Spam {
      * @link http://codex.wordpress.org/Plugin_API/Action_Reference/register_post
      */
     public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
-        if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
+        if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
             do_action( 'zero_spam_found_spam_registration', $errors, $sanitized_user_login, $user_email );
 
 	        if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
@@ -1067,6 +1126,7 @@ class Zero_Spam {
 
             $errors->add( 'spam_error', __( $this->settings['zerospam_general_settings']['spammer_msg_registration'], 'zerospam' ) );
         }
+
         return $errors;
     }
 
@@ -1081,7 +1141,7 @@ class Zero_Spam {
      *
      */
     public function wpcf7_validate( $result ) {
-        if ( ! wp_verify_nonce( $_POST['zero-spam'], 'zerospam' ) ) {
+        if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
             do_action( 'zero_spam_found_spam_cf7_form_submission' );
 
             $result['valid'] = false;
@@ -1108,7 +1168,7 @@ class Zero_Spam {
             wp_register_script( 'zero-spam', plugins_url( '/build/js/zero-spam.min.js' , ZEROSPAM_PLUGIN ), array( 'jquery' ), '1.1.0', true );
         }
         wp_localize_script( 'zero-spam', 'zerospam', array(
-            'nonce' => wp_create_nonce( 'zerospam' )
+            'key' => $this->_get_key()
         ) );
         wp_enqueue_script( 'zero-spam' );
     }
@@ -1213,6 +1273,20 @@ class Zero_Spam {
     private function _num_days( $date ) {
       $datediff = time() - strtotime( $date );
       return floor( $datediff / ( 60 * 60 * 24) );
+    }
+
+    /**
+     * Retrieve the key, generating if needed.
+     *
+     * @since 1.5.0
+     */
+    private function _get_key() {
+        if ( ! $key = get_option( 'zerospam_key' ) ) {
+            $key = wp_generate_password( 64 );
+            update_option( 'zerospam_key', $key );
+        }
+
+        return $key;
     }
 
     /**

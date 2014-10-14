@@ -60,6 +60,12 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 							<b><?php echo number_format( $spam['cf7_spam'], 0 ); ?></b>
 						</div>
 					<?php endif; ?>
+          <?php if ( $this->plugins['gf'] ): ?>
+            <div class="zero-spam__stat">
+              <?php echo __( 'Gravity Forms', 'zerospam' ); ?>
+              <b><?php echo number_format( $spam['gf_spam'], 0 ); ?></b>
+            </div>
+          <?php endif; ?>
 				</div>
 			</div>
 		</div>
@@ -83,7 +89,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 					    'date': '<?php echo $date; ?>',
 					    'spam_comments': <?php echo $ary['comment_spam']; ?>,
 					    'spam_registrations': <?php echo $ary['registration_spam']; ?>,
-					    <?php if ( $this->plugins['cf7'] ): ?>'spam_cf7': <?php echo $ary['cf7_spam']; ?><?php endif; ?>
+					    <?php if ( $this->plugins['cf7'] ): ?>'spam_cf7': <?php echo $ary['cf7_spam']; ?>,<?php endif; ?>
+              <?php if ( $this->plugins['gf'] ): ?>'spam_gf': <?php echo $ary['gf_spam']; ?><?php endif; ?>
 					},
 					<?php endforeach; ?>
 				],
@@ -92,17 +99,20 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 					'spam_comments',
 					'spam_registrations',
 					<?php if ( $this->plugins['cf7'] ): ?>'spam_cf7',<?php endif; ?>
+          <?php if ( $this->plugins['gf'] ): ?>'spam_gf',<?php endif; ?>
 				],
 				labels: [
 					'<?php echo __( 'Spam Comments', 'zerospam' ); ?>',
 					'<?php echo __( 'Spam Registrations', 'zerospam' ); ?>',
 					<?php if ( $this->plugins['cf7'] ): ?>'<?php echo __( 'Contact Form 7', 'zerospam' ); ?>',<?php endif; ?>
+          <?php if ( $this->plugins['gf'] ): ?>'<?php echo __( 'Gravity Forms', 'zerospam' ); ?>',<?php endif; ?>
 				],
 				xLabels: 'day',
 				lineColors: [
 					'#00639e',
 					'#ff183a',
-					'#fddb5a'
+					'#fddb5a',
+          '#222d3a'
 				],
 		  	});
 		});
@@ -131,6 +141,9 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                         break;
                         case 3:
                             $type = '<span class="zero-spam__label zero-spam__bg--trinary">' . __( 'Contact Form 7', 'zerospam' ) . '</span>';
+                        break;
+                        case 4:
+                            $type = '<span class="zero-spam__label zero-spam__bg--gf">' . __( 'Gravity Forms', 'zerospam' ) . '</span>';
                         break;
                     }
                 ?>

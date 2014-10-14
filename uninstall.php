@@ -18,7 +18,7 @@
  *
  * For more information, see the following discussion:
  * https://github.com/tommcfarlin/WordPress-Plugin-Boilerplate/pull/123#issuecomment-28541913
- * 
+ *
  * @since 		1.5.0
  */
 
@@ -60,4 +60,8 @@ check_admin_referer( 'bulk-plugins' );
 // Safe to carry on
 if ( false != get_option( 'zerospam_general_settings' ) || '' == get_option( 'zerospam_general_settings' ) ) {
 	delete_option( 'zerospam_general_settings' );
+}
+
+if ( false != get_option( 'zerospam_key' ) || '' == get_option( 'zerospam_key' ) ) {
+  delete_option( 'zerospam_key' );
 }
