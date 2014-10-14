@@ -75,7 +75,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 <div class="zero-spam__widget">
     <div class="zero-spam__inner">
         <?php if ( count( $spam['by_date'] ) ): ?>
-		<h3><?php echo __( 'All Time', 'zerospam' ); ?></h3>
+        <a href="javascript: clearLog();" class="zero-spam__fright button"><?php echo __( 'Reset Log', 'zerospam' ); ?></a>
+		    <h3><?php echo __( 'All Time', 'zerospam' ); ?></h3>
 		<div id="graph"></div>
 		<script>
 		jQuery(function() {

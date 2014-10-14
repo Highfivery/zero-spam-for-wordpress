@@ -760,12 +760,14 @@ class Zero_Spam {
         add_action( 'admin_init', array( &$this, 'admin_init' ) );
         add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
         add_action( 'admin_footer', array( &$this, 'admin_footer' ) );
+        add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
+        add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
+
         add_action( 'wp_ajax_block_ip', array( &$this, 'wp_ajax_block_ip' ) );
         add_action( 'wp_ajax_block_ip_form', array( &$this, 'wp_ajax_block_ip_form' ) );
         add_action( 'wp_ajax_get_blocked_ip', array( &$this, 'wp_ajax_get_blocked_ip' ) );
         add_action( 'wp_ajax_trash_ip_block', array( &$this, 'wp_ajax_trash_ip_block' ) );
-        add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
-        add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
+        add_action( 'wp_ajax_reset_log', array( &$this, 'wp_ajax_reset_log' ) );
 
         if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
             add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
@@ -875,6 +877,17 @@ class Zero_Spam {
             jQuery( "tr" ).removeClass( "zero-spam__loaded" );
         }
 
+        function clearLog() {
+            if ( confirm("<?php echo __( "This will PERMANENTLY delete all data in the spammer log. This action cannot be undone. Are you sure you want to continue?", "zerospam" ); ?>") == true ) {
+                jQuery.post( ajaxurl, {
+                    action: 'reset_log',
+                    security: '<?php echo $ajax_nonce; ?>'
+                }, function() {
+                    location.reload();
+                });
+            }
+        }
+
         function updateRow( ip ) {
         	if ( ip ) {
 	            jQuery.post( ajaxurl, {
@@ -922,6 +935,23 @@ class Zero_Spam {
 
         $this->_delete_blocked_ip( $ip );
 
+        die();
+    }
+
+    /**
+     * Uses wp_ajax_(action).
+     *
+     * Resets the spammer log.
+     *
+     * @since 1.5.0
+     *
+     * @link http://codex.wordpress.org/Plugin_API/Action_Reference/wp_ajax_(action)
+     */
+    public function wp_ajax_reset_log() {
+        global $wpdb;
+        check_ajax_referer( 'zero-spam', 'security' );
+
+        $this->_reset_log();
         die();
     }
 
@@ -1171,6 +1201,21 @@ class Zero_Spam {
             'key' => $this->_get_key()
         ) );
         wp_enqueue_script( 'zero-spam' );
+    }
+
+    /**
+     *  Clears the log table.
+     *
+     * @since 1.5.0
+     */
+    private function _reset_log() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'zerospam_log';
+
+        $query = $wpdb->query( 'TRUNCATE ' . $table_name );
+
+        return $query;
     }
 
     /**
