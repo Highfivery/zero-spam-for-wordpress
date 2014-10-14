@@ -22,8 +22,6 @@
  * @since 		1.5.0
  */
 
-
-
 // If this file is called directly, abort.
 if ( ! defined( 'WPINC' ) ) {
 	exit;
@@ -65,3 +63,10 @@ if ( false != get_option( 'zerospam_general_settings' ) || '' == get_option( 'ze
 if ( false != get_option( 'zerospam_key' ) || '' == get_option( 'zerospam_key' ) ) {
   delete_option( 'zerospam_key' );
 }
+
+// Delete database tables
+global $wpdb;
+$log_table_name = $wpdb->prefix . 'zerospam_log';
+$ip_table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+$wpdb->query( "DROP TABLE IF EXISTS $log_table_name" );
+$wpdb->query( "DROP TABLE IF EXISTS $ip_table_name" );
