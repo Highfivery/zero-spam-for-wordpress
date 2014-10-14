@@ -1,4 +1,6 @@
 default:
+    - 'jshint'
+    - 'uglify:dev'
     - 'concurrent:watch'
 
 prod:

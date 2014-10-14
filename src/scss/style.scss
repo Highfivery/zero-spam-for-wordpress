@@ -8,6 +8,100 @@
  * WordPress Zero Spam Settings Page Styles
  */
 
+// Variables
+
+$primary-color: #ff183a;
+$secondary-color: #00639e;
+$border-color: #e8edf1;
+
+// Typography elements
+
+.zero-spam__text-right {
+  text-align: right;
+}
+
+.zero-spam__text-center {
+  text-align: center;
+}
+
+// Table element
+
+.zero-spam__table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+        font-size: 12px;
+        padding: 10px 12px;
+    }
+
+    th {
+        text-align: left;
+        text-transform: uppercase;
+        font-weight: bold;
+        line-height: 1.42857143;
+    }
+
+    td {
+        border-top: 1px solid $border-color;
+    }
+
+    tr {
+      .fa-circle-o-notch,
+      .fa-edit {
+        display: none;
+      }
+
+      &.zero-spam__loading {
+        .fa-circle-o-notch {
+          display: inline;
+        }
+
+        .zero-spam__block-ip {
+          display: none;
+        }
+      }
+
+      &.zero-spam__loaded {
+        .fa-edit {
+          display: inline;
+        }
+
+        .zero-spam__block-ip {
+          display: none;
+        }
+      }
+    }
+
+    .form-table {
+        th {
+            text-transform: none;
+        }
+
+        td {
+            border: 0;
+        }
+    }
+}
+
+// Messages
+
+.zero-spam__msg {
+  display: block;
+  margin: 7px 0;
+  padding: 15px 20px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background: #529e00;
+  color: #fff;
+}
+
+.zero-spam__row-highlight {
+  background: lighten($border-color, 5%);
+}
+
 .zero-spam__widget {
   margin: 20px 0;
   -webkit-border-radius: 3px;
@@ -41,7 +135,7 @@
 }
 
 .zero-spam__widget a {
-  color: #ff183a;
+  color: $primary-color;
   text-decoration: none;
   transition: all .3s;
 }
@@ -66,7 +160,7 @@
 
 .zero-spam__button {
   display: inline-block;
-  background: #00639e;
+  background: $secondary-color;
   color: #fff !important;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
@@ -91,35 +185,13 @@
   font-weight: 600;
 }
 
-.zero-spam__table {
-  width: 100%;
-}
-
-.zero-spam__table th,
-.zero-spam__table tbody td {
-  padding: 10px 12px;
-}
-
-.zero-spam__table th {
-  text-align: left;
-  text-transform: uppercase;
-  font-weight: bold;
-  font-size: 12px;
-  line-height: 1.42857143;
-
-}
-
-.zero-spam__table tbody td {
-  border-top: 1px solid #e8edf1;
-}
-
 .zero-spam__bg--primary {
-  background: #ff183a;
+  background: $primary-color;
   color: #fff;
 }
 
 .zero-spam__bg--secondary {
-  background: #00639e;
+  background: $secondary-color;
   color: #fff;
 }
 
@@ -193,6 +265,15 @@
 .zerospam__right {
   width: 422px;
   float: right;
+}
+
+.zero-spam__label {
+  display: inline-block;
+  padding: 3px 5px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+
 }
 
 @media all and (max-width: 1140px) {
