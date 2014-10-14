@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       </select>
     </td>
   </tr>
-  <tr class="zero-spam__period"<?php if( isset( $data->type ) && 'temporary' == $data->type ): ?> style="display: table-row;"<?php endif; ?>>
+  <tr class="zero-spam__period"<?php if( isset( $data->type ) && 'permanent' == $data->type ): ?> style="display: none;"<?php endif; ?>>
     <th><label for="zerospam-startdate"><?php echo __( 'Start Date', 'zerospam' ); ?>:</th>
     <td>
       <select name="zerospam-startdate-month" id="zerospam-startdate">
@@ -57,7 +57,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       </select>
     </td>
   </tr>
-  <tr class="zero-spam__period"<?php if( isset( $data->type ) && 'temporary' == $data->type ): ?> style="display: table-row;"<?php endif; ?>>
+  <tr class="zero-spam__period"<?php if( isset( $data->type ) && 'permanent' == $data->type ): ?> style="display: none;"<?php endif; ?>>
     <th><label for="zerospam-enddate"><?php echo __( 'End Date', 'zerospam' ); ?>:</th>
     <td>
       <select name="zerospam-enddate-month" id="zerospam-enddate">

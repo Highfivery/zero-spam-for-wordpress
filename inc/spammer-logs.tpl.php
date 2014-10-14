@@ -144,7 +144,11 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                     </td>
                     <td><?php echo $type; ?></td>
                     <td><?php echo $obj->ip; ?></td>
-                    <td><a href="<?php echo esc_url( $obj->page ); ?>" target="_blank"><?php echo $obj->page; ?> <i class="fa fa-external-link-square"></i></a></td>
+                    <td><?php if ( isset( $obj->page ) ): ?>
+                    	<a href="<?php echo esc_url( $obj->page ); ?>" target="_blank"><?php echo $obj->page; ?> <i class="fa fa-external-link-square"></i></a>
+                    <?php else: ?>
+                    	<?php echo __( 'Unknown', 'zerospam' ); ?>
+                    <?php endif; ?></td>
                     <td class="zero-spam__status">
                       <?php if( $this->_is_blocked( $obj->ip ) ): ?>
                       <span class="zero-spam__label zero-spam__bg--primary"><?php echo __( 'Blocked', 'zerospam' ); ?></span>
@@ -153,13 +157,11 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                       <?php endif; ?>
                     </td>
                     <td class="zero-spam__text-center">
-                        <i class="fa fa-circle-o-notch fa-spin"></i>
-                        <i class="fa fa-edit"></i>
+                        <i class="fa fa-circle-o-notch fa-spin"></i>&nbsp;
+                        <i class="fa fa-edit"></i>&nbsp;
                         <a href="#" class="button button-small zero-spam__block-ip"
                             data-ip="<?php echo $obj->ip; ?>"
-                      >
-                            <?php echo __( 'Configure Block', 'zerospam' ); ?>
-                        </a>
+                      ><i class="fa fa-gear"></i></a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
