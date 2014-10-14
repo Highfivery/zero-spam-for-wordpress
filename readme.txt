@@ -28,6 +28,7 @@ Major features in WordPress Zero Spam include:
 * **Extend the plugin** with action hooks
 * **Optional logging**, so you can see who's trying to spam
 * **Advanced settings** for complete control
+* **Supports caching plugins** to help provide great performance
 
 **Languages:** English
 
@@ -65,6 +66,10 @@ Yes! Thanks to @leewillis77.
 
 Yes! Thanks to @shazahm1.
 
+= Does this plugin work with caching plugins like W3 Total Cache? =
+
+Yes! Thanks to @shazahm1.
+
 == Screenshots ==
 
 == Changelog ==
@@ -81,6 +86,7 @@ Yes! Thanks to @shazahm1.
 * Fix for warnings cause by default settings not being set before actions run (https://github.com/bmarshall511/wordpress-zero-spam/pull/31, thanks @leewillis77)
 * Installed Compass (http://compass-style.org/)
 * Added support for Gravity Forms
+* Fixed potential issue with sites that use caching plugins
 
 = 1.4.0 =
 * Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)
