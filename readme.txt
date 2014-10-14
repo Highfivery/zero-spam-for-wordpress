@@ -1,5 +1,5 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511, afragen, tangrufus, leewillis77
+Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
@@ -87,6 +87,7 @@ Yes! Thanks to @shazahm1.
 * Installed Compass (http://compass-style.org/)
 * Added support for Gravity Forms
 * Fixed potential issue with sites that use caching plugins
+* Fixed minor typos (thnaks @macbookandrew)
 
 = 1.4.0 =
 * Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)
@@ -122,3 +123,5 @@ Yes! Thanks to @shazahm1.
 * [Andy Fragen](https://github.com/afragen)
 * [Tang Rufus](https://github.com/TangRufus)
 * [Lee Willis](https://github.com/leewillis77)
+* [Andrew Minion](https://github.com/macbookandrew)
+
