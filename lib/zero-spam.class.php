@@ -309,6 +309,51 @@ class Zero_Spam {
         <?php
     }
 
+    /*
+     * Contact Form 7 support option.
+     *
+     * Field callback, renders a checkbox input, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    public function field_cf7_support() {
+        ?>
+        <label for="cf7_support">
+            <input type="checkbox" id="cf7_support" name="zerospam_general_settings[cf7_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) ) : checked( $this->settings['zerospam_general_settings']['cf7_support'] ); endif; ?> /> <?php echo __( 'Enable', 'zerospam' ); ?>
+        </label>
+        <?php
+    }
+
+    /*
+     * Comment support option.
+     *
+     * Field callback, renders a checkbox input, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    public function field_comment_support() {
+        ?>
+        <label for="comment_support">
+            <input type="checkbox" id="comment_support" name="zerospam_general_settings[comment_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['comment_support'] ) ) : checked( $this->settings['zerospam_general_settings']['comment_support'] ); endif; ?> /> <?php echo __( 'Enable', 'zerospam' ); ?>
+        </label>
+        <?php
+    }
+
+    /*
+     * Registration support option.
+     *
+     * Field callback, renders a checkbox input, note the name and value.
+     *
+     * @since 1.5.0
+     */
+    public function field_registration_support() {
+        ?>
+        <label for="registration_support">
+            <input type="checkbox" id="registration_support" name="zerospam_general_settings[registration_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['registration_support'] ) ) : checked( $this->settings['zerospam_general_settings']['registration_support'] ); endif; ?> /> <?php echo __( 'Enable', 'zerospam' ); ?>
+        </label>
+        <?php
+    }
+
     /**
      * Returns spammer array from DB
      *
@@ -406,7 +451,15 @@ class Zero_Spam {
         require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
         dbDelta( $sql );
 
-        add_option( 'zerospam_db_version', $this->db_version );
+        update_option( 'zerospam_db_version', $this->db_version );
+
+        $options = (array) $this->settings['zerospam_general_settings'];
+        $options['registration_support'] = 1;
+        $options['comment_support'] = 1;
+        $options['log_spammers'] = 1;
+        $options['wp_generator'] = 1;
+        $options['cf7_support'] = 1;
+        update_option( 'zerospam_general_settings', $options );
     }
 
     /**
@@ -420,13 +473,25 @@ class Zero_Spam {
         register_setting( 'zerospam_general_settings', 'zerospam_general_settings' );
         add_settings_section( 'section_general', __( 'General Settings', 'zerospam' ), false, 'zerospam_general_settings' );
         add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
-        add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
-        add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
         add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
+
+        add_settings_field( 'comment_support', __( 'Comment Support', 'zerospam' ), array( &$this, 'field_comment_support' ), 'zerospam_general_settings', 'section_general' );
+        if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
+            add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
+        }
+
+        add_settings_field( 'registration_support', __( 'Registration Support', 'zerospam' ), array( &$this, 'field_registration_support' ), 'zerospam_general_settings', 'section_general' );
+        if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
+            add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
+        }
 
         // Contact Form 7 support.
         if ( $this->plugins['cf7'] ) {
-          add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
+            add_settings_field( 'cf7_support', __( 'Contact Form 7 Support', 'zerospam' ), array( &$this, 'field_cf7_support' ), 'zerospam_general_settings', 'section_general' );
+
+            if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
+                add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
+            }
         }
     }
 
@@ -628,11 +693,9 @@ class Zero_Spam {
      */
     private function _load_settings() {
 		$default_settings =  array(
-			//'wp_generator'               => '1',
 			'spammer_msg_comment'        => 'There was a problem processing your comment.',
 			'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
 			'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
-			//'log_spammers'               => '1',
 		);
 
 		// Retrieve the settings
@@ -666,8 +729,14 @@ class Zero_Spam {
         add_action( 'wp_ajax_trash_ip_block', array( &$this, 'wp_ajax_trash_ip_block' ) );
         add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
         add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
-        add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
-        add_action( 'wpcf7_validate', array( &$this, 'wpcf7_validate' ) );
+
+        if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
+            add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
+        }
+
+        if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
+            add_action( 'wpcf7_validate', array( &$this, 'wpcf7_validate' ) );
+        }
 
 	    if ( isset( $this->settings['zerospam_general_settings']['wp_generator'] ) && ( '1' == $this->settings['zerospam_general_settings']['wp_generator'] ) ) {
             remove_action( 'wp_head', 'wp_generator' );
@@ -687,7 +756,10 @@ class Zero_Spam {
     private function _filters() {
         add_filter( 'plugin_row_meta', array( &$this, 'plugin_row_meta' ), 10, 2 );
         add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( &$this, 'plugin_action_links' ) );
-        add_filter( 'registration_errors', array( &$this, 'preprocess_registration' ), 10, 3 );
+
+        if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
+            add_filter( 'registration_errors', array( &$this, 'preprocess_registration' ), 10, 3 );
+        }
     }
 
     /**

@@ -284,6 +284,10 @@ $border-color: #e8edf1;
   .zerospam__right {
     width: 100%;
     float: none;
+
+    .zero-spam__widget:first-child {
+      margin-top: 0;
+    }
   }
 }
 
