@@ -252,7 +252,7 @@ class Zero_Spam {
 		}
 		?>
 		<label for="wp_generator_remove">
-			<input type="checkbox" id="wp_generator_remove" name="zerospam_general_settings[wp_generator]" value="1" <?php if ( isset( $this->settings['zerospam_general_settings']['wp_generator']) ): checked( $this->settings['zerospam_general_settings']['wp_generator'] ); endif; ?> /> <?php echo __( 'Hide WP Generator Meta Tag', 'zerospam' ); ?>
+			<input type="checkbox" id="wp_generator_remove" name="zerospam_general_settings[wp_generator]" value="1" <?php if ( isset( $this->settings['zerospam_general_settings']['wp_generator']) ): checked( $this->settings['zerospam_general_settings']['wp_generator'] ); endif; ?> /> <?php echo __( 'Hide', 'zerospam' ); ?>
 		 </label>
 
 		<p class="description"><?php echo __( 'It can be considered a security risk to make your WordPress version visible and public you should hide it.', 'zerospam' ); ?></p>
