@@ -12,5 +12,4 @@ deploy:
     - 'jshint'
     - 'uglify:prod'
     - 'compass:prod'
-    - 'clean'
     - 'shell'
