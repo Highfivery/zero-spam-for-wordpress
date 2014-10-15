@@ -1,10 +1,10 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511, afragen, tangrufus
+Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 4.0.0
-Stable tag: 1.4.0
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,9 +12,9 @@ Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a sp
 
 == Description ==
 
-**Why should your users prove that they're humans by filling out captchas? Let bots prove their not bots with the <a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/" target="_blank">WordPress Zero Spam plugin</a>.**
+**Why should your users prove that they're humans by filling out captchas? Let bots prove they're not bots with the <a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/" target="_blank">WordPress Zero Spam plugin</a>.**
 
-WordPress Zero Spam blocks registration spam and spam in comments automatically without any additional config or setup. Just install, activate and enjoy a spam-free site.
+WordPress Zero Spam blocks registration spam and spam in comments automatically without any additional config or setup. Just install, activate, and enjoy a spam-free site.
 
 Zero Spam was initially built based on the work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
 
@@ -23,7 +23,12 @@ Major features in WordPress Zero Spam include:
 * **No captcha**, because spam is not users' problem
 * **No moderation queues**, because spam is not administrators' problem
 * **Blocks spam registrations & comments** with the use of JavaScript
+* **Contact Form 7 support** if installed and activated
+* **Gravity Form support** if installed and activated
 * **Extend the plugin** with action hooks
+* **Optional logging**, so you can see who's trying to spam
+* **Advanced settings** for complete control
+* **Supports caching plugins** to help provide great performance
 
 **Languages:** English
 
@@ -46,14 +51,43 @@ Be sure JavaScript is enabled and there are no JS errors.
 
 = Can I extend the plugin with action hooks? =
 
-Yes, currently there's two hooks available:
+Yes, currently there are three hooks available:
 
 * `zero_spam_found_spam_registration` - Runs after a spam registration is detected
 * `zero_spam_found_spam_comment` - Runs after a spam comment is detected
+* `zero_spam_found_spam_cf7_form_submission` - Runs after a spam Contact Form 7 form submission is detected
+* `zero_spam_found_spam_gf_form_submission` - Runs after a spam Gravity Form submission is detected
+
+= Does this plugin support Contact Form 7 forms? =
+
+Yes! Thanks to @leewillis77.
+
+= Does this plugin support Gravity Forms forms? =
+
+Yes! Thanks to @shazahm1.
+
+= Does this plugin work with caching plugins like W3 Total Cache? =
+
+Yes! Thanks to @shazahm1.
 
 == Screenshots ==
 
 == Changelog ==
+
+= 1.5.0 =
+* Switched to using a nonce to validate form submissions that support WordPress Zero Spam
+* Added Zero Spam plugin settings page for advanced control
+* Fix for for non-logged in users (https://github.com/bmarshall511/wordpress-zero-spam/pull/27, thanks @afragen)
+* Added blank index.php files to prevent directory browsing (https://github.com/bmarshall511/wordpress-zero-spam/pull/24, thanks @TangRufus)
+* Added uninstall.php (https://github.com/bmarshall511/wordpress-zero-spam/pull/23, thanks @TangRufus)
+* Addded support for GitHub Updater plugin (https://github.com/bmarshall511/wordpress-zero-spam/pull/21, thanks @afragen)
+* Added support for Contact Form 7 form submissions (https://github.com/bmarshall511/wordpress-zero-spam/pull/26, thanks @leewillis77)
+* Added ability to log spam detections
+* Fix for warnings cause by default settings not being set before actions run (https://github.com/bmarshall511/wordpress-zero-spam/pull/31, thanks @leewillis77)
+* Installed Compass (http://compass-style.org/)
+* Added support for Gravity Forms
+* Fixed potential issue with sites that use caching plugins
+* Fixed minor typos (thnaks @macbookandrew)
 
 = 1.4.0 =
 * Added `zero_spam_found_spam_comment` and `zero_spam_found_spam_registration` action hooks (thanks @tangrufus)
@@ -88,3 +122,6 @@ Yes, currently there's two hooks available:
 * [Ben Marshall](https://github.com/bmarshall511)
 * [Andy Fragen](https://github.com/afragen)
 * [Tang Rufus](https://github.com/TangRufus)
+* [Lee Willis](https://github.com/leewillis77)
+* [Andrew Minion](https://github.com/macbookandrew)
+

@@ -1,0 +1,311 @@
+// Import Font Awesome styles
+@import "font-awesome/font-awesome";
+
+// Import Morris Chart styles
+@import "morris";
+
+/**
+ * WordPress Zero Spam Settings Page Styles
+ */
+
+// Variables
+
+$primary-color: #ff183a;
+$secondary-color: #00639e;
+$border-color: #e8edf1;
+
+// Typography elements
+
+.zero-spam__text-right {
+  text-align: right;
+}
+
+.zero-spam__text-center {
+  text-align: center;
+}
+
+// Table element
+
+.zero-spam__table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+        font-size: 12px;
+        padding: 10px 12px;
+    }
+
+    th {
+        text-align: left;
+        text-transform: uppercase;
+        font-weight: bold;
+        line-height: 1.42857143;
+    }
+
+    td {
+        border-top: 1px solid $border-color;
+    }
+
+    tr {
+      .fa-circle-o-notch,
+      .fa-edit {
+        display: none;
+      }
+
+      &.zero-spam__loading {
+        .fa-circle-o-notch {
+          display: inline;
+        }
+
+        .zero-spam__block-ip {
+          display: none;
+        }
+      }
+
+      &.zero-spam__loaded {
+        .fa-edit {
+          display: inline;
+        }
+
+        .zero-spam__block-ip {
+          display: none;
+        }
+      }
+    }
+
+    .form-table {
+        th {
+            text-transform: none;
+        }
+
+        td {
+            border: 0;
+        }
+    }
+}
+
+// Messages
+
+.zero-spam__msg {
+  display: block;
+  margin: 7px 0;
+  padding: 15px 20px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background: #529e00;
+  color: #fff;
+}
+
+.zero-spam__row-highlight {
+  background: lighten($border-color, 5%);
+}
+
+.zero-spam__widget {
+  margin: 20px 0;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.zero-spam__inner {
+  padding: 20px;
+}
+
+.zero-spam__widget h3 {
+  margin-top: 0;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  color: #1b1e24;
+}
+
+.zero-spam__inner h3:first-child {
+  margin-top: 0;
+}
+
+.zero-spam__inner p:last-child {
+  margin-bottom: 0;
+}
+
+.zero-spam__widget p {
+  margin-bottom: 20px;
+}
+
+.zero-spam__widget a {
+  color: $primary-color;
+  text-decoration: none;
+  transition: all .3s;
+}
+
+.zero-spam__widget a:hover {
+  color: #0086c6;
+}
+
+.wrap .zero-spam__widget h2 {
+  margin: 0px 0 5px 0;
+  padding: 0;
+  font-weight: 400;
+}
+
+.zero-spam__widget h2 a {
+  color: #000;
+}
+
+.zero-spam__widget .fa-star {
+  color: #fddb5a;
+}
+
+.zero-spam__button {
+  display: inline-block;
+  background: $secondary-color;
+  color: #fff !important;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  padding: 10px 15px;
+  font-weight: 600;
+}
+
+.zero-spam__button:hover {
+  background: #0086c6;
+}
+
+.zero-spam__description {
+  margin: 0 0 20px 0;
+}
+
+.wrap .zero-spam__widget h2.zero-spam__title {
+  display: block;
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.zero-spam__bg--primary {
+  background: $primary-color;
+  color: #fff;
+}
+
+.zero-spam__bg--secondary {
+  background: $secondary-color;
+  color: #fff;
+}
+
+.zero-spam__bg--trinary {
+  background: #fddb5a;
+  color: #1b1e24;
+}
+
+.zero-spam__bg--gf {
+  background: #222d3a;
+  color: #fff;
+}
+
+.zero-spam__row {
+  overflow: hidden;
+}
+
+.zero-spam__row .zero-spam__cell:first-child {
+  padding-right: 10px;
+}
+
+.zero-spam__row .zero-spam__cell:last-child {
+  padding-left: 10px;
+}
+
+.zero-spam__cell {
+  display: inline-block;
+  float: left;
+  width: 50%;
+  box-sizing: border-box;
+}
+
+@media all and (max-width: 1640px) {
+  .zero-spam__cell {
+      display: block;
+      float: none;
+      width: 100%;
+    }
+
+  .zero-spam__row .zero-spam__cell:first-child {
+    padding-right: 0;
+  }
+
+  .zero-spam__row .zero-spam__cell:last-child {
+    padding-left: 0;
+  }
+}
+
+.zero-spam__row .zero-spam__stat:last-child {
+  border-right: 0;
+}
+
+.zero-spam__cell .zero-spam__widget {
+  margin-bottom: 0;
+}
+
+.zero-spam__stat {
+  display: inline-block;
+  float: left;
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+  margin: 0 10px 10px 0;
+  padding-right: 10px;
+  font-size: 12px;
+}
+
+.zero-spam__stat b {
+  font-size: 15px;
+  text-align: right;
+  display: block;
+}
+
+.zerospam__left {
+  padding-right: 450px;
+}
+
+.zerospam__right {
+  width: 422px;
+  float: right;
+}
+
+.zero-spam__label {
+  display: inline-block;
+  padding: 3px 5px;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+
+}
+
+.zero-spam__fright {
+  float: right;
+}
+
+@media all and (max-width: 1140px) {
+  .zerospam__left {
+    padding-right: 0;
+  }
+
+  .zerospam__right {
+    width: 100%;
+    float: none;
+
+    .zero-spam__widget:first-child {
+      margin-top: 0;
+    }
+  }
+}
+
+.zero-spam__label {
+  display: inline-block;
+  padding: 3px 5px;
+  font-size: 11px;
+  -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+}
+
+
