@@ -80,6 +80,13 @@ class Zero_Spam {
 		add_action( "load-{$hook_suffix}", array( &$this, 'load_zerospam_settings' ) );
 	}
 
+	/**
+	 * Admin Scripts
+	 *
+	 * Adds CSS and JS files to the admin pages.
+	 *
+	 * @since 1.5.0
+	 */
 	public function load_zerospam_settings() {
 		if ( 'options-general.php' !== $GLOBALS['pagenow'] ) {
 			return false;
@@ -94,7 +101,7 @@ class Zero_Spam {
 		}
 	}
 
-	/*
+	/**
 	 * Plugin options page.
 	 *
 	 * Rendering goes here, checks for active tab and replaces key with the related
@@ -146,6 +153,14 @@ class Zero_Spam {
 		<?php
 	}
 
+	/**
+	 * Sets site's compatible plugins.
+	 *
+	 * Checks if Contact Form 7 and Gravity Forms plugins are activated.
+	 *
+	 * @since 1.5.0
+	 * @access private
+	 */
 	private function _plugin_check() {
 		// Contact From 7 support
 		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
@@ -162,6 +177,7 @@ class Zero_Spam {
 	 * Parses the spammer ary from the DB
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 */
 	private function _parse_spam_ary( $ary ) {
 		$return = array(
@@ -239,7 +255,7 @@ class Zero_Spam {
 		$this->_register_settings();
 	}
 
-	/*
+	/**
 	 * WP generator meta tag option.
 	 *
 	 * Field callback, renders radio inputs, note the name and value.
@@ -259,7 +275,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Log spammers option.
 	 *
 	 * Field callback, renders radio inputs, note the name and value.
@@ -274,7 +290,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Spam comment message option.
 	 *
 	 * Field callback, renders a text input, note the name and value.
@@ -290,7 +306,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Spam registration message option.
 	 *
 	 * Field callback, renders a text input, note the name and value.
@@ -306,7 +322,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Contact Form 7 spam message option.
 	 *
 	 * Field callback, renders a text input, note the name and value.
@@ -322,7 +338,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Contact Form 7 support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -337,7 +353,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Gravity Forms support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -352,7 +368,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Comment support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -367,7 +383,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Registration support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -386,6 +402,7 @@ class Zero_Spam {
 	 * Returns spammer array from DB
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 */
 	private function _get_spam() {
 		global $wpdb;
@@ -499,6 +516,7 @@ class Zero_Spam {
 	 * Appends the key to the plugin settings tabs array.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 */
 	private function _register_settings() {
 		register_setting( 'zerospam_general_settings', 'zerospam_general_settings' );
@@ -535,6 +553,7 @@ class Zero_Spam {
 	 * Checks if the current IP is blocked.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 */
 	private function _ip_check() {
 		$ips = $this->_get_blocked_ips();
@@ -553,6 +572,7 @@ class Zero_Spam {
 	 * Logs spam.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @param string (registration|comment) Type of spam
 	 */
@@ -595,6 +615,7 @@ class Zero_Spam {
 	 * Adds an IP to the blocked list so the user can't access the site.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @param array $args Array of arguments.
 	 */
@@ -661,6 +682,7 @@ class Zero_Spam {
 	 * Returns the current URL.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @return string The current URL the user is on.
 	 */
@@ -686,6 +708,7 @@ class Zero_Spam {
 	 * Returns a user's IP address
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @return string The current user's IP address.
 	 */
@@ -717,6 +740,7 @@ class Zero_Spam {
 	 * Provides the heading for the settings_page method.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 */
 	private function _options_tabs() {
 		$current_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
