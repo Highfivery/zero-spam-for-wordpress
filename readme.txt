@@ -25,10 +25,11 @@ Major features in WordPress Zero Spam include:
 * **Blocks spam registrations & comments** with the use of JavaScript
 * **Contact Form 7 support** if installed and activated
 * **Gravity Form support** if installed and activated
+* **Supports caching plugins** to help provide great performance
+* **Blocks spammy IPs** from ever seeing your site
 * **Extend the plugin** with action hooks
 * **Optional logging**, so you can see who's trying to spam
 * **Advanced settings** for complete control
-* **Supports caching plugins** to help provide great performance
 
 **Languages:** English
 
@@ -51,12 +52,13 @@ Be sure JavaScript is enabled and there are no JS errors.
 
 = Can I extend the plugin with action hooks? =
 
-Yes, currently there are three hooks available:
+Yes, see below:
 
 * `zero_spam_found_spam_registration` - Runs after a spam registration is detected
 * `zero_spam_found_spam_comment` - Runs after a spam comment is detected
 * `zero_spam_found_spam_cf7_form_submission` - Runs after a spam Contact Form 7 form submission is detected
 * `zero_spam_found_spam_gf_form_submission` - Runs after a spam Gravity Form submission is detected
+* `zero_spam_ip_blocked` - Runs after a blocked IP attempts to visit the site
 
 = Does this plugin support Contact Form 7 forms? =
 
@@ -77,6 +79,7 @@ Yes! Thanks to @shazahm1.
 = 1.5.1 =
 * Added missing code documentation and fixed typos (https://github.com/bmarshall511/wordpress-zero-spam/issues/64)
 * Fixed issue with settings not getting initially saved when the plugin is activated. (https://github.com/bmarshall511/wordpress-zero-spam/issues/69)
+* Added ability to auto block spam IPs (https://github.com/bmarshall511/wordpress-zero-spam/issues/71)
 
 = 1.5.0 =
 * Switched to using a nonce to validate form submissions that support WordPress Zero Spam

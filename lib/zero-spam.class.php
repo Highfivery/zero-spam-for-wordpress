@@ -276,6 +276,25 @@ class Zero_Spam {
 	}
 
 	/**
+	 * Auto block option.
+	 *
+	 * Field callback, renders checkbox input, note the name and value.
+	 *
+	 * @since 1.5.1
+	 *
+	 * @return string HTML output for auto block tag.
+	 */
+	public function field_auto_block() {
+		?>
+		<label for="auto_block">
+			<input type="checkbox" id="auto_block" name="zerospam_general_settings[auto_block]" value="1" <?php if ( isset( $this->settings['zerospam_general_settings']['auto_block']) ): checked( $this->settings['zerospam_general_settings']['auto_block'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+		 </label>
+
+		<p class="description"><?php echo __( 'With auto IP block enabled, users who are identifed as spam will automatically be blocked from the site.', 'zerospam' ); ?></p>
+		<?php
+	}
+
+	/**
 	 * Log spammers option.
 	 *
 	 * Field callback, renders radio inputs, note the name and value.
@@ -302,6 +321,22 @@ class Zero_Spam {
 		<label for="spammer_msg_comment">
 			<input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_comment]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_comment'] ); ?>">
 		<p class="description"><?php echo __( 'Enter a short message to display when a spam comment has been detected.', 'zerospam' ); ?></p>
+		</label>
+		<?php
+	}
+
+	/**
+	 * Blocked IP message option.
+	 *
+	 * Field callback, renders a text input, note the name and value.
+	 *
+	 * @since 1.5.1
+	 */
+	public function field_blocked_ip_msg() {
+		?>
+		<label for="blocked_ip_msg">
+			<input type="text" class="regular-text" name="zerospam_general_settings[blocked_ip_msg]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['blocked_ip_msg'] ); ?>">
+		<p class="description"><?php echo __( 'Enter a short message to display when a blocked IP visits the site.', 'zerospam' ); ?></p>
 		</label>
 		<?php
 	}
@@ -524,11 +559,21 @@ class Zero_Spam {
 		add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
 		add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
 
+		// Auto IP block support.
+		if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
+			add_settings_field( 'auto_block', __( 'Auto IP Block', 'zerospam' ), array( &$this, 'field_auto_block' ), 'zerospam_general_settings', 'section_general' );
+		}
+
+		add_settings_field( 'blocked_ip_msg', __( 'Blocked IP Message', 'zerospam' ), array( &$this, 'field_blocked_ip_msg' ), 'zerospam_general_settings', 'section_general' );
+
 		add_settings_field( 'comment_support', __( 'Comment Support', 'zerospam' ), array( &$this, 'field_comment_support' ), 'zerospam_general_settings', 'section_general' );
+
+		// Comment support.
 		if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
 			add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
 		}
 
+		// Registration support.
 		add_settings_field( 'registration_support', __( 'Registration Support', 'zerospam' ), array( &$this, 'field_registration_support' ), 'zerospam_general_settings', 'section_general' );
 		if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
 			add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
@@ -556,15 +601,9 @@ class Zero_Spam {
 	 * @access private
 	 */
 	private function _ip_check() {
-		$ips = $this->_get_blocked_ips();
-		$ip  = $this->_get_ip();
-
-		if ( is_array( $ips ) && count( $ips ) ) {
-			foreach ( $ips as $key => $obj ) {
-				if ( $obj->ip == $ip ) {
-					die( "Access denied." );
-				}
-			}
+		if ( $this->_is_blocked(  $this->_get_ip(), false ) ) {
+			do_action( 'zero_spam_ip_blocked' );
+			die( __( $this->settings['zerospam_general_settings']['blocked_ip_msg'], 'zerospam' ) );
 		}
 	}
 
@@ -580,6 +619,7 @@ class Zero_Spam {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'zerospam_log';
+		$ip = $this->_get_ip();
 
 		switch( $type ) {
 			case 'registration':
@@ -598,7 +638,7 @@ class Zero_Spam {
 
 		$wpdb->insert( $table_name, array(
 				'type' => $type,
-				'ip'   => $this->_get_ip(),
+				'ip'   => $ip,
 				'page' =>$this->_get_url(),
 			),
 			array(
@@ -607,6 +647,14 @@ class Zero_Spam {
 				'%s',
 			)
 		);
+
+		// Check auto block ip.
+		if ( isset( $this->settings['zerospam_general_settings']['auto_block'] ) && ( '1' == $this->settings['zerospam_general_settings']['auto_block'] ) ) {
+			$this->_block_ip( array(
+				'type'       => 'permanent',
+				'reason'     => __( 'Auto block triggered on ', 'zerospam' ) . date( 'r' ) . '.'
+			));
+		}
 	}
 
 	/**
@@ -626,55 +674,57 @@ class Zero_Spam {
 		$ip         = $this->_get_ip();
 		$type       = isset( $args['type'] ) ? $args['type'] : 'temporary';
 
-		// Check is IP has already been blocked.
-		if ( $this->_is_blocked( $ip, false ) ) {
+		if ( $ip ) {
+			// Check is IP has already been blocked.
+			if ( $this->_is_blocked( $ip, false ) ) {
 
-			// Update existing record.
-			$wpdb->update(
-				$table_name,
-				array(
-					'type'       => $type,
-					'start_date' => $args['start_date'],
-					'end_date'   => $args['end_date'],
-					'reason'     => $args['reason'],
-				),
-				array( 'ip' => $ip ),
-				array(
-					'%s',
-					'%s',
-					'%s',
-					'%s',
-				),
-				array( '%s' )
-			);
-		} else {
+				// Update existing record.
+				$wpdb->update(
+					$table_name,
+					array(
+						'type'       => $type,
+						'start_date' => isset( $args['start_date'] ) ? $args['start_date'] : null,
+						'end_date'   => isset( $args['end_date'] ) ? $args['end_date'] : null,
+						'reason'     => $args['reason'],
+					),
+					array( 'ip' => $ip ),
+					array(
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+					),
+					array( '%s' )
+				);
+			} else {
 
-			// Insert new record.
-			$insert = array(
-				'ip'   => $ip,
-				'type' => $type,
-			);
+				// Insert new record.
+				$insert = array(
+					'ip'   => $ip,
+					'type' => $type,
+				);
 
-			if ( 'temporary' == $type ) {
-				$insert['start_date'] = $args['start_date'];
-				$insert['end_date'] = $args['end_date'];
+				if ( 'temporary' == $type ) {
+					$insert['start_date'] = $args['start_date'];
+					$insert['end_date'] = $args['end_date'];
+				}
+
+				if ( isset( $args['reason'] ) && $args['reason'] ) {
+					$insert['reason'] = $args['reason'];
+				}
+
+				$wpdb->insert(
+					$table_name,
+					$insert,
+					array(
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+					)
+				);
 			}
-
-			if ( isset( $args['reason'] ) && $args['reason'] ) {
-				$insert['reason'] = $args['reason'];
-			}
-
-			$wpdb->insert(
-				$table_name,
-				$insert,
-				array(
-					'%s',
-					'%s',
-					'%s',
-					'%s',
-					'%s',
-				)
-			);
 		}
 	}
 
@@ -765,7 +815,7 @@ class Zero_Spam {
 			'spammer_msg_comment'        => 'There was a problem processing your comment.',
 			'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
 			'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
-			'spammer_msg_gf'             => 'There was a problem processing your submission.',
+			'blocked_ip_msg'             => 'Access denied.'
 		);
 
 		// Retrieve the settings
@@ -1315,9 +1365,10 @@ class Zero_Spam {
 		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
 		$check      = $this->_get_blocked_ip( $ip );
 
-		if ( ! $check || ! $time ) {
+		if ( ! $check ) {
 			return false;
 		}
+
 		// Check block type
 		if (
 			'temporary' == $check->type &&
