@@ -183,6 +183,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php $this->_pager( $limit, $this->_get_spam_count(), $page, $tab ); ?>
 		<?php else: ?>
 			<?php echo __( 'No spammers detected yet!', 'zerospam'); ?>
 		<?php endif; ?>

@@ -55,6 +55,7 @@
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			<?php $this->_pager( $limit, $this->_get_blocked_ip_count(), $page, $tab ); ?>
 		</div>
 		<?php else: ?>
 		<?php echo __( 'No blocked IPs found.', 'zerospam' ); ?>

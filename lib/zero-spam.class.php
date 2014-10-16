@@ -112,6 +112,7 @@ class Zero_Spam {
 	public function settings_page() {
 		$plugin = get_plugin_data( ZEROSPAM_PLUGIN );
 		$tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
+		$page = isset( $_GET['p'] ) ? $_GET['p'] : 1;
 		?>
 		<div class="wrap">
 			<h2><?php echo __( 'WordPress Zero Spam', 'zerospam' ); ?></h2>
@@ -126,7 +127,12 @@ class Zero_Spam {
 						'zerospam_spammer_logs' == $tab &&
 						'1' == $this->settings['zerospam_general_settings']['log_spammers']
 					) {
-						$spam            = $this->_get_spam();
+						$limit = 10;
+						$args = array(
+							'limit' => $limit,
+							'offset' => ($page - 1) * $limit
+						);
+						$spam            = $this->_get_spam( $args );
 						$spam            = $this->_parse_spam_ary( $spam );
 
 						$total_spam      = count( $spam['raw'] );
@@ -140,7 +146,12 @@ class Zero_Spam {
 
 						require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
 					} elseif ( $tab == 'zerospam_ip_block' ) {
-						$ips = $this->_get_blocked_ips();
+						$limit = 10;
+						$args = array(
+							'limit' => $limit,
+							'offset' => ($page - 1) * $limit
+						);
+						$ips = $this->_get_blocked_ips( $args );
 
 						require_once( ZEROSPAM_ROOT . 'inc/ip-block.tpl.php' );
 					} else {
@@ -149,6 +160,35 @@ class Zero_Spam {
 				</div>
 
 			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Renders a pager.
+	 *
+	 * @since 1.5.1
+	 * @access private
+	 *
+	 * @param int $num_pages Total number of pages.
+	 * @param string $tab Current page tab.
+	 * @param int $page Current page number.
+	 * @param int $total Total number of records
+	 */
+	private function _pager( $limit = 10, $total_num, $page, $tab ) {
+		$num_pages = ceil( $total_num / $limit );
+
+		echo '<ul class="zero-spam__pager">';
+		for ($i = 1; $i <= $num_pages; $i++):
+			$class = '';
+			if ( $page == $i ) $class = ' class="zero-spam__page-selected"';
+			echo '<li><a href="' . admin_url( 'options-general.php?page=zerospam&tab=' . $tab . '&p=' . $i ) . '"' . $class . '>' . $i . '</a>';
+		endfor;
+		echo '</ul>';
+    ?>
+		<div class="zero-spam__page-info">
+			<?php echo __( 'Page ', 'zerospam' ) . number_format( $page, 0 ) . ' of ' . number_format( $num_pages, 0 ); ?>
+			(<?php echo number_format( $total_num, 0 ) . __( ' total records found', 'zerospam' ); ?>)
 		</div>
 		<?php
 	}
@@ -438,16 +478,56 @@ class Zero_Spam {
 	 *
 	 * @since 1.5.0
 	 * @access private
+	 *
+	 * @param array $args Array of arguments.
 	 */
-	private function _get_spam() {
+	private function _get_spam( $args = array() ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'zerospam_log';
 
-		$results = $wpdb->get_results( 'SELECT * FROM ' . $table_name . ' ORDER BY date DESC' );
+		$order_by = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY date DESC';
+
+		$offset = isset( $args['offset'] ) ? $args['offset'] : false;
+		$limit = isset( $args['limit'] ) ? $args['limit'] : false;
+		if ( $offset && $limit ) {
+			$limit = ' LIMIT ' . $offset . ', ' . $limit;
+		} elseif( $limit ) {
+			$limit = ' LIMIT ' . $limit;
+		}
+
+		$query = 'SELECT * FROM ' . $table_name . $order_by . $limit;
+		$results = $wpdb->get_results( $query );
 
 		return $results;
 	}
+
+	/**
+	 * Returns the total number of spam detections.
+	 *
+	 * @since 1.5.1
+	 * @access private
+	 */
+	private function _get_spam_count() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'zerospam_log';
+		$query = $wpdb->get_row( 'SELECT COUNT(*) AS count FROM ' . $table_name );
+		return $query->count;
+	}
+
+	/**
+	 * Returns the total number of blocked IPs.
+	 *
+	 * @since 1.5.1
+	 * @access private
+	 */
+	private function _get_blocked_ip_count() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+		$query = $wpdb->get_row( 'SELECT COUNT(*) AS count FROM ' . $table_name );
+		return $query->count;
+	}
+
 
 	/**
 	 * Add setting link to plugin.
@@ -1341,16 +1421,28 @@ class Zero_Spam {
 	 *
 	 * @return array An array of blocked IPs from the database.
 	 */
-	private function _get_blocked_ips() {
+	private function _get_blocked_ips( $args = array() ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-		$query      = $wpdb->get_results( "SELECT * FROM $table_name" );
 
-		if ( null == $query ) {
+		$order_by = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY zerospam_ip_id DESC';
+
+		$offset = isset( $args['offset'] ) ? $args['offset'] : false;
+		$limit = isset( $args['limit'] ) ? $args['limit'] : false;
+		if ( $offset && $limit ) {
+			$limit = ' LIMIT ' . $offset . ', ' . $limit;
+		} elseif( $limit ) {
+			$limit = ' LIMIT ' . $limit;
+		}
+
+		$query = 'SELECT * FROM ' . $table_name . $order_by . $limit;
+		$results = $wpdb->get_results( $query );
+
+		if ( null == $results ) {
 			return false;
 		}
 
-		return $query;
+		return $results;
 	}
 
 	/**
