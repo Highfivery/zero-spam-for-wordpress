@@ -76,6 +76,7 @@ Yes! Thanks to @shazahm1.
 
 = 1.5.1 =
 * Added missing code documentation and fixed typos (https://github.com/bmarshall511/wordpress-zero-spam/issues/64)
+* Fixed issue with settings not getting initially saved when the plugin is activated. (https://github.com/bmarshall511/wordpress-zero-spam/issues/69)
 
 = 1.5.0 =
 * Switched to using a nonce to validate form submissions that support WordPress Zero Spam
