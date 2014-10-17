@@ -62,13 +62,12 @@ class Zero_Spam {
 	 * @return void
 	 */
 	public function __construct() {
-		register_activation_hook( __FILE__, array( &$this, 'install' ) );
-
 		$this->_plugin_check();
 		$this->_load_settings();
-		$this->_ip_check();
 		$this->_actions();
 		$this->_filters();
+
+		register_activation_hook( __FILE__, array( &$this, 'install' ) );
 	}
 
 	/**
@@ -624,6 +623,9 @@ class Zero_Spam {
 		if ( get_site_option( 'zerospam_db_version' ) != $this->db_version ) {
 			$this->install();
 		}
+
+		// Check if user IP has been blocked.
+		$this->_ip_check();
 	}
 
 	/**
@@ -1127,11 +1129,10 @@ class Zero_Spam {
 					var d = jQuery.parseJSON( data ),
 						row = jQuery( "tr[data-ip='" + d.ip + "']" ),
 						label;
-
-					if ( true == d.is_blocked ) {
+					if ( true == d.is_blocked ) {console.log('5');
 						label = '<span class="zero-spam__label zero-spam__bg--primary">Blocked</span>';
 					} else {
-						label = '<span class="zero-spam__label zero-spam__bg--trinary">Unblocked</span>';
+						label = '<span class="zero-spam__label zero-spam__bg--trinary">Unblocked</span>';console.log('6');
 					}
 
 					jQuery( ".zero-spam__reason", row ).text( d.reason );
