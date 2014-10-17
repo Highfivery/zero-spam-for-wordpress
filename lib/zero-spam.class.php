@@ -671,7 +671,7 @@ class Zero_Spam {
 			dbDelta( $sql );
 		}
 
-		if( $wpdb->get_var('SHOW TABLES LIKE ' . $log_table_name) != $log_table_name ) {
+		if( $wpdb->get_var('SHOW TABLES LIKE ' . $ip_table_name) != $ip_table_name ) {
 			$sql = "CREATE TABLE $ip_table_name (
 			zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 			ip varchar(15) NOT NULL,
