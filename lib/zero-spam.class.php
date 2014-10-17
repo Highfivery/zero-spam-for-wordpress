@@ -5,6 +5,13 @@
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 class Zero_Spam {
+
+	/**
+	 * Static property to hold our singleton instance
+	 * @var $instance
+	 */
+	static $instance = false;
+
 	/*
 	 * For easier overriding we declared the keys
 	 * here as well as our tabs array which is populated
@@ -27,11 +34,32 @@ class Zero_Spam {
 	private $db_version = "0.0.1";
 
 	/**
+	 * Returns an instance.
+	 *
+	 * If an instance exists, this returns it.  If not, it creates one and
+	 * retuns it.
+	 *
+	 * @since 1.5.1
+	 *
+	 * @return $instance
+	 */
+	public static function getInstance() {
+
+		if ( ! self::$instance ) {
+			self::$instance = new self;
+		}
+
+		return self::$instance;
+	}
+
+	/**
 	 * Plugin initilization.
 	 *
 	 * Initializes the plugins functionality.
 	 *
 	 * @since 1.0.0
+	 *
+	 * @return void
 	 */
 	public function __construct() {
 		register_activation_hook( __FILE__, array( &$this, 'install' ) );
@@ -51,6 +79,8 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 *
 	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/init
+	 *
+	 * @return void
 	 */
 	public function init() {
 		if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) {
@@ -66,6 +96,8 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 *
 	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/admin_menu
+	 *
+	 * @return void
 	 */
 	public function admin_menu() {
 		// Register plugin settings page
@@ -86,6 +118,8 @@ class Zero_Spam {
 	 * Adds CSS and JS files to the admin pages.
 	 *
 	 * @since 1.5.0
+	 *
+	 * @return void
 	 */
 	public function load_zerospam_settings() {
 		if ( 'options-general.php' !== $GLOBALS['pagenow'] ) {
@@ -134,14 +168,13 @@ class Zero_Spam {
 						);
 						$spam            = $this->_get_spam( $args );
 						$spam            = $this->_parse_spam_ary( $spam );
+						$all_spam        = $this->_get_spam();
+						$all_spam        = $this->_parse_spam_ary( $all_spam );
 
-						$total_spam      = count( $spam['raw'] );
-						$unique_spammers = count( $spam['unique_spammers'] );
-
-						if ( $total_spam ) {
-							$per_day       = $this->_num_days( end( $spam['raw'] )->date ) ? number_format( ( count( $spam['raw'] ) / $this->_num_days( end( $spam['raw'] )->date ) ), 2 ) : 0;
-							$num_days      = $this->_num_days( end( $spam['raw'] )->date );
-							$starting_date = end( $spam['raw'] )->date;
+						if ( count( $all_spam['raw'] ) ) {
+							$starting_date    =  end( $all_spam['raw'] )->date;
+							$num_days      = $this->_num_days( $starting_date );
+							$per_day       = $num_days ? number_format( ( count( $all_spam['raw'] ) / $num_days ), 2 ) : 0;
 						}
 
 						require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
@@ -200,6 +233,8 @@ class Zero_Spam {
 	 *
 	 * @since 1.5.0
 	 * @access private
+	 *
+	 * @return void
 	 */
 	private function _plugin_check() {
 		// Contact From 7 support
@@ -218,19 +253,34 @@ class Zero_Spam {
 	 *
 	 * @since 1.5.0
 	 * @access private
+	 *
+	 * @return void
 	 */
 	private function _parse_spam_ary( $ary ) {
 		$return = array(
 			'by_date'           => array(),
+			'by_spam_count'     => array(),
 			'raw'               => $ary,
 			'comment_spam'      => 0,
 			'registration_spam' => 0,
 			'cf7_spam'          => 0,
 			'gf_spam'           => 0,
 			'unique_spammers'   => array(),
+			'by_day'            => array(
+				'Sun' => 0,
+				'Mon' => 0,
+				'Tue' => 0,
+				'Wed' => 0,
+				'Thu' => 0,
+				'Fri' => 0,
+				'Sat' => 0
+			),
 		);
 
 		foreach( $ary as $key => $obj ) {
+			// By day
+			$return['by_day'][ date( 'D', strtotime( $obj->date ) ) ]++;
+
 			// By date
 			if ( ! isset( $return['by_date'][ substr( $obj->date, 0, 10) ] ) ) {
 				$return['by_date'][ substr( $obj->date, 0, 10) ] = array(
@@ -248,6 +298,12 @@ class Zero_Spam {
 				'ip'          => $obj->ip,
 				'date'        => $obj->date,
 			);
+
+			// By IP
+			if ( ! isset( $return['by_spam_count'][ $obj->ip ] ) ) {
+				$return['by_spam_count'][ $obj->ip ] = 0;
+			}
+			$return['by_spam_count'][ $obj->ip ]++;
 
 			// Spam type
 			if ( $obj->type == 1 ) {
@@ -280,6 +336,16 @@ class Zero_Spam {
 		}
 
 		return $return;
+	}
+
+	/**
+	 * Returns the percent of 2 numbers.
+	 *
+	 * @since 1.5.1
+	 * @access private
+	 */
+	private function _get_percent( $num1, $num2 ) {
+		return number_format( ($num1 / $num2) * 100, 2 );
 	}
 
 	/**

@@ -7,13 +7,13 @@ module.exports = {
         },
         files: {
             'build/js-dev/zero-spam.js': ['src/js/zero-spam.js'],
-            'build/js-dev/charts.js': ['src/js/raphael.min.js', 'src/js/morris.min.js']
+            'build/js-dev/charts.js': ['src/js/raphael.min.js', 'src/js/morris.min.js', 'src/js/jquery-jvectormap-2.0.0.min.js']
         }
     },
     prod: {
         files: {
             'build/js/zero-spam.min.js': ['src/js/zero-spam.js'],
-            'build/js/charts.min.js': ['src/js/raphael.min.js', 'src/js/morris.min.js']
+            'build/js/charts.min.js': ['src/js/raphael.min.js', 'src/js/morris.min.js', 'src/js/jquery-jvectormap-2.0.0.min.js']
         }
     }
 };
