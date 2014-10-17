@@ -671,7 +671,7 @@ class Zero_Spam {
 			dbDelta( $sql );
 		}
 
-		if( $wpdb->get_var('SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
+		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
 			$sql = "CREATE TABLE $ip_table_name (
 			zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 			ip varchar(15) NOT NULL,
@@ -685,6 +685,11 @@ class Zero_Spam {
 
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 			dbDelta( $sql );
+
+			// Fix for DB error when activating plugin.
+			// http://www.charlestonsw.com/turn-off-dbdelta-describe-errors/
+			global $EZSQL_ERROR;
+			$EZSQL_ERROR = array();
 		}
 
 		update_option( 'zerospam_db_version', $this->db_version );
