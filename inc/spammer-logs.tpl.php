@@ -73,6 +73,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 	</div>
 </div>
 
+<?php if ( count( $all_spam['raw'] ) ): ?>
 <div class="zero-spam__row">
 	<div class="zero-spam__cell">
 		<div class="zero-spam__widget">
@@ -156,7 +157,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 		</div>
 	</div>
 </div>
-
+<?php endif; ?>
 
 <div class="zero-spam__widget">
 	<div class="zero-spam__inner">

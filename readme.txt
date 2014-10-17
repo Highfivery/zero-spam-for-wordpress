@@ -83,6 +83,7 @@ Yes! Thanks to @shazahm1.
 * Added paging to spammer log and blocked IPs (https://github.com/bmarshall511/wordpress-zero-spam/issues/60)
 * Added additional stats and graphs (https://github.com/bmarshall511/wordpress-zero-spam/issues/75)
 * Fixed issue with comment moderators not being able to reply to comments (https://github.com/bmarshall511/wordpress-zero-spam/issues/74)
+* Fix issue with DB errors when first activating plugin (https://github.com/bmarshall511/wordpress-zero-spam/issues/80)
 
 = 1.5.0 =
 * Switched to using a nonce to validate form submissions that support WordPress Zero Spam
