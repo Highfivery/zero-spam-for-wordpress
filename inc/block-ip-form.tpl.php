@@ -10,7 +10,7 @@
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 ?>
-<h2><?php echo __( 'Configure Block for', 'zerospam' ); ?> <?php echo $ip; ?></h2>
+<h2><?php echo __( 'Configure Block for', 'zerospam' ); ?> <a href="http://ip-lookup.net/index.php?ip=<?php echo $ip; ?>" target="_blank"><?php echo $ip; ?> <i class="fa fa-external-link-square"></i></a> </h2>
 <form method="post" action="options.php" id="zero-spam__block-ip-form">
 <table class="form-table">
 	<tr>
