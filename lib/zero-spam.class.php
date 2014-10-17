@@ -1357,11 +1357,11 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
 	 */
 	public function preprocess_comment( $commentdata ) {
+		$valid = false;
+
 		if ( is_user_logged_in() && current_user_can( 'moderate_comments' ) ) {
 			$valid = true;
-		} elseif( ! isset( $_POST['zerospam_key'] ) ) {
-			$valid = false;
-		} else {
+		} elseif( isset( $_POST['zerospam_key'] ) ) {
 			$valid = true;
 		}
 
