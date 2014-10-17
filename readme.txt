@@ -81,6 +81,7 @@ Yes! Thanks to @shazahm1.
 * Fixed issue with settings not getting initially saved when the plugin is activated. (https://github.com/bmarshall511/wordpress-zero-spam/issues/69)
 * Added ability to auto block spam IPs (https://github.com/bmarshall511/wordpress-zero-spam/issues/71)
 * Added paging to spammer log and blocked IPs (https://github.com/bmarshall511/wordpress-zero-spam/issues/60)
+* Addded additional stats and graphs (https://github.com/bmarshall511/wordpress-zero-spam/issues/75)
 
 = 1.5.0 =
 * Switched to using a nonce to validate form submissions that support WordPress Zero Spam

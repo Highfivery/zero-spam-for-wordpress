@@ -31,8 +31,13 @@
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 // Define constants
-define( 'ZEROSPAM_ROOT', dirname( __FILE__ ) . '/' );
-define( 'ZEROSPAM_PLUGIN', __FILE__ );
+if( ! defined( 'ZEROSPAM_ROOT ' ) ) {
+ define( 'ZEROSPAM_ROOT', plugin_dir_path( __FILE__ ) . '/' );
+}
+
+if( ! defined( 'ZEROSPAM_PLUGIN ' ) ) {
+	define( 'ZEROSPAM_PLUGIN', __FILE__ );
+}
 
 /**
  * Detect plugin
@@ -46,4 +51,4 @@ require_once( ZEROSPAM_ROOT . 'lib/zero-spam.class.php' );
 
 
 // Initialize Zero Spam
-$zero_spam = new Zero_Spam;
+$zero_spam = Zero_Spam::getInstance();
