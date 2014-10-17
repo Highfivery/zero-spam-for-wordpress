@@ -669,6 +669,11 @@ class Zero_Spam {
 
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 			dbDelta( $sql );
+
+			// Fix for DB error when activating plugin.
+			// http://www.charlestonsw.com/turn-off-dbdelta-describe-errors/
+			global $EZSQL_ERROR;
+			$EZSQL_ERROR = array();
 		}
 
 		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
