@@ -23,7 +23,7 @@ class Zero_Spam {
 
 	private $tabs = array(
 		'zerospam_general_settings' => 'General Settings',
-		'zerospam_ip_block'         => 'IP Block'
+		'zerospam_ip_block'         => 'Blocked IPs'
 	);
 
 	private $plugins = array(
@@ -795,7 +795,7 @@ class Zero_Spam {
 		$wpdb->insert( $table_name, array(
 				'type' => $type,
 				'ip'   => $ip,
-				'page' =>$this->_get_url(),
+				'page' => $this->_get_url(),
 			),
 			array(
 				'%s',
@@ -807,6 +807,7 @@ class Zero_Spam {
 		// Check auto block ip.
 		if ( isset( $this->settings['zerospam_general_settings']['auto_block'] ) && ( '1' == $this->settings['zerospam_general_settings']['auto_block'] ) ) {
 			$this->_block_ip( array(
+				'ip'         => $ip,
 				'type'       => 'permanent',
 				'reason'     => __( 'Auto block triggered on ', 'zerospam' ) . date( 'r' ) . '.'
 			));
@@ -827,7 +828,7 @@ class Zero_Spam {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-		$ip         = $this->_get_ip();
+		$ip         = isset( $args['ip'] ) ? $args['ip'] : false;
 		$type       = isset( $args['type'] ) ? $args['type'] : 'temporary';
 
 		if ( $ip ) {
@@ -1133,7 +1134,7 @@ class Zero_Spam {
 					action: 'get_blocked_ip',
 					security: '<?php echo $ajax_nonce; ?>',
 					ip: ip
-				}, function( data ) {
+				}, function( data ) {console.log(data);
 					var d = jQuery.parseJSON( data ),
 						row = jQuery( "tr[data-ip='" + d.ip + "']" ),
 						label;
@@ -1298,6 +1299,7 @@ class Zero_Spam {
 
 		// Add/update the blocked IP.
 		$this->_block_ip( array(
+			'ip' => $_POST['zerospam-ip'],
 			'type' => $_POST['zerospam-type'],
 			'start_date' => $start_date,
 			'end_date' => $end_date,
@@ -1526,6 +1528,7 @@ class Zero_Spam {
 	 * Checks if an IP is blocked.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @return boolean True if blocked, false if not.
 	 */
@@ -1537,7 +1540,6 @@ class Zero_Spam {
 		if ( ! $check ) {
 			return false;
 		}
-
 		// Check block type
 		if (
 			'temporary' == $check->type &&
@@ -1545,11 +1547,13 @@ class Zero_Spam {
 			time() <= strtotime( $check->end_date )
 			) {
 				return true;
-			}
+		}
+
 		if ( 'permanent' == $check->type ) {
 			return true;
 		}
 
+		return false;
 	}
 
 	/**

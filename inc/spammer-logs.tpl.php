@@ -136,7 +136,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 							<tr data-ip="<?php echo $ip; ?>">
 								<td><?php echo $ip; ?></td>
 								<td><?php echo number_format( $count, 0 ); ?></td>
-								<td>
+								<td class="zero-spam__status">
 									<?php if( $this->_is_blocked( $ip ) ): ?>
 									<span class="zero-spam__label zero-spam__bg--primary"><?php echo __( 'Blocked', 'zerospam' ); ?></span>
 									<?php else: ?>
