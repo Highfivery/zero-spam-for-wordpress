@@ -243,7 +243,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 						); ?>
 					</td>
 					<td><?php echo $type; ?></td>
-					<td><?php echo $obj->ip; ?></td>
+					<td><a href="http://ip-lookup.net/index.php?ip=<?php echo $obj->ip; ?>" target="_blank"><?php echo $obj->ip; ?> <i class="fa fa-external-link-square"></i></a></td>
 					<td>
 						<?php if ( isset( $obj->page ) ): ?>
 						<a href="<?php echo esc_url( $obj->page ); ?>" target="_blank"><?php echo $obj->page; ?> <i class="fa fa-external-link-square"></i></a>
