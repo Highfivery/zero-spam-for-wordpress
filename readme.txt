@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 4.0.0
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,10 +25,11 @@ Major features in WordPress Zero Spam include:
 * **Blocks spam registrations & comments** with the use of JavaScript
 * **Contact Form 7 support** if installed and activated
 * **Gravity Form support** if installed and activated
+* **Supports caching plugins** to help provide great performance
+* **Blocks spammy IPs** from ever seeing your site
 * **Extend the plugin** with action hooks
 * **Optional logging**, so you can see who's trying to spam
 * **Advanced settings** for complete control
-* **Supports caching plugins** to help provide great performance
 
 **Languages:** English
 
@@ -51,12 +52,13 @@ Be sure JavaScript is enabled and there are no JS errors.
 
 = Can I extend the plugin with action hooks? =
 
-Yes, currently there are three hooks available:
+Yes, see below:
 
 * `zero_spam_found_spam_registration` - Runs after a spam registration is detected
 * `zero_spam_found_spam_comment` - Runs after a spam comment is detected
 * `zero_spam_found_spam_cf7_form_submission` - Runs after a spam Contact Form 7 form submission is detected
 * `zero_spam_found_spam_gf_form_submission` - Runs after a spam Gravity Form submission is detected
+* `zero_spam_ip_blocked` - Runs after a blocked IP attempts to visit the site
 
 = Does this plugin support Contact Form 7 forms? =
 
@@ -73,6 +75,15 @@ Yes! Thanks to @shazahm1.
 == Screenshots ==
 
 == Changelog ==
+
+= 1.5.1 =
+* Added missing code documentation and fixed typos (https://github.com/bmarshall511/wordpress-zero-spam/issues/64)
+* Fixed issue with settings not getting initially saved when the plugin is activated. (https://github.com/bmarshall511/wordpress-zero-spam/issues/69)
+* Added ability to auto block spam IPs (https://github.com/bmarshall511/wordpress-zero-spam/issues/71)
+* Added paging to spammer log and blocked IPs (https://github.com/bmarshall511/wordpress-zero-spam/issues/60)
+* Added additional stats and graphs (https://github.com/bmarshall511/wordpress-zero-spam/issues/75)
+* Fixed issue with comment moderators not being able to reply to comments (https://github.com/bmarshall511/wordpress-zero-spam/issues/74)
+* Fix issue with DB errors when first activating plugin (https://github.com/bmarshall511/wordpress-zero-spam/issues/80)
 
 = 1.5.0 =
 * Switched to using a nonce to validate form submissions that support WordPress Zero Spam

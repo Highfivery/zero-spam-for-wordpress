@@ -12,12 +12,13 @@
 
 $primary-color: #ff183a;
 $secondary-color: #00639e;
+$trinary-color: #fddb5a;
 $border-color: #e8edf1;
 
 // Typography elements
 
 .zero-spam__text-right {
-  text-align: right;
+  text-align: right !important;
 }
 
 .zero-spam__text-center {
@@ -29,6 +30,8 @@ $border-color: #e8edf1;
 .zero-spam__table {
     width: 100%;
     border-collapse: collapse;
+    border-bottom: 2px solid $border-color;
+    margin-bottom: 10px;
 
     th,
     td {
@@ -155,7 +158,7 @@ $border-color: #e8edf1;
 }
 
 .zero-spam__widget .fa-star {
-  color: #fddb5a;
+  color: $trinary-color;
 }
 
 .zero-spam__button {
@@ -305,7 +308,47 @@ $border-color: #e8edf1;
   padding: 3px 5px;
   font-size: 11px;
   -webkit-border-radius: 3px;
-    -moz-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
 }
 
+.zero-spam__pager {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: bold;
+
+  li {
+    display: inline-block;
+    float: left;
+    margin: 0 1px;
+  }
+
+  a {
+    display: block;
+    padding: 6px 13px;
+    border-radius: 3px;
+    background: $trinary-color;
+    color: darken($trinary-color, 40%);
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+
+    &.zero-spam__page-selected {
+      background: transparent;
+      color: #000;
+    }
+  }
+}
+
+.zero-spam__page-info {
+  display: inline-block;
+  font-size: 11px;
+  line-height: 30px;
+  margin-left: 10px;
+  vertical-align: top;
+}
 

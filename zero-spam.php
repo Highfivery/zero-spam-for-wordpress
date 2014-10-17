@@ -3,7 +3,7 @@
  * Plugin Name: WordPress Zero Spam
  * Plugin URI: http://www.benmarshall.me/wordpress-zero-spam-plugin
  * Description: Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version: 1.5.0
+ * Version: 1.5.1
  * Author: Ben Marshall
  * Author URI: http://www.benmarshall.me
  * License: GPL2
@@ -31,8 +31,13 @@
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 // Define constants
-define( 'ZEROSPAM_ROOT', dirname( __FILE__ ) . '/' );
-define( 'ZEROSPAM_PLUGIN', __FILE__ );
+if( ! defined( 'ZEROSPAM_ROOT ' ) ) {
+ define( 'ZEROSPAM_ROOT', plugin_dir_path( __FILE__ ) . '/' );
+}
+
+if( ! defined( 'ZEROSPAM_PLUGIN ' ) ) {
+	define( 'ZEROSPAM_PLUGIN', __FILE__ );
+}
 
 /**
  * Detect plugin
@@ -46,4 +51,4 @@ require_once( ZEROSPAM_ROOT . 'lib/zero-spam.class.php' );
 
 
 // Initialize Zero Spam
-$zero_spam = new Zero_Spam;
+$zero_spam = Zero_Spam::getInstance();

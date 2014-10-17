@@ -5,6 +5,13 @@
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 class Zero_Spam {
+
+	/**
+	 * Static property to hold our singleton instance
+	 * @var $instance
+	 */
+	static $instance = false;
+
 	/*
 	 * For easier overriding we declared the keys
 	 * here as well as our tabs array which is populated
@@ -16,7 +23,7 @@ class Zero_Spam {
 
 	private $tabs = array(
 		'zerospam_general_settings' => 'General Settings',
-		'zerospam_ip_block'         => 'IP Block'
+		'zerospam_ip_block'         => 'Blocked IPs'
 	);
 
 	private $plugins = array(
@@ -27,20 +34,40 @@ class Zero_Spam {
 	private $db_version = "0.0.1";
 
 	/**
+	 * Returns an instance.
+	 *
+	 * If an instance exists, this returns it.  If not, it creates one and
+	 * retuns it.
+	 *
+	 * @since 1.5.1
+	 *
+	 * @return $instance
+	 */
+	public static function getInstance() {
+
+		if ( ! self::$instance ) {
+			self::$instance = new self;
+		}
+
+		return self::$instance;
+	}
+
+	/**
 	 * Plugin initilization.
 	 *
 	 * Initializes the plugins functionality.
 	 *
 	 * @since 1.0.0
+	 *
+	 * @return void
 	 */
 	public function __construct() {
-		register_activation_hook( __FILE__, array( &$this, 'install' ) );
-
 		$this->_plugin_check();
 		$this->_load_settings();
-		$this->_ip_check();
 		$this->_actions();
 		$this->_filters();
+
+		register_activation_hook( __FILE__, array( &$this, 'install' ) );
 	}
 
 	/**
@@ -51,6 +78,8 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 *
 	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/init
+	 *
+	 * @return void
 	 */
 	public function init() {
 		if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) {
@@ -66,6 +95,8 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 *
 	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/admin_menu
+	 *
+	 * @return void
 	 */
 	public function admin_menu() {
 		// Register plugin settings page
@@ -80,6 +111,15 @@ class Zero_Spam {
 		add_action( "load-{$hook_suffix}", array( &$this, 'load_zerospam_settings' ) );
 	}
 
+	/**
+	 * Admin Scripts
+	 *
+	 * Adds CSS and JS files to the admin pages.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @return void
+	 */
 	public function load_zerospam_settings() {
 		if ( 'options-general.php' !== $GLOBALS['pagenow'] ) {
 			return false;
@@ -94,7 +134,7 @@ class Zero_Spam {
 		}
 	}
 
-	/*
+	/**
 	 * Plugin options page.
 	 *
 	 * Rendering goes here, checks for active tab and replaces key with the related
@@ -105,6 +145,7 @@ class Zero_Spam {
 	public function settings_page() {
 		$plugin = get_plugin_data( ZEROSPAM_PLUGIN );
 		$tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
+		$page = isset( $_GET['p'] ) ? $_GET['p'] : 1;
 		?>
 		<div class="wrap">
 			<h2><?php echo __( 'WordPress Zero Spam', 'zerospam' ); ?></h2>
@@ -119,21 +160,30 @@ class Zero_Spam {
 						'zerospam_spammer_logs' == $tab &&
 						'1' == $this->settings['zerospam_general_settings']['log_spammers']
 					) {
-						$spam            = $this->_get_spam();
+						$limit = 10;
+						$args = array(
+							'limit' => $limit,
+							'offset' => ($page - 1) * $limit
+						);
+						$spam            = $this->_get_spam( $args );
 						$spam            = $this->_parse_spam_ary( $spam );
+						$all_spam        = $this->_get_spam();
+						$all_spam        = $this->_parse_spam_ary( $all_spam );
 
-						$total_spam      = count( $spam['raw'] );
-						$unique_spammers = count( $spam['unique_spammers'] );
-
-						if ( $total_spam ) {
-							$per_day       = $this->_num_days( end( $spam['raw'] )->date ) ? number_format( ( count( $spam['raw'] ) / $this->_num_days( end( $spam['raw'] )->date ) ), 2 ) : 0;
-							$num_days      = $this->_num_days( end( $spam['raw'] )->date );
-							$starting_date = end( $spam['raw'] )->date;
+						if ( count( $all_spam['raw'] ) ) {
+							$starting_date    =  end( $all_spam['raw'] )->date;
+							$num_days      = $this->_num_days( $starting_date );
+							$per_day       = $num_days ? number_format( ( count( $all_spam['raw'] ) / $num_days ), 2 ) : 0;
 						}
 
 						require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
 					} elseif ( $tab == 'zerospam_ip_block' ) {
-						$ips = $this->_get_blocked_ips();
+						$limit = 10;
+						$args = array(
+							'limit' => $limit,
+							'offset' => ($page - 1) * $limit
+						);
+						$ips = $this->_get_blocked_ips( $args );
 
 						require_once( ZEROSPAM_ROOT . 'inc/ip-block.tpl.php' );
 					} else {
@@ -146,6 +196,45 @@ class Zero_Spam {
 		<?php
 	}
 
+	/**
+	 * Renders a pager.
+	 *
+	 * @since 1.5.1
+	 * @access private
+	 *
+	 * @param int $num_pages Total number of pages.
+	 * @param string $tab Current page tab.
+	 * @param int $page Current page number.
+	 * @param int $total Total number of records
+	 */
+	private function _pager( $limit = 10, $total_num, $page, $tab ) {
+		$num_pages = ceil( $total_num / $limit );
+
+		echo '<ul class="zero-spam__pager">';
+		for ($i = 1; $i <= $num_pages; $i++):
+			$class = '';
+			if ( $page == $i ) $class = ' class="zero-spam__page-selected"';
+			echo '<li><a href="' . admin_url( 'options-general.php?page=zerospam&tab=' . $tab . '&p=' . $i ) . '"' . $class . '>' . $i . '</a>';
+		endfor;
+		echo '</ul>';
+    ?>
+		<div class="zero-spam__page-info">
+			<?php echo __( 'Page ', 'zerospam' ) . number_format( $page, 0 ) . ' of ' . number_format( $num_pages, 0 ); ?>
+			(<?php echo number_format( $total_num, 0 ) . __( ' total records found', 'zerospam' ); ?>)
+		</div>
+		<?php
+	}
+
+	/**
+	 * Sets site's compatible plugins.
+	 *
+	 * Checks if Contact Form 7 and Gravity Forms plugins are activated.
+	 *
+	 * @since 1.5.0
+	 * @access private
+	 *
+	 * @return void
+	 */
 	private function _plugin_check() {
 		// Contact From 7 support
 		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
@@ -162,19 +251,35 @@ class Zero_Spam {
 	 * Parses the spammer ary from the DB
 	 *
 	 * @since 1.5.0
+	 * @access private
+	 *
+	 * @return void
 	 */
 	private function _parse_spam_ary( $ary ) {
 		$return = array(
 			'by_date'           => array(),
+			'by_spam_count'     => array(),
 			'raw'               => $ary,
 			'comment_spam'      => 0,
 			'registration_spam' => 0,
 			'cf7_spam'          => 0,
 			'gf_spam'           => 0,
 			'unique_spammers'   => array(),
+			'by_day'            => array(
+				'Sun' => 0,
+				'Mon' => 0,
+				'Tue' => 0,
+				'Wed' => 0,
+				'Thu' => 0,
+				'Fri' => 0,
+				'Sat' => 0
+			),
 		);
 
 		foreach( $ary as $key => $obj ) {
+			// By day
+			$return['by_day'][ date( 'D', strtotime( $obj->date ) ) ]++;
+
 			// By date
 			if ( ! isset( $return['by_date'][ substr( $obj->date, 0, 10) ] ) ) {
 				$return['by_date'][ substr( $obj->date, 0, 10) ] = array(
@@ -192,6 +297,12 @@ class Zero_Spam {
 				'ip'          => $obj->ip,
 				'date'        => $obj->date,
 			);
+
+			// By IP
+			if ( ! isset( $return['by_spam_count'][ $obj->ip ] ) ) {
+				$return['by_spam_count'][ $obj->ip ] = 0;
+			}
+			$return['by_spam_count'][ $obj->ip ]++;
 
 			// Spam type
 			if ( $obj->type == 1 ) {
@@ -227,6 +338,16 @@ class Zero_Spam {
 	}
 
 	/**
+	 * Returns the percent of 2 numbers.
+	 *
+	 * @since 1.5.1
+	 * @access private
+	 */
+	private function _get_percent( $num1, $num2 ) {
+		return number_format( ($num1 / $num2) * 100, 2 );
+	}
+
+	/**
 	 * Uses admin_init.
 	 *
 	 * Triggered before any other hook when a user accesses the admin area.
@@ -239,7 +360,7 @@ class Zero_Spam {
 		$this->_register_settings();
 	}
 
-	/*
+	/**
 	 * WP generator meta tag option.
 	 *
 	 * Field callback, renders radio inputs, note the name and value.
@@ -259,7 +380,26 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
+	 * Auto block option.
+	 *
+	 * Field callback, renders checkbox input, note the name and value.
+	 *
+	 * @since 1.5.1
+	 *
+	 * @return string HTML output for auto block tag.
+	 */
+	public function field_auto_block() {
+		?>
+		<label for="auto_block">
+			<input type="checkbox" id="auto_block" name="zerospam_general_settings[auto_block]" value="1" <?php if ( isset( $this->settings['zerospam_general_settings']['auto_block']) ): checked( $this->settings['zerospam_general_settings']['auto_block'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+		 </label>
+
+		<p class="description"><?php echo __( 'With auto IP block enabled, users who are identifed as spam will automatically be blocked from the site.', 'zerospam' ); ?></p>
+		<?php
+	}
+
+	/**
 	 * Log spammers option.
 	 *
 	 * Field callback, renders radio inputs, note the name and value.
@@ -274,7 +414,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Spam comment message option.
 	 *
 	 * Field callback, renders a text input, note the name and value.
@@ -290,7 +430,23 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
+	 * Blocked IP message option.
+	 *
+	 * Field callback, renders a text input, note the name and value.
+	 *
+	 * @since 1.5.1
+	 */
+	public function field_blocked_ip_msg() {
+		?>
+		<label for="blocked_ip_msg">
+			<input type="text" class="regular-text" name="zerospam_general_settings[blocked_ip_msg]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['blocked_ip_msg'] ); ?>">
+		<p class="description"><?php echo __( 'Enter a short message to display when a blocked IP visits the site.', 'zerospam' ); ?></p>
+		</label>
+		<?php
+	}
+
+	/**
 	 * Spam registration message option.
 	 *
 	 * Field callback, renders a text input, note the name and value.
@@ -306,7 +462,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Contact Form 7 spam message option.
 	 *
 	 * Field callback, renders a text input, note the name and value.
@@ -322,7 +478,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Contact Form 7 support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -337,7 +493,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Gravity Forms support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -352,7 +508,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Comment support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -367,7 +523,7 @@ class Zero_Spam {
 		<?php
 	}
 
-	/*
+	/**
 	 * Registration support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -386,16 +542,57 @@ class Zero_Spam {
 	 * Returns spammer array from DB
 	 *
 	 * @since 1.5.0
+	 * @access private
+	 *
+	 * @param array $args Array of arguments.
 	 */
-	private function _get_spam() {
+	private function _get_spam( $args = array() ) {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'zerospam_log';
 
-		$results = $wpdb->get_results( 'SELECT * FROM ' . $table_name . ' ORDER BY date DESC' );
+		$order_by = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY date DESC';
+
+		$offset = isset( $args['offset'] ) ? $args['offset'] : false;
+		$limit = isset( $args['limit'] ) ? $args['limit'] : false;
+		if ( $offset && $limit ) {
+			$limit = ' LIMIT ' . $offset . ', ' . $limit;
+		} elseif( $limit ) {
+			$limit = ' LIMIT ' . $limit;
+		}
+
+		$query = 'SELECT * FROM ' . $table_name . $order_by . $limit;
+		$results = $wpdb->get_results( $query );
 
 		return $results;
 	}
+
+	/**
+	 * Returns the total number of spam detections.
+	 *
+	 * @since 1.5.1
+	 * @access private
+	 */
+	private function _get_spam_count() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'zerospam_log';
+		$query = $wpdb->get_row( 'SELECT COUNT(*) AS count FROM ' . $table_name );
+		return $query->count;
+	}
+
+	/**
+	 * Returns the total number of blocked IPs.
+	 *
+	 * @since 1.5.1
+	 * @access private
+	 */
+	private function _get_blocked_ip_count() {
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+		$query = $wpdb->get_row( 'SELECT COUNT(*) AS count FROM ' . $table_name );
+		return $query->count;
+	}
+
 
 	/**
 	 * Add setting link to plugin.
@@ -426,6 +623,9 @@ class Zero_Spam {
 		if ( get_site_option( 'zerospam_db_version' ) != $this->db_version ) {
 			$this->install();
 		}
+
+		// Check if user IP has been blocked.
+		$this->_ip_check();
 	}
 
 	/**
@@ -456,17 +656,22 @@ class Zero_Spam {
 			$charset_collate .= " COLLATE {$wpdb->collate}";
 		}
 
-		$sql = "CREATE TABLE $log_table_name (
-			zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
-			type int(1) unsigned NOT NULL,
-			ip varchar(15) NOT NULL,
-			date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			page varchar(255) DEFAULT NULL,
-			PRIMARY KEY  (zerospam_id),
-			KEY type (type)
-		) $charset_collate;";
+		$sql = false;
 
-		$sql .= "CREATE TABLE $ip_table_name (
+		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name ) {
+			$sql = "CREATE TABLE $log_table_name (
+				zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
+				type int(1) unsigned NOT NULL,
+				ip varchar(15) NOT NULL,
+				date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				page varchar(255) DEFAULT NULL,
+				PRIMARY KEY  (zerospam_id),
+				KEY type (type)
+			) $charset_collate;";
+		}
+
+		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
+			$sql .= "CREATE TABLE $ip_table_name (
 			zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 			ip varchar(15) NOT NULL,
 			type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
@@ -476,9 +681,12 @@ class Zero_Spam {
 			PRIMARY KEY  (zerospam_ip_id),
 			UNIQUE KEY ip (ip)
 		) $charset_collate;";
+		}
 
-		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-		dbDelta( $sql );
+		if ( $sql ) {
+			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+			dbDelta( $sql );
+		}
 
 		update_option( 'zerospam_db_version', $this->db_version );
 
@@ -499,6 +707,7 @@ class Zero_Spam {
 	 * Appends the key to the plugin settings tabs array.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 */
 	private function _register_settings() {
 		register_setting( 'zerospam_general_settings', 'zerospam_general_settings' );
@@ -506,11 +715,21 @@ class Zero_Spam {
 		add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
 		add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
 
+		// Auto IP block support.
+		if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
+			add_settings_field( 'auto_block', __( 'Auto IP Block', 'zerospam' ), array( &$this, 'field_auto_block' ), 'zerospam_general_settings', 'section_general' );
+		}
+
+		add_settings_field( 'blocked_ip_msg', __( 'Blocked IP Message', 'zerospam' ), array( &$this, 'field_blocked_ip_msg' ), 'zerospam_general_settings', 'section_general' );
+
 		add_settings_field( 'comment_support', __( 'Comment Support', 'zerospam' ), array( &$this, 'field_comment_support' ), 'zerospam_general_settings', 'section_general' );
+
+		// Comment support.
 		if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
 			add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
 		}
 
+		// Registration support.
 		add_settings_field( 'registration_support', __( 'Registration Support', 'zerospam' ), array( &$this, 'field_registration_support' ), 'zerospam_general_settings', 'section_general' );
 		if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
 			add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
@@ -535,17 +754,12 @@ class Zero_Spam {
 	 * Checks if the current IP is blocked.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 */
 	private function _ip_check() {
-		$ips = $this->_get_blocked_ips();
-		$ip  = $this->_get_ip();
-
-		if ( is_array( $ips ) && count( $ips ) ) {
-			foreach ( $ips as $key => $obj ) {
-				if ( $obj->ip == $ip ) {
-					die( "Access denied." );
-				}
-			}
+		if ( $this->_is_blocked(  $this->_get_ip(), false ) ) {
+			do_action( 'zero_spam_ip_blocked' );
+			die( __( $this->settings['zerospam_general_settings']['blocked_ip_msg'], 'zerospam' ) );
 		}
 	}
 
@@ -553,6 +767,7 @@ class Zero_Spam {
 	 * Logs spam.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @param string (registration|comment) Type of spam
 	 */
@@ -560,6 +775,7 @@ class Zero_Spam {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'zerospam_log';
+		$ip = $this->_get_ip();
 
 		switch( $type ) {
 			case 'registration':
@@ -578,8 +794,8 @@ class Zero_Spam {
 
 		$wpdb->insert( $table_name, array(
 				'type' => $type,
-				'ip'   => $this->_get_ip(),
-				'page' =>$this->_get_url(),
+				'ip'   => $ip,
+				'page' => $this->_get_url(),
 			),
 			array(
 				'%s',
@@ -587,6 +803,15 @@ class Zero_Spam {
 				'%s',
 			)
 		);
+
+		// Check auto block ip.
+		if ( isset( $this->settings['zerospam_general_settings']['auto_block'] ) && ( '1' == $this->settings['zerospam_general_settings']['auto_block'] ) ) {
+			$this->_block_ip( array(
+				'ip'         => $ip,
+				'type'       => 'permanent',
+				'reason'     => __( 'Auto block triggered on ', 'zerospam' ) . date( 'r' ) . '.'
+			));
+		}
 	}
 
 	/**
@@ -595,6 +820,7 @@ class Zero_Spam {
 	 * Adds an IP to the blocked list so the user can't access the site.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @param array $args Array of arguments.
 	 */
@@ -602,58 +828,60 @@ class Zero_Spam {
 		global $wpdb;
 
 		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-		$ip         = $this->_get_ip();
+		$ip         = isset( $args['ip'] ) ? $args['ip'] : false;
 		$type       = isset( $args['type'] ) ? $args['type'] : 'temporary';
 
-		// Check is IP has already been blocked.
-		if ( $this->_is_blocked( $ip, false ) ) {
+		if ( $ip ) {
+			// Check is IP has already been blocked.
+			if ( $this->_is_blocked( $ip, false ) ) {
 
-			// Update existing record.
-			$wpdb->update(
-				$table_name,
-				array(
-					'type'       => $type,
-					'start_date' => $args['start_date'],
-					'end_date'   => $args['end_date'],
-					'reason'     => $args['reason'],
-				),
-				array( 'ip' => $ip ),
-				array(
-					'%s',
-					'%s',
-					'%s',
-					'%s',
-				),
-				array( '%s' )
-			);
-		} else {
+				// Update existing record.
+				$wpdb->update(
+					$table_name,
+					array(
+						'type'       => $type,
+						'start_date' => isset( $args['start_date'] ) ? $args['start_date'] : null,
+						'end_date'   => isset( $args['end_date'] ) ? $args['end_date'] : null,
+						'reason'     => $args['reason'],
+					),
+					array( 'ip' => $ip ),
+					array(
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+					),
+					array( '%s' )
+				);
+			} else {
 
-			// Insert new record.
-			$insert = array(
-				'ip'   => $ip,
-				'type' => $type,
-			);
+				// Insert new record.
+				$insert = array(
+					'ip'   => $ip,
+					'type' => $type,
+				);
 
-			if ( 'temporary' == $type ) {
-				$insert['start_date'] = $args['start_date'];
-				$insert['end_date'] = $args['end_date'];
+				if ( 'temporary' == $type ) {
+					$insert['start_date'] = $args['start_date'];
+					$insert['end_date'] = $args['end_date'];
+				}
+
+				if ( isset( $args['reason'] ) && $args['reason'] ) {
+					$insert['reason'] = $args['reason'];
+				}
+
+				$wpdb->insert(
+					$table_name,
+					$insert,
+					array(
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+					)
+				);
 			}
-
-			if ( isset( $args['reason'] ) && $args['reason'] ) {
-				$insert['reason'] = $args['reason'];
-			}
-
-			$wpdb->insert(
-				$table_name,
-				$insert,
-				array(
-					'%s',
-					'%s',
-					'%s',
-					'%s',
-					'%s',
-				)
-			);
 		}
 	}
 
@@ -661,6 +889,7 @@ class Zero_Spam {
 	 * Returns the current URL.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @return string The current URL the user is on.
 	 */
@@ -686,6 +915,7 @@ class Zero_Spam {
 	 * Returns a user's IP address
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @return string The current user's IP address.
 	 */
@@ -717,6 +947,7 @@ class Zero_Spam {
 	 * Provides the heading for the settings_page method.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 */
 	private function _options_tabs() {
 		$current_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
@@ -741,7 +972,7 @@ class Zero_Spam {
 			'spammer_msg_comment'        => 'There was a problem processing your comment.',
 			'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
 			'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
-			'spammer_msg_gf'             => 'There was a problem processing your submission.',
+			'blocked_ip_msg'             => 'Access denied.'
 		);
 
 		// Retrieve the settings
@@ -903,11 +1134,10 @@ class Zero_Spam {
 					action: 'get_blocked_ip',
 					security: '<?php echo $ajax_nonce; ?>',
 					ip: ip
-				}, function( data ) {
+				}, function( data ) {console.log(data);
 					var d = jQuery.parseJSON( data ),
 						row = jQuery( "tr[data-ip='" + d.ip + "']" ),
 						label;
-
 					if ( true == d.is_blocked ) {
 						label = '<span class="zero-spam__label zero-spam__bg--primary">Blocked</span>';
 					} else {
@@ -1069,6 +1299,7 @@ class Zero_Spam {
 
 		// Add/update the blocked IP.
 		$this->_block_ip( array(
+			'ip' => $_POST['zerospam-ip'],
 			'type' => $_POST['zerospam-type'],
 			'start_date' => $start_date,
 			'end_date' => $end_date,
@@ -1126,13 +1357,15 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
 	 */
 	public function preprocess_comment( $commentdata ) {
-		if ( ! isset( $_POST['zerospam_key'] ) ||
-			(
-				$_POST['zerospam_key'] != $this->_get_key() ) &&
-				! current_user_can( 'moderate_comments' ) &&
-				is_user_logged_in()
-			)
-		{
+		$valid = false;
+
+		if ( is_user_logged_in() && current_user_can( 'moderate_comments' ) ) {
+			$valid = true;
+		} elseif( isset( $_POST['zerospam_key'] ) ) {
+			$valid = true;
+		}
+
+		if( ! $valid ) {
 			do_action( 'zero_spam_found_spam_comment', $commentdata );
 
 			if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
@@ -1267,22 +1500,35 @@ class Zero_Spam {
 	 *
 	 * @return array An array of blocked IPs from the database.
 	 */
-	private function _get_blocked_ips() {
+	private function _get_blocked_ips( $args = array() ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-		$query      = $wpdb->get_results( "SELECT * FROM $table_name" );
 
-		if ( null == $query ) {
+		$order_by = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY zerospam_ip_id DESC';
+
+		$offset = isset( $args['offset'] ) ? $args['offset'] : false;
+		$limit = isset( $args['limit'] ) ? $args['limit'] : false;
+		if ( $offset && $limit ) {
+			$limit = ' LIMIT ' . $offset . ', ' . $limit;
+		} elseif( $limit ) {
+			$limit = ' LIMIT ' . $limit;
+		}
+
+		$query = 'SELECT * FROM ' . $table_name . $order_by . $limit;
+		$results = $wpdb->get_results( $query );
+
+		if ( null == $results ) {
 			return false;
 		}
 
-		return $query;
+		return $results;
 	}
 
 	/**
 	 * Checks if an IP is blocked.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @return boolean True if blocked, false if not.
 	 */
@@ -1291,7 +1537,7 @@ class Zero_Spam {
 		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
 		$check      = $this->_get_blocked_ip( $ip );
 
-		if ( ! $check || ! $time ) {
+		if ( ! $check ) {
 			return false;
 		}
 		// Check block type
@@ -1301,11 +1547,13 @@ class Zero_Spam {
 			time() <= strtotime( $check->end_date )
 			) {
 				return true;
-			}
+		}
+
 		if ( 'permanent' == $check->type ) {
 			return true;
 		}
 
+		return false;
 	}
 
 	/**

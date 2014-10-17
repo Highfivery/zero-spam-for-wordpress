@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				<?php endif; ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Total Spam', 'zerospam' ); ?>
-						<b><?php echo number_format( $total_spam, 0 ); ?></b>
+						<b><?php echo number_format( count( $all_spam['raw'] ), 0 ); ?></b>
 					</div>
 				<?php if ( isset( $per_day ) ): ?>
 					<div class="zero-spam__stat">
@@ -36,7 +36,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				<?php endif; ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Unique Spammers', 'zerospam' ); ?>
-						<b><?php echo number_format( $unique_spammers, 0 ); ?></b>
+						<b><?php echo number_format( count( $all_spam['unique_spammers'] ), 0 ); ?></b>
 					</div>
 				</div>
 			</div>
@@ -49,22 +49,22 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				<div class="zero-spam__row">
 					<div class="zero-spam__stat">
 						<?php echo __( 'Comments', 'zerospam' ); ?>
-						<b><?php echo number_format( $spam['comment_spam'], 0 ); ?></b>
+						<b><?php echo number_format( $all_spam['comment_spam'], 0 ); ?></b>
 					</div>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Registrations', 'zerospam' ); ?>
-						<b><?php echo number_format( $spam['registration_spam'], 0 ); ?></b>
+						<b><?php echo number_format( $all_spam['registration_spam'], 0 ); ?></b>
 					</div>
 					<?php if ( $this->plugins['cf7'] ): ?>
 						<div class="zero-spam__stat">
 							<?php echo __( 'Contact Form 7', 'zerospam' ); ?>
-							<b><?php echo number_format( $spam['cf7_spam'], 0 ); ?></b>
+							<b><?php echo number_format( $all_spam['cf7_spam'], 0 ); ?></b>
 						</div>
 					<?php endif; ?>
 					<?php if ( $this->plugins['gf'] ): ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Gravity Forms', 'zerospam' ); ?>
-						<b><?php echo number_format( $spam['gf_spam'], 0 ); ?></b>
+						<b><?php echo number_format( $all_spam['gf_spam'], 0 ); ?></b>
 					</div>
 					<?php endif; ?>
 				</div>
@@ -73,9 +73,95 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 	</div>
 </div>
 
+<?php if ( count( $all_spam['raw'] ) ): ?>
+<div class="zero-spam__row">
+	<div class="zero-spam__cell">
+		<div class="zero-spam__widget">
+			<div class="zero-spam__inner">
+				<div class="zero-spam__row">
+					<div class="zero-spam__cell">
+						<h3><?php echo __( 'Percentage of Spam by Day', 'zerospam' ); ?></h3>
+						<table class="zero-spam__table">
+							<thead>
+								<tr>
+									<th><?php echo __( 'Day', 'zerospam' ); ?></th>
+									<th class="zero-spam__text-right"><?php echo __( 'Count', 'zerospam' ); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+								<?php foreach( $all_spam['by_day'] as $day => $count ): ?>
+								<tr>
+									<th><?php echo $day; ?></th>
+									<td class="zero-spam__text-right"><?php echo number_format( $count, 0 ); ?></td>
+								</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+					<div class="zero-spam__cell">
+						<div id="donut"></div>
+						<script>
+						jQuery(function() {
+						  Morris.Donut({
+							  element: 'donut',
+							  data: [
+							  	<?php foreach( $all_spam['by_day'] as $day => $count ): ?>
+							  	{value: <?php echo $this->_get_percent( $count, count( $all_spam['raw'] ) ); ?>, label: '<?php echo $day; ?>', formatted: '<?php echo $this->_get_percent( $count, count( $all_spam['raw'] ) ); ?>%'},
+							  	<?php endforeach; ?>
+							  ],
+							  formatter: function (x, data) { return data.formatted; }
+							});
+						});
+						</script>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="zero-spam__cell">
+		<div class="zero-spam__widget">
+			<div class="zero-spam__inner">
+				<h3><?php echo __( 'Most Frequent Spammers', 'zerospam' ); ?></h3>
+				<table class="zero-spam__table">
+					<thead>
+						<tr>
+							<th><?php echo __( 'IP', 'zerospam' ); ?></th>
+							<th><?php echo __( 'Count', 'zerospam' ); ?></th>
+							<th><?php echo __( 'Status', 'zerospam' ); ?></th>
+							<th>&nbsp;</th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php arsort( $all_spam['by_spam_count'] ); $cnt = 0; foreach( $all_spam['by_spam_count'] as $ip => $count ): $cnt++; if ( $cnt > 6) break; ?>
+							<tr data-ip="<?php echo $ip; ?>">
+								<td><?php echo $ip; ?></td>
+								<td><?php echo number_format( $count, 0 ); ?></td>
+								<td class="zero-spam__status">
+									<?php if( $this->_is_blocked( $ip ) ): ?>
+									<span class="zero-spam__label zero-spam__bg--primary"><?php echo __( 'Blocked', 'zerospam' ); ?></span>
+									<?php else: ?>
+									<span class="zero-spam__label zero-spam__bg--trinary"><?php echo __( 'Unblocked', 'zerospam' ); ?></span>
+									<?php endif; ?>
+								</td>
+								<td class="zero-spam__text-center">
+									<i class="fa fa-circle-o-notch fa-spin"></i>&nbsp;
+									<i class="fa fa-edit"></i>&nbsp;
+									<a href="#" class="button button-small zero-spam__block-ip"
+										data-ip="<?php echo $ip; ?>"><i class="fa fa-gear"></i></a>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+</div>
+<?php endif; ?>
+
 <div class="zero-spam__widget">
 	<div class="zero-spam__inner">
-		<?php if ( count( $spam['by_date'] ) ): ?>
+		<?php if ( count( $all_spam['by_date'] ) ): ?>
 		<a href="javascript: clearLog();" class="zero-spam__fright button"><?php echo __( 'Reset Log', 'zerospam' ); ?></a>
 			<h3><?php echo __( 'All Time', 'zerospam' ); ?></h3>
 		<div id="graph"></div>
@@ -86,7 +172,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				element: 'graph',
 				behaveLikeLine: true,
 				data: [
-					<?php foreach( $spam['by_date'] as $date => $ary ): ?>
+					<?php foreach( $all_spam['by_date'] as $date => $ary ): ?>
 					{
 						'date': '<?php echo $date; ?>',
 						'spam_comments': <?php echo $ary['comment_spam']; ?>,
@@ -183,6 +269,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				<?php endforeach; ?>
 			</tbody>
 		</table>
+		<?php $this->_pager( $limit, $this->_get_spam_count(), $page, $tab ); ?>
 		<?php else: ?>
 			<?php echo __( 'No spammers detected yet!', 'zerospam'); ?>
 		<?php endif; ?>

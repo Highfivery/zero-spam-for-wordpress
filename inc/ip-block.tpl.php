@@ -27,8 +27,20 @@
 							<span class="zero-spam__label zero-spam__bg--trinary"><?php echo __( 'Unblocked', 'zerospam' ); ?></span>
 							<?php endif; ?>
 						</td>
-						<td class="zero-spam__start-date"><?php echo date( 'l, F j, Y', strtotime( $data->start_date ) ); ?></td>
-						<td class="zero-spam__end-date"><?php echo date( 'l, F j, Y', strtotime( $data->end_date ) ); ?></td>
+						<td class="zero-spam__start-date">
+							<?php if ( $data->start_date ): ?>
+								<?php echo date( 'l, F j, Y', strtotime( $data->start_date ) ); ?>
+							<?php else: ?>
+								&mdash;
+							<?php endif; ?>
+						</td>
+						<td class="zero-spam__end-date">
+							<?php if ( $data->start_date ): ?>
+								<?php echo date( 'l, F j, Y', strtotime( $data->end_date ) ); ?>
+							<?php else: ?>
+								&mdash;
+							<?php endif; ?>
+						</td>
 						<td class="zero-spam__reason"><?php echo $data->reason; ?></td>
 						<td class="zero-spam__text-center">
 							<i class="fa fa-circle-o-notch fa-spin"></i>&nbsp;
@@ -43,6 +55,7 @@
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			<?php $this->_pager( $limit, $this->_get_blocked_ip_count(), $page, $tab ); ?>
 		</div>
 		<?php else: ?>
 		<?php echo __( 'No blocked IPs found.', 'zerospam' ); ?>

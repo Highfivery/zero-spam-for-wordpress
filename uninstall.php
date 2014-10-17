@@ -34,12 +34,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 // Important: Check if the file is the one
 // that was registered during the uninstall hook.
-if ( 'zero-spam/zero-spam.php' !== WP_UNINSTALL_PLUGIN )  {
+if ( basename(__DIR__) . '/zero-spam.php' !== WP_UNINSTALL_PLUGIN )  {
 	exit;
 }
 
 // Check if the $_REQUEST content actually is the plugin name
-if ( ! in_array( 'zero-spam/zero-spam.php', $_REQUEST['checked'] ) ) {
+if ( ! in_array( basename(__DIR__) . '/zero-spam.php', $_REQUEST['checked'] ) ) {
 	exit;
 }
 
@@ -62,6 +62,10 @@ if ( false != get_option( 'zerospam_general_settings' ) || '' == get_option( 'ze
 
 if ( false != get_option( 'zerospam_key' ) || '' == get_option( 'zerospam_key' ) ) {
   delete_option( 'zerospam_key' );
+}
+
+if ( false != get_option( 'zerospam_db_version' ) || '' == get_option( 'zerospam_db_version' ) ) {
+  delete_option( 'zerospam_db_version' );
 }
 
 // Delete database tables

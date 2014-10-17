@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 <table class="form-table">
 	<tr>
 		<th><label for="zerospam-ip">IP:</th>
-		<td><input type="text" name="zerospam-ip" id="zerospam-ip" value="<?php echo esc_attr( $ip ); ?>" disabled="disabled" class="regular-text"></td>
+		<td><input type="text" name="zerospam-ip" id="zerospam-ip" value="<?php echo esc_attr( $ip ); ?>" readonly="readonly" class="regular-text"></td>
 	</tr>
 	<tr>
 		<th><label for="zerospam-type"><?php echo __( 'Type', 'zerospam' ); ?>:</th>
