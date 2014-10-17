@@ -656,6 +656,8 @@ class Zero_Spam {
 			$charset_collate .= " COLLATE {$wpdb->collate}";
 		}
 
+		$sql = false;
+
 		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name ) {
 			$sql = "CREATE TABLE $log_table_name (
 				zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
@@ -666,18 +668,10 @@ class Zero_Spam {
 				PRIMARY KEY  (zerospam_id),
 				KEY type (type)
 			) $charset_collate;";
-
-			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-			dbDelta( $sql );
-
-			// Fix for DB error when activating plugin.
-			// http://www.charlestonsw.com/turn-off-dbdelta-describe-errors/
-			global $EZSQL_ERROR;
-			$EZSQL_ERROR = array();
 		}
 
 		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
-			$sql = "CREATE TABLE $ip_table_name (
+			$sql .= "CREATE TABLE $ip_table_name (
 			zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 			ip varchar(15) NOT NULL,
 			type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
@@ -687,14 +681,11 @@ class Zero_Spam {
 			PRIMARY KEY  (zerospam_ip_id),
 			UNIQUE KEY ip (ip)
 		) $charset_collate;";
+		}
 
+		if ( $sql ) {
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 			dbDelta( $sql );
-
-			// Fix for DB error when activating plugin.
-			// http://www.charlestonsw.com/turn-off-dbdelta-describe-errors/
-			global $EZSQL_ERROR;
-			$EZSQL_ERROR = array();
 		}
 
 		update_option( 'zerospam_db_version', $this->db_version );
@@ -1146,10 +1137,10 @@ class Zero_Spam {
 					var d = jQuery.parseJSON( data ),
 						row = jQuery( "tr[data-ip='" + d.ip + "']" ),
 						label;
-					if ( true == d.is_blocked ) {console.log('5');
+					if ( true == d.is_blocked ) {
 						label = '<span class="zero-spam__label zero-spam__bg--primary">Blocked</span>';
 					} else {
-						label = '<span class="zero-spam__label zero-spam__bg--trinary">Unblocked</span>';console.log('6');
+						label = '<span class="zero-spam__label zero-spam__bg--trinary">Unblocked</span>';
 					}
 
 					jQuery( ".zero-spam__reason", row ).text( d.reason );
