@@ -1346,13 +1346,15 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
 	 */
 	public function preprocess_comment( $commentdata ) {
-		if ( ! isset( $_POST['zerospam_key'] ) ||
-			(
-				$_POST['zerospam_key'] != $this->_get_key() ) &&
-				! current_user_can( 'moderate_comments' ) &&
-				is_user_logged_in()
-			)
-		{
+		if ( is_user_logged_in() && current_user_can( 'moderate_comments' ) ) {
+			$valid = true;
+		} elseif( ! isset( $_POST['zerospam_key'] ) ) {
+			$valid = false;
+		} else {
+			$valid = true;
+		}
+
+		if( ! $valid ) {
 			do_action( 'zero_spam_found_spam_comment', $commentdata );
 
 			if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
