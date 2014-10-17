@@ -656,7 +656,7 @@ class Zero_Spam {
 			$charset_collate .= " COLLATE {$wpdb->collate}";
 		}
 
-		$sql = "CREATE TABLE $log_table_name (
+		$sql1 = "CREATE TABLE $log_table_name (
 			zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 			type int(1) unsigned NOT NULL,
 			ip varchar(15) NOT NULL,
@@ -666,7 +666,7 @@ class Zero_Spam {
 			KEY type (type)
 		) $charset_collate;";
 
-		$sql .= "CREATE TABLE $ip_table_name (
+		$sql2 = "CREATE TABLE $ip_table_name (
 			zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 			ip varchar(15) NOT NULL,
 			type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
@@ -678,7 +678,8 @@ class Zero_Spam {
 		) $charset_collate;";
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-		dbDelta( $sql );
+		dbDelta( $sql1 );
+		dbDelta( $sql2 );
 
 		update_option( 'zerospam_db_version', $this->db_version );
 
