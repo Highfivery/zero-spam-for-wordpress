@@ -62,13 +62,12 @@ class Zero_Spam {
 	 * @return void
 	 */
 	public function __construct() {
-		register_activation_hook( __FILE__, array( &$this, 'install' ) );
-
 		$this->_plugin_check();
 		$this->_load_settings();
-		$this->_ip_check();
 		$this->_actions();
 		$this->_filters();
+
+		register_activation_hook( __FILE__, array( &$this, 'install' ) );
 	}
 
 	/**
@@ -624,6 +623,9 @@ class Zero_Spam {
 		if ( get_site_option( 'zerospam_db_version' ) != $this->db_version ) {
 			$this->install();
 		}
+
+		// Check if user IP has been blocked.
+		$this->_ip_check();
 	}
 
 	/**
@@ -654,17 +656,22 @@ class Zero_Spam {
 			$charset_collate .= " COLLATE {$wpdb->collate}";
 		}
 
-		$sql = "CREATE TABLE $log_table_name (
-			zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
-			type int(1) unsigned NOT NULL,
-			ip varchar(15) NOT NULL,
-			date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			page varchar(255) DEFAULT NULL,
-			PRIMARY KEY  (zerospam_id),
-			KEY type (type)
-		) $charset_collate;";
+		$sql = false;
 
-		$sql .= "CREATE TABLE $ip_table_name (
+		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name ) {
+			$sql = "CREATE TABLE $log_table_name (
+				zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
+				type int(1) unsigned NOT NULL,
+				ip varchar(15) NOT NULL,
+				date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				page varchar(255) DEFAULT NULL,
+				PRIMARY KEY  (zerospam_id),
+				KEY type (type)
+			) $charset_collate;";
+		}
+
+		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
+			$sql .= "CREATE TABLE $ip_table_name (
 			zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 			ip varchar(15) NOT NULL,
 			type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
@@ -674,9 +681,12 @@ class Zero_Spam {
 			PRIMARY KEY  (zerospam_ip_id),
 			UNIQUE KEY ip (ip)
 		) $charset_collate;";
+		}
 
-		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-		dbDelta( $sql );
+		if ( $sql ) {
+			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+			dbDelta( $sql );
+		}
 
 		update_option( 'zerospam_db_version', $this->db_version );
 
@@ -1127,7 +1137,6 @@ class Zero_Spam {
 					var d = jQuery.parseJSON( data ),
 						row = jQuery( "tr[data-ip='" + d.ip + "']" ),
 						label;
-
 					if ( true == d.is_blocked ) {
 						label = '<span class="zero-spam__label zero-spam__bg--primary">Blocked</span>';
 					} else {
