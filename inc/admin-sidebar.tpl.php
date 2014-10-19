@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 ?><div class="zero-spam__widget">
-	<a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><img src="//ps.w.org/zero-spam/assets/banner-772x250.png" width="100%" class="zero-spam__thumbnail"></a>
+	<a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><img src="<?php echo plugins_url( 'build/' . $this->img_dir . '/banner.jpg', ZEROSPAM_PLUGIN ); ?>" width="100%" class="zero-spam__thumbnail"></a>
 	<div class="zero-spam__inner">
 		<h2><a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><?php echo __( $plugin['Name'], 'zerospam' ); ?></a></h2>
 		<p class="zero-spam__description"><b><?php echo __( 'Rate', 'zerospam' ); ?>:</b> <a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" target="_blank"><i class="fa fa-star"></i>
