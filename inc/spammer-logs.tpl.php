@@ -106,7 +106,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
   				jQuery.post( ajaxurl, {
 					action: 'get_ip_spam',
 					security: '<?php echo $ajax_nonce; ?>',
-				}, function( data ) {console.log(data);
+				}, function( data ) {
 					if ( data ) {
 						var obj = jQuery.parseJSON( data ),
 							country_count = {},
@@ -133,10 +133,10 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 								}]
 							}
 	  					});
-						var map = jQuery('#map').vectorMap('get', 'mapObject');console.log(JSON.stringify( country_count ));
+						var map = jQuery('#map').vectorMap('get', 'mapObject');
 						map.series.regions[0].setValues( country_count );
 					} else {
-						jQuery( ".zero-spam__inner", jQuery( ".zero-spam__overlay" ) ).html( "<i class='fa fa-exclamation-triangle'></i><h4>IP API Usage Limit Reached</h4><p>You've reached you're daily  limit to the IP API to gather location information. Please check back in 24 hours.</p>" );
+						jQuery( ".zero-spam__inner", jQuery( ".zero-spam__overlay" ) ).html( "<i class='fa fa-exclamation-triangle'></i><h4>IP API Usage Limit Reached</h4><p>You've reached you're daily  limit to the IP API to gather location information. Please check back in one hour.</p>" );
 					}
 				});
 			});

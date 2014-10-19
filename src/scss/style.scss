@@ -9,14 +9,27 @@
 
 // Sprites
 @import "compass/utilities/sprites";
+
 @import "country-flags/*.png";
 @include all-country-flags-sprites;
-$icon-size: 24px;
-.country-flag {
+
+@import "contributors/*.png";
+@include all-contributors-sprites;
+
+.country-flag,
+.contributors {
 	display: inline-block;
 	vertical-align: middle;
-	width: $icon-size;
-	height: $icon-size;
+}
+
+.country-flag {
+	width: image-width("country-flags/us.png");
+	height: image-height("country-flags/us.png");
+}
+
+.contributors {
+	width: image-width("contributors/bmarshall511.png");
+	height: image-height("contributors/bmarshall511.png");
 }
 
 /**
@@ -312,7 +325,7 @@ $border-color: #e8edf1;
 }
 
 .zerospam__left {
-  padding-right: 450px;
+  padding-right: 445px;
 }
 
 .zerospam__right {
@@ -399,4 +412,28 @@ $border-color: #e8edf1;
 
 .zero-spam__map {
 	height: 350px;
+}
+
+.zero-spam__photos {
+	display: block;
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+
+	li {
+		display: block;
+		overflow: hidden;
+	}
+
+	img {
+		max-width: 100%;
+	}
+}
+
+.zero-spam__photo {
+	display: block;
+	width: 94px;
+	height: 94px;
+	float: left;
+	margin-right: 10px;
 }

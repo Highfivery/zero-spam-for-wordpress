@@ -33,6 +33,58 @@ class Zero_Spam {
 
 	private $db_version = "0.0.1";
 
+	private $img_dir;
+
+	/**
+	 * Holds an array of contributors to the WordPress Zero Spam plugin.
+	 * @var $contributors
+	 */
+	private $contributors = array(
+		'bmarshall511' => array(
+			'name'      => 'Ben Marshall',
+			'img'       => 'bmarshall511',
+			'url'       => 'http://www.benmarshall.me',
+			'twitter'   => 'http://www.twitter.com/bmarshall511',
+			'github'    => 'https://github.com/bmarshall511',
+			'google+'   => 'https://plus.google.com/+BenMarshall511/posts',
+			'wordpress' => 'https://profiles.wordpress.org/bmarshall511/',
+			'email'     => 'me@benmarshall.me'
+		),
+		'afragen' => array(
+			'name'      => 'Andy Fragen',
+			'img'       => 'afragen',
+			'url'       => 'http://thefragens.com/',
+			'github'    => 'https://github.com/afragen',
+			'wordpress' => 'https://profiles.wordpress.org/afragen/',
+			'email'     => 'andy@thefragens.com'
+		),
+		'tangrufus' => array(
+			'name'      => 'Tang Rufus',
+			'img'       => 'TangRufus',
+			'url'       => 'http://tangrufus.com',
+			'github'    => 'https://github.com/tangrufus',
+			'wordpress' => 'https://profiles.wordpress.org/tangrufus/',
+		),
+		'leewillis77'   => array(
+			'name'      => 'Lee Willis',
+			'img'       => 'leewillis77',
+			'url'       => 'http://www.leewillis.co.uk/',
+			'github'    => 'https://github.com/leewillis77',
+			'google+'   => 'https://plus.google.com/101283392620429069960?rel=author',
+			'wordpress' => 'https://profiles.wordpress.org/leewillis77/',
+		),
+		'macbookandrew' => array(
+			'name'      => 'Andrew R Minion',
+			'img'       => 'macbookandrew',
+			'url'       => 'http://andrewrminion.com/',
+			'twitter'   => 'http://twitter.com/macbookandrew',
+			'github'    => 'https://github.com/macbookandrew',
+			'google+'   => 'https://plus.google.com/101283392620429069960?rel=author',
+			'wordpress' => 'https://profiles.wordpress.org/macbookandrew/',
+			'email'     => 'andrew@andrewrminion.com'
+		)
+	);
+
 	/**
 	 * Returns an instance.
 	 *
@@ -126,9 +178,13 @@ class Zero_Spam {
 		}
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			$this->img_dir = 'img-dev';
+
 			wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css-dev/style.css', ZEROSPAM_PLUGIN ) );
 			wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js-dev/charts.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
 		} else {
+			$this->img_dir = 'img';
+
 			wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css/style.css', ZEROSPAM_PLUGIN ) );
 			wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js/charts.min.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
 		}
@@ -270,13 +326,53 @@ class Zero_Spam {
 	 * @return array An array with the IP address details.
 	 */
 	private function _get_ip_info( $ip ) {
-		// Ignore local hosts.
-		if ( $ip == '127.0.0.1' ) return false;
-		// @ used to supress API usage block warning.
-		$json = @file_get_contents( 'http://freegeoip.net/json/' . $ip );
+		global $wpdb;
 
-		if ( FALSE === $json ) {
-			return json_decode( $json );
+		// Check DB
+		$table_name = $wpdb->prefix . 'zerospam_ip_data';
+		$data       = $wpdb->get_row( "SELECT * FROM $table_name WHERE ip = '" . $ip . "'" );
+
+		// Retrieve from API
+		if ( null == $data ) {
+			// Ignore local hosts.
+			if ( $ip == '127.0.0.1' ) return false;
+			// @ used to supress API usage block warning.
+			$json = @file_get_contents( 'http://freegeoip.net/json/' . $ip );
+
+			$data = json_decode( $json );
+			if ( $data ) {
+				$wpdb->insert( $table_name, array(
+						'ip'            => $ip,
+						'country_code'  => $data->country_code,
+						'country_name'  => $data->country_name,
+						'region_code'   => $data->region_code,
+						'region_name'   => $data->region_name,
+						'city'          => $data->city,
+						'zipcode'       => $data->zipcode,
+						'latitude'      => $data->latitude,
+						'longitude'     => $data->longitude,
+						'metro_code'    => $data->metro_code,
+						'area_code'     => $data->area_code
+					),
+					array(
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%d',
+						'%d',
+						'%d',
+						'%d'
+					)
+				);
+			}
+		}
+
+		if ( FALSE != $data ) {
+			return $data;
 		}
 
 		return false;
@@ -554,7 +650,10 @@ class Zero_Spam {
 		?>
 		<label for="ip_location_support">
 			<input type="checkbox" id="gf_support" name="zerospam_general_settings[ip_location_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['ip_location_support'] ) ) : checked( $this->settings['zerospam_general_settings']['ip_location_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
-			<p class="description"><?php echo __( 'Disable this option if you experience slow load times on the', 'zerospam' ); ?> <a href="<?php echo admin_url( 'options-general.php?page=zerospam&tab=zerospam_spammer_logs'); ?>"><?php echo __( 'Spammer Log', 'zerospam' ); ?></a> <?php echo __( 'page', 'zerospam' ); ?>.</p>
+			<p class="description">
+				<?php echo __( 'IP location data provided by', 'zerospam' ); ?> <a href="http://freegeoip.net/" target="_blank">freegeoip.net</a>. <?php echo __( 'API usage is limited to 10,000 queries per hour.', 'zerospam' ); ?><br>
+				<?php echo __( 'Disable this option if you experience slow load times on the', 'zerospam' ); ?> <a href="<?php echo admin_url( 'options-general.php?page=zerospam&tab=zerospam_spammer_logs'); ?>"><?php echo __( 'Spammer Log', 'zerospam' ); ?></a> <?php echo __( 'page', 'zerospam' ); ?>.
+			</p>
 		</label>
 		<?php
 	}
@@ -691,6 +790,7 @@ class Zero_Spam {
 
 		$log_table_name = $wpdb->prefix . 'zerospam_log';
 		$ip_table_name  = $wpdb->prefix . 'zerospam_blocked_ips';
+		$ip_data_table_name  = $wpdb->prefix . 'zerospam_ip_data';
 
 		/*
 		 * We'll set the default character set and collation for this table.
@@ -734,6 +834,28 @@ class Zero_Spam {
 		) $charset_collate;";
 		}
 
+		// 0.1.0 Update
+		if ( get_option( 'zerospam_db_version' ) == '0.0.1' ) {
+			if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_data_table_name . '\'' ) != $ip_data_table_name ) {
+				$sql .= "CREATE TABLE $ip_data_table_name (
+				ip_data_id int(10) unsigned NOT NULL AUTO_INCREMENT,
+				ip varchar(15) NOT NULL,
+				country_code varchar(2) DEFAULT NULL,
+				country_name varchar(255) DEFAULT NULL,
+				region_code varchar(2) DEFAULT NULL,
+				region_name varchar(255) DEFAULT NULL,
+				city varchar(255) DEFAULT NULL,
+				zipcode varchar(10) DEFAULT NULL,
+				latitude float DEFAULT NULL,
+				longitude float DEFAULT NULL,
+				metro_code int(11) DEFAULT NULL,
+				area_code int(11) DEFAULT NULL,
+				PRIMARY KEY  (ip_data_id),
+				UNIQUE KEY ip (ip)
+				) $charset_collate;";
+			}
+		}
+
 		if ( $sql ) {
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 			dbDelta( $sql );
@@ -772,7 +894,7 @@ class Zero_Spam {
 
 		if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
 			// IP location API support.
-			add_settings_field( 'ip_location_support', __( 'IP Location API', 'zerospam' ), array( &$this, 'field_ip_location_support' ), 'zerospam_general_settings', 'section_general' );
+			add_settings_field( 'ip_location_support', __( 'IP Location Support', 'zerospam' ), array( &$this, 'field_ip_location_support' ), 'zerospam_general_settings', 'section_general' );
 
 			// Auto IP block support.
 			add_settings_field( 'auto_block', __( 'Auto IP Block', 'zerospam' ), array( &$this, 'field_auto_block' ), 'zerospam_general_settings', 'section_general' );
@@ -1057,8 +1179,8 @@ class Zero_Spam {
 		add_action( 'init', array( &$this, 'init' ) );
 		add_action( 'admin_init', array( &$this, 'admin_init' ) );
 		add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
-		add_action( 'admin_footer', array( &$this, 'admin_footer' ) );
 		add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( &$this, 'admin_enqueue_scripts' ) );
 		add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
 
 		add_action( 'wp_ajax_block_ip', array( &$this, 'wp_ajax_block_ip' ) );
@@ -1102,153 +1224,6 @@ class Zero_Spam {
 
 		// Gravity Forms support.
 		add_filter( 'gform_validation', array( &$this, 'gform_validation' ) );
-	}
-
-	/**
-	 * Uses admin_footer.
-	 *
-	 * Triggered just after closing the <div id="wpfooter"> tag and right before
-	 * admin_print_footer_scripts action call of the admin-footer.php page.
-	 *
-	 * @since 1.5.0
-	 *
-	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/admin_footer
-	 */
-	public function admin_footer() {
-		$ajax_nonce = wp_create_nonce( 'zero-spam' );
-		?>
-		<script>
-		jQuery( document ).ready( function( $ ) {
-			$.each( $( "[data-ip-location]" ), function() {
-				var element = $( this ),
-					ip = $( this ).data( "ip-location" );
-				jQuery.post( ajaxurl, {
-					action: 'get_location',
-					security: '<?php echo $ajax_nonce; ?>',
-					ip: ip
-				}, function( data ) {
-					var obj = $.parseJSON( data ),
-						html = '';
-
-					if ( obj ) {
-
-						if ( obj.country_name ) {
-							html += obj.country_code;
-						}
-
-						if ( obj.region_name ) {
-							if ( html.length ) { html += ', '; }
-							html += obj.region_name;
-						}
-
-						if ( obj.city ) {
-							if ( html.length ) { html += ', '; }
-							html += obj.city;
-						}
-
-						if ( obj.country_code ) {
-							html = '<span class="country-flag country-flags-' + obj.country_code.toLowerCase() + '"></span> ' + html;
-						}
-					}
-
-					if ( ! html.length ) html = '<div class="zero-spam__text-center"><i class="fa fa-exclamation-triangle"></i></div>';
-
-					element.html( html );
-				});
-			});
-
-			$( ".zero-spam__block-ip, .zero-spam__trash" ).click( function( e ) {
-				e.preventDefault();
-
-				closeForms();
-
-				var row = $( this ).closest( "tr" ),
-					form_row = $( "<tr class='zero-spam__row-highlight'>" ),
-					btn = $( this );
-					btn_cell = btn.parent(),
-					ip = btn.data( "ip" ),
-					action = '';
-
-					row.addClass( "zero-spam__loading" );
-
-				if ( btn.hasClass( "zero-spam__trash" ) ) {
-					action = 'trash_ip_block';
-				} else {
-					action = 'block_ip_form';
-				}
-
-				$.post( ajaxurl, {
-					action: action,
-					security: '<?php echo $ajax_nonce; ?>',
-					ip: ip
-				}, function( data ) {
-					row.removeClass( "zero-spam__loading" );
-
-					if ( btn.hasClass( "zero-spam__trash" ) ) {
-						action = 'trash_ip_block';
-						row.fadeOut( function() {
-							row.remove();
-
-							if ( $( ".zero-spam__table tbody tr" ).length == 0 ) {
-								$( "#zerospam-id-container" ).after( "No blocked IPs found." );
-								$( "#zerospam-id-container" ).remove();
-							}
-						});
-					} else {
-						action = 'block_ip_form';
-
-						row.addClass( "zero-spam__loaded" );
-
-						form_row.append( "<td colspan='10'>" + data + "</td>" );
-
-						row.before( form_row );
-					}
-				});
-			});
-		});
-
-		function closeForms() {
-			jQuery( ".zero-spam__row-highlight" ).remove();
-			jQuery( "tr" ).removeClass( "zero-spam__loading" );
-			jQuery( "tr" ).removeClass( "zero-spam__loaded" );
-		}
-
-		function clearLog() {
-			if ( confirm("<?php echo __( "This will PERMANENTLY delete all data in the spammer log. This action cannot be undone. Are you sure you want to continue?", "zerospam" ); ?>") == true ) {
-				jQuery.post( ajaxurl, {
-					action: 'reset_log',
-					security: '<?php echo $ajax_nonce; ?>'
-				}, function() {
-					location.reload();
-				});
-			}
-		}
-
-		function updateRow( ip ) {
-			if ( ip ) {
-				jQuery.post( ajaxurl, {
-					action: 'get_blocked_ip',
-					security: '<?php echo $ajax_nonce; ?>',
-					ip: ip
-				}, function( data ) {
-					var d = jQuery.parseJSON( data ),
-						row = jQuery( "tr[data-ip='" + d.ip + "']" ),
-						label;
-					if ( true == d.is_blocked ) {
-						label = '<span class="zero-spam__label zero-spam__bg--primary">Blocked</span>';
-					} else {
-						label = '<span class="zero-spam__label zero-spam__bg--trinary">Unblocked</span>';
-					}
-
-					jQuery( ".zero-spam__reason", row ).text( d.reason );
-					jQuery( ".zero-spam__start-date", row ).text( d.start_date_txt );
-					jQuery( ".zero-spam__end-date", row ).text( d.end_date_txt );
-					jQuery( ".zero-spam__status", row ).html( label );
-				});
-			}
-		}
-		</script>
-		<?php
 	}
 
 	/**
@@ -1610,6 +1585,49 @@ class Zero_Spam {
 			'key' => $this->_get_key()
 		) );
 		wp_enqueue_script( 'zero-spam' );
+	}
+
+
+	/**
+	 * Add admin scripts.
+	 *
+	 * Adds the CSS & JS for the WordPress Zero Spam settings page.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/admin_enqueue_scripts
+	 *
+	 * @param string $hook Used to target a specific admin page.
+	 * @return void
+	 */
+	public function admin_enqueue_scripts( $hook ) {
+		if ( 'settings_page_zerospam' != $hook ) {
+        	return;
+    	}
+
+    	// Create nonce for AJAX requests.
+    	$ajax_nonce = wp_create_nonce( 'zero-spam' );
+
+    	// Register the WordPress Zero Spam admin script.
+    	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+    		wp_register_script(
+    			'zero-spam-admin', plugin_dir_url( ZEROSPAM_PLUGIN ) .
+    			'build/js-dev/zero-spam-admin.js'
+    		);
+    	} else {
+    		wp_register_script(
+    			'zero-spam-admin',
+    			plugin_dir_url( ZEROSPAM_PLUGIN ) .
+    			'build/js/zero-spam-admin.min.js'
+    		);
+    	}
+
+    	// Localize the script with the plugin data.
+		$zero_spam_array = array( 'nonce' => $ajax_nonce );
+		wp_localize_script( 'zero-spam-admin', 'zero_spam_admin', $zero_spam_array );
+
+		// Enqueue the script.
+		wp_enqueue_script( 'zero-spam-admin' );
 	}
 
 	/**

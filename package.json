@@ -13,7 +13,8 @@
     "grunt-contrib-uglify": "*",
     "grunt-contrib-watch": "*",
     "grunt-shell": "*",
-    "load-grunt-config": "*"
+    "load-grunt-config": "*",
+    "grunt-contrib-copy": "*"
   },
   "dependencies": {
     "time-grunt": "*"
