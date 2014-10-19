@@ -19,7 +19,8 @@
 					<?php foreach ( $ips as $key => $data ): ?>
 					<tr data-ip="<?php echo $data->ip; ?>" id="row-<?php echo $data->zerospam_ip_id; ?>">
 						<td class="zero-spam__ip-id"><?php echo $data->zerospam_ip_id; ?></td>
-						<td class="zero-spam__ip"><?php echo $data->ip; ?></td>
+						<td class="zero-spam__ip"><a href="http://ip-lookup.net/index.php?ip=<?php echo $data->ip; ?>" target="_blank">
+							<?php echo $data->ip; ?> <i class="fa fa-external-link-square"></i></a></td>
 						<td class="zero-spam__status">
 							<?php if ( $this->_is_blocked( $data->ip ) ): ?>
 							<span class="zero-spam__label zero-spam__bg--primary"><?php echo __( 'Blocked', 'zerospam' ); ?></span>
