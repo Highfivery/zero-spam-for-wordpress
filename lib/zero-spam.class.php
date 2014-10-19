@@ -160,6 +160,8 @@ class Zero_Spam {
 						'zerospam_spammer_logs' == $tab &&
 						'1' == $this->settings['zerospam_general_settings']['log_spammers']
 					) {
+						$ajax_nonce       = wp_create_nonce( 'zero-spam' );
+
 						$limit = 10;
 						$args = array(
 							'limit' => $limit,
@@ -174,6 +176,15 @@ class Zero_Spam {
 							$starting_date    =  end( $all_spam['raw'] )->date;
 							$num_days      = $this->_num_days( $starting_date );
 							$per_day       = $num_days ? number_format( ( count( $all_spam['raw'] ) / $num_days ), 2 ) : 0;
+						}
+
+						if (
+							isset( $this->settings['zerospam_general_settings']['ip_location_support'] ) &&
+							'1' == $this->settings['zerospam_general_settings']['ip_location_support']
+						) {
+							$ip_location_support = true;
+						} else {
+							$ip_location_support = false;
 						}
 
 						require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
@@ -248,6 +259,30 @@ class Zero_Spam {
 	}
 
 	/**
+	 * Returns information about the supplied IP address.
+	 *
+	 * @since 1.5.2
+	 * @see http://freegeoip.net/
+	 * @access private
+	 *
+	 * @param $ip string IP address to get info for.
+	 *
+	 * @return array An array with the IP address details.
+	 */
+	private function _get_ip_info( $ip ) {
+		// Ignore local hosts.
+		if ( $ip == '127.0.0.1' ) return false;
+		// @ used to supress API usage block warning.
+		$json = @file_get_contents( 'http://freegeoip.net/json/' . $ip );
+
+		if ( FALSE === $json ) {
+			return json_decode( $json );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Parses the spammer ary from the DB
 	 *
 	 * @since 1.5.0
@@ -298,7 +333,7 @@ class Zero_Spam {
 				'date'        => $obj->date,
 			);
 
-			// By IP
+			// By spam count
 			if ( ! isset( $return['by_spam_count'][ $obj->ip ] ) ) {
 				$return['by_spam_count'][ $obj->ip ] = 0;
 			}
@@ -473,7 +508,7 @@ class Zero_Spam {
 		?>
 		<label for="spammer_msg_contact_form_7">
 			<input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_contact_form_7]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'] ); ?>">
-		<p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
+			<p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
 		</label>
 		<?php
 	}
@@ -504,6 +539,22 @@ class Zero_Spam {
 		?>
 		<label for="gf_support">
 			<input type="checkbox" id="gf_support" name="zerospam_general_settings[gf_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['gf_support'] ) ) : checked( $this->settings['zerospam_general_settings']['gf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+		</label>
+		<?php
+	}
+
+	/**
+	 * IP location API field.
+	 *
+	 * Field callback, renders a checkbox input, note the name and value.
+	 *
+	 * @since 1.5.2
+	 */
+	public function field_ip_location_support() {
+		?>
+		<label for="ip_location_support">
+			<input type="checkbox" id="gf_support" name="zerospam_general_settings[ip_location_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['ip_location_support'] ) ) : checked( $this->settings['zerospam_general_settings']['ip_location_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+			<p class="description"><?php echo __( 'Disable this option if you experience slow load times on the', 'zerospam' ); ?> <a href="<?php echo admin_url( 'options-general.php?page=zerospam&tab=zerospam_spammer_logs'); ?>"><?php echo __( 'Spammer Log', 'zerospam' ); ?></a> <?php echo __( 'page', 'zerospam' ); ?>.</p>
 		</label>
 		<?php
 	}
@@ -697,6 +748,7 @@ class Zero_Spam {
 		$options['wp_generator']         = 1;
 		$options['cf7_support']          = 1;
 		$options['gf_support']           = 1;
+		$options['ip_location_support']  = 1;
 
 		update_option( 'zerospam_general_settings', $options );
 	}
@@ -711,28 +763,34 @@ class Zero_Spam {
 	 */
 	private function _register_settings() {
 		register_setting( 'zerospam_general_settings', 'zerospam_general_settings' );
+
 		add_settings_section( 'section_general', __( 'General Settings', 'zerospam' ), false, 'zerospam_general_settings' );
+		add_settings_section( 'section_messages', __( 'Messages', 'zerospam' ), false, 'zerospam_general_settings' );
+
 		add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
 		add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
 
-		// Auto IP block support.
 		if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
+			// IP location API support.
+			add_settings_field( 'ip_location_support', __( 'IP Location API', 'zerospam' ), array( &$this, 'field_ip_location_support' ), 'zerospam_general_settings', 'section_general' );
+
+			// Auto IP block support.
 			add_settings_field( 'auto_block', __( 'Auto IP Block', 'zerospam' ), array( &$this, 'field_auto_block' ), 'zerospam_general_settings', 'section_general' );
 		}
 
-		add_settings_field( 'blocked_ip_msg', __( 'Blocked IP Message', 'zerospam' ), array( &$this, 'field_blocked_ip_msg' ), 'zerospam_general_settings', 'section_general' );
+		add_settings_field( 'blocked_ip_msg', __( 'Blocked IP Message', 'zerospam' ), array( &$this, 'field_blocked_ip_msg' ), 'zerospam_general_settings', 'section_messages' );
 
 		add_settings_field( 'comment_support', __( 'Comment Support', 'zerospam' ), array( &$this, 'field_comment_support' ), 'zerospam_general_settings', 'section_general' );
 
 		// Comment support.
 		if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
-			add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
+			add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_messages' );
 		}
 
 		// Registration support.
 		add_settings_field( 'registration_support', __( 'Registration Support', 'zerospam' ), array( &$this, 'field_registration_support' ), 'zerospam_general_settings', 'section_general' );
 		if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
-			add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
+			add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_messages' );
 		}
 
 		// Contact Form 7 support.
@@ -740,7 +798,7 @@ class Zero_Spam {
 			add_settings_field( 'cf7_support', __( 'Contact Form 7 Support', 'zerospam' ), array( &$this, 'field_cf7_support' ), 'zerospam_general_settings', 'section_general' );
 
 			if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
-				add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
+				add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_messages' );
 			}
 		}
 
@@ -1008,6 +1066,8 @@ class Zero_Spam {
 		add_action( 'wp_ajax_get_blocked_ip', array( &$this, 'wp_ajax_get_blocked_ip' ) );
 		add_action( 'wp_ajax_trash_ip_block', array( &$this, 'wp_ajax_trash_ip_block' ) );
 		add_action( 'wp_ajax_reset_log', array( &$this, 'wp_ajax_reset_log' ) );
+		add_action( 'wp_ajax_get_location', array( &$this, 'wp_ajax_get_location' ) );
+		add_action( 'wp_ajax_get_ip_spam', array( &$this, 'wp_ajax_get_ip_spam' ) );
 
 		if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
 			add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
@@ -1059,9 +1119,45 @@ class Zero_Spam {
 		?>
 		<script>
 		jQuery( document ).ready( function( $ ) {
-			$(
-				".zero-spam__block-ip, .zero-spam__trash"
-			).click( function( e ) {
+			$.each( $( "[data-ip-location]" ), function() {
+				var element = $( this ),
+					ip = $( this ).data( "ip-location" );
+				jQuery.post( ajaxurl, {
+					action: 'get_location',
+					security: '<?php echo $ajax_nonce; ?>',
+					ip: ip
+				}, function( data ) {
+					var obj = $.parseJSON( data ),
+						html = '';
+
+					if ( obj ) {
+
+						if ( obj.country_name ) {
+							html += obj.country_code;
+						}
+
+						if ( obj.region_name ) {
+							if ( html.length ) { html += ', '; }
+							html += obj.region_name;
+						}
+
+						if ( obj.city ) {
+							if ( html.length ) { html += ', '; }
+							html += obj.city;
+						}
+
+						if ( obj.country_code ) {
+							html = '<span class="country-flag country-flags-' + obj.country_code.toLowerCase() + '"></span> ' + html;
+						}
+					}
+
+					if ( ! html.length ) html = '<div class="zero-spam__text-center"><i class="fa fa-exclamation-triangle"></i></div>';
+
+					element.html( html );
+				});
+			});
+
+			$( ".zero-spam__block-ip, .zero-spam__trash" ).click( function( e ) {
 				e.preventDefault();
 
 				closeForms();
@@ -1134,7 +1230,7 @@ class Zero_Spam {
 					action: 'get_blocked_ip',
 					security: '<?php echo $ajax_nonce; ?>',
 					ip: ip
-				}, function( data ) {console.log(data);
+				}, function( data ) {
 					var d = jQuery.parseJSON( data ),
 						row = jQuery( "tr[data-ip='" + d.ip + "']" ),
 						label;
@@ -1168,10 +1264,80 @@ class Zero_Spam {
 		global $wpdb;
 		check_ajax_referer( 'zero-spam', 'security' );
 
-		$ajax_nonce = wp_create_nonce( 'zero-spam' );
 		$ip         = $_REQUEST['ip'];
-
 		$this->_delete_blocked_ip( $ip );
+
+		die();
+	}
+
+	/**
+	 * Uses wp_ajax_(action).
+	 *
+	 * Get's spam by IP.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/wp_ajax_(action)
+	 */
+	public function wp_ajax_get_ip_spam() {
+		global $wpdb;
+		check_ajax_referer( 'zero-spam', 'security' );
+
+		$spam = $this->_get_spam();
+		$return = array(
+			'by_country' => array(),
+			'by_lat_long' => array()
+		);
+
+		// API usage limit protection.
+		$limit = 100;
+		$cnt = 0;
+		foreach( $spam as $key => $obj ) { $cnt++; if ( $cnt > 100 ) break;
+			$loc = $this->_get_ip_info( $obj->ip );
+
+			if ( $loc ) {
+				if ( ! isset( $return['by_country'][ $loc->country_code ] ) ) {
+					$return['by_country'][ $loc->country_code ] = array(
+						'count' => 0,
+						'name' => $loc->country_name
+					);
+				}
+				$return['by_country'][ $loc->country_code ]['count']++;
+
+				if ( ! isset( $return['by_lat_long'][ $obj->ip ] ) ) {
+					$return['by_lat_long'][ $obj->ip ] = array(
+						'latLng' => array( $loc->latitude, $loc->longitude ),
+						'name' => $loc->country_name,
+						'count' => 1
+					);
+				}
+			} else {
+				die();
+			}
+		}
+
+		arsort( $return['by_country'] );
+
+		echo json_encode( $return );
+
+		die();
+	}
+
+	/**
+	 * Uses wp_ajax_(action).
+	 *
+	 * Get location data from IP.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/wp_ajax_(action)
+	 */
+	public function wp_ajax_get_location() {
+		global $wpdb;
+		check_ajax_referer( 'zero-spam', 'security' );
+
+		$ip = $_REQUEST['ip'];
+		echo json_encode( $this->_get_ip_info( $ip ) );
 
 		die();
 	}
