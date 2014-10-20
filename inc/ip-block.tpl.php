@@ -30,18 +30,28 @@
 								<?php endif; ?>
 							</td>
 							<td class="zero-spam__start-date">
-								<?php if ( $data->start_date ): ?>
-									<?php echo date( 'l, F j, Y', strtotime( $data->start_date ) ); ?>
-								<?php else: ?>
-									&mdash;
-								<?php endif; ?>
+								<?php
+								if ( $data->start_date ):
+									echo date_i18n(
+										'l, F jS, Y g:ia',
+										strtotime( $data->start_date )
+									);
+								else:
+								 echo '&mdash;';
+								endif;
+								?>
 							</td>
 							<td class="zero-spam__end-date">
-								<?php if ( $data->start_date ): ?>
-									<?php echo date( 'l, F j, Y', strtotime( $data->end_date ) ); ?>
-								<?php else: ?>
-									&mdash;
-								<?php endif; ?>
+								<?php
+								if ( $data->start_date ):
+									echo date_i18n(
+										'l, F jS, Y g:ia',
+										strtotime( $data->end_date )
+									);
+								else:
+									echo '&mdash';
+								endif;
+								?>
 							</td>
 							<td class="zero-spam__reason"><?php echo $data->reason; ?></td>
 							<td class="zero-spam__text-center">
