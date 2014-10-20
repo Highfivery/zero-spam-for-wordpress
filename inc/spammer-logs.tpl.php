@@ -332,10 +332,12 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				<tr data-ip="<?php echo $obj->ip; ?>" id="row-<?php echo $obj->zerospam_id; ?>">
 					<td><?php echo $obj->zerospam_id; ?></td>
 					<td>
-						<?php echo date(
-						'l, F j, Y  g:i:sa',
-						strtotime( $obj->date )
-						); ?>
+						<?php
+						echo date_i18n(
+							'l, F jS, Y g:ia',
+							strtotime( $obj->date )
+						);
+						?>
 					</td>
 					<td><?php echo $type; ?></td>
 					<?php if ( $ip_location_support ): ?>
