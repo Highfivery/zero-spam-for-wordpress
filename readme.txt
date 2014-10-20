@@ -81,6 +81,7 @@ Yes! Thanks to @shazahm1.
 * Improved pagination (https://github.com/bmarshall511/wordpress-zero-spam/issues/91)
 * Made date/times match site's WP time, not servers (https://github.com/bmarshall511/wordpress-zero-spam/issues/89)
 * Removed the banner image to boost performance (https://github.com/bmarshall511/wordpress-zero-spam/issues/86)
+* Enhancements to the admin JS to boost performance
 
 = 1.5.1 =
 * Added missing code documentation and fixed typos (https://github.com/bmarshall511/wordpress-zero-spam/issues/64)
