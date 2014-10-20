@@ -26,46 +26,32 @@ class Zero_Spam {
 	 *                                            settings.
 	 *     @type string $db_version Current database version.
 	 *     @type string $img_dir Plugin image directory.
+	 *     @type array $tabs {
+	 *         Holds all of the WordPress Zero Spam setting pages.
+   *
+	 *         @type string $zerospam_general_settings General Settings page.
+	 *         @type string $zerospam_ip_block Blocked IP page.
+	 *     }
+	 *     @type plugins $tabs {
+	 *         Holds all of the supported plugins that are installed.
+   *
+	 *         @type boolean $cf7 Contact Form 7.
+	 *         @type boolean $gf Gravity Forms.
+	 *     }
 	 * }
 	 */
 	private $settings = array(
 		'zerospam_general_settings' => array(),
 		'db_version'                => '0.0.1',
-		'img_dir'                   => 'img'
-	);
-
-	/**
-	 * Holds all of the WordPress Zero Spam setting pages.
-	 *
-	 * @since 1.5.0
-	 * @access private
-	 * @var array $tabs {
-	 *     An array of WordPress Zero Spam setting pages.
-	 *
-	 *     @type string $zerospam_general_settings General settings page.
-	 *     @type string $zerospam_ip_block Blocked IPs page.
-	 * }
-	 */
-	private $tabs = array(
-		'zerospam_general_settings' => 'General Settings',
-		'zerospam_ip_block'         => 'Blocked IPs'
-	);
-
-	/**
-	 * Holds all of the supported plugins that are installed.
-	 *
-	 * @since 1.5.0
-	 * @access private
-	 * @var array $plugins {
-	 *     An array of supported and installed plugins.
-	 *
-	 *     @type boolean $cf7 Contact Form 7.
-	 *     @type boolean $gf Gravity Forms.
-	 * }
-	 */
-	private $plugins = array(
-		'cf7' => false,
-		'gf'  => false
+		'img_dir'                   => 'img',
+		'tabs'                      => array(
+			'zerospam_general_settings' => 'General Settings',
+			'zerospam_ip_block'         => 'Blocked IPs'
+		),
+		'plugins'                   => array(
+			'cf7' => false,
+			'gf'  => false
+		)
 	);
 
 	/**
@@ -130,7 +116,7 @@ class Zero_Spam {
 			isset( $this->settings['zerospam_general_settings']['log_spammers'] ) &&
 			'1' == $this->settings['zerospam_general_settings']['log_spammers']
 		) {
-			$this->tabs['zerospam_spammer_logs'] = 'Spammer Log';
+			$this->settings['tabs']['zerospam_spammer_logs'] = 'Spammer Log';
 		}
 	}
 
@@ -229,7 +215,7 @@ class Zero_Spam {
 						$all_spam        = $this->_parse_spam_ary( $all_spam );
 
 						if ( count( $all_spam['raw'] ) ) {
-							$starting_date    =  end( $all_spam['raw'] )->date;
+							$starting_date =  end( $all_spam['raw'] )->date;
 							$num_days      = $this->_num_days( $starting_date );
 							$per_day       = $num_days ? number_format( ( count( $all_spam['raw'] ) / $num_days ), 2 ) : 0;
 						}
@@ -332,12 +318,12 @@ class Zero_Spam {
 	private function _plugin_check() {
 		// Contact From 7 support
 		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
-			$this->plugins['cf7'] = true;
+			$this->settings['plugins']['cf7'] = true;
 		}
 
 		// Gravity Form support.
 		if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
-			$this->plugins['gf'] = true;
+			$this->settings['plugins']['gf'] = true;
 		}
 	}
 
@@ -943,7 +929,7 @@ class Zero_Spam {
 		}
 
 		// Contact Form 7 support.
-		if ( $this->plugins['cf7'] ) {
+		if ( $this->settings['plugins']['cf7'] ) {
 			add_settings_field( 'cf7_support', __( 'Contact Form 7 Support', 'zerospam' ), array( &$this, 'field_cf7_support' ), 'zerospam_general_settings', 'section_general' );
 
 			if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
@@ -952,7 +938,7 @@ class Zero_Spam {
 		}
 
 		// Gravity Forms support.
-		if ( $this->plugins['gf'] ) {
+		if ( $this->settings['plugins']['gf'] ) {
 			add_settings_field( 'gf_support', __( 'Gravity Forms Support', 'zerospam' ), array( &$this, 'field_gf_support' ), 'zerospam_general_settings', 'section_general' );
 		}
 	}
@@ -1159,7 +1145,7 @@ class Zero_Spam {
 	private function _options_tabs() {
 		$current_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
 		echo '<h2 class="nav-tab-wrapper">';
-		foreach ( $this->tabs as $key => $name ) {
+		foreach ( $this->settings['tabs'] as $key => $name ) {
 			$active = $current_tab == $key ? 'nav-tab-active' : '';
 			echo '<a class="nav-tab ' . $active . '" href="?page=zerospam&tab=' . $key . '">' . $name . '</a>';
 		}
@@ -1210,12 +1196,27 @@ class Zero_Spam {
 		add_action( 'admin_enqueue_scripts', array( &$this, 'admin_enqueue_scripts' ) );
 		add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
 
+		// AJAX actions.
+
+		// Block an IP.
 		add_action( 'wp_ajax_block_ip', array( &$this, 'wp_ajax_block_ip' ) );
+
+		// Get the Block IP form.
 		add_action( 'wp_ajax_block_ip_form', array( &$this, 'wp_ajax_block_ip_form' ) );
+
+		// Get a blocked IP's record.
 		add_action( 'wp_ajax_get_blocked_ip', array( &$this, 'wp_ajax_get_blocked_ip' ) );
+
+		// Delete a blocked IP.
 		add_action( 'wp_ajax_trash_ip_block', array( &$this, 'wp_ajax_trash_ip_block' ) );
+
+		// Reset the spammer log.
 		add_action( 'wp_ajax_reset_log', array( &$this, 'wp_ajax_reset_log' ) );
+
+		// Get the location of an IP.
 		add_action( 'wp_ajax_get_location', array( &$this, 'wp_ajax_get_location' ) );
+
+		// Get spam by IP.
 		add_action( 'wp_ajax_get_ip_spam', array( &$this, 'wp_ajax_get_ip_spam' ) );
 
 		if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
@@ -1771,6 +1772,7 @@ class Zero_Spam {
 	 * Returns number of days since a date.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @return int Number of days since the specified date.
 	 */
@@ -1784,6 +1786,9 @@ class Zero_Spam {
 	 * Retrieve the key, generating if needed.
 	 *
 	 * @since 1.5.0
+	 * @access private
+	 *
+	 * @return string The current WordPress Zero Spam key to validate spam against.
 	 */
 	private function _get_key() {
 		if ( ! $key = get_option( 'zerospam_key' ) ) {
@@ -1792,123 +1797,5 @@ class Zero_Spam {
 		}
 
 		return $key;
-	}
-
-	/**
-	 * Converts numbers to words.
-	 *
-	 * @since 1.5.0
-	 *
-	 * @link http://www.karlrixon.co.uk/writing/convert-numbers-to-words-with-php/
-	 */
-	private function num_to_word( $num ) {
-		$hyphen	     = '-';
-		$conjunction = ' and ';
-		$separator   = ', ';
-		$negative	 = 'negative ';
-		$decimal	 = ' point ';
-		$dictionary  = array(
-			0                   => 'zero',
-			1                   => 'one',
-			2                   => 'two',
-			3                   => 'three',
-			4                   => 'four',
-			5                   => 'five',
-			6                   => 'six',
-			7                   => 'seven',
-			8                   => 'eight',
-			9                   => 'nine',
-			10                  => 'ten',
-			11                  => 'eleven',
-			12                  => 'twelve',
-			13                  => 'thirteen',
-			14                  => 'fourteen',
-			15                  => 'fifteen',
-			16                  => 'sixteen',
-			17                  => 'seventeen',
-			18                  => 'eighteen',
-			19                  => 'nineteen',
-			20                  => 'twenty',
-			30                  => 'thirty',
-			40                  => 'fourty',
-			50                  => 'fifty',
-			60                  => 'sixty',
-			70                  => 'seventy',
-			80                  => 'eighty',
-			90                  => 'ninety',
-			100                 => 'hundred',
-			1000                => 'thousand',
-			1000000             => 'million',
-			1000000000          => 'billion',
-			1000000000000       => 'trillion',
-			1000000000000000    => 'quadrillion',
-			1000000000000000000 => 'quintillion',
-		);
-
-		if ( ! is_numeric( $num ) ) {
-			return false;
-		}
-
-		if ( ( $num >= 0 && (int) $num < 0 ) || (int) $num < 0 - PHP_INT_MAX ) {
-			// overflow
-			trigger_error(
-				'convert_number_to_words only accepts numbers between -' . PHP_INT_MAX . ' and ' . PHP_INT_MAX,
-				E_USER_WARNING
-			);
-			return false;
-		}
-
-		if ( $num < 0 ) {
-			return $negative . convert_number_to_words( abs( $num) );
-		}
-
-		$string = $fraction = null;
-
-		if ( strpos( $num, '.' ) !== false ) {
-			list( $num, $fraction ) = explode( '.', $num );
-		}
-
-		switch (true) {
-			case $num < 21:
-				$string = $dictionary[ $num ];
-				break;
-			case $num < 100:
-				$tens   = ( (int) ( $num / 10 ) ) * 10;
-				$units  = $num % 10;
-				$string = $dictionary[ $tens ];
-				if ( $units ) {
-					$string .= $hyphen . $dictionary[ $units ];
-				}
-				break;
-			case $num < 1000:
-				$hundreds  = $num / 100;
-				$remainder = $num % 100;
-				$string    = $dictionary[ $hundreds ] . ' ' . $dictionary[100];
-				if ( $remainder ) {
-					$string .= $conjunction . convert_number_to_words($remainder);
-				}
-				break;
-			default:
-				$baseUnit     = pow( 1000, floor( log( $num, 1000 ) ) );
-				$numBaseUnits = (int) ( $num / $baseUnit );
-				$remainder    = $num % $baseUnit;
-				$string       = convert_number_to_words( $numBaseUnits ) . ' ' . $dictionary[ $baseUnit ];
-				if ($remainder) {
-					$string .= $remainder < 100 ? $conjunction : $separator;
-					$string .= convert_number_to_words( $remainder );
-				}
-				break;
-		}
-
-		if ( null !== $fraction && is_numeric( $fraction ) ) {
-			$string .= $decimal;
-			$words  = array();
-			foreach ( str_split( (string) $fraction ) as $num ) {
-				$words[] = $dictionary[ $num ];
-			}
-			$string .= implode( ' ', $words );
-		}
-
-		return $string;
 	}
 }

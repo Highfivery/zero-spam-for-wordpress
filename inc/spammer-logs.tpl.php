@@ -55,13 +55,13 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 						<?php echo __( 'Registrations', 'zerospam' ); ?>
 						<b><?php echo number_format( $all_spam['registration_spam'], 0 ); ?></b>
 					</div>
-					<?php if ( $this->plugins['cf7'] ): ?>
+					<?php if ( $this->settings['plugins']['cf7'] ): ?>
 						<div class="zero-spam__stat">
 							<?php echo __( 'Contact Form 7', 'zerospam' ); ?>
 							<b><?php echo number_format( $all_spam['cf7_spam'], 0 ); ?></b>
 						</div>
 					<?php endif; ?>
-					<?php if ( $this->plugins['gf'] ): ?>
+					<?php if ( $this->settings['plugins']['gf'] ): ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Gravity Forms', 'zerospam' ); ?>
 						<b><?php echo number_format( $all_spam['gf_spam'], 0 ); ?></b>
@@ -270,8 +270,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 						'date': '<?php echo $date; ?>',
 						'spam_comments': <?php echo $ary['comment_spam']; ?>,
 						'spam_registrations': <?php echo $ary['registration_spam']; ?>,
-						<?php if ( $this->plugins['cf7'] ): ?>'spam_cf7': <?php echo $ary['cf7_spam']; ?>,<?php endif; ?>
-				<?php if ( $this->plugins['gf'] ): ?>'spam_gf': <?php echo $ary['gf_spam']; ?><?php endif; ?>
+						<?php if ( $this->settings['plugins']['cf7'] ): ?>'spam_cf7': <?php echo $ary['cf7_spam']; ?>,<?php endif; ?>
+				<?php if ( $this->settings['plugins']['gf'] ): ?>'spam_gf': <?php echo $ary['gf_spam']; ?><?php endif; ?>
 					},
 					<?php endforeach; ?>
 				],
@@ -279,14 +279,14 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				ykeys: [
 					'spam_comments',
 					'spam_registrations',
-					<?php if ( $this->plugins['cf7'] ): ?>'spam_cf7',<?php endif; ?>
-			<?php if ( $this->plugins['gf'] ): ?>'spam_gf',<?php endif; ?>
+					<?php if ( $this->settings['plugins']['cf7'] ): ?>'spam_cf7',<?php endif; ?>
+			<?php if ( $this->settings['plugins']['gf'] ): ?>'spam_gf',<?php endif; ?>
 				],
 				labels: [
 					'<?php echo __( 'Spam Comments', 'zerospam' ); ?>',
 					'<?php echo __( 'Spam Registrations', 'zerospam' ); ?>',
-					<?php if ( $this->plugins['cf7'] ): ?>'<?php echo __( 'Contact Form 7', 'zerospam' ); ?>',<?php endif; ?>
-			<?php if ( $this->plugins['gf'] ): ?>'<?php echo __( 'Gravity Forms', 'zerospam' ); ?>',<?php endif; ?>
+					<?php if ( $this->settings['plugins'] ): ?>'<?php echo __( 'Contact Form 7', 'zerospam' ); ?>',<?php endif; ?>
+			<?php if ( $this->settings['plugins'] ): ?>'<?php echo __( 'Gravity Forms', 'zerospam' ); ?>',<?php endif; ?>
 				],
 				xLabels: 'day',
 				lineColors: [
