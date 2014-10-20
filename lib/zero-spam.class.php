@@ -7,33 +7,66 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 class Zero_Spam {
 
 	/**
-	 * Static property to hold our singleton instance
-	 * @var $instance
+	 * Static property to hold our singleton instance.
+	 *
+	 * @since 1.5.1
+	 * @var (boolean|object) $instance Description.
 	 */
-	static $instance = false;
+	public static $instance = false;
 
-	/*
-	 * For easier overriding we declared the keys
-	 * here as well as our tabs array which is populated
-	 * when registering settings
+	/**
+	 * Holds all of WordPress Zero Spam settings.
+	 *
+	 * @since 1.5.0
+	 * @access private
+	 * @var array $settings {
+	 *     WordPress Zero Spam settings array.
+	 *
+	 *     @type array $zerospam_general_settings WordPress Zero Spam general
+	 *                                            settings.
+	 *     @type string $db_version Current database version.
+	 *     @type string $img_dir Plugin image directory.
+	 * }
 	 */
 	private $settings = array(
 		'zerospam_general_settings' => array(),
+		'db_version'                => '0.0.1',
+		'img_dir'                   => 'img'
 	);
 
+	/**
+	 * Holds all of the WordPress Zero Spam setting pages.
+	 *
+	 * @since 1.5.0
+	 * @access private
+	 * @var array $tabs {
+	 *     An array of WordPress Zero Spam setting pages.
+	 *
+	 *     @type string $zerospam_general_settings General settings page.
+	 *     @type string $zerospam_ip_block Blocked IPs page.
+	 * }
+	 */
 	private $tabs = array(
 		'zerospam_general_settings' => 'General Settings',
 		'zerospam_ip_block'         => 'Blocked IPs'
 	);
 
+	/**
+	 * Holds all of the supported plugins that are installed.
+	 *
+	 * @since 1.5.0
+	 * @access private
+	 * @var array $plugins {
+	 *     An array of supported and installed plugins.
+	 *
+	 *     @type boolean $cf7 Contact Form 7.
+	 *     @type boolean $gf Gravity Forms.
+	 * }
+	 */
 	private $plugins = array(
 		'cf7' => false,
 		'gf'  => false
 	);
-
-	private $db_version = "0.0.1";
-
-	private $img_dir;
 
 	/**
 	 * Returns an instance.
@@ -45,7 +78,7 @@ class Zero_Spam {
 	 *
 	 * @return $instance
 	 */
-	public static function getInstance() {
+	public static function get_instance() {
 
 		if ( ! self::$instance ) {
 			self::$instance = new self;
@@ -64,11 +97,19 @@ class Zero_Spam {
 	 * @return void
 	 */
 	public function __construct() {
+		// Check for supported, installed plugins.
 		$this->_plugin_check();
+
+		// Load the plugin settings.
 		$this->_load_settings();
+
+		// Call the plugin WordPress action hooks.
 		$this->_actions();
+
+		// Call the plugin WordPress filters.
 		$this->_filters();
 
+		// Called when the plugin is activated.
 		register_activation_hook( __FILE__, array( &$this, 'install' ) );
 	}
 
@@ -84,7 +125,11 @@ class Zero_Spam {
 	 * @return void
 	 */
 	public function init() {
-		if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) {
+		// Check is logging spam is enabled, if so add the Spammer Log page.
+		if (
+			isset( $this->settings['zerospam_general_settings']['log_spammers'] ) &&
+			'1' == $this->settings['zerospam_general_settings']['log_spammers']
+		) {
 			$this->tabs['zerospam_spammer_logs'] = 'Spammer Log';
 		}
 	}
@@ -92,7 +137,8 @@ class Zero_Spam {
 	/**
 	 * Uses admin_menu.
 	 *
-	 * Used to add extra submenus and menu options to the admin panel's menu structure.
+	 * Used to add extra submenus and menu options to the admin panel's menu
+	 * structure.
 	 *
 	 * @since 1.5.0
 	 *
@@ -101,7 +147,7 @@ class Zero_Spam {
 	 * @return void
 	 */
 	public function admin_menu() {
-		// Register plugin settings page
+		// Register plugin settings page.
 		$hook_suffix = add_options_page(
 			__( 'Zero Spam Settings', 'zerospam' ),
 			__( 'Zero Spam', 'zerospam' ),
@@ -109,8 +155,12 @@ class Zero_Spam {
 			'zerospam',
 			array( &$this, 'settings_page' )
 		);
-		// Add styles to hook
-		add_action( "load-{$hook_suffix}", array( &$this, 'load_zerospam_settings' ) );
+
+		// Load WordPress Zero Spam settings from the database.
+		add_action( "load-{$hook_suffix}", array(
+			&$this,
+			'load_zerospam_settings'
+		) );
 	}
 
 	/**
@@ -128,12 +178,12 @@ class Zero_Spam {
 		}
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			$this->img_dir = 'img-dev';
+			$this->settings['img_dir'] = 'img-dev';
 
 			wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css-dev/style.css', ZEROSPAM_PLUGIN ) );
 			wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js-dev/charts.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
 		} else {
-			$this->img_dir = 'img';
+			$this->settings['img_dir'] = 'img';
 
 			wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css/style.css', ZEROSPAM_PLUGIN ) );
 			wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js/charts.min.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
@@ -158,7 +208,7 @@ class Zero_Spam {
 			<?php $this->_options_tabs(); ?>
 			<div class="zerospam__row">
 				<div class="zerospam__right">
-				<?php require_once( ZEROSPAM_ROOT . 'inc/admin-sidebar.tpl.php' ); ?>
+				<?php require_once( ZEROSPAM_ROOT . '/inc/admin-sidebar.tpl.php' ); ?>
 				</div>
 				<div class="zerospam__left">
 				<?php
@@ -193,7 +243,7 @@ class Zero_Spam {
 							$ip_location_support = false;
 						}
 
-						require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
+						require_once( ZEROSPAM_ROOT . '/inc/spammer-logs.tpl.php' );
 					} elseif ( $tab == 'zerospam_ip_block' ) {
 						$limit = 10;
 						$args = array(
@@ -202,9 +252,9 @@ class Zero_Spam {
 						);
 						$ips = $this->_get_blocked_ips( $args );
 
-						require_once( ZEROSPAM_ROOT . 'inc/ip-block.tpl.php' );
+						require_once( ZEROSPAM_ROOT . '/inc/ip-block.tpl.php' );
 					} else {
-						require_once( ZEROSPAM_ROOT . 'inc/general-settings.tpl.php' );
+						require_once( ZEROSPAM_ROOT . '/inc/general-settings.tpl.php' );
 					} ?>
 				</div>
 
@@ -747,7 +797,7 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/plugins_loaded
 	 */
 	public function plugins_loaded() {
-		if ( get_site_option( 'zerospam_db_version' ) != $this->db_version ) {
+		if ( get_site_option( 'zerospam_db_version' ) != $this->settings['db_version'] ) {
 			$this->install();
 		}
 
@@ -838,7 +888,7 @@ class Zero_Spam {
 			dbDelta( $sql );
 		}
 
-		update_option( 'zerospam_db_version', $this->db_version );
+		update_option( 'zerospam_db_version', $this->settings['db_version'] );
 
 		$options = (array) $this->settings['zerospam_general_settings'];
 		$options['registration_support'] = 1;
@@ -1351,7 +1401,7 @@ class Zero_Spam {
 			}
 		}
 
-		require_once( ZEROSPAM_ROOT . 'inc/block-ip-form.tpl.php' );
+		require_once( ZEROSPAM_ROOT . '/inc/block-ip-form.tpl.php' );
 
 		die();
 	}

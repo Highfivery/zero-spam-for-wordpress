@@ -30,9 +30,9 @@
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-// Define constants
+// Define constants.
 if( ! defined( 'ZEROSPAM_ROOT ' ) ) {
- define( 'ZEROSPAM_ROOT', plugin_dir_path( __FILE__ ) . '/' );
+	define( 'ZEROSPAM_ROOT', plugin_dir_path( __FILE__ ) );
 }
 
 if( ! defined( 'ZEROSPAM_PLUGIN ' ) ) {
@@ -40,15 +40,15 @@ if( ! defined( 'ZEROSPAM_PLUGIN ' ) ) {
 }
 
 /**
- * Detect plugin
+ * Used to detect installed plugins.
  */
 include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 
 /**
- * Include the Zero Spam class
+ * Include the Zero Spam class.
  */
 require_once( ZEROSPAM_ROOT . 'lib/zero-spam.class.php' );
 
 
-// Initialize Zero Spam
-$zero_spam = Zero_Spam::getInstance();
+// Initialize the Zero Spam class.
+$zero_spam = Zero_Spam::get_instance();
