@@ -36,56 +36,6 @@ class Zero_Spam {
 	private $img_dir;
 
 	/**
-	 * Holds an array of contributors to the WordPress Zero Spam plugin.
-	 * @var $contributors
-	 */
-	private $contributors = array(
-		'bmarshall511' => array(
-			'name'      => 'Ben Marshall',
-			'img'       => 'bmarshall511',
-			'url'       => 'http://www.benmarshall.me',
-			'twitter'   => 'http://www.twitter.com/bmarshall511',
-			'github'    => 'https://github.com/bmarshall511',
-			'google+'   => 'https://plus.google.com/+BenMarshall511/posts',
-			'wordpress' => 'https://profiles.wordpress.org/bmarshall511/',
-			'email'     => 'me@benmarshall.me'
-		),
-		'afragen' => array(
-			'name'      => 'Andy Fragen',
-			'img'       => 'afragen',
-			'url'       => 'http://thefragens.com/',
-			'github'    => 'https://github.com/afragen',
-			'wordpress' => 'https://profiles.wordpress.org/afragen/',
-			'email'     => 'andy@thefragens.com'
-		),
-		'tangrufus' => array(
-			'name'      => 'Tang Rufus',
-			'img'       => 'TangRufus',
-			'url'       => 'http://tangrufus.com',
-			'github'    => 'https://github.com/tangrufus',
-			'wordpress' => 'https://profiles.wordpress.org/tangrufus/',
-		),
-		'leewillis77'   => array(
-			'name'      => 'Lee Willis',
-			'img'       => 'leewillis77',
-			'url'       => 'http://www.leewillis.co.uk/',
-			'github'    => 'https://github.com/leewillis77',
-			'google+'   => 'https://plus.google.com/101283392620429069960?rel=author',
-			'wordpress' => 'https://profiles.wordpress.org/leewillis77/',
-		),
-		'macbookandrew' => array(
-			'name'      => 'Andrew R Minion',
-			'img'       => 'macbookandrew',
-			'url'       => 'http://andrewrminion.com/',
-			'twitter'   => 'http://twitter.com/macbookandrew',
-			'github'    => 'https://github.com/macbookandrew',
-			'google+'   => 'https://plus.google.com/101283392620429069960?rel=author',
-			'wordpress' => 'https://profiles.wordpress.org/macbookandrew/',
-			'email'     => 'andrew@andrewrminion.com'
-		)
-	);
-
-	/**
 	 * Returns an instance.
 	 *
 	 * If an instance exists, this returns it.  If not, it creates one and
