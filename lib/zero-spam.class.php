@@ -225,14 +225,41 @@ class Zero_Spam {
 	 * @param int $total Total number of records
 	 */
 	private function _pager( $limit = 10, $total_num, $page, $tab ) {
+		$max_pages = 11;
 		$num_pages = ceil( $total_num / $limit );
+		$cnt = 0;
+
+		$start = 1;
+		if ( $page > 5 ) {
+			$start = ($page - 4);
+		}
+
+		if ( 1 != $page ) {
+			if ( 2 != $page ) {
+				$pre_html = '<li><a href="' . admin_url( 'options-general.php?page=zerospam&tab=' . $tab . '&p=1' ) . '"><i class="fa fa-angle-double-left"></i></a>';
+			}
+			$pre_html .= '<li><a href="' . admin_url( 'options-general.php?page=zerospam&tab=' . $tab . '&p=' . ( $page - 1 ) ) . '"><i class="fa fa-angle-left"></i></a>';
+		}
 
 		echo '<ul class="zero-spam__pager">';
-		for ($i = 1; $i <= $num_pages; $i++):
+		if( isset( $pre_html ) ) echo $pre_html;
+		for ($i = $start; $i <= $num_pages; $i++):
+			$cnt++;
+			if ( $cnt >= $max_pages ) break;
+
+			if ( $num_pages != $page ) {
+				$post_html = '<li><a href="' . admin_url( 'options-general.php?page=zerospam&tab=' . $tab . '&p=' . ( $page + 1 ) ) . '"><i class="fa fa-angle-right"></i></a>';
+
+				if ( ( $page + 1 ) != $num_pages ) {
+					$post_html .= '<li><a href="' . admin_url( 'options-general.php?page=zerospam&tab=' . $tab . '&p=1' ) . '"><i class="fa fa-angle-double-right"></i></a>';
+				}
+			}
+
 			$class = '';
 			if ( $page == $i ) $class = ' class="zero-spam__page-selected"';
 			echo '<li><a href="' . admin_url( 'options-general.php?page=zerospam&tab=' . $tab . '&p=' . $i ) . '"' . $class . '>' . $i . '</a>';
 		endfor;
+		if( isset( $post_html ) ) echo $post_html;
 		echo '</ul>';
     ?>
 		<div class="zero-spam__page-info">
