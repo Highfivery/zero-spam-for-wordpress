@@ -78,6 +78,9 @@ Yes! Thanks to @shazahm1.
 
 = 1.5.2 =
 * Added IP location service (https://github.com/bmarshall511/wordpress-zero-spam/issues/84)
+* Improved pagination (https://github.com/bmarshall511/wordpress-zero-spam/issues/91)
+* Made date/times match site's WP time, not servers (https://github.com/bmarshall511/wordpress-zero-spam/issues/89)
+* Removed the banner image to boost performance (https://github.com/bmarshall511/wordpress-zero-spam/issues/86)
 
 = 1.5.1 =
 * Added missing code documentation and fixed typos (https://github.com/bmarshall511/wordpress-zero-spam/issues/64)
