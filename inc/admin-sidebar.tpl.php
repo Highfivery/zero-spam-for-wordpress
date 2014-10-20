@@ -11,7 +11,8 @@
  * Security Note: Blocks direct access to the plugin PHP files.
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
-?><div class="zero-spam__widget">
+?>
+<div class="zero-spam__widget">
 	<div class="zero-spam__inner">
 		<h2><a href="<?php echo esc_url( $plugin['PluginURI'] ); ?>" target="_blank"><?php echo __( $plugin['Name'], 'zerospam' ); ?></a></h2>
 		<p class="zero-spam__description"><b><?php echo __( 'Rate', 'zerospam' ); ?>:</b> <a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" target="_blank"><i class="fa fa-star"></i>

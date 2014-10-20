@@ -112,29 +112,36 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 							country_count = {},
 							cnt = 0;
 
-						jQuery( ".zero-spam__overlay" ).fadeOut();
+						if ( obj.by_country.length ) {
+							jQuery( ".zero-spam__overlay" ).fadeOut();
 
-						jQuery.each( obj.by_country, function( abbr, c ) {
-							cnt++;
-							if ( cnt > 6 ) return false;
-							jQuery( "#zerospam-country-spam" ).append( "<tr><td><b>" + c.name + "</b></td><td class='zero-spam__text-right'>" + c.count + "</td></tr>" );
-							country_count[abbr] = String(c.count);
-						});
 
-						jQuery('#map').vectorMap({
-		      				map: 'world_mill_en',
-		      				backgroundColor: '#1b1e24',
-							series: {
-								regions: [{
-									scale: ['#ffe6ea', '#ff183a'],
-									normalizeFunction: 'linear',
-									attribute: 'fill',
-		       						values: country_count
-								}]
-							}
-	  					});
-						var map = jQuery('#map').vectorMap('get', 'mapObject');
-						map.series.regions[0].setValues( country_count );
+							jQuery.each( obj.by_country, function( abbr, c ) {
+								cnt++;
+								if ( cnt > 6 ) return false;
+								jQuery( "#zerospam-country-spam" ).append( "<tr><td><b>" + c.name + "</b></td><td class='zero-spam__text-right'>" + c.count + "</td></tr>" );
+								country_count[abbr] = String(c.count);
+							});
+
+							jQuery('#map').vectorMap({
+			      		map: 'world_mill_en',
+			      		backgroundColor: '#1b1e24',
+								series: {
+									regions: [{
+										scale: ['#ffe6ea', '#ff183a'],
+										normalizeFunction: 'linear',
+										attribute: 'fill',
+			       				values: country_count
+									}]
+								}
+
+		  				});
+
+							var map = jQuery('#map').vectorMap('get', 'mapObject');
+							map.series.regions[0].setValues( country_count );
+						} else {
+							jQuery( ".zero-spam__inner", jQuery( ".zero-spam__overlay" ) ).html( "<i class='fa fa-thumbs-up'></i><h4>No spammers yet!</h4>" );
+						}
 					} else {
 						jQuery( ".zero-spam__inner", jQuery( ".zero-spam__overlay" ) ).html( "<i class='fa fa-exclamation-triangle'></i><h4>IP API Usage Limit Reached</h4><p>You've reached you're daily  limit to the IP API to gather location information. Please check back in one hour.</p>" );
 					}
