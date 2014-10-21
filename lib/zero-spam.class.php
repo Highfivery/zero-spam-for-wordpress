@@ -85,7 +85,7 @@ class Zero_Spam {
 	 */
 	public function __construct() {
 
-		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+		if ( is_multisite() ) {
 			$this->settings['page'] = 'settings.php';
 		}
 
@@ -140,7 +140,7 @@ class Zero_Spam {
 	 */
 	public function admin_menu() {
 
-		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+		if ( is_multisite() ) {
 			$hook_suffix = add_submenu_page(
 				'settings.php',
 				__( 'Zero Spam Settings', 'zerospam' ),
@@ -783,7 +783,7 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/plugin_action_links_(plugin_file_name)
 	 */
 	public function plugin_action_links( $links ) {
-		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+		if ( is_multisite() ) {
 			$settings_url = network_admin_url( $this->settings['page'] );
 		} else {
 			$settings_url = admin_url( $this->settings['page'] );
@@ -1218,7 +1218,7 @@ class Zero_Spam {
 	private function _actions() {
 		add_action( 'plugins_loaded', array( &$this, 'plugins_loaded' ) );
 		add_action( 'init', array( &$this, 'init' ) );
-		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+		if ( is_multisite() ) {
 			add_action( 'network_admin_menu', array( &$this, 'admin_menu' ) );
 			add_action( 'network_admin_edit_zerospam', array( &$this, 'update_network_setting' ) );
 		}
@@ -1276,7 +1276,7 @@ class Zero_Spam {
 	 */
 	private function _filters() {
 		add_filter( 'plugin_row_meta', array( &$this, 'plugin_row_meta' ), 10, 2 );
-		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+		if ( is_multisite() ) {
 			add_filter( 'network_admin_plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( &$this, 'plugin_action_links' ) );
 		} else {
 			add_filter( 'plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( &$this, 'plugin_action_links' ) );
