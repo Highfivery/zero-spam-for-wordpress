@@ -783,7 +783,12 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/plugin_action_links_(plugin_file_name)
 	 */
 	public function plugin_action_links( $links ) {
-		$link = array( '<a href="' . admin_url( $this->settings['page'] . '?page=zerospam' ) . '">' . __( 'Settings', 'zerospam' ) . '</a>' );
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			$settings_url = network_admin_url( $this->settings['page'] );
+		} else {
+			$settings_url = admin_url( $this->settings['page'] );
+		}
+			$link = array( '<a href="' . $settings_url . '?page=zerospam">' . __( 'Settings', 'zerospam' ) . '</a>' );
 
 		return array_merge( $links, $link );
 	}
