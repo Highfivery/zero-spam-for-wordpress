@@ -363,7 +363,7 @@ class Zero_Spam {
 		if ( null == $data ) {
 			// Ignore local hosts.
 			if ( $ip == '127.0.0.1' ) return false;
-			// @ used to supress API usage block warning.
+			// @ used to suppress API usage block warning.
 			$json = @file_get_contents( 'http://freegeoip.net/json/' . $ip );
 
 			$data = json_decode( $json );
