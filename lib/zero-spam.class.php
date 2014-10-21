@@ -848,7 +848,7 @@ class Zero_Spam {
 		}
 
 		// 0.1.0 Update
-		if ( get_option( 'zerospam_db_version' ) == '0.0.1' ) {
+		if ( get_site_option( 'zerospam_db_version' ) == '0.0.1' ) {
 			if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_data_table_name . '\'' ) != $ip_data_table_name ) {
 				$sql .= "CREATE TABLE $ip_data_table_name (
 				ip_data_id int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -874,7 +874,7 @@ class Zero_Spam {
 			dbDelta( $sql );
 		}
 
-		update_option( 'zerospam_db_version', $this->settings['db_version'] );
+		update_site_option( 'zerospam_db_version', $this->settings['db_version'] );
 
 		$options = (array) $this->settings['zerospam_general_settings'];
 		$options['registration_support'] = 1;
@@ -885,7 +885,7 @@ class Zero_Spam {
 		$options['gf_support']           = 1;
 		$options['ip_location_support']  = 1;
 
-		update_option( 'zerospam_general_settings', $options );
+		update_site_option( 'zerospam_general_settings', $options );
 	}
 
 	/**
@@ -1169,7 +1169,7 @@ class Zero_Spam {
 		);
 
 		// Retrieve the settings
-		$saved_settings = (array) get_option( 'zerospam_general_settings' );
+		$saved_settings = (array) get_site_option( 'zerospam_general_settings' );
 
 		$this->settings['zerospam_general_settings'] = array_merge(
 			$default_settings,
@@ -1791,11 +1791,32 @@ class Zero_Spam {
 	 * @return string The current WordPress Zero Spam key to validate spam against.
 	 */
 	private function _get_key() {
-		if ( ! $key = get_option( 'zerospam_key' ) ) {
+		if ( ! $key = get_site_option( 'zerospam_key' ) ) {
 			$key = wp_generate_password( 64 );
-			update_option( 'zerospam_key', $key );
+			update_site_option( 'zerospam_key', $key );
 		}
 
 		return $key;
 	}
+
+	/**
+	 * Update network settings.
+	 *
+	 * Used when plugin is network activated to save settings.
+	 *
+	 * @link http://wordpress.stackexchange.com/questions/64968/settings-api-in-multisite-missing-update-message
+	 * @link http://benohead.com/wordpress-network-wide-plugin-settings/
+	 */
+	public function update_network_setting() {
+		update_site_option( 'zerospam_general_settings', $_POST['zerospam_general_settings'] );
+		wp_redirect( add_query_arg(
+			array(
+				'page'    => 'zerospam',
+		         'updated' => 'true',
+				),
+			network_admin_url( 'settings.php' )
+		) );
+		exit;
+	}
+
 }
