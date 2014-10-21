@@ -1184,8 +1184,15 @@ class Zero_Spam {
 			'blocked_ip_msg'             => 'Access denied.'
 		);
 
+		// Merge and update new changes
+		if ( isset( $_POST['zerospam_general_settings'] ) ) {
+			$saved_settings =  $_POST['zerospam_general_settings'];
+			update_site_option( 'zerospam_general_settings', $saved_settings );
+		}
+
 		// Retrieve the settings
 		$saved_settings = (array) get_site_option( 'zerospam_general_settings' );
+
 
 		$this->settings['zerospam_general_settings'] = array_merge(
 			$default_settings,
