@@ -209,7 +209,7 @@ class Zero_Spam {
 			<?php $this->_options_tabs(); ?>
 			<div class="zerospam__row">
 				<div class="zerospam__right">
-				<?php require_once( ZEROSPAM_ROOT . '/inc/admin-sidebar.tpl.php' ); ?>
+				<?php require_once( ZEROSPAM_ROOT . 'inc/admin-sidebar.tpl.php' ); ?>
 				</div>
 				<div class="zerospam__left">
 				<?php
@@ -244,7 +244,7 @@ class Zero_Spam {
 							$ip_location_support = false;
 						}
 
-						require_once( ZEROSPAM_ROOT . '/inc/spammer-logs.tpl.php' );
+						require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
 					} elseif ( $tab == 'zerospam_ip_block' ) {
 						$limit = 10;
 						$args = array(
@@ -253,9 +253,9 @@ class Zero_Spam {
 						);
 						$ips = $this->_get_blocked_ips( $args );
 
-						require_once( ZEROSPAM_ROOT . '/inc/ip-block.tpl.php' );
+						require_once( ZEROSPAM_ROOT . 'inc/ip-block.tpl.php' );
 					} else {
-						require_once( ZEROSPAM_ROOT . '/inc/general-settings.tpl.php' );
+						require_once( ZEROSPAM_ROOT . 'inc/general-settings.tpl.php' );
 					} ?>
 				</div>
 
@@ -411,7 +411,7 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 * @access private
 	 *
-	 * @return void
+	 * @return void | object
 	 */
 	private function _parse_spam_ary( $ary ) {
 		$return = array(
@@ -722,6 +722,8 @@ class Zero_Spam {
 	 * @access private
 	 *
 	 * @param array $args Array of arguments.
+	 *
+	 * @return object
 	 */
 	private function _get_spam( $args = array() ) {
 		global $wpdb;
@@ -1425,7 +1427,7 @@ class Zero_Spam {
 			}
 		}
 
-		require_once( ZEROSPAM_ROOT . '/inc/block-ip-form.tpl.php' );
+		require_once( ZEROSPAM_ROOT . 'inc/block-ip-form.tpl.php' );
 
 		die();
 	}
@@ -1571,7 +1573,7 @@ class Zero_Spam {
 	}
 
 	/**
-	 * Preprocess registration fields.
+	 * Pre-process registration fields.
 	 *
 	 * Used to create custom validation rules on user registration. This fires
 	 * when the form is submitted but before user information is saved to the
@@ -1700,6 +1702,7 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 *
 	 * @param $ip string The IP address to block.
+	 * @return object
 	 */
 	private function _delete_blocked_ip( $ip ) {
 		global $wpdb;
@@ -1715,6 +1718,7 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 *
 	 * @param $ip string The IP address to get.
+	 * @return object
 	 */
 	private function _get_blocked_ip( $ip ) {
 		global $wpdb;
