@@ -85,7 +85,7 @@ class Zero_Spam {
 	 */
 	public function __construct() {
 
-		if ( is_multisite() ) {
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 			$this->settings['page'] = 'settings.php';
 		}
 
@@ -140,7 +140,7 @@ class Zero_Spam {
 	 */
 	public function admin_menu() {
 
-		if ( is_multisite() ) {
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 			$hook_suffix = add_submenu_page(
 				'settings.php',
 				__( 'Zero Spam Settings', 'zerospam' ),
@@ -783,7 +783,7 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/plugin_action_links_(plugin_file_name)
 	 */
 	public function plugin_action_links( $links ) {
-		if ( is_multisite() ) {
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 			$settings_url = network_admin_url( $this->settings['page'] );
 		} else {
 			$settings_url = admin_url( $this->settings['page'] );
@@ -804,7 +804,7 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/plugins_loaded
 	 */
 	public function plugins_loaded() {
-		if ( get_site_option( 'zerospam_db_version' ) != $this->settings['db_version'] ) {
+		if ( get_option( 'zerospam_db_version' ) != $this->settings['db_version'] ) {
 			$this->install();
 		}
 
@@ -869,7 +869,7 @@ class Zero_Spam {
 		}
 
 		// 0.1.0 Update
-		if ( get_site_option( 'zerospam_db_version' ) == '0.0.1' ) {
+		if ( get_option( 'zerospam_db_version' ) == '0.0.1' ) {
 			if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_data_table_name . '\'' ) != $ip_data_table_name ) {
 				$sql .= "CREATE TABLE $ip_data_table_name (
 				ip_data_id int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -895,7 +895,7 @@ class Zero_Spam {
 			dbDelta( $sql );
 		}
 
-		update_site_option( 'zerospam_db_version', $this->settings['db_version'] );
+		update_option( 'zerospam_db_version', $this->settings['db_version'] );
 
 		$options = (array) $this->settings['zerospam_general_settings'];
 		$options['registration_support'] = 1;
@@ -906,7 +906,7 @@ class Zero_Spam {
 		$options['gf_support']           = 1;
 		$options['ip_location_support']  = 1;
 
-		update_site_option( 'zerospam_general_settings', $options );
+		update_option( 'zerospam_general_settings', $options );
 	}
 
 	/**
@@ -1192,11 +1192,11 @@ class Zero_Spam {
 		// Merge and update new changes
 		if ( isset( $_POST['zerospam_general_settings'] ) ) {
 			$saved_settings =  $_POST['zerospam_general_settings'];
-			update_site_option( 'zerospam_general_settings', $saved_settings );
+			update_option( 'zerospam_general_settings', $saved_settings );
 		}
 
 		// Retrieve the settings
-		$saved_settings = (array) get_site_option( 'zerospam_general_settings' );
+		$saved_settings = (array) get_option( 'zerospam_general_settings' );
 
 
 		$this->settings['zerospam_general_settings'] = array_merge(
@@ -1218,7 +1218,7 @@ class Zero_Spam {
 	private function _actions() {
 		add_action( 'plugins_loaded', array( &$this, 'plugins_loaded' ) );
 		add_action( 'init', array( &$this, 'init' ) );
-		if ( is_multisite() ) {
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 			add_action( 'network_admin_menu', array( &$this, 'admin_menu' ) );
 			add_action( 'network_admin_edit_zerospam', array( &$this, 'update_network_setting' ) );
 		}
@@ -1276,7 +1276,7 @@ class Zero_Spam {
 	 */
 	private function _filters() {
 		add_filter( 'plugin_row_meta', array( &$this, 'plugin_row_meta' ), 10, 2 );
-		if ( is_multisite() ) {
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 			add_filter( 'network_admin_plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( &$this, 'plugin_action_links' ) );
 		} else {
 			add_filter( 'plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( &$this, 'plugin_action_links' ) );
@@ -1829,9 +1829,9 @@ class Zero_Spam {
 	 * @return string The current WordPress Zero Spam key to validate spam against.
 	 */
 	private function _get_key() {
-		if ( ! $key = get_site_option( 'zerospam_key' ) ) {
+		if ( ! $key = get_option( 'zerospam_key' ) ) {
 			$key = wp_generate_password( 64 );
-			update_site_option( 'zerospam_key', $key );
+			update_option( 'zerospam_key', $key );
 		}
 
 		return $key;
@@ -1846,7 +1846,7 @@ class Zero_Spam {
 	 * @link http://benohead.com/wordpress-network-wide-plugin-settings/
 	 */
 	public function update_network_setting() {
-		update_site_option( 'zerospam_general_settings', $_POST['zerospam_general_settings'] );
+		update_option( 'zerospam_general_settings', $_POST['zerospam_general_settings'] );
 		wp_redirect( add_query_arg(
 			array(
 				'page'    => 'zerospam',

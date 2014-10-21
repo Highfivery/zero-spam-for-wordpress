@@ -10,7 +10,7 @@
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
-if ( is_multisite() ) {
+if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 	$action = 'edit.php?action=zerospam';
 } else {
 	$action = 'options.php';
