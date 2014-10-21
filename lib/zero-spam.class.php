@@ -1221,9 +1221,8 @@ class Zero_Spam {
 		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 			add_action( 'network_admin_menu', array( &$this, 'admin_menu' ) );
 			add_action( 'network_admin_edit_zerospam', array( &$this, 'update_network_setting' ) );
-		} else {
-			add_action( 'admin_init', array( &$this, 'admin_init' ) );
 		}
+		add_action( 'admin_init', array( &$this, 'admin_init' ) );
 		add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
 		add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
 		add_action( 'admin_enqueue_scripts', array( &$this, 'admin_enqueue_scripts' ) );
