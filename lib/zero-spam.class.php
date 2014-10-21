@@ -1850,7 +1850,7 @@ class Zero_Spam {
 		wp_redirect( add_query_arg(
 			array(
 				'page'    => 'zerospam',
-		         'updated' => 'true',
+				'updated' => 'true',
 				),
 			network_admin_url( 'settings.php' )
 		) );
