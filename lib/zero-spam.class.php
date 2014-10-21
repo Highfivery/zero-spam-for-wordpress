@@ -906,7 +906,12 @@ class Zero_Spam {
 		$options['gf_support']           = 1;
 		$options['ip_location_support']  = 1;
 
-		update_option( 'zerospam_general_settings', $options );
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			update_site_option( 'zerospam_general_settings', $options );
+		} else {
+			update_option( 'zerospam_general_settings', $options );
+		}
+
 	}
 
 	/**
@@ -1192,11 +1197,20 @@ class Zero_Spam {
 		// Merge and update new changes
 		if ( isset( $_POST['zerospam_general_settings'] ) ) {
 			$saved_settings =  $_POST['zerospam_general_settings'];
-			update_option( 'zerospam_general_settings', $saved_settings );
+			if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+				update_site_option( 'zerospam_general_settings', $saved_settings );
+			} else {
+				update_option( 'zerospam_general_settings', $saved_settings );
+			}
 		}
 
 		// Retrieve the settings
-		$saved_settings = (array) get_option( 'zerospam_general_settings' );
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			$saved_settings = (array) get_site_option( 'zerospam_general_settings' );
+		} else {
+			$saved_settings = (array) get_option( 'zerospam_general_settings' );
+		}
+
 
 
 		$this->settings['zerospam_general_settings'] = array_merge(
@@ -1846,7 +1860,7 @@ class Zero_Spam {
 	 * @link http://benohead.com/wordpress-network-wide-plugin-settings/
 	 */
 	public function update_network_setting() {
-		update_option( 'zerospam_general_settings', $_POST['zerospam_general_settings'] );
+		update_site_option( 'zerospam_general_settings', $_POST['zerospam_general_settings'] );
 		wp_redirect( add_query_arg(
 			array(
 				'page'    => 'zerospam',
