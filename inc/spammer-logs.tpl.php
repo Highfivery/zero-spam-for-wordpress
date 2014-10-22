@@ -67,6 +67,12 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 						<b><?php echo number_format( $all_spam['gf_spam'], 0 ); ?></b>
 					</div>
 					<?php endif; ?>
+					<?php if ( $this->settings['plugins']['bp'] ): ?>
+					<div class="zero-spam__stat">
+						<?php echo __( 'BP Registrations', 'zerospam' ); ?>
+						<b><?php echo number_format( $all_spam['bp_registration_spam'], 0 ); ?></b>
+					</div>
+					<?php endif; ?>
 				</div>
 			</div>
 		</div>
@@ -106,7 +112,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
   				jQuery.post( ajaxurl, {
 					action: 'get_ip_spam',
 					security: '<?php echo $ajax_nonce; ?>',
-				}, function( data ) {console.log(data);
+				}, function( data ) {
 					if ( data ) {
 						var obj = jQuery.parseJSON( data ),
 							country_count = {},
@@ -205,9 +211,9 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				<table class="zero-spam__table">
 					<thead>
 						<tr>
-							<th><?php echo __( 'IP', 'zerospam' ); ?></th>
+							<th width="100"><?php echo __( 'IP', 'zerospam' ); ?></th>
 							<?php if ( $ip_location_support ): ?><th><?php echo __( 'Location', 'zerospam' ); ?></th><?php endif; ?>
-							<th class="zero-spam__text-right"><?php echo __( 'Count', 'zerospam' ); ?></th>
+							<th class="zero-spam__text-right">#</th>
 							<th><?php echo __( 'Status', 'zerospam' ); ?></th>
 							<th>&nbsp;</th>
 						</tr>
@@ -237,8 +243,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 									<?php endif; ?>
 								</td>
 								<td class="zero-spam__text-center">
-									<i class="fa fa-circle-o-notch fa-spin"></i>&nbsp;
-									<i class="fa fa-edit"></i>&nbsp;
+									<i class="fa fa-circle-o-notch fa-spin"></i>
+									<i class="fa fa-edit"></i>
 									<a href="#" class="button button-small zero-spam__block-ip"
 										data-ip="<?php echo $ip; ?>"><i class="fa fa-gear"></i></a>
 								</td>

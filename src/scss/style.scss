@@ -1,3 +1,6 @@
+// Import Compass
+@import "compass";
+
 // Import Font Awesome styles
 @import "font-awesome/font-awesome";
 
@@ -125,13 +128,11 @@ $border-color: #e8edf1;
 }
 
 .zero-spam__widget {
+	@include border-radius;
 	position: relative;
-  margin: 20px 0;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-  border-radius: 3px;
-  background: #fff;
-  overflow: hidden;
+  	margin: 20px 0 0 0;
+  	background: #fff;
+ 	overflow: hidden;
 }
 
 .zero-spam__overlay {
