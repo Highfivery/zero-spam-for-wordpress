@@ -69,6 +69,10 @@ Yes! Thanks to @leewillis77.
 
 Yes! Thanks to @shazahm1.
 
+= Does this plugin support BuddyPress? =
+
+Yes!
+
 = Does this plugin work with caching plugins like W3 Total Cache? =
 
 Yes! Thanks to @shazahm1.
@@ -87,7 +91,8 @@ Yes! Thanks to @afragen. When using with multisite the plugin may be network act
 * Made date/times match site's WP time, not servers (https://github.com/bmarshall511/wordpress-zero-spam/issues/89)
 * Removed the banner image to boost performance (https://github.com/bmarshall511/wordpress-zero-spam/issues/86)
 * Enhancements to the admin JS to boost performance
-* Works with Multisite as network activated or per sub site
+* Works with Multisite as network activated or per sub site (https://github.com/bmarshall511/wordpress-zero-spam/issues/85)
+* Added BuddyPress support (https://github.com/bmarshall511/wordpress-zero-spam/issues/61)
 
 = 1.5.1 =
 * Added missing code documentation and fixed typos (https://github.com/bmarshall511/wordpress-zero-spam/issues/64)
