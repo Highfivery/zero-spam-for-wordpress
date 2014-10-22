@@ -1241,8 +1241,8 @@ class Zero_Spam {
 			'spammer_msg_comment'         => 'There was a problem processing your comment.',
 			'spammer_msg_registration'    => '<strong>ERROR</strong>: There was a problem processing your registration.',
 			'spammer_msg_contact_form_7'  => 'There was a problem processing your comment.',
-			'blocked_ip_msg'              => 'Access denied.',
-			'buddypress_msg_registration' => 'There was a problem processing your registration.'
+			'spammer_msg_bp'              => 'There was a problem processing your registration.',
+			'blocked_ip_msg'              => 'Access denied.'
 		);
 
 		// Merge and update new changes
