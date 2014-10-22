@@ -202,8 +202,9 @@ class Zero_Spam {
 	 */
 	public function settings_page() {
 		$plugin = get_plugin_data( ZEROSPAM_PLUGIN );
-		$tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
-		$page = isset( $_GET['p'] ) ? $_GET['p'] : 1;
+		$tab    = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
+		$page   = isset( $_GET['p'] ) ? $_GET['p'] : 1;
+		$action = ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ? 'edit.php?action=zerospam' : 'options.php');
 		?>
 		<div class="wrap">
 			<h2><?php echo __( 'WordPress Zero Spam', 'zerospam' ); ?></h2>
