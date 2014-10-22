@@ -49,7 +49,7 @@
 										strtotime( $data->end_date )
 									);
 								else:
-									echo '&mdash';
+									echo '&mdash;';
 								endif;
 								?>
 							</td>
