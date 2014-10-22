@@ -29,13 +29,13 @@ class Zero_Spam {
 	 *     @type string $img_dir Plugin image directory.
 	 *     @type array $tabs {
 	 *         Holds all of the WordPress Zero Spam setting pages.
-   *
+     *
 	 *         @type string $zerospam_general_settings General Settings page.
 	 *         @type string $zerospam_ip_block Blocked IP page.
 	 *     }
 	 *     @type plugins $tabs {
 	 *         Holds all of the supported plugins that are installed.
-   *
+     *
 	 *         @type boolean $cf7 Contact Form 7.
 	 *         @type boolean $gf Gravity Forms.
 	 *     }
@@ -53,6 +53,7 @@ class Zero_Spam {
 		'plugins'                   => array(
 			'cf7' => false,
 			'gf'  => false,
+			'bp'  => false
 		)
 	);
 
@@ -338,6 +339,11 @@ class Zero_Spam {
 		// Gravity Form support.
 		if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
 			$this->settings['plugins']['gf'] = true;
+		}
+
+		// BuddyPress support.
+		 if ( function_exists( 'bp_is_active' ) ) {
+			$this->settings['plugins']['bp'] = true;
 		}
 	}
 
@@ -652,6 +658,37 @@ class Zero_Spam {
 	}
 
 	/**
+	 * BuddyPress spam message option.
+	 *
+	 * Field callback, renders a text input, note the name and value.
+	 *
+	 * @since 1.5.2
+	 */
+	public function field_spammer_msg_bp() {
+		?>
+		<label for="spammer_msg_bp">
+			<input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_bp]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_bp'] ); ?>">
+			<p class="description"><?php echo __( 'Enter a short message to display when a spam BuddyPress registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
+		</label>
+		<?php
+	}
+
+	/**
+	 * BuddyPress support option.
+	 *
+	 * Field callback, renders a checkbox input, note the name and value.
+	 *
+	 * @since 1.5.2
+	 */
+	public function field_bp_support() {
+		?>
+		<label for="bp_support">
+			<input type="checkbox" id="bp_support" name="zerospam_general_settings[bp_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['bp_support'] ) ) : checked( $this->settings['zerospam_general_settings']['bp_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+		</label>
+		<?php
+	}
+
+	/**
 	 * Gravity Forms support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -904,6 +941,7 @@ class Zero_Spam {
 		$options['wp_generator']         = 1;
 		$options['cf7_support']          = 1;
 		$options['gf_support']           = 1;
+		$options['bp_support']           = 1;
 		$options['ip_location_support']  = 1;
 
 		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
@@ -967,6 +1005,15 @@ class Zero_Spam {
 		if ( $this->settings['plugins']['gf'] ) {
 			add_settings_field( 'gf_support', __( 'Gravity Forms Support', 'zerospam' ), array( &$this, 'field_gf_support' ), 'zerospam_general_settings', 'section_general' );
 		}
+
+		// BuddyPress support.
+		if ( $this->settings['plugins']['bp'] ) {
+			add_settings_field( 'bp_support', __( 'BuddyPress Support', 'zerospam' ), array( &$this, 'field_bp_support' ), 'zerospam_general_settings', 'section_general' );
+
+			if ( isset( $this->settings['zerospam_general_settings']['bp_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['bp_support'] ) ) {
+				add_settings_field( 'spammer_msg_bp', __( 'BuddyPress Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_bp' ), 'zerospam_general_settings', 'section_messages' );
+			}
+		}
 	}
 
 	/**
@@ -1008,6 +1055,9 @@ class Zero_Spam {
 				break;
 			case 'gf':
 				$type = 4;
+				break;
+			case 'buddypress-registration':
+				$type = 5;
 				break;
 		}
 
@@ -1188,10 +1238,11 @@ class Zero_Spam {
 	 */
 	private function _load_settings() {
 		$default_settings =  array(
-			'spammer_msg_comment'        => 'There was a problem processing your comment.',
-			'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
-			'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
-			'blocked_ip_msg'             => 'Access denied.'
+			'spammer_msg_comment'         => 'There was a problem processing your comment.',
+			'spammer_msg_registration'    => '<strong>ERROR</strong>: There was a problem processing your registration.',
+			'spammer_msg_contact_form_7'  => 'There was a problem processing your comment.',
+			'blocked_ip_msg'              => 'Access denied.',
+			'buddypress_msg_registration' => 'There was a problem processing your registration.'
 		);
 
 		// Merge and update new changes
@@ -1267,6 +1318,10 @@ class Zero_Spam {
 
 		if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
 			add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
+		}
+
+		if ( isset( $this->settings['zerospam_general_settings']['bp_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['bp_support'] ) ) {
+			add_action( 'bp_signup_validate', array( &$this, 'bp_signup_validate' ) );
 		}
 
 		if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
@@ -1595,6 +1650,30 @@ class Zero_Spam {
 		}
 
 		return $commentdata;
+	}
+
+	/**
+	 * Preprocess comment fields.
+	 *
+	 * An action hook that is applied to the comment data prior to any other processing of the
+	 * comment's information when saving a comment data to the database.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @link http://etivite.com/api-hooks/buddypress/trigger/do_action/bp_signup_validate/
+	 */
+	public function bp_signup_validate() {
+		global $bp;
+
+		if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
+			do_action( 'zero_spam_found_spam_buddypress_registration' );
+
+			if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
+				$this->_log_spam( 'buddypress-registration' );
+			}
+
+			die( __( $this->settings['zerospam_general_settings']['buddypress_msg_registration'], 'zerospam' ) );
+ 		}
 	}
 
 	/**

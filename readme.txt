@@ -59,6 +59,7 @@ Yes, see below:
 * `zero_spam_found_spam_cf7_form_submission` - Runs after a spam Contact Form 7 form submission is detected
 * `zero_spam_found_spam_gf_form_submission` - Runs after a spam Gravity Form submission is detected
 * `zero_spam_ip_blocked` - Runs after a blocked IP attempts to visit the site
+* `zero_spam_found_spam_buddypress_registration` - Runs when a BuddyPress spam registration is detected
 
 = Does this plugin support Contact Form 7 forms? =
 

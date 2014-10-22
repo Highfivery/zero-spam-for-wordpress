@@ -106,7 +106,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
   				jQuery.post( ajaxurl, {
 					action: 'get_ip_spam',
 					security: '<?php echo $ajax_nonce; ?>',
-				}, function( data ) {console.log(data);
+				}, function( data ) {
 					if ( data ) {
 						var obj = jQuery.parseJSON( data ),
 							country_count = {},
@@ -271,7 +271,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 						'spam_comments': <?php echo $ary['comment_spam']; ?>,
 						'spam_registrations': <?php echo $ary['registration_spam']; ?>,
 						<?php if ( $this->settings['plugins']['cf7'] ): ?>'spam_cf7': <?php echo $ary['cf7_spam']; ?>,<?php endif; ?>
-				<?php if ( $this->settings['plugins']['gf'] ): ?>'spam_gf': <?php echo $ary['gf_spam']; ?><?php endif; ?>
+						<?php if ( $this->settings['plugins']['gf'] ): ?>'spam_gf': <?php echo $ary['gf_spam']; ?><?php endif; ?>
+						<?php if ( $this->settings['plugins']['bp'] ): ?>'bp_registrations': <?php echo $ary['bp_registration_spam']; ?><?php endif; ?>
 					},
 					<?php endforeach; ?>
 				],
@@ -280,13 +281,15 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 					'spam_comments',
 					'spam_registrations',
 					<?php if ( $this->settings['plugins']['cf7'] ): ?>'spam_cf7',<?php endif; ?>
-			<?php if ( $this->settings['plugins']['gf'] ): ?>'spam_gf',<?php endif; ?>
+					<?php if ( $this->settings['plugins']['gf'] ): ?>'spam_gf',<?php endif; ?>
+					<?php if ( $this->settings['plugins']['bp'] ): ?>'bp_registrations',<?php endif; ?>
 				],
 				labels: [
 					'<?php echo __( 'Spam Comments', 'zerospam' ); ?>',
 					'<?php echo __( 'Spam Registrations', 'zerospam' ); ?>',
-					<?php if ( $this->settings['plugins'] ): ?>'<?php echo __( 'Contact Form 7', 'zerospam' ); ?>',<?php endif; ?>
-			<?php if ( $this->settings['plugins'] ): ?>'<?php echo __( 'Gravity Forms', 'zerospam' ); ?>',<?php endif; ?>
+					<?php if ( $this->settings['plugins']['cf7'] ): ?>'<?php echo __( 'Contact Form 7', 'zerospam' ); ?>',<?php endif; ?>
+					<?php if ( $this->settings['plugins']['gf'] ): ?>'<?php echo __( 'Gravity Forms', 'zerospam' ); ?>',<?php endif; ?>
+					<?php if ( $this->settings['plugins']['bp'] ): ?>'<?php echo __( 'BuddyPress', 'zerospam' ); ?>',<?php endif; ?>
 				],
 				xLabels: 'day',
 				lineColors: [
@@ -301,11 +304,10 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 		<table class="zero-spam__table">
 			<thead>
 				<tr>
-					<th><?php echo __( 'ID', 'zerospam' ); ?></th>
 					<th><?php echo __( 'Date', 'zerospam' ); ?></th>
-					<th><?php echo __( 'Type', 'zerospam' ); ?></th>
+					<th width="90"><?php echo __( 'Type', 'zerospam' ); ?></th>
 					<?php if ( $ip_location_support ): ?><th><?php echo __( 'Location', 'zerospam' ); ?></th><?php endif; ?>
-					<th><?php echo __( 'IP', 'zerospam' ); ?></th>
+					<th width="106"><?php echo __( 'IP', 'zerospam' ); ?></th>
 					<th><?php echo __( 'Page', 'zerospam' ); ?></th>
 					<th><?php echo __( 'Status', 'zerospam' ); ?></th>
 					<th>&nbsp;</th>
@@ -327,10 +329,12 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 						case 4:
 							$type = '<span class="zero-spam__label zero-spam__bg--gf">' . __( 'Gravity Forms', 'zerospam' ) . '</span>';
 							break;
+						case 5:
+							$type = '<span class="zero-spam__label zero-spam__bg--bpr">' . __( 'BP Registration', 'zerospam' ) . '</span>';
+							break;
 					}
 				?>
 				<tr data-ip="<?php echo $obj->ip; ?>" id="row-<?php echo $obj->zerospam_id; ?>">
-					<td><?php echo $obj->zerospam_id; ?></td>
 					<td>
 						<?php
 						echo date_i18n(
