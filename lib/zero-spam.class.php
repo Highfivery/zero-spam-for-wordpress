@@ -421,15 +421,16 @@ class Zero_Spam {
 	 */
 	private function _parse_spam_ary( $ary ) {
 		$return = array(
-			'by_date'           => array(),
-			'by_spam_count'     => array(),
-			'raw'               => $ary,
-			'comment_spam'      => 0,
-			'registration_spam' => 0,
-			'cf7_spam'          => 0,
-			'gf_spam'           => 0,
-			'unique_spammers'   => array(),
-			'by_day'            => array(
+			'by_date'              => array(),
+			'by_spam_count'        => array(),
+			'raw'                  => $ary,
+			'comment_spam'         => 0,
+			'registration_spam'    => 0,
+			'cf7_spam'             => 0,
+			'gf_spam'              => 0,
+			'bp_registration_spam' => 0,
+			'unique_spammers'      => array(),
+			'by_day'               => array(
 				'Sun' => 0,
 				'Mon' => 0,
 				'Tue' => 0,
@@ -447,10 +448,12 @@ class Zero_Spam {
 			// By date
 			if ( ! isset( $return['by_date'][ substr( $obj->date, 0, 10) ] ) ) {
 				$return['by_date'][ substr( $obj->date, 0, 10) ] = array(
-					'data'              => array(),
-					'comment_spam'      => 0,
-					'registration_spam' => 0,
-					'cf7_spam'          => 0,
+					'data'                 => array(),
+					'comment_spam'         => 0,
+					'registration_spam'    => 0,
+					'cf7_spam'             => 0,
+					'gf_spam'              => 0,
+					'bp_registration_spam' => 0
 				);
 			}
 
@@ -489,6 +492,11 @@ class Zero_Spam {
 				// Gravity Form spam.
 				$return['by_date'][ substr( $obj->date, 0, 10) ]['gf_spam']++;
 				$return['gf_spam']++;
+			} elseif ( $obj->type == 5 ) {
+
+				// BuddyPress spam.
+				$return['by_date'][ substr( $obj->date, 0, 10) ]['bp_registration_spam']++;
+				$return['bp_registration_spam']++;
 			}
 
 			// Unique spammers
@@ -1419,8 +1427,6 @@ class Zero_Spam {
 						'count' => 1
 					);
 				}
-			} else {
-				die();
 			}
 		}
 

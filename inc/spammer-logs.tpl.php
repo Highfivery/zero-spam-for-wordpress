@@ -106,7 +106,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
   				jQuery.post( ajaxurl, {
 					action: 'get_ip_spam',
 					security: '<?php echo $ajax_nonce; ?>',
-				}, function( data ) {
+				}, function( data ) {console.log(data);
 					if ( data ) {
 						var obj = jQuery.parseJSON( data ),
 							country_count = {},
