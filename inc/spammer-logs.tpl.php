@@ -130,8 +130,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 							});
 
 							jQuery('#map').vectorMap({
-			      		map: 'world_mill_en',
-			      		backgroundColor: '#1b1e24',
+			      				map: 'world_mill_en',
+			      				backgroundColor: '#1b1e24',
 								series: {
 									regions: [{
 										scale: ['#ffe6ea', '#ff183a'],
