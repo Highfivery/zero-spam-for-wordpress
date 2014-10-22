@@ -9,15 +9,10 @@
 
 // Sprites
 @import "compass/utilities/sprites";
-
 @import "country-flags/*.png";
 @include all-country-flags-sprites;
 
-@import "contributors/*.png";
-@include all-contributors-sprites;
-
-.country-flag,
-.contributors {
+.country-flag {
 	display: inline-block;
 	vertical-align: middle;
 }
@@ -25,11 +20,6 @@
 .country-flag {
 	width: image-width("country-flags/us.png");
 	height: image-height("country-flags/us.png");
-}
-
-.contributors {
-	width: image-width("contributors/bmarshall511.png");
-	height: image-height("contributors/bmarshall511.png");
 }
 
 /**

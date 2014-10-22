@@ -16,3 +16,6 @@ deploy:
     - 'compass:prod'
     - 'copy:prod'
     - 'shell'
+
+clean:
+    - 'shell:clean'
