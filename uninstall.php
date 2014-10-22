@@ -57,14 +57,15 @@ check_admin_referer( 'bulk-plugins' );
 
 // Safe to carry on
 if ( false != get_option( 'zerospam_general_settings' ) || '' == get_option( 'zerospam_general_settings' ) ) {
+	delete_site_option( 'zerospam_general_settings' );
 	delete_option( 'zerospam_general_settings' );
 }
 
-if ( false != get_option( 'zerospam_key' ) || '' == get_option( 'zerospam_key' ) ) {
+if ( false != get_site_option( 'zerospam_key' ) || '' == get_option( 'zerospam_key' ) ) {
   delete_option( 'zerospam_key' );
 }
 
-if ( false != get_option( 'zerospam_db_version' ) || '' == get_option( 'zerospam_db_version' ) ) {
+if ( false != get_site_option( 'zerospam_db_version' ) || '' == get_option( 'zerospam_db_version' ) ) {
   delete_option( 'zerospam_db_version' );
 }
 
