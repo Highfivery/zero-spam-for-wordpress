@@ -339,7 +339,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 						);
 						?>
 					</td>
-					<td><?php echo $type; ?></td>
+					<td><?php echo isset( $type ) ? $type : '&mdash;'; ?></td>
 					<?php if ( $ip_location_support ): ?>
 					<td>
 						<div data-ip-location="<?php echo $obj->ip; ?>"><i class="fa fa fa-circle-o-notch fa-spin"></i> <em><?php echo __( 'Locating...', 'zerospam' ); ?></em></div>
