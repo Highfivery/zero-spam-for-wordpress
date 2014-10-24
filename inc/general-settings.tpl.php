@@ -14,7 +14,6 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
   <div class="zero-spam__widget">
   	<div class="zero-spam__inner">
   		<form method="post" action="<?php echo $action; ?>">
-  			<?php wp_nonce_field( 'zerospam-options' ); ?>
   			<?php settings_fields( $tab ); ?>
   			<?php do_settings_sections( $tab ); ?>
   			<?php submit_button(); ?>

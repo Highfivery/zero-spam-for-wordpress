@@ -44,7 +44,7 @@ class Zero_Spam {
 	private $settings = array(
 		'zerospam_general_settings' => array(),
 		'page'                      => 'options-general.php',
-		'db_version'                => '0.0.1',
+		'db_version'                => '0.0.2',
 		'img_dir'                   => 'img',
 		'tabs'                      => array(
 			'zerospam_general_settings' => 'General Settings',
@@ -381,18 +381,20 @@ class Zero_Spam {
 
 		// Check DB
 		$table_name = $wpdb->prefix . 'zerospam_ip_data';
-		$data       = $wpdb->get_row( "SELECT * FROM $table_name WHERE ip = '" . $ip . "'" );
+		$data       = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ip = %s", $ip ) );
 
 		// Retrieve from API
-		if ( null == $data ) {
+		if ( ! $data ) {
 			// Ignore local hosts.
 			if ( $ip == '127.0.0.1' ) {
 				return false;
 			}
+
 			// @ used to suppress API usage block warning.
 			$json = @file_get_contents( 'http://freegeoip.net/json/' . $ip );
 
 			$data = json_decode( $json );
+
 			if ( $data ) {
 				$wpdb->insert( $table_name, array(
 						'ip'            => $ip,

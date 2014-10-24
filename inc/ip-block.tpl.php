@@ -7,7 +7,6 @@
 				<table class="zero-spam__table" id="zerospam--ip-block-table">
 					<thead>
 						<tr>
-							<th><?php echo __( 'ID', 'zerospam' ); ?></th>
 							<th><?php echo __( 'IP', 'zerospam' ); ?></th>
 							<th><?php echo __( 'Status', 'zerospam' ); ?></th>
 							<th><?php echo __( 'Start Date', 'zerospam' ); ?></th>
@@ -18,9 +17,8 @@
 					</thead>
 					<tbody>
 						<?php foreach ( $ips as $key => $data ): ?>
-						<tr data-ip="<?php echo $data->ip; ?>" id="row-<?php echo $data->zerospam_ip_id; ?>">
-							<td class="zero-spam__ip-id"><?php echo $data->zerospam_ip_id; ?></td>
-							<td class="zero-spam__ip"><a href="http://ip-lookup.net/index.php?ip=<?php echo $data->ip; ?>" target="_blank">
+						<tr data-ip="<?php echo esc_attr( $data->ip ); ?>" id="row-<?php echo esc_attr( $data->zerospam_ip_id ); ?>">
+							<td class="zero-spam__ip"><a href="http://ip-lookup.net/index.php?ip=<?php echo esc_attr( $data->ip ); ?>" target="_blank">
 								<?php echo $data->ip; ?> <i class="fa fa-external-link-square"></i></a></td>
 							<td class="zero-spam__status">
 								<?php if ( $this->_is_blocked( $data->ip ) ): ?>
@@ -53,15 +51,15 @@
 								endif;
 								?>
 							</td>
-							<td class="zero-spam__reason"><?php echo $data->reason; ?></td>
+							<td class="zero-spam__reason"><?php echo esc_html( $data->reason ); ?></td>
 							<td class="zero-spam__text-center">
 								<i class="fa fa-circle-o-notch fa-spin"></i>&nbsp;
 								<i class="fa fa-edit"></i>&nbsp;
-								<a href="#" class="button button-small zero-spam__block-ip" data-ip="<?php echo $data->ip; ?>">
+								<a href="#" class="button button-small zero-spam__block-ip" data-ip="<?php echo esc_attr( $data->ip ); ?>">
 									<i class="fa fa-gear"></i>
 								</a>&nbsp;
 
-								<a href="#" class="button button-small zero-spam__trash" data-ip="<?php echo $data->ip; ?>"><i class="fa fa-trash"></i></a>
+								<a href="#" class="button button-small zero-spam__trash" data-ip="<?php echo esc_attr( $data->ip ); ?>"><i class="fa fa-trash"></i></a>
 							</td>
 						</tr>
 						<?php endforeach; ?>

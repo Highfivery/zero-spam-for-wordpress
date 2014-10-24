@@ -41,8 +41,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 <div class="zero-spam__widget">
 	<div class="zero-spam__inner">
-		<h3><?php echo __( 'Latest #WordPressZeroSpam News & Updates', 'zerospam' ); ?></h3>
-		<a class="twitter-timeline"  href="https://twitter.com/hashtag/WordPressZeroSpam" data-widget-id="524745228956073984" data-chrome="noborders noheader">#WordPressZeroSpam Tweets</a>
-        <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+		<h3><?php echo __( 'Follow WordPress Zero Spam on Twitter', 'zerospam' ); ?></h3>
+		<a class="twitter-timeline" href="https://twitter.com/bmarshall0511/lists/wordpress-zero-spam" data-widget-id="525626580693815297" data-chrome="noborders noheader">Tweets from https://twitter.com/bmarshall0511/lists/wordpress-zero-spam</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
 	</div>
 </div>
