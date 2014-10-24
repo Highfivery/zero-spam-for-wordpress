@@ -7,31 +7,55 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 class Zero_Spam {
 
 	/**
-	 * Static property to hold our singleton instance
-	 * @var $instance
+	 * Static property to hold our singleton instance.
+	 *
+	 * @since 1.5.1
+	 * @var (boolean|object) $instance Description.
 	 */
-	static $instance = false;
+	public static $instance = false;
 
-	/*
-	 * For easier overriding we declared the keys
-	 * here as well as our tabs array which is populated
-	 * when registering settings
+	/**
+	 * Holds all of WordPress Zero Spam settings.
+	 *
+	 * @since 1.5.0
+	 * @access private
+	 * @var array $settings {
+	 *     WordPress Zero Spam settings array.
+	 *
+	 *     @type array $zerospam_general_settings WordPress Zero Spam general
+	 *                                            settings.
+	 *     @type string $page settings page.
+	 *     @type string $db_version Current database version.
+	 *     @type string $img_dir Plugin image directory.
+	 *     @type array $tabs {
+	 *         Holds all of the WordPress Zero Spam setting pages.
+     *
+	 *         @type string $zerospam_general_settings General Settings page.
+	 *         @type string $zerospam_ip_block Blocked IP page.
+	 *     }
+	 *     @type plugins $tabs {
+	 *         Holds all of the supported plugins that are installed.
+     *
+	 *         @type boolean $cf7 Contact Form 7.
+	 *         @type boolean $gf Gravity Forms.
+	 *     }
+	 * }
 	 */
 	private $settings = array(
 		'zerospam_general_settings' => array(),
+		'page'                      => 'options-general.php',
+		'db_version'                => '0.0.2',
+		'img_dir'                   => 'img',
+		'tabs'                      => array(
+			'zerospam_general_settings' => 'General Settings',
+			'zerospam_ip_block'         => 'Blocked IPs',
+		),
+		'plugins'                   => array(
+			'cf7' => false,
+			'gf'  => false,
+			'bp'  => false
+		)
 	);
-
-	private $tabs = array(
-		'zerospam_general_settings' => 'General Settings',
-		'zerospam_ip_block'         => 'Blocked IPs'
-	);
-
-	private $plugins = array(
-		'cf7' => false,
-		'gf'  => false
-	);
-
-	private $db_version = "0.0.1";
 
 	/**
 	 * Returns an instance.
@@ -41,9 +65,9 @@ class Zero_Spam {
 	 *
 	 * @since 1.5.1
 	 *
-	 * @return $instance
+	 * @return object
 	 */
-	public static function getInstance() {
+	public static function get_instance() {
 
 		if ( ! self::$instance ) {
 			self::$instance = new self;
@@ -53,20 +77,33 @@ class Zero_Spam {
 	}
 
 	/**
-	 * Plugin initilization.
+	 * Plugin initialization.
 	 *
 	 * Initializes the plugins functionality.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return void
 	 */
 	public function __construct() {
+
+		// Change pref page if network activated
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			$this->settings['page'] = 'settings.php';
+		}
+
+		// Check for supported, installed plugins.
 		$this->_plugin_check();
+
+		// Load the plugin settings.
 		$this->_load_settings();
+
+		// Call the plugin WordPress action hooks.
 		$this->_actions();
+
+		// Call the plugin WordPress filters.
 		$this->_filters();
 
+		// Called when the plugin is activated.
 		register_activation_hook( __FILE__, array( &$this, 'install' ) );
 	}
 
@@ -82,15 +119,20 @@ class Zero_Spam {
 	 * @return void
 	 */
 	public function init() {
-		if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) {
-			$this->tabs['zerospam_spammer_logs'] = 'Spammer Log';
+		// Check is logging spam is enabled, if so add the Spammer Log page.
+		if (
+			isset( $this->settings['zerospam_general_settings']['log_spammers'] ) &&
+			'1' == $this->settings['zerospam_general_settings']['log_spammers']
+		) {
+			$this->settings['tabs']['zerospam_spammer_logs'] = 'Spammer Log';
 		}
 	}
 
 	/**
 	 * Uses admin_menu.
 	 *
-	 * Used to add extra submenus and menu options to the admin panel's menu structure.
+	 * Used to add extra submenus and menu options to the admin panel's menu
+	 * structure.
 	 *
 	 * @since 1.5.0
 	 *
@@ -99,15 +141,28 @@ class Zero_Spam {
 	 * @return void
 	 */
 	public function admin_menu() {
-		// Register plugin settings page
-		$hook_suffix = add_options_page(
-			__( 'Zero Spam Settings', 'zerospam' ),
-			__( 'Zero Spam', 'zerospam' ),
-			'manage_options',
-			'zerospam',
-			array( &$this, 'settings_page' )
-		);
-		// Add styles to hook
+
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			$hook_suffix = add_submenu_page(
+				'settings.php',
+				__( 'Zero Spam Settings', 'zerospam' ),
+				__( 'Zero Spam', 'zerospam' ),
+				'manage_network',
+				'zerospam',
+				array( &$this, 'settings_page' )
+			);
+		} else {
+			// Register plugin settings page.
+			$hook_suffix = add_options_page(
+				__( 'Zero Spam Settings', 'zerospam' ),
+				__( 'Zero Spam', 'zerospam' ),
+				'manage_options',
+				'zerospam',
+				array( &$this, 'settings_page' )
+			);
+		}
+
+		// Load WordPress Zero Spam settings from the database.
 		add_action( "load-{$hook_suffix}", array( &$this, 'load_zerospam_settings' ) );
 	}
 
@@ -118,17 +173,21 @@ class Zero_Spam {
 	 *
 	 * @since 1.5.0
 	 *
-	 * @return void
+	 * @return void | boolean
 	 */
 	public function load_zerospam_settings() {
-		if ( 'options-general.php' !== $GLOBALS['pagenow'] ) {
+		if ( $this->settings['page'] !== $GLOBALS['pagenow'] ) {
 			return false;
 		}
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			$this->settings['img_dir'] = 'img-dev';
+
 			wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css-dev/style.css', ZEROSPAM_PLUGIN ) );
 			wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js-dev/charts.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
 		} else {
+			$this->settings['img_dir'] = 'img';
+
 			wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css/style.css', ZEROSPAM_PLUGIN ) );
 			wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js/charts.min.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
 		}
@@ -144,8 +203,9 @@ class Zero_Spam {
 	 */
 	public function settings_page() {
 		$plugin = get_plugin_data( ZEROSPAM_PLUGIN );
-		$tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
-		$page = isset( $_GET['p'] ) ? $_GET['p'] : 1;
+		$tab    = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
+		$page   = isset( $_GET['p'] ) ? $_GET['p'] : 1;
+		$action = is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ? 'edit.php?action=zerospam' : 'options.php';
 		?>
 		<div class="wrap">
 			<h2><?php echo __( 'WordPress Zero Spam', 'zerospam' ); ?></h2>
@@ -160,6 +220,8 @@ class Zero_Spam {
 						'zerospam_spammer_logs' == $tab &&
 						'1' == $this->settings['zerospam_general_settings']['log_spammers']
 					) {
+						$ajax_nonce       = wp_create_nonce( 'zero-spam' );
+
 						$limit = 10;
 						$args = array(
 							'limit' => $limit,
@@ -171,9 +233,18 @@ class Zero_Spam {
 						$all_spam        = $this->_parse_spam_ary( $all_spam );
 
 						if ( count( $all_spam['raw'] ) ) {
-							$starting_date    =  end( $all_spam['raw'] )->date;
+							$starting_date =  end( $all_spam['raw'] )->date;
 							$num_days      = $this->_num_days( $starting_date );
 							$per_day       = $num_days ? number_format( ( count( $all_spam['raw'] ) / $num_days ), 2 ) : 0;
+						}
+
+						if (
+							isset( $this->settings['zerospam_general_settings']['ip_location_support'] ) &&
+							'1' == $this->settings['zerospam_general_settings']['ip_location_support']
+						) {
+							$ip_location_support = true;
+						} else {
+							$ip_location_support = false;
 						}
 
 						require_once( ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php' );
@@ -208,16 +279,58 @@ class Zero_Spam {
 	 * @param int $total Total number of records
 	 */
 	private function _pager( $limit = 10, $total_num, $page, $tab ) {
+		$max_pages = 11;
 		$num_pages = ceil( $total_num / $limit );
+		$cnt       = 0;
+
+		$start = 1;
+		if ( $page > 5 ) {
+			$start = ( $page - 4 );
+		}
+
+		if ( 1 != $page ) {
+			if ( 2 != $page ) {
+				$pre_html = '<li><a href="' . admin_url( $this->settings['page'] . '?page=zerospam&tab=' . $tab . '&p=1' ) . '"><i class="fa fa-angle-double-left"></i></a>';
+			}
+			$pre_html .= '<li><a href="' . admin_url( $this->settings['page'] . '?page=zerospam&tab=' . $tab . '&p=' . ( $page - 1 ) ) . '"><i class="fa fa-angle-left"></i></a>';
+		}
 
 		echo '<ul class="zero-spam__pager">';
-		for ($i = 1; $i <= $num_pages; $i++):
+		if ( isset( $pre_html ) ) {
+			echo $pre_html;
+		}
+		for ( $i = $start; $i <= $num_pages; $i ++ ) {
+			$cnt ++;
+			if ( $cnt >= $max_pages ) {
+				break;
+			}
+
+			if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+				$settings_url = network_admin_url( $this->settings['page'] );
+			} else {
+				$settings_url = admin_url( $this->settings['page'] );
+			}
+
+			if ( $num_pages != $page ) {
+				$post_html = '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=' . ( $page + 1 ) . '"><i class="fa fa-angle-right"></i></a>';
+				if ( ( $page + 1 ) != $num_pages ) {
+					$post_html .= '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=1"><i class="fa fa-angle-double-right"></i></a>';
+				}
+			}
+
 			$class = '';
-			if ( $page == $i ) $class = ' class="zero-spam__page-selected"';
-			echo '<li><a href="' . admin_url( 'options-general.php?page=zerospam&tab=' . $tab . '&p=' . $i ) . '"' . $class . '>' . $i . '</a>';
-		endfor;
+			if ( $page == $i ) {
+				$class = ' class="zero-spam__page-selected"';
+			}
+			echo '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=' . $i . '"' . $class . '>' . $i . '</a>';
+		}
+
+		if( isset( $post_html ) ) {
+			echo $post_html;
+		}
 		echo '</ul>';
-    ?>
+
+        ?>
 		<div class="zero-spam__page-info">
 			<?php echo __( 'Page ', 'zerospam' ) . number_format( $page, 0 ) . ' of ' . number_format( $num_pages, 0 ); ?>
 			(<?php echo number_format( $total_num, 0 ) . __( ' total records found', 'zerospam' ); ?>)
@@ -238,13 +351,86 @@ class Zero_Spam {
 	private function _plugin_check() {
 		// Contact From 7 support
 		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
-			$this->plugins['cf7'] = true;
+			$this->settings['plugins']['cf7'] = true;
 		}
 
 		// Gravity Form support.
 		if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
-			$this->plugins['gf'] = true;
+			$this->settings['plugins']['gf'] = true;
 		}
+
+		// BuddyPress support.
+		 if ( function_exists( 'bp_is_active' ) ) {
+			$this->settings['plugins']['bp'] = true;
+		}
+	}
+
+	/**
+	 * Returns information about the supplied IP address.
+	 *
+	 * @since 1.5.2
+	 * @see http://freegeoip.net/
+	 * @access private
+	 *
+	 * @param $ip string IP address to get info for.
+	 *
+	 * @return array An array with the IP address details.
+	 */
+	private function _get_ip_info( $ip ) {
+		global $wpdb;
+
+		// Check DB
+		$table_name = $wpdb->prefix . 'zerospam_ip_data';
+		$data       = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ip = %s", $ip ) );
+
+		// Retrieve from API
+		if ( ! $data ) {
+			// Ignore local hosts.
+			if ( $ip == '127.0.0.1' ) {
+				return false;
+			}
+
+			// @ used to suppress API usage block warning.
+			$json = @file_get_contents( 'http://freegeoip.net/json/' . $ip );
+
+			$data = json_decode( $json );
+
+			if ( $data ) {
+				$wpdb->insert( $table_name, array(
+						'ip'            => $ip,
+						'country_code'  => $data->country_code,
+						'country_name'  => $data->country_name,
+						'region_code'   => $data->region_code,
+						'region_name'   => $data->region_name,
+						'city'          => $data->city,
+						'zipcode'       => $data->zipcode,
+						'latitude'      => $data->latitude,
+						'longitude'     => $data->longitude,
+						'metro_code'    => $data->metro_code,
+						'area_code'     => $data->area_code
+					),
+					array(
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%s',
+						'%d',
+						'%d',
+						'%d',
+						'%d'
+					)
+				);
+			}
+		}
+
+		if ( FALSE != $data ) {
+			return $data;
+		}
+
+		return false;
 	}
 
 	/**
@@ -253,19 +439,20 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 * @access private
 	 *
-	 * @return void
+	 * @return void | object
 	 */
 	private function _parse_spam_ary( $ary ) {
 		$return = array(
-			'by_date'           => array(),
-			'by_spam_count'     => array(),
-			'raw'               => $ary,
-			'comment_spam'      => 0,
-			'registration_spam' => 0,
-			'cf7_spam'          => 0,
-			'gf_spam'           => 0,
-			'unique_spammers'   => array(),
-			'by_day'            => array(
+			'by_date'              => array(),
+			'by_spam_count'        => array(),
+			'raw'                  => $ary,
+			'comment_spam'         => 0,
+			'registration_spam'    => 0,
+			'cf7_spam'             => 0,
+			'gf_spam'              => 0,
+			'bp_registration_spam' => 0,
+			'unique_spammers'      => array(),
+			'by_day'               => array(
 				'Sun' => 0,
 				'Mon' => 0,
 				'Tue' => 0,
@@ -276,55 +463,62 @@ class Zero_Spam {
 			),
 		);
 
-		foreach( $ary as $key => $obj ) {
+		foreach ( $ary as $key => $obj ) {
 			// By day
 			$return['by_day'][ date( 'D', strtotime( $obj->date ) ) ]++;
 
 			// By date
-			if ( ! isset( $return['by_date'][ substr( $obj->date, 0, 10) ] ) ) {
-				$return['by_date'][ substr( $obj->date, 0, 10) ] = array(
-					'data'              => array(),
-					'comment_spam'      => 0,
-					'registration_spam' => 0,
-					'cf7_spam'          => 0,
+			if ( ! isset( $return['by_date'][ substr( $obj->date, 0, 10 ) ] ) ) {
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ] = array(
+					'data'                 => array(),
+					'comment_spam'         => 0,
+					'registration_spam'    => 0,
+					'cf7_spam'             => 0,
+					'gf_spam'              => 0,
+					'bp_registration_spam' => 0
 				);
 			}
 
 			// By date
-			$return['by_date'][ substr( $obj->date, 0, 10) ]['data'][] = array(
+			$return['by_date'][ substr( $obj->date, 0, 10 ) ]['data'][] = array(
 				'zerospam_id' => $obj->zerospam_id,
 				'type'        => $obj->type,
 				'ip'          => $obj->ip,
 				'date'        => $obj->date,
 			);
 
-			// By IP
+			// By spam count
 			if ( ! isset( $return['by_spam_count'][ $obj->ip ] ) ) {
 				$return['by_spam_count'][ $obj->ip ] = 0;
 			}
 			$return['by_spam_count'][ $obj->ip ]++;
 
 			// Spam type
-			if ( $obj->type == 1 ) {
+			if ( 1 == $obj->type) {
 
 				// Registration spam.
-				$return['by_date'][ substr( $obj->date, 0, 10) ]['registration_spam']++;
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['registration_spam']++;
 				$return['registration_spam']++;
-			} elseif ( $obj->type == 2 ) {
+			} elseif ( 2 == $obj->type ) {
 
 				// Comment spam.
-				$return['by_date'][ substr( $obj->date, 0, 10) ]['comment_spam']++;
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['comment_spam']++;
 				$return['comment_spam']++;
-			} elseif ( $obj->type == 3 ) {
+			} elseif ( 3 == $obj->type ) {
 
 				// Contact Form 7 spam.
-				$return['by_date'][ substr( $obj->date, 0, 10) ]['cf7_spam']++;
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['cf7_spam']++;
 				$return['cf7_spam']++;
-			} elseif ( $obj->type == 4 ) {
+			} elseif ( 4 == $obj->type ) {
 
 				// Gravity Form spam.
-				$return['by_date'][ substr( $obj->date, 0, 10) ]['gf_spam']++;
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['gf_spam']++;
 				$return['gf_spam']++;
+			} elseif ( 5 == $obj->type ) {
+
+				// BuddyPress spam.
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['bp_registration_spam']++;
+				$return['bp_registration_spam']++;
 			}
 
 			// Unique spammers
@@ -344,7 +538,7 @@ class Zero_Spam {
 	 * @access private
 	 */
 	private function _get_percent( $num1, $num2 ) {
-		return number_format( ($num1 / $num2) * 100, 2 );
+		return number_format( ( $num1 / $num2 ) * 100, 2 );
 	}
 
 	/**
@@ -395,7 +589,7 @@ class Zero_Spam {
 			<input type="checkbox" id="auto_block" name="zerospam_general_settings[auto_block]" value="1" <?php if ( isset( $this->settings['zerospam_general_settings']['auto_block']) ): checked( $this->settings['zerospam_general_settings']['auto_block'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
 		 </label>
 
-		<p class="description"><?php echo __( 'With auto IP block enabled, users who are identifed as spam will automatically be blocked from the site.', 'zerospam' ); ?></p>
+		<p class="description"><?php echo __( 'With auto IP block enabled, users who are identified as spam will automatically be blocked from the site.', 'zerospam' ); ?></p>
 		<?php
 	}
 
@@ -473,7 +667,7 @@ class Zero_Spam {
 		?>
 		<label for="spammer_msg_contact_form_7">
 			<input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_contact_form_7]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'] ); ?>">
-		<p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
+			<p class="description"><?php echo __( 'Enter a short message to display when a spam registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
 		</label>
 		<?php
 	}
@@ -494,6 +688,37 @@ class Zero_Spam {
 	}
 
 	/**
+	 * BuddyPress spam message option.
+	 *
+	 * Field callback, renders a text input, note the name and value.
+	 *
+	 * @since 1.5.2
+	 */
+	public function field_spammer_msg_bp() {
+		?>
+		<label for="spammer_msg_bp">
+			<input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_bp]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_bp'] ); ?>">
+			<p class="description"><?php echo __( 'Enter a short message to display when a spam BuddyPress registration has been detected (HTML allowed).', 'zerospam' ); ?></p>
+		</label>
+		<?php
+	}
+
+	/**
+	 * BuddyPress support option.
+	 *
+	 * Field callback, renders a checkbox input, note the name and value.
+	 *
+	 * @since 1.5.2
+	 */
+	public function field_bp_support() {
+		?>
+		<label for="bp_support">
+			<input type="checkbox" id="bp_support" name="zerospam_general_settings[bp_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['bp_support'] ) ) : checked( $this->settings['zerospam_general_settings']['bp_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+		</label>
+		<?php
+	}
+
+	/**
 	 * Gravity Forms support option.
 	 *
 	 * Field callback, renders a checkbox input, note the name and value.
@@ -504,6 +729,25 @@ class Zero_Spam {
 		?>
 		<label for="gf_support">
 			<input type="checkbox" id="gf_support" name="zerospam_general_settings[gf_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['gf_support'] ) ) : checked( $this->settings['zerospam_general_settings']['gf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+		</label>
+		<?php
+	}
+
+	/**
+	 * IP location API field.
+	 *
+	 * Field callback, renders a checkbox input, note the name and value.
+	 *
+	 * @since 1.5.2
+	 */
+	public function field_ip_location_support() {
+		?>
+		<label for="ip_location_support">
+			<input type="checkbox" id="gf_support" name="zerospam_general_settings[ip_location_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['ip_location_support'] ) ) : checked( $this->settings['zerospam_general_settings']['ip_location_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+			<p class="description">
+				<?php echo __( 'IP location data provided by', 'zerospam' ); ?> <a href="http://freegeoip.net/" target="_blank">freegeoip.net</a>. <?php echo __( 'API usage is limited to 10,000 queries per hour.', 'zerospam' ); ?><br>
+				<?php echo __( 'Disable this option if you experience slow load times on the', 'zerospam' ); ?> <a href="<?php echo admin_url( $this->settings['page'] . '?page=zerospam&tab=zerospam_spammer_logs'); ?>"><?php echo __( 'Spammer Log', 'zerospam' ); ?></a> <?php echo __( 'page', 'zerospam' ); ?>.
+			</p>
 		</label>
 		<?php
 	}
@@ -545,6 +789,8 @@ class Zero_Spam {
 	 * @access private
 	 *
 	 * @param array $args Array of arguments.
+	 *
+	 * @return object
 	 */
 	private function _get_spam( $args = array() ) {
 		global $wpdb;
@@ -604,7 +850,12 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/plugin_action_links_(plugin_file_name)
 	 */
 	public function plugin_action_links( $links ) {
-		$link = array( '<a href="' . admin_url( 'options-general.php?page=zerospam' ) . '">' . __( 'Settings', 'zerospam' ) . '</a>' );
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			$settings_url = network_admin_url( $this->settings['page'] );
+		} else {
+			$settings_url = admin_url( $this->settings['page'] );
+		}
+		$link = array( '<a href="' . $settings_url . '?page=zerospam">' . __( 'Settings', 'zerospam' ) . '</a>' );
 
 		return array_merge( $links, $link );
 	}
@@ -620,7 +871,7 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/plugins_loaded
 	 */
 	public function plugins_loaded() {
-		if ( get_site_option( 'zerospam_db_version' ) != $this->db_version ) {
+		if ( get_option( 'zerospam_db_version' ) != $this->settings['db_version'] ) {
 			$this->install();
 		}
 
@@ -640,6 +891,7 @@ class Zero_Spam {
 
 		$log_table_name = $wpdb->prefix . 'zerospam_log';
 		$ip_table_name  = $wpdb->prefix . 'zerospam_blocked_ips';
+		$ip_data_table_name  = $wpdb->prefix . 'zerospam_ip_data';
 
 		/*
 		 * We'll set the default character set and collation for this table.
@@ -658,7 +910,7 @@ class Zero_Spam {
 
 		$sql = false;
 
-		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name ) {
+		if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name ) {
 			$sql = "CREATE TABLE $log_table_name (
 				zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 				type int(1) unsigned NOT NULL,
@@ -670,7 +922,7 @@ class Zero_Spam {
 			) $charset_collate;";
 		}
 
-		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
+		if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
 			$sql .= "CREATE TABLE $ip_table_name (
 			zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 			ip varchar(15) NOT NULL,
@@ -683,12 +935,34 @@ class Zero_Spam {
 		) $charset_collate;";
 		}
 
+		// 0.1.0 Update
+		if ( get_option( 'zerospam_db_version' ) == '0.0.1' ) {
+			if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_data_table_name . '\'' ) != $ip_data_table_name ) {
+				$sql .= "CREATE TABLE $ip_data_table_name (
+				ip_data_id int(10) unsigned NOT NULL AUTO_INCREMENT,
+				ip varchar(15) NOT NULL,
+				country_code varchar(2) DEFAULT NULL,
+				country_name varchar(255) DEFAULT NULL,
+				region_code varchar(2) DEFAULT NULL,
+				region_name varchar(255) DEFAULT NULL,
+				city varchar(255) DEFAULT NULL,
+				zipcode varchar(10) DEFAULT NULL,
+				latitude float DEFAULT NULL,
+				longitude float DEFAULT NULL,
+				metro_code int(11) DEFAULT NULL,
+				area_code int(11) DEFAULT NULL,
+				PRIMARY KEY  (ip_data_id),
+				UNIQUE KEY ip (ip)
+				) $charset_collate;";
+			}
+		}
+
 		if ( $sql ) {
 			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 			dbDelta( $sql );
 		}
 
-		update_option( 'zerospam_db_version', $this->db_version );
+		update_option( 'zerospam_db_version', $this->settings['db_version'] );
 
 		$options = (array) $this->settings['zerospam_general_settings'];
 		$options['registration_support'] = 1;
@@ -697,8 +971,15 @@ class Zero_Spam {
 		$options['wp_generator']         = 1;
 		$options['cf7_support']          = 1;
 		$options['gf_support']           = 1;
+		$options['bp_support']           = 1;
+		$options['ip_location_support']  = 1;
 
-		update_option( 'zerospam_general_settings', $options );
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			update_site_option( 'zerospam_general_settings', $options );
+		} else {
+			update_option( 'zerospam_general_settings', $options );
+		}
+
 	}
 
 	/**
@@ -711,42 +992,57 @@ class Zero_Spam {
 	 */
 	private function _register_settings() {
 		register_setting( 'zerospam_general_settings', 'zerospam_general_settings' );
+
 		add_settings_section( 'section_general', __( 'General Settings', 'zerospam' ), false, 'zerospam_general_settings' );
+		add_settings_section( 'section_messages', __( 'Messages', 'zerospam' ), false, 'zerospam_general_settings' );
+
 		add_settings_field( 'wp_generator', __( 'WP Generator Meta Tag', 'zerospam' ), array( &$this, 'field_wp_generator' ), 'zerospam_general_settings', 'section_general' );
 		add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( &$this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
 
-		// Auto IP block support.
 		if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
+			// IP location API support.
+			add_settings_field( 'ip_location_support', __( 'IP Location Support', 'zerospam' ), array( &$this, 'field_ip_location_support' ), 'zerospam_general_settings', 'section_general' );
+
+			// Auto IP block support.
 			add_settings_field( 'auto_block', __( 'Auto IP Block', 'zerospam' ), array( &$this, 'field_auto_block' ), 'zerospam_general_settings', 'section_general' );
 		}
 
-		add_settings_field( 'blocked_ip_msg', __( 'Blocked IP Message', 'zerospam' ), array( &$this, 'field_blocked_ip_msg' ), 'zerospam_general_settings', 'section_general' );
+		add_settings_field( 'blocked_ip_msg', __( 'Blocked IP Message', 'zerospam' ), array( &$this, 'field_blocked_ip_msg' ), 'zerospam_general_settings', 'section_messages' );
 
 		add_settings_field( 'comment_support', __( 'Comment Support', 'zerospam' ), array( &$this, 'field_comment_support' ), 'zerospam_general_settings', 'section_general' );
 
 		// Comment support.
 		if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
-			add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_general' );
+			add_settings_field( 'spammer_msg_comment', __( 'Spam Comment Message', 'zerospam' ), array( &$this, 'field_spammer_msg_comment' ), 'zerospam_general_settings', 'section_messages' );
 		}
 
 		// Registration support.
 		add_settings_field( 'registration_support', __( 'Registration Support', 'zerospam' ), array( &$this, 'field_registration_support' ), 'zerospam_general_settings', 'section_general' );
 		if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
-			add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_general' );
+			add_settings_field( 'spammer_msg_registration', __( 'Spam Registration Message', 'zerospam' ), array( &$this, 'field_spammer_msg_registration' ), 'zerospam_general_settings', 'section_messages' );
 		}
 
 		// Contact Form 7 support.
-		if ( $this->plugins['cf7'] ) {
+		if ( $this->settings['plugins']['cf7'] ) {
 			add_settings_field( 'cf7_support', __( 'Contact Form 7 Support', 'zerospam' ), array( &$this, 'field_cf7_support' ), 'zerospam_general_settings', 'section_general' );
 
 			if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
-				add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_general' );
+				add_settings_field( 'spammer_msg_contact_form_7', __( 'Contact Form 7 Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_contact_form_7' ), 'zerospam_general_settings', 'section_messages' );
 			}
 		}
 
 		// Gravity Forms support.
-		if ( $this->plugins['gf'] ) {
+		if ( $this->settings['plugins']['gf'] ) {
 			add_settings_field( 'gf_support', __( 'Gravity Forms Support', 'zerospam' ), array( &$this, 'field_gf_support' ), 'zerospam_general_settings', 'section_general' );
+		}
+
+		// BuddyPress support.
+		if ( $this->settings['plugins']['bp'] ) {
+			add_settings_field( 'bp_support', __( 'BuddyPress Support', 'zerospam' ), array( &$this, 'field_bp_support' ), 'zerospam_general_settings', 'section_general' );
+
+			if ( isset( $this->settings['zerospam_general_settings']['bp_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['bp_support'] ) ) {
+				add_settings_field( 'spammer_msg_bp', __( 'BuddyPress Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_bp' ), 'zerospam_general_settings', 'section_messages' );
+			}
 		}
 	}
 
@@ -789,6 +1085,9 @@ class Zero_Spam {
 				break;
 			case 'gf':
 				$type = 4;
+				break;
+			case 'buddypress-registration':
+				$type = 5;
 				break;
 		}
 
@@ -952,7 +1251,7 @@ class Zero_Spam {
 	private function _options_tabs() {
 		$current_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
 		echo '<h2 class="nav-tab-wrapper">';
-		foreach ( $this->tabs as $key => $name ) {
+		foreach ( $this->settings['tabs'] as $key => $name ) {
 			$active = $current_tab == $key ? 'nav-tab-active' : '';
 			echo '<a class="nav-tab ' . $active . '" href="?page=zerospam&tab=' . $key . '">' . $name . '</a>';
 		}
@@ -969,14 +1268,31 @@ class Zero_Spam {
 	 */
 	private function _load_settings() {
 		$default_settings =  array(
-			'spammer_msg_comment'        => 'There was a problem processing your comment.',
-			'spammer_msg_registration'   => '<strong>ERROR</strong>: There was a problem processing your registration.',
-			'spammer_msg_contact_form_7' => 'There was a problem processing your comment.',
-			'blocked_ip_msg'             => 'Access denied.'
+			'spammer_msg_comment'         => 'There was a problem processing your comment.',
+			'spammer_msg_registration'    => '<strong>ERROR</strong>: There was a problem processing your registration.',
+			'spammer_msg_contact_form_7'  => 'There was a problem processing your comment.',
+			'spammer_msg_bp'              => 'There was a problem processing your registration.',
+			'blocked_ip_msg'              => 'Access denied.'
 		);
 
+		// Merge and update new changes
+		if ( isset( $_POST['zerospam_general_settings'] ) ) {
+			$saved_settings =  $_POST['zerospam_general_settings'];
+			if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+				update_site_option( 'zerospam_general_settings', $saved_settings );
+			} else {
+				update_option( 'zerospam_general_settings', $saved_settings );
+			}
+		}
+
 		// Retrieve the settings
-		$saved_settings = (array) get_option( 'zerospam_general_settings' );
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			$saved_settings = (array) get_site_option( 'zerospam_general_settings' );
+		} else {
+			$saved_settings = (array) get_option( 'zerospam_general_settings' );
+		}
+
+
 
 		$this->settings['zerospam_general_settings'] = array_merge(
 			$default_settings,
@@ -997,20 +1313,45 @@ class Zero_Spam {
 	private function _actions() {
 		add_action( 'plugins_loaded', array( &$this, 'plugins_loaded' ) );
 		add_action( 'init', array( &$this, 'init' ) );
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			add_action( 'network_admin_menu', array( &$this, 'admin_menu' ) );
+			add_action( 'network_admin_edit_zerospam', array( &$this, 'update_network_setting' ) );
+		}
 		add_action( 'admin_init', array( &$this, 'admin_init' ) );
 		add_action( 'admin_menu', array( &$this, 'admin_menu' ) );
-		add_action( 'admin_footer', array( &$this, 'admin_footer' ) );
 		add_action( 'wp_enqueue_scripts', array( &$this, 'wp_enqueue_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( &$this, 'admin_enqueue_scripts' ) );
 		add_action( 'login_footer', array( &$this, 'wp_enqueue_scripts' ) );
 
+		// AJAX actions.
+
+		// Block an IP.
 		add_action( 'wp_ajax_block_ip', array( &$this, 'wp_ajax_block_ip' ) );
+
+		// Get the Block IP form.
 		add_action( 'wp_ajax_block_ip_form', array( &$this, 'wp_ajax_block_ip_form' ) );
+
+		// Get a blocked IP's record.
 		add_action( 'wp_ajax_get_blocked_ip', array( &$this, 'wp_ajax_get_blocked_ip' ) );
+
+		// Delete a blocked IP.
 		add_action( 'wp_ajax_trash_ip_block', array( &$this, 'wp_ajax_trash_ip_block' ) );
+
+		// Reset the spammer log.
 		add_action( 'wp_ajax_reset_log', array( &$this, 'wp_ajax_reset_log' ) );
+
+		// Get the location of an IP.
+		add_action( 'wp_ajax_get_location', array( &$this, 'wp_ajax_get_location' ) );
+
+		// Get spam by IP.
+		add_action( 'wp_ajax_get_ip_spam', array( &$this, 'wp_ajax_get_ip_spam' ) );
 
 		if ( isset( $this->settings['zerospam_general_settings']['comment_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['comment_support'] ) ) {
 			add_action( 'preprocess_comment', array( &$this, 'preprocess_comment' ) );
+		}
+
+		if ( isset( $this->settings['zerospam_general_settings']['bp_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['bp_support'] ) ) {
+			add_action( 'bp_signup_validate', array( &$this, 'bp_signup_validate' ) );
 		}
 
 		if ( isset( $this->settings['zerospam_general_settings']['cf7_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['cf7_support'] ) ) {
@@ -1034,7 +1375,11 @@ class Zero_Spam {
 	 */
 	private function _filters() {
 		add_filter( 'plugin_row_meta', array( &$this, 'plugin_row_meta' ), 10, 2 );
-		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( &$this, 'plugin_action_links' ) );
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			add_filter( 'network_admin_plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( &$this, 'plugin_action_links' ) );
+		} else {
+			add_filter( 'plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( &$this, 'plugin_action_links' ) );
+		}
 
 		if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
 			add_filter( 'registration_errors', array( &$this, 'preprocess_registration' ), 10, 3 );
@@ -1042,117 +1387,6 @@ class Zero_Spam {
 
 		// Gravity Forms support.
 		add_filter( 'gform_validation', array( &$this, 'gform_validation' ) );
-	}
-
-	/**
-	 * Uses admin_footer.
-	 *
-	 * Triggered just after closing the <div id="wpfooter"> tag and right before
-	 * admin_print_footer_scripts action call of the admin-footer.php page.
-	 *
-	 * @since 1.5.0
-	 *
-	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/admin_footer
-	 */
-	public function admin_footer() {
-		$ajax_nonce = wp_create_nonce( 'zero-spam' );
-		?>
-		<script>
-		jQuery( document ).ready( function( $ ) {
-			$(
-				".zero-spam__block-ip, .zero-spam__trash"
-			).click( function( e ) {
-				e.preventDefault();
-
-				closeForms();
-
-				var row = $( this ).closest( "tr" ),
-					form_row = $( "<tr class='zero-spam__row-highlight'>" ),
-					btn = $( this );
-					btn_cell = btn.parent(),
-					ip = btn.data( "ip" ),
-					action = '';
-
-					row.addClass( "zero-spam__loading" );
-
-				if ( btn.hasClass( "zero-spam__trash" ) ) {
-					action = 'trash_ip_block';
-				} else {
-					action = 'block_ip_form';
-				}
-
-				$.post( ajaxurl, {
-					action: action,
-					security: '<?php echo $ajax_nonce; ?>',
-					ip: ip
-				}, function( data ) {
-					row.removeClass( "zero-spam__loading" );
-
-					if ( btn.hasClass( "zero-spam__trash" ) ) {
-						action = 'trash_ip_block';
-						row.fadeOut( function() {
-							row.remove();
-
-							if ( $( ".zero-spam__table tbody tr" ).length == 0 ) {
-								$( "#zerospam-id-container" ).after( "No blocked IPs found." );
-								$( "#zerospam-id-container" ).remove();
-							}
-						});
-					} else {
-						action = 'block_ip_form';
-
-						row.addClass( "zero-spam__loaded" );
-
-						form_row.append( "<td colspan='10'>" + data + "</td>" );
-
-						row.before( form_row );
-					}
-				});
-			});
-		});
-
-		function closeForms() {
-			jQuery( ".zero-spam__row-highlight" ).remove();
-			jQuery( "tr" ).removeClass( "zero-spam__loading" );
-			jQuery( "tr" ).removeClass( "zero-spam__loaded" );
-		}
-
-		function clearLog() {
-			if ( confirm("<?php echo __( "This will PERMANENTLY delete all data in the spammer log. This action cannot be undone. Are you sure you want to continue?", "zerospam" ); ?>") == true ) {
-				jQuery.post( ajaxurl, {
-					action: 'reset_log',
-					security: '<?php echo $ajax_nonce; ?>'
-				}, function() {
-					location.reload();
-				});
-			}
-		}
-
-		function updateRow( ip ) {
-			if ( ip ) {
-				jQuery.post( ajaxurl, {
-					action: 'get_blocked_ip',
-					security: '<?php echo $ajax_nonce; ?>',
-					ip: ip
-				}, function( data ) {console.log(data);
-					var d = jQuery.parseJSON( data ),
-						row = jQuery( "tr[data-ip='" + d.ip + "']" ),
-						label;
-					if ( true == d.is_blocked ) {
-						label = '<span class="zero-spam__label zero-spam__bg--primary">Blocked</span>';
-					} else {
-						label = '<span class="zero-spam__label zero-spam__bg--trinary">Unblocked</span>';
-					}
-
-					jQuery( ".zero-spam__reason", row ).text( d.reason );
-					jQuery( ".zero-spam__start-date", row ).text( d.start_date_txt );
-					jQuery( ".zero-spam__end-date", row ).text( d.end_date_txt );
-					jQuery( ".zero-spam__status", row ).html( label );
-				});
-			}
-		}
-		</script>
-		<?php
 	}
 
 	/**
@@ -1168,10 +1402,82 @@ class Zero_Spam {
 		global $wpdb;
 		check_ajax_referer( 'zero-spam', 'security' );
 
-		$ajax_nonce = wp_create_nonce( 'zero-spam' );
-		$ip         = $_REQUEST['ip'];
-
+		$ip = $_REQUEST['ip'];
 		$this->_delete_blocked_ip( $ip );
+
+		die();
+	}
+
+	/**
+	 * Uses wp_ajax_(action).
+	 *
+	 * Get's spam by IP.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/wp_ajax_(action)
+	 */
+	public function wp_ajax_get_ip_spam() {
+		global $wpdb;
+		check_ajax_referer( 'zero-spam', 'security' );
+
+		$spam = $this->_get_spam();
+		$return = array(
+			'by_country' => array(),
+			'by_lat_long' => array()
+		);
+
+		// API usage limit protection.
+		$limit = 100;
+		$cnt   = 0;
+		foreach ( $spam as $key => $obj ) {
+			$cnt++;
+			if ( $cnt > 100 ) {
+				break;
+			}
+			$loc = $this->_get_ip_info( $obj->ip );
+
+			if ( $loc ) {
+				if ( ! isset( $return['by_country'][ $loc->country_code ] ) ) {
+					$return['by_country'][ $loc->country_code ] = array(
+						'count' => 0,
+						'name' => $loc->country_name
+					);
+				}
+				$return['by_country'][ $loc->country_code ]['count']++;
+
+				if ( ! isset( $return['by_lat_long'][ $obj->ip ] ) ) {
+					$return['by_lat_long'][ $obj->ip ] = array(
+						'latLng' => array( $loc->latitude, $loc->longitude ),
+						'name' => $loc->country_name,
+						'count' => 1
+					);
+				}
+			}
+		}
+
+		arsort( $return['by_country'] );
+
+		echo json_encode( $return );
+
+		die();
+	}
+
+	/**
+	 * Uses wp_ajax_(action).
+	 *
+	 * Get location data from IP.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/wp_ajax_(action)
+	 */
+	public function wp_ajax_get_location() {
+		global $wpdb;
+		check_ajax_referer( 'zero-spam', 'security' );
+
+		$ip = $_REQUEST['ip'];
+		echo json_encode( $this->_get_ip_info( $ip ) );
 
 		die();
 	}
@@ -1379,7 +1685,31 @@ class Zero_Spam {
 	}
 
 	/**
-	 * Preprocess registration fields.
+	 * Preprocess comment fields.
+	 *
+	 * An action hook that is applied to the comment data prior to any other processing of the
+	 * comment's information when saving a comment data to the database.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @link http://etivite.com/api-hooks/buddypress/trigger/do_action/bp_signup_validate/
+	 */
+	public function bp_signup_validate() {
+		global $bp;
+
+		if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
+			do_action( 'zero_spam_found_spam_buddypress_registration' );
+
+			if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
+				$this->_log_spam( 'buddypress-registration' );
+			}
+
+			die( __( $this->settings['zerospam_general_settings']['buddypress_msg_registration'], 'zerospam' ) );
+ 		}
+	}
+
+	/**
+	 * Pre-process registration fields.
 	 *
 	 * Used to create custom validation rules on user registration. This fires
 	 * when the form is submitted but before user information is saved to the
@@ -1440,10 +1770,51 @@ class Zero_Spam {
 		} else {
 			wp_register_script( 'zero-spam', plugins_url( '/build/js/zero-spam.min.js' , ZEROSPAM_PLUGIN ), array( 'jquery' ), '1.1.0', true );
 		}
-		wp_localize_script( 'zero-spam', 'zerospam', array(
-			'key' => $this->_get_key()
-		) );
+		wp_localize_script( 'zero-spam', 'zerospam', array( 'key' => $this->_get_key() ) );
 		wp_enqueue_script( 'zero-spam' );
+	}
+
+
+	/**
+	 * Add admin scripts.
+	 *
+	 * Adds the CSS & JS for the WordPress Zero Spam settings page.
+	 *
+	 * @since 1.5.2
+	 *
+	 * @link http://codex.wordpress.org/Plugin_API/Action_Reference/admin_enqueue_scripts
+	 *
+	 * @param string $hook Used to target a specific admin page.
+	 * @return void
+	 */
+	public function admin_enqueue_scripts( $hook ) {
+		if ( 'settings_page_zerospam' != $hook ) {
+        	return;
+    	}
+
+    	// Create nonce for AJAX requests.
+    	$ajax_nonce = wp_create_nonce( 'zero-spam' );
+
+    	// Register the WordPress Zero Spam admin script.
+    	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+    		wp_register_script(
+    			'zero-spam-admin', plugin_dir_url( ZEROSPAM_PLUGIN ) .
+    			'build/js-dev/zero-spam-admin.js'
+    		);
+    	} else {
+    		wp_register_script(
+    			'zero-spam-admin',
+    			plugin_dir_url( ZEROSPAM_PLUGIN ) .
+    			'build/js/zero-spam-admin.min.js'
+    		);
+    	}
+
+    	// Localize the script with the plugin data.
+		$zero_spam_array = array( 'nonce' => $ajax_nonce );
+		wp_localize_script( 'zero-spam-admin', 'zero_spam_admin', $zero_spam_array );
+
+		// Enqueue the script.
+		wp_enqueue_script( 'zero-spam-admin' );
 	}
 
 	/**
@@ -1465,6 +1836,7 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 *
 	 * @param $ip string The IP address to block.
+	 * @return object
 	 */
 	private function _delete_blocked_ip( $ip ) {
 		global $wpdb;
@@ -1480,6 +1852,7 @@ class Zero_Spam {
 	 * @since 1.5.0
 	 *
 	 * @param $ip string The IP address to get.
+	 * @return object
 	 */
 	private function _get_blocked_ip( $ip ) {
 		global $wpdb;
@@ -1504,13 +1877,13 @@ class Zero_Spam {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
 
-		$order_by = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY zerospam_ip_id DESC';
+		$order_by   = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY zerospam_ip_id DESC';
 
-		$offset = isset( $args['offset'] ) ? $args['offset'] : false;
-		$limit = isset( $args['limit'] ) ? $args['limit'] : false;
+		$offset     = isset( $args['offset'] ) ? $args['offset'] : false;
+		$limit      = isset( $args['limit'] ) ? $args['limit'] : false;
 		if ( $offset && $limit ) {
 			$limit = ' LIMIT ' . $offset . ', ' . $limit;
-		} elseif( $limit ) {
+		} elseif ( $limit ) {
 			$limit = ' LIMIT ' . $limit;
 		}
 
@@ -1540,13 +1913,14 @@ class Zero_Spam {
 		if ( ! $check ) {
 			return false;
 		}
+
 		// Check block type
 		if (
 			'temporary' == $check->type &&
 			time() >= strtotime( $check->start_date ) &&
 			time() <= strtotime( $check->end_date )
 			) {
-				return true;
+			return true;
 		}
 
 		if ( 'permanent' == $check->type ) {
@@ -1560,6 +1934,7 @@ class Zero_Spam {
 	 * Returns number of days since a date.
 	 *
 	 * @since 1.5.0
+	 * @access private
 	 *
 	 * @return int Number of days since the specified date.
 	 */
@@ -1573,6 +1948,9 @@ class Zero_Spam {
 	 * Retrieve the key, generating if needed.
 	 *
 	 * @since 1.5.0
+	 * @access private
+	 *
+	 * @return string The current WordPress Zero Spam key to validate spam against.
 	 */
 	private function _get_key() {
 		if ( ! $key = get_option( 'zerospam_key' ) ) {
@@ -1584,120 +1962,23 @@ class Zero_Spam {
 	}
 
 	/**
-	 * Converts numbers to words.
+	 * Update network settings.
 	 *
-	 * @since 1.5.0
+	 * Used when plugin is network activated to save settings.
 	 *
-	 * @link http://www.karlrixon.co.uk/writing/convert-numbers-to-words-with-php/
+	 * @link http://wordpress.stackexchange.com/questions/64968/settings-api-in-multisite-missing-update-message
+	 * @link http://benohead.com/wordpress-network-wide-plugin-settings/
 	 */
-	private function num_to_word( $num ) {
-		$hyphen	     = '-';
-		$conjunction = ' and ';
-		$separator   = ', ';
-		$negative	 = 'negative ';
-		$decimal	 = ' point ';
-		$dictionary  = array(
-			0                   => 'zero',
-			1                   => 'one',
-			2                   => 'two',
-			3                   => 'three',
-			4                   => 'four',
-			5                   => 'five',
-			6                   => 'six',
-			7                   => 'seven',
-			8                   => 'eight',
-			9                   => 'nine',
-			10                  => 'ten',
-			11                  => 'eleven',
-			12                  => 'twelve',
-			13                  => 'thirteen',
-			14                  => 'fourteen',
-			15                  => 'fifteen',
-			16                  => 'sixteen',
-			17                  => 'seventeen',
-			18                  => 'eighteen',
-			19                  => 'nineteen',
-			20                  => 'twenty',
-			30                  => 'thirty',
-			40                  => 'fourty',
-			50                  => 'fifty',
-			60                  => 'sixty',
-			70                  => 'seventy',
-			80                  => 'eighty',
-			90                  => 'ninety',
-			100                 => 'hundred',
-			1000                => 'thousand',
-			1000000             => 'million',
-			1000000000          => 'billion',
-			1000000000000       => 'trillion',
-			1000000000000000    => 'quadrillion',
-			1000000000000000000 => 'quintillion',
-		);
-
-		if ( ! is_numeric( $num ) ) {
-			return false;
-		}
-
-		if ( ( $num >= 0 && (int) $num < 0 ) || (int) $num < 0 - PHP_INT_MAX ) {
-			// overflow
-			trigger_error(
-				'convert_number_to_words only accepts numbers between -' . PHP_INT_MAX . ' and ' . PHP_INT_MAX,
-				E_USER_WARNING
-			);
-			return false;
-		}
-
-		if ( $num < 0 ) {
-			return $negative . convert_number_to_words( abs( $num) );
-		}
-
-		$string = $fraction = null;
-
-		if ( strpos( $num, '.' ) !== false ) {
-			list( $num, $fraction ) = explode( '.', $num );
-		}
-
-		switch (true) {
-			case $num < 21:
-				$string = $dictionary[ $num ];
-				break;
-			case $num < 100:
-				$tens   = ( (int) ( $num / 10 ) ) * 10;
-				$units  = $num % 10;
-				$string = $dictionary[ $tens ];
-				if ( $units ) {
-					$string .= $hyphen . $dictionary[ $units ];
-				}
-				break;
-			case $num < 1000:
-				$hundreds  = $num / 100;
-				$remainder = $num % 100;
-				$string    = $dictionary[ $hundreds ] . ' ' . $dictionary[100];
-				if ( $remainder ) {
-					$string .= $conjunction . convert_number_to_words($remainder);
-				}
-				break;
-			default:
-				$baseUnit     = pow( 1000, floor( log( $num, 1000 ) ) );
-				$numBaseUnits = (int) ( $num / $baseUnit );
-				$remainder    = $num % $baseUnit;
-				$string       = convert_number_to_words( $numBaseUnits ) . ' ' . $dictionary[ $baseUnit ];
-				if ($remainder) {
-					$string .= $remainder < 100 ? $conjunction : $separator;
-					$string .= convert_number_to_words( $remainder );
-				}
-				break;
-		}
-
-		if ( null !== $fraction && is_numeric( $fraction ) ) {
-			$string .= $decimal;
-			$words  = array();
-			foreach ( str_split( (string) $fraction ) as $num ) {
-				$words[] = $dictionary[ $num ];
-			}
-			$string .= implode( ' ', $words );
-		}
-
-		return $string;
+	public function update_network_setting() {
+		update_site_option( 'zerospam_general_settings', $_POST['zerospam_general_settings'] );
+		wp_redirect( add_query_arg(
+			array(
+				'page'    => 'zerospam',
+				'updated' => 'true',
+				),
+			network_admin_url( 'settings.php' )
+		) );
+		exit;
 	}
+
 }

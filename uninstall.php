@@ -57,6 +57,7 @@ check_admin_referer( 'bulk-plugins' );
 
 // Safe to carry on
 if ( false != get_option( 'zerospam_general_settings' ) || '' == get_option( 'zerospam_general_settings' ) ) {
+	delete_site_option( 'zerospam_general_settings' );
 	delete_option( 'zerospam_general_settings' );
 }
 

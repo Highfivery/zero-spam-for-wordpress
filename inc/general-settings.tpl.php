@@ -9,13 +9,15 @@
  * Security Note: Blocks direct access to the plugin PHP files.
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
-?><div class="zero-spam__widget">
-	<div class="zero-spam__inner">
-		<form method="post" action="options.php">
-			<?php wp_nonce_field( 'zerospam-options' ); ?>
-			<?php settings_fields( $tab ); ?>
-			<?php do_settings_sections( $tab ); ?>
-			<?php submit_button(); ?>
-		</form>
-	</div>
+?>
+<div class="zero-spam__row">
+  <div class="zero-spam__widget">
+  	<div class="zero-spam__inner">
+  		<form method="post" action="<?php echo $action; ?>">
+  			<?php settings_fields( $tab ); ?>
+  			<?php do_settings_sections( $tab ); ?>
+  			<?php submit_button(); ?>
+  		</form>
+  	</div>
+  </div>
 </div>
