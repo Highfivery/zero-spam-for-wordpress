@@ -61,11 +61,11 @@ if ( false != get_option( 'zerospam_general_settings' ) || '' == get_option( 'ze
 	delete_option( 'zerospam_general_settings' );
 }
 
-if ( false != get_site_option( 'zerospam_key' ) || '' == get_option( 'zerospam_key' ) ) {
+if ( false != get_option( 'zerospam_key' ) || '' == get_option( 'zerospam_key' ) ) {
   delete_option( 'zerospam_key' );
 }
 
-if ( false != get_site_option( 'zerospam_db_version' ) || '' == get_option( 'zerospam_db_version' ) ) {
+if ( false != get_option( 'zerospam_db_version' ) || '' == get_option( 'zerospam_db_version' ) ) {
   delete_option( 'zerospam_db_version' );
 }
 

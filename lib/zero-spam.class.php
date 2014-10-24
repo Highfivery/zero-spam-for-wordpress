@@ -86,6 +86,7 @@ class Zero_Spam {
 	 */
 	public function __construct() {
 
+		// Change pref page if network activated
 		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 			$this->settings['page'] = 'settings.php';
 		}
@@ -204,7 +205,7 @@ class Zero_Spam {
 		$plugin = get_plugin_data( ZEROSPAM_PLUGIN );
 		$tab    = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
 		$page   = isset( $_GET['p'] ) ? $_GET['p'] : 1;
-		$action = ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ? 'edit.php?action=zerospam' : 'options.php');
+		$action = is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ? 'edit.php?action=zerospam' : 'options.php';
 		?>
 		<div class="wrap">
 			<h2><?php echo __( 'WordPress Zero Spam', 'zerospam' ); ?></h2>
@@ -280,11 +281,11 @@ class Zero_Spam {
 	private function _pager( $limit = 10, $total_num, $page, $tab ) {
 		$max_pages = 11;
 		$num_pages = ceil( $total_num / $limit );
-		$cnt = 0;
+		$cnt       = 0;
 
 		$start = 1;
 		if ( $page > 5 ) {
-			$start = ($page - 4);
+			$start = ( $page - 4 );
 		}
 
 		if ( 1 != $page ) {
@@ -295,25 +296,41 @@ class Zero_Spam {
 		}
 
 		echo '<ul class="zero-spam__pager">';
-		if( isset( $pre_html ) ) echo $pre_html;
-		for ($i = $start; $i <= $num_pages; $i++):
-			$cnt++;
-			if ( $cnt >= $max_pages ) break;
-			if ( $num_pages != $page ) {
-				$post_html = '<li><a href="' . admin_url( $this->settings['page'] . '?page=zerospam&tab=' . $tab . '&p=' . ( $page + 1 ) ) . '"><i class="fa fa-angle-right"></i></a>';
+		if ( isset( $pre_html ) ) {
+			echo $pre_html;
+		}
+		for ( $i = $start; $i <= $num_pages; $i ++ ) {
+			$cnt ++;
+			if ( $cnt >= $max_pages ) {
+				break;
+			}
 
+			if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+				$settings_url = network_admin_url( $this->settings['page'] );
+			} else {
+				$settings_url = admin_url( $this->settings['page'] );
+			}
+
+			if ( $num_pages != $page ) {
+				$post_html = '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=' . ( $page + 1 ) . '"><i class="fa fa-angle-right"></i></a>';
 				if ( ( $page + 1 ) != $num_pages ) {
-					$post_html .= '<li><a href="' . admin_url( $this->settings['page'] . '?page=zerospam&tab=' . $tab . '&p=1' ) . '"><i class="fa fa-angle-double-right"></i></a>';
+					$post_html .= '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=1"><i class="fa fa-angle-double-right"></i></a>';
 				}
 			}
 
 			$class = '';
-			if ( $page == $i ) $class = ' class="zero-spam__page-selected"';
-			echo '<li><a href="' . admin_url( $this->settings['page'] . '?page=zerospam&tab=' . $tab . '&p=' . $i ) . '"' . $class . '>' . $i . '</a>';
-		endfor;
-		if( isset( $post_html ) ) echo $post_html;
+			if ( $page == $i ) {
+				$class = ' class="zero-spam__page-selected"';
+			}
+			echo '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=' . $i . '"' . $class . '>' . $i . '</a>';
+		}
+
+		if( isset( $post_html ) ) {
+			echo $post_html;
+		}
 		echo '</ul>';
-    ?>
+
+        ?>
 		<div class="zero-spam__page-info">
 			<?php echo __( 'Page ', 'zerospam' ) . number_format( $page, 0 ) . ' of ' . number_format( $num_pages, 0 ); ?>
 			(<?php echo number_format( $total_num, 0 ) . __( ' total records found', 'zerospam' ); ?>)
@@ -369,7 +386,9 @@ class Zero_Spam {
 		// Retrieve from API
 		if ( null == $data ) {
 			// Ignore local hosts.
-			if ( $ip == '127.0.0.1' ) return false;
+			if ( $ip == '127.0.0.1' ) {
+				return false;
+			}
 			// @ used to suppress API usage block warning.
 			$json = @file_get_contents( 'http://freegeoip.net/json/' . $ip );
 
@@ -442,13 +461,13 @@ class Zero_Spam {
 			),
 		);
 
-		foreach( $ary as $key => $obj ) {
+		foreach ( $ary as $key => $obj ) {
 			// By day
 			$return['by_day'][ date( 'D', strtotime( $obj->date ) ) ]++;
 
 			// By date
-			if ( ! isset( $return['by_date'][ substr( $obj->date, 0, 10) ] ) ) {
-				$return['by_date'][ substr( $obj->date, 0, 10) ] = array(
+			if ( ! isset( $return['by_date'][ substr( $obj->date, 0, 10 ) ] ) ) {
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ] = array(
 					'data'                 => array(),
 					'comment_spam'         => 0,
 					'registration_spam'    => 0,
@@ -459,7 +478,7 @@ class Zero_Spam {
 			}
 
 			// By date
-			$return['by_date'][ substr( $obj->date, 0, 10) ]['data'][] = array(
+			$return['by_date'][ substr( $obj->date, 0, 10 ) ]['data'][] = array(
 				'zerospam_id' => $obj->zerospam_id,
 				'type'        => $obj->type,
 				'ip'          => $obj->ip,
@@ -473,30 +492,30 @@ class Zero_Spam {
 			$return['by_spam_count'][ $obj->ip ]++;
 
 			// Spam type
-			if ( $obj->type == 1 ) {
+			if ( 1 == $obj->type) {
 
 				// Registration spam.
-				$return['by_date'][ substr( $obj->date, 0, 10) ]['registration_spam']++;
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['registration_spam']++;
 				$return['registration_spam']++;
-			} elseif ( $obj->type == 2 ) {
+			} elseif ( 2 == $obj->type ) {
 
 				// Comment spam.
-				$return['by_date'][ substr( $obj->date, 0, 10) ]['comment_spam']++;
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['comment_spam']++;
 				$return['comment_spam']++;
-			} elseif ( $obj->type == 3 ) {
+			} elseif ( 3 == $obj->type ) {
 
 				// Contact Form 7 spam.
-				$return['by_date'][ substr( $obj->date, 0, 10) ]['cf7_spam']++;
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['cf7_spam']++;
 				$return['cf7_spam']++;
-			} elseif ( $obj->type == 4 ) {
+			} elseif ( 4 == $obj->type ) {
 
 				// Gravity Form spam.
-				$return['by_date'][ substr( $obj->date, 0, 10) ]['gf_spam']++;
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['gf_spam']++;
 				$return['gf_spam']++;
-			} elseif ( $obj->type == 5 ) {
+			} elseif ( 5 == $obj->type ) {
 
 				// BuddyPress spam.
-				$return['by_date'][ substr( $obj->date, 0, 10) ]['bp_registration_spam']++;
+				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['bp_registration_spam']++;
 				$return['bp_registration_spam']++;
 			}
 
@@ -517,7 +536,7 @@ class Zero_Spam {
 	 * @access private
 	 */
 	private function _get_percent( $num1, $num2 ) {
-		return number_format( ($num1 / $num2) * 100, 2 );
+		return number_format( ( $num1 / $num2 ) * 100, 2 );
 	}
 
 	/**
@@ -834,7 +853,7 @@ class Zero_Spam {
 		} else {
 			$settings_url = admin_url( $this->settings['page'] );
 		}
-			$link = array( '<a href="' . $settings_url . '?page=zerospam">' . __( 'Settings', 'zerospam' ) . '</a>' );
+		$link = array( '<a href="' . $settings_url . '?page=zerospam">' . __( 'Settings', 'zerospam' ) . '</a>' );
 
 		return array_merge( $links, $link );
 	}
@@ -889,7 +908,7 @@ class Zero_Spam {
 
 		$sql = false;
 
-		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name ) {
+		if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name ) {
 			$sql = "CREATE TABLE $log_table_name (
 				zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 				type int(1) unsigned NOT NULL,
@@ -901,7 +920,7 @@ class Zero_Spam {
 			) $charset_collate;";
 		}
 
-		if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
+		if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
 			$sql .= "CREATE TABLE $ip_table_name (
 			zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
 			ip varchar(15) NOT NULL,
@@ -916,7 +935,7 @@ class Zero_Spam {
 
 		// 0.1.0 Update
 		if ( get_option( 'zerospam_db_version' ) == '0.0.1' ) {
-			if( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_data_table_name . '\'' ) != $ip_data_table_name ) {
+			if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_data_table_name . '\'' ) != $ip_data_table_name ) {
 				$sql .= "CREATE TABLE $ip_data_table_name (
 				ip_data_id int(10) unsigned NOT NULL AUTO_INCREMENT,
 				ip varchar(15) NOT NULL,
@@ -1381,7 +1400,7 @@ class Zero_Spam {
 		global $wpdb;
 		check_ajax_referer( 'zero-spam', 'security' );
 
-		$ip         = $_REQUEST['ip'];
+		$ip = $_REQUEST['ip'];
 		$this->_delete_blocked_ip( $ip );
 
 		die();
@@ -1408,8 +1427,12 @@ class Zero_Spam {
 
 		// API usage limit protection.
 		$limit = 100;
-		$cnt = 0;
-		foreach( $spam as $key => $obj ) { $cnt++; if ( $cnt > 100 ) break;
+		$cnt   = 0;
+		foreach ( $spam as $key => $obj ) {
+			$cnt++;
+			if ( $cnt > 100 ) {
+				break;
+			}
 			$loc = $this->_get_ip_info( $obj->ip );
 
 			if ( $loc ) {
@@ -1745,9 +1768,7 @@ class Zero_Spam {
 		} else {
 			wp_register_script( 'zero-spam', plugins_url( '/build/js/zero-spam.min.js' , ZEROSPAM_PLUGIN ), array( 'jquery' ), '1.1.0', true );
 		}
-		wp_localize_script( 'zero-spam', 'zerospam', array(
-			'key' => $this->_get_key()
-		) );
+		wp_localize_script( 'zero-spam', 'zerospam', array( 'key' => $this->_get_key() ) );
 		wp_enqueue_script( 'zero-spam' );
 	}
 
@@ -1854,13 +1875,13 @@ class Zero_Spam {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'zerospam_blocked_ips';
 
-		$order_by = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY zerospam_ip_id DESC';
+		$order_by   = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY zerospam_ip_id DESC';
 
-		$offset = isset( $args['offset'] ) ? $args['offset'] : false;
-		$limit = isset( $args['limit'] ) ? $args['limit'] : false;
+		$offset     = isset( $args['offset'] ) ? $args['offset'] : false;
+		$limit      = isset( $args['limit'] ) ? $args['limit'] : false;
 		if ( $offset && $limit ) {
 			$limit = ' LIMIT ' . $offset . ', ' . $limit;
-		} elseif( $limit ) {
+		} elseif ( $limit ) {
 			$limit = ' LIMIT ' . $limit;
 		}
 
@@ -1890,13 +1911,14 @@ class Zero_Spam {
 		if ( ! $check ) {
 			return false;
 		}
+
 		// Check block type
 		if (
 			'temporary' == $check->type &&
 			time() >= strtotime( $check->start_date ) &&
 			time() <= strtotime( $check->end_date )
 			) {
-				return true;
+			return true;
 		}
 
 		if ( 'permanent' == $check->type ) {
