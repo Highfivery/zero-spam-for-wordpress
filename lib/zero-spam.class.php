@@ -86,6 +86,7 @@ class Zero_Spam {
 	 */
 	public function __construct() {
 
+		// Change pref page if network activated
 		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 			$this->settings['page'] = 'settings.php';
 		}
@@ -204,7 +205,7 @@ class Zero_Spam {
 		$plugin = get_plugin_data( ZEROSPAM_PLUGIN );
 		$tab    = isset( $_GET['tab'] ) ? $_GET['tab'] : 'zerospam_general_settings';
 		$page   = isset( $_GET['p'] ) ? $_GET['p'] : 1;
-		$action = ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ? 'edit.php?action=zerospam' : 'options.php');
+		$action = is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ? 'edit.php?action=zerospam' : 'options.php';
 		?>
 		<div class="wrap">
 			<h2><?php echo __( 'WordPress Zero Spam', 'zerospam' ); ?></h2>
@@ -308,8 +309,15 @@ class Zero_Spam {
 			}
 
 			$class = '';
-			if ( $page == $i ) $class = ' class="zero-spam__page-selected"';
-			echo '<li><a href="' . admin_url( $this->settings['page'] . '?page=zerospam&tab=' . $tab . '&p=' . $i ) . '"' . $class . '>' . $i . '</a>';
+			if ( $page == $i ) {
+				$class = ' class="zero-spam__page-selected"';
+			}
+			if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+				$settings_url = network_admin_url( $this->settings['page'] );
+			} else {
+				$settings_url = admin_url( $this->settings['page'] );
+			}
+			echo '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=' . $i . '"' . $class . '>' . $i . '</a>';
 		endfor;
 		if( isset( $post_html ) ) echo $post_html;
 		echo '</ul>';
@@ -834,7 +842,7 @@ class Zero_Spam {
 		} else {
 			$settings_url = admin_url( $this->settings['page'] );
 		}
-			$link = array( '<a href="' . $settings_url . '?page=zerospam">' . __( 'Settings', 'zerospam' ) . '</a>' );
+		$link = array( '<a href="' . $settings_url . '?page=zerospam">' . __( 'Settings', 'zerospam' ) . '</a>' );
 
 		return array_merge( $links, $link );
 	}
