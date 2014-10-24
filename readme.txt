@@ -25,6 +25,7 @@ Major features in WordPress Zero Spam include:
 * **Blocks spam registrations & comments** with the use of JavaScript
 * **Contact Form 7 support** if installed and activated
 * **Gravity Form support** if installed and activated
+* **BuddyPress support** if installed and activated
 * **Supports caching plugins** to help provide great performance
 * **Blocks spammy IPs** from ever seeing your site
 * **Extend the plugin** with action hooks
