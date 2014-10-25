@@ -1977,7 +1977,7 @@ class Zero_Spam {
 		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
 			$settings_url = network_admin_url( $this->settings['page'] );
 		} else if ( home_url() != site_url() ) {
-			$settings_url = home_url( $this->settings['page'] );
+			$settings_url = home_url( '/wp-admin/' . $this->settings['page'] );
 		} else {
 			$settings_url = admin_url( $this->settings['page'] );
 		}
