@@ -1373,7 +1373,7 @@ class Zero_Spam {
 		}
 
 		// Gravity Forms support.
-		add_filter( 'gform_validation', array( &$this, 'gform_validation' ) );
+		add_filter( 'gform_entry_is_spam', array( &$this, 'gform_entry_is_spam' ), 10, 3 );
 	}
 
 	/**
@@ -1622,21 +1622,21 @@ class Zero_Spam {
 	/**
 	 * Validate Gravity Form submissions.
 	 *
-	 * @since 1.5.0
+	 * @since 1.5.3
 	 *
-	 * @link http://www.gravityhelp.com/documentation/page/Gform_validation
+	 * @link https://github.com/bmarshall511/wordpress-zero-spam/issues/101
 	 */
-	public function gform_validation( $result ) {
+	public function gform_entry_is_spam( $is_spam, $form, $entry ) {
 		if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
 
 			do_action( 'zero_spam_found_spam_gf_form_submission' );
 
-			$result['is_valid'] = false;
+			$is_spam = true;
 
 			$this->_log_spam( 'gf' );
 		}
 
-		return $result;
+		return $is_spam;
 	}
 
 	/**
