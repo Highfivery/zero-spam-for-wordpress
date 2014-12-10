@@ -3,8 +3,8 @@ Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
-Tested up to: 4.0.0
-Stable tag: 1.5.2
+Tested up to: 4.0.1
+Stable tag: 1.5.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -85,6 +85,9 @@ Yes! Thanks to @afragen. When using with multisite the plugin may be network act
 == Screenshots ==
 
 == Changelog ==
+
+= 1.5.3 =
+* Fixed Gravity Form issues (https://github.com/bmarshall511/wordpress-zero-spam/issues/101)
 
 = 1.5.2 =
 * Added IP location service (https://github.com/bmarshall511/wordpress-zero-spam/issues/84)

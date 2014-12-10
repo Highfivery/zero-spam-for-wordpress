@@ -290,9 +290,9 @@ class Zero_Spam {
 
 		if ( 1 != $page ) {
 			if ( 2 != $page ) {
-				$pre_html = '<li><a href="' . admin_url( $this->settings['page'] . '?page=zerospam&tab=' . $tab . '&p=1' ) . '"><i class="fa fa-angle-double-left"></i></a>';
+				$pre_html = '<li><a href="' . $this->_admin_url() . '?page=zerospam&tab=' . $tab . '&p=1"><i class="fa fa-angle-double-left"></i></a>';
 			}
-			$pre_html .= '<li><a href="' . admin_url( $this->settings['page'] . '?page=zerospam&tab=' . $tab . '&p=' . ( $page - 1 ) ) . '"><i class="fa fa-angle-left"></i></a>';
+			$pre_html .= '<li><a href="' . $this->_admin_url() . '?page=zerospam&tab=' . $tab . '&p=' . ( $page - 1 ) . '"><i class="fa fa-angle-left"></i></a>';
 		}
 
 		echo '<ul class="zero-spam__pager">';
@@ -305,16 +305,10 @@ class Zero_Spam {
 				break;
 			}
 
-			if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
-				$settings_url = network_admin_url( $this->settings['page'] );
-			} else {
-				$settings_url = admin_url( $this->settings['page'] );
-			}
-
 			if ( $num_pages != $page ) {
-				$post_html = '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=' . ( $page + 1 ) . '"><i class="fa fa-angle-right"></i></a>';
+				$post_html = '<li><a href="' . $this->_admin_url() . '?page=zerospam&tab=' . $tab . '&p=' . ( $page + 1 ) . '"><i class="fa fa-angle-right"></i></a>';
 				if ( ( $page + 1 ) != $num_pages ) {
-					$post_html .= '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=1"><i class="fa fa-angle-double-right"></i></a>';
+					$post_html .= '<li><a href="' . $this->_admin_url() . '?page=zerospam&tab=' . $tab . '&p=1"><i class="fa fa-angle-double-right"></i></a>';
 				}
 			}
 
@@ -322,7 +316,7 @@ class Zero_Spam {
 			if ( $page == $i ) {
 				$class = ' class="zero-spam__page-selected"';
 			}
-			echo '<li><a href="' . $settings_url . '?page=zerospam&tab=' . $tab . '&p=' . $i . '"' . $class . '>' . $i . '</a>';
+			echo '<li><a href="' . $this->_admin_url() . '?page=zerospam&tab=' . $tab . '&p=' . $i . '"' . $class . '>' . $i . '</a>';
 		}
 
 		if( isset( $post_html ) ) {
@@ -746,7 +740,7 @@ class Zero_Spam {
 			<input type="checkbox" id="gf_support" name="zerospam_general_settings[ip_location_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['ip_location_support'] ) ) : checked( $this->settings['zerospam_general_settings']['ip_location_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
 			<p class="description">
 				<?php echo __( 'IP location data provided by', 'zerospam' ); ?> <a href="http://freegeoip.net/" target="_blank">freegeoip.net</a>. <?php echo __( 'API usage is limited to 10,000 queries per hour.', 'zerospam' ); ?><br>
-				<?php echo __( 'Disable this option if you experience slow load times on the', 'zerospam' ); ?> <a href="<?php echo admin_url( $this->settings['page'] . '?page=zerospam&tab=zerospam_spammer_logs'); ?>"><?php echo __( 'Spammer Log', 'zerospam' ); ?></a> <?php echo __( 'page', 'zerospam' ); ?>.
+				<?php echo __( 'Disable this option if you experience slow load times on the', 'zerospam' ); ?> <a href="<?php echo $this->_admin_url() . '?page=zerospam&tab=zerospam_spammer_logs'; ?>"><?php echo __( 'Spammer Log', 'zerospam' ); ?></a> <?php echo __( 'page', 'zerospam' ); ?>.
 			</p>
 		</label>
 		<?php
@@ -850,12 +844,7 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/plugin_action_links_(plugin_file_name)
 	 */
 	public function plugin_action_links( $links ) {
-		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
-			$settings_url = network_admin_url( $this->settings['page'] );
-		} else {
-			$settings_url = admin_url( $this->settings['page'] );
-		}
-		$link = array( '<a href="' . $settings_url . '?page=zerospam">' . __( 'Settings', 'zerospam' ) . '</a>' );
+		$link = array( '<a href="' . $this->_admin_url() . '?page=zerospam">' . __( 'Settings', 'zerospam' ) . '</a>' );
 
 		return array_merge( $links, $link );
 	}
@@ -1292,8 +1281,6 @@ class Zero_Spam {
 			$saved_settings = (array) get_option( 'zerospam_general_settings' );
 		}
 
-
-
 		$this->settings['zerospam_general_settings'] = array_merge(
 			$default_settings,
 			$saved_settings
@@ -1386,7 +1373,7 @@ class Zero_Spam {
 		}
 
 		// Gravity Forms support.
-		add_filter( 'gform_validation', array( &$this, 'gform_validation' ) );
+		add_filter( 'gform_entry_is_spam', array( &$this, 'gform_entry_is_spam' ), 10, 3 );
 	}
 
 	/**
@@ -1635,21 +1622,21 @@ class Zero_Spam {
 	/**
 	 * Validate Gravity Form submissions.
 	 *
-	 * @since 1.5.0
+	 * @since 1.5.3
 	 *
-	 * @link http://www.gravityhelp.com/documentation/page/Gform_validation
+	 * @link https://github.com/bmarshall511/wordpress-zero-spam/issues/101
 	 */
-	public function gform_validation( $result ) {
+	public function gform_entry_is_spam( $is_spam, $form, $entry ) {
 		if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
 
 			do_action( 'zero_spam_found_spam_gf_form_submission' );
 
-			$result['is_valid'] = false;
+			$is_spam = true;
 
 			$this->_log_spam( 'gf' );
 		}
 
-		return $result;
+		return $is_spam;
 	}
 
 	/**
@@ -1979,6 +1966,23 @@ class Zero_Spam {
 			network_admin_url( 'settings.php' )
 		) );
 		exit;
+	}
+
+	/**
+	 * Return proper admin_url for settings page.
+	 *
+	 * @return string|void
+	 */
+	private function _admin_url() {
+		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+			$settings_url = network_admin_url( $this->settings['page'] );
+		} else if ( home_url() != site_url() ) {
+			$settings_url = home_url( '/wp-admin/' . $this->settings['page'] );
+		} else {
+			$settings_url = admin_url( $this->settings['page'] );
+		}
+
+		return $settings_url;
 	}
 
 }
