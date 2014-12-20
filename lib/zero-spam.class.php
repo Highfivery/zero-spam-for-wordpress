@@ -599,6 +599,8 @@ class Zero_Spam {
 		<label for="log_spammers">
 			<input type="checkbox" id="log_spammers" name="zerospam_general_settings[log_spammers]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) ) : checked( $this->settings['zerospam_general_settings']['log_spammers'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
 		</label>
+
+		<p class="description"><?php echo __( 'If you are using CloudFlare, disable this option. Follow <a href="https://wphuman.com/blocking-spam-zero-spam/">this guide</a> to let CloudFlare blacklist spammers.', 'zerospam' ); ?>
 		<?php
 	}
 
