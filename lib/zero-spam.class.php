@@ -1734,11 +1734,13 @@ class Zero_Spam {
 		if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
 			do_action( 'zero_spam_found_spam_cf7_form_submission' );
 
-			$result['valid']               = false;
-			$result['reason']['zero_spam'] = __( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'], 'zerospam' );
+			// Temp. fix for the following issue: http://contactform7.com/2015/01/06/contact-form-7-41-beta/
+			echo __( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'], 'zerospam' );
 
 			$this->_log_spam( 'cf7' );
+			die();
 		}
+
 		return $result;
 	}
 
