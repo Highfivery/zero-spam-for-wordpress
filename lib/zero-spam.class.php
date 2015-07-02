@@ -1373,8 +1373,28 @@ class Zero_Spam {
 		}
 
 		// Gravity Forms support.
-		add_filter( 'gform_entry_is_spam', array( &$this, 'gform_entry_is_spam' ), 10, 3 );
+    add_action( 'gform_pre_submission', array( $this, 'gform_pre_submission' ) );
 	}
+
+  /**
+   * Validate Gravity Form submissions.
+   *
+   * @since 1.6.0
+   *
+   * @link https://www.gravityhelp.com/documentation/article/gform_pre_submission/
+   */
+  public function gform_pre_submission( $form ) {
+    if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
+
+      do_action( 'zero_spam_found_spam_gf_form_submission' );
+
+      $is_spam = true;
+
+      $this->_log_spam( 'gf' );
+
+      die( __( $this->settings['zerospam_general_settings']['spammer_msg_comment'], 'zerospam' ) );
+    }
+  }
 
 	/**
 	 * Uses wp_ajax_(action).
@@ -1620,26 +1640,6 @@ class Zero_Spam {
 	}
 
 	/**
-	 * Validate Gravity Form submissions.
-	 *
-	 * @since 1.5.3
-	 *
-	 * @link https://github.com/bmarshall511/wordpress-zero-spam/issues/101
-	 */
-	public function gform_entry_is_spam( $is_spam, $form, $entry ) {
-		if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
-
-			do_action( 'zero_spam_found_spam_gf_form_submission' );
-
-			$is_spam = true;
-
-			$this->_log_spam( 'gf' );
-		}
-
-		return $is_spam;
-	}
-
-	/**
 	 * Preprocess comment fields.
 	 *
 	 * An action hook that is applied to the comment data prior to any other processing of the
@@ -1650,25 +1650,20 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Plugin_API/Filter_Reference/preprocess_comment
 	 */
 	public function preprocess_comment( $commentdata ) {
-		$valid = false;
+    if (
+      ( is_user_logged_in() && current_user_can( 'moderate_comments' ) ) ||
+      ( ! empty( $_POST['zerospam_key'] ) && $_POST['zerospam_key'] == $this->_get_key() )
+    ) {
+      return $commentdata;
+    }
 
-		if ( is_user_logged_in() && current_user_can( 'moderate_comments' ) ) {
-			$valid = true;
-		} elseif( isset( $_POST['zerospam_key'] ) ) {
-			$valid = true;
-		}
+    do_action( 'zero_spam_found_spam_comment', $commentdata );
 
-		if( ! $valid ) {
-			do_action( 'zero_spam_found_spam_comment', $commentdata );
+    if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
+      $this->_log_spam( 'comment' );
+    }
 
-			if ( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) && ( '1' == $this->settings['zerospam_general_settings']['log_spammers'] ) ) {
-				$this->_log_spam( 'comment' );
-			}
-
-			die( __( $this->settings['zerospam_general_settings']['spammer_msg_comment'], 'zerospam' ) );
-		}
-
-		return $commentdata;
+    die( __( $this->settings['zerospam_general_settings']['spammer_msg_comment'], 'zerospam' ) );
 	}
 
 	/**
@@ -1734,11 +1729,13 @@ class Zero_Spam {
 		if ( ! isset( $_POST['zerospam_key'] ) || ( $_POST['zerospam_key'] != $this->_get_key() ) ) {
 			do_action( 'zero_spam_found_spam_cf7_form_submission' );
 
-			$result['valid']               = false;
-			$result['reason']['zero_spam'] = __( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'], 'zerospam' );
+			// Temp. fix for the following issue: http://contactform7.com/2015/01/06/contact-form-7-41-beta/
+			echo __( $this->settings['zerospam_general_settings']['spammer_msg_contact_form_7'], 'zerospam' );
 
 			$this->_log_spam( 'cf7' );
+			die();
 		}
+
 		return $result;
 	}
 
@@ -1752,11 +1749,7 @@ class Zero_Spam {
 	 * @link http://codex.wordpress.org/Function_Reference/wp_enqueue_script
 	 */
 	public function wp_enqueue_scripts() {
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			wp_register_script( 'zero-spam', plugins_url( '/build/js-dev/zero-spam.js' , ZEROSPAM_PLUGIN ), array( 'jquery' ), '1.1.0', true );
-		} else {
-			wp_register_script( 'zero-spam', plugins_url( '/build/js/zero-spam.min.js' , ZEROSPAM_PLUGIN ), array( 'jquery' ), '1.1.0', true );
-		}
+		wp_register_script( 'zero-spam', plugins_url( '/build/js/zero-spam.js' , ZEROSPAM_PLUGIN ), array( 'jquery' ), '1.1.0', true );
 		wp_localize_script( 'zero-spam', 'zerospam', array( 'key' => $this->_get_key() ) );
 		wp_enqueue_script( 'zero-spam' );
 	}

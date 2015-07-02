@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 4.0.1
-Stable tag: 1.5.3
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -85,6 +85,13 @@ Yes! Thanks to @afragen. When using with multisite the plugin may be network act
 == Screenshots ==
 
 == Changelog ==
+
+= 1.6.0 =
+* Made minor modification on how spam comments are detected. Tested & verified working as expected.
+* Changed how Gravity Forms spam is detected. Needs to be tested & verified.
+
+= 1.5.4 =
+* Fixed issue with CF7 validation in the latest version - 4.1 (https://wordpress.org/support/topic/contact-form-7-version-41-no-longer-prevents-spam-using-wp-zero-spam?replies=4)
 
 = 1.5.3 =
 * Fixed Gravity Form issues (https://github.com/bmarshall511/wordpress-zero-spam/issues/101)
