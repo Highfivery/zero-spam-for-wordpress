@@ -82,6 +82,10 @@ Yes! Thanks to @shazahm1.
 
 Yes! Thanks to @afragen. When using with multisite the plugin may be network activated or used individual sub sites.
 
+= Can I blacklist spammy IPs to CloudFlare? =
+
+Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](https://wphuman.com/blocking-spam-zero-spam/).
+
 == Screenshots ==
 
 == Changelog ==
