@@ -13,15 +13,14 @@
 ( function( $ ) {
     'use strict';
 
-    var forms = "#commentform";
+    var forms = "#contactform";
     forms += ", #registerform";
     forms += ", .wpcf7-form";
     forms += ", .gform_wrapper form";
     forms += ", #buddypress #signup_form";
 
     if ( typeof zerospam.key != 'undefined') {
-      $( forms ).submit( function() {
-      	console.log(3);
+      $( forms ).on( 'submit', function() {
           $( "<input>" ).attr( "type", "hidden" )
               .attr( "name", "zerospam_key" )
               .attr( "value", zerospam.key )
