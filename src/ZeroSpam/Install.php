@@ -1,6 +1,10 @@
 <?php
-class ZeroSpam_Install {
+class ZeroSpam_Install extends ZeroSpam_Plugin {
   public $db_version = '2.0';
+
+  public function __construct() {
+    parent::__construct();
+  }
 
   public function run() {
     // Called when the plugin is activated.
