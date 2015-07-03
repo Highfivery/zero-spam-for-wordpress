@@ -8,9 +8,19 @@ class ZeroSpam_Install extends ZeroSpam_Plugin {
 
   public function run() {
     // Called when the plugin is activated.
-    register_activation_hook( __FILE__, array( $this, 'install' ) );
+    register_activation_hook( __FILE__, array( $this, 'activate' ) );
 
     add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
+  }
+
+  public function activate() {
+    $this->install();
+
+    if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+      update_site_option( 'zerospam_general_settings', $this->default_settings );
+    } else {
+      update_option( 'zerospam_general_settings', $this->default_settings );
+    }
   }
 
   /**
