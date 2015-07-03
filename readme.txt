@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 4.0.1
-Stable tag: 1.6.2
+Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,6 +25,7 @@ Major features in WordPress Zero Spam include:
 * **Blocks spam registrations & comments** with the use of JavaScript
 * **Contact Form 7 support** if installed and activated
 * **Gravity Form support** if installed and activated
+* **Ninja Forms support** if installed and activated
 * **BuddyPress support** if installed and activated
 * **Supports caching plugins** to help provide great performance
 * **Blocks spammy IPs** from ever seeing your site
@@ -40,6 +41,31 @@ If you have suggestions for a new add-on, feel free to email me at me@benmarshal
 
 1. Upload the `zero-spam` folder to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
+
+= Theme Integration =
+
+You can integrate WordPress Zero Spam with any theme or plugin. Just add the class `zerospam` to a `form` element and the following at the beginning of your validation function:
+
+```
+<?php
+if ( zerospam_is_valid() ) {
+  // Valid form submission.
+} else {
+  // Invalid form submission.
+  zerospam_log_spam( 'My Custom Form', 'http://www.myurl.com/custom-form' );
+}
+```
+
+* `zerospam_settings()` - Returns an array with the plugin settings
+* `zerospam_get_key()` - Returns the form key
+* `zerospam_is_valid()` - Check's if a form submission is valid
+* `zerospam_get_ip()` - Get's the current user's IP address
+* `zerospam_log_spam( $key, $url )` - Log a spam submission to the database
+* `zerospam_is_blocked( $ip )` - Checks if an IP is blocked
+* `zerospam_get_blocked_ip( $ip )` - Get a blocked IP's info
+* `zerospam_block_ip( $args )` - Block a IP address.
+
+For more information, see the plugin `helpers.php` file.
 
 == Frequently Asked Questions ==
 
@@ -61,6 +87,7 @@ Yes, see below:
 * `zero_spam_found_spam_gf_form_submission` - Runs after a spam Gravity Form submission is detected
 * `zero_spam_ip_blocked` - Runs after a blocked IP attempts to visit the site
 * `zero_spam_found_spam_buddypress_registration` - Runs when a BuddyPress spam registration is detected
+* `zero_spam_found_spam_nf_form_submission` - Runs when a Ninja Forms submission is detected
 
 = Does this plugin support Contact Form 7 forms? =
 
@@ -89,6 +116,11 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 == Screenshots ==
 
 == Changelog ==
+
+= 2.0.0 =
+* Added CloudFlare instructions (https://github.com/bmarshall511/wordpress-zero-spam/pull/107)
+* Added ability to integrate with any theme or plugin (https://github.com/bmarshall511/wordpress-zero-spam/issues/116)
+* Added support for Ninja Forms (https://github.com/bmarshall511/wordpress-zero-spam/issues/114)
 
 = 1.6.0 =
 * Made minor modification on how spam comments are detected. Tested & verified working as expected.

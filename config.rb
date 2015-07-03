@@ -2,7 +2,7 @@
 
 # Set this to the root of your project when deployed:
 http_path = (environment == :production ? "../" : "../")
-css_dir = (environment == :production ? "build/css" : "build/css-dev")
+css_dir = (environment == :production ? "build/css" : "build/css")
 sass_dir = "src/scss"
 images_dir = (environment == :production ? "img" : "img-dev")
 javascripts_dir = (environment == :production ? "build/css" : "build/js-dev")

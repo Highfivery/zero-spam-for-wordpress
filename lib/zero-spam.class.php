@@ -44,7 +44,7 @@ class Zero_Spam {
 	private $settings = array(
 		'zerospam_general_settings' => array(),
 		'page'                      => 'options-general.php',
-		'db_version'                => '0.0.2',
+		'db_version'                => '2.0',
 		'img_dir'                   => 'img',
 		'tabs'                      => array(
 			'zerospam_general_settings' => 'General Settings',
@@ -53,7 +53,8 @@ class Zero_Spam {
 		'plugins'                   => array(
 			'cf7' => false,
 			'gf'  => false,
-			'bp'  => false
+			'bp'  => false,
+      'nf'  => false
 		)
 	);
 
@@ -126,6 +127,11 @@ class Zero_Spam {
 		) {
 			$this->settings['tabs']['zerospam_spammer_logs'] = 'Spammer Log';
 		}
+
+    // Ninja Forms support.
+    if ( isset( $this->settings['zerospam_general_settings']['nf_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['nf_support'] ) ) {
+      add_action( 'ninja_forms_process', array( $this, 'ninja_forms_process' ) );
+    }
 	}
 
 	/**
@@ -180,15 +186,13 @@ class Zero_Spam {
 			return false;
 		}
 
+    wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css/style.css', ZEROSPAM_PLUGIN ) );
+
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 			$this->settings['img_dir'] = 'img-dev';
-
-			wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css-dev/style.css', ZEROSPAM_PLUGIN ) );
 			wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js-dev/charts.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
 		} else {
 			$this->settings['img_dir'] = 'img';
-
-			wp_enqueue_style( 'zerospam-admin', plugins_url( 'build/css/style.css', ZEROSPAM_PLUGIN ) );
 			wp_enqueue_script( 'zerospam-charts', plugins_url( 'build/js/charts.min.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
 		}
 	}
@@ -357,6 +361,11 @@ class Zero_Spam {
 		 if ( function_exists( 'bp_is_active' ) ) {
 			$this->settings['plugins']['bp'] = true;
 		}
+
+    // Ninja Forms support.
+     if ( is_plugin_active( 'ninja-forms/ninja-forms.php' ) ) {
+      $this->settings['plugins']['nf'] = true;
+    }
 	}
 
 	/**
@@ -445,6 +454,7 @@ class Zero_Spam {
 			'cf7_spam'             => 0,
 			'gf_spam'              => 0,
 			'bp_registration_spam' => 0,
+      'nf_spam'              => 0,
 			'unique_spammers'      => array(),
 			'by_day'               => array(
 				'Sun' => 0,
@@ -469,7 +479,8 @@ class Zero_Spam {
 					'registration_spam'    => 0,
 					'cf7_spam'             => 0,
 					'gf_spam'              => 0,
-					'bp_registration_spam' => 0
+					'bp_registration_spam' => 0,
+          'nf_spam'              => 0
 				);
 			}
 
@@ -513,7 +524,18 @@ class Zero_Spam {
 				// BuddyPress spam.
 				$return['by_date'][ substr( $obj->date, 0, 10 ) ]['bp_registration_spam']++;
 				$return['bp_registration_spam']++;
-			}
+      } elseif ( 6 == $obj->type ) {
+
+        // Ninja Form spam.
+        $return['by_date'][ substr( $obj->date, 0, 10 ) ]['nf_spam']++;
+        $return['nf_spam']++;
+			} else {
+        if ( empty(  $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] ) )  $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] = 0;
+        $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type]++;
+
+        if ( empty( $return[$obj->type] ) ) $return[$obj->type] = 0;
+        $return[$obj->type]++;
+      }
 
 			// Unique spammers
 			if ( ! in_array( $obj->ip, $return['unique_spammers'] ) ) {
@@ -600,7 +622,7 @@ class Zero_Spam {
 			<input type="checkbox" id="log_spammers" name="zerospam_general_settings[log_spammers]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['log_spammers'] ) ) : checked( $this->settings['zerospam_general_settings']['log_spammers'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
 		</label>
 
-		<p class="description"><?php echo __( 'If you are using CloudFlare, disable this option. Follow <a href="https://wphuman.com/blocking-spam-zero-spam/">this guide</a> to let CloudFlare blacklist spammers.', 'zerospam' ); ?>
+		<p class="description"><?php echo __( 'If you are using CloudFlare, disable this option. Follow <a href="https://wphuman.com/blocking-spam-zero-spam/" target="_blank">this guide</a> to let CloudFlare blacklist spammers.', 'zerospam' ); ?>
 		<?php
 	}
 
@@ -619,6 +641,22 @@ class Zero_Spam {
 		</label>
 		<?php
 	}
+
+  /**
+   * Spam Ninja Forms message option.
+   *
+   * Field callback, renders a text input, note the name and value.
+   *
+   * @since 2.0.0
+   */
+  public function field_spammer_msg_nf() {
+    ?>
+    <label for="spammer_msg_nf">
+      <input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_nf]" value="<?php echo esc_attr( $this->settings['zerospam_general_settings']['spammer_msg_nf'] ); ?>">
+    <p class="description"><?php echo __( 'Enter a short message to display when a spam Ninja Form has been submitted.', 'zerospam' ); ?></p>
+    </label>
+    <?php
+  }
 
 	/**
 	 * Blocked IP message option.
@@ -778,6 +816,21 @@ class Zero_Spam {
 		<?php
 	}
 
+  /**
+   * Ninja Forms support option.
+   *
+   * Field callback, renders a checkbox input, note the name and value.
+   *
+   * @since 2.0.0
+   */
+  public function field_nf_support() {
+    ?>
+    <label for="nf_support">
+      <input type="checkbox" id="nf_support" name="zerospam_general_settings[nf_support]" value="1" <?php if( isset( $this->settings['zerospam_general_settings']['nf_support'] ) ) : checked( $this->settings['zerospam_general_settings']['nf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+    </label>
+    <?php
+  }
+
 	/**
 	 * Returns spammer array from DB
 	 *
@@ -880,97 +933,85 @@ class Zero_Spam {
 	public function install() {
 		global $wpdb;
 
-		$log_table_name = $wpdb->prefix . 'zerospam_log';
-		$ip_table_name  = $wpdb->prefix . 'zerospam_blocked_ips';
-		$ip_data_table_name  = $wpdb->prefix . 'zerospam_ip_data';
+    $log_table_name     = $wpdb->prefix . 'zerospam_log';
+    $ip_table_name      = $wpdb->prefix . 'zerospam_blocked_ips';
+    $ip_data_table_name = $wpdb->prefix . 'zerospam_ip_data';
 
-		/*
-		 * We'll set the default character set and collation for this table.
-		 * If we don't do this, some characters could end up being converted
-		 * to just ?'s when saved in our table.
-		 */
-		$charset_collate = '';
+    $current_version = get_option( 'zerospam_db_version' );
 
-		if ( ! empty( $wpdb->charset ) ) {
-			$charset_collate = "DEFAULT CHARACTER SET {$wpdb->charset}";
-		}
+    if ( empty( $current_version ) ) {
+      /*
+       * We'll set the default character set and collation for this table.
+       * If we don't do this, some characters could end up being converted
+       * to just ?'s when saved in our table.
+       */
+      $charset_collate = '';
 
-		if ( ! empty( $wpdb->collate ) ) {
-			$charset_collate .= " COLLATE {$wpdb->collate}";
-		}
+      if ( ! empty( $wpdb->charset ) ) {
+        $charset_collate = "DEFAULT CHARACTER SET {$wpdb->charset}";
+      }
 
-		$sql = false;
+      if ( ! empty( $wpdb->collate ) ) {
+        $charset_collate .= " COLLATE {$wpdb->collate}";
+      }
 
-		if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name ) {
-			$sql = "CREATE TABLE $log_table_name (
-				zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
-				type int(1) unsigned NOT NULL,
-				ip varchar(15) NOT NULL,
-				date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-				page varchar(255) DEFAULT NULL,
-				PRIMARY KEY  (zerospam_id),
-				KEY type (type)
-			) $charset_collate;";
-		}
+      $sql = false;
 
-		if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
-			$sql .= "CREATE TABLE $ip_table_name (
-			zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
-			ip varchar(15) NOT NULL,
-			type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
-			start_date datetime DEFAULT NULL,
-			end_date datetime DEFAULT NULL,
-			reason varchar(255) DEFAULT NULL,
-			PRIMARY KEY  (zerospam_ip_id),
-			UNIQUE KEY ip (ip)
-		) $charset_collate;";
-		}
+      // Check for the log table.
+      if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name ) {
+        $sql = "CREATE TABLE $log_table_name (
+          zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
+          type varchar(255) NOT NULL DEFAULT 'Undefined Form',
+          ip varchar(15) NOT NULL,
+          date timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          page varchar(255) DEFAULT NULL,
+          PRIMARY KEY  (zerospam_id),
+          KEY type (type)
+        ) $charset_collate;";
+      }
 
-		// 0.1.0 Update
-		if ( get_option( 'zerospam_db_version' ) == '0.0.1' ) {
-			if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_data_table_name . '\'' ) != $ip_data_table_name ) {
-				$sql .= "CREATE TABLE $ip_data_table_name (
-				ip_data_id int(10) unsigned NOT NULL AUTO_INCREMENT,
-				ip varchar(15) NOT NULL,
-				country_code varchar(2) DEFAULT NULL,
-				country_name varchar(255) DEFAULT NULL,
-				region_code varchar(2) DEFAULT NULL,
-				region_name varchar(255) DEFAULT NULL,
-				city varchar(255) DEFAULT NULL,
-				zipcode varchar(10) DEFAULT NULL,
-				latitude float DEFAULT NULL,
-				longitude float DEFAULT NULL,
-				metro_code int(11) DEFAULT NULL,
-				area_code int(11) DEFAULT NULL,
-				PRIMARY KEY  (ip_data_id),
-				UNIQUE KEY ip (ip)
-				) $charset_collate;";
-			}
-		}
+      // Check for the IP table.
+      if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $ip_table_name . '\'' ) != $ip_table_name ) {
+        $sql .= "CREATE TABLE $ip_table_name (
+        zerospam_ip_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
+        ip varchar(15) NOT NULL,
+        type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
+        start_date datetime DEFAULT NULL,
+        end_date datetime DEFAULT NULL,
+        reason varchar(255) DEFAULT NULL,
+        PRIMARY KEY  (zerospam_ip_id),
+        UNIQUE KEY ip (ip)
+      ) $charset_collate;";
+      }
 
-		if ( $sql ) {
-			require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-			dbDelta( $sql );
-		}
+      if ( $sql ) {
+        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        dbDelta( $sql );
+      }
 
-		update_option( 'zerospam_db_version', $this->settings['db_version'] );
+      $options = (array) $this->settings['zerospam_general_settings'];
+      $options['registration_support'] = 1;
+      $options['comment_support']      = 1;
+      $options['log_spammers']         = 1;
+      $options['wp_generator']         = 1;
+      $options['cf7_support']          = 1;
+      $options['gf_support']           = 1;
+      $options['bp_support']           = 1;
+      $options['nf_support']           = 1;
+      $options['ip_location_support']  = 1;
 
-		$options = (array) $this->settings['zerospam_general_settings'];
-		$options['registration_support'] = 1;
-		$options['comment_support']      = 1;
-		$options['log_spammers']         = 1;
-		$options['wp_generator']         = 1;
-		$options['cf7_support']          = 1;
-		$options['gf_support']           = 1;
-		$options['bp_support']           = 1;
-		$options['ip_location_support']  = 1;
+      if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+        update_site_option( 'zerospam_general_settings', $options );
+      } else {
+        update_option( 'zerospam_general_settings', $options );
+      }
+    } elseif ( $current_version != $this->settings['db_version'] ) {
+      if ( version_compare( '2.0', $current_version ) ) {
+        $wpdb->query( "ALTER TABLE `$log_table_name` CHANGE `type` `type` VARCHAR(255) NOT NULL DEFAULT 'Undefined Form';" );
+      }
 
-		if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
-			update_site_option( 'zerospam_general_settings', $options );
-		} else {
-			update_option( 'zerospam_general_settings', $options );
-		}
-
+      update_option( 'zerospam_db_version', $this->settings['db_version'] );
+    }
 	}
 
 	/**
@@ -1035,6 +1076,15 @@ class Zero_Spam {
 				add_settings_field( 'spammer_msg_bp', __( 'BuddyPress Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_bp' ), 'zerospam_general_settings', 'section_messages' );
 			}
 		}
+
+    // Ninja Forms support.
+    if ( $this->settings['plugins']['nf'] ) {
+      add_settings_field( 'nf_support', __( 'Ninja Forms Support', 'zerospam' ), array( &$this, 'field_nf_support' ), 'zerospam_general_settings', 'section_general' );
+
+      if ( isset( $this->settings['zerospam_general_settings']['nf_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['nf_support'] ) ) {
+        add_settings_field( 'spammer_msg_nf', __( 'Ninja Forms Spam Message', 'zerospam' ), array( &$this, 'field_spammer_msg_nf' ), 'zerospam_general_settings', 'section_messages' );
+      }
+    }
 	}
 
 	/**
@@ -1080,6 +1130,9 @@ class Zero_Spam {
 			case 'buddypress-registration':
 				$type = 5;
 				break;
+      case 'nf':
+        $type = 6;
+        break;
 		}
 
 		$wpdb->insert( $table_name, array(
@@ -1263,6 +1316,7 @@ class Zero_Spam {
 			'spammer_msg_registration'    => '<strong>ERROR</strong>: There was a problem processing your registration.',
 			'spammer_msg_contact_form_7'  => 'There was a problem processing your comment.',
 			'spammer_msg_bp'              => 'There was a problem processing your registration.',
+      'spammer_msg_nf'              => 'There was a problem processing your submission.',
 			'blocked_ip_msg'              => 'Access denied.'
 		);
 
@@ -1350,6 +1404,11 @@ class Zero_Spam {
 		if ( isset( $this->settings['zerospam_general_settings']['wp_generator'] ) && ( '1' == $this->settings['zerospam_general_settings']['wp_generator'] ) ) {
 			remove_action( 'wp_head', 'wp_generator' );
 		}
+
+    // Gravity Forms support.
+    if ( isset( $this->settings['zerospam_general_settings']['gf_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['gf_support'] ) ) {
+      add_action( 'gform_pre_submission', array( $this, 'gform_pre_submission' ) );
+    }
 	}
 
 	/**
@@ -1373,9 +1432,6 @@ class Zero_Spam {
 		if ( isset( $this->settings['zerospam_general_settings']['registration_support'] ) && ( '1' == $this->settings['zerospam_general_settings']['registration_support'] ) ) {
 			add_filter( 'registration_errors', array( &$this, 'preprocess_registration' ), 10, 3 );
 		}
-
-		// Gravity Forms support.
-    add_action( 'gform_pre_submission', array( $this, 'gform_pre_submission' ) );
 	}
 
   /**
@@ -1635,7 +1691,7 @@ class Zero_Spam {
 	 */
 	public function plugin_row_meta( $links, $file ) {
 		if ( false !== strpos( $file, 'zero-spam.php' ) ) {
-			$links = array_merge( $links, array( '<a href="http://www.benmarshall.me/wordpress-zero-spam-plugin/">WordPress Zero Spam</a>' ) );
+			$links = array_merge( $links, array( '<a href="https://benmarshall.me/wordpress-zero-spam-plugin/">WordPress Zero Spam</a>' ) );
 			$links = array_merge( $links, array( '<a href="https://www.gittip.com/bmarshall511/">Donate</a>' ) );
 		}
 		return $links;
@@ -1717,7 +1773,7 @@ class Zero_Spam {
 		return $errors;
 	}
 
-	 /**
+	/**
 	 * Validate Contact Form 7 form submissions.
 	 *
 	 * Validates the Contact Form 7 (https://wordpress.org/plugins/contact-form-7/)
@@ -1740,6 +1796,29 @@ class Zero_Spam {
 
 		return $result;
 	}
+
+  /**
+   * Validate Ninja Forms submissions.
+   *
+   * Validates the Ninja Forms (https://wordpress.org/plugins/ninja-forms/)
+   * form submission, and flags the form submission as invalid if the zero-spam
+   * post data isn't present.
+   *
+   * @link http://docs.ninjaforms.com/article/105-ninjaformsprocess
+   * @since  2.0.0
+   *
+   */
+  public function ninja_forms_process() {
+    if ( ! zerospam_is_valid() ) {
+      do_action( 'zero_spam_found_spam_nf_form_submission' );
+
+      if ( ! empty( $this->settings['zerospam_general_settings']['log_spammers'] ) && $this->settings['zerospam_general_settings']['log_spammers'] )  {
+        $this->_log_spam( 'nf' );
+      }
+
+      die( __( $this->settings['zerospam_general_settings']['spammer_msg_nf'], 'zerospam' ) );
+    }
+  }
 
 	/**
 	 * Add plugin scripts.
