@@ -5,15 +5,6 @@ class ZeroSpam_Plugin implements ArrayAccess {
 
   public function __construct() {
     $this->contents = array();
-
-    $this->load_settings();
-    add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
-
-    if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
-      add_filter( 'network_admin_plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( $this, 'plugin_action_links' ) );
-    } else {
-      add_filter( 'plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( $this, 'plugin_action_links' ) );
-    }
   }
 
   /**
@@ -96,7 +87,9 @@ class ZeroSpam_Plugin implements ArrayAccess {
     return isset( $this->contents[$offset] ) ? $this->contents[$offset] : null;
   }
 
-  public function run(){
+  public function run() {
+    $this->load_settings();
+
     foreach( $this->contents as $key => $content ){ // Loop on contents
       if( is_callable($content) ){
         $content = $this[$key];
@@ -107,6 +100,14 @@ class ZeroSpam_Plugin implements ArrayAccess {
           $content->run(); // Call run method on object
         }
       }
+    }
+
+    add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
+
+    if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+      add_filter( 'network_admin_plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( $this, 'plugin_action_links' ) );
+    } else {
+      add_filter( 'plugin_action_links_' . plugin_basename( ZEROSPAM_PLUGIN ), array( $this, 'plugin_action_links' ) );
     }
   }
 }

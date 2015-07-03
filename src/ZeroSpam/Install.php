@@ -75,7 +75,7 @@ class ZeroSpam_Install {
         dbDelta( $sql );
       }
 
-      $options = (array) $this->settings['zerospam_general_settings'];
+      $options = (array) $this->settings;
       $options['registration_support'] = 1;
       $options['comment_support']      = 1;
       $options['log_spammers']         = 1;

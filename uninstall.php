@@ -73,5 +73,7 @@ if ( false != get_option( 'zerospam_db_version' ) || '' == get_option( 'zerospam
 global $wpdb;
 $log_table_name = $wpdb->prefix . 'zerospam_log';
 $ip_table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+$ip_data = $wpdb->prefix . 'zerospam_ip_data';
 $wpdb->query( "DROP TABLE IF EXISTS $log_table_name" );
 $wpdb->query( "DROP TABLE IF EXISTS $ip_table_name" );
+$wpdb->query( "DROP TABLE IF EXISTS $ip_data" );
