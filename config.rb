@@ -2,11 +2,11 @@
 
 # Set this to the root of your project when deployed:
 http_path = (environment == :production ? "../" : "../")
-css_dir = (environment == :production ? "build/css" : "build/css")
+css_dir = "css"
 sass_dir = "src/scss"
-images_dir = (environment == :production ? "img" : "img-dev")
-javascripts_dir = (environment == :production ? "build/css" : "build/js-dev")
-generated_images_dir = (environment == :production ? "build/img" : "build/img-dev")
+images_dir = "img"
+javascripts_dir = "js"
+generated_images_dir = "img"
 images_path =  "src/img"
 
 # You can select your preferred output style here (can be overridden via the command line):

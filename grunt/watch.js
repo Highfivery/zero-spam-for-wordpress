@@ -4,7 +4,7 @@ module.exports = {
         tasks: ['jshint:gruntfile']
     },
     dev: {
-        files: ['src/js/zero-spam.js', 'src/js/zero-spam-admin.js'],
+        files: ['src/js/zerospam.js', 'src/js/zero-spam-admin.js'],
         tasks: ['jshint:src', 'uglify:dev']
     },
     images: {

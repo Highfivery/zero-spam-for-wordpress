@@ -6,16 +6,16 @@ module.exports = {
           compress: false
         },
         files: {
-            'build/js/zero-spam.js': ['src/js/zero-spam.js'],
-            'build/js-dev/zero-spam-admin.js': ['src/js/zero-spam-admin.js'],
-            'build/js-dev/charts.js': ['src/js/raphael.min.js', 'src/js/morris.min.js', 'src/js/jvectormap.min.js', 'src/js/jvectormap-world-mill-en.js']
+            'js/zerospam.js': ['src/js/zerospam.js'],
+            'js/zero-spam-admin.js': ['src/js/zero-spam-admin.js'],
+            'js/charts.js': ['src/js/raphael.min.js', 'src/js/morris.min.js', 'src/js/jvectormap.min.js', 'src/js/jvectormap-world-mill-en.js']
         }
     },
     prod: {
         files: {
-            'build/js/zero-spam.js': ['src/js/zero-spam.js'],
-            'build/js/zero-spam-admin.min.js': ['src/js/zero-spam-admin.js'],
-            'build/js/charts.min.js': ['src/js/raphael.min.js', 'src/js/morris.min.js', 'src/js/jvectormap.min.js', 'src/js/jvectormap-world-mill-en.js']
+            'js/zerospam.js': ['src/js/zerospam.js'],
+            'js/zero-spam-admin.js': ['src/js/zero-spam-admin.js'],
+            'js/charts.js': ['src/js/raphael.min.js', 'src/js/morris.min.js', 'src/js/jvectormap.min.js', 'src/js/jvectormap-world-mill-en.js']
         }
     }
 };

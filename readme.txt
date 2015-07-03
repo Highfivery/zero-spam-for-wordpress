@@ -3,7 +3,7 @@ Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
-Tested up to: 4.0.1
+Tested up to: 4.2.2
 Stable tag: 2.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -30,6 +30,7 @@ Major features in WordPress Zero Spam include:
 * **Supports caching plugins** to help provide great performance
 * **Blocks spammy IPs** from ever seeing your site
 * **Extend the plugin** with action hooks
+* **Theme & Plugin integration** to add to any form
 * **Optional logging**, so you can see who's trying to spam
 * **Advanced settings** for complete control
 
@@ -121,6 +122,8 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 * Added CloudFlare instructions (https://github.com/bmarshall511/wordpress-zero-spam/pull/107)
 * Added ability to integrate with any theme or plugin (https://github.com/bmarshall511/wordpress-zero-spam/issues/116)
 * Added support for Ninja Forms (https://github.com/bmarshall511/wordpress-zero-spam/issues/114)
+* Complete rewrite of plugin code & structure
+* Added plugin icon
 
 = 1.6.0 =
 * Made minor modification on how spam comments are detected. Tested & verified working as expected.

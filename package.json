@@ -14,7 +14,8 @@
     "grunt-contrib-watch": "*",
     "grunt-shell": "*",
     "load-grunt-config": "*",
-    "grunt-contrib-copy": "*"
+    "grunt-contrib-copy": "*",
+    "grunt-contrib-imagemin": "^0.9.4"
   },
   "dependencies": {
     "time-grunt": "*"

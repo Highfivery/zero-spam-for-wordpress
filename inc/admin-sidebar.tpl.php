@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 		<i class="fa fa-star"></i></a> |
 		<b>Version:</b> <?php echo $plugin['Version']; ?> | <b><?php echo __( 'Author', 'zerospam' ); ?></b> <?php echo $plugin['Author']; ?></p>
 		<p><?php echo $plugin['Description']; ?></p>
-		<p><small>If you have suggestions for a new add-on, feel free to email me at <a href="mailto:me@benmarshall.me">me@benmarshall.me</a>. Want regular updates? Follow me on <a href="https://twitter.com/bmarshall0511" target="_blank">Twitter</a> or <a href="http://www.benmarshall.me/" target="_blank">visit my blog</a>.</small></p>
+		<p><small>If you have suggestions for a new add-on, feel free to email me at <a href="mailto:me@benmarshall.me">me@benmarshall.me</a>. Want regular updates? Follow me on <a href="https://twitter.com/bmarshall0511" target="_blank">Twitter</a> or <a href="https://benmarshall.me/" target="_blank">visit my blog</a>.</small></p>
 		<p>
 			<a href="https://www.gittip.com/bmarshall511/" class="zero-spam__button" target="_blank"><?php echo __( 'Show Support &mdash; Donate!', 'zerospam' ); ?></a>
 			<a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" class="zero-spam__button" target="_blank"><?php echo __( 'Spread the Love &mdash; Rate!', 'zerospam' ); ?></a>

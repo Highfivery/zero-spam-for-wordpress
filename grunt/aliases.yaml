@@ -1,20 +1,21 @@
 default:
     - 'jshint'
     - 'uglify:dev'
-    - 'copy:dev'
+    - 'compass:prod'
+    - 'imagemin'
     - 'concurrent:watch'
 
 prod:
     - 'jshint'
     - 'uglify:prod'
     - 'compass:prod'
-    - 'copy:prod'
+    - 'imagemin'
 
 deploy:
     - 'jshint'
     - 'uglify:prod'
     - 'compass:prod'
-    - 'copy:prod'
+    - 'imagemin'
     - 'shell'
 
 clean:
