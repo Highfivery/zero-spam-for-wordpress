@@ -14,6 +14,8 @@ class ZeroSpam_Plugin implements ArrayAccess {
 
   public function __construct() {
     $this->contents = array();
+
+    $this->load_settings();
   }
 
   /**
@@ -34,7 +36,7 @@ class ZeroSpam_Plugin implements ArrayAccess {
   public function load_settings() {
     // Merge and update new changes
     if ( isset( $_POST['zerospam_general_settings'] ) ) {
-      $saved_settings =  $_POST['zerospam_general_settings'];
+      $saved_settings = $_POST['zerospam_general_settings'];
       if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
         update_site_option( 'zerospam_general_settings', $saved_settings );
       } else {
@@ -88,8 +90,6 @@ class ZeroSpam_Plugin implements ArrayAccess {
   }
 
   public function run() {
-    $this->load_settings();
-
     foreach( $this->contents as $key => $content ){ // Loop on contents
       if( is_callable($content) ){
         $content = $this[$key];
