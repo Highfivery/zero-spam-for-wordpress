@@ -16,7 +16,6 @@
     $( function() {
       var forms = "#commentform";
       forms += ", #registerform";
-      forms += ", .wpcf7-form";
       forms += ", .gform_wrapper form";
       forms += ", #buddypress #signup_form";
       forms += ", .zerospam";
@@ -30,6 +29,14 @@
               .appendTo( forms );
 
           return true;
+        });
+
+        // Contact Form 7
+        $( ".wpcf7-submit" ).click( function() {
+          $( "<input>" ).attr( "type", "hidden" )
+              .attr( "name", "zerospam_key" )
+              .attr( "value", zerospam.key )
+              .appendTo( ".wpcf7-form" );
         });
       }
     });
