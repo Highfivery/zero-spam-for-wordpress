@@ -4,11 +4,11 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 4.2.2
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site.
+Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site. Supports Gravity Forms, Ninja Forms, BuddyPress & more!
 
 == Description ==
 
@@ -20,25 +20,30 @@ Zero Spam was initially built based on the work by <a href="http://davidwalsh.na
 
 Major features in WordPress Zero Spam include:
 
-* **No captcha**, because spam is not users' problem
-* **No moderation queues**, because spam is not administrators' problem
-* **Blocks spam registrations & comments** with the use of JavaScript
-* **Contact Form 7 support** if installed and activated
-* **Gravity Form support** if installed and activated
-* **Ninja Forms support** if installed and activated
-* **BuddyPress support** if installed and activated
+* **No captcha**, spam isn't a users' problem
+* **No moderation queues**, spam isn't a administrators' problem
+* **Blocks 99.9% of spam registrations & comments**
 * **Supports caching plugins** to help provide great performance
 * **Blocks spammy IPs** from ever seeing your site
 * **Extend the plugin** with action hooks
-* **Theme & Plugin integration** to add to any form
+* **Theme & plugin integration** for any form on your site
 * **Optional logging**, so you can see who's trying to spam
 * **Advanced settings** for complete control
+
+= Supported Plugins =
+
+* Contact Form 7
+* Gravity Form
+* Ninja Forms
+* BuddyPress
 
 **Languages:** English
 
 If you have suggestions for a new add-on, feel free to email me at me@benmarshall.me. Want regular updates? <a href="https://twitter.com/bmarshall0511">Follow me on Twitter</a> or <a href="http://www.benmarshall.me" target="_blank">visit my blog</a>.
 
 == Installation ==
+
+= Plugin Installation =
 
 1. Upload the `zero-spam` folder to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
@@ -47,26 +52,15 @@ If you have suggestions for a new add-on, feel free to email me at me@benmarshal
 
 You can integrate WordPress Zero Spam with any theme or plugin. Just add the class `zerospam` to a `form` element and the following at the beginning of your validation function:
 
-```
-<?php
-if ( zerospam_is_valid() ) {
-  // Valid form submission.
-} else {
-  // Invalid form submission.
-  zerospam_log_spam( 'My Custom Form', 'http://www.myurl.com/custom-form' );
-}
-```
+    <?php
+    if ( zerospam_is_valid() ) {
+      // Valid form submission.
+    } else {
+      // Invalid form submission.
+      zerospam_log_spam( 'My Custom Form', 'http://www.myurl.com/custom-form' );
+    }
 
-* `zerospam_settings()` - Returns an array with the plugin settings
-* `zerospam_get_key()` - Returns the form key
-* `zerospam_is_valid()` - Check's if a form submission is valid
-* `zerospam_get_ip()` - Get's the current user's IP address
-* `zerospam_log_spam( $key, $url )` - Log a spam submission to the database
-* `zerospam_is_blocked( $ip )` - Checks if an IP is blocked
-* `zerospam_get_blocked_ip( $ip )` - Get a blocked IP's info
-* `zerospam_block_ip( $args )` - Block a IP address.
-
-For more information, see the plugin `helpers.php` file.
+For more information and a full list of helpers you can use if your theme or plugin, see the `helpers.php` file.
 
 == Frequently Asked Questions ==
 
@@ -102,6 +96,10 @@ Yes! Thanks to @shazahm1.
 
 Yes!
 
+= Does this plugin support NinjaForms? =
+
+Yes!
+
 = Does this plugin work with caching plugins like W3 Total Cache? =
 
 Yes! Thanks to @shazahm1.
@@ -117,6 +115,9 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 == Screenshots ==
 
 == Changelog ==
+
+= 2.0.1 =
+* Updates to the readme file
 
 = 2.0.0 =
 * Added CloudFlare instructions (https://github.com/bmarshall511/wordpress-zero-spam/pull/107)
