@@ -8,7 +8,7 @@ Stable tag: 2.0.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site.
+Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site. Supports Gravity Forms, Ninja Forms, BuddyPress & more!
 
 == Description ==
 
