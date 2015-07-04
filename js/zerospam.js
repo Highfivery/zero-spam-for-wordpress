@@ -1,18 +1,1 @@
-(function($) {
-    "use strict";
-    $(function() {
-        var forms = "#commentform";
-        forms += ", #registerform";
-        forms += ", .wpcf7-form";
-        forms += ", .gform_wrapper form";
-        forms += ", #buddypress #signup_form";
-        forms += ", .zerospam";
-        forms += ", .ninja-forms-form";
-        if (typeof zerospam.key != "undefined") {
-            $(forms).on("submit", function() {
-                $("<input>").attr("type", "hidden").attr("name", "zerospam_key").attr("value", zerospam.key).appendTo(forms);
-                return true;
-            });
-        }
-    });
-})(jQuery);
+!function(a){"use strict";a(function(){var b="#commentform";b+=", #registerform",b+=", .wpcf7-form",b+=", .gform_wrapper form",b+=", #buddypress #signup_form",b+=", .zerospam",b+=", .ninja-forms-form","undefined"!=typeof zerospam.key&&a(b).on("submit",function(){return a("<input>").attr("type","hidden").attr("name","zerospam_key").attr("value",zerospam.key).appendTo(b),!0})})}(jQuery);
