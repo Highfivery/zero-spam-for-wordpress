@@ -3,7 +3,7 @@
  * Plugin Name: WordPress Zero Spam
  * Plugin URI: https://benmarshall.me/wordpress-zero-spam
  * Description: Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: Ben Marshall
  * Author URI: https://benmarshall.me
  * License: GPL2
