@@ -118,6 +118,7 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 
 = 2.0.1 =
 * Updates to the readme file
+* Fixed Contact Form issue forcing users to submit twice (https://github.com/bmarshall511/wordpress-zero-spam/issues/118)
 
 = 2.0.0 =
 * Added CloudFlare instructions (https://github.com/bmarshall511/wordpress-zero-spam/pull/107)
