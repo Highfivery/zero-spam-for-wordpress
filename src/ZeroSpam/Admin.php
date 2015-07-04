@@ -2,8 +2,25 @@
 class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public $tabs = array();
 
-  public function __construct() {
-    parent::__construct();
+  public function run() {
+    // Merge and update new changes
+    if ( isset( $_POST['zerospam_general_settings'] ) ) {
+      $saved_settings = array();
+      foreach ( $this->default_settings as $key => $val ) {
+        if ( ! empty( $_POST['zerospam_general_settings'][$key] ) ) {
+          $saved_settings[$key] = $_POST['zerospam_general_settings'][$key];
+        } else {
+          $saved_settings[$key] = $val;
+        }
+      }
+
+      if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
+        update_site_option( 'zerospam_general_settings', $saved_settings );
+      } else {
+        update_option( 'zerospam_general_settings', $saved_settings );
+      }
+      $this->load_settings();
+    }
 
     $this->tabs['zerospam_general_settings'] = 'General Settings';
     $this->tabs['zerospam_ip_block'] = 'Blocked IPs';
@@ -11,9 +28,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
     if ( ! empty( $this->settings['log_spammers'] ) && $this->settings['log_spammers'] ) {
       $this->tabs['zerospam_spammer_logs'] = 'Spammer Log';
     }
-  }
 
-  public function run() {
     if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
       add_action( 'network_admin_menu', array( $this, 'admin_menu' ) );
       add_action( 'network_admin_edit_zerospam', array( $this, 'update_network_setting' ) );

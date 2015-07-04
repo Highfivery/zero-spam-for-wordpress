@@ -1,9 +1,5 @@
 <?php
 class ZeroSpam_BuddyPress extends ZeroSpam_Plugin {
-  public function __construct() {
-    parent::__construct();
-  }
-
   public function run() {
     add_action( 'bp_signup_validate', array( $this, 'bp_signup_validate' ) );
   }

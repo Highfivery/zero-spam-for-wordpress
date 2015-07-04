@@ -9,7 +9,14 @@ class ZeroSpam_Plugin implements ArrayAccess {
     'spammer_msg_contact_form_7'  => 'There was a problem processing your comment.',
     'spammer_msg_bp'              => 'There was a problem processing your registration.',
     'spammer_msg_nf'              => 'There was a problem processing your submission.',
-    'blocked_ip_msg'              => 'Access denied.'
+    'blocked_ip_msg'              => 'Access denied.',
+    'wp_generator'                => 1,
+    'log_spammers'                => 1,
+    'ip_location_support'         => 1,
+    'registration_support'        => 1,
+    'cf7_support'                 => 1,
+    'nf_support'                  => 1,
+    'comment_support'             => 1
   );
 
   public function __construct() {
@@ -34,23 +41,8 @@ class ZeroSpam_Plugin implements ArrayAccess {
   }
 
   public function load_settings() {
-    // Merge and update new changes
-    if ( isset( $_POST['zerospam_general_settings'] ) ) {
-      $saved_settings = $_POST['zerospam_general_settings'];
-      if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
-        update_site_option( 'zerospam_general_settings', $saved_settings );
-      } else {
-        update_option( 'zerospam_general_settings', $saved_settings );
-      }
-    }
-
     // Retrieve the settings
-    $saved_settings = zerospam_settings();
-
-    $this->settings = array_merge(
-      $this->default_settings,
-      $saved_settings
-    );
+    $this->settings = zerospam_settings();
   }
 
   /**
@@ -64,7 +56,7 @@ class ZeroSpam_Plugin implements ArrayAccess {
    */
   public function plugin_row_meta( $links, $file ) {
     if ( false !== strpos( $file, 'zero-spam.php' ) ) {
-      $links = array_merge( $links, array( '<a href="https://benmarshall.me/wordpress-zero-spam-plugin/">WordPress Zero Spam</a>' ) );
+      $links = array_merge( $links, array( '<a href="https://benmarshall.me/wordpress-zero-spam-plugin/">Documentation</a>' ) );
       $links = array_merge( $links, array( '<a href="https://www.gittip.com/bmarshall511/">Donate</a>' ) );
     }
     return $links;

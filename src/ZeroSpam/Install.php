@@ -2,10 +2,6 @@
 class ZeroSpam_Install extends ZeroSpam_Plugin {
   public $db_version = '2.0';
 
-  public function __construct() {
-    parent::__construct();
-  }
-
   public function run() {
     // Called when the plugin is activated.
     register_activation_hook( ZEROSPAM_PLUGIN, array( $this, 'activate' ) );
@@ -105,6 +101,8 @@ class ZeroSpam_Install extends ZeroSpam_Plugin {
       } else {
         update_option( 'zerospam_general_settings', $options );
       }
+
+      update_option( 'zerospam_db_version', $this->db_version );
     } elseif ( $current_version != $this->db_version ) {
       if ( version_compare( '2.0', $current_version ) ) {
         $wpdb->query( "ALTER TABLE `$log_table_name` CHANGE `type` `type` VARCHAR(255) NOT NULL DEFAULT 'Undefined Form';" );

@@ -1,9 +1,5 @@
 <?php
 class ZeroSpam_Access extends ZeroSpam_Plugin {
-  public function __construct() {
-    parent::__construct();
-  }
-
   public function run() {
     add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
 
@@ -33,7 +29,7 @@ class ZeroSpam_Access extends ZeroSpam_Plugin {
    * @since 2.0.0
    */
   public function ip_check() {
-    if ( zerospam_is_blocked( zerospam_get_ip() ) ) {
+    if ( ! is_user_logged_in() && zerospam_is_blocked( zerospam_get_ip() ) ) {
       do_action( 'zero_spam_ip_blocked' );
       die( __( $this->settings['blocked_ip_msg'], 'zerospam' ) );
     }

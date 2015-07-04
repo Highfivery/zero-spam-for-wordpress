@@ -1,9 +1,5 @@
 <?php
 class ZeroSpam_Registration extends ZeroSpam_Plugin {
-  public function __construct() {
-    parent::__construct();
-  }
-
   public function run() {
     add_filter( 'registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
   }

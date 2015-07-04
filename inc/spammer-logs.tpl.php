@@ -131,7 +131,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 			<script>
 
 			jQuery(function() {
-  				jQuery.post( ajaxurl, {
+  			jQuery.post( ajaxurl, {
 					action: 'get_ip_spam',
 					security: '<?php echo $ajax_nonce; ?>',
 				}, function( data ) {
@@ -253,7 +253,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 							<?php echo $ip; ?> <i class="fa fa-external-link-square"></i></a></td>
 								<?php if ( $ip_location_support ): ?>
 								<td>
-									<div data-ip-location="<?php echo $ip; ?>"><i class="fa fa fa-circle-o-notch fa-spin"></i> <em><?php echo __( 'Locating...', 'zerospam' ); ?></em></div>
+									<div data-ip-location="<?php echo $ip; ?>"><i class="fa fa-search"></i></div>
 								</td>
 								<?php endif; ?>
 								<td class="zero-spam__text-right"><?php echo number_format( $count, 0 ); ?></td>
@@ -441,7 +441,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 						case 5:
 							$type = '<span class="zero-spam__label zero-spam__bg--bpr">' . __( 'BP Registration', 'zerospam' ) . '</span>';
 							break;
-            case 6:
+            case 'nf':
               $type = '<span class="zero-spam__label zero-spam__bg--nf">' . __( 'Ninja Forms', 'zerospam' ) . '</span>';
               break;
             default:
@@ -460,7 +460,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 					<td><?php echo isset( $type ) ? $type : '&mdash;'; ?></td>
 					<?php if ( $ip_location_support ): ?>
 					<td>
-						<div data-ip-location="<?php echo $obj->ip; ?>"><i class="fa fa fa-circle-o-notch fa-spin"></i> <em><?php echo __( 'Locating...', 'zerospam' ); ?></em></div>
+						<div data-ip-location="<?php echo $obj->ip; ?>"><i class="fa fa-search"></i></div>
 					</td>
 					<?php endif; ?>
 					<td>

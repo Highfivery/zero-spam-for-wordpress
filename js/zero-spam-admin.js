@@ -1,6 +1,6 @@
 jQuery(document).ready(function($) {
-    $.each($("[data-ip-location]"), function() {
-        var element = $(this), ip = $(this).data("ip-location");
+    $("[data-ip-location]").click(function() {
+        var ip = $(this).data("ip-location"), element = $("[data-ip-location='" + ip + "']");
         jQuery.post(ajaxurl, {
             action: "get_location",
             security: zero_spam_admin.nonce,
@@ -27,7 +27,7 @@ jQuery(document).ready(function($) {
                     html = '<span class="country-flag country-flags-' + obj.country_code.toLowerCase() + '"></span> ' + html;
                 }
             }
-            if (!html.length) html = '<div class="zero-spam__text-center"><i class="fa fa-exclamation-triangle"></i></div>';
+            if (!html.length) html = '<i class="fa fa-exclamation-triangle"></i>';
             element.html(html);
         });
     });

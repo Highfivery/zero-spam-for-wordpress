@@ -1,41 +1,42 @@
 jQuery( document ).ready( function( $ ) {
-	$.each( $( "[data-ip-location]" ), function() {
-		var element = $( this ),
-			ip = $( this ).data( "ip-location" );
-		jQuery.post( ajaxurl, {
-			action: 'get_location',
-			security: zero_spam_admin.nonce,
-			ip: ip
-		}, function( data ) {
-			var obj = $.parseJSON( data ),
-				html = '';
+  $( "[data-ip-location]" ).click( function() {
+    var ip      = $( this ).data( "ip-location" ),
+        element = $( "[data-ip-location='" + ip + "']" );
 
-			if ( obj ) {
+    jQuery.post( ajaxurl, {
+      action: 'get_location',
+      security: zero_spam_admin.nonce,
+      ip: ip
+    }, function( data ) {
+      var obj = $.parseJSON( data ),
+        html = '';
 
-				if ( obj.country_name ) {
-					html += obj.country_code;
-				}
+      if ( obj ) {
 
-				if ( obj.region_name ) {
-					if ( html.length ) { html += ', '; }
-					html += obj.region_name;
-				}
+        if ( obj.country_name ) {
+          html += obj.country_code;
+        }
 
-				if ( obj.city ) {
-					if ( html.length ) { html += ', '; }
-					html += obj.city;
-				}
+        if ( obj.region_name ) {
+          if ( html.length ) { html += ', '; }
+          html += obj.region_name;
+        }
 
-				if ( obj.country_code ) {
-					html = '<span class="country-flag country-flags-' + obj.country_code.toLowerCase() + '"></span> ' + html;
-				}
-			}
+        if ( obj.city ) {
+          if ( html.length ) { html += ', '; }
+          html += obj.city;
+        }
 
-			if ( ! html.length ) html = '<div class="zero-spam__text-center"><i class="fa fa-exclamation-triangle"></i></div>';
+        if ( obj.country_code ) {
+          html = '<span class="country-flag country-flags-' + obj.country_code.toLowerCase() + '"></span> ' + html;
+        }
+      }
 
-			element.html( html );
-		});
-	});
+      if ( ! html.length ) html = '<i class="fa fa-exclamation-triangle"></i>';
+
+      element.html( html );
+    });
+  });
 
 	$( ".zero-spam__block-ip, .zero-spam__trash" ).click( function( e ) {
 		e.preventDefault();

@@ -104,16 +104,17 @@ function zerospam_is_blocked( $ip ) {
   global $wpdb;
   $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
   $check      = zerospam_get_blocked_ip( $ip );
+  $current    = current_time( 'timestamp' );
 
-  if ( ! $check ) {
+  if ( empty( $check ) ) {
     return false;
   }
 
   // Check block type
   if (
     'temporary' == $check->type &&
-    time() >= strtotime( $check->start_date ) &&
-    time() <= strtotime( $check->end_date )
+    $current >= strtotime( $check->start_date ) &&
+    $current <= strtotime( $check->end_date )
     ) {
     return true;
   }
@@ -146,7 +147,7 @@ function zerospam_block_ip( $args ) {
 
   if ( $ip ) {
     // Check is IP has already been blocked.
-    if ( $this->_is_blocked( $ip, false ) ) {
+    if ( zerospam_is_blocked( $ip ) ) {
 
       // Update existing record.
       $wpdb->update(
@@ -317,7 +318,7 @@ function zerospam_parse_spam_ary( $ary ) {
       // BuddyPress spam.
       $return['by_date'][ substr( $obj->date, 0, 10 ) ]['bp_registration_spam']++;
       $return['bp_registration_spam']++;
-    } elseif ( 6 == $obj->type ) {
+    } elseif ( 'nf' == $obj->type ) {
 
       // Ninja Form spam.
       $return['by_date'][ substr( $obj->date, 0, 10 ) ]['nf_spam']++;
@@ -500,9 +501,9 @@ function zerospam_get_ip_info( $ip ) {
   $data       = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ip = %s", $ip ) );
 
   // Retrieve from API
-  if ( ! $data ) {
+  if ( ! empty( $data ) ) {
     // Ignore local hosts.
-    if ( $ip == '127.0.0.1' ) {
+    if ( $ip == '127.0.0.1' || $ip == '::1' ) {
       return false;
     }
 
