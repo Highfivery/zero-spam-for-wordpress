@@ -10,13 +10,13 @@ class ZeroSpam_Plugin implements ArrayAccess {
     'spammer_msg_bp'              => 'There was a problem processing your registration.',
     'spammer_msg_nf'              => 'There was a problem processing your submission.',
     'blocked_ip_msg'              => 'Access denied.',
-    'wp_generator'                => 1,
-    'log_spammers'                => 1,
-    'ip_location_support'         => 1,
-    'registration_support'        => 1,
-    'cf7_support'                 => 1,
-    'nf_support'                  => 1,
-    'comment_support'             => 1
+    'wp_generator'                => true,
+    'log_spammers'                => true,
+    'ip_location_support'         => true,
+    'registration_support'        => true,
+    'cf7_support'                 => true,
+    'nf_support'                  => true,
+    'comment_support'             => true
   );
 
   public function __construct() {
@@ -41,8 +41,19 @@ class ZeroSpam_Plugin implements ArrayAccess {
   }
 
   public function load_settings() {
-    // Retrieve the settings
-    $this->settings = zerospam_settings();
+    // Retrieve the settings.
+    $settings = zerospam_settings();
+    foreach ( $this->default_settings as $key => $val ) {
+      if ( ! isset( $settings[$key] ) ) {
+        if ( is_bool( $val ) ) {
+          $settings[$key] = 0;
+        } else {
+          $settings[$key] = $val;
+        }
+      }
+    }
+
+    $this->settings = $settings;
   }
 
   /**

@@ -7,10 +7,10 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
     if ( isset( $_POST['zerospam_general_settings'] ) ) {
       $saved_settings = array();
       foreach ( $this->default_settings as $key => $val ) {
-        if ( ! empty( $_POST['zerospam_general_settings'][$key] ) ) {
+        if ( isset( $_POST['zerospam_general_settings'][$key] ) ) {
           $saved_settings[$key] = $_POST['zerospam_general_settings'][$key];
         } else {
-          $saved_settings[$key] = $val;
+          $saved_settings[$key] = 0;
         }
       }
 
