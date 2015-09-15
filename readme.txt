@@ -3,8 +3,8 @@ Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
-Tested up to: 4.2.2
-Stable tag: 2.0.1
+Tested up to: 4.3.1
+Stable tag: 2.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -36,6 +36,8 @@ Major features in WordPress Zero Spam include:
 * Gravity Form
 * Ninja Forms
 * BuddyPress
+
+<em>**Note:** This plugin does not work with Jetpack Comments. For more information, see https://wordpress.org/support/topic/incompatible-with-jetpack-comments.</em>
 
 **Languages:** English
 
@@ -115,6 +117,10 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 == Screenshots ==
 
 == Changelog ==
+
+= 2.0.2 =
+* Added the 'contactform' id to fix issue with valid comments not getting through (https://wordpress.org/support/topic/false-positives-6)
+* Updated readme file
 
 = 2.0.1 =
 * Updates to the readme file
