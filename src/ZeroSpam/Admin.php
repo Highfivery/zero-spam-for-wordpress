@@ -476,9 +476,12 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
    * @return void | boolean
    */
   public function load_zerospam_settings() {
-    if ( 'options-general.php' !== $GLOBALS['pagenow'] ) {
-      return false;
-    }
+    // We don't need to check $pagenow `cause we called this with load-$hook_suffix
+    // if ( ! function_exists('get_current_screen') ||
+    //   ! get_current_screen() ||
+    //   ! in_array(get_current_screen()->base, array('settings_page_zerospam', 'settings_page_zerospam-network')) ) {
+    //   return false;
+    // }
 
     wp_enqueue_style( 'zerospam-admin', plugins_url( 'css/style.css', ZEROSPAM_PLUGIN ) );
     wp_enqueue_script( 'zerospam-charts', plugins_url( 'js/charts.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
@@ -520,11 +523,10 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
             );
             $spam            = zerospam_get_spam( $args );
             $spam            = zerospam_parse_spam_ary( $spam );
-            $all_spam        = zerospam_get_spam();
-            $all_spam        = zerospam_parse_spam_ary( $all_spam );
+            $all_spam        = zerospam_all_spam_ary();
 
-            if ( count( $all_spam['raw'] ) ) {
-              $starting_date =  end( $all_spam['raw'] )->date;
+            if ( $all_spam['raw'] ) {
+              $starting_date =  $all_spam['date_start'];// end( $all_spam['raw'] )->date;
               $num_days      = zerospam_num_days( $starting_date );
               $per_day       = $num_days ? number_format( ( count( $all_spam['raw'] ) / $num_days ), 2 ) : 0;
             }

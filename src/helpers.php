@@ -341,6 +341,99 @@ function zerospam_parse_spam_ary( $ary ) {
   return $return;
 }
 
+function zerospam_all_spam_ary() {
+  global $wpdb;
+  $return = array(
+    'by_date'              => array(),
+    'by_spam_count'        => array(),
+    'raw'                  => 0,
+    'comment_spam'         => 0,
+    'registration_spam'    => 0,
+    'cf7_spam'             => 0,
+    'gf_spam'              => 0,
+    'bp_registration_spam' => 0,
+    'nf_spam'              => 0,
+    'unique_spammers'      => array(),
+    'by_day'               => array(
+      'Sun' => 0,
+      'Mon' => 0,
+      'Tue' => 0,
+      'Wed' => 0,
+      'Thu' => 0,
+      'Fri' => 0,
+      'Sat' => 0
+    ),
+  );
+
+  $table_name = $wpdb->prefix . 'zerospam_log';
+
+  // Count all
+  if ( $r = $wpdb->get_results("SELECT SQL_CALC_FOUND_ROWS zerospam_id FROM $table_name WHERE 1=1 LIMIT 10") ) {
+    // SELECT COUNT(*) counts, MIN(date) date_start FROM $table_name WHERE 1=1
+    $return['raw'] = $wpdb->get_var("SELECT FOUND_ROWS()");// array_fill(0, $count_all, 0);// JUST USE $count_all next time...
+    $return['date_start'] = $wpdb->get_var("SELECT date FROM $table_name WHERE zerospam_id = (SELECT MIN(zerospam_id) FROM $table_name)");
+  } else {
+    // there's no spammer logs...
+    return $return;
+  }
+
+  $type_map = array(1 => 'registration_spam', 2 => 'comment_spam', 3 => 'cf7_spam', 4 => 'gf_spam', 5 => 'bp_registration_spam', 'nf' => 'nf_spam' );
+
+  // By Weekday
+  $query = $wpdb->prepare("SELECT DATE_FORMAT(date, '%%a') as day, COUNT(*) counts FROM $table_name WHERE 1=1 GROUP BY day");
+  if ( $by_day = $wpdb->get_results($query) ) {
+    foreach ( $by_day as $r ) {
+      $return['by_day'][$r->day] = $r->counts;
+    }
+  }
+  // By IP
+  $query = $wpdb->prepare("SELECT ip, COUNT(*) counts FROM $table_name WHERE 1=1 GROUP BY ip ORDER BY counts DESC LIMIT 10");
+  if ( $by_count = $wpdb->get_results($query) ) {
+    foreach ( $by_count as $r ) {
+      $return['by_spam_count'][$r->ip] = $r->counts;
+    }
+  }
+
+  // COUNTS
+  $query = $wpdb->prepare("SELECT type, COUNT(*) counts FROM $table_name WHERE 1=1 GROUP BY type");
+  if ( $type_counts = $wpdb->get_results($query) ) {
+    foreach( $type_counts as $r ) {
+      $type = isset($type_map[$r->type]) ? $type_map[$r->type] : $r->type;
+      $return[$type] = $r->counts;
+    }
+  }
+
+  // Unique Spammers
+  if ( $unique_spammers = $wpdb->get_var("SELECT COUNT(DISTICT ip) FROM $table_name") ) {
+    $return['unique_spammers'] = $unique_spammers;
+  }
+
+  // By date: LIMIT 100 days for graph
+  $query = $wpdb->prepare("SELECT type, LEFT(date, 10) day, COUNT(*) counts FROM $table_name WHERE 1=1 GROUP BY day, type ORDER BY date DESC LIMIT 100");
+  if ( $by_date = $wpdb->get_results($query) ) {
+
+    foreach( $by_date as $r ) {
+      if ( !isset($type_map[$r->type]) )
+        continue;
+
+      if ( !isset($return['by_date'][$r->day]) ) {
+        $return['by_date'][$r->day] = array(
+            'data'                 => array(),
+            'comment_spam'         => 0,
+            'registration_spam'    => 0,
+            'cf7_spam'             => 0,
+            'gf_spam'              => 0,
+            'bp_registration_spam' => 0,
+            'nf_spam'              => 0
+        );
+      }
+      $return['by_date'][$r->day][$type_map[$r->type]] = $r->counts;
+    }
+  }
+
+  return $return;
+}
+
 function zerospam_num_days( $date ) {
   $datediff = time() - strtotime( $date );
 

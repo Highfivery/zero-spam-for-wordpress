@@ -26,7 +26,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				<?php endif; ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Total Spam', 'zerospam' ); ?>
-						<b><?php echo number_format( count( $all_spam['raw'] ), 0 ); ?></b>
+						<b><?php echo number_format( $all_spam['raw'], 0 ); ?></b>
 					</div>
 				<?php if ( isset( $per_day ) ): ?>
 					<div class="zero-spam__stat">
@@ -36,7 +36,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 				<?php endif; ?>
 					<div class="zero-spam__stat">
 						<?php echo __( 'Unique Spammers', 'zerospam' ); ?>
-						<b><?php echo number_format( count( $all_spam['unique_spammers'] ), 0 ); ?></b>
+						<b><?php echo number_format( $all_spam['unique_spammers'], 0 ); ?></b>
 					</div>
 				</div>
 			</div>
@@ -181,7 +181,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 </div>
 <?php endif; ?>
 
-<?php if ( count( $all_spam['raw'] ) ): ?>
+<?php if ( $all_spam['raw'] ): ?>
 <div class="zero-spam__row">
 	<div class="zero-spam__cell">
 		<div class="zero-spam__widget">
@@ -214,7 +214,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 							  element: 'donut',
 							  data: [
 							  	<?php foreach( $all_spam['by_day'] as $day => $count ): ?>
-							  	{value: <?php echo zerospam_get_percent( $count, count( $all_spam['raw'] ) ); ?>, label: '<?php echo $day; ?>', formatted: '<?php echo zerospam_get_percent( $count, count( $all_spam['raw'] ) ); ?>%'},
+							  	{value: <?php echo zerospam_get_percent( $count, $all_spam['raw'] ); ?>, label: '<?php echo $day; ?>', formatted: '<?php echo zerospam_get_percent( $count, $all_spam['raw'] ); ?>%'},
 							  	<?php endforeach; ?>
 							  ],
 							  formatter: function (x, data) { return data.formatted; }

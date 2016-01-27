@@ -207,7 +207,9 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
     global $wpdb;
     check_ajax_referer( 'zero-spam', 'security' );
 
-    $spam = zerospam_get_spam();
+    // $spam = zerospam_get_spam();
+    $spam = zerospam_all_spam_ary();
+    $spam = $spam['by_spam_count'];
     $return = array(
       'by_country' => array(),
       'by_lat_long' => array()
