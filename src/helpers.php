@@ -447,7 +447,7 @@ function zerospam_admin_url() {
   if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
     $settings_url = network_admin_url( 'settings.php' );
   } else if ( home_url() != site_url() ) {
-    $settings_url = adnin_url( 'options-general.php' );
+    $settings_url = home_url( '/wp-admin/' . 'options-general.php' );
   } else {
     $settings_url = admin_url( 'options-general.php' );
   }
