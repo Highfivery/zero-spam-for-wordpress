@@ -3,8 +3,8 @@ Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
-Tested up to: 4.3.1
-Stable tag: 2.0.2
+Tested up to: 4.5
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -124,7 +124,7 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 
 == Changelog ==
 
-= 2.0.3 =
+= 2.1.0 =
 * Added support for WPForms (https://github.com/bmarshall511/wordpress-zero-spam/issues/129)
 
 = 2.0.2 =
