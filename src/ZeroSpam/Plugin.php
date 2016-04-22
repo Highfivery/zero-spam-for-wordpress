@@ -7,6 +7,7 @@ class ZeroSpam_Plugin implements ArrayAccess {
     'spammer_msg_comment'         => 'There was a problem processing your comment.',
     'spammer_msg_registration'    => '<strong>ERROR</strong>: There was a problem processing your registration.',
     'spammer_msg_contact_form_7'  => 'There was a problem processing your comment.',
+    'spammer_msg_gf'              => 'There was a problem processing your submission.',
     'spammer_msg_bp'              => 'There was a problem processing your registration.',
     'spammer_msg_nf'              => 'There was a problem processing your submission.',
     'blocked_ip_msg'              => 'Access denied.',
@@ -15,8 +16,10 @@ class ZeroSpam_Plugin implements ArrayAccess {
     'ip_location_support'         => true,
     'registration_support'        => true,
     'cf7_support'                 => true,
+    'gf_support'                  => true,
     'nf_support'                  => true,
-    'comment_support'             => true
+    'wpf_support'                 => true,
+    'comment_support'             => true,
   );
 
   public function __construct() {

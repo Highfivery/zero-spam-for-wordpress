@@ -95,6 +95,16 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
             <b><?php echo number_format( $all_spam['nf_spam'], 0 ); ?></b>
           </div>
           <?php endif; ?>
+
+          <?php if (
+            zerospam_plugin_check( 'wpf' ) &&
+            ! empty( $this->settings['wpf'] ) && $this->settings['wpf_support']
+          ): ?>
+          <div class="zero-spam__stat">
+            <?php echo __( 'WPForms', 'zerospam' ); ?>
+            <b><?php echo number_format( $all_spam['wpf_spam'], 0 ); ?></b>
+          </div>
+          <?php endif; ?>
 				</div>
 			</div>
 		</div>
@@ -320,6 +330,10 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                   if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ): ?>
                   'nf_spam' : <?php echo $val; ?>,
                   <?php endif; break;
+                case 'wpf_spam':
+                  if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ): ?>
+                  'wpf_spam' : <?php echo $val; ?>,
+                  <?php endif; break;                  
                 default: if ( $key != 'data' ): ?>
                   '<?php echo $key; ?>': <?php echo $val; ?>,
               <?php endif; endswitch;
@@ -340,15 +354,18 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                 case 'cf7_spam': if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ): ?>
                   'spam_cf7',
                   <?php endif; break;
-                case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['cf7_support'] ): ?>
+                case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ): ?>
                   'spam_gf',
                   <?php endif; break;
-                case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['cf7_support'] ): ?>
+                case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ): ?>
                   'bp_registrations',
                   <?php endif; break;
-                case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['cf7_support'] ): ?>
+                case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ): ?>
                   'nf_spam',
                   <?php endif; break;
+                case 'wpf_spam': if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ): ?>
+                  'wpf_spam',
+                  <?php endif; break;                  
                 default: if ( $key != 'data' ): ?>
                   '<?php echo $key; ?>',
               <?php endif; endswitch;
@@ -366,15 +383,18 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                 case 'cf7_spam': if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ): ?>
                   '<?php echo __( 'Contact Form 7', 'zerospam' ); ?>',
                   <?php endif; break;
-                case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['cf7_support'] ): ?>
+                case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ): ?>
                   '<?php echo __( 'Gravity Forms', 'zerospam' ); ?>',
                   <?php endif; break;
-                case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['cf7_support'] ): ?>
+                case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ): ?>
                   '<?php echo __( 'BuddyPress', 'zerospam' ); ?>',
                   <?php endif; break;
-                case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['cf7_support'] ): ?>
+                case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ): ?>
                   '<?php echo __( 'Ninja Forms', 'zerospam' ); ?>',
                   <?php endif; break;
+                case 'wpf_spam': if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ): ?>
+                  '<?php echo __( 'WPForms', 'zerospam' ); ?>',
+                  <?php endif; break;                  
                 default: if ( $key != 'data' ): ?>
                   '<?php echo $key; ?>',
               <?php endif; endswitch;
@@ -393,15 +413,18 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
               case 'cf7_spam': if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ): ?>
                 '#fddb5a',
                 <?php endif; break;
-              case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['cf7_support'] ): ?>
+              case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ): ?>
                 '#222d3a'
                 <?php endif; break;
-              case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['cf7_support'] ): ?>
+              case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ): ?>
                 '#a0d5f4'
                 <?php endif; break;
-              case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['cf7_support'] ): ?>
+              case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ): ?>
                 '#ef4748',
                 <?php endif; break;
+              case 'wpf_spam': if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ): ?>
+                '#e27730',
+                <?php endif; break;  
               default: if ( $key != 'data' ): ?>
                 '#c2c2c2',
             <?php endif; endswitch;
@@ -441,11 +464,14 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 						case 5:
 							$type = '<span class="zero-spam__label zero-spam__bg--bpr">' . __( 'BP Registration', 'zerospam' ) . '</span>';
 							break;
-            case 'nf':
-              $type = '<span class="zero-spam__label zero-spam__bg--nf">' . __( 'Ninja Forms', 'zerospam' ) . '</span>';
-              break;
-            default:
-              $type = '<span class="zero-spam__label zero-spam__bg--misc">' . __( $obj->type, 'zerospam' ) . '</span>';
+						case 6:
+							$type = '<span class="zero-spam__label zero-spam__bg--nf">' . __( 'Ninja Forms', 'zerospam' ) . '</span>';
+							break;
+						case 7:
+							$type = '<span class="zero-spam__label zero-spam__bg--wpf">' . __( 'WPForms', 'zerospam' ) . '</span>';
+							break;
+						default:
+							$type = '<span class="zero-spam__label zero-spam__bg--misc">' . __( $obj->type, 'zerospam' ) . '</span>';
 					}
 				?>
 				<tr data-ip="<?php echo $obj->ip; ?>" id="row-<?php echo $obj->zerospam_id; ?>">

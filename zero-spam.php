@@ -108,5 +108,13 @@ if (
   $plugin['gf'] = new ZeroSpam_GravityForms();
 }
 
+// WPForms support.
+if (
+  zerospam_plugin_check( 'wpf' ) &&
+  ! empty( $plugin->settings['wpf_support'] ) && $plugin->settings['wpf_support']
+) {
+  $plugin['wpf'] = new ZeroSpam_WPForms();
+}
+
 // Initialize the plugin.
 $plugin->run();
