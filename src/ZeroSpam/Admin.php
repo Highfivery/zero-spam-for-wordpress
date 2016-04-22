@@ -127,6 +127,10 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
     // Gravity Forms support.
     if ( zerospam_plugin_check( 'gf' ) ) {
       add_settings_field( 'gf_support', __( 'Gravity Forms Support', 'zerospam' ), array( $this, 'field_gf_support' ), 'zerospam_general_settings', 'section_general' );
+      
+      if ( ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ) {
+        add_settings_field( 'spammer_msg_gf', __( 'Gravity Forms Spam Message', 'zerospam' ), array( $this, 'field_spammer_msg_gf' ), 'zerospam_general_settings', 'section_messages' );
+      }
     }
 
     // BuddyPress support.
@@ -146,6 +150,26 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
         add_settings_field( 'spammer_msg_nf', __( 'Ninja Forms Spam Message', 'zerospam' ), array( $this, 'field_spammer_msg_nf' ), 'zerospam_general_settings', 'section_messages' );
       }
     }
+
+    // WPForms support.
+    if ( zerospam_plugin_check( 'wpf' ) ) {
+      add_settings_field( 'wpf_support', __( 'WPForms Support', 'zerospam' ), array( $this, 'field_wpf_support' ), 'zerospam_general_settings', 'section_general' );
+    }
+  }
+
+  /**
+   * WPForms support option.
+   *
+   * Field callback, renders a checkbox input, note the name and value.
+   *
+   * @since 2.0.3
+   */
+  public function field_wpf_support() {
+    ?>
+    <label for="wpf_support">
+      <input type="checkbox" id="wpf_support" name="zerospam_general_settings[wpf_support]" value="1" <?php if( isset( $this->settings['wpf_support'] ) ) : checked( $this->settings['wpf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+    </label>
+    <?php
   }
 
   /**
@@ -159,7 +183,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
     ?>
     <label for="spammer_msg_nf">
       <input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_nf]" value="<?php echo esc_attr( $this->settings['spammer_msg_nf'] ); ?>">
-    <p class="description"><?php echo __( 'Enter a short message to display when a spam Ninja Form has been submitted.', 'zerospam' ); ?></p>
+    <p class="description"><?php echo __( 'Enter a short message to display when a spam Ninja Form entry has been submitted.', 'zerospam' ); ?></p>
     </label>
     <?php
   }
@@ -206,6 +230,22 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
     ?>
     <label for="bp_support">
       <input type="checkbox" id="bp_support" name="zerospam_general_settings[bp_support]" value="1" <?php if( isset( $this->settings['bp_support'] ) ) : checked( $this->settings['bp_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+    </label>
+    <?php
+  }
+
+  /**
+   * Gravity Forms message option.
+   *
+   * Field callback, renders a text input, note the name and value.
+   *
+   * @since 2.0.3
+   */
+  public function field_spammer_msg_gf() {
+    ?>
+    <label for="spammer_msg_gf">
+      <input type="text" class="regular-text" name="zerospam_general_settings[spammer_msg_gf]" value="<?php echo esc_attr( $this->settings['spammer_msg_gf'] ); ?>">
+      <p class="description"><?php echo __( 'Enter a short message to display when a spam Gravity Forms entry has been submitted.', 'zerospam' ); ?></p>
     </label>
     <?php
   }

@@ -77,6 +77,12 @@ function zerospam_log_spam( $key, $url = false ) {
     case 'buddypress-registration':
       $key = 5;
       break;
+    case 'nf':
+      $key = 6;
+      break;
+    case 'wpf':
+      $key = 7;
+      break;
   }
 
   $wpdb->insert( $table_name, array(
@@ -249,6 +255,7 @@ function zerospam_parse_spam_ary( $ary ) {
     'gf_spam'              => 0,
     'bp_registration_spam' => 0,
     'nf_spam'              => 0,
+    'wpf_spam'             => 0,
     'unique_spammers'      => array(),
     'by_day'               => array(
       'Sun' => 0,
@@ -274,7 +281,8 @@ function zerospam_parse_spam_ary( $ary ) {
         'cf7_spam'             => 0,
         'gf_spam'              => 0,
         'bp_registration_spam' => 0,
-        'nf_spam'              => 0
+        'nf_spam'              => 0,
+        'wpf_spam'             => 0,
       );
     }
 
@@ -318,11 +326,16 @@ function zerospam_parse_spam_ary( $ary ) {
       // BuddyPress spam.
       $return['by_date'][ substr( $obj->date, 0, 10 ) ]['bp_registration_spam']++;
       $return['bp_registration_spam']++;
-    } elseif ( 'nf' == $obj->type ) {
+    } elseif ( 6 == $obj->type ) {
 
       // Ninja Form spam.
       $return['by_date'][ substr( $obj->date, 0, 10 ) ]['nf_spam']++;
       $return['nf_spam']++;
+    } elseif ( 7 == $obj->type ) {
+
+      // WPForms spam.
+      $return['by_date'][ substr( $obj->date, 0, 10 ) ]['wpf_spam']++;
+      $return['wpf_spam']++;
     } else {
       if ( empty(  $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] ) )  $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] = 0;
       $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type]++;
@@ -471,6 +484,11 @@ function zerospam_plugin_check( $plugin ) {
       if ( is_plugin_active( 'ninja-forms/ninja-forms.php' ) ) {
         $result = true;
       }
+      break;
+    case 'wpf':
+      if ( is_plugin_active( 'wpforms/wpforms.php' ) || is_plugin_active( 'wpforms-lite/wpforms.php' ) ) {
+        $result = true;
+      }     
       break;
   }
 

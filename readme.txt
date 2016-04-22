@@ -36,6 +36,7 @@ Major features in WordPress Zero Spam include:
 * Gravity Form
 * Ninja Forms
 * BuddyPress
+* WPForms
 
 <em>**Note:** This plugin does not work with Jetpack Comments. For more information, see https://wordpress.org/support/topic/incompatible-with-jetpack-comments.</em>
 
@@ -84,7 +85,8 @@ Yes, see below:
 * `zero_spam_found_spam_gf_form_submission` - Runs after a spam Gravity Form submission is detected
 * `zero_spam_ip_blocked` - Runs after a blocked IP attempts to visit the site
 * `zero_spam_found_spam_buddypress_registration` - Runs when a BuddyPress spam registration is detected
-* `zero_spam_found_spam_nf_form_submission` - Runs when a Ninja Forms submission is detected
+* `zero_spam_found_spam_nf_form_submission` - Runs when a spam Ninja Forms submission is detected
+* `zero_spam_found_spam_wpf_form_submission` - Runs when a spam WPForms submission is detected
 
 = Does this plugin support Contact Form 7 forms? =
 
@@ -102,6 +104,10 @@ Yes!
 
 Yes!
 
+= Does this plugin support WPForms? =
+
+Yes! Thanks to @jaredatch.
+
 = Does this plugin work with caching plugins like W3 Total Cache? =
 
 Yes! Thanks to @shazahm1.
@@ -117,6 +123,9 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 == Screenshots ==
 
 == Changelog ==
+
+= 2.0.3 =
+* Added support for WPForms (https://github.com/bmarshall511/wordpress-zero-spam/issues/129)
 
 = 2.0.2 =
 * Added the 'contactform' id to fix issue with valid comments not getting through (https://wordpress.org/support/topic/false-positives-6)
@@ -211,4 +220,4 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 * [Tang Rufus](https://github.com/TangRufus)
 * [Lee Willis](https://github.com/leewillis77)
 * [Andrew Minion](https://github.com/macbookandrew)
-
+* [Jared Atchison](https://github.com/jaredatch)

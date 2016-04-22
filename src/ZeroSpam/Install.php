@@ -94,6 +94,7 @@ class ZeroSpam_Install extends ZeroSpam_Plugin {
       $options['gf_support']           = 1;
       $options['bp_support']           = 1;
       $options['nf_support']           = 1;
+      $options['wpf_support']          = 1;
       $options['ip_location_support']  = 1;
 
       if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {

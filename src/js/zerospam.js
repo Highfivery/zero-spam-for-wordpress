@@ -21,6 +21,7 @@
       forms += ", #buddypress #signup_form";
       forms += ", .zerospam";
       forms += ", .ninja-forms-form";
+      forms += ", .wpforms-form";
 
       if ( typeof zerospam.key != "undefined" ) {
         $( forms ).on( "submit", function() {

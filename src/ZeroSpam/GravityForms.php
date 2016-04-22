@@ -15,7 +15,7 @@ class ZeroSpam_GravityForms extends ZeroSpam_Plugin {
     if ( ! zerospam_is_valid() ) {
       do_action( 'zero_spam_found_spam_gf_form_submission' );
       zerospam_log_spam( 'gf' );
-      die( __( $this->settings['spammer_msg_comment'], 'zerospam' ) );
+      die( __( $this->settings['spammer_msg_gf'], 'zerospam' ) );
     }
   }
 }
