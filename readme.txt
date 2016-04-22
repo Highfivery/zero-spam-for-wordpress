@@ -1,5 +1,5 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew
+Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew, jaredatch
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
