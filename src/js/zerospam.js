@@ -33,7 +33,7 @@
         });
 
        	// Gravity Forms
-       	$( document ).bind( "gform_post_render", function() {
+       	$( document ).on( "gform_post_render", function() {
           $( ".gform_wrapper form" ).on( "submit", function () {
             $( "<input>" ).attr( "type", "hidden" )
                 .attr( "name", "zerospam_key" )
