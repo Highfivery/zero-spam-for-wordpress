@@ -17,7 +17,6 @@
       var forms = "#commentform";
       forms += ", #contactform";
       forms += ", #registerform";
-      forms += ", .gform_wrapper form";
       forms += ", #buddypress #signup_form";
       forms += ", .zerospam";
       forms += ", .ninja-forms-form";
@@ -32,6 +31,17 @@
 
           return true;
         });
+
+       	// Gravity Forms
+       	$( document ).bind( "gform_post_render", function() {
+          $( ".gform_wrapper form" ).on( "submit", function () {
+            $( "<input>" ).attr( "type", "hidden" )
+                .attr( "name", "zerospam_key" )
+                .attr( "value", zerospam.key )
+                .appendTo( ".gform_wrapper form " );
+            return true;
+          });
+       	});
 
         // Contact Form 7
         $( ".wpcf7-submit" ).click( function() {
