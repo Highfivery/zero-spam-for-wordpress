@@ -33,14 +33,11 @@
         });
 
        	// Gravity Forms
-       	$( document ).on( "gform_post_render", function() {
-          $( ".gform_wrapper form" ).on( "submit", function () {
-            $( "<input>" ).attr( "type", "hidden" )
-                .attr( "name", "zerospam_key" )
-                .attr( "value", zerospam.key )
-                .appendTo( ".gform_wrapper form " );
-            return true;
-          });
+        $( document ).on( "gform_post_render", function() {
+          $( "<input>" ).attr( "type", "hidden" )
+            .attr( "name", "zerospam_key" )
+            .attr( "value", zerospam.key )
+            .appendTo( ".gform_wrapper form " );
        	});
 
         // Contact Form 7
