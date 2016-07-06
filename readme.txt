@@ -126,6 +126,7 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 
 = 2.1.2 =
 * Fixed issue with Gravity Forms not working, thanks @karpstrucking & @jaredatch (https://github.com/bmarshall511/wordpress-zero-spam/issues/132)
+* Updated the repo link on the admin page (https://github.com/bmarshall511/wordpress-zero-spam/issues/124)
 
 = 2.1.1 =
 * Minor updates
