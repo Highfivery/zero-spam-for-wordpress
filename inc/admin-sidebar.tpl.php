@@ -35,6 +35,6 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 		<h3><?php echo __( 'Are you a WordPress developer?', 'zerospam' ); ?></h3>
 
 		<p><?php echo __( 'Help grow this plugin, integrate into your own or add new features by contributing.', 'zerospam' ); ?></p>
-		<p><a href="https://github.com/bmarshall511/wordpress-zero-spam/fork" target="_blank" class="button button-large button-primary"><?php echo __( 'Fork it on GitHub!', 'zerospam' ); ?></a></p>
+		<p><a href="https://github.com/bmarshall511/wordpress-zero-spam" target="_blank" class="button button-large button-primary"><?php echo __( 'Fork it on GitHub!', 'zerospam' ); ?></a></p>
 	</div>
 </div>
