@@ -1,10 +1,10 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew, jaredatch, karpstrucking
+Contributors: bmarshall511, afragen, tangrufus, leewillis77, macbookandrew, jaredatch, karpstrucking, thiagolcks
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
-Tested up to: 4.5.3
-Stable tag: 2.1.2
+Tested up to: 4.6.1
+Stable tag: 2.2.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -123,6 +123,9 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 == Screenshots ==
 
 == Changelog ==
+
+= 2.0.0 =
+# Fixed security issue, thanks @thiagolcks (https://github.com/bmarshall511/wordpress-zero-spam/pull/138)
 
 = 2.1.2 =
 * Fixed issue with Gravity Forms not working, thanks @karpstrucking & @jaredatch (https://github.com/bmarshall511/wordpress-zero-spam/issues/132)
