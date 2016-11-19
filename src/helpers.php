@@ -46,7 +46,8 @@ function zerospam_get_ip() {
     $ipaddress = getenv('HTTP_FORWARDED');
   } else if ( getenv('REMOTE_ADDR') ) {
     $ipaddress = getenv('REMOTE_ADDR');
-  } else {
+  }
+  if ( false === WP_Http::is_ip_address( $ipaddress ) ) {
     $ipaddress = 'UNKNOWN';
   }
 
@@ -135,7 +136,7 @@ function zerospam_is_blocked( $ip ) {
 function zerospam_get_blocked_ip( $ip ) {
   global $wpdb;
   $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-  $query      = $wpdb->get_row( "SELECT * FROM $table_name WHERE ip = '" . $ip . "'" );
+  $query      = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ip = %s", $ip ) );
 
   if ( null == $query ) {
     return false;
@@ -488,7 +489,7 @@ function zerospam_plugin_check( $plugin ) {
     case 'wpf':
       if ( is_plugin_active( 'wpforms/wpforms.php' ) || is_plugin_active( 'wpforms-lite/wpforms.php' ) ) {
         $result = true;
-      }     
+      }
       break;
   }
 
