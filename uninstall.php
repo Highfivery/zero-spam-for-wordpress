@@ -1,4 +1,12 @@
 <?php
+/**
+ * Uninstall
+ *
+ * Contains all plugin uninstall functionality.
+ *
+ * @package WordPress Zero Spam
+ * @since 1.0.0
+ */
 
 /**
  * Fired when the plugin is uninstalled.
@@ -19,7 +27,7 @@
  * For more information, see the following discussion:
  * https://github.com/tommcfarlin/WordPress-Plugin-Boilerplate/pull/123#issuecomment-28541913
  *
- * @since 		1.5.0
+ * @since 1.5.0
  */
 
 // If this file is called directly, abort.

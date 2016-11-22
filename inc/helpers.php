@@ -1,5 +1,15 @@
 <?php
 /**
+ * Zero Spam Helpers
+ *
+ * Contains all of Zero Spam helper functions. Can be used within other themes
+ * & plugins.
+ *
+ * @package WordPress Zero Spam
+ * @since 1.0.0
+ */
+
+/**
  * Security Note: Blocks direct access to the plugin PHP files.
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
@@ -393,45 +403,53 @@ function zerospam_all_spam_ary() {
 
   $type_map = array(1 => 'registration_spam', 2 => 'comment_spam', 3 => 'cf7_spam', 4 => 'gf_spam', 5 => 'bp_registration_spam', 'nf' => 'nf_spam' );
 
-  // By Weekday
-  $query = $wpdb->prepare("SELECT DATE_FORMAT(date, '%%a') as day, COUNT(*) counts FROM $table_name WHERE 1=1 GROUP BY day");
-  if ( $by_day = $wpdb->get_results($query) ) {
-    foreach ( $by_day as $r ) {
-      $return['by_day'][$r->day] = $r->counts;
-    }
-  }
-  // By IP
-  $query = $wpdb->prepare("SELECT ip, COUNT(*) counts FROM $table_name WHERE 1=1 GROUP BY ip ORDER BY counts DESC LIMIT 10");
-  if ( $by_count = $wpdb->get_results($query) ) {
-    foreach ( $by_count as $r ) {
-      $return['by_spam_count'][$r->ip] = $r->counts;
+  // Get spammers by weekday.
+  $by_weekday_ary = $wpdb->get_results( "SELECT DATE_FORMAT(date, '%a') as day, COUNT(*) num FROM $table_name GROUP BY day", ARRAY_A );
+  if ( $by_weekday_ary )
+  {
+    foreach ( $by_weekday_ary as $key => $ary )
+    {
+      $return['by_day'][ $ary['day'] ] = $ary['num'];
     }
   }
 
-  // COUNTS
-  $query = $wpdb->prepare("SELECT type, COUNT(*) counts FROM $table_name WHERE 1=1 GROUP BY type");
-  if ( $type_counts = $wpdb->get_results($query) ) {
-    foreach( $type_counts as $r ) {
-      $type = isset($type_map[$r->type]) ? $type_map[$r->type] : $r->type;
-      $return[$type] = $r->counts;
+  // By IP.
+  // @TODO - Need to make the limit dynamic.
+  $by_ip_ary = $wpdb->get_results( "SELECT ip, COUNT(*) num FROM $table_name GROUP BY ip ORDER BY num DESC LIMIT 100", ARRAY_A );
+  if ( $by_ip_ary )
+  {
+    foreach ( $by_ip_ary as $key => $ary ) {
+      $return['by_spam_count'][ $ary['ip'] ] = $ary['num'];
+    }
+  }
+
+  // By type.
+  $by_type = $wpdb->get_results( "SELECT type, COUNT(*) num FROM $table_name GROUP BY type", ARRAY_A );
+  if ( $by_type )
+  {
+    foreach( $by_type as $key => $ary )
+    {
+      $type = ! empty( $type_map[ $ary['type'] ] ) ? $type_map[ $ary['type'] ] : $ary['type'];
+      $return[ $type ] = $ary['num'];
     }
   }
 
   // Unique Spammers
-  if ( $unique_spammers = $wpdb->get_var("SELECT COUNT(DISTICT ip) FROM $table_name") ) {
+  if ( $unique_spammers = $wpdb->get_var( "SELECT COUNT(DISTINCT ip) FROM $table_name" ) )
+  {
     $return['unique_spammers'] = $unique_spammers;
   }
 
   // By date: LIMIT 100 days for graph
-  $query = $wpdb->prepare("SELECT type, LEFT(date, 10) day, COUNT(*) counts FROM $table_name WHERE 1=1 GROUP BY day, type ORDER BY date DESC LIMIT 100");
-  if ( $by_date = $wpdb->get_results($query) ) {
-
-    foreach( $by_date as $r ) {
-      if ( !isset($type_map[$r->type]) )
-        continue;
-
-      if ( !isset($return['by_date'][$r->day]) ) {
-        $return['by_date'][$r->day] = array(
+  // @TODO - Need to make the limit dynamic.
+  $by_date = $wpdb->get_results( "SELECT type, LEFT(date, 10) day, COUNT(*) num FROM $table_name GROUP BY day, type ORDER BY date DESC LIMIT 100", ARRAY_A );
+  if ( $by_date )
+  {
+    foreach( $by_date as $key => $ary )
+    {
+      if ( ! empty( $return['by_date'][ $ary['day'] ] ) )
+      {
+        $return['by_date'][ $ary['day'] ] = array(
             'data'                 => array(),
             'comment_spam'         => 0,
             'registration_spam'    => 0,
@@ -441,7 +459,7 @@ function zerospam_all_spam_ary() {
             'nf_spam'              => 0
         );
       }
-      $return['by_date'][$r->day][$type_map[$r->type]] = $r->counts;
+      $return['by_date'][ $ary['day'] ][ $type_map[ $ary['type'] ] ] = $ary['num'];
     }
   }
 
@@ -535,18 +553,6 @@ function zerospam_pager( $limit = 10, $total_num, $page, $tab ) {
     (<?php echo number_format( $total_num, 0 ) . __( ' total records found', 'zerospam' ); ?>)
   </div>
   <?php
-}
-
-function zerospam_admin_url() {
-  if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
-    $settings_url = network_admin_url( 'settings.php' );
-  } else if ( home_url() != site_url() ) {
-    $settings_url = home_url( '/wp-admin/' . 'options-general.php' );
-  } else {
-    $settings_url = admin_url( 'options-general.php' );
-  }
-
-  return $settings_url;
 }
 
 function zerospam_get_spam_count() {
@@ -662,9 +668,91 @@ function zerospam_get_ip_info( $ip ) {
   return false;
 }
 
-function zerospam_get_blocked_ip_count() {
-  global $wpdb;
-  $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-  $query = $wpdb->get_row( 'SELECT COUNT(*) AS count FROM ' . $table_name );
-  return $query->count;
+/**
+ * WordPress admin URL.
+ *
+ * Returns the admin URL based off of whether it's a network enabled.
+ *
+ * @since 1.0.0
+ *
+ * @see is_plugin_active_for_network
+ * @see network_admin_url
+ * @see home_url
+ * @see admin_url
+ * @global string ZEROSPAM_PLUGIN The plugin root directory.
+ *
+ * @return string The plugin settings page URL.
+ */
+if ( ! function_exists( 'zerospam_admin_url' ) )
+{
+  function zerospam_admin_url()
+  {
+    if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) )
+    {
+      // Network enabled.
+      $settings_url = network_admin_url( 'settings.php' );
+    }
+    else
+    {
+      // No network.
+      $settings_url = admin_url( 'options-general.php' );
+    }
+
+    return $settings_url;
+  }
+}
+
+/**
+ * Blocked IP count.
+ *
+ * Returns the number of blocked IPs.
+ *
+ * @since 1.0.0
+ *
+ * @see wpdb::get_row
+ * @global object $wpdb Contains a set of functions used to interact with a database.
+ *
+ * @return int The number of blocked IPs.
+ */
+if ( ! function_exists( 'zerospam_get_blocked_ip_count' ) )
+  {
+  function zerospam_get_blocked_ip_count()
+  {
+    global $wpdb;
+
+    $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
+    $query = $wpdb->get_row( 'SELECT COUNT(*) AS count FROM ' . $table_name );
+    return $query->count;
+  }
+}
+
+/**
+ * ZeroSpam library autoloader.
+ *
+ * The autoloads all available Zero Spam libraries.
+ *
+ * @since 1.0.0
+ *
+ * @param string $class_name The name of the ZeroSpam library.
+ * @return boolean TRUE if library successfully included, FALSE if not.
+ */
+if ( ! function_exists( 'zerospam_autoloader' ) )
+{
+  function zerospam_autoloader( $class_name )
+  {
+    if ( false !== strpos( $class_name, 'ZeroSpam' ) )
+    {
+      $classes_dir = ZEROSPAM_ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR;
+      $class_file = str_replace( '_', DIRECTORY_SEPARATOR, $class_name ) . '.php';
+
+      /**
+       * Include the plugin library.
+       */
+      require_once $classes_dir . $class_file;
+
+      return true;
+    }
+
+    return false;
+  }
 }

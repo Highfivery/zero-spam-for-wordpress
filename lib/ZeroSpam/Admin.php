@@ -127,7 +127,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
     // Gravity Forms support.
     if ( zerospam_plugin_check( 'gf' ) ) {
       add_settings_field( 'gf_support', __( 'Gravity Forms Support', 'zerospam' ), array( $this, 'field_gf_support' ), 'zerospam_general_settings', 'section_general' );
-      
+
       if ( ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ) {
         add_settings_field( 'spammer_msg_gf', __( 'Gravity Forms Spam Message', 'zerospam' ), array( $this, 'field_spammer_msg_gf' ), 'zerospam_general_settings', 'section_messages' );
       }
@@ -546,7 +546,12 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
       <?php $this->option_tabs(); ?>
       <div class="zerospam__row">
         <div class="zerospam__right">
-        <?php require_once ZEROSPAM_ROOT . 'inc/admin-sidebar.tpl.php'; ?>
+        <?php
+        /**
+         * Include the admin sidebar.
+         */
+        require_once( ZEROSPAM_ROOT . 'tpl' . DIRECTORY_SEPARATOR . 'admin-sidebar.php' );
+        ?>
         </div>
         <div class="zerospam__left">
         <?php
@@ -580,7 +585,10 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
               $ip_location_support = false;
             }
 
-            require_once ZEROSPAM_ROOT . 'inc/spammer-logs.tpl.php';
+            /**
+             * Include the Spammer Logs page.
+             */
+            require_once( ZEROSPAM_ROOT . 'tpl' . DIRECTORY_SEPARATOR . 'spammer-logs.php' );
           } elseif ( $tab == 'zerospam_ip_block' ) {
             $limit = 10;
             $args = array(
@@ -589,9 +597,16 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
             );
             $ips = zerospam_get_blocked_ips( $args );
 
-            require_once ZEROSPAM_ROOT . 'inc/ip-block.tpl.php';
+            /**
+             * Include the Blocked IPs page.
+             */
+            require_once( ZEROSPAM_ROOT . 'tpl' . DIRECTORY_SEPARATOR . 'ip-block.php' );
           } else {
-            require_once ZEROSPAM_ROOT . 'inc/general-settings.tpl.php';
+
+            /**
+             * General settings page template.
+             */
+            require_once( ZEROSPAM_ROOT . 'tpl' . DIRECTORY_SEPARATOR . 'general-settings.php' );
           } ?>
         </div>
 

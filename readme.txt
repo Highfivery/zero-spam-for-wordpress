@@ -4,11 +4,11 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 4.6.1
-Stable tag: 2.2.1
+Stable tag: 3.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site. Supports Gravity Forms, Ninja Forms, BuddyPress & more!
+Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site. Even supports third-party plugins!
 
 == Description ==
 
@@ -124,6 +124,9 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 
 == Changelog ==
 
+= 3.0.0 =
+* Lots of updates & fixes! Improved code documentation to help promote contributions.
+
 = 2.2.1 =
 * Fixed uninstall issue, thanks @thiagolcks (https://github.com/bmarshall511/wordpress-zero-spam/pull/139)
 
@@ -229,6 +232,7 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 
 == Contributors ==
 * [Ben Marshall](https://github.com/bmarshall511)
+* [Thiago Locks](https://github.com/thiagolcks)
 * [Andy Fragen](https://github.com/afragen)
 * [Tang Rufus](https://github.com/TangRufus)
 * [Lee Willis](https://github.com/leewillis77)
