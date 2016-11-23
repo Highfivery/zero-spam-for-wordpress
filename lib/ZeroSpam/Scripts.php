@@ -39,10 +39,8 @@ class ZeroSpam_Scripts
   }
 
   public function wp_enqueue_scripts() {
-    $this->register_styles();
     $this->register_scripts();
 
-    $this->enqueue_styles();
     $this->enqueue_scripts();
   }
 
