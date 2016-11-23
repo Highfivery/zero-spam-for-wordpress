@@ -401,7 +401,14 @@ function zerospam_all_spam_ary() {
     return $return;
   }
 
-  $type_map = array(1 => 'registration_spam', 2 => 'comment_spam', 3 => 'cf7_spam', 4 => 'gf_spam', 5 => 'bp_registration_spam', 'nf' => 'nf_spam' );
+  $type_map = array(
+    1                => 'registration_spam',
+    2                => 'comment_spam',
+    3                => 'cf7_spam',
+    4                => 'gf_spam',
+    5                => 'bp_registration_spam',
+    'nf'             => 'nf_spam',
+    'Undefined Form' =>  'undefined_form' );
 
   // Get spammers by weekday.
   $by_weekday_ary = $wpdb->get_results( "SELECT DATE_FORMAT(date, '%a') as day, COUNT(*) num FROM $table_name GROUP BY day", ARRAY_A );
@@ -614,17 +621,17 @@ function zerospam_reset_log() {
 function zerospam_get_ip_info( $ip ) {
   global $wpdb;
 
+  // Ignore local hosts.
+  if ( $ip == '127.0.0.1' || $ip == '::1' ) {
+    return false;
+  }
+
   // Check DB
   $table_name = $wpdb->prefix . 'zerospam_ip_data';
   $data       = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ip = %s", $ip ) );
 
   // Retrieve from API
-  if ( ! empty( $data ) ) {
-    // Ignore local hosts.
-    if ( $ip == '127.0.0.1' || $ip == '::1' ) {
-      return false;
-    }
-
+  if ( ! $data ) {
     // @ used to suppress API usage block warning.
     $json = @file_get_contents( 'http://freegeoip.net/json/' . $ip );
 

@@ -1,9 +1,11 @@
 <?php
 /**
- * Spammer Log Template
+ * Spammer Log page template
  *
- * Content for the plugin spammer log page.
+ * Outputs the Spammer Log admin page HTML.
  *
+ * @package WordPress Zero Spam
+ * @subpackage ZeroSpam_Plugin
  * @since 1.5.0
  */
 
@@ -13,7 +15,6 @@
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 ?>
 <div class="zero-spam__row">
-
   <div class="zero-spam__cell">
     <div class="zero-spam__widget zero-spam__bg--primary">
       <div class="zero-spam__inner">
@@ -143,52 +144,53 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
     <div class="zero-spam__cell">
       <div id="map" class="zero-spam__map"></div>
       <script>
+      ( function( $ ) {
+        $( function() {
+          $.post( ajaxurl, {
+            action: 'get_ip_spam',
+            security: '<?php echo $ajax_nonce; ?>',
+          }, function( data ) {console.log(data);
+            if ( data ) {
+              var obj         = jQuery.parseJSON( data ),
+                country_count = {},
+                cnt           = 0;
 
-      jQuery(function() {
-        jQuery.post( ajaxurl, {
-          action: 'get_ip_spam',
-          security: '<?php echo $ajax_nonce; ?>',
-        }, function( data ) {
-          if ( data ) {
-            var obj = jQuery.parseJSON( data ),
-              country_count = {},
-              cnt = 0;
-
-            if ( obj.by_country ) {
-              jQuery( ".zero-spam__overlay" ).fadeOut();
+              if ( obj.by_country ) {
+                $( ".zero-spam__overlay" ).fadeOut();
 
 
-              jQuery.each( obj.by_country, function( abbr, c ) {
-                cnt++;
-                if ( cnt > 6 ) return false;
-                jQuery( "#zerospam-country-spam" ).append( "<tr><td><b>" + c.name + "</b></td><td class='zero-spam__text-right'>" + c.count + "</td></tr>" );
-                country_count[abbr] = String(c.count);
-              });
+                $.each( obj.by_country, function( abbr, c ) {
+                  cnt++;
+                  if ( cnt > 6 ) return false;
+                  $( "#zerospam-country-spam" ).append( "<tr><td><b>" + c.name + "</b></td><td class='zero-spam__text-right'>" + c.count + "</td></tr>" );
+                  country_count[abbr] = String(c.count);
+                });
 
-              jQuery('#map').vectorMap({
+                $( '#map' ).vectorMap({
                     map: 'world_mill_en',
                     backgroundColor: '#1b1e24',
-                series: {
-                  regions: [{
-                    scale: ['#ffe6ea', '#ff183a'],
-                    normalizeFunction: 'linear',
-                    attribute: 'fill',
-                    values: country_count
-                  }]
-                }
+                  series: {
+                    regions: [{
+                      scale: ['#ffe6ea', '#ff183a'],
+                      normalizeFunction: 'linear',
+                      attribute: 'fill',
+                      values: country_count
+                    }]
+                  }
 
-              });
+                });
 
-              var map = jQuery('#map').vectorMap('get', 'mapObject');
-              map.series.regions[0].setValues( country_count );
+                var map = $( '#map' ).vectorMap('get', 'mapObject');
+                map.series.regions[0].setValues( country_count );
+              } else {
+                $( ".zero-spam__inner", $( ".zero-spam__overlay" ) ).html( "<i class='fa fa-thumbs-up'></i><h4>No spammers yet!</h4>" );
+              }
             } else {
-              jQuery( ".zero-spam__inner", jQuery( ".zero-spam__overlay" ) ).html( "<i class='fa fa-thumbs-up'></i><h4>No spammers yet!</h4>" );
+              $( ".zero-spam__inner", $( ".zero-spam__overlay" ) ).html( "<i class='fa fa-exclamation-triangle'></i><h4>IP API Usage Limit Reached</h4><p>You've reached you're daily  limit to the IP API to gather location information. Please check back in one hour.</p>" );
             }
-          } else {
-            jQuery( ".zero-spam__inner", jQuery( ".zero-spam__overlay" ) ).html( "<i class='fa fa-exclamation-triangle'></i><h4>IP API Usage Limit Reached</h4><p>You've reached you're daily  limit to the IP API to gather location information. Please check back in one hour.</p>" );
-          }
+          });
         });
-      });
+      })( jQuery );
       </script>
     </div>
   </div>
@@ -380,6 +382,9 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
               switch ( $key ):
                 case 'comment_spam': ?>
                   '<?php echo __( 'Spam Comments', 'zerospam' ); ?>',
+                  <?php break;
+                case 'undefined_form': ?>
+                  '<?php echo __( 'Undefined Form', 'zerospam' ); ?>',
                   <?php break;
                 case 'registration_spam': ?>
                   '<?php echo __( 'Spam Registrations', 'zerospam' ); ?>',

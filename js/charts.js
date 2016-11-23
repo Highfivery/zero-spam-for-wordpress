@@ -3529,7 +3529,7 @@
             this.el.hide(), this.options.parent.append(this.el);
         }
         return c.defaults = {
-            "class": "morris-hover morris-default-style"
+            class: "morris-hover morris-default-style"
         }, c.prototype.update = function(a, b, c) {
             return a ? (this.html(a), this.show(), this.moveTo(b, c)) : this.hide();
         }, c.prototype.html = function(a) {

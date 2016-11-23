@@ -1,36 +1,51 @@
-jQuery(document).ready(function($) {
-    $("[data-ip-location]").click(function() {
-        var ip = $(this).data("ip-location"), element = $("[data-ip-location='" + ip + "']");
-        jQuery.post(ajaxurl, {
-            action: "get_location",
-            security: zero_spam_admin.nonce,
-            ip: ip
-        }, function(data) {
-            var obj = $.parseJSON(data), html = "";
-            if (obj) {
-                if (obj.country_name) {
-                    html += obj.country_code;
-                }
-                if (obj.region_name) {
-                    if (html.length) {
-                        html += ", ";
+(function($) {
+    "use strict";
+    var ZeroSpam = {
+        initIpLookup: function() {
+            $("[data-ip-location]").click(function(e) {
+                e.preventDefault();
+                var ele = $(this), ip = $(this).data("ip-location");
+                $.post(ajaxurl, {
+                    action: "get_location",
+                    security: zero_spam_admin.nonce,
+                    ip: ip
+                }, function(data) {
+                    var obj = $.parseJSON(data), html = "";
+                    if (obj) {
+                        if (obj.country_name) {
+                            html += obj.country_code;
+                        }
+                        if (obj.region_name) {
+                            if (html.length) {
+                                html += ", ";
+                            }
+                            html += obj.region_name;
+                        }
+                        if (obj.city) {
+                            if (html.length) {
+                                html += ", ";
+                            }
+                            html += obj.city;
+                        }
+                        if (obj.country_code) {
+                            html = '<span class="country-flag country-flags-' + obj.country_code.toLowerCase() + '"></span> ' + html;
+                        }
                     }
-                    html += obj.region_name;
-                }
-                if (obj.city) {
-                    if (html.length) {
-                        html += ", ";
-                    }
-                    html += obj.city;
-                }
-                if (obj.country_code) {
-                    html = '<span class="country-flag country-flags-' + obj.country_code.toLowerCase() + '"></span> ' + html;
-                }
-            }
-            if (!html.length) html = '<i class="fa fa-exclamation-triangle"></i>';
-            element.html(html);
-        });
+                    if (!html.length) html = '<i class="fa fa-exclamation-triangle"></i>';
+                    ele.html(html);
+                });
+            });
+        },
+        init: function() {
+            this.initIpLookup();
+        }
+    };
+    $(function() {
+        ZeroSpam.init();
     });
+})(jQuery);
+
+jQuery(document).ready(function($) {
     $(".zero-spam__block-ip, .zero-spam__trash").click(function(e) {
         e.preventDefault();
         closeForms();

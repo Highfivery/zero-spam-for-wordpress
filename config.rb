@@ -1,7 +1,7 @@
 # Require any additional compass plugins here.
 
 # Set this to the root of your project when deployed:
-http_path = (environment == :production ? "../" : "../")
+http_path = "../"
 css_dir = "css"
 sass_dir = "src/scss"
 images_dir = "img"
@@ -11,7 +11,7 @@ images_path =  "src/img"
 
 # You can select your preferred output style here (can be overridden via the command line):
 # output_style = :expanded or :nested or :compact or :compressed
-output_style = (environment == :production ? :compressed : :expanded)
+output_style = :compressed
 
 # To enable relative paths to assets via compass helper functions. Uncomment:
 # relative_assets = true
