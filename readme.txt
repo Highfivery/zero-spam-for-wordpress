@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 4.6.1
-Stable tag: 3.0.1
+Stable tag: 3.0.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -123,6 +123,9 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 == Screenshots ==
 
 == Changelog ==
+
+= 3.0.2 =
+* Fixed fatal error.
 
 = 3.0.1 =
 * Added the default options when the plugin is activated.
