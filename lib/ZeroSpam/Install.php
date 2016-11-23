@@ -173,7 +173,7 @@ class ZeroSpam_Install extends ZeroSpam_Plugin
       }
 
       // Set the updated plugin DB version.
-      update_option( 'zerospam_db_version', $this->db_version );
+      update_option( 'zerospam_db_version', self::DB_VERSION );
     }
   }
 

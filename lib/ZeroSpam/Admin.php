@@ -4,13 +4,15 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
 
   public function run() {
     // Merge and update new changes
-    if ( isset( $_POST['zerospam_general_settings'] ) ) {
+    if ( isset( $_POST['zerospam_general_settings'] ) )
+    {
       $saved_settings = array();
       foreach ( $this->default_settings as $key => $val ) {
-        if ( isset( $_POST['zerospam_general_settings'][$key] ) ) {
-          $saved_settings[$key] = $_POST['zerospam_general_settings'][$key];
+        if ( ! empty( $_POST['zerospam_general_settings'][ $key ] ) )
+        {
+          $saved_settings[ $key ] = $_POST['zerospam_general_settings'][ $key ];
         } else {
-          $saved_settings[$key] = 0;
+          $saved_settings[ $key ] = 0;
         }
       }
 
@@ -441,8 +443,6 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
     <label for="log_spammers">
       <input type="checkbox" id="log_spammers" name="zerospam_general_settings[log_spammers]" value="1" <?php if( isset( $this->settings['log_spammers'] ) ) : checked( $this->settings['log_spammers'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
     </label>
-
-    <p class="description"><?php echo __( 'If you are using CloudFlare, disable this option. Follow <a href="https://wphuman.com/blocking-spam-zero-spam/" target="_blank">this guide</a> to let CloudFlare blacklist spammers.', 'zerospam' ); ?>
     <?php
   }
 
@@ -516,13 +516,6 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
    * @return void | boolean
    */
   public function load_zerospam_settings() {
-    // We don't need to check $pagenow `cause we called this with load-$hook_suffix
-    // if ( ! function_exists('get_current_screen') ||
-    //   ! get_current_screen() ||
-    //   ! in_array(get_current_screen()->base, array('settings_page_zerospam', 'settings_page_zerospam-network')) ) {
-    //   return false;
-    // }
-
     wp_enqueue_style( 'zerospam-admin', plugins_url( 'css/style.css', ZEROSPAM_PLUGIN ) );
     wp_enqueue_script( 'zerospam-charts', plugins_url( 'js/charts.js', ZEROSPAM_PLUGIN ), array( 'jquery' ) );
   }

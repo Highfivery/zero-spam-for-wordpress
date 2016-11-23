@@ -100,19 +100,7 @@ class ZeroSpam_Plugin implements ArrayAccess
   }
 
   public function load_settings() {
-    // Retrieve the settings.
-    $settings = zerospam_settings();
-    foreach ( $this->default_settings as $key => $val ) {
-      if ( ! isset( $settings[$key] ) ) {
-        if ( is_bool( $val ) ) {
-          $settings[$key] = 0;
-        } else {
-          $settings[$key] = $val;
-        }
-      }
-    }
-
-    $this->settings = $settings;
+    $this->settings = zerospam_settings();
   }
 
   /**
