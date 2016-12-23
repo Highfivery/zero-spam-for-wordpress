@@ -21,6 +21,7 @@
       forms += ", .zerospam";
       forms += ", .ninja-forms-form";
       forms += ", .wpforms-form";
+      forms += ", #gform_2";
 
       if ( typeof zerospam.key != "undefined" ) {
         $( forms ).on( "submit", function() {
