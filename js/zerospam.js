@@ -8,7 +8,7 @@
         forms += ", .zerospam";
         forms += ", .ninja-forms-form";
         forms += ", .wpforms-form";
-        forms += ", #gform_2";
+        forms += ", .gform_wrapper form";
         if (typeof zerospam.key != "undefined") {
             $(forms).on("submit", function() {
                 $("<input>").attr("type", "hidden").attr("name", "zerospam_key").attr("value", zerospam.key).appendTo(forms);
