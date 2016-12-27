@@ -1,6 +1,6 @@
 {
   "name": "wordpress-zero-spam",
-  "version": "3.0.5",
+  "version": "3.0.6",
   "description": "Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site. Even supports third-party plugins!",
   "main": "zero-spam.php",
   "scripts": {
