@@ -21,7 +21,8 @@
       forms += ", .zerospam";
       forms += ", .ninja-forms-form";
       forms += ", .wpforms-form";
-      forms += ", #gform_2";
+      // change to class and look for gravity forms class to grab onto.
+      forms += ", .gform_wrapper form";
 
       if ( typeof zerospam.key != "undefined" ) {
         $( forms ).on( "submit", function() {
