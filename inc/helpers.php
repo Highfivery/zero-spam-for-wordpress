@@ -68,6 +68,8 @@ function zerospam_get_ip() {
     $ipaddress = 'UNKNOWN';
   }
 
+  $ipaddress = apply_filters( 'zerospam_get_ip_filter', $ipaddress );
+
   return $ipaddress;
 }
 
