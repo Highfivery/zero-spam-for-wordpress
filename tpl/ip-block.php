@@ -1,3 +1,11 @@
+<?php
+/**
+ * Security Note: Blocks direct access to the plugin PHP files.
+ */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit();
+}
+?>
 <div class="zero-spam__row">
   <div class="zero-spam__widget">
     <div class="zero-spam__inner">
