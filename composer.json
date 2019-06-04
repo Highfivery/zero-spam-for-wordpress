@@ -1,0 +1,22 @@
+{
+    "name"        : "bmarshall511/wordpress-zero-spam",
+    "description" : "Zero Spam makes blocking spam comments a cinch. Install, activate and enjoy a spam-free site. Even supports third-party plugins!",
+    "keywords"    : ["wordpress", "plugin" ],
+    "type"        : "wordpress-plugin",
+    "license"     : "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name"    : "Ben Marshall",
+            "homepage": "https://github.com/bmarshall511"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/bmarshall511/wordpress-zero-spam/issues",
+        "source": "https://github.com/bmarshall511/wordpress-zero-spam"
+    },
+    "require": {
+        "php" : ">=5.2",
+    },
+    "minimum-stability" : "RC",
+    "prefer-stable": true
+}
