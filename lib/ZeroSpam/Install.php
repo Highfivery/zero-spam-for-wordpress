@@ -63,7 +63,7 @@ class ZeroSpam_Install extends ZeroSpam_Plugin
    * @see update_option
    * @global string ZEROSPAM_PLUGIN The plugin root directory.
    */
-  private function activate()
+  public function activate()
   {
     // Install the DB tables.
     $this->install();
