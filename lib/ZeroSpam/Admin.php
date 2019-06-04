@@ -370,7 +370,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_blocked_ip_msg() {
     ?>
     <label for="blocked_ip_msg">
-      <input type="text" class="regular-text" name="zerospam_general_settings[blocked_ip_msg]" value="<?php echo esc_attr( $this->settings['blocked_ip_msg'] ); ?>">
+      <input type="text" class="regular-text" name="zerospam_general_settings[blocked_ip_msg]" value="<?php echo esc_attr( isset( $this->settings['blocked_ip_msg'] ) ? $this->settings['blocked_ip_msg'] : '' ); ?>">
     <p class="description"><?php echo __( 'Enter a short message to display when a blocked IP visits the site.', 'zerospam' ); ?></p>
     </label>
     <?php
