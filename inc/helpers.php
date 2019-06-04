@@ -121,7 +121,7 @@ function zerospam_log_spam( $key, $url = false ) {
     zerospam_block_ip( array(
       'ip'     => $ip,
       'type'   => 'permanent',
-      'reason' => __( 'Auto block triggered on ', 'zerospam' ) . date( 'r' ) . '.'
+      'reason' => __( 'Auto block triggered on ', 'zerospam' ) . date( 'r' ) . '.',
     ));
   }
 }
@@ -284,7 +284,7 @@ function zerospam_parse_spam_ary( $ary ) {
       'Wed' => 0,
       'Thu' => 0,
       'Fri' => 0,
-      'Sat' => 0
+      'Sat' => 0,
     ),
   );
 
@@ -394,7 +394,7 @@ function zerospam_all_spam_ary() {
       'Wed' => 0,
       'Thu' => 0,
       'Fri' => 0,
-      'Sat' => 0
+      'Sat' => 0,
     ),
   );
 
@@ -417,7 +417,8 @@ function zerospam_all_spam_ary() {
     4                => 'gf_spam',
     5                => 'bp_registration_spam',
     'nf'             => 'nf_spam',
-    'Undefined Form' =>  'undefined_form' );
+    'Undefined Form' =>  'undefined_form',
+  );
 
   // Get spammers by weekday.
   $by_weekday_ary = $wpdb->get_results( "SELECT DATE_FORMAT(date, '%a') as day, COUNT(*) num FROM $table_name GROUP BY day", ARRAY_A );
@@ -472,7 +473,7 @@ function zerospam_all_spam_ary() {
             'cf7_spam'             => 0,
             'gf_spam'              => 0,
             'bp_registration_spam' => 0,
-            'nf_spam'              => 0
+            'nf_spam'              => 0,
         );
       }
       $return['by_date'][ $ary['day'] ][ $type_map[ $ary['type'] ] ] = $ary['num'];
@@ -658,7 +659,7 @@ function zerospam_get_ip_info( $ip ) {
           'latitude'      => $data->latitude,
           'longitude'     => $data->longitude,
           'metro_code'    => $data->metro_code,
-          'area_code'     => $data->area_code
+          'area_code'     => $data->area_code,
         ),
         array(
           '%s',
@@ -671,7 +672,7 @@ function zerospam_get_ip_info( $ip ) {
           '%d',
           '%d',
           '%d',
-          '%d'
+          '%d',
         )
       );
     }

@@ -40,9 +40,9 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
         __( '<small>If you have suggestions for a new add-on, feel free to email me at <a href="%s">me@benmarshall.me</a>. Want regular updates? Follow me on <a href="%s" target="_blank">Twitter</a> or <a href="%s" target="_blank">visit my blog</a>.</small>', 'zero-spam' ),
         array(
           'a' => array(
-            'href' => array()
+            'href' => array(),
           ),
-          'small' => array()
+          'small' => array(),
         )
       ),
       esc_url( 'mailto:me@benmarshall.me' ),
