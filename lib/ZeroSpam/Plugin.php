@@ -22,7 +22,7 @@ class ZeroSpam_Plugin implements ArrayAccess
   protected $contents;
   public $settings = array();
 
-  public $default_settings =  array(
+  public $default_settings = array(
     'spammer_msg_comment'         => 'There was a problem processing your comment.',
     'spammer_msg_registration'    => '<strong>ERROR</strong>: There was a problem processing your registration.',
     'spammer_msg_contact_form_7'  => 'There was a problem processing your comment.',
@@ -58,13 +58,13 @@ class ZeroSpam_Plugin implements ArrayAccess
    * @see add_action
    */
   public function run() {
-    foreach( $this->contents as $key => $content ){ // Loop on contents
-      if( is_callable($content) ){
-        $content = $this[$key];
+    foreach ( $this->contents as $key => $content ) { // Loop on contents
+      if ( is_callable( $content ) ) {
+        $content = $this[ $key ];
       }
-      if( is_object( $content ) ){
+      if ( is_object( $content ) ) {
         $reflection = new ReflectionClass( $content );
-        if( $reflection->hasMethod( 'run' ) ){
+        if ( $reflection->hasMethod( 'run' ) ) {
           $content->run(); // Call run method on object
         }
       }
@@ -116,21 +116,21 @@ class ZeroSpam_Plugin implements ArrayAccess
   }
 
   public function offsetSet( $offset, $value ) {
-    $this->contents[$offset] = $value;
+    $this->contents[ $offset ] = $value;
   }
 
-  public function offsetExists($offset) {
-    return isset( $this->contents[$offset] );
+  public function offsetExists( $offset ) {
+    return isset( $this->contents[ $offset ] );
   }
 
-  public function offsetUnset($offset) {
-    unset( $this->contents[$offset] );
+  public function offsetUnset( $offset ) {
+    unset( $this->contents[ $offset ] );
   }
 
-  public function offsetGet($offset) {
-    if( is_callable($this->contents[$offset]) ){
-      return call_user_func( $this->contents[$offset], $this );
+  public function offsetGet( $offset ) {
+    if ( is_callable( $this->contents[ $offset ] ) ) {
+      return call_user_func( $this->contents[ $offset ], $this );
     }
-    return isset( $this->contents[$offset] ) ? $this->contents[$offset] : null;
+    return isset( $this->contents[ $offset ] ) ? $this->contents[ $offset ] : null;
   }
 }

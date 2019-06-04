@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
     ?>
     <p><?php echo wp_kses(
       __( $plugin['Description'], 'zerospam' ),
-      array( 'a' => array( 'href' => array() )  )
+      array( 'a' => array( 'href' => array() ) )
     ); ?></p>
     <p><?php
     echo sprintf(

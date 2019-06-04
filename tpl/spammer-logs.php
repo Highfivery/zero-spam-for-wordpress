@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       <div class="zero-spam__inner">
         <h3><?php echo __( 'Summary', 'zerospam' ); ?></h3>
         <div class="zero-spam__row">
-          <?php if ( isset( $num_days ) ): ?>
+          <?php if ( isset( $num_days ) ) : ?>
             <div class="zero-spam__stat">
               <?php echo __( 'Protected', 'zerospam' ); ?>
               <b><?php echo number_format( $num_days, 0 ); ?> <?php echo __( 'days', 'zerospam' ); ?></b>
@@ -30,13 +30,13 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
               <?php echo __( 'Total Spam', 'zerospam' ); ?>
               <b><?php echo number_format( $all_spam['raw'], 0 ); ?></b>
             </div>
-          <?php if ( isset( $per_day ) ): ?>
+          <?php if ( isset( $per_day ) ) : ?>
             <div class="zero-spam__stat">
               <?php echo __( 'Per day', 'zerospam' ); ?>
               <b><?php echo number_format( $per_day, 0 ); ?></b>
             </div>
           <?php endif; ?>
-          <?php if ( $all_spam['unique_spammers'] ): ?>
+          <?php if ( $all_spam['unique_spammers'] ) : ?>
             <div class="zero-spam__stat">
               <?php echo __( 'Unique Spammers', 'zerospam' ); ?>
               <b><?php echo number_format( $all_spam['unique_spammers'], 0 ); ?></b>
@@ -64,7 +64,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
           <?php if (
             zerospam_plugin_check( 'cf7' ) &&
             ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support']
-          ): ?>
+          ) : ?>
           <div class="zero-spam__stat">
             <?php echo __( 'Contact Form 7', 'zerospam' ); ?>
             <b><?php echo number_format( $all_spam['cf7_spam'], 0 ); ?></b>
@@ -74,7 +74,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
           <?php if (
             zerospam_plugin_check( 'gf' ) &&
             ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support']
-          ): ?>
+          ) : ?>
           <div class="zero-spam__stat">
             <?php echo __( 'Gravity Forms', 'zerospam' ); ?>
             <b><?php echo number_format( $all_spam['gf_spam'], 0 ); ?></b>
@@ -84,7 +84,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
           <?php if (
             zerospam_plugin_check( 'bp' ) &&
             ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support']
-          ): ?>
+          ) : ?>
           <div class="zero-spam__stat">
             <?php echo __( 'BP Registrations', 'zerospam' ); ?>
             <b><?php echo number_format( $all_spam['bp_registration_spam'], 0 ); ?></b>
@@ -94,7 +94,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
           <?php if (
             zerospam_plugin_check( 'nf' ) &&
             ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support']
-          ): ?>
+          ) : ?>
           <div class="zero-spam__stat">
             <?php echo __( 'Ninja Forms', 'zerospam' ); ?>
             <b><?php echo number_format( $all_spam['nf_spam'], 0 ); ?></b>
@@ -104,7 +104,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
           <?php if (
             zerospam_plugin_check( 'wpf' ) &&
             ! empty( $this->settings['wpf'] ) && $this->settings['wpf_support']
-          ): ?>
+          ) : ?>
           <div class="zero-spam__stat">
             <?php echo __( 'WPForms', 'zerospam' ); ?>
             <b><?php echo number_format( $all_spam['wpf_spam'], 0 ); ?></b>
@@ -116,7 +116,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
   </div>
 </div>
 
-<?php if ( $ip_location_support ): ?>
+<?php if ( $ip_location_support ) : ?>
 <div class="zero-spam__widget">
   <div class="zero-spam__overlay">
     <div class="zero-spam__inner">
@@ -197,7 +197,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 </div>
 <?php endif; ?>
 
-<?php if ( $all_spam['raw'] ): ?>
+<?php if ( $all_spam['raw'] ) : ?>
 <div class="zero-spam__row">
   <div class="zero-spam__cell">
     <div class="zero-spam__widget">
@@ -213,7 +213,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                 </tr>
               </thead>
               <tbody>
-                <?php foreach( $all_spam['by_day'] as $day => $count ): ?>
+                <?php foreach ( $all_spam['by_day'] as $day => $count ) : ?>
                 <tr>
                   <td><b><?php echo $day; ?></b></td>
                   <td class="zero-spam__text-right"><?php echo number_format( $count, 0 ); ?></td>
@@ -229,7 +229,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
               Morris.Donut({
                 element: 'donut',
                 data: [
-                  <?php foreach( $all_spam['by_day'] as $day => $count ): ?>
+                  <?php foreach ( $all_spam['by_day'] as $day => $count ) : ?>
                   {value: <?php echo zerospam_get_percent( $count, $all_spam['raw'] ); ?>, label: '<?php echo $day; ?>', formatted: '<?php echo zerospam_get_percent( $count, $all_spam['raw'] ); ?>%'},
                   <?php endforeach; ?>
                 ],
@@ -250,7 +250,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
           <thead>
             <tr>
               <th width="100"><?php echo __( 'IP', 'zerospam' ); ?></th>
-              <?php if ( $ip_location_support ): ?><th><?php echo __( 'Location', 'zerospam' ); ?></th><?php endif; ?>
+              <?php if ( $ip_location_support ) : ?><th><?php echo __( 'Location', 'zerospam' ); ?></th><?php endif; ?>
               <th class="zero-spam__text-right">#</th>
               <th><?php echo __( 'Status', 'zerospam' ); ?></th>
               <th>&nbsp;</th>
@@ -261,25 +261,25 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
             arsort( $all_spam['by_spam_count'] );
             $cnt = 0;
 
-            foreach( $all_spam['by_spam_count'] as $ip => $count ):
+            foreach ( $all_spam['by_spam_count'] as $ip => $count ) :
               $cnt++;
-              if ( $cnt > 6) {
+              if ( $cnt > 6 ) {
                 break;
               }
               ?>
               <tr data-ip="<?php echo $ip; ?>">
                 <td><a href="http://ip-lookup.net/index.php?ip=<?php echo $ip; ?>" target="_blank">
               <?php echo $ip; ?> <i class="fa fa-external-link-square"></i></a></td>
-                <?php if ( $ip_location_support ): ?>
+                <?php if ( $ip_location_support ) : ?>
                 <td>
                   <div data-ip-location="<?php echo $ip; ?>"><i class="fa fa-search"></i></div>
                 </td>
                 <?php endif; ?>
                 <td class="zero-spam__text-right"><?php echo number_format( $count, 0 ); ?></td>
                 <td class="zero-spam__status">
-                  <?php if( zerospam_is_blocked( $ip ) ): ?>
+                  <?php if ( zerospam_is_blocked( $ip ) ) : ?>
                   <span class="zero-spam__label zero-spam__bg--primary"><?php echo __( 'Blocked', 'zerospam' ); ?></span>
-                  <?php else: ?>
+                  <?php else : ?>
                   <span class="zero-spam__label zero-spam__bg--trinary"><?php echo __( 'Unblocked', 'zerospam' ); ?></span>
                   <?php endif; ?>
                 </td>
@@ -301,7 +301,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 <div class="zero-spam__widget">
   <div class="zero-spam__inner">
-    <?php if ( count( $all_spam['by_date'] ) ): ?>
+    <?php if ( count( $all_spam['by_date'] ) ) : ?>
     <a href="javascript: clearLog();" class="zero-spam__fright button"><?php echo __( 'Reset Log', 'zerospam' ); ?></a>
       <h3><?php echo __( 'All Time', 'zerospam' ); ?></h3>
     <div id="graph"></div>
@@ -312,11 +312,11 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
         element: 'graph',
         behaveLikeLine: true,
         data: [
-          <?php foreach( $all_spam['by_date'] as $date => $ary ): ?>
+          <?php foreach ( $all_spam['by_date'] as $date => $ary ) : ?>
           {
             'date': '<?php echo $date; ?>',
-            <?php foreach ( $ary as $key => $val ):
-              switch ( $key ):
+            <?php foreach ( $ary as $key => $val ) :
+              switch ( $key ) :
                 case 'comment_spam': ?>
                   'spam_comments' : <?php echo $val; ?>,
                   <?php break;
@@ -324,26 +324,26 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                   'spam_registrations' : <?php echo $val; ?>,
                   <?php break;
                 case 'cf7_spam':
-                  if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ): ?>
+                  if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ) : ?>
                   'spam_cf7' : <?php echo $val; ?>,
                   <?php endif; break;
                 case 'gf_spam':
-                 if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ): ?>
+                 if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ) : ?>
                   'spam_gf' : <?php echo $val; ?>,
                   <?php endif; break;
                 case 'bp_registration_spam':
-                  if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ): ?>
+                  if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ) : ?>
                   'bp_registrations' : <?php echo $val; ?>,
                   <?php endif; break;
                 case 'nf_spam':
-                  if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ): ?>
+                  if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ) : ?>
                   'nf_spam' : <?php echo $val; ?>,
                   <?php endif; break;
                 case 'wpf_spam':
-                  if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ): ?>
+                  if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ) : ?>
                   'wpf_spam' : <?php echo $val; ?>,
                   <?php endif; break;
-                default: if ( $key != 'data' ): ?>
+                default: if ( $key != 'data' ) : ?>
                   '<?php echo $key; ?>': <?php echo $val; ?>,
               <?php endif; endswitch;
             endforeach; ?>
@@ -352,37 +352,37 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
         ],
         xkey: 'date',
         ykeys: [
-          <?php foreach ( $ary as $key => $val ):
-              switch ( $key ):
+          <?php foreach ( $ary as $key => $val ) :
+              switch ( $key ) :
                 case 'comment_spam': ?>
                   'spam_comments',
                   <?php break;
                 case 'registration_spam': ?>
                   'spam_registrations',
                   <?php break;
-                case 'cf7_spam': if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ): ?>
+                case 'cf7_spam': if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ) : ?>
                   'spam_cf7',
                   <?php endif; break;
-                case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ): ?>
+                case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ) : ?>
                   'spam_gf',
                   <?php endif; break;
-                case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ): ?>
+                case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ) : ?>
                   'bp_registrations',
                   <?php endif; break;
-                case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ): ?>
+                case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ) : ?>
                   'nf_spam',
                   <?php endif; break;
-                case 'wpf_spam': if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ): ?>
+                case 'wpf_spam': if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ) : ?>
                   'wpf_spam',
                   <?php endif; break;
-                default: if ( $key != 'data' ): ?>
+                default: if ( $key != 'data' ) : ?>
                   '<?php echo $key; ?>',
               <?php endif; endswitch;
             endforeach; ?>
         ],
         labels: [
-          <?php foreach ( $ary as $key => $val ):
-              switch ( $key ):
+          <?php foreach ( $ary as $key => $val ) :
+              switch ( $key ) :
                 case 'comment_spam': ?>
                   '<?php echo __( 'Spam Comments', 'zerospam' ); ?>',
                   <?php break;
@@ -392,52 +392,52 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
                 case 'registration_spam': ?>
                   '<?php echo __( 'Spam Registrations', 'zerospam' ); ?>',
                   <?php break;
-                case 'cf7_spam': if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ): ?>
+                case 'cf7_spam': if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ) : ?>
                   '<?php echo __( 'Contact Form 7', 'zerospam' ); ?>',
                   <?php endif; break;
-                case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ): ?>
+                case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ) : ?>
                   '<?php echo __( 'Gravity Forms', 'zerospam' ); ?>',
                   <?php endif; break;
-                case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ): ?>
+                case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ) : ?>
                   '<?php echo __( 'BuddyPress', 'zerospam' ); ?>',
                   <?php endif; break;
-                case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ): ?>
+                case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ) : ?>
                   '<?php echo __( 'Ninja Forms', 'zerospam' ); ?>',
                   <?php endif; break;
-                case 'wpf_spam': if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ): ?>
+                case 'wpf_spam': if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ) : ?>
                   '<?php echo __( 'WPForms', 'zerospam' ); ?>',
                   <?php endif; break;
-                default: if ( $key != 'data' ): ?>
+                default: if ( $key != 'data' ) : ?>
                   '<?php echo $key; ?>',
               <?php endif; endswitch;
             endforeach; ?>
         ],
         xLabels: 'day',
         lineColors: [
-          <?php foreach ( $ary as $key => $val ):
-            switch ( $key ):
+          <?php foreach ( $ary as $key => $val ) :
+            switch ( $key ) :
               case 'comment_spam': ?>
                 '#00639e',
                 <?php break;
               case 'registration_spam': ?>
                 '#ff183a',
                 <?php break;
-              case 'cf7_spam': if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ): ?>
+              case 'cf7_spam': if ( zerospam_plugin_check( 'cf7' ) && ! empty( $this->settings['cf7_support'] ) && $this->settings['cf7_support'] ) : ?>
                 '#fddb5a',
                 <?php endif; break;
-              case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ): ?>
+              case 'gf_spam': if ( zerospam_plugin_check( 'gf' ) && ! empty( $this->settings['gf_support'] ) && $this->settings['gf_support'] ) : ?>
                 '#222d3a'
                 <?php endif; break;
-              case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ): ?>
+              case 'bp_registration_spam': if ( zerospam_plugin_check( 'bp' ) && ! empty( $this->settings['bp_support'] ) && $this->settings['bp_support'] ) : ?>
                 '#a0d5f4'
                 <?php endif; break;
-              case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ): ?>
+              case 'nf_spam': if ( zerospam_plugin_check( 'nf' ) && ! empty( $this->settings['nf_support'] ) && $this->settings['nf_support'] ) : ?>
                 '#ef4748',
                 <?php endif; break;
-              case 'wpf_spam': if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ): ?>
+              case 'wpf_spam': if ( zerospam_plugin_check( 'wpf' ) && ! empty( $this->settings['wpf_support'] ) && $this->settings['wpf_support'] ) : ?>
                 '#e27730',
                 <?php endif; break;
-              default: if ( $key != 'data' ): ?>
+              default: if ( $key != 'data' ) : ?>
                 '#c2c2c2',
             <?php endif; endswitch;
           endforeach; ?>
@@ -450,7 +450,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
         <tr>
           <th><?php echo __( 'Date', 'zerospam' ); ?></th>
           <th width="90"><?php echo __( 'Type', 'zerospam' ); ?></th>
-          <?php if ( $ip_location_support ): ?><th><?php echo __( 'Location', 'zerospam' ); ?></th><?php endif; ?>
+          <?php if ( $ip_location_support ) : ?><th><?php echo __( 'Location', 'zerospam' ); ?></th><?php endif; ?>
           <th width="106"><?php echo __( 'IP', 'zerospam' ); ?></th>
           <th><?php echo __( 'Page', 'zerospam' ); ?></th>
           <th><?php echo __( 'Status', 'zerospam' ); ?></th>
@@ -459,7 +459,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       </thead>
       <tbody>
         <?php
-        foreach ( $spam['raw'] as $key => $obj ):
+        foreach ( $spam['raw'] as $key => $obj ) :
           switch ( $obj->type ) {
             case 1:
               $zerospam_type = '<span class="zero-spam__label zero-spam__bg--primary">' . __( 'Registration', 'zerospam' ) . '</span>';
@@ -496,7 +496,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
             ?>
           </td>
           <td><?php echo isset( $zerospam_type ) ? $zerospam_type : '&mdash;'; ?></td>
-          <?php if ( $ip_location_support ): ?>
+          <?php if ( $ip_location_support ) : ?>
           <td>
             <div data-ip-location="<?php echo $obj->ip; ?>"><i class="fa fa-search"></i></div>
           </td>
@@ -506,16 +506,16 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
               <?php echo $obj->ip; ?> <i class="fa fa-external-link-square"></i></a>
           </td>
           <td>
-            <?php if ( isset( $obj->page ) ): ?>
+            <?php if ( isset( $obj->page ) ) : ?>
             <a href="<?php echo esc_url( $obj->page ); ?>" target="_blank"><?php echo $obj->page; ?> <i class="fa fa-external-link-square"></i></a>
-            <?php else: ?>
+            <?php else : ?>
               <?php echo __( 'Unknown', 'zerospam' ); ?>
             <?php endif; ?>
           </td>
           <td class="zero-spam__status">
-            <?php if( zerospam_is_blocked( $obj->ip ) ): ?>
+            <?php if ( zerospam_is_blocked( $obj->ip ) ) : ?>
             <span class="zero-spam__label zero-spam__bg--primary"><?php echo __( 'Blocked', 'zerospam' ); ?></span>
-            <?php else: ?>
+            <?php else : ?>
             <span class="zero-spam__label zero-spam__bg--trinary"><?php echo __( 'Unblocked', 'zerospam' ); ?></span>
             <?php endif; ?>
           </td>
@@ -530,8 +530,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       </tbody>
     </table>
     <?php zerospam_pager( $limit, zerospam_get_spam_count(), $page, $tab ); ?>
-    <?php else: ?>
-      <?php echo __( 'No spammers detected yet!', 'zerospam'); ?>
+    <?php else : ?>
+      <?php echo __( 'No spammers detected yet!', 'zerospam' ); ?>
     <?php endif; ?>
   </div>
 </div>

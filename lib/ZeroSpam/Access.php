@@ -3,7 +3,7 @@ class ZeroSpam_Access extends ZeroSpam_Plugin {
   public function run() {
     add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
 
-    if ( ! empty ( $this->settings['wp_generator'] ) && $this->settings['wp_generator'] ) {
+    if ( ! empty( $this->settings['wp_generator'] ) && $this->settings['wp_generator'] ) {
       remove_action( 'wp_head', 'wp_generator' );
     }
   }

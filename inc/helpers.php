@@ -29,19 +29,19 @@ function zerospam_get_key() {
 }
 
 function zerospam_is_valid() {
-  if (  ! empty( $_POST['zerospam_key'] ) && $_POST['zerospam_key'] == zerospam_get_key() ) {
+  if ( ! empty( $_POST['zerospam_key'] ) && $_POST['zerospam_key'] == zerospam_get_key() ) {
     return true;
   }
 
   return false;
 }
 
-function zerospam_get_server_var($var)
+function zerospam_get_server_var( $var )
 {
-  if ( getenv($var) ) {
-    return getenv($var);
-  } else if ( isset($_SERVER[$var]) ) {
-    return $_SERVER[$var];
+  if ( getenv( $var ) ) {
+    return getenv( $var );
+  } elseif ( isset( $_SERVER[ $var ] ) ) {
+    return $_SERVER[ $var ];
   } else {
     return '';
   }
@@ -49,15 +49,15 @@ function zerospam_get_server_var($var)
 
 function zerospam_get_ip() {
 
-  $ipaddress = zerospam_get_server_var('HTTP_CLIENT_IP');
-  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('HTTP_X_FORWARDED_FOR'); }
-  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('HTTP_X_FORWARDED'); }
-  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('HTTP_FORWARDED_FOR'); }
-  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('HTTP_FORWARDED'); }
-  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('REMOTE_ADDR'); }
+  $ipaddress = zerospam_get_server_var( 'HTTP_CLIENT_IP' );
+  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'HTTP_X_FORWARDED_FOR' ); }
+  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'HTTP_X_FORWARDED' ); }
+  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'HTTP_FORWARDED_FOR' ); }
+  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'HTTP_FORWARDED' ); }
+  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'REMOTE_ADDR' ); }
 
-  $ipaddress = explode(',', $ipaddress, 2);
-  $ipaddress = trim($ipaddress[0]);
+  $ipaddress = explode( ',', $ipaddress, 2 );
+  $ipaddress = trim( $ipaddress[0] );
 
   if ( false === WP_Http::is_ip_address( $ipaddress ) ) {
     $ipaddress = 'UNKNOWN';
@@ -76,7 +76,7 @@ function zerospam_log_spam( $key, $url = false ) {
   $url        = ( $url ) ? $url : zerospam_get_url();
   $table_name = $wpdb->prefix . 'zerospam_log';
 
-  switch( $key ) {
+  switch ( $key ) {
     case 'registration':
       $key = 1;
       break;
@@ -112,7 +112,7 @@ function zerospam_log_spam( $key, $url = false ) {
     )
   );
 
-  if ( ! empty( $settings['auto_block'] )  && $settings['auto_block'] ) {
+  if ( ! empty( $settings['auto_block'] ) && $settings['auto_block'] ) {
     zerospam_block_ip( array(
       'ip'     => $ip,
       'type'   => 'permanent',
@@ -249,7 +249,7 @@ function zerospam_get_spam( $args = array() ) {
   $limit = isset( $args['limit'] ) ? $args['limit'] : false;
   if ( $offset && $limit ) {
     $limit = ' LIMIT ' . $offset . ', ' . $limit;
-  } elseif( $limit ) {
+  } elseif ( $limit ) {
     $limit = ' LIMIT ' . $limit;
   }
 
@@ -316,7 +316,7 @@ function zerospam_parse_spam_ary( $ary ) {
     $return['by_spam_count'][ $obj->ip ]++;
 
     // Spam type
-    if ( 1 == $obj->type) {
+    if ( 1 == $obj->type ) {
 
       // Registration spam.
       $return['by_date'][ substr( $obj->date, 0, 10 ) ]['registration_spam']++;
@@ -352,15 +352,15 @@ function zerospam_parse_spam_ary( $ary ) {
       $return['by_date'][ substr( $obj->date, 0, 10 ) ]['wpf_spam']++;
       $return['wpf_spam']++;
     } else {
-      if ( empty(  $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] ) ) {
-        $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] = 0;
+      if ( empty( $return['by_date'][ substr( $obj->date, 0, 10 ) ][ $obj->type ] ) ) {
+        $return['by_date'][ substr( $obj->date, 0, 10 ) ][ $obj->type ] = 0;
       }
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type]++;
+      $return['by_date'][ substr( $obj->date, 0, 10 ) ][ $obj->type ]++;
 
-      if ( empty( $return[$obj->type] ) ) {
-        $return[$obj->type] = 0;
+      if ( empty( $return[ $obj->type ] ) ) {
+        $return[ $obj->type ] = 0;
       }
-      $return[$obj->type]++;
+      $return[ $obj->type ]++;
     }
 
     // Unique spammers
@@ -400,10 +400,10 @@ function zerospam_all_spam_ary() {
   $table_name = $wpdb->prefix . 'zerospam_log';
 
   // Count all
-  if ( $r = $wpdb->get_results("SELECT SQL_CALC_FOUND_ROWS zerospam_id FROM $table_name WHERE 1=1 LIMIT 10") ) {
+  if ( $r = $wpdb->get_results( "SELECT SQL_CALC_FOUND_ROWS zerospam_id FROM $table_name WHERE 1=1 LIMIT 10" ) ) {
     // SELECT COUNT(*) counts, MIN(date) date_start FROM $table_name WHERE 1=1
-    $return['raw'] = $wpdb->get_var('SELECT FOUND_ROWS()');// array_fill(0, $count_all, 0);// JUST USE $count_all next time...
-    $return['date_start'] = $wpdb->get_var("SELECT date FROM $table_name WHERE zerospam_id = (SELECT MIN(zerospam_id) FROM $table_name)");
+    $return['raw'] = $wpdb->get_var( 'SELECT FOUND_ROWS()' );// array_fill(0, $count_all, 0);// JUST USE $count_all next time...
+    $return['date_start'] = $wpdb->get_var( "SELECT date FROM $table_name WHERE zerospam_id = (SELECT MIN(zerospam_id) FROM $table_name)" );
   } else {
     // there's no spammer logs...
     return $return;
@@ -416,7 +416,7 @@ function zerospam_all_spam_ary() {
     4                => 'gf_spam',
     5                => 'bp_registration_spam',
     'nf'             => 'nf_spam',
-    'Undefined Form' =>  'undefined_form',
+    'Undefined Form' => 'undefined_form',
   );
 
   // Get spammers by weekday.
@@ -443,7 +443,7 @@ function zerospam_all_spam_ary() {
   $by_type = $wpdb->get_results( "SELECT type, COUNT(*) num FROM $table_name GROUP BY type", ARRAY_A );
   if ( $by_type )
   {
-    foreach( $by_type as $key => $ary )
+    foreach ( $by_type as $key => $ary )
     {
       $type = ! empty( $type_map[ $ary['type'] ] ) ? $type_map[ $ary['type'] ] : $ary['type'];
       $return[ $type ] = $ary['num'];
@@ -461,7 +461,7 @@ function zerospam_all_spam_ary() {
   $by_date = $wpdb->get_results( "SELECT type, LEFT(date, 10) day, COUNT(*) num FROM $table_name GROUP BY day, type ORDER BY date DESC LIMIT 100", ARRAY_A );
   if ( $by_date )
   {
-    foreach( $by_date as $key => $ary )
+    foreach ( $by_date as $key => $ary )
     {
       if ( ! empty( $return['by_date'][ $ary['day'] ] ) )
       {
@@ -558,7 +558,7 @@ function zerospam_pager( $limit = 10, $total_num, $page, $tab ) {
     echo '<li><a href="' . zerospam_admin_url() . '?page=zerospam&tab=' . $tab . '&p=' . $i . '"' . $class . '>' . $i . '</a>';
   }
 
-  if( isset( $post_html ) ) {
+  if ( isset( $post_html ) ) {
     echo $post_html;
   }
   echo '</ul>';

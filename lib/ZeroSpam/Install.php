@@ -116,7 +116,7 @@ class ZeroSpam_Install extends ZeroSpam_Plugin
       $sql = false;
 
       // Check for the log table. If not available, create it.
-      if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'') != $log_table_name )
+      if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table_name . '\'' ) != $log_table_name )
       {
         $sql = "CREATE TABLE $log_table_name (
                zerospam_id mediumint(9) unsigned NOT NULL AUTO_INCREMENT,
