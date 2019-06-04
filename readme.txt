@@ -124,6 +124,10 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 
 == Changelog ==
 
+= v3.1.0 (June 4, 2019)
+* [bug] install/activation routine would never run (https://github.com/bmarshall511/wordpress-zero-spam/pull/148)
+* [bug] option may not be set (https://github.com/bmarshall511/wordpress-zero-spam/pull/149)
+
 = v3.0.6 (December 27, 2016) =
 * [bug] Gravity Forms submission fix (https://github.com/bmarshall511/wordpress-zero-spam/pull/140).
 
