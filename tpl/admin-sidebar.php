@@ -50,7 +50,6 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       esc_url( 'https://benmarshall.me/' ) );
     ?></p>
     <p>
-      <a href="https://www.gittip.com/bmarshall511/" class="zero-spam__button" target="_blank"><?php _e( 'Show Support &mdash; Donate!', 'zerospam' ); ?></a>
       <a href="https://wordpress.org/support/view/plugin-reviews/zero-spam" class="zero-spam__button" target="_blank"><?php _e( 'Spread the Love &mdash; Rate!', 'zerospam' ); ?></a>
     </p>
   </div>
