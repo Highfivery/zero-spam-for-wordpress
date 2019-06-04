@@ -9,6 +9,8 @@
  * Security Note: Blocks direct access to the plugin PHP files.
  */
 defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
+
+$zerospam_year = date( 'Y' );
 ?>
 <h2><?php echo __( 'Configure Block for', 'zerospam' ); ?> <?php echo $ip; ?></h2>
 <form method="post" action="options.php" id="zero-spam__block-ip-form">
@@ -51,7 +53,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       </select>
 
       <select name="zerospam-startdate-year">
-        <?php for ( $i = date( 'Y' ); $i <= ( date( 'Y' ) + 50 ); $i++ ): ?>
+        <?php for ( $i = $zerospam_year; $i <= ( $zerospam_year + 50 ); $i++ ): ?>
           <option value="<?php echo $i; ?>"<?php if( isset( $start_date_year ) && $i == $start_date_year ): ?> selected="selected"<?php endif; ?>><?php echo $i; ?></option>
         <?php endfor; ?>
       </select>
@@ -81,7 +83,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
       </select>
 
       <select name="zerospam-enddate-year">
-        <?php for ( $i = date( 'Y' ); $i <= ( date( 'Y' ) + 50 ); $i++ ): ?>
+        <?php for ( $i = $zerospam_year; $i <= ( $zerospam_year + 50 ); $i++ ): ?>
           <option value="<?php echo $i; ?>"<?php if( isset( $end_date_year ) && $i == $end_date_year ): ?> selected="selected"<?php endif; ?>><?php echo $i; ?></option>
         <?php endfor; ?>
       </select>
