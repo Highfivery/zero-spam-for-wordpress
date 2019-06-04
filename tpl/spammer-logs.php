@@ -36,7 +36,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
               <b><?php echo number_format( $per_day, 0 ); ?></b>
             </div>
           <?php endif; ?>
-          <?php if ( count( $all_spam['unique_spammers'] ) ): ?>
+          <?php if ( $all_spam['unique_spammers'] ): ?>
             <div class="zero-spam__stat">
               <?php echo __( 'Unique Spammers', 'zerospam' ); ?>
               <b><?php echo number_format( $all_spam['unique_spammers'], 0 ); ?></b>
