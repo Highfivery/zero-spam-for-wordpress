@@ -41,25 +41,34 @@ function zerospam_is_valid() {
   return false;
 }
 
-function zerospam_get_ip() {
-  $ipaddress = '';
-
-  if ( getenv('HTTP_CLIENT_IP') ) {
-    $ipaddress = getenv('HTTP_CLIENT_IP');
-  } else if ( getenv('HTTP_X_FORWARDED_FOR') ) {
-    $ipaddress = getenv('HTTP_X_FORWARDED_FOR');
-  } else if ( getenv('HTTP_X_FORWARDED') ) {
-    $ipaddress = getenv('HTTP_X_FORWARDED');
-  } else if ( getenv('HTTP_FORWARDED_FOR') ) {
-    $ipaddress = getenv('HTTP_FORWARDED_FOR');
-  } else if ( getenv('HTTP_FORWARDED') ) {
-    $ipaddress = getenv('HTTP_FORWARDED');
-  } else if ( getenv('REMOTE_ADDR') ) {
-    $ipaddress = getenv('REMOTE_ADDR');
+function zerospam_get_server_var($var)
+{
+  if ( getenv($var) ) {
+    return getenv($var);
+  } else if ( isset($_SERVER[$var]) ) {
+    return $_SERVER[$var];
+  } else {
+    return '';
   }
+}
+
+function zerospam_get_ip() {
+
+  $ipaddress = zerospam_get_server_var('HTTP_CLIENT_IP');
+  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('HTTP_X_FORWARDED_FOR'); }
+  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('HTTP_X_FORWARDED'); }
+  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('HTTP_FORWARDED_FOR'); }
+  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('HTTP_FORWARDED'); }
+  if ( !$ipaddress ) { $ipaddress = zerospam_get_server_var('REMOTE_ADDR'); }
+
+  $ipaddress = explode(',', $ipaddress, 2);
+  $ipaddress = trim($ipaddress[0]);
+
   if ( false === WP_Http::is_ip_address( $ipaddress ) ) {
     $ipaddress = 'UNKNOWN';
   }
+
+  $ipaddress = apply_filters( 'zerospam_get_ip_filter', $ipaddress );
 
   return $ipaddress;
 }
