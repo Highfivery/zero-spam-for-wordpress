@@ -94,7 +94,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 </table>
 <p class="submit">
     <input type="submit" value="<?php echo __( 'Save Changes', 'zerospam' ); ?>" class="button button-primary button-large">
-    <? if ( $ip ): ?><a href="javascript: closeForms();" class="button button-large"><?php echo __( 'Close', 'zerospam' ); ?></a><?php endif; ?>
+    <?php if ( $ip ): ?><a href="javascript: closeForms();" class="button button-large"><?php echo __( 'Close', 'zerospam' ); ?></a><?php endif; ?>
 </p>
 </form>
 <script>
@@ -116,7 +116,7 @@ jQuery( document ).ready( function( $ ) {
 
       form.prepend( "<div class='zero-spam__msg'>This IP address has been updated.</div>" );
 
-      <? if ( $ip ): ?>updateRow( '<?php echo $ip; ?>' );<?php endif; ?>
+      <?php if ( $ip ): ?>updateRow( '<?php echo $ip; ?>' );<?php endif; ?>
     });
   });
 
