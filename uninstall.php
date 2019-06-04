@@ -30,56 +30,14 @@
  * @since 1.5.0
  */
 
-// If this file is called directly, abort.
-if ( ! defined( 'WPINC' ) ) {
-	exit;
+if ( ! current_user_can( 'activate_plugins' ) || ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+	exit();
 }
 
-// If uninstall not called from WordPress, then exit.
-if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-	exit;
-}
-
-// Important: Check if the file is the one
-// that was registered during the uninstall hook.
-if ( basename(__DIR__) . '/zero-spam.php' !== WP_UNINSTALL_PLUGIN )  {
-	exit;
-}
-
-// Check if the $_REQUEST content actually is the plugin name
-if ( isset( $_REQUEST['checked'] ) && ! in_array( basename(__DIR__) . '/zero-spam.php', $_REQUEST['checked'] ) ) {
-	exit;
-}
-
-if ( ! in_array( $_REQUEST['action'], array( 'delete-plugin', 'delete-selected' ) ) ) {
-	exit;
-}
-
-// Check user roles.
-if ( ! current_user_can( 'activate_plugins' ) ) {
-	exit;
-}
-
-// Run an admin referrer check to make sure it goes through authentication
-if ( defined('DOING_AJAX') && DOING_AJAX ) {
-	check_ajax_referer( 'updates' );
-} else {
-	check_admin_referer( 'bulk-plugins' );
-}
-
-// Safe to carry on
-if ( false != get_option( 'zerospam_general_settings' ) || '' == get_option( 'zerospam_general_settings' ) ) {
-	delete_site_option( 'zerospam_general_settings' );
-	delete_option( 'zerospam_general_settings' );
-}
-
-if ( false != get_option( 'zerospam_key' ) || '' == get_option( 'zerospam_key' ) ) {
-  delete_option( 'zerospam_key' );
-}
-
-if ( false != get_option( 'zerospam_db_version' ) || '' == get_option( 'zerospam_db_version' ) ) {
-  delete_option( 'zerospam_db_version' );
-}
+delete_site_option( 'zerospam_general_settings' );
+delete_option( 'zerospam_general_settings' );
+delete_option( 'zerospam_key' );
+delete_option( 'zerospam_db_version' );
 
 // Delete database tables
 global $wpdb;
