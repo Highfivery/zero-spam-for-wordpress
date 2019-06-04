@@ -10,11 +10,6 @@
  */
 
 /**
- * Security Note: Blocks direct access to the plugin PHP files.
- */
-defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
-
-/**
  * Processes comments.
  *
  * This library process user comments and checks for spam.
