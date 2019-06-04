@@ -221,12 +221,13 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
     // API usage limit protection.
     $limit = 10;
     $cnt   = 0;
-    foreach ( $spam as $key => $obj ) {
+    foreach ( $spam as $ip => $obj ) {
+
       $cnt++;
       if ( $cnt > 10 ) {
         break;
       }
-      $loc = zerospam_get_ip_info( $obj->ip );
+      $loc = zerospam_get_ip_info( $ip );
 
       if ( $loc ) {
         if ( ! isset( $return['by_country'][ $loc->country_code ] ) ) {
@@ -237,8 +238,8 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
         }
         $return['by_country'][ $loc->country_code ]['count']++;
 
-        if ( ! isset( $return['by_lat_long'][ $obj->ip ] ) ) {
-          $return['by_lat_long'][ $obj->ip ] = array(
+        if ( ! isset( $return['by_lat_long'][ $ip ] ) ) {
+          $return['by_lat_long'][ $ip ] = array(
             'latLng' => array( $loc->latitude, $loc->longitude ),
             'name' => $loc->country_name,
             'count' => 1
