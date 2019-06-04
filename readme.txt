@@ -1,5 +1,5 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511, jrf, afragen, tangrufus, leewillis77, macbookandrew, jaredatch, karpstrucking, thiagolcks, geekstreetwp
+Contributors: bmarshall511, jrf, benmorin, afragen, tangrufus, leewillis77, macbookandrew, jaredatch, karpstrucking, thiagolcks, geekstreetwp
 Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
@@ -128,6 +128,9 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 = v3.1.1 (TBD) =
 * [bug] Fix for PHP notice on admin page about count().
 * [bug] Fix for admin dashboard when loading spam.
+* [bug] Bug fix: fix parse error, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/153)
+* [enhancement] Readme: add minimum PHP version tag, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/152)
+* [enhancement] Simplify the uninstall file, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/154)
 
 = v3.1.0 (June 4, 2019) =
 * [bug] install/activation routine would never run, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/148)
