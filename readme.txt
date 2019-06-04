@@ -126,6 +126,7 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 
 = v3.1.1 (TBD) =
 * [bug] Fix for PHP notice on admin page about count().
+* [bug] Fix for admin dashboard when loading spam.
 
 = v3.1.0 (June 4, 2019) =
 * [bug] install/activation routine would never run, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/148)
