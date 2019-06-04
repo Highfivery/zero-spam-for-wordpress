@@ -677,7 +677,7 @@ function zerospam_get_ip_info( $ip ) {
     }
   }
 
-  if ( FALSE != $data ) {
+  if ( false != $data ) {
     return $data;
   }
 
