@@ -357,10 +357,14 @@ function zerospam_parse_spam_ary( $ary ) {
       $return['by_date'][ substr( $obj->date, 0, 10 ) ]['wpf_spam']++;
       $return['wpf_spam']++;
     } else {
-      if ( empty(  $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] ) )  $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] = 0;
+      if ( empty(  $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] ) ) {
+        $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type] = 0;
+      }
       $return['by_date'][ substr( $obj->date, 0, 10 ) ][$obj->type]++;
 
-      if ( empty( $return[$obj->type] ) ) $return[$obj->type] = 0;
+      if ( empty( $return[$obj->type] ) ) {
+        $return[$obj->type] = 0;
+      }
       $return[$obj->type]++;
     }
 

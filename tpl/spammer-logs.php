@@ -262,7 +262,10 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
             $cnt = 0;
 
             foreach( $all_spam['by_spam_count'] as $ip => $count ):
-              $cnt++; if ( $cnt > 6) break;
+              $cnt++;
+              if ( $cnt > 6) {
+                break;
+              }
               ?>
               <tr data-ip="<?php echo $ip; ?>">
                 <td><a href="http://ip-lookup.net/index.php?ip=<?php echo $ip; ?>" target="_blank">
