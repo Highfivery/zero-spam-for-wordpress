@@ -52,7 +52,7 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
       ));
     }
 
-    $reason = isset( $_POST['zerospam-reason'] ) ? $_POST['zerospam-reason'] : NULL;
+    $reason = isset( $_POST['zerospam-reason'] ) ? $_POST['zerospam-reason'] : null;
 
     // Add/update the blocked IP.
     zerospam_block_ip( array(
