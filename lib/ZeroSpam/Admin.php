@@ -98,9 +98,6 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
       // IPStack API Key (https://ipstack.com/)
       add_settings_field( 'ipstack_api_key', __( 'ipstack API Access Key', 'zerospam' ), array( $this, 'field_ipstack_api_key' ), 'zerospam_general_settings', 'section_general' );
 
-      // IP location API support.
-      add_settings_field( 'ip_location_support', __( 'IP Location Support', 'zerospam' ), array( $this, 'field_ip_location_support' ), 'zerospam_general_settings', 'section_general' );
-
       // Auto IP block support.
       add_settings_field( 'auto_block', __( 'Auto IP Block', 'zerospam' ), array( $this, 'field_auto_block' ), 'zerospam_general_settings', 'section_general' );
     }
@@ -399,25 +396,6 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   }
 
   /**
-   * IP location API field.
-   *
-   * Field callback, renders a checkbox input, note the name and value.
-   *
-   * @since 2.0.0
-   */
-  public function field_ip_location_support() {
-    ?>
-    <label for="ip_location_support">
-      <input type="checkbox" id="gf_support" name="zerospam_general_settings[ip_location_support]" value="1" <?php if ( isset( $this->settings['ip_location_support'] ) ) : checked( $this->settings['ip_location_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
-      <p class="description">
-        <?php echo __( 'IP location data provided by', 'zerospam' ); ?> <a href="http://freegeoip.net/" target="_blank">freegeoip.net</a>. <?php echo __( 'API usage is limited to 10,000 queries per hour.', 'zerospam' ); ?><br>
-        <?php echo __( 'Disable this option if you experience slow load times on the', 'zerospam' ); ?> <a href="<?php echo zerospam_admin_url() . '?page=zerospam&tab=zerospam_spammer_logs'; ?>"><?php echo __( 'Spammer Log', 'zerospam' ); ?></a> <?php echo __( 'page', 'zerospam' ); ?>.
-      </p>
-    </label>
-    <?php
-  }
-
-  /**
    * ipstack API Access Key
    *
    * Field callback, renders a checkbox input, note the name and value.
@@ -591,8 +569,8 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
             }
 
             if (
-              isset( $this->settings['ip_location_support'] ) &&
-              '1' == $this->settings['ip_location_support']
+              isset( $this->settings['ipstack_api_key'] ) &&
+              '1' == $this->settings['ipstack_api_key']
             ) {
               $ip_location_support = true;
             } else {
