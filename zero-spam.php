@@ -33,12 +33,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define constants.
-if( ! defined( 'ZEROSPAM_ROOT ' ) )
+if ( ! defined( 'ZEROSPAM_ROOT ' ) )
 {
 	define( 'ZEROSPAM_ROOT', plugin_dir_path( __FILE__ ) );
 }
 
-if( ! defined( 'ZEROSPAM_PLUGIN ' ) )
+if ( ! defined( 'ZEROSPAM_PLUGIN ' ) )
 {
 	define( 'ZEROSPAM_PLUGIN', __FILE__ );
 }

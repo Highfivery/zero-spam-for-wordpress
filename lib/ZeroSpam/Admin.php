@@ -169,7 +169,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_wpf_support() {
     ?>
     <label for="wpf_support">
-      <input type="checkbox" id="wpf_support" name="zerospam_general_settings[wpf_support]" value="1" <?php if( isset( $this->settings['wpf_support'] ) ) : checked( $this->settings['wpf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="wpf_support" name="zerospam_general_settings[wpf_support]" value="1" <?php if ( isset( $this->settings['wpf_support'] ) ) : checked( $this->settings['wpf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
     </label>
     <?php
   }
@@ -200,7 +200,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_nf_support() {
     ?>
     <label for="nf_support">
-      <input type="checkbox" id="nf_support" name="zerospam_general_settings[nf_support]" value="1" <?php if( isset( $this->settings['nf_support'] ) ) : checked( $this->settings['nf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="nf_support" name="zerospam_general_settings[nf_support]" value="1" <?php if ( isset( $this->settings['nf_support'] ) ) : checked( $this->settings['nf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
     </label>
     <?php
   }
@@ -231,7 +231,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_bp_support() {
     ?>
     <label for="bp_support">
-      <input type="checkbox" id="bp_support" name="zerospam_general_settings[bp_support]" value="1" <?php if( isset( $this->settings['bp_support'] ) ) : checked( $this->settings['bp_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="bp_support" name="zerospam_general_settings[bp_support]" value="1" <?php if ( isset( $this->settings['bp_support'] ) ) : checked( $this->settings['bp_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
     </label>
     <?php
   }
@@ -262,7 +262,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_gf_support() {
     ?>
     <label for="gf_support">
-      <input type="checkbox" id="gf_support" name="zerospam_general_settings[gf_support]" value="1" <?php if( isset( $this->settings['gf_support'] ) ) : checked( $this->settings['gf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="gf_support" name="zerospam_general_settings[gf_support]" value="1" <?php if ( isset( $this->settings['gf_support'] ) ) : checked( $this->settings['gf_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
     </label>
     <?php
   }
@@ -293,7 +293,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_cf7_support() {
     ?>
     <label for="cf7_support">
-      <input type="checkbox" id="cf7_support" name="zerospam_general_settings[cf7_support]" value="1" <?php if( isset( $this->settings['cf7_support'] ) ) : checked( $this->settings['cf7_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="cf7_support" name="zerospam_general_settings[cf7_support]" value="1" <?php if ( isset( $this->settings['cf7_support'] ) ) : checked( $this->settings['cf7_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
     </label>
     <?php
   }
@@ -324,7 +324,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_registration_support() {
     ?>
     <label for="registration_support">
-      <input type="checkbox" id="registration_support" name="zerospam_general_settings[registration_support]" value="1" <?php if( isset( $this->settings['registration_support'] ) ) : checked( $this->settings['registration_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="registration_support" name="zerospam_general_settings[registration_support]" value="1" <?php if ( isset( $this->settings['registration_support'] ) ) : checked( $this->settings['registration_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
     </label>
     <?php
   }
@@ -355,7 +355,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_comment_support() {
     ?>
     <label for="comment_support">
-      <input type="checkbox" id="comment_support" name="zerospam_general_settings[comment_support]" value="1" <?php if( isset( $this->settings['comment_support'] ) ) : checked( $this->settings['comment_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="comment_support" name="zerospam_general_settings[comment_support]" value="1" <?php if ( isset( $this->settings['comment_support'] ) ) : checked( $this->settings['comment_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
     </label>
     <?php
   }
@@ -388,7 +388,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_auto_block() {
     ?>
     <label for="auto_block">
-      <input type="checkbox" id="auto_block" name="zerospam_general_settings[auto_block]" value="1" <?php if ( isset( $this->settings['auto_block']) ): checked( $this->settings['auto_block'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="auto_block" name="zerospam_general_settings[auto_block]" value="1" <?php if ( isset( $this->settings['auto_block'] ) ) : checked( $this->settings['auto_block'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
      </label>
 
     <p class="description"><?php echo __( 'With auto IP block enabled, users who are identified as spam will automatically be blocked from the site.', 'zerospam' ); ?></p>
@@ -405,7 +405,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_ip_location_support() {
     ?>
     <label for="ip_location_support">
-      <input type="checkbox" id="gf_support" name="zerospam_general_settings[ip_location_support]" value="1" <?php if( isset( $this->settings['ip_location_support'] ) ) : checked( $this->settings['ip_location_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="gf_support" name="zerospam_general_settings[ip_location_support]" value="1" <?php if ( isset( $this->settings['ip_location_support'] ) ) : checked( $this->settings['ip_location_support'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
       <p class="description">
         <?php echo __( 'IP location data provided by', 'zerospam' ); ?> <a href="http://freegeoip.net/" target="_blank">freegeoip.net</a>. <?php echo __( 'API usage is limited to 10,000 queries per hour.', 'zerospam' ); ?><br>
         <?php echo __( 'Disable this option if you experience slow load times on the', 'zerospam' ); ?> <a href="<?php echo zerospam_admin_url() . '?page=zerospam&tab=zerospam_spammer_logs'; ?>"><?php echo __( 'Spammer Log', 'zerospam' ); ?></a> <?php echo __( 'page', 'zerospam' ); ?>.
@@ -424,7 +424,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_wp_generator() {
     ?>
     <label for="wp_generator_remove">
-      <input type="checkbox" id="wp_generator_remove" name="zerospam_general_settings[wp_generator]" value="1" <?php if ( isset( $this->settings['wp_generator']) ): checked( $this->settings['wp_generator'] ); endif; ?> /> <?php echo __( 'Hide', 'zerospam' ); ?>
+      <input type="checkbox" id="wp_generator_remove" name="zerospam_general_settings[wp_generator]" value="1" <?php if ( isset( $this->settings['wp_generator'] ) ) : checked( $this->settings['wp_generator'] ); endif; ?> /> <?php echo __( 'Hide', 'zerospam' ); ?>
      </label>
 
     <p class="description"><?php echo __( 'It can be considered a security risk to make your WordPress version visible and public you should hide it.', 'zerospam' ); ?></p>
@@ -441,7 +441,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_log_spammers() {
     ?>
     <label for="log_spammers">
-      <input type="checkbox" id="log_spammers" name="zerospam_general_settings[log_spammers]" value="1" <?php if( isset( $this->settings['log_spammers'] ) ) : checked( $this->settings['log_spammers'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
+      <input type="checkbox" id="log_spammers" name="zerospam_general_settings[log_spammers]" value="1" <?php if ( isset( $this->settings['log_spammers'] ) ) : checked( $this->settings['log_spammers'] ); endif; ?> /> <?php echo __( 'Enabled', 'zerospam' ); ?>
     </label>
     <?php
   }
@@ -557,14 +557,14 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
             $limit = 10;
             $args = array(
               'limit' => $limit,
-              'offset' => ($page - 1) * $limit,
+              'offset' => ( $page - 1 ) * $limit,
             );
             $spam            = zerospam_get_spam( $args );
             $spam            = zerospam_parse_spam_ary( $spam );
             $all_spam        = zerospam_all_spam_ary();
 
             if ( $all_spam['raw'] ) {
-              $starting_date =  $all_spam['date_start'];// end( $all_spam['raw'] )->date;
+              $starting_date = $all_spam['date_start'];// end( $all_spam['raw'] )->date;
               $num_days      = zerospam_num_days( $starting_date );
               $per_day       = $num_days ? number_format( ( count( $all_spam['raw'] ) / $num_days ), 2 ) : 0;
             }
@@ -586,7 +586,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
             $limit = 10;
             $args = array(
               'limit' => $limit,
-              'offset' => ($page - 1) * $limit,
+              'offset' => ( $page - 1 ) * $limit,
             );
             $ips = zerospam_get_blocked_ips( $args );
 
