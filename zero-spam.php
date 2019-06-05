@@ -44,12 +44,12 @@ if( ! defined( 'ZEROSPAM_PLUGIN ' ) )
 /**
  * Include the plugin helpers.
  */
-require_once( ZEROSPAM_ROOT . 'inc' . DIRECTORY_SEPARATOR . 'helpers.php' );
+require_once ZEROSPAM_ROOT . 'inc/helpers.php';
 
 /**
  * Used to detect installed plugins.
  */
-require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 spl_autoload_register( 'zerospam_autoloader' );
 
