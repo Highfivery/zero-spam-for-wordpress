@@ -126,6 +126,7 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 == Changelog ==
 
 = v3.1.1 (TBD) =
+* [bug] Fix for IP lookup.
 * [bug] Fix for PHP notice on admin page about count().
 * [bug] Fix for admin dashboard when loading spam.
 * [bug] Bug fix: fix parse error, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/153)

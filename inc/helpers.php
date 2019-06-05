@@ -656,7 +656,7 @@ function zerospam_get_ip_info( $ip ) {
           'region_code'   => $data->region_code,
           'region_name'   => $data->region_name,
           'city'          => $data->city,
-          'zipcode'       => $data->zipcode,
+          'zipcode'       => $data->zip,
           'latitude'      => $data->latitude,
           'longitude'     => $data->longitude,
         ),
@@ -668,8 +668,6 @@ function zerospam_get_ip_info( $ip ) {
           '%s',
           '%s',
           '%s',
-          '%d',
-          '%d',
           '%d',
           '%d',
         )
