@@ -459,28 +459,28 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
         foreach ( $spam['raw'] as $key => $obj ):
           switch ( $obj->type ) {
             case 1:
-              $type = '<span class="zero-spam__label zero-spam__bg--primary">' . __( 'Registration', 'zerospam' ) . '</span>';
+              $zerospam_type = '<span class="zero-spam__label zero-spam__bg--primary">' . __( 'Registration', 'zerospam' ) . '</span>';
               break;
             case 2:
-              $type = '<span class="zero-spam__label zero-spam__bg--secondary">' . __( 'Comment', 'zerospam' ) . '</span>';
+              $zerospam_type = '<span class="zero-spam__label zero-spam__bg--secondary">' . __( 'Comment', 'zerospam' ) . '</span>';
               break;
             case 3:
-              $type = '<span class="zero-spam__label zero-spam__bg--trinary">' . __( 'Contact Form 7', 'zerospam' ) . '</span>';
+              $zerospam_type = '<span class="zero-spam__label zero-spam__bg--trinary">' . __( 'Contact Form 7', 'zerospam' ) . '</span>';
               break;
             case 4:
-              $type = '<span class="zero-spam__label zero-spam__bg--gf">' . __( 'Gravity Forms', 'zerospam' ) . '</span>';
+              $zerospam_type = '<span class="zero-spam__label zero-spam__bg--gf">' . __( 'Gravity Forms', 'zerospam' ) . '</span>';
               break;
             case 5:
-              $type = '<span class="zero-spam__label zero-spam__bg--bpr">' . __( 'BP Registration', 'zerospam' ) . '</span>';
+              $zerospam_type = '<span class="zero-spam__label zero-spam__bg--bpr">' . __( 'BP Registration', 'zerospam' ) . '</span>';
               break;
             case 6:
-              $type = '<span class="zero-spam__label zero-spam__bg--nf">' . __( 'Ninja Forms', 'zerospam' ) . '</span>';
+              $zerospam_type = '<span class="zero-spam__label zero-spam__bg--nf">' . __( 'Ninja Forms', 'zerospam' ) . '</span>';
               break;
             case 7:
-              $type = '<span class="zero-spam__label zero-spam__bg--wpf">' . __( 'WPForms', 'zerospam' ) . '</span>';
+              $zerospam_type = '<span class="zero-spam__label zero-spam__bg--wpf">' . __( 'WPForms', 'zerospam' ) . '</span>';
               break;
             default:
-              $type = '<span class="zero-spam__label zero-spam__bg--misc">' . __( $obj->type, 'zerospam' ) . '</span>';
+              $zerospam_type = '<span class="zero-spam__label zero-spam__bg--misc">' . __( $obj->type, 'zerospam' ) . '</span>';
           }
         ?>
         <tr data-ip="<?php echo $obj->ip; ?>" id="row-<?php echo $obj->zerospam_id; ?>">
@@ -492,7 +492,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
             );
             ?>
           </td>
-          <td><?php echo isset( $type ) ? $type : '&mdash;'; ?></td>
+          <td><?php echo isset( $zerospam_type ) ? $zerospam_type : '&mdash;'; ?></td>
           <?php if ( $ip_location_support ): ?>
           <td>
             <div data-ip-location="<?php echo $obj->ip; ?>"><i class="fa fa-search"></i></div>
