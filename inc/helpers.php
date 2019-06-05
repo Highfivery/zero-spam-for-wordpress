@@ -9,11 +9,6 @@
  * @since 1.0.0
  */
 
-/**
- * Security Note: Blocks direct access to the plugin PHP files.
- */
-defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
-
 function zerospam_settings() {
   if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
     // Network plugin settings.

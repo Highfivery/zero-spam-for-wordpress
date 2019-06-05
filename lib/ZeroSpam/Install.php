@@ -10,11 +10,6 @@
  */
 
 /**
- * Security Note: Blocks direct access to the plugin PHP files.
- */
-defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
-
-/**
  * Installs the Zero Spam plugin.
  *
  * This library creates all of the required tables and sets the initial

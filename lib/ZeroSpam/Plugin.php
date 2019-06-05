@@ -10,11 +10,6 @@
  */
 
 /**
- * Security Note: Blocks direct access to the plugin PHP files.
- */
-defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
-
-/**
  * Initializes the Zero Spam plugin.
  *
  * This library creates defines the default settings & initializes all
