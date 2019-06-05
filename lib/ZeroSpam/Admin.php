@@ -543,7 +543,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
         /**
          * Include the admin sidebar.
          */
-        require_once( ZEROSPAM_ROOT . 'tpl' . DIRECTORY_SEPARATOR . 'admin-sidebar.php' );
+        require_once ZEROSPAM_ROOT . 'tpl/admin-sidebar.php';
         ?>
         </div>
         <div class="zerospam__left">
@@ -581,7 +581,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
             /**
              * Include the Spammer Logs page.
              */
-            require_once( ZEROSPAM_ROOT . 'tpl' . DIRECTORY_SEPARATOR . 'spammer-logs.php' );
+            require_once ZEROSPAM_ROOT . 'tpl/spammer-logs.php';
           } elseif ( $tab == 'zerospam_ip_block' ) {
             $limit = 10;
             $args = array(
@@ -593,13 +593,13 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
             /**
              * Include the Blocked IPs page.
              */
-            require_once( ZEROSPAM_ROOT . 'tpl' . DIRECTORY_SEPARATOR . 'ip-block.php' );
+            require_once ZEROSPAM_ROOT . 'tpl/ip-block.php';
           } else {
 
             /**
              * General settings page template.
              */
-            require_once( ZEROSPAM_ROOT . 'tpl' . DIRECTORY_SEPARATOR . 'general-settings.php' );
+            require_once ZEROSPAM_ROOT . 'tpl/general-settings.php';
           } ?>
         </div>
 

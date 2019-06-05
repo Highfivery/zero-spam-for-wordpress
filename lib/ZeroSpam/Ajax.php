@@ -109,7 +109,7 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
     /**
      * Include the block IP form.
      */
-    require_once( ZEROSPAM_ROOT . 'tpl' . DIRECTORY_SEPARATOR . 'block-ip-form.php' );
+    require_once ZEROSPAM_ROOT . 'tpl/block-ip-form.php';
 
     die();
   }

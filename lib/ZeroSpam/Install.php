@@ -156,7 +156,7 @@ class ZeroSpam_Install extends ZeroSpam_Plugin
          * Rather than executing an SQL query directly, we'll use the dbDelta
          * function in wp-admin/includes/upgrade.php.
          */
-        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
       }
 
