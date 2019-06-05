@@ -215,7 +215,7 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
     $spam = $spam['by_spam_count'];
     $return = array(
       'by_country' => array(),
-      'by_lat_long' => array()
+      'by_lat_long' => array(),
     );
 
     // API usage limit protection.
@@ -233,7 +233,7 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
         if ( ! isset( $return['by_country'][ $loc->country_code ] ) ) {
           $return['by_country'][ $loc->country_code ] = array(
             'count' => 0,
-            'name' => $loc->country_name
+            'name' => $loc->country_name,
           );
         }
         $return['by_country'][ $loc->country_code ]['count']++;
@@ -242,7 +242,7 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
           $return['by_lat_long'][ $ip ] = array(
             'latLng' => array( $loc->latitude, $loc->longitude ),
             'name' => $loc->country_name,
-            'count' => 1
+            'count' => 1,
           );
         }
       }

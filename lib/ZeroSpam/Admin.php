@@ -557,7 +557,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
             $limit = 10;
             $args = array(
               'limit' => $limit,
-              'offset' => ($page - 1) * $limit
+              'offset' => ($page - 1) * $limit,
             );
             $spam            = zerospam_get_spam( $args );
             $spam            = zerospam_parse_spam_ary( $spam );
@@ -586,7 +586,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
             $limit = 10;
             $args = array(
               'limit' => $limit,
-              'offset' => ($page - 1) * $limit
+              'offset' => ($page - 1) * $limit,
             );
             $ips = zerospam_get_blocked_ips( $args );
 
