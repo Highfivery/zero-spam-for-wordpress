@@ -634,44 +634,47 @@ function zerospam_get_ip_info( $ip ) {
   if ( $ip == '127.0.0.1' || $ip == '::1' ) {
     return false;
   }
-
-  $ipstack_api_key = '21ec651ec341414988328e897e744691';
-
+  
   // Check DB
   $table_name = $wpdb->prefix . 'zerospam_ip_data';
   $data       = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ip = %s", $ip ) );
 
   // Retrieve from API
-  if ( ! $data ) {echo '';
-    // @ used to suppress API usage block warning.
-    $json = @file_get_contents( 'http://api.ipstack.com/' . $ip . '?access_key=' . $ipstack_api_key );
+  if ( ! $data ) {
+    $settings = zerospam_settings();
+    $ipstack_api_key = ! empty( $settings['ipstack_api_key'] ) ? $settings['ipstack_api_key'] : false;
 
-    $data = json_decode( $json );
+    if ( $ipstack_api_key ) {
+      // @ used to suppress API usage block warning.
+      $json = @file_get_contents( 'http://api.ipstack.com/' . $ip . '?access_key=' . $ipstack_api_key );
 
-    if ( $data ) {
-      $wpdb->insert( $table_name, array(
-          'ip'            => $ip,
-          'country_code'  => $data->country_code,
-          'country_name'  => $data->country_name,
-          'region_code'   => $data->region_code,
-          'region_name'   => $data->region_name,
-          'city'          => $data->city,
-          'zipcode'       => $data->zip,
-          'latitude'      => $data->latitude,
-          'longitude'     => $data->longitude,
-        ),
-        array(
-          '%s',
-          '%s',
-          '%s',
-          '%s',
-          '%s',
-          '%s',
-          '%s',
-          '%d',
-          '%d',
-        )
-      );
+      $data = json_decode( $json );
+
+      if ( $data ) {
+        $wpdb->insert( $table_name, array(
+            'ip'            => $ip,
+            'country_code'  => $data->country_code,
+            'country_name'  => $data->country_name,
+            'region_code'   => $data->region_code,
+            'region_name'   => $data->region_name,
+            'city'          => $data->city,
+            'zipcode'       => $data->zip,
+            'latitude'      => $data->latitude,
+            'longitude'     => $data->longitude,
+          ),
+          array(
+            '%s',
+            '%s',
+            '%s',
+            '%s',
+            '%s',
+            '%s',
+            '%s',
+            '%d',
+            '%d',
+          )
+        );
+      }
     }
   }
 

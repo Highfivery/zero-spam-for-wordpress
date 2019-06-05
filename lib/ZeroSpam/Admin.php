@@ -95,6 +95,9 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
     add_settings_field( 'log_spammers', __( 'Log Spammers', 'zerospam' ), array( $this, 'field_log_spammers' ), 'zerospam_general_settings', 'section_general' );
 
     if ( ! empty( $this->settings['log_spammers'] ) && $this->settings['log_spammers'] ) {
+      // IPStack API Key (https://ipstack.com/)
+      add_settings_field( 'ipstack_api_key', __( 'ipstack API Access Key', 'zerospam' ), array( $this, 'field_ipstack_api_key' ), 'zerospam_general_settings', 'section_general' );
+
       // IP location API support.
       add_settings_field( 'ip_location_support', __( 'IP Location Support', 'zerospam' ), array( $this, 'field_ip_location_support' ), 'zerospam_general_settings', 'section_general' );
 
@@ -409,6 +412,24 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
       <p class="description">
         <?php echo __( 'IP location data provided by', 'zerospam' ); ?> <a href="http://freegeoip.net/" target="_blank">freegeoip.net</a>. <?php echo __( 'API usage is limited to 10,000 queries per hour.', 'zerospam' ); ?><br>
         <?php echo __( 'Disable this option if you experience slow load times on the', 'zerospam' ); ?> <a href="<?php echo zerospam_admin_url() . '?page=zerospam&tab=zerospam_spammer_logs'; ?>"><?php echo __( 'Spammer Log', 'zerospam' ); ?></a> <?php echo __( 'page', 'zerospam' ); ?>.
+      </p>
+    </label>
+    <?php
+  }
+
+  /**
+   * ipstack API Access Key
+   *
+   * Field callback, renders a checkbox input, note the name and value.
+   *
+   * @since 2.0.0
+   */
+  public function field_ipstack_api_key() {
+    ?>
+    <label for="ipstack_api_key">
+      <input type="text" id="ipstack_api_key" name="zerospam_general_settings[ipstack_api_key]" class="regular-text" value="<?php echo $this->settings['ipstack_api_key']; ?>" />
+      <p class="description">
+        <?php echo __( 'IP location data provided by', 'zerospam' ); ?> <a href="https://ipstack.com/" target="_blank">ipstack.com</a>. <?php echo __( 'API usage is limited to 10,000 queries per hour.', 'zerospam' ); ?>
       </p>
     </label>
     <?php
