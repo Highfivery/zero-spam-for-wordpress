@@ -141,6 +141,7 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 * [enhancement] QA/performance: remove duplicate function calls, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/157)
 * [enhancement] CS: don't use inline control structures, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/156)
 * [enhancement] QA: adjust security check, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/164)
+* [enhancement] CS: normalize inline whitespace usage, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/165)
 
 = v3.1.0 (June 4, 2019) =
 * [bug] install/activation routine would never run, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/148)
