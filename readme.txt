@@ -131,6 +131,14 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 * [bug] Bug fix: fix parse error, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/153)
 * [enhancement] Readme: add minimum PHP version tag, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/152)
 * [enhancement] Simplify the uninstall file, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/154)
+* [enhancement] CS: use single-quoted strings, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/163)
+* [enhancement] CS: use lowercase for special PHP constants, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/162)
+* [enhancement] CS: comma after last array item in multiline arrays, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/161)
+* [enhancement] QA: don't even risk overriding a WP global variable, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/160)
+* [enhancement] CS/QA: review of all include and require statements, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/159)
+* [enhancement] QA: remove redundant security check, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/158)
+* [enhancement] QA/performance: remove duplicate function calls, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/157)
+* [enhancement] CS: don't use inline control structures, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/156)
 
 = v3.1.0 (June 4, 2019) =
 * [bug] install/activation routine would never run, thanks @jrf (https://github.com/bmarshall511/wordpress-zero-spam/pull/148)
