@@ -635,14 +635,16 @@ function zerospam_get_ip_info( $ip ) {
     return false;
   }
 
+  $ipstack_api_key = '21ec651ec341414988328e897e744691';
+
   // Check DB
   $table_name = $wpdb->prefix . 'zerospam_ip_data';
   $data       = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ip = %s", $ip ) );
 
   // Retrieve from API
-  if ( ! $data ) {
+  if ( ! $data ) {echo '';
     // @ used to suppress API usage block warning.
-    $json = @file_get_contents( 'http://freegeoip.net/json/' . $ip );
+    $json = @file_get_contents( 'http://api.ipstack.com/' . $ip . '?access_key=' . $ipstack_api_key );
 
     $data = json_decode( $json );
 
@@ -657,8 +659,6 @@ function zerospam_get_ip_info( $ip ) {
           'zipcode'       => $data->zipcode,
           'latitude'      => $data->latitude,
           'longitude'     => $data->longitude,
-          'metro_code'    => $data->metro_code,
-          'area_code'     => $data->area_code,
         ),
         array(
           '%s',
