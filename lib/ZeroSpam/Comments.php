@@ -54,7 +54,7 @@ class ZeroSpam_Comments extends ZeroSpam_Plugin
 
     do_action( 'zero_spam_found_spam_comment', $commentdata );
 
-    if ( ! empty(  $this->settings['log_spammers'] ) &&  $this->settings['log_spammers'] ) {
+    if ( ! empty( $this->settings['log_spammers'] ) && $this->settings['log_spammers'] ) {
       zerospam_log_spam( 'comment' );
     }
 

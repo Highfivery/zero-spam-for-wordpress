@@ -23,7 +23,7 @@ class ZeroSpam_NinjaForms extends ZeroSpam_Plugin {
     if ( ! zerospam_is_valid() ) {
       do_action( 'zero_spam_found_spam_nf_form_submission' );
 
-      if ( ! empty( $this->settings['log_spammers'] ) && $this->settings['log_spammers'] )  {
+      if ( ! empty( $this->settings['log_spammers'] ) && $this->settings['log_spammers'] ) {
         zerospam_log_spam( 'nf' );
       }
 

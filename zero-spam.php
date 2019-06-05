@@ -28,15 +28,17 @@
 /**
  * Security Note: Blocks direct access to the plugin PHP files.
  */
-defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
+if ( ! defined( 'ABSPATH' ) ) {
+	exit();
+}
 
 // Define constants.
-if( ! defined( 'ZEROSPAM_ROOT ' ) )
+if ( ! defined( 'ZEROSPAM_ROOT ' ) )
 {
 	define( 'ZEROSPAM_ROOT', plugin_dir_path( __FILE__ ) );
 }
 
-if( ! defined( 'ZEROSPAM_PLUGIN ' ) )
+if ( ! defined( 'ZEROSPAM_PLUGIN ' ) )
 {
 	define( 'ZEROSPAM_PLUGIN', __FILE__ );
 }

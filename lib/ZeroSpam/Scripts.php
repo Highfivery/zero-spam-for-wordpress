@@ -42,7 +42,7 @@ class ZeroSpam_Scripts
   public function register_scripts() {
     $plugin = get_plugin_data( ZEROSPAM_PLUGIN );
 
-    wp_register_script( 'zerospam', plugins_url( '/js/zerospam.js' , ZEROSPAM_PLUGIN ), array( 'jquery' ), $plugin['Version'], true );
+    wp_register_script( 'zerospam', plugins_url( '/js/zerospam.js', ZEROSPAM_PLUGIN ), array( 'jquery' ), $plugin['Version'], true );
   }
 
   public function enqueue_scripts() {

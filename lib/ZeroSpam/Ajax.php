@@ -82,7 +82,7 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
     $ajax_nonce       = wp_create_nonce( 'zero-spam' );
 
     $date             = new DateTime();
-    $end_date         = $date->modify('+1 day');
+    $end_date         = $date->modify( '+1 day' );
 
     $start_date_year  = date( 'Y' );
     $start_date_month = date( 'n' );
@@ -247,7 +247,7 @@ class ZeroSpam_Ajax extends ZeroSpam_Plugin {
         }
       }
 
-      sleep(1);
+      sleep( 1 );
     }
 
     arsort( $return['by_country'] );
