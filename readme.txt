@@ -4,7 +4,7 @@ Donate link: https://www.gittip.com/bmarshall511/
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Requires at least: 3.0.0
 Tested up to: 5.2.1
-Stable tag: 3.1.0
+Stable tag: 3.1.1
 Requires PHP: 5.2.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -125,7 +125,7 @@ Yes! Install [Sunny](https://wphuman.com/go/sunny/) and follow this [guide](http
 
 == Changelog ==
 
-= v3.1.1 (TBD) =
+= v3.1.1 (June 6, 2019) =
 * [bug] Fix for IP lookup.
 * [bug] Fix for PHP notice on admin page about count().
 * [bug] Fix for admin dashboard when loading spam.
