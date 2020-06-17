@@ -405,7 +405,7 @@ class ZeroSpam_Admin extends ZeroSpam_Plugin {
   public function field_ipstack_api_key() {
     ?>
     <label for="ipstack_api_key">
-      <input type="text" id="ipstack_api_key" name="zerospam_general_settings[ipstack_api_key]" class="regular-text" value="<?php echo $this->settings['ipstack_api_key']; ?>" />
+      <input type="text" id="ipstack_api_key" name="zerospam_general_settings[ipstack_api_key]" class="regular-text" value="<?php echo ( isset( $this->settings['ipstack_api_key'] ) ) ? $this->settings['ipstack_api_key'] : ''; ?>" />
       <p class="description">
         <?php echo __( 'IP location data provided by', 'zerospam' ); ?> <a href="https://ipstack.com/" target="_blank">ipstack.com</a>. <?php echo __( 'API usage is limited to 10,000 queries per hour.', 'zerospam' ); ?>
       </p>
