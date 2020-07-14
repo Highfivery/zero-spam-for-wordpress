@@ -1,773 +1,251 @@
 <?php
 /**
- * Zero Spam Helpers
+ * Plugin helpers
  *
- * Contains all of Zero Spam helper functions. Can be used within other themes
- * & plugins.
- *
- * @package WordPress Zero Spam
- * @since 1.0.0
+ * @package WordPressZeroSpam
+ * @since 4.0.0
  */
 
-function zerospam_settings() {
-  if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) ) {
-    // Network plugin settings.
-    return (array) get_site_option( 'zerospam_general_settings' );
-  }
+/**
+ * Handles what happens when spam is detected
+ */
+if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
+  function wpzerospam_spam_detected( $type, $data ) {
+    $options = wpzerospam_options();
 
-  // Site plugin settings.
-  return (array) get_option( 'zerospam_general_settings' );
-}
-
-function zerospam_get_key() {
-  if ( ! $key = get_option( 'zerospam_key' ) ) {
-    $key = wp_generate_password( 64 );
-    update_option( 'zerospam_key', $key );
-  }
-
-  return $key;
-}
-
-function zerospam_is_valid() {
-  if ( ! empty( $_POST['zerospam_key'] ) && $_POST['zerospam_key'] == zerospam_get_key() ) {
-    return true;
-  }
-
-  return false;
-}
-
-function zerospam_get_server_var( $var )
-{
-  if ( getenv( $var ) ) {
-    return getenv( $var );
-  } elseif ( isset( $_SERVER[ $var ] ) ) {
-    return $_SERVER[ $var ];
-  } else {
-    return '';
+    wp_redirect( esc_url( $options['blocked_redirect_url'] ) );
+    exit();
   }
 }
 
-function zerospam_get_ip() {
+ /**
+ * Checks the post submission for a valid key
+ */
+if ( ! function_exists( 'wpzerospam_key_check' ) ) {
+  function wpzerospam_key_check() {
+    if ( ! empty( $_POST['wpzerospam_key'] ) && $_POST['wpzerospam_key'] == wpzerospam_get_key() ) {
+      return true;
+    }
 
-  $ipaddress = zerospam_get_server_var( 'HTTP_CLIENT_IP' );
-  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'HTTP_X_FORWARDED_FOR' ); }
-  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'HTTP_X_FORWARDED' ); }
-  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'HTTP_FORWARDED_FOR' ); }
-  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'HTTP_FORWARDED' ); }
-  if ( ! $ipaddress ) { $ipaddress = zerospam_get_server_var( 'REMOTE_ADDR' ); }
-
-  $ipaddress = explode( ',', $ipaddress, 2 );
-  $ipaddress = trim( $ipaddress[0] );
-
-  if ( false === WP_Http::is_ip_address( $ipaddress ) ) {
-    $ipaddress = 'UNKNOWN';
-  }
-
-  $ipaddress = apply_filters( 'zerospam_get_ip_filter', $ipaddress );
-
-  return $ipaddress;
-}
-
-function zerospam_log_spam( $key, $url = false ) {
-  global $wpdb;
-
-  $settings   = zerospam_settings();
-  $ip         = zerospam_get_ip();
-  $url        = ( $url ) ? $url : zerospam_get_url();
-  $table_name = $wpdb->prefix . 'zerospam_log';
-
-  switch ( $key ) {
-    case 'registration':
-      $key = 1;
-      break;
-    case 'comment':
-      $key = 2;
-      break;
-    case 'cf7':
-      $key = 3;
-      break;
-    case 'gf':
-      $key = 4;
-      break;
-    case 'buddypress-registration':
-      $key = 5;
-      break;
-    case 'nf':
-      $key = 6;
-      break;
-    case 'wpf':
-      $key = 7;
-      break;
-  }
-
-  $wpdb->insert( $table_name, array(
-      'type' => $key,
-      'ip'   => $ip,
-      'page' => $url,
-    ),
-    array(
-      '%s',
-      '%s',
-      '%s',
-    )
-  );
-
-  if ( ! empty( $settings['auto_block'] ) && $settings['auto_block'] ) {
-    zerospam_block_ip( array(
-      'ip'     => $ip,
-      'type'   => 'permanent',
-      'reason' => __( 'Auto block triggered on ', 'zerospam' ) . date( 'r' ) . '.',
-    ));
-  }
-}
-
-function zerospam_is_blocked( $ip ) {
-  global $wpdb;
-  $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-  $check      = zerospam_get_blocked_ip( $ip );
-  $current    = current_time( 'timestamp' );
-
-  if ( empty( $check ) ) {
     return false;
   }
+}
 
-  // Check block type
-  if (
-    'temporary' == $check->type &&
-    $current >= strtotime( $check->start_date ) &&
-    $current <= strtotime( $check->end_date )
+ /**
+ * Create a log entry if logging is enabled
+ */
+if ( ! function_exists( 'wpzerospam_log_spam' ) ) {
+  function wpzerospam_log_spam( $type, $data ) {
+    $options = wpzerospam_options();
+
+    if ( 'enabled' != $options['log_spam'] ) {
+      // Logging disabled
+      return false;
+    }
+
+    // Logging enabled
+  }
+}
+
+ /**
+ * Sets a plugin cookie
+ */
+if ( ! function_exists( 'wpzerospam_set_cookie' ) ) {
+  function wpzerospam_set_cookie( $name, $value ) {
+    setcookie( 'wpzerospam_' . $name, $value, 0, COOKIEPATH,COOKIE_DOMAIN );
+  }
+}
+
+/**
+ * Gets a plugin cookie
+ */
+if ( ! function_exists( 'wpzerospam_get_cookie' ) ) {
+  function wpzerospam_get_cookie( $name ) {
+    if ( empty( $_COOKIE['wpzerospam_' . $name ] ) ) {
+      return false;
+    }
+
+    return $_COOKIE['wpzerospam_' . $name ];
+  }
+}
+
+/**
+ * Returns the generated key for checking submissions
+ */
+if ( ! function_exists( 'wpzerospam_get_key' ) ) {
+  function wpzerospam_get_key() {
+    $key = wpzerospam_get_cookie( 'key' );
+    if ( ! $key ) {
+      $key = wp_generate_password( 64 );
+      wpzerospam_set_cookie( 'key', $key );
+    }
+
+    return $key;
+  }
+}
+
+/**
+ * Validates a post submission
+ */
+if ( ! function_exists( 'wpzerospam_validate_submission' ) ) {
+  function wpzerospam_validate_submission() {
+    if ( ! empty( $_POST['wpzerospam'] ) && wpzerospam_get_key() == $_POST['wpzerospam'] ) {
+      return true;
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Returns the plugin settings.
+ */
+if ( ! function_exists( 'wpzerospam_options' ) ) {
+  function wpzerospam_options() {
+    $options = get_option( 'wpzerospam' );
+
+    if ( empty( $options['blocked_redirect_url'] ) ) { $options['blocked_redirect_url'] = 'https://www.google.com'; }
+    if ( empty( $options['log_spam'] ) ) { $options['log_spam'] = 'disabled'; }
+    if ( empty( $options['verify_comments'] ) ) { $options['verify_comments'] = 'enabled'; }
+    if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
+
+    return $options;
+  }
+}
+
+/**
+ * Returns the current user's IP address
+ */
+if ( ! function_exists( 'wpzerospam_ip' ) ) {
+  function wpzerospam_ip() {
+    if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
+      return $_SERVER['HTTP_CLIENT_IP'];
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+      return $_SERVER['HTTP_X_FORWARDED_FOR'];
+    } else {
+      return $_SERVER['REMOTE_ADDR'];
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Checks to see if the current user has access to the site
+ */
+if ( ! function_exists( 'wpzerospam_check_access' ) ) {
+  function wpzerospam_check_access() {
+    $access = [
+      'access' => true
+    ];
+
+    // Ignore admin dashboard & login page checks
+    if (
+      is_admin() || wpzerospam_is_login() ||
+      ( ! is_singular() && ! is_page() && ! is_single() && ! is_archive() && ! is_home() && ! is_front_page() )
     ) {
-    return true;
-  }
-
-  if ( 'permanent' == $check->type ) {
-    return true;
-  }
-
-  return false;
-}
-
-function zerospam_get_blocked_ip( $ip ) {
-  global $wpdb;
-  $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-  $query      = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ip = %s", $ip ) );
-
-  if ( null == $query ) {
-    return false;
-  }
-
-  return $query;
-}
-
-function zerospam_block_ip( $args ) {
-  global $wpdb;
-
-  $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-  $ip         = isset( $args['ip'] ) ? $args['ip'] : false;
-  $type       = isset( $args['type'] ) ? $args['type'] : 'temporary';
-
-  if ( $ip ) {
-    // Check is IP has already been blocked.
-    if ( zerospam_is_blocked( $ip ) ) {
-
-      // Update existing record.
-      $wpdb->update(
-        $table_name,
-        array(
-          'type'       => $type,
-          'start_date' => isset( $args['start_date'] ) ? $args['start_date'] : null,
-          'end_date'   => isset( $args['end_date'] ) ? $args['end_date'] : null,
-          'reason'     => $args['reason'],
-        ),
-        array( 'ip' => $ip ),
-        array(
-          '%s',
-          '%s',
-          '%s',
-          '%s',
-        ),
-        array( '%s' )
-      );
-    } else {
-
-      // Insert new record.
-      $insert = array(
-        'ip'   => $ip,
-        'type' => $type,
-      );
-
-      if ( 'temporary' == $type ) {
-        $insert['start_date'] = $args['start_date'];
-        $insert['end_date'] = $args['end_date'];
-      }
-
-      if ( isset( $args['reason'] ) && $args['reason'] ) {
-        $insert['reason'] = $args['reason'];
-      }
-
-      $wpdb->insert(
-        $table_name,
-        $insert,
-        array(
-          '%s',
-          '%s',
-          '%s',
-          '%s',
-          '%s',
-        )
-      );
-    }
-  }
-}
-
-function zerospam_get_url() {
-  $pageURL = 'http';
-
-  if ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] == 'on' ) {
-    $pageURL .= 's';
-  }
-
-  $pageURL .= '://';
-
-  if ( '80' != $_SERVER['SERVER_PORT'] ) {
-    $pageURL .= $_SERVER['SERVER_NAME'] . ':' . $_SERVER['SERVER_PORT'] . $_SERVER['REQUEST_URI'];
-  } else {
-    $pageURL .= $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
-  }
-
-  return $pageURL;
-}
-
-function zerospam_get_spam( $args = array() ) {
-  global $wpdb;
-
-  $table_name = $wpdb->prefix . 'zerospam_log';
-
-  $order_by = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY date DESC';
-
-  $offset = isset( $args['offset'] ) ? $args['offset'] : false;
-  $limit = isset( $args['limit'] ) ? $args['limit'] : false;
-  if ( $offset && $limit ) {
-    $limit = ' LIMIT ' . $offset . ', ' . $limit;
-  } elseif ( $limit ) {
-    $limit = ' LIMIT ' . $limit;
-  }
-
-  $query = 'SELECT * FROM ' . $table_name . $order_by . $limit;
-  $results = $wpdb->get_results( $query );
-
-  return $results;
-}
-
-function zerospam_parse_spam_ary( $ary ) {
-  $return = array(
-    'by_date'              => array(),
-    'by_spam_count'        => array(),
-    'raw'                  => $ary,
-    'comment_spam'         => 0,
-    'registration_spam'    => 0,
-    'cf7_spam'             => 0,
-    'gf_spam'              => 0,
-    'bp_registration_spam' => 0,
-    'nf_spam'              => 0,
-    'wpf_spam'             => 0,
-    'unique_spammers'      => array(),
-    'by_day'               => array(
-      'Sun' => 0,
-      'Mon' => 0,
-      'Tue' => 0,
-      'Wed' => 0,
-      'Thu' => 0,
-      'Fri' => 0,
-      'Sat' => 0,
-    ),
-  );
-
-  foreach ( $ary as $key => $obj ) {
-    // By day
-    $return['by_day'][ date( 'D', strtotime( $obj->date ) ) ]++;
-
-    // By date
-    if ( ! isset( $return['by_date'][ substr( $obj->date, 0, 10 ) ] ) ) {
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ] = array(
-        'data'                 => array(),
-        'comment_spam'         => 0,
-        'registration_spam'    => 0,
-        'cf7_spam'             => 0,
-        'gf_spam'              => 0,
-        'bp_registration_spam' => 0,
-        'nf_spam'              => 0,
-        'wpf_spam'             => 0,
-      );
+      return $access;
     }
 
-    // By date
-    $return['by_date'][ substr( $obj->date, 0, 10 ) ]['data'][] = array(
-      'zerospam_id' => $obj->zerospam_id,
-      'type'        => $obj->type,
-      'ip'          => $obj->ip,
-      'date'        => $obj->date,
-    );
+    $options = wpzerospam_options();
 
-    // By spam count
-    if ( ! isset( $return['by_spam_count'][ $obj->ip ] ) ) {
-      $return['by_spam_count'][ $obj->ip ] = 0;
-    }
-    $return['by_spam_count'][ $obj->ip ]++;
-
-    // Spam type
-    if ( 1 == $obj->type ) {
-
-      // Registration spam.
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ]['registration_spam']++;
-      $return['registration_spam']++;
-    } elseif ( 2 == $obj->type ) {
-
-      // Comment spam.
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ]['comment_spam']++;
-      $return['comment_spam']++;
-    } elseif ( 3 == $obj->type ) {
-
-      // Contact Form 7 spam.
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ]['cf7_spam']++;
-      $return['cf7_spam']++;
-    } elseif ( 4 == $obj->type ) {
-
-      // Gravity Form spam.
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ]['gf_spam']++;
-      $return['gf_spam']++;
-    } elseif ( 5 == $obj->type ) {
-
-      // BuddyPress spam.
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ]['bp_registration_spam']++;
-      $return['bp_registration_spam']++;
-    } elseif ( 6 == $obj->type ) {
-
-      // Ninja Form spam.
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ]['nf_spam']++;
-      $return['nf_spam']++;
-    } elseif ( 7 == $obj->type ) {
-
-      // WPForms spam.
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ]['wpf_spam']++;
-      $return['wpf_spam']++;
-    } else {
-      if ( empty( $return['by_date'][ substr( $obj->date, 0, 10 ) ][ $obj->type ] ) ) {
-        $return['by_date'][ substr( $obj->date, 0, 10 ) ][ $obj->type ] = 0;
-      }
-      $return['by_date'][ substr( $obj->date, 0, 10 ) ][ $obj->type ]++;
-
-      if ( empty( $return[ $obj->type ] ) ) {
-        $return[ $obj->type ] = 0;
-      }
-      $return[ $obj->type ]++;
+    // Check if the current user's IP address has been blocked
+    $ip           = wpzerospam_ip();
+    $block_ip_key = array_search( $ip, array_column( $options['blocked_ips'], 'ip_address' ) );
+    if ( $block_ip_key ) {
+      $access['access'] = false;
+      $access['type']   = 'blocked_ips';
+      $access['ip']     = $ip;
+      $access['reason'] = ! empty( $options['blocked_ips'][ $block_ip_key ]['reason'] ) ? $options['blocked_ips'][ $block_ip_key ]['reason'] : false;
     }
 
-    // Unique spammers
-    if ( ! in_array( $obj->ip, $return['unique_spammers'] ) ) {
-      $return['unique_spammers'][] = $obj->ip;
-    }
-
-  }
-
-  return $return;
-}
-
-function zerospam_all_spam_ary() {
-  global $wpdb;
-  $return = array(
-    'by_date'              => array(),
-    'by_spam_count'        => array(),
-    'raw'                  => 0,
-    'comment_spam'         => 0,
-    'registration_spam'    => 0,
-    'cf7_spam'             => 0,
-    'gf_spam'              => 0,
-    'bp_registration_spam' => 0,
-    'nf_spam'              => 0,
-    'unique_spammers'      => array(),
-    'by_day'               => array(
-      'Sun' => 0,
-      'Mon' => 0,
-      'Tue' => 0,
-      'Wed' => 0,
-      'Thu' => 0,
-      'Fri' => 0,
-      'Sat' => 0,
-    ),
-  );
-
-  $table_name = $wpdb->prefix . 'zerospam_log';
-
-  // Count all
-  if ( $r = $wpdb->get_results( "SELECT SQL_CALC_FOUND_ROWS zerospam_id FROM $table_name WHERE 1=1 LIMIT 10" ) ) {
-    // SELECT COUNT(*) counts, MIN(date) date_start FROM $table_name WHERE 1=1
-    $return['raw'] = $wpdb->get_var( 'SELECT FOUND_ROWS()' );// array_fill(0, $count_all, 0);// JUST USE $count_all next time...
-    $return['date_start'] = $wpdb->get_var( "SELECT date FROM $table_name WHERE zerospam_id = (SELECT MIN(zerospam_id) FROM $table_name)" );
-  } else {
-    // there's no spammer logs...
-    return $return;
-  }
-
-  $type_map = array(
-    1                => 'registration_spam',
-    2                => 'comment_spam',
-    3                => 'cf7_spam',
-    4                => 'gf_spam',
-    5                => 'bp_registration_spam',
-    'nf'             => 'nf_spam',
-    'Undefined Form' => 'undefined_form',
-  );
-
-  // Get spammers by weekday.
-  $by_weekday_ary = $wpdb->get_results( "SELECT DATE_FORMAT(date, '%a') as day, COUNT(*) num FROM $table_name GROUP BY day", ARRAY_A );
-  if ( $by_weekday_ary )
-  {
-    foreach ( $by_weekday_ary as $key => $ary )
-    {
-      $return['by_day'][ $ary['day'] ] = $ary['num'];
-    }
-  }
-
-  // By IP.
-  // @TODO - Need to make the limit dynamic.
-  $by_ip_ary = $wpdb->get_results( "SELECT ip, COUNT(*) num FROM $table_name GROUP BY ip ORDER BY num DESC LIMIT 100", ARRAY_A );
-  if ( $by_ip_ary )
-  {
-    foreach ( $by_ip_ary as $key => $ary ) {
-      $return['by_spam_count'][ $ary['ip'] ] = $ary['num'];
-    }
-  }
-
-  // By type.
-  $by_type = $wpdb->get_results( "SELECT type, COUNT(*) num FROM $table_name GROUP BY type", ARRAY_A );
-  if ( $by_type )
-  {
-    foreach ( $by_type as $key => $ary )
-    {
-      $type = ! empty( $type_map[ $ary['type'] ] ) ? $type_map[ $ary['type'] ] : $ary['type'];
-      $return[ $type ] = $ary['num'];
-    }
-  }
-
-  // Unique Spammers
-  if ( $unique_spammers = $wpdb->get_var( "SELECT COUNT(DISTINCT ip) FROM $table_name" ) )
-  {
-    $return['unique_spammers'] = $unique_spammers;
-  }
-
-  // By date: LIMIT 100 days for graph
-  // @TODO - Need to make the limit dynamic.
-  $by_date = $wpdb->get_results( "SELECT type, LEFT(date, 10) day, COUNT(*) num FROM $table_name GROUP BY day, type ORDER BY date DESC LIMIT 100", ARRAY_A );
-  if ( $by_date )
-  {
-    foreach ( $by_date as $key => $ary )
-    {
-      if ( ! empty( $return['by_date'][ $ary['day'] ] ) )
-      {
-        $return['by_date'][ $ary['day'] ] = array(
-            'data'                 => array(),
-            'comment_spam'         => 0,
-            'registration_spam'    => 0,
-            'cf7_spam'             => 0,
-            'gf_spam'              => 0,
-            'bp_registration_spam' => 0,
-            'nf_spam'              => 0,
-        );
-      }
-      $return['by_date'][ $ary['day'] ][ $type_map[ $ary['type'] ] ] = $ary['num'];
-    }
-  }
-
-  return $return;
-}
-
-function zerospam_num_days( $date ) {
-  $datediff = time() - strtotime( $date );
-
-  return floor( $datediff / ( DAY_IN_SECONDS ) );
-}
-
-function zerospam_get_blocked_ips( $args = array() ) {
-  global $wpdb;
-  $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-
-  $order_by   = isset( $args['order_by'] ) ? ' ORDER BY ' . $args['order_by'] : ' ORDER BY zerospam_ip_id DESC';
-
-  $offset     = isset( $args['offset'] ) ? $args['offset'] : false;
-  $limit      = isset( $args['limit'] ) ? $args['limit'] : false;
-  if ( $offset && $limit ) {
-    $limit = ' LIMIT ' . $offset . ', ' . $limit;
-  } elseif ( $limit ) {
-    $limit = ' LIMIT ' . $limit;
-  }
-
-  $query = 'SELECT * FROM ' . $table_name . $order_by . $limit;
-  $results = $wpdb->get_results( $query );
-
-  if ( null == $results ) {
-    return false;
-  }
-
-  return $results;
-}
-
-function zerospam_get_percent( $num1, $num2 ) {
-  return number_format( ( $num1 / $num2 ) * 100, 2 );
-}
-
-function zerospam_pager( $limit = 10, $total_num, $page, $tab ) {
-  $max_pages = 11;
-  $num_pages = ceil( $total_num / $limit );
-  $cnt       = 0;
-
-  $start = 1;
-  if ( $page > 5 ) {
-    $start = ( $page - 4 );
-  }
-
-  $pre_html = '';
-  if ( 1 != $page ) {
-    if ( 2 != $page ) {
-      $pre_html = '<li><a href="' . zerospam_admin_url() . '?page=zerospam&tab=' . $tab . '&p=1"><i class="fa fa-angle-double-left"></i></a>';
-    }
-    $pre_html .= '<li><a href="' . zerospam_admin_url() . '?page=zerospam&tab=' . $tab . '&p=' . ( $page - 1 ) . '"><i class="fa fa-angle-left"></i></a>';
-  }
-
-  echo '<ul class="zero-spam__pager">';
-  if ( isset( $pre_html ) ) {
-    echo $pre_html;
-  }
-  for ( $i = $start; $i <= $num_pages; $i ++ ) {
-    $cnt ++;
-    if ( $cnt >= $max_pages ) {
-      break;
-    }
-
-    if ( $num_pages != $page ) {
-      $post_html = '<li><a href="' . zerospam_admin_url() . '?page=zerospam&tab=' . $tab . '&p=' . ( $page + 1 ) . '"><i class="fa fa-angle-right"></i></a>';
-      if ( ( $page + 1 ) != $num_pages ) {
-        $post_html .= '<li><a href="' . zerospam_admin_url() . '?page=zerospam&tab=' . $tab . '&p=1"><i class="fa fa-angle-double-right"></i></a>';
-      }
-    }
-
-    $class = '';
-    if ( $page == $i ) {
-      $class = ' class="zero-spam__page-selected"';
-    }
-    echo '<li><a href="' . zerospam_admin_url() . '?page=zerospam&tab=' . $tab . '&p=' . $i . '"' . $class . '>' . $i . '</a>';
-  }
-
-  if ( isset( $post_html ) ) {
-    echo $post_html;
-  }
-  echo '</ul>';
-
-      ?>
-  <div class="zero-spam__page-info">
-    <?php echo __( 'Page ', 'zerospam' ) . number_format( $page, 0 ) . ' of ' . number_format( $num_pages, 0 ); ?>
-    (<?php echo number_format( $total_num, 0 ) . __( ' total records found', 'zerospam' ); ?>)
-  </div>
-  <?php
-}
-
-function zerospam_get_spam_count() {
-  global $wpdb;
-  $table_name = $wpdb->prefix . 'zerospam_log';
-  $query = $wpdb->get_row( 'SELECT COUNT(*) AS count FROM ' . $table_name );
-  return $query->count;
-}
-
-function zerospam_plugin_check( $plugin ) {
-  $result = false;
-  switch ( $plugin ) {
-    case 'cf7':
-      if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
-        $result = true;
-      }
-      break;
-    case 'gf':
-      if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
-        $result = true;
-      }
-      break;
-    case 'bp':
-      if ( function_exists( 'bp_is_active' ) ) {
-        $result = true;
-      }
-      break;
-    case 'nf':
-      if ( is_plugin_active( 'ninja-forms/ninja-forms.php' ) ) {
-        $result = true;
-      }
-      break;
-    case 'wpf':
-      if ( is_plugin_active( 'wpforms/wpforms.php' ) || is_plugin_active( 'wpforms-lite/wpforms.php' ) ) {
-        $result = true;
-      }
-      break;
-  }
-
-  return $result;
-}
-
-function zerospam_delete_blocked_ip( $ip ) {
-  global $wpdb;
-  $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-  $query      = $wpdb->delete( $table_name, array( 'ip' => $ip ), array( '%s' ) );
-
-  return $query;
-}
-
-function zerospam_reset_log() {
-  global $wpdb;
-  $table_name = $wpdb->prefix . 'zerospam_log';
-  $query      = $wpdb->query( 'TRUNCATE ' . $table_name );
-
-  return $query;
-}
-
-function zerospam_get_ip_info( $ip ) {
-  global $wpdb;
-
-  // Ignore local hosts.
-  if ( $ip == '127.0.0.1' || $ip == '::1' ) {
-    return false;
-  }
-  
-  // Check DB
-  $table_name = $wpdb->prefix . 'zerospam_ip_data';
-  $data       = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE ip = %s", $ip ) );
-
-  // Retrieve from API
-  if ( ! $data ) {
-    $settings = zerospam_settings();
-    $ipstack_api_key = ! empty( $settings['ipstack_api_key'] ) ? $settings['ipstack_api_key'] : false;
-
-    if ( $ipstack_api_key ) {
-      // @ used to suppress API usage block warning.
-      $json = @file_get_contents( 'http://api.ipstack.com/' . $ip . '?access_key=' . $ipstack_api_key );
-
-      $data = json_decode( $json );
-
-      if ( $data ) {
-        $wpdb->insert( $table_name, array(
-            'ip'            => $ip,
-            'country_code'  => $data->country_code,
-            'country_name'  => $data->country_name,
-            'region_code'   => $data->region_code,
-            'region_name'   => $data->region_name,
-            'city'          => $data->city,
-            'zipcode'       => $data->zip,
-            'latitude'      => $data->latitude,
-            'longitude'     => $data->longitude,
-          ),
-          array(
-            '%s',
-            '%s',
-            '%s',
-            '%s',
-            '%s',
-            '%s',
-            '%s',
-            '%d',
-            '%d',
-          )
-        );
-      }
-    }
-  }
-
-  if ( false != $data ) {
-    return $data;
-  }
-
-  return false;
-}
-
-/**
- * WordPress admin URL.
- *
- * Returns the admin URL based off of whether it's a network enabled.
- *
- * @since 1.0.0
- *
- * @see is_plugin_active_for_network
- * @see network_admin_url
- * @see home_url
- * @see admin_url
- * @global string ZEROSPAM_PLUGIN The plugin root directory.
- *
- * @return string The plugin settings page URL.
- */
-if ( ! function_exists( 'zerospam_admin_url' ) )
-{
-  function zerospam_admin_url()
-  {
-    if ( is_plugin_active_for_network( plugin_basename( ZEROSPAM_PLUGIN ) ) )
-    {
-      // Network enabled.
-      $settings_url = network_admin_url( 'settings.php' );
-    }
-    else
-    {
-      // No network.
-      $settings_url = admin_url( 'options-general.php' );
-    }
-
-    return $settings_url;
+    return $access;
   }
 }
 
 /**
- * Blocked IP count.
- *
- * Returns the number of blocked IPs.
- *
- * @since 1.0.0
- *
- * @see wpdb::get_row
- * @global object $wpdb Contains a set of functions used to interact with a database.
- *
- * @return int The number of blocked IPs.
+ * Determines if the current page is the login page
  */
-if ( ! function_exists( 'zerospam_get_blocked_ip_count' ) )
-  {
-  function zerospam_get_blocked_ip_count()
-  {
-    global $wpdb;
+if ( ! function_exists( 'wpzerospam_is_login' ) ) {
+  function wpzerospam_is_login() {
+    $login_url   = wp_login_url();
+    $current_url = wpzerospam_current_url();
 
-    $table_name = $wpdb->prefix . 'zerospam_blocked_ips';
-    $query = $wpdb->get_row( 'SELECT COUNT(*) AS count FROM ' . $table_name );
-    return $query->count;
+    if ( $login_url == $current_url['full'] ) {
+      return true;
+    }
+
+    return false;
   }
 }
 
 /**
- * ZeroSpam library autoloader.
- *
- * The autoloads all available Zero Spam libraries.
- *
- * @since 1.0.0
- *
- * @param string $class_name The name of the ZeroSpam library.
- * @return boolean TRUE if library successfully included, FALSE if not.
+ * Get the user's current URL
  */
-if ( ! function_exists( 'zerospam_autoloader' ) )
-{
-  function zerospam_autoloader( $class_name )
-  {
-    if ( false !== strpos( $class_name, 'ZeroSpam' ) )
-    {
-      $classes_dir = ZEROSPAM_ROOT . DIRECTORY_SEPARATOR . 'lib' . DIRECTORY_SEPARATOR;
-      $class_file = str_replace( '_', DIRECTORY_SEPARATOR, $class_name ) . '.php';
+if ( ! function_exists( 'wpzerospam_current_url' ) ) {
+  function wpzerospam_current_url() {
+    $url = [];
 
-      /**
-       * Include the plugin library.
-       */
-      require_once $classes_dir . $class_file;
+    $url['full'] = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+    $url = array_merge( $url, parse_url( $url['full'] ) );
+
+    // Parse the URL query string
+    if ( ! empty( $url['query'] ) ) {
+      parse_str( $url['query'], $url['query'] );
+    }
+
+    return $url;
+  }
+}
+
+/**
+ * Returns the location of a log file
+ */
+if ( ! function_exists( 'wpzerospam_log_file' ) ) {
+  function wpzerospam_log_file( $type ) {
+    $wp_upload_dir = wp_upload_dir();
+    $wp_upload_dir = $wp_upload_dir['basedir'];
+    $file          = $wp_upload_dir . '/wpzerospam-' . $type . '.log';
+
+    return $file;
+  }
+}
+
+/**
+ * Creates a log entry & reads a log file
+ */
+if ( ! function_exists( 'wpzerospam_log' ) ) {
+  function wpzerospam_log( $type, $data = false, $mode = 'a' ) {
+    $options  = wpzerospam_options();
+    $location = wpzerospam_log_file( $type );
+
+    if ( $data ) {
+      // Only log if the type is enabled
+      if ( empty( $options['log_' . $type ] ) || 'enabled' != $options['log_' . $type ] ) { return false; }
+
+      $data = [ 'date' => current_time( 'mysql' ) ] + $data;
+
+      // Write a log entry
+      $file = fopen( $location, $mode );
+      fwrite( $file, json_encode( $data ) . "\n" );
+      fclose( $file );
 
       return true;
+    }
+
+    // Return a log
+    if ( file_exists( $location ) ) {
+      $log = [];
+      $entries = file_get_entries( $location );
+      $entries  = explode( "\n", $entries );
+
+      foreach( $entries as $key => $entry ) {
+        if ( ! $entry ) { continue; }
+
+        $log[] = json_decode( $entry, true );
+      }
+
+      return $log;
     }
 
     return false;

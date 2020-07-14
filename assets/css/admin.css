@@ -1,0 +1,27 @@
+.wpzerospam-blocked-ip-option {
+  margin-bottom: 0.3rem;
+}
+
+.wpzerospam-setting-header,
+.wpzerospam-blocked-ip-option {
+  display: flex;
+}
+
+.wpzerospam-setting-header div,
+.wpzerospam-input {
+  width: calc(100% / 3);
+}
+
+.wpzerospam-setting-header div {
+  margin-bottom: 0.3rem;
+}
+
+.wpzerospam-setting-header label {
+  font-weight: bold;
+}
+
+.wpzerospam-setting-header small {
+  color: #666;
+  font-style: italic;
+  display: block;
+}
