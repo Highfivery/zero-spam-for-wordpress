@@ -10,10 +10,10 @@
  * Handles what happens when spam is detected
  */
 if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
-  function wpzerospam_spam_detected( $type, $data ) {
+  function wpzerospam_spam_detected( $type, $data = [] ) {
     $options = wpzerospam_options();
 
-    wp_redirect( esc_url( $options['blocked_redirect_url'] ) );
+    wp_redirect( esc_url( $options['spam_redirect_url'] ) );
     exit();
   }
 }
@@ -35,7 +35,7 @@ if ( ! function_exists( 'wpzerospam_key_check' ) ) {
  * Create a log entry if logging is enabled
  */
 if ( ! function_exists( 'wpzerospam_log_spam' ) ) {
-  function wpzerospam_log_spam( $type, $data ) {
+  function wpzerospam_log_spam( $type, $data = [] ) {
     $options = wpzerospam_options();
 
     if ( 'enabled' != $options['log_spam'] ) {
@@ -102,12 +102,35 @@ if ( ! function_exists( 'wpzerospam_validate_submission' ) ) {
  */
 if ( ! function_exists( 'wpzerospam_options' ) ) {
   function wpzerospam_options() {
+    include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+
     $options = get_option( 'wpzerospam' );
 
     if ( empty( $options['blocked_redirect_url'] ) ) { $options['blocked_redirect_url'] = 'https://www.google.com'; }
+    if ( empty( $options['spam_redirect_url'] ) ) { $options['spam_redirect_url'] = 'https://www.google.com'; }
     if ( empty( $options['log_spam'] ) ) { $options['log_spam'] = 'disabled'; }
     if ( empty( $options['verify_comments'] ) ) { $options['verify_comments'] = 'enabled'; }
     if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
+
+    if ( empty( $options['verify_cf7'] ) && is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
+      $options['verify_cf7'] = 'enabled';
+    }
+
+    if ( empty( $options['verify_gforms'] ) && is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
+      $options['verify_gforms'] = 'enabled';
+    }
+
+    if ( empty( $options['verify_ninja_forms'] ) && is_plugin_active( 'ninja-forms/ninja-forms.php' ) ) {
+      $options['verify_ninja_forms'] = 'enabled';
+    }
+
+    if ( empty( $options['verify_bp_registrations'] ) && function_exists( 'bp_is_active' ) ) {
+      $options['verify_bp_registrations'] = 'enabled';
+    }
+
+    if ( empty( $options['verify_wpforms'] ) && ( is_plugin_active( 'wpforms/wpforms.php' ) || is_plugin_active( 'wpforms-lite/wpforms.php' ) ) ) {
+      $options['verify_wpforms'] = 'enabled';
+    }
 
     return $options;
   }

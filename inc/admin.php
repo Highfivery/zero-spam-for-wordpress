@@ -44,7 +44,16 @@ function wpzerospam_admin_init() {
     'label_for'   => 'blocked_redirect_url',
     'type'        => 'url',
     'class'       => 'regular-text',
-    'desc'        => 'Number of days the cookie will be stored on the user\'s computer.',
+    'desc'        => 'URL blocked users will be taken to.',
+    'placeholder' => 'e.g. https://google.com'
+  ]);
+
+  // Redirect URL for spam detections
+  add_settings_field( 'spam_redirect_url', __( 'Redirect for Spam', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+    'label_for'   => 'spam_redirect_url',
+    'type'        => 'url',
+    'class'       => 'regular-text',
+    'desc'        => 'URL users will be taken to when a spam submission is detected.',
     'placeholder' => 'e.g. https://google.com'
   ]);
 
@@ -80,6 +89,71 @@ function wpzerospam_admin_init() {
       'enabled' => __( 'Enabled', 'wpzerospam' )
     ]
   ]);
+
+  // Contact Form 7 spam check
+  if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
+    add_settings_field( 'verify_cf7', __( 'Verify CF7 Submissions', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+      'label_for' => 'verify_cf7',
+      'type'      => 'checkbox',
+      'multi'     => false,
+      'desc'      => 'Enables spam detection for Contact Form 7 submissions.',
+      'options'   => [
+        'enabled' => __( 'Enabled', 'wpzerospam' )
+      ]
+    ]);
+  }
+
+  // Gravity Forms spam check
+  if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
+    add_settings_field( 'verify_gform', __( 'Verify Gravity Forms Submissions', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+      'label_for' => 'verify_gform',
+      'type'      => 'checkbox',
+      'multi'     => false,
+      'desc'      => 'Enables spam detection for Gravity Forms submissions.',
+      'options'   => [
+        'enabled' => __( 'Enabled', 'wpzerospam' )
+      ]
+    ]);
+  }
+
+  // Ninja Forms spam check
+  if ( is_plugin_active( 'ninja-forms/ninja-forms.php' ) ) {
+    add_settings_field( 'verify_ninja_forms', __( 'Verify Ninja Forms Submissions', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+      'label_for' => 'verify_ninja_forms',
+      'type'      => 'checkbox',
+      'multi'     => false,
+      'desc'      => 'Enables spam detection for Ninja Forms submissions.',
+      'options'   => [
+        'enabled' => __( 'Enabled', 'wpzerospam' )
+      ]
+    ]);
+  }
+
+  // BuddyPress registrations spam check
+  if ( function_exists( 'bp_is_active' ) ) {
+    add_settings_field( 'verify_bp_registrations', __( 'Verify BuddyPress Registrations', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+      'label_for' => 'verify_bp_registrations',
+      'type'      => 'checkbox',
+      'multi'     => false,
+      'desc'      => 'Enables spam detection for BuddyPress registrations.',
+      'options'   => [
+        'enabled' => __( 'Enabled', 'wpzerospam' )
+      ]
+    ]);
+  }
+
+  // WPForms spam check
+  if ( is_plugin_active( 'wpforms/wpforms.php' ) || is_plugin_active( 'wpforms-lite/wpforms.php' ) ) {
+    add_settings_field( 'verify_wpforms', __( 'Verify WPForms Submissions', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+      'label_for' => 'verify_wpforms',
+      'type'      => 'checkbox',
+      'multi'     => false,
+      'desc'      => 'Enables spam detection for WPForms submissions.',
+      'options'   => [
+        'enabled' => __( 'Enabled', 'wpzerospam' )
+      ]
+    ]);
+  }
 
   // Toggle logging of blocked IPs
   add_settings_field( 'log_blocked_ips', __( 'Log Blocked IPs', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_ip_blocks', [
