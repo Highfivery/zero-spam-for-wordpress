@@ -72,6 +72,7 @@ Yes, that's what does the magic and keeps spam bots out.
 = 4.1.3 =
 
 * Fixed JS errors for some 3rd-party plugins. See [#178](https://github.com/bmarshall511/wordpress-zero-spam/issues/178)
+* Fixed caching conflicts issue relating to using cookies to set & get keys. See [#177](https://github.com/bmarshall511/wordpress-zero-spam/issues/177)
 
 = 4.1.2 =
 

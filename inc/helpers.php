@@ -47,37 +47,15 @@ if ( ! function_exists( 'wpzerospam_log_spam' ) ) {
   }
 }
 
- /**
- * Sets a plugin cookie
- */
-if ( ! function_exists( 'wpzerospam_set_cookie' ) ) {
-  function wpzerospam_set_cookie( $name, $value ) {
-    setcookie( 'wpzerospam_' . $name, $value, 0, COOKIEPATH,COOKIE_DOMAIN );
-  }
-}
-
-/**
- * Gets a plugin cookie
- */
-if ( ! function_exists( 'wpzerospam_get_cookie' ) ) {
-  function wpzerospam_get_cookie( $name ) {
-    if ( empty( $_COOKIE['wpzerospam_' . $name ] ) ) {
-      return false;
-    }
-
-    return $_COOKIE['wpzerospam_' . $name ];
-  }
-}
-
 /**
  * Returns the generated key for checking submissions
  */
 if ( ! function_exists( 'wpzerospam_get_key' ) ) {
   function wpzerospam_get_key() {
-    $key = wpzerospam_get_cookie( 'key' );
+    $key = get_option( 'wpzerospam_key' );
     if ( ! $key ) {
       $key = wp_generate_password( 64 );
-      wpzerospam_set_cookie( 'key', $key );
+      update_option( 'wpzerospam_key', $key );
     }
 
     return $key;

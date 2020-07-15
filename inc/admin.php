@@ -71,7 +71,7 @@ function wpzerospam_admin_init() {
     'placeholder' => 'e.g. https://google.com'
   ]);
 
-  // Store Cookies
+  // Log spam detections
   add_settings_field( 'log_spam', __( 'Log Spam Detections', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
     'label_for' => 'log_spam',
     'type'      => 'checkbox',
