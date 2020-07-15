@@ -80,3 +80,14 @@ if ( ! function_exists( 'wpzerospam_template_redirect' ) ) {
   }
 }
 add_action( 'template_redirect', 'wpzerospam_template_redirect' );
+
+/**
+ * Handles uninstalling the plugin
+ */
+if ( ! function_exists( 'wpzerospam_uninstall' ) ) {
+  function wpzerospam_uninstall() {
+    delete_option( 'wpzerospam_key' );
+    delete_option( 'wpzerospam' );
+  }
+}
+register_uninstall_hook( WORDPRESS_ZERO_SPAM, 'wpzerospam_uninstall' );
