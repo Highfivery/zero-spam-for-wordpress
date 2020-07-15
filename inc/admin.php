@@ -41,7 +41,7 @@ function wpzerospam_validate_options( $input ) {
   if ( empty( $input['verify_ninja_forms'] ) ) { $input['verify_ninja_forms'] = 'disabled'; }
   if ( empty( $input['verify_bp_registrations'] ) ) { $input['verify_bp_registrations'] = 'disabled'; }
   if ( empty( $input['verify_wpforms'] ) ) { $input['verify_wpforms'] = 'disabled'; }
-  if ( empty( $input['verify_wpforms'] ) ) { $input['log_blocked_ips'] = 'disabled'; }
+  if ( empty( $input['log_blocked_ips'] ) ) { $input['log_blocked_ips'] = 'disabled'; }
 
   return $input;
  }

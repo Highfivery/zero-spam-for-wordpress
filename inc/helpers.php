@@ -132,6 +132,8 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
       $options['verify_wpforms'] = 'enabled';
     }
 
+    if ( empty( $options['blocked_ips'] ) ) { $options['blocked_ips'] = []; }
+
     return $options;
   }
 }

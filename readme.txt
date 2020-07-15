@@ -69,15 +69,16 @@ Yes, that's what does the magic and keeps spam bots out.
 
 == Changelog ==
 
-= 4.0.1 =
+= 4.1.2 =
 
 * Fixed issue with plugin settings not saving. See [#176](https://github.com/bmarshall511/wordpress-zero-spam/issues/176).
+* Fixed some PHP notices. See [#175](https://github.com/bmarshall511/wordpress-zero-spam/issues/175).
 
-= v4.0.0 =
+= v4.1.1 =
 
-* A complete rewrite of the original plugin
+* Fixed missing JS for new 3rd-party plugin support
 
-= v4.1.0- =
+= v4.1.0 =
 
 * Added support for [Contact Form 7](https://wordpress.org/plugins/contact-form-7/)
 * Added support for [Gravity Forms](https://www.gravityforms.com/)
@@ -85,6 +86,6 @@ Yes, that's what does the magic and keeps spam bots out.
 * Added support for [BuddyPress](https://wordpress.org/plugins/buddypress/)
 * Added support for [Contact Form by WPForms](https://wordpress.org/plugins/wpforms-lite/)
 
-= v4.1.1 =
+= v4.0.0 =
 
-* Fixed missing JS for new 3rd-party plugin support
+* A complete rewrite of the original plugin
