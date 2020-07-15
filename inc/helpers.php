@@ -13,8 +13,14 @@ if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
   function wpzerospam_spam_detected( $type, $data = [] ) {
     $options = wpzerospam_options();
 
-    wp_redirect( esc_url( $options['spam_redirect_url'] ) );
-    exit();
+    if ( 'redirect' == $options['spam_handler'] ) {
+      wp_redirect( esc_url( $options['spam_redirect_url'] ) );
+      exit();
+    } else {
+      status_header( 403 );
+      die( $options['spam_message'] );
+    }
+
   }
 }
 
@@ -85,7 +91,9 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     $options = get_option( 'wpzerospam' );
 
     if ( empty( $options['blocked_redirect_url'] ) ) { $options['blocked_redirect_url'] = 'https://www.google.com'; }
+    if ( empty( $options['spam_handler'] ) ) { $options['spam_handler'] = '403'; }
     if ( empty( $options['spam_redirect_url'] ) ) { $options['spam_redirect_url'] = 'https://www.google.com'; }
+    if ( empty( $options['spam_message'] ) ) { $options['spam_message'] = __( 'There was a problem with your submission. Please go back and try again.', 'wpzerospam' ); }
     if ( empty( $options['log_spam'] ) ) { $options['log_spam'] = 'disabled'; }
     if ( empty( $options['verify_comments'] ) ) { $options['verify_comments'] = 'enabled'; }
     if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }

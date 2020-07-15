@@ -74,6 +74,7 @@ Yes, that's what does the magic and keeps spam bots out.
 * Fixed JS errors for some 3rd-party plugins. See [#178](https://github.com/bmarshall511/wordpress-zero-spam/issues/178)
 * Fixed caching conflicts issue relating to using cookies to set & get keys. See [#177](https://github.com/bmarshall511/wordpress-zero-spam/issues/177)
 * When plugin is uninstalled, plugin-related data is now deleted. See [#179](https://github.com/bmarshall511/wordpress-zero-spam/issues/179)
+* Added an option in the plugin settings to determine how spam detections are handled. See [#180](https://github.com/bmarshall511/wordpress-zero-spam/issues/180)
 
 = 4.1.2 =
 

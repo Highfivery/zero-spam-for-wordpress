@@ -47,6 +47,8 @@ function wpzerospam_validate_options( $input ) {
  }
 
 function wpzerospam_admin_init() {
+  $options = wpzerospam_options();
+
   register_setting( 'wpzerospam', 'wpzerospam', 'wpzerospam_validate_options' );
 
   add_settings_section( 'wpzerospam_general_settings', __( 'General Settings', 'wpzerospam' ), 'wpzerospam_general_settings_cb', 'wpzerospam' );
@@ -62,14 +64,36 @@ function wpzerospam_admin_init() {
     'placeholder' => 'e.g. https://google.com'
   ]);
 
-  // Redirect URL for spam detections
-  add_settings_field( 'spam_redirect_url', __( 'Redirect for Spam', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
-    'label_for'   => 'spam_redirect_url',
-    'type'        => 'url',
-    'class'       => 'regular-text',
-    'desc'        => 'URL users will be taken to when a spam submission is detected.',
-    'placeholder' => 'e.g. https://google.com'
+  // Log spam detections
+  add_settings_field( 'spam_handler', __( 'Spam Detections', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+    'label_for' => 'spam_handler',
+    'type'      => 'radio',
+    'desc'      => 'Determines how users are handled when spam is detected.',
+    'options'   => [
+      'redirect' => __( 'Redirect user', 'wpzerospam' ),
+      '403'      => __( 'Display a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403" target="_blank"><code>403 Forbidden</code></a> error', 'wpzerospam' )
+    ]
   ]);
+
+  if ( 'redirect' == $options['spam_handler'] ) {
+    // Redirect URL for spam detections
+    add_settings_field( 'spam_redirect_url', __( 'Redirect for Spam', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+      'label_for'   => 'spam_redirect_url',
+      'type'        => 'url',
+      'class'       => 'regular-text',
+      'desc'        => 'URL users will be taken to when a spam submission is detected.',
+      'placeholder' => 'e.g. https://google.com'
+    ]);
+  } else {
+    // Redirect URL for spam detections
+    add_settings_field( 'spam_message', __( 'Spam Detection Message', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+      'label_for'   => 'spam_message',
+      'type'        => 'text',
+      'class'       => 'large-text',
+      'desc'        => 'The message that will be displayed when spam is detected.',
+      'placeholder' => __( 'There was a problem with your submission. Please go back and try again.', 'wpzerospam' )
+    ]);
+  }
 
   // Log spam detections
   add_settings_field( 'log_spam', __( 'Log Spam Detections', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
@@ -235,6 +259,21 @@ function wpzerospam_field_cb( $args ) {
             name="wpzerospam[<?php echo esc_attr( $args['label_for'] ); ?>]<?php if( $args['multi'] ): ?>[<?php echo $key; ?>]<?php endif; ?>" value="<?php echo $key; ?>"
             <?php if( $args['multi'] && $key === $options[ $args['label_for'] ][ $key ] || ! $args['multi'] && $key === $options[ $args['label_for'] ] ): ?> checked="checked"<?php endif; ?> /> <?php echo $label; ?>
         </label>
+      <?php endforeach; ?>
+      <p class="description"><?php echo $args['desc'] ?></p>
+      <?php
+    break;
+    case 'radio':
+      ?>
+      <?php foreach( $args['options'] as $key => $label ): ?>
+        <label for="<?php echo esc_attr( $args['label_for'] . $key ); ?>">
+          <input
+            type="radio"
+            <?php if ( ! empty( $args['class'] ) ): ?>class="<?php echo $args['class']; ?>"<?php endif; ?>
+            id="<?php echo esc_attr( $args['label_for'] . $key ); ?>"
+            name="wpzerospam[<?php echo esc_attr( $args['label_for'] ); ?>]" value="<?php echo $key; ?>"
+            <?php if( $key == $options[ $args['label_for'] ] ): ?> checked="checked"<?php endif; ?> /> <?php echo $label; ?>
+        </label><br />
       <?php endforeach; ?>
       <p class="description"><?php echo $args['desc'] ?></p>
       <?php
