@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.1.0
+Stable tag: 4.1.1
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -80,3 +80,7 @@ Yes, that's what does the magic and keeps spam bots out.
 * Added support for [Ninja Forms](https://wordpress.org/plugins/ninja-forms/)
 * Added support for [BuddyPress](https://wordpress.org/plugins/buddypress/)
 * Added support for [Contact Form by WPForms](https://wordpress.org/plugins/wpforms-lite/)
+
+= v4.1.1 =
+
+* Fixed missing JS for new 3rd-party plugin support
