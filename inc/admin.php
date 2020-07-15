@@ -32,8 +32,22 @@ function wpzerospam_options_page() {
   <?php
 }
 
+function wpzerospam_validate_options( $input ) {
+  if ( empty( $input['log_spam'] ) ) { $input['log_spam'] = 'disabled'; }
+  if ( empty( $input['verify_comments'] ) ) { $input['verify_comments'] = 'disabled'; }
+  if ( empty( $input['verify_registrations'] ) ) { $input['verify_registrations'] = 'disabled'; }
+  if ( empty( $input['verify_cf7'] ) ) { $input['verify_cf7'] = 'disabled'; }
+  if ( empty( $input['verify_gform'] ) ) { $input['verify_gform'] = 'disabled'; }
+  if ( empty( $input['verify_ninja_forms'] ) ) { $input['verify_ninja_forms'] = 'disabled'; }
+  if ( empty( $input['verify_bp_registrations'] ) ) { $input['verify_bp_registrations'] = 'disabled'; }
+  if ( empty( $input['verify_wpforms'] ) ) { $input['verify_wpforms'] = 'disabled'; }
+  if ( empty( $input['verify_wpforms'] ) ) { $input['log_blocked_ips'] = 'disabled'; }
+
+  return $input;
+ }
+
 function wpzerospam_admin_init() {
-  register_setting( 'wpzerospam', 'wpzerospam' );
+  register_setting( 'wpzerospam', 'wpzerospam', 'wpzerospam_validate_options' );
 
   add_settings_section( 'wpzerospam_general_settings', __( 'General Settings', 'wpzerospam' ), 'wpzerospam_general_settings_cb', 'wpzerospam' );
   add_settings_section( 'wpzerospam_spam_checks', __( 'Spam Checks', 'wpzerospam' ), 'wpzerospam_spam_checks_cb', 'wpzerospam' );

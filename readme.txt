@@ -69,6 +69,10 @@ Yes, that's what does the magic and keeps spam bots out.
 
 == Changelog ==
 
+= 4.0.1 =
+
+* Fixed issue with plugin settings not saving. See [#176](https://github.com/bmarshall511/wordpress-zero-spam/issues/176).
+
 = v4.0.0 =
 
 * A complete rewrite of the original plugin
