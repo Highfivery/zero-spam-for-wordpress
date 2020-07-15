@@ -1,11 +1,11 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511
+Contributors: bmarshall511, jaredatch
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Donate link: https://benmarshall.me
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.1.1
+Stable tag: 4.1.2
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
