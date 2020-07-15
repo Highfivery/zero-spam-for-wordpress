@@ -26,7 +26,7 @@ var WordPressZeroSpam = {
         jQuery( "<input>" )
           .attr( "type", "hidden" )
           .attr( "name", "wpzerospam_key" )
-          .attr( "value", zerospam.key )
+          .attr( "value", wpzerospam.key )
           .appendTo( ".wpcf7-form" );
       });
 
@@ -37,7 +37,7 @@ var WordPressZeroSpam = {
         jQuery( "<input>" )
           .attr( "type", "hidden" )
           .attr( "name", "wpzerospam_key" )
-          .attr( "value", zerospam.key )
+          .attr( "value", wpzerospam.key )
           .appendTo( form );
 
         return true;
