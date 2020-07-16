@@ -23,18 +23,18 @@ if ( ! function_exists( 'wpzerospam_get_ip_info' ) ) {
       $info = json_decode( $response['body'], true );
 
       return [
-        'type'           => ! empty( $info['type'] ) ? $info['type'] : false,
-        'continent_code' => ! empty( $info['continent_code'] ) ? $info['continent_code'] : false,
-        'continent_name' => ! empty( $info['continent_name'] ) ? $info['continent_name'] : false,
-        'country_code'   => ! empty( $info['country_code'] ) ? $info['country_code'] : false,
-        'country_name'   => ! empty( $info['country_name'] ) ? $info['country_name'] : false,
-        'region_code'    => ! empty( $info['region_code'] ) ? $info['region_code'] : false,
-        'region_name'    => ! empty( $info['region_name'] ) ? $info['region_name'] : false,
-        'city'           => ! empty( $info['city'] ) ? $info['city'] : false,
-        'zip'            => ! empty( $info['zip'] ) ? $info['zip'] : false,
-        'latitude'       => ! empty( $info['latitude'] ) ? $info['latitude'] : false,
-        'longitude'      => ! empty( $info['longitude'] ) ? $info['longitude'] : false,
-        'flag'           => ! empty( $info['location']['country_flag'] ) ? $info['location']['country_flag'] : false,
+        'type'           => ! empty( $info['type'] ) ? sanitize_text_field( $info['type'] ) : false,
+        'continent_code' => ! empty( $info['continent_code'] ) ? sanitize_text_field( $info['continent_code'] ) : false,
+        'continent_name' => ! empty( $info['continent_name'] ) ? sanitize_text_field( $info['continent_name'] ) : false,
+        'country_code'   => ! empty( $info['country_code'] ) ? sanitize_text_field( $info['country_code'] ) : false,
+        'country_name'   => ! empty( $info['country_name'] ) ? sanitize_text_field( $info['country_name'] ) : false,
+        'region_code'    => ! empty( $info['region_code'] ) ? sanitize_text_field( $info['region_code'] ) : false,
+        'region_name'    => ! empty( $info['region_name'] ) ? sanitize_text_field( $info['region_name'] ) : false,
+        'city'           => ! empty( $info['city'] ) ? sanitize_text_field( $info['city'] ) : false,
+        'zip'            => ! empty( $info['zip'] ) ? sanitize_text_field( $info['zip'] ) : false,
+        'latitude'       => ! empty( $info['latitude'] ) ? sanitize_text_field( $info['latitude'] ) : false,
+        'longitude'      => ! empty( $info['longitude'] ) ? sanitize_text_field( $info['longitude'] ) : false,
+        'flag'           => ! empty( $info['location']['country_flag'] ) ? sanitize_text_field( $info['location']['country_flag'] ) : false,
       ];
     }
 

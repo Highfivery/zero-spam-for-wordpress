@@ -51,10 +51,10 @@ function wpzerospam_blocked_ips_page() {
 
     // Setup page parameters
     $current_page = $table_data->get_pagenum();
-    $current_page = (isset($current_page)) ? $current_page : 1;
-    $paged        = (isset($_GET['page'])) ? $_GET['page'] : $current_page;
-    $paged        = (isset($_GET['paged'])) ? $_GET['paged'] : $current_page;
-    $paged        = (isset($args['paged'])) ? $args['paged'] : $paged;
+    $current_page = ( isset( $current_page ) ) ? $current_page : 1;
+    $paged        = ( isset( $_GET['page'] ) ) ? absint( $_GET['page'] ) : $current_page;
+    $paged        = ( isset( $_GET['paged'] ) ) ? absint(  $_GET['paged'] ) : $current_page;
+    $paged        = ( isset( $args['paged'] ) ) ? $args['paged'] : $paged;
 
     // Fetch, prepare, sort, and filter our data...
     $table_data->prepare_items();
@@ -76,6 +76,9 @@ function wpzerospam_dashboard() {
   ?>
     <div class="wrap">
       <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+
+      <h2><?php _e( 'Spam Detections Log', 'wpzerospam' ); ?></h2>
+      <p><?php _e( 'Charts, graphs, etc. coming soon!', 'wpzerospam' ); ?></p>
       <?php
       /**
        * Log table
@@ -87,9 +90,9 @@ function wpzerospam_dashboard() {
       // Setup page parameters
       $current_page = $table_data->get_pagenum();
       $current_page = (isset($current_page)) ? $current_page : 1;
-      $paged        = (isset($_GET['page'])) ? $_GET['page'] : $current_page;
-      $paged        = (isset($_GET['paged'])) ? $_GET['paged'] : $current_page;
-      $paged        = (isset($args['paged'])) ? $args['paged'] : $paged;
+      $paged        = ( isset( $_GET['page'] ) ) ? absint( $_GET['page'] ) : $current_page;
+      $paged        = ( isset( $_GET['paged'] ) ) ? absint(  $_GET['paged'] ) : $current_page;
+      $paged        = ( isset( $args['paged'] ) ) ? $args['paged'] : $paged;
 
       // Fetch, prepare, sort, and filter our data...
       $table_data->prepare_items();

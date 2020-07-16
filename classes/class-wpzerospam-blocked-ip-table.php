@@ -109,34 +109,68 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
     return $actions;
   }
 
+  /**
+   * Define which columns are hidden
+   *
+   * @return Array
+   */
+  public function get_hidden_columns() {
+    return [];
+  }
+
+  /**
+   * Allows you to sort the data by the variables set in the $_GET
+   *
+   * @return Mixed
+   */
+  private function sort_data( $a, $b ) {
+    // Set defaults
+    $orderby = 'date_added';
+    $order   = 'desc';
+
+    // If orderby is set, use this as the sort column
+    if( ! empty( $_GET['orderby'] ) ) {
+      $orderby = $_GET['orderby'];
+    }
+
+    // If order is set use this as the order
+    if ( ! empty($_GET['order'] ) ) {
+      $order = $_GET['order'];
+    }
+
+    $result = strcmp( $a->$orderby, $b->$orderby );
+
+    if ( $order === 'asc' ) {
+      return $result;
+    }
+
+    return -$result;
+  }
+
   // Get results
   function prepare_items($args = []) {
     $this->process_bulk_action();
 
     $columns  = $this->get_columns();
+    $hidden   = $this->get_hidden_columns();
     $sortable = $this->get_sortable_columns();
-    $hidden   = [];
+
+    $data = wpzerospam_get_blocked_ips();
+    usort( $data, [ &$this, 'sort_data' ] );
+
+    $per_page     = 50;
+    $current_page = $this->get_pagenum();
+    $total_items  = count( $data );
+
+    $this->set_pagination_args([
+      'total_items' => $total_items,
+      'per_page'    => $per_page
+    ]);
+
+    $data = array_slice ( $data, ( ( $current_page - 1 ) * $per_page ), $per_page );
 
     $this->_column_headers = [ $columns, $hidden, $sortable ];
-
-    $current_page = $this->get_pagenum() ? $this->get_pagenum() : 1;
-    $paged = ( isset( $_REQUEST['page'])) ? $_REQUEST['page'] : $current_page;
-    $paged = ( isset( $_REQUEST['paged'])) ? $_REQUEST['paged'] : $current_page;
-    $paged = ( isset( $args['paged'] ) ) ? $args['paged'] : $paged;
-
-    $per_page = ( isset( $args['per_page'] ) ) ? $args['per_page'] : 500;
-    $orderby  = ( isset( $_REQUEST['orderby'] ) ) ? $_REQUEST['orderby'] : 'id';
-    $order    = ( isset( $_REQUEST['order'] ) ) ? $_REQUEST['order'] : 'desc';
-
-    $this->items = wpzerospam_get_blocked_ips();
-
-    // Set pagniation args
-    $pagination_args = [
-      'total_items' => count( $this->items ),
-      'per_page'    => $per_page,
-      'total_pages' => ceil( count( $this->items ) / $per_page ),
-    ];
-    $this->set_pagination_args( $pagination_args );
+    $this->items           = $data;
   }
 
   // Process bulk actions
@@ -151,7 +185,7 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
         $nonce = ( isset( $_POST['wpzerospam_nonce'] ) ) ? $_POST['wpzerospam_nonce'] : '';
         if ( ! wp_verify_nonce( $nonce, 'wpzerospam_nonce' ) ) return false;
 
-        if ( ! empty ( $ids ) ) {
+        if ( ! empty ( $ids ) && is_array( $ids ) ) {
           // Delete query
           foreach( $ids as $k => $blocked_id ) {
             $wpdb->delete( wpzerospam_tables( 'blocked' ), [ 'blocked_id' => $blocked_id  ] );

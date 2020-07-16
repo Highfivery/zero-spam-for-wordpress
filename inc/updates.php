@@ -13,15 +13,17 @@
  *
  * @since 4.2.0
  */
-add_action( 'init', function() {
+add_action( 'admin_init', function() {
   $options = wpzerospam_options();
 
   if ( ! empty( $options['blocked_ips'] ) ) {
     // IPs found, transfer them to the database
     foreach( $options['blocked_ips'] as $key => $ip ) {
-      wpzerospam_add_blocked_ip( $ip['ip_address'], [
-        'reason' => $ip['reason']
-      ]);
+      if ( ! empty( $ips ) ) {
+        wpzerospam_add_blocked_ip( $ip['ip_address'], [
+          'reason' => $ip['reason']
+        ]);
+      }
     }
 
     unset( $options['blocked_ips'] );
