@@ -23,7 +23,6 @@ if ( ! function_exists( 'wpzerospam_wpcf7_validate' ) ) {
 
     do_action( 'wpzerospam_gform_spam' );
 
-    wpzerospam_log_spam( 'gform', $form );
     wpzerospam_spam_detected( 'gform', $form );
   }
 }

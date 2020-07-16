@@ -23,7 +23,6 @@ if ( ! function_exists( 'wpzerospam_wpcf7_validate' ) ) {
 
     do_action( 'wpzerospam_cf7_spam' );
 
-    wpzerospam_log_spam( 'cf7', $result );
     wpzerospam_spam_detected( 'cf7', $result );
   }
 }

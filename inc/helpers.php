@@ -9,9 +9,58 @@
 /**
  * Handles what happens when spam is detected
  */
+if ( ! function_exists( 'wpzerospam_get_ip_info' ) ) {
+  function wpzerospam_get_ip_info( $ip ) {
+    $options  = wpzerospam_options();
+
+    if ( empty( $options['ipstack_api'] ) ) { return false; }
+
+    $base_url   = 'http://api.ipstack.com/';
+    $remote_url = $base_url . $ip . '?access_key=' . $options['ipstack_api'];
+    $response   = wp_remote_get( $remote_url );
+
+    if ( is_array( $response ) && ! is_wp_error( $response ) ) {
+      $info = json_decode( $response['body'], true );
+
+      return [
+        'type'           => ! empty( $info['type'] ) ? $info['type'] : false,
+        'continent_code' => ! empty( $info['continent_code'] ) ? $info['continent_code'] : false,
+        'continent_name' => ! empty( $info['continent_name'] ) ? $info['continent_name'] : false,
+        'country_code'   => ! empty( $info['country_code'] ) ? $info['country_code'] : false,
+        'country_name'   => ! empty( $info['country_name'] ) ? $info['country_name'] : false,
+        'region_code'    => ! empty( $info['region_code'] ) ? $info['region_code'] : false,
+        'region_name'    => ! empty( $info['region_name'] ) ? $info['region_name'] : false,
+        'city'           => ! empty( $info['city'] ) ? $info['city'] : false,
+        'zip'            => ! empty( $info['zip'] ) ? $info['zip'] : false,
+        'latitude'       => ! empty( $info['latitude'] ) ? $info['latitude'] : false,
+        'longitude'      => ! empty( $info['longitude'] ) ? $info['longitude'] : false,
+        'flag'           => ! empty( $info['location']['country_flag'] ) ? $info['location']['country_flag'] : false,
+      ];
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Handles what happens when spam is detected
+ */
+if ( ! function_exists( 'wpzerospam_get_log' ) ) {
+  function wpzerospam_get_log( $args = [] ) {
+    global $wpdb;
+
+    return $wpdb->get_results( 'SELECT * FROM ' . wpzerospam_tables( 'log' ) );
+  }
+}
+
+/**
+ * Handles what happens when spam is detected
+ */
 if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
   function wpzerospam_spam_detected( $type, $data = [] ) {
     $options = wpzerospam_options();
+
+    wpzerospam_log_spam( $type, $data );
 
     if ( 'redirect' == $options['spam_handler'] ) {
       wp_redirect( esc_url( $options['spam_redirect_url'] ) );
@@ -20,11 +69,10 @@ if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
       status_header( 403 );
       die( $options['spam_message'] );
     }
-
   }
 }
 
- /**
+/**
  * Checks the post submission for a valid key
  */
 if ( ! function_exists( 'wpzerospam_key_check' ) ) {
@@ -37,11 +85,37 @@ if ( ! function_exists( 'wpzerospam_key_check' ) ) {
   }
 }
 
- /**
+/**
+ * Create a log entry if logging is enabled
+ */
+if ( ! function_exists( 'wpzerospam_add_blocked_ip' ) ) {
+  function wpzerospam_add_blocked_ip( $ip, $args = [] ) {
+    global $wpdb;
+
+    $options = wpzerospam_options();
+
+    $record = wp_parse_args( $args, [
+      'blocked_type' => 'permanent',
+      'date_added'   => current_time( 'mysql' ),
+      'start_block'  => false,
+      'end_block'    => false,
+      'reason'       => false,
+      'attempts'     => 0
+    ]);
+
+    $record['user_ip'] = $ip;
+
+    $wpdb->insert( wpzerospam_tables( 'blocked' ), $record );
+  }
+}
+
+/**
  * Create a log entry if logging is enabled
  */
 if ( ! function_exists( 'wpzerospam_log_spam' ) ) {
   function wpzerospam_log_spam( $type, $data = [] ) {
+    global $wpdb;
+
     $options = wpzerospam_options();
 
     if ( 'enabled' != $options['log_spam'] ) {
@@ -49,7 +123,56 @@ if ( ! function_exists( 'wpzerospam_log_spam' ) ) {
       return false;
     }
 
-    // Logging enabled
+    if ( ! empty( $data['ip'] ) ) {
+      $ip_address = $data['ip'];
+      unset( $data['ip'] );
+    } else {
+      $ip_address = wpzerospam_ip();
+    }
+
+    $current_url   = wpzerospam_current_url();
+    $location_info = wpzerospam_get_ip_info( $ip_address );
+
+    // Add record to the database
+    $record = [
+      'log_type'        => $type,
+      'user_ip'         => wpzerospam_ip(),
+      'date_recorded'   => current_time( 'mysql' ),
+      'page_url'        => $current_url['full'],
+      'submission_data' => json_encode( $data )
+    ];
+
+    if ( $location_info ) {
+      $record['country']   = $location_info['country_code'];
+      $record['region']    = $location_info['region_code'];
+      $record['city']      = $location_info['city'];
+      $record['latitude']  = $location_info['latitude'];
+      $record['longitude'] = $location_info['longitude'];
+    }
+
+    $wpdb->insert( wpzerospam_tables( 'log' ), $record );
+  }
+}
+
+/**
+ * Returns an array of tables the plugin uses
+ */
+if ( ! function_exists( 'wpzerospam_tables' ) ) {
+  function wpzerospam_tables( $key = false ) {
+    global $wpdb;
+
+    $tables = [
+      'log'     => $wpdb->prefix . 'wpzerospam_log',
+      'blocked' => $wpdb->prefix . 'wpzerospam_blocked'
+    ];
+
+    if ( ! $key ) {
+      return $tables;
+    } elseif( ! empty( $tables[ $key ] ) ) {
+      return $tables[ $key ];
+    }
+
+    return false;
   }
 }
 
@@ -82,6 +205,63 @@ if ( ! function_exists( 'wpzerospam_validate_submission' ) ) {
 }
 
 /**
+ * Returns an array of blocked IPs or an individual IP's details
+ */
+if ( ! function_exists( 'wpzerospam_get_blocked_ips' ) ) {
+  function wpzerospam_get_blocked_ips( $ip = false ) {
+    global $wpdb;
+
+    if ( ! $ip ) {
+      return $wpdb->get_results( 'SELECT * FROM ' . wpzerospam_tables( 'blocked' ) );
+    }
+
+    return $wpdb->get_row($wpdb->prepare(
+      'SELECT * FROM ' . wpzerospam_tables( 'blocked' ) . ' WHERE user_ip = %s',
+      $ip
+    ));
+  }
+}
+
+/**
+ * Adds a access attempt from a blocked user
+ */
+if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
+  function wpzerospam_attempt_blocked( $data ) {
+    global $wpdb;
+
+    $options = wpzerospam_options();
+
+    if ( ! empty( $data['ip'] ) ) {
+      $ip_address = $data['ip'];
+    } else {
+      $ip_address = wpzerospam_ip();
+    }
+
+    $blocked = wpzerospam_get_blocked_ips( $ip_address );
+    if ( $blocked ) {
+      $attempts = $blocked->attempts;
+      $attempts++;
+
+      $wpdb->update( wpzerospam_tables( 'blocked' ), [
+        'attempts' => $attempts
+      ], [
+        'blocked_id' => $blocked->blocked_id
+      ]);
+    }
+
+    wpzerospam_log_spam( 'denied', $data );
+
+    if ( 'redirect' == $options['block_handler'] ) {
+      wp_redirect( esc_url( $options['blocked_redirect_url'] ) );
+      exit();
+    } else {
+      status_header( 403 );
+      die( $options['blocked_message'] );
+    }
+  }
+}
+
+/**
  * Returns the plugin settings.
  */
 if ( ! function_exists( 'wpzerospam_options' ) ) {
@@ -92,8 +272,10 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 
     if ( empty( $options['blocked_redirect_url'] ) ) { $options['blocked_redirect_url'] = 'https://www.google.com'; }
     if ( empty( $options['spam_handler'] ) ) { $options['spam_handler'] = '403'; }
+    if ( empty( $options['block_handler'] ) ) { $options['block_handler'] = '403'; }
     if ( empty( $options['spam_redirect_url'] ) ) { $options['spam_redirect_url'] = 'https://www.google.com'; }
     if ( empty( $options['spam_message'] ) ) { $options['spam_message'] = __( 'There was a problem with your submission. Please go back and try again.', 'wpzerospam' ); }
+    if ( empty( $options['blocked_message'] ) ) { $options['blocked_message'] = __( 'You have been blocked from visiting this site.', 'wpzerospam' ); }
     if ( empty( $options['log_spam'] ) ) { $options['log_spam'] = 'disabled'; }
     if ( empty( $options['verify_comments'] ) ) { $options['verify_comments'] = 'enabled'; }
     if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
@@ -118,8 +300,6 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
       $options['verify_wpforms'] = 'enabled';
     }
 
-    if ( empty( $options['blocked_ips'] ) ) { $options['blocked_ips'] = []; }
-
     return $options;
   }
 }
@@ -130,14 +310,25 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 if ( ! function_exists( 'wpzerospam_ip' ) ) {
   function wpzerospam_ip() {
     if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-      return $_SERVER['HTTP_CLIENT_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-      return $_SERVER['HTTP_X_FORWARDED_FOR'];
+      $ip = $_SERVER['HTTP_CLIENT_IP'];
+    } elseif ( ! empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+      $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+    } elseif ( ! empty($_SERVER['HTTP_X_FORWARDED'])) {
+      $ip = $_SERVER['HTTP_X_FORWARDED'];
+    } elseif ( ! empty($_SERVER['HTTP_FORWARDED_FOR'])) {
+      $ip = $_SERVER['HTTP_FORWARDED_FOR'];
+    } elseif ( ! empty($_SERVER['HTTP_FORWARDED'])) {
+      $ip = $_SERVER['HTTP_FORWARDED'];
     } else {
-      return $_SERVER['REMOTE_ADDR'];
+      $ip = $_SERVER['REMOTE_ADDR'];
     }
 
-    return false;
+    $ip = explode( ',', $ip );
+    $ip = trim( $ip[0] );
+
+    if ( false === WP_Http::is_ip_address( $ip ) ) { return false; }
+
+    return $ip;
   }
 }
 
@@ -161,14 +352,16 @@ if ( ! function_exists( 'wpzerospam_check_access' ) ) {
     $options = wpzerospam_options();
 
     // Check if the current user's IP address has been blocked
-    $ip           = wpzerospam_ip();
-    $block_ip_key = array_search( $ip, array_column( $options['blocked_ips'], 'ip_address' ) );
-    if ( $block_ip_key ) {
-      $access['access'] = false;
-      $access['type']   = 'blocked_ips';
-      $access['ip']     = $ip;
-      $access['reason'] = ! empty( $options['blocked_ips'][ $block_ip_key ]['reason'] ) ? $options['blocked_ips'][ $block_ip_key ]['reason'] : false;
+    $ip          = wpzerospam_ip();
+    $is_blocked  = wpzerospam_get_blocked_ips( $ip );
+
+    if ( ! $is_blocked ) {
+      return $access;
     }
+
+    $access['access'] = false;
+    $access['ip']     = $ip;
+    $access['reason'] = $is_blocked->reason;
 
     return $access;
   }
@@ -206,59 +399,5 @@ if ( ! function_exists( 'wpzerospam_current_url' ) ) {
     }
 
     return $url;
-  }
-}
-
-/**
- * Returns the location of a log file
- */
-if ( ! function_exists( 'wpzerospam_log_file' ) ) {
-  function wpzerospam_log_file( $type ) {
-    $wp_upload_dir = wp_upload_dir();
-    $wp_upload_dir = $wp_upload_dir['basedir'];
-    $file          = $wp_upload_dir . '/wpzerospam-' . $type . '.log';
-
-    return $file;
-  }
-}
-
-/**
- * Creates a log entry & reads a log file
- */
-if ( ! function_exists( 'wpzerospam_log' ) ) {
-  function wpzerospam_log( $type, $data = false, $mode = 'a' ) {
-    $options  = wpzerospam_options();
-    $location = wpzerospam_log_file( $type );
-
-    if ( $data ) {
-      // Only log if the type is enabled
-      if ( empty( $options['log_' . $type ] ) || 'enabled' != $options['log_' . $type ] ) { return false; }
-
-      $data = [ 'date' => current_time( 'mysql' ) ] + $data;
-
-      // Write a log entry
-      $file = fopen( $location, $mode );
-      fwrite( $file, json_encode( $data ) . "\n" );
-      fclose( $file );
-
-      return true;
-    }
-
-    // Return a log
-    if ( file_exists( $location ) ) {
-      $log = [];
-      $entries = file_get_entries( $location );
-      $entries  = explode( "\n", $entries );
-
-      foreach( $entries as $key => $entry ) {
-        if ( ! $entry ) { continue; }
-
-        $log[] = json_decode( $entry, true );
-      }
-
-      return $log;
-    }
-
-    return false;
   }
 }

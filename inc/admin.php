@@ -7,9 +7,104 @@
  */
 
 function wpzerospam_admin_menu() {
-  add_submenu_page( 'options-general.php', __( 'WordPress Zero Spam Settings', 'wpzerospam' ), __( 'WP Zero Spam', 'wpzerospam' ), 'manage_options', 'wordpress-zero-spam', 'wpzerospam_options_page' );
+  $main_page = add_menu_page(
+    __( 'WordPress Zero Spam Dashboard', 'wpzerospam' ),
+    __( 'WP Zero Spam', 'wpzerospam' ),
+    'manage_options',
+    'wordpress-zero-spam',
+    'wpzerospam_dashboard',
+    'dashicons-shield'
+  );
+
+  add_submenu_page(
+    'wordpress-zero-spam',
+    __( 'Blocked IP Addresses', 'wpzerospam' ),
+    __( 'Blocked IPs', 'wpzerospam' ),
+    'manage_options',
+    'wordpress-zero-spam-blocked-ips',
+    'wpzerospam_blocked_ips_page',
+  );
+
+  add_submenu_page(
+    'wordpress-zero-spam',
+    __( 'WordPress Zero Spam Settings', 'wpzerospam' ),
+    __( 'Settings', 'wpzerospam' ),
+    'manage_options',
+    'wordpress-zero-spam-settings',
+    'wpzerospam_options_page',
+  );
 }
 add_action( 'admin_menu', 'wpzerospam_admin_menu' );
+
+function wpzerospam_blocked_ips_page() {
+  if ( ! current_user_can( 'manage_options' ) ) { return; }
+  ?>
+  <div class="wrap">
+    <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+    <?php
+    /**
+     * Blocked IP table
+     */
+    require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/classes/class-wpzerospam-blocked-ip-table.php';
+
+    $table_data = new WPZeroSpam_Blocked_IP_Table();
+
+    // Setup page parameters
+    $current_page = $table_data->get_pagenum();
+    $current_page = (isset($current_page)) ? $current_page : 1;
+    $paged        = (isset($_GET['page'])) ? $_GET['page'] : $current_page;
+    $paged        = (isset($_GET['paged'])) ? $_GET['paged'] : $current_page;
+    $paged        = (isset($args['paged'])) ? $args['paged'] : $paged;
+
+    // Fetch, prepare, sort, and filter our data...
+    $table_data->prepare_items();
+    ?>
+    <form id="log-table" method="post">
+      <?php wp_nonce_field( 'wpzerospam_nonce', 'wpzerospam_nonce' ); ?>
+
+      <?php # Current page ?>
+      <input type="hidden" name="paged" value="<?php echo $paged; ?>" />
+
+      <?php $table_data->display(); ?>
+    </form>
+  </div>
+  <?php
+}
+
+function wpzerospam_dashboard() {
+  if ( ! current_user_can( 'manage_options' ) ) { return; }
+  ?>
+    <div class="wrap">
+      <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+      <?php
+      /**
+       * Log table
+       */
+      require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/classes/class-wpzerospam-log-table.php';
+
+      $table_data = new WPZeroSpam_Log_Table();
+
+      // Setup page parameters
+      $current_page = $table_data->get_pagenum();
+      $current_page = (isset($current_page)) ? $current_page : 1;
+      $paged        = (isset($_GET['page'])) ? $_GET['page'] : $current_page;
+      $paged        = (isset($_GET['paged'])) ? $_GET['paged'] : $current_page;
+      $paged        = (isset($args['paged'])) ? $args['paged'] : $paged;
+
+      // Fetch, prepare, sort, and filter our data...
+      $table_data->prepare_items();
+      ?>
+      <form id="log-table" method="post">
+        <?php wp_nonce_field( 'wpzerospam_nonce', 'wpzerospam_nonce' ); ?>
+
+        <?php # Current page ?>
+        <input type="hidden" name="paged" value="<?php echo $paged; ?>" />
+
+        <?php $table_data->display(); ?>
+      </form>
+    </div>
+  <?php
+}
 
 function wpzerospam_options_page() {
   if ( ! current_user_can( 'manage_options' ) ) { return; }
@@ -53,18 +148,50 @@ function wpzerospam_admin_init() {
 
   add_settings_section( 'wpzerospam_general_settings', __( 'General Settings', 'wpzerospam' ), 'wpzerospam_general_settings_cb', 'wpzerospam' );
   add_settings_section( 'wpzerospam_spam_checks', __( 'Spam Checks', 'wpzerospam' ), 'wpzerospam_spam_checks_cb', 'wpzerospam' );
-  add_settings_section( 'wpzerospam_ip_blocks', __( 'Blocked IP Address', 'wpzerospam' ), 'wpzerospam_ip_blocks_cb', 'wpzerospam' );
 
-  // Redirect URL for blocked users
-  add_settings_field( 'blocked_redirect_url', __( 'Redirect for Blocked Users', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
-    'label_for'   => 'blocked_redirect_url',
-    'type'        => 'url',
-    'class'       => 'regular-text',
-    'desc'        => 'URL blocked users will be taken to.',
-    'placeholder' => 'e.g. https://google.com'
+  // Toggle logging of blocked IPs
+  add_settings_field( 'log_blocked_ips', __( 'Log Blocked IPs', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+    'label_for' => 'log_blocked_ips',
+    'type'      => 'checkbox',
+    'multi'     => false,
+    'desc'      => 'Enables logging of when IPs are blocked from accessing the site.',
+    'options'   => [
+      'enabled' => __( 'Enabled', 'wpzerospam' )
+    ]
   ]);
 
-  // Log spam detections
+  // How to handle blocks
+  add_settings_field( 'block_handler', __( 'Blocked IPs', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+    'label_for' => 'block_handler',
+    'type'      => 'radio',
+    'desc'      => 'Determines how blocked IPs are handled when they attempt to visit the site.',
+    'options'   => [
+      'redirect' => __( 'Redirect user', 'wpzerospam' ),
+      '403'      => __( 'Display a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403" target="_blank"><code>403 Forbidden</code></a> error', 'wpzerospam' )
+    ]
+  ]);
+
+  if ( 'redirect' == $options['block_handler'] ) {
+    // Redirect URL for blocked users
+    add_settings_field( 'blocked_redirect_url', __( 'Redirect for Blocked Users', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+      'label_for'   => 'blocked_redirect_url',
+      'type'        => 'url',
+      'class'       => 'regular-text',
+      'desc'        => 'URL blocked users will be taken to.',
+      'placeholder' => 'e.g. https://google.com'
+    ]);
+  } else {
+    // Blocked message
+    add_settings_field( 'blocked_message', __( 'Blocked Message', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+      'label_for'   => 'blocked_message',
+      'type'        => 'text',
+      'class'       => 'large-text',
+      'desc'        => 'The message that will be displayed to a blocked user.',
+      'placeholder' => __( 'You have been blocked from visiting this site.', 'wpzerospam' )
+    ]);
+  }
+
+  // How to handle spam detections
   add_settings_field( 'spam_handler', __( 'Spam Detections', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
     'label_for' => 'spam_handler',
     'type'      => 'radio',
@@ -85,7 +212,7 @@ function wpzerospam_admin_init() {
       'placeholder' => 'e.g. https://google.com'
     ]);
   } else {
-    // Redirect URL for spam detections
+    // Spam message
     add_settings_field( 'spam_message', __( 'Spam Detection Message', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
       'label_for'   => 'spam_message',
       'type'        => 'text',
@@ -105,6 +232,16 @@ function wpzerospam_admin_init() {
       'enabled' => __( 'Enabled', 'wpzerospam' )
     ]
   ]);
+
+  if ( 'enabled' == $options['log_spam'] ) {
+    // Redirect URL for spam detections
+    add_settings_field( 'ipstack_api', __( 'ipstack API Key', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+      'label_for'   => 'ipstack_api',
+      'type'        => 'text',
+      'class'       => 'regular-text',
+      'desc'        => 'Enter your <a href="https://ipstack.com/" target="_blank">ipstack API key</a> to enable location-based statistics.',
+    ]);
+  }
 
   // Comment spam check
   add_settings_field( 'verify_comments', __( 'Verify Comments', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
@@ -192,25 +329,8 @@ function wpzerospam_admin_init() {
       ]
     ]);
   }
-
-  // Toggle logging of blocked IPs
-  add_settings_field( 'log_blocked_ips', __( 'Log Blocked IPs', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_ip_blocks', [
-    'label_for' => 'log_blocked_ips',
-    'type'      => 'checkbox',
-    'multi'     => false,
-    'desc'      => 'Enables logging of when IPs are blocked from accessing the site.',
-    'options'   => [
-      'enabled' => __( 'Enabled', 'wpzerospam' )
-    ]
-  ]);
-
-  // Blocked IP address
-  add_settings_field( 'blocked_ips', __( 'Blocked IP Address', 'wpzerospam' ), 'wpzerospam_blocked_ip_cb', 'wpzerospam', 'wpzerospam_ip_blocks' );
 }
 add_action( 'admin_init', 'wpzerospam_admin_init' );
-
-function wpzerospam_ip_blocks_cb() {
-}
 
 function wpzerospam_general_settings_cb() {
 }
@@ -280,67 +400,5 @@ function wpzerospam_field_cb( $args ) {
     break;
   }
   ?>
-  <?php
-}
-
-function wpzerospam_blocked_ip_cb( $args ) {
-  $options = wpzerospam_options();
-  $key     = 0;
-  ?>
-  <div class="wpzerospam-setting-header">
-    <div>
-      <label><?php _e( 'IP Address', 'wpzerospam' ); ?></label>
-      <small><?php _e( 'The IP address to block.', 'wpzerospam' ); ?></small>
-    </div>
-    <div>
-      <label><?php _e( 'Reason', 'wpzerospam' ); ?></label>
-      <small><?php _e( 'Reason the IP address is being blocked.', 'wpzerospam' ); ?></small>
-    </div>
-  </div>
-  <?php
-  $cnt = 0;
-  if ( $options['blocked_ips'] ):
-    foreach( $options['blocked_ips'] as $key => $ip ):
-      if ( empty( $ip['ip_address'] )) { continue; }
-      ?>
-      <div class="wpzerospam-blocked-ip-option">
-        <input
-          type="text"
-          name="wpzerospam[blocked_ips][<?php echo $cnt; ?>][ip_address]"
-          value="<?php echo trim( $ip['ip_address'] ); ?>"
-          placeholder="<?php _e( 'Blocked IP Address (i.e. XXX.XXX.X.X)', 'wpzerospam' ); ?>"
-          class="wpzerospam-input"
-        />
-
-        <input
-          type="text"
-          name="wpzerospam[blocked_ips][<?php echo $cnt; ?>][reason]"
-          value="<?php echo trim( $ip['reason'] ); ?>"
-          placeholder="<?php _e( 'Reason (i.e. spam)', 'wpzerospam' ); ?>"
-          class="wpzerospam-input"
-        />
-      </div>
-      <?php
-      $cnt++;
-    endforeach;
-  endif;
-  ?>
-  <div class="wpzerospam-blocked-ip-option">
-    <input
-      type="text"
-      name="wpzerospam[blocked_ips][<?php echo $cnt; ?>][ip_address]"
-      value=""
-      placeholder="<?php _e( 'Blocked IP Address (i.e. XXX.XXX.X.X)', 'wpzerospam' ); ?>"
-      class="wpzerospam-input"
-    />
-
-    <input
-      type="text"
-      name="wpzerospam[blocked_ips][<?php echo $cnt; ?>][reason]"
-      value=""
-      placeholder="<?php _e( 'Reason (i.e. spam)', 'wpzerospam' ); ?>"
-      class="wpzerospam-input"
-    />
-  </div>
   <?php
 }

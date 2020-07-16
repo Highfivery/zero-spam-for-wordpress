@@ -25,7 +25,6 @@ if ( ! function_exists( 'wpzerospam_preprocess_comment' ) ) {
     // Spam comment detected
     do_action( 'wpzerospam_comment_spam', $commentdata );
 
-    wpzerospam_log_spam( 'comment', $commentdata );
     wpzerospam_spam_detected( 'comment', $commentdata );
   }
 }

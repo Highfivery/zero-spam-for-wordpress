@@ -21,7 +21,6 @@ if ( ! function_exists( 'wpzerospam_preprocess_registration' ) ) {
         'user_email'           => $user_email
       ];
 
-      wpzerospam_log_spam( 'registration', $data );
       wpzerospam_spam_detected( 'registration', $data );
     }
 

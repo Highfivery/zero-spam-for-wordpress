@@ -4,7 +4,7 @@
  *
  * @package    WordPressZeroSpam
  * @subpackage WordPress
- * @since      4.1.3
+ * @since      4.0.0
  * @author     Ben Marshall
  * @copyright  2020 Ben Marshall
  * @license    GPL-2.0-or-later
@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version:           4.1.3
+ * Version:           4.2.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Ben Marshall
@@ -30,6 +30,68 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 // Define plugin constants
 define( 'WORDPRESS_ZERO_SPAM', __FILE__ );
+define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '1.0' );
+
+/**
+ * Install plugin tables
+ */
+function wpzerospam_install() {
+  global $wpdb;
+
+  $charset_collate      = $wpdb->get_charset_collate();
+  $installed_db_version = get_option( 'wpzerospam_db_version' );
+
+  if ( $installed_db_version != WORDPRESS_ZERO_SPAM_DB_VERSION ) {
+    $log_table     = wpzerospam_tables( 'log' );
+    $blocked_table = wpzerospam_tables( 'blocked' );
+
+    $sql = "CREATE TABLE $log_table (
+      log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      log_type VARCHAR(255) NOT NULL,
+      user_ip VARCHAR(255) NOT NULL,
+      date_recorded DATETIME NOT NULL,
+      page_url VARCHAR(255) NULL,
+      submission_data JSON NULL,
+      country VARCHAR(2) NULL,
+      region VARCHAR(255) NULL,
+      city VARCHAR(255) NULL,
+      latitude VARCHAR(255) NULL,
+      longitude VARCHAR(255) NULL,
+      PRIMARY KEY (`log_id`)) $charset_collate;";
+
+    $sql .= "CREATE TABLE $blocked_table (
+      blocked_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+      blocked_type ENUM('permanent','temporary') NOT NULL DEFAULT 'temporary',
+      user_ip VARCHAR(255) NOT NULL,
+      date_added DATETIME NOT NULL,
+      start_block DATETIME NULL,
+      end_block DATETIME NULL,
+      reason VARCHAR(255) NULL,
+      attempts BIGINT UNSIGNED NOT NULL,
+      PRIMARY KEY (`blocked_id`)) $charset_collate;";
+
+    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+    dbDelta( $sql );
+
+    update_option( 'wpzerospam_db_version', WORDPRESS_ZERO_SPAM_DB_VERSION );
+  }
+}
+register_activation_hook( WORDPRESS_ZERO_SPAM, 'wpzerospam_install' );
+
+/**
+ * Check to ensure the database tables have been installed
+ */
+function wpzerospam_db_check() {
+  if ( get_site_option( 'wpzerospam_db_version' ) != WORDPRESS_ZERO_SPAM_DB_VERSION ) {
+    wpzerospam_install();
+  }
+}
+add_action( 'plugins_loaded', 'wpzerospam_db_check' );
+
+/**
+ * Plugin updates
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/updates.php';
 
 /**
  * Plugin scripts
@@ -66,16 +128,12 @@ if ( ! function_exists( 'wpzerospam_template_redirect' ) ) {
 
     // Check if the current user has access to the site
     $access = wpzerospam_check_access();
+
     if ( ! $access['access'] ) {
-
-      // Log the blocked entry
-      wpzerospam_log( $access['type'], [
-        'ip'     => $access['ip'],
-        'reason' => $access['reason']
-      ] );
-
-      wp_redirect( $options['blocked_redirect_url'] );
-      exit();
+      wpzerospam_attempt_blocked([
+        'reason' => $access['reason'],
+        'ip'     => $access['ip']
+      ]);
     }
   }
 }
@@ -86,8 +144,16 @@ add_action( 'template_redirect', 'wpzerospam_template_redirect' );
  */
 if ( ! function_exists( 'wpzerospam_uninstall' ) ) {
   function wpzerospam_uninstall() {
+    global $wpdb;
+
     delete_option( 'wpzerospam_key' );
     delete_option( 'wpzerospam' );
+    delete_option( 'wpzerospam_db_version' );
+
+    $tables = wpzerospam_tables();
+    foreach( $tables as $key => $table ) {
+      $wpdb->query( "DROP TABLE IF EXISTS $table" );
+    }
   }
 }
 register_uninstall_hook( WORDPRESS_ZERO_SPAM, 'wpzerospam_uninstall' );

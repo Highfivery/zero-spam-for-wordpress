@@ -23,7 +23,6 @@ if ( ! function_exists( 'wpzerospam_ninja_forms_validate' ) ) {
 
     do_action( 'wpzerospam_ninja_forms_spam' );
 
-    wpzerospam_log_spam( 'ninja_forms' );
     wpzerospam_spam_detected( 'ninja_forms' );
   }
 }

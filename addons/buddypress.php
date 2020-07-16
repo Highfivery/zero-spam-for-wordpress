@@ -23,7 +23,6 @@ if ( ! function_exists( 'wpzerospam_bp_signup_validate' ) ) {
 
     do_action( 'wpzerospam_bp_registration_spam' );
 
-    wpzerospam_log_spam( 'bp_registration' );
     wpzerospam_spam_detected( 'bp_registration' );
   }
 }

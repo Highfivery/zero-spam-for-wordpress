@@ -29,7 +29,6 @@ if ( ! function_exists( 'wpzerospam_wpforms_process_honeypot' ) ) {
       'entry'     => $entry,
       'form_data' => $form_data
     ];
-    wpzerospam_log_spam( 'wpform', $data );
     wpzerospam_spam_detected( 'wpform', $data );
   }
 }
