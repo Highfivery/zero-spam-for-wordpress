@@ -30,7 +30,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 // Define plugin constants
 define( 'WORDPRESS_ZERO_SPAM', __FILE__ );
-define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '1.0' );
+define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.1' );
 
 /**
  * Install plugin tables
@@ -50,13 +50,13 @@ function wpzerospam_install() {
       log_type VARCHAR(255) NOT NULL,
       user_ip VARCHAR(255) NOT NULL,
       date_recorded DATETIME NOT NULL,
-      page_url VARCHAR(255) NULL,
-      submission_data JSON NULL,
-      country VARCHAR(2) NULL,
-      region VARCHAR(255) NULL,
-      city VARCHAR(255) NULL,
-      latitude VARCHAR(255) NULL,
-      longitude VARCHAR(255) NULL,
+      page_url VARCHAR(255) NULL DEFAULT NULL,
+      submission_data LONGTEXT NULL DEFAULT NULL,
+      country VARCHAR(2) NULL DEFAULT NULL,
+      region VARCHAR(255) NULL DEFAULT NULL,
+      city VARCHAR(255) NULL DEFAULT NULL,
+      latitude VARCHAR(255) NULL DEFAULT NULL,
+      longitude VARCHAR(255) NULL DEFAULT NULL,
       PRIMARY KEY (`log_id`)) $charset_collate;";
 
     $sql .= "CREATE TABLE $blocked_table (
@@ -64,9 +64,9 @@ function wpzerospam_install() {
       blocked_type ENUM('permanent','temporary') NOT NULL DEFAULT 'temporary',
       user_ip VARCHAR(255) NOT NULL,
       date_added DATETIME NOT NULL,
-      start_block DATETIME NULL,
-      end_block DATETIME NULL,
-      reason VARCHAR(255) NULL,
+      start_block DATETIME NULL DEFAULT NULL,
+      end_block DATETIME NULL DEFAULT NULL,
+      reason VARCHAR(255) NULL DEFAULT NULL,
       attempts BIGINT UNSIGNED NOT NULL,
       PRIMARY KEY (`blocked_id`)) $charset_collate;";
 
