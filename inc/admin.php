@@ -22,7 +22,7 @@ function wpzerospam_admin_menu() {
     __( 'Blocked IPs', 'wpzerospam' ),
     'manage_options',
     'wordpress-zero-spam-blocked-ips',
-    'wpzerospam_blocked_ips_page',
+    'wpzerospam_blocked_ips_page'
   );
 
   add_submenu_page(
@@ -31,7 +31,7 @@ function wpzerospam_admin_menu() {
     __( 'Settings', 'wpzerospam' ),
     'manage_options',
     'wordpress-zero-spam-settings',
-    'wpzerospam_options_page',
+    'wpzerospam_options_page'
   );
 }
 add_action( 'admin_menu', 'wpzerospam_admin_menu' );
