@@ -1,11 +1,11 @@
 === WordPress Zero Spam ===
 Contributors: bmarshall511, jaredatch
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
-Donate link: https://benmarshall.me
+Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=wordpress_repo&utm_campaign=donate
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.2.0
+Stable tag: 4.3.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -25,6 +25,8 @@ WordPress Zero Spam was initially built based on the work by [David Walsh](http:
 * **No moderation queues**, spam isn't a administrators' problem
 * **Blocks 99.9% of spam** submissions
 * **Blocks spammy IPs** from ever seeing your site
+* **Auto-block IPs** when a spam detection is triggered
+* **Manually block IPs** either temporarily or permanently
 * **Developer-friendly** allowing you to integrate with any theme or plugin
 * **Detailed logging** to catch & block recurring spammers
 * **Advanced settings** for complete control over spammers
@@ -68,6 +70,12 @@ Yes, that's what does the magic and keeps spam bots out.
 * `wpzerospam_wpform_spam` - Fires when a spam submission is made with a WPForm.
 
 == Changelog ==
+
+= 4.3.0 =
+
+* Added the ability to manually add blocked IPs. See [#185](https://github.com/bmarshall511/wordpress-zero-spam/issues/185)
+* Fixed the ignored start & end date of blocked IPs
+* Added the ability to auto-block an IP when spam is detected. See [#185](https://github.com/bmarshall511/wordpress-zero-spam/issues/185)
 
 = 4.2.0 =
 

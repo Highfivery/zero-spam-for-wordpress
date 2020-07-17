@@ -80,20 +80,24 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
         return date( 'M j, Y g:ia' , strtotime( $item->date_added ) );
       break;
       case 'start_block':
-        if ( '0000-00-00 00:00:00' == $item->start_block ) {
-          $item->start_block = 'N/A';
+        if ( ! $item->start_block || '0000-00-00 00:00:00' == $item->start_block  || 'permanent' == $item->blocked_type ) {
+          return 'N/A';
         }
 
-        return $item->start_block;
+        return date( 'M j, Y g:ia' , strtotime( $item->start_block ) );
       break;
       case 'end_block':
-        if ( '0000-00-00 00:00:00' == $item->end_block ) {
-          $item->end_block = 'N/A';
+        if ( ! $item->end_block || '0000-00-00 00:00:00' == $item->end_block || 'permanent' == $item->blocked_type ) {
+          return 'N/A';
         }
 
-        return $item->end_block;
+        return date( 'M j, Y g:ia' , strtotime( $item->end_block ) );
       break;
       case 'reason':
+        if ( ! $item->reason ) {
+          return 'N/A';
+        }
+
         return $item->reason;
       break;
       case 'attempts':

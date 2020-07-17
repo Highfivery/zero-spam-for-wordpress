@@ -11,6 +11,7 @@
  */
 function wpzerospam_admin_scripts() {
   wp_enqueue_style( 'wpzerospam-admin', plugin_dir_url( WORDPRESS_ZERO_SPAM ) . '/assets/css/admin.css', false, '4.0.0' );
+  wp_enqueue_script( 'wpzerospam-admin', plugin_dir_url( WORDPRESS_ZERO_SPAM ) . '/assets/js/admin.js', [ 'jquery' ], '4.0.0', true );
 }
 add_action( 'admin_enqueue_scripts', 'wpzerospam_admin_scripts' );
 

@@ -20,7 +20,7 @@ add_action( 'admin_init', function() {
     // IPs found, transfer them to the database
     foreach( $options['blocked_ips'] as $key => $ip ) {
       if ( ! empty( $ips ) ) {
-        wpzerospam_add_blocked_ip( $ip['ip_address'], [
+        wpzerospam_update_blocked_ip( $ip['ip_address'], [
           'reason' => $ip['reason']
         ]);
       }
