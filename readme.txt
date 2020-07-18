@@ -1,5 +1,5 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511, jaredatch
+Contributors: bmarshall511, jaredatch, EusebiuOprinoiu
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=wordpress_repo&utm_campaign=donate
 Requires at least: 5.2
@@ -77,6 +77,7 @@ Yes, that's what does the magic and keeps spam bots out.
 * Fixed the ignored start & end date of blocked IPs
 * Added the ability to auto-block an IP when spam is detected. See [#185](https://github.com/bmarshall511/wordpress-zero-spam/issues/185)
 * Added raw data to spammer log table
+* Added the ability to uninstall options on Multisite. See [#187](https://github.com/bmarshall511/wordpress-zero-spam/pull/187)
 
 = 4.2.0 =
 
