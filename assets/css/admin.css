@@ -63,3 +63,52 @@
 #wpzerospam-add-ip-field-reason {
   flex-grow: 1;
 }
+
+.wpzerospam-details-modal {
+  background: rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+  display: none;
+  height: 100%;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 9;
+}
+
+.wpzerospam-details-modal.is-active {
+  display: block;
+}
+
+.wpzerospam-details-modal-inner {
+  background-color: #fff;
+  border: 1px solid #ccd0d4;
+  border-radius: 5px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  cursor: default;
+  left: 50%;
+  overflow: auto;
+  max-height: 500px;
+  max-width: 800px;
+  padding: 30px;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 99;
+  width: 95%
+}
+
+.wpzerospam-details-item {
+  display: flex;
+  padding: 5px;
+}
+
+.wpzerospam-details-label {
+  flex-shrink: 0;
+  font-weight: bold;
+  width: 150px;
+}
+
+.wpzerospam-details-data {
+  flex-grow: 1;
+}

@@ -76,6 +76,7 @@ Yes, that's what does the magic and keeps spam bots out.
 * Added the ability to manually add blocked IPs. See [#185](https://github.com/bmarshall511/wordpress-zero-spam/issues/185)
 * Fixed the ignored start & end date of blocked IPs
 * Added the ability to auto-block an IP when spam is detected. See [#185](https://github.com/bmarshall511/wordpress-zero-spam/issues/185)
+* Added raw data to spammer log table
 
 = 4.2.0 =
 
