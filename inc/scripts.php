@@ -14,8 +14,8 @@ function wpzerospam_admin_scripts() {
 
   wp_enqueue_style( 'wpzerospam-admin', plugin_dir_url( WORDPRESS_ZERO_SPAM ) . '/assets/css/admin.css', false, $plugin['Version'] );
   wp_enqueue_script( 'wpzerospam-admin', plugin_dir_url( WORDPRESS_ZERO_SPAM ) . '/assets/js/admin.js', [ 'jquery' ], $plugin['Version'], true );
-  wp_enqueue_style( 'wpzerospam-charts', plugin_dir_url( REFERRER_ANALYTICS ) . '/assets/css/Chart.min.css', false, '2.9.3' );
-  wp_enqueue_script( 'wpzerospam-charts', plugin_dir_url( REFERRER_ANALYTICS ) . '/assets/js/Chart.bundle.min.js', [], '2.9.3' );
+  wp_enqueue_style( 'wpzerospam-charts', plugin_dir_url( WORDPRESS_ZERO_SPAM ) . '/assets/css/Chart.min.css', false, '2.9.3' );
+  wp_enqueue_script( 'wpzerospam-charts', plugin_dir_url( WORDPRESS_ZERO_SPAM ) . '/assets/js/Chart.bundle.min.js', [], '2.9.3' );
 }
 add_action( 'admin_enqueue_scripts', 'wpzerospam_admin_scripts' );
 
