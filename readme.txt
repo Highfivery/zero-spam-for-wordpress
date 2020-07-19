@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.3.1
+Stable tag: 4.3.2
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -27,9 +27,10 @@ WordPress Zero Spam was initially built based on the work by [David Walsh](http:
 * **Blocks spammy IPs** from ever seeing your site
 * **Auto-block IPs** when a spam detection is triggered
 * **Manually block IPs** either temporarily or permanently
-* **Developer-friendly** allowing you to integrate with any theme or plugin
+* **Developer-friendly**, integrate with any theme, plugin or form
 * **Detailed logging** to catch & block recurring spammers
 * **Advanced settings** for complete control over spammers
+* **Charts &amp; statistics** for easy to understand spam analytics
 
 = Plugin Support =
 
@@ -41,7 +42,7 @@ WordPress Zero Spam was initially built based on the work by [David Walsh](http:
 * [BuddyPress](https://wordpress.org/plugins/buddypress/) registrations
 * [Contact Form by WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 
-This plugin does not support with Jetpack Comments. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
+<small>This plugin does not support with Jetpack Comments. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).</small>
 
 Have a question, comment or suggestion? Feel free to [contact me](https://benmarshall.me/contact/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam), follow me [on Twitter](https://twitter.com/bmarshall0511) or [visit my site](https://benmarshall.me/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
 
@@ -54,6 +55,22 @@ Have a question, comment or suggestion? Feel free to [contact me](https://benmar
 For more information, see the [plugin’s website](https://benmarshall.me/wordpress-zero-spam).
 
 == Frequently Asked Questions ==
+
+= How can I integrate this into a plugin, theme or custom form? =
+
+It's easy as adding the class `wpzerospam` to the `form` element, then adding a check in the form processor that the `wpzerospam_key` post value matches the option value in the database using the `wpzerospam_key_check()` helper function.
+
+= Why does my registration form think every submission is spam? =
+
+This is most likely due to a plugin or theme overriding the default markup of the registration form. Verify the form has an id of `registerform` or add the `wpzerospam` class to it.
+
+Example with `registerform` id:
+
+`<form name="registerform" id="registerform" action="https://yourdomain.local/login/?action=register" method="post" novalidate="novalidate">`
+
+Example with `wpzerospam` class:
+
+`<form name="registerform" class="wpzerospam" action="https://yourdomain.local/login/?action=register" method="post" novalidate="novalidate">`
 
 = Is JavaScript required for this plugin to work? =
 
@@ -70,6 +87,11 @@ Yes, that's what does the magic and keeps spam bots out.
 * `wpzerospam_wpform_spam` - Fires when a spam submission is made with a WPForm.
 
 == Changelog ==
+
+= 4.3.2 =
+
+* Fix for Gravity Forms PHP notice. See [#188](https://github.com/bmarshall511/wordpress-zero-spam/issues/188)
+* Add more stats & charts. See [#184](https://github.com/bmarshall511/wordpress-zero-spam/issues/184)
 
 = 4.3.1 =
 

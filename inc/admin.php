@@ -182,12 +182,37 @@ function wpzerospam_blocked_ips_page() {
 
 function wpzerospam_dashboard() {
   if ( ! current_user_can( 'manage_options' ) ) { return; }
+
+  $log = wpzerospam_get_log();
+
+  $predefined_colors = [
+    '#1a0003', '#4d000a', '#800011', '#b30017', '#e6001e', '#ff1a38', '#ff4d64', '#ff8090', '#ffb3bd', '#ffe5e9'
+  ];
   ?>
     <div class="wrap">
       <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
+      <div class="wpzerospam-callout">
+        <div class="wpzerospam-callout-content">
+          <h2><?php _e( 'Are you a fan of the <a href="https://wordpress.org/plugins/zero-spam/" target="_blank">WordPress Zero Spam</a> plugin? Show your support.', 'wpzerospam' ); ?></h2>
+          <p><?php _e( 'Help support the continued development of the WordPress Zero Spam plugin by <a href="https://benmarshall.me/donate?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=admin" target="_blank">donating today</a>. Your donation goes towards the time it takes to develop new features &amp; updates, but also helps provide pro bono work for nonprofits. <a href="https://benmarshall.me/donate?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=admin" target="_blank">Learn more</a>.', 'wpzerospam' ); ?></p>
+        </div>
+        <div class="wpzerospam-callout-actions">
+          <a href="https://github.com/bmarshall511/wordpress-zero-spam/issues" class="button" target="_blank"><?php _e( 'Submit Bug/Feature Request' ); ?></a>
+          <a href="https://github.com/bmarshall511/wordpress-zero-spam" class="button" target="_blank"><?php _e( 'Fork on Github' ); ?></a>
+          <a href="https://benmarshall.me/donate?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=admin" class="button button-primary" target="_blank"><?php _e( 'Show your Support &mdash; Donate' ); ?></a>
+        </div>
+      </div>
+
+      <h2><?php _e( 'Statistics', 'wpzerospam' ); ?></h2>
+      <div class="wpzerospam-boxes">
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/spam-line-chart.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/ip-list.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/countries-pie-chart.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/regions-pie-chart.php'; ?>
+      </div>
+
       <h2><?php _e( 'Spam Detections Log', 'wpzerospam' ); ?></h2>
-      <p><?php _e( 'Charts, graphs, etc. coming soon!', 'wpzerospam' ); ?></p>
       <?php
       /**
        * Log table

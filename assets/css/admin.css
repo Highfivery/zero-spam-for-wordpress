@@ -1,3 +1,52 @@
+.wpzerospam-callout {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #ccd0d4;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-wrap: wrap;
+  padding: 20px;
+}
+
+.wpzerospam-callout h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.wpzerospam-callout p {
+  font-size: 14px;
+  margin-top: 0;
+}
+
+.wpzerospam-callout-actions {
+  display: block;
+  width: 100%;
+}
+
+.wpzerospam-callout-actions a.button {
+  display: block;
+  margin-bottom: 3px;
+  text-align: center;
+  width: 100%;
+}
+
+.wpzerospam-callout-actions a:last-child {
+  margin-bottom: 0;
+}
+
+@media (min-width: 960px) {
+  .wpzerospam-callout {
+    flex-wrap: nowrap;
+  }
+
+  .wpzerospam-callout-actions {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: 50px;
+    width: auto;
+  }
+}
+
 .wpzerospam-blocked-ip-option {
   margin-bottom: 0.3rem;
 }
@@ -111,4 +160,48 @@
 
 .wpzerospam-details-data {
   flex-grow: 1;
+}
+
+.wpzerospam-boxes {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -8px;
+  margin-right: -8px;
+}
+
+.wpzerospam-box {
+  background: #fff;
+  border: 1px solid #ccd0d4;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
+  margin-left: 8px;
+  margin-right: 8px;
+  overflow: hidden;
+  width: calc(100% - 18px);
+}
+
+.wpzerospam-box h3 {
+  border-bottom: 1px solid #ccd0d4;
+  font-size: 14px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.wpzerospam-box .inside,
+.wpzerospam-box h3 {
+  padding: 12px;
+}
+
+@media (min-width: 768px) {
+  .wpzerospam-box {
+    width: calc(100% / 3 - 18px);
+  }
+
+  .wpzerospam-box-line-chart {
+    width: calc((100% / 3) * 2 - 18px);
+  }
+
+  .wpzerospam-box-countries-pie {
+    width: calc(100% / 2 - 18px);
+  }
 }

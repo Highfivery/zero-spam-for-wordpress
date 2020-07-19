@@ -7,6 +7,11 @@
  */
 
 /**
+ * Locations helper
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/locations.php';
+
+/**
  * Handles what happens when spam is detected
  */
 if ( ! function_exists( 'wpzerospam_get_ip_info' ) ) {
@@ -316,6 +321,7 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 
     $options = get_option( 'wpzerospam' );
 
+    if ( empty( $options['share_data'] ) ) { $options['share_data'] = 'enabled'; }
     if ( empty( $options['auto_block_ips'] ) ) { $options['auto_block_ips'] = 'disabled'; }
     if ( empty( $options['auto_block_period'] ) ) { $options['auto_block_period'] = 30; }
     if ( empty( $options['blocked_redirect_url'] ) ) { $options['blocked_redirect_url'] = 'https://www.google.com'; }

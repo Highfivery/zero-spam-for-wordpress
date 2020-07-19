@@ -9,8 +9,8 @@
 /**
  * Validation for CF7 submissions
  */
-if ( ! function_exists( 'wpzerospam_wpcf7_validate' ) ) {
-  function wpzerospam_wpcf7_validate( $form ) {
+if ( ! function_exists( 'wpzerospam_gform_validate' ) ) {
+  function wpzerospam_gform_validate( $form ) {
     $options = wpzerospam_options();
 
     if (

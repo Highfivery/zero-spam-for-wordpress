@@ -32,7 +32,6 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
       'date_recorded' => __( 'Date', 'wpzerospam' ),
       'log_type'      => __( 'Type', 'wpzerospam' ),
       'user_ip'       => __( 'IP Address', 'wpzerospam' ),
-      'page_url'      => __( 'Page URL', 'wpzerospam' ),
       'country'       => __( 'Country', 'wpzerospam' ),
       'region'        => __( 'Region', 'wpzerospam' ),
       'city'          => __( 'City', 'wpzerospam' ),
@@ -48,7 +47,6 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
       'date_recorded' => [ 'date_recorded', false ],
       'log_type'      => [ 'log_type', false ],
       'user_ip'       => [ 'user_ip', false ],
-      'page_url'      => [ 'page_url', false ],
       'country'       => [ 'country', false ],
       'region'        => [ 'region', false ],
       'city'          => [ 'city', false ],
@@ -81,20 +79,21 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
       case 'date_recorded':
         return date( 'M j, Y g:ia' , strtotime( $item->date_recorded ) );
       break;
-      case 'page_url':
-        return $item->page_url;
-      break;
       case 'country':
         if ( ! $item->country ) {
           return 'N/A';
         }
-        return $item->country;
+        return wpzerospam_get_location( $item->country );
       break;
       case 'region':
-        if ( ! $item->region ) {
-          return 'N/A';
+        $region = wpzerospam_get_location( $item->country, $item->region );
+        if ( $region ) {
+          return $region;
+        } else if ( ! empty( $item->region) ) {
+          return $item->region;
         }
-        return $item->region;
+
+        return 'N/A';
       break;
       case 'city':
         if ( ! $item->city ) {
@@ -135,14 +134,14 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
             if ( $item->country ) {
               echo '<div class="wpzerospam-details-item">';
               echo '<div class="wpzerospam-details-label">' . __( 'Country', 'wpzerospam' ) . '</div>';
-              echo '<div class="wpzerospam-details-data">' . $item->country . '</div>';
+              echo '<div class="wpzerospam-details-data">' . wpzerospam_get_location( $item->country ) . '</div>';
               echo '</div>';
             }
 
             if ( $item->region ) {
               echo '<div class="wpzerospam-details-item">';
               echo '<div class="wpzerospam-details-label">' . __( 'Region', 'wpzerospam' ) . '</div>';
-              echo '<div class="wpzerospam-details-data">' . $item->region . '</div>';
+              echo '<div class="wpzerospam-details-data">' . wpzerospam_get_location( $item->country, $item->region ) . '</div>';
               echo '</div>';
             }
 
@@ -189,7 +188,7 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
                 case 'comment_content':
                   echo '<div class="wpzerospam-details-item">';
                   echo '<div class="wpzerospam-details-label">' . __( 'Comment', 'wpzerospam' ) . '</div>';
-                  echo '<div class="wpzerospam-details-data">' . $value . '</div>';
+                  echo '<div class="wpzerospam-details-data">' . sanitize_text_field( $value ) . '</div>';
                   echo '</div>';
                 break;
                 case 'comment_type':
@@ -236,7 +235,7 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
                       case 'comment_content':
                         echo '<div class="wpzerospam-details-item">';
                         echo '<div class="wpzerospam-details-label">' . __( 'Comment', 'wpzerospam' ) . '</div>';
-                        echo '<div class="wpzerospam-details-data">' . $v . '</div>';
+                        echo '<div class="wpzerospam-details-data">' . sanitize_text_field( $v ) . '</div>';
                         echo '</div>';
                       break;
                       case 'user_ip':
@@ -286,6 +285,12 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
                 case 'akismet_result':
                   echo '<div class="wpzerospam-details-item">';
                   echo '<div class="wpzerospam-details-label">' . __( 'Akismet Result', 'wpzerospam' ) . '</div>';
+                  echo '<div class="wpzerospam-details-data">' . $value . '</div>';
+                  echo '</div>';
+                break;
+                case 'akismet_pro_tip':
+                  echo '<div class="wpzerospam-details-item">';
+                  echo '<div class="wpzerospam-details-label">' . __( 'Akismet Pro Tip', 'wpzerospam' ) . '</div>';
                   echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                   echo '</div>';
                 break;
