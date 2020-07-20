@@ -317,7 +317,9 @@ if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
  */
 if ( ! function_exists( 'wpzerospam_options' ) ) {
   function wpzerospam_options() {
-    include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+    if(  ! function_exists( 'is_plugin_active' ) ) {
+      require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+    }
 
     $options = get_option( 'wpzerospam' );
 

@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.3.5
+Stable tag: 4.3.6
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -87,6 +87,10 @@ Yes, that's what does the magic and keeps spam bots out.
 * `wpzerospam_wpform_spam` - Fires when a spam submission is made with a WPForm.
 
 == Changelog ==
+
+= 4.3.6 =
+
+* Added a check for the `is_plugin_active` functions to ensure they're available before calling it
 
 = 4.3.5 =
 

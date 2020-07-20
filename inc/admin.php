@@ -266,6 +266,10 @@ function wpzerospam_options_page() {
 }
 
 function wpzerospam_validate_options( $input ) {
+  if(  ! function_exists( 'is_plugin_active' ) ) {
+    require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+  }
+
   if ( empty( $input['log_spam'] ) ) { $input['log_spam'] = 'disabled'; }
   if ( empty( $input['verify_comments'] ) ) { $input['verify_comments'] = 'disabled'; }
   if ( empty( $input['verify_registrations'] ) ) { $input['verify_registrations'] = 'disabled'; }
@@ -312,6 +316,10 @@ function wpzerospam_admin_action_links( $actions, $plugin_file, $plugin_data, $c
 
 
 function wpzerospam_admin_init() {
+  if(  ! function_exists( 'is_plugin_active' ) ) {
+    require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+  }
+
   $options = wpzerospam_options();
 
   // Add settings link to plugin description
