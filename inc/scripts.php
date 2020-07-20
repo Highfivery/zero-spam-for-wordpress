@@ -10,6 +10,10 @@
  * Add admin scripts
  */
 function wpzerospam_admin_scripts( $hook_suffix ) {
+  if(  ! function_exists('get_plugin_data') ) {
+    require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+  }
+
   $plugin = get_plugin_data( WORDPRESS_ZERO_SPAM );
 
   $admin_pages = [ 'toplevel_page_wordpress-zero-spam', 'wp-zero-spam_page_wordpress-zero-spam-blocked-ips' ];
@@ -30,6 +34,10 @@ add_action( 'admin_enqueue_scripts', 'wpzerospam_admin_scripts' );
  * Add site scripts
  */
 function wpzerospam_enqueue_scripts() {
+  if(  ! function_exists('get_plugin_data') ) {
+    require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+  }
+
   $plugin = get_plugin_data( WORDPRESS_ZERO_SPAM );
 
   wp_enqueue_script( 'wpzerospam', plugin_dir_url( WORDPRESS_ZERO_SPAM ) . '/assets/js/wpzerospam.js', [ 'jquery' ], $plugin['Version'], true );
