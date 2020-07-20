@@ -6,7 +6,7 @@
  * @since 1.0.0
  */
 
-$chart_limit = 15;
+$chart_limit = 20;
 ?>
 <div class="wpzerospam-box">
   <h3><?php _e( 'Most Spam by IP Address', 'wpzerospam' ); ?></h3>

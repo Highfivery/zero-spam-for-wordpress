@@ -131,6 +131,10 @@ if ( ! function_exists( 'wpzerospam_update_blocked_ip' ) ) {
       // IP exists, update accordingly
       $update = [];
 
+      if ( $record['blocked_type'] && $record['blocked_type'] != $check->blocked_type ) {
+        $update['blocked_type'] = $record['blocked_type'];
+      }
+
       if ( $record['start_block'] && $record['start_block'] != $check->start_block ) {
         $update['start_block'] = $record['start_block'];
       }
@@ -139,8 +143,8 @@ if ( ! function_exists( 'wpzerospam_update_blocked_ip' ) ) {
         $update['end_block'] = $record['end_block'];
       }
 
-      if ( $record['reason'] && strpos( $check->reason, $record['reason'] ) === false  ) {
-        $update['reason'] = $check->reason . ', ' . $record['reason'];
+      if ( $record['reason'] && $record['reason'] != $check->reason ) {
+        $update['reason'] = $record['reason'];
       }
 
       if ( $update ) {
@@ -277,26 +281,22 @@ if ( ! function_exists( 'wpzerospam_get_blocked_ips' ) ) {
  * Adds a access attempt from a blocked user
  */
 if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
-  function wpzerospam_attempt_blocked( $data ) {
+  function wpzerospam_attempt_blocked( $reason ) {
     global $wpdb;
 
-    $options = wpzerospam_options();
+    $options    = wpzerospam_options();
+    $ip_address = wpzerospam_ip();
 
-    if ( ! empty( $data['ip'] ) ) {
-      $ip_address = $data['ip'];
-    } else {
-      $ip_address = wpzerospam_ip();
-    }
-
-    $blocked = wpzerospam_get_blocked_ips( $ip_address );
-    if ( $blocked ) {
-      $attempts = $blocked->attempts;
+    $is_blocked = wpzerospam_get_blocked_ips( $ip_address );
+    if ( $is_blocked ) {
+      // IP already exists in the database
+      $attempts = $is_blocked->attempts;
       $attempts++;
 
       $wpdb->update( wpzerospam_tables( 'blocked' ), [
         'attempts' => $attempts
       ], [
-        'blocked_id' => $blocked->blocked_id
+        'blocked_id' => $is_blocked->blocked_id
       ]);
     }
 
@@ -333,6 +333,7 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['log_spam'] ) ) { $options['log_spam'] = 'disabled'; }
     if ( empty( $options['verify_comments'] ) ) { $options['verify_comments'] = 'enabled'; }
     if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
+    if ( empty( $options['log_blocked_ips'] ) ) { $options['log_blocked_ips'] = 'disabled'; }
 
     if ( empty( $options['verify_cf7'] ) && is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
       $options['verify_cf7'] = 'enabled';

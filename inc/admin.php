@@ -56,6 +56,7 @@ function wpzerospam_add_blocked_ip_action() {
     }
 
     $data = [ 'blocked_type' => $type ];
+
     if ( $reason ) {
       $data['reason'] = $reason;
     } else {
@@ -268,20 +269,53 @@ function wpzerospam_validate_options( $input ) {
   if ( empty( $input['log_spam'] ) ) { $input['log_spam'] = 'disabled'; }
   if ( empty( $input['verify_comments'] ) ) { $input['verify_comments'] = 'disabled'; }
   if ( empty( $input['verify_registrations'] ) ) { $input['verify_registrations'] = 'disabled'; }
-  if ( empty( $input['verify_cf7'] ) ) { $input['verify_cf7'] = 'disabled'; }
-  if ( empty( $input['verify_gform'] ) ) { $input['verify_gform'] = 'disabled'; }
-  if ( empty( $input['verify_ninja_forms'] ) ) { $input['verify_ninja_forms'] = 'disabled'; }
-  if ( empty( $input['verify_bp_registrations'] ) ) { $input['verify_bp_registrations'] = 'disabled'; }
-  if ( empty( $input['verify_wpforms'] ) ) { $input['verify_wpforms'] = 'disabled'; }
   if ( empty( $input['log_blocked_ips'] ) ) { $input['log_blocked_ips'] = 'disabled'; }
   if ( empty( $input['auto_block_ips'] ) ) { $input['auto_block_ips'] = 'disabled'; }
   if ( empty( $input['auto_block_period'] ) ) { $input['auto_block_period'] = 0; }
 
+
+  if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) && empty( $input['verify_cf7'] ) ) {
+    $input['verify_cf7'] = 'disabled';
+  }
+
+  if ( is_plugin_active( 'gravityforms/gravityforms.php' ) && empty( $input['verify_gform'] ) ) {
+    $input['verify_gform'] = 'disabled';
+  }
+
+  if ( is_plugin_active( 'ninja-forms/ninja-forms.php' ) && empty( $input['verify_ninja_forms'] ) ) {
+    $input['verify_ninja_forms'] = 'disabled';
+  }
+
+  if ( function_exists( 'bp_is_active' ) && empty( $input['verify_bp_registrations'] ) ) {
+    $input['verify_bp_registrations'] = 'disabled';
+  }
+
+  if (
+    ( is_plugin_active( 'wpforms/wpforms.php' ) || is_plugin_active( 'wpforms-lite/wpforms.php') ) &&
+    empty( $input['verify_wpforms'] )
+  ) {
+    $input['verify_wpforms'] = 'disabled';
+  }
   return $input;
  }
 
+/**
+ * Add settings link to plugin description
+ */
+function wpzerospam_admin_action_links( $actions, $plugin_file, $plugin_data, $context ) {
+  $links = [
+    'settings' => '<a href="' . admin_url( 'admin.php?page=wordpress-zero-spam-settings' ) . '">' . __( 'Settings' ) . '</a>'
+  ];
+
+  return array_merge( $links, $actions );
+}
+
+
 function wpzerospam_admin_init() {
   $options = wpzerospam_options();
+
+  // Add settings link to plugin description
+  add_filter( 'plugin_action_links_' . plugin_basename( WORDPRESS_ZERO_SPAM ), 'wpzerospam_admin_action_links', 10, 4 );
 
   register_setting( 'wpzerospam', 'wpzerospam', 'wpzerospam_validate_options' );
 
