@@ -307,7 +307,7 @@ if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
       ]);
     }
 
-    wpzerospam_log_spam( 'blocked', $data );
+    wpzerospam_log_spam( 'blocked' );
 
     if ( 'redirect' == $options['block_handler'] ) {
       wp_redirect( esc_url( $options['blocked_redirect_url'] ) );
@@ -320,14 +320,65 @@ if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
 }
 
 /**
- * Returns the plugin settings.
+ * Checks if a specific plugin integration is turned on & plugin active.
  */
-if ( ! function_exists( 'wpzerospam_options' ) ) {
-  function wpzerospam_options() {
+if ( ! function_exists( 'wpzerospam_plugin_integration_enabled' ) ) {
+  function wpzerospam_plugin_integration_enabled( $plugin ) {
     if(  ! function_exists( 'is_plugin_active' ) ) {
       require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
     }
 
+    $options = get_option( 'wpzerospam' );
+
+    $integrations = [
+      'ninja_forms' => 'ninja-forms/ninja-forms.php',
+      'cf7'         => 'contact-form-7/wp-contact-form-7.php',
+      'gforms'      => 'gravityforms/gravityforms.php',
+      'wpforms'     => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ]
+    ];
+
+    // Handle BuddyPress check a little differently for presence of a function
+    if ( 'bp_registrations' == $plugin ) {
+      if (
+        ! empty( $options['verify_bp_registrations'] ) &&
+        'enabled' == $options['verify_bp_registrations']
+      ) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    // Handling all other plugin checks
+    if (
+      ! empty( $options['verify_' . $plugin] ) &&
+      'enabled' == $options['verify_' . $plugin ] &&
+      ! empty( $integrations[ $plugin ] )
+    ) {
+      if ( is_array( $integrations[ $plugin ] ) ) {
+        // Check at least one of the defined plugins are active
+        foreach( $integrations[ $plugin ] as $key => $value ) {
+          if ( is_plugin_active( $value ) ) {
+            return true;
+          }
+        }
+      } else {
+        // Check if one plugin is active
+        if ( is_plugin_active( $integrations[ $plugin ] ) ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Returns the plugin settings.
+ */
+if ( ! function_exists( 'wpzerospam_options' ) ) {
+  function wpzerospam_options() {
     $options = get_option( 'wpzerospam' );
 
     if ( empty( $options['share_data'] ) ) { $options['share_data'] = 'enabled'; }
@@ -344,23 +395,23 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
     if ( empty( $options['log_blocked_ips'] ) ) { $options['log_blocked_ips'] = 'disabled'; }
 
-    if ( empty( $options['verify_cf7'] ) && is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
+    if ( empty( $options['verify_cf7'] )  ) {
       $options['verify_cf7'] = 'enabled';
     }
 
-    if ( empty( $options['verify_gforms'] ) && is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
+    if ( empty( $options['verify_gforms'] )  ) {
       $options['verify_gforms'] = 'enabled';
     }
 
-    if ( empty( $options['verify_ninja_forms'] ) && is_plugin_active( 'ninja-forms/ninja-forms.php' ) ) {
+    if ( empty( $options['verify_ninja_forms'] )  ) {
       $options['verify_ninja_forms'] = 'enabled';
     }
 
-    if ( empty( $options['verify_bp_registrations'] ) && function_exists( 'bp_is_active' ) ) {
+    if ( empty( $options['verify_bp_registrations'] ) ) {
       $options['verify_bp_registrations'] = 'enabled';
     }
 
-    if ( empty( $options['verify_wpforms'] ) && ( is_plugin_active( 'wpforms/wpforms.php' ) || is_plugin_active( 'wpforms-lite/wpforms.php' ) ) ) {
+    if ( empty( $options['verify_wpforms'] ) ) {
       $options['verify_wpforms'] = 'enabled';
     }
 

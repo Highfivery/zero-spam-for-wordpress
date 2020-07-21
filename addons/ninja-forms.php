@@ -11,11 +11,8 @@
  */
 if ( ! function_exists( 'wpzerospam_ninja_forms_validate' ) ) {
   function wpzerospam_ninja_forms_validate( $form_data ) {
-    $options = wpzerospam_options();
-    if (
-      'enabled' != $options['verify_ninja_forms'] ||
-      is_user_logged_in()
-    ) {
+
+    if ( is_user_logged_in() ) {
       return $form_data;
     }
 
@@ -24,6 +21,8 @@ if ( ! function_exists( 'wpzerospam_ninja_forms_validate' ) ) {
       empty( $form_data['extra']['wpzerospam_key'] ) ||
       wpzerospam_get_key() != $form_data['extra']['wpzerospam_key']
       ) {
+        $options = wpzerospam_options();
+
         do_action( 'wpzerospam_ninja_forms_spam' );
 
         wpzerospam_spam_detected( 'ninja_forms', $form_data, false );
@@ -54,11 +53,7 @@ if( ! class_exists( 'WordPressZeroSpam_NF_ExtraData' ) ) {
     var $script_added = false;
 
     public function __construct() {
-      $options = wpzerospam_options();
-
-      if ( 'enabled' == $options['verify_ninja_forms'] ) {
-        add_action('ninja_forms_before_form_display', [ $this, 'addHooks' ]);
-      }
+      add_action('ninja_forms_before_form_display', [ $this, 'addHooks' ]);
     }
 
     public function addHooks( $form_id ) {

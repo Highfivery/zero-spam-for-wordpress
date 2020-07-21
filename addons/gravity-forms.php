@@ -11,13 +11,7 @@
  */
 if ( ! function_exists( 'wpzerospam_gform_validate' ) ) {
   function wpzerospam_gform_validate( $form ) {
-    $options = wpzerospam_options();
-
-    if (
-      'enabled' != $options['verify_gform'] ||
-      is_user_logged_in() ||
-      wpzerospam_key_check()
-    ) {
+    if ( is_user_logged_in() || wpzerospam_key_check() ) {
       return;
     }
 

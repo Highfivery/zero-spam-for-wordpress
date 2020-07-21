@@ -11,13 +11,7 @@
  */
 if ( ! function_exists( 'wpzerospam_bp_signup_validate' ) ) {
   function wpzerospam_bp_signup_validate() {
-    $options = wpzerospam_options();
-
-    if (
-      'enabled' != $options['verify_bp_registrations'] ||
-      is_user_logged_in() ||
-      wpzerospam_key_check()
-    ) {
+    if ( is_user_logged_in() || wpzerospam_key_check() ) {
       return;
     }
 

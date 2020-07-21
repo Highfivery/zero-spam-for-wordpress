@@ -1,13 +1,13 @@
 <?php
 /**
- * Admin functionality
+ * Admin interface & functionality
  *
  * @package WordPressZeroSpam
  * @since 4.0.0
  */
 
 function wpzerospam_admin_menu() {
-  $main_page = add_menu_page(
+  add_menu_page(
     __( 'WordPress Zero Spam Dashboard', 'wpzerospam' ),
     __( 'WP Zero Spam', 'wpzerospam' ),
     'manage_options',
@@ -266,10 +266,6 @@ function wpzerospam_options_page() {
 }
 
 function wpzerospam_validate_options( $input ) {
-  if(  ! function_exists( 'is_plugin_active' ) ) {
-    require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-  }
-
   if ( empty( $input['log_spam'] ) ) { $input['log_spam'] = 'disabled'; }
   if ( empty( $input['verify_comments'] ) ) { $input['verify_comments'] = 'disabled'; }
   if ( empty( $input['verify_registrations'] ) ) { $input['verify_registrations'] = 'disabled'; }
@@ -278,26 +274,23 @@ function wpzerospam_validate_options( $input ) {
   if ( empty( $input['auto_block_period'] ) ) { $input['auto_block_period'] = 0; }
 
 
-  if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) && empty( $input['verify_cf7'] ) ) {
+  if ( empty( $input['verify_cf7'] ) ) {
     $input['verify_cf7'] = 'disabled';
   }
 
-  if ( is_plugin_active( 'gravityforms/gravityforms.php' ) && empty( $input['verify_gform'] ) ) {
+  if ( empty( $input['verify_gform'] ) ) {
     $input['verify_gform'] = 'disabled';
   }
 
-  if ( is_plugin_active( 'ninja-forms/ninja-forms.php' ) && empty( $input['verify_ninja_forms'] ) ) {
+  if ( empty( $input['verify_ninja_forms'] ) ) {
     $input['verify_ninja_forms'] = 'disabled';
   }
 
-  if ( function_exists( 'bp_is_active' ) && empty( $input['verify_bp_registrations'] ) ) {
+  if ( empty( $input['verify_bp_registrations'] ) ) {
     $input['verify_bp_registrations'] = 'disabled';
   }
 
-  if (
-    ( is_plugin_active( 'wpforms/wpforms.php' ) || is_plugin_active( 'wpforms-lite/wpforms.php') ) &&
-    empty( $input['verify_wpforms'] )
-  ) {
+  if ( empty( $input['verify_wpforms'] ) ) {
     $input['verify_wpforms'] = 'disabled';
   }
   return $input;

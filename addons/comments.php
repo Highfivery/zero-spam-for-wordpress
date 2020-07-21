@@ -11,8 +11,7 @@
  */
 if ( ! function_exists( 'wpzerospam_preprocess_comment' ) ) {
   function wpzerospam_preprocess_comment( $commentdata ) {
-    $options = wpzerospam_options();
-
+    $options = get_option( 'wpzerospam' );
     if ( 'enabled' != $options['verify_comments'] ) { return $commentdata; }
 
     if (
@@ -35,20 +34,24 @@ add_action( 'preprocess_comment', 'wpzerospam_preprocess_comment' );
  */
 if ( ! function_exists( 'wpzerospam_comment_form' ) ) {
   function wpzerospam_comment_form() {
-    $options = wpzerospam_options();
+    $options = get_option( 'wpzerospam' );
+    if ( 'enabled' != $options['verify_comments'] ) { return; }
 
-    // Make sure comment spam detection is enabled before loading
-    if ( 'enabled' == $options['verify_comments'] ) {
-      // WordPress Zero Spam comment addon
-      wp_enqueue_script(
-        'wpzerospam-addon-comments',
-        plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-          '/assets/js/addons/wpzerospam-addon-comments.js',
-        [ 'wpzerospam' ],
-        $plugin['Version'],
-        true
-      );
+    // Retrieve the current plugin data (used to get the scripts version)
+    if(  ! function_exists('get_plugin_data') ) {
+      require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
     }
+    $plugin = get_plugin_data( WORDPRESS_ZERO_SPAM );
+
+    // WordPress Zero Spam comment addon
+    wp_enqueue_script(
+      'wpzerospam-addon-comments',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/assets/js/addons/wpzerospam-addon-comments.js',
+      [ 'wpzerospam' ],
+      $plugin['Version'],
+      true
+    );
   }
 }
 add_action( 'comment_form', 'wpzerospam_comment_form' );

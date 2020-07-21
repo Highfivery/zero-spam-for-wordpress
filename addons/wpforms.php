@@ -11,13 +11,7 @@
  */
 if ( ! function_exists( 'wpzerospam_wpforms_process_honeypot' ) ) {
   function wpzerospam_wpforms_process_honeypot( $honeypot, $fields, $entry, $form_data ) {
-    $options = wpzerospam_options();
-
-    if (
-      'enabled' != $options['verify_wpforms'] ||
-      is_user_logged_in() ||
-      wpzerospam_key_check()
-    ) {
+    if ( is_user_logged_in() || wpzerospam_key_check() ) {
       return $honeypot;
     }
 

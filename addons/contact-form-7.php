@@ -11,13 +11,7 @@
  */
 if ( ! function_exists( 'wpzerospam_wpcf7_validate' ) ) {
   function wpzerospam_wpcf7_validate( $result ) {
-    $options = wpzerospam_options();
-
-    if (
-      'enabled' != $options['verify_cf7'] ||
-      is_user_logged_in() ||
-      wpzerospam_key_check()
-    ) {
+    if ( is_user_logged_in() || wpzerospam_key_check() ) {
       return $result;
     }
 
@@ -33,20 +27,20 @@ add_action( 'wpcf7_validate', 'wpzerospam_wpcf7_validate' );
  */
 if ( ! function_exists( 'wpzerospam_cf7' ) ) {
   function wpzerospam_cf7() {
-    $options = wpzerospam_options();
-
-    // Make sure registration spam detection is enabled before loading
-    if ( 'enabled' == $options['verify_cf7'] ) {
-      // WordPress Zero Spam registration addon
-      wp_enqueue_script(
-        'wpzerospam-addon-cf7',
-        plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-          '/assets/js/addons/wpzerospam-addon-cf7.js',
-        [ 'wpzerospam' ],
-        $plugin['Version'],
-        true
-      );
+    // Retrieve the current plugin data (used to get the scripts version)
+    if(  ! function_exists('get_plugin_data') ) {
+      require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
     }
+    $plugin = get_plugin_data( WORDPRESS_ZERO_SPAM );
+
+    wp_enqueue_script(
+      'wpzerospam-addon-cf7',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/assets/js/addons/wpzerospam-addon-cf7.js',
+      [ 'wpzerospam' ],
+      $plugin['Version'],
+      true
+    );
   }
 }
 add_action( 'wpcf7_enqueue_scripts', 'wpzerospam_cf7' );

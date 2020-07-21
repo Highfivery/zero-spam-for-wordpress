@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version:           4.3.8
+ * Version:           4.3.9
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Ben Marshall
@@ -104,7 +104,7 @@ require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/updates.php';
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/scripts.php';
 
 /**
- * Admin interface
+ * Admin interface & functionality
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/admin.php';
 
@@ -113,11 +113,26 @@ require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/admin.php';
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/comments.php';
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/registration.php';
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/contact-form-7.php';
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/gravity-forms.php';
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/ninja-forms.php';
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/buddypress.php';
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/wpforms.php';
+
+if ( wpzerospam_plugin_integration_enabled( 'cf7' ) ) {
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/contact-form-7.php';
+}
+
+if ( wpzerospam_plugin_integration_enabled( 'gforms' ) ) {
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/gravity-forms.php';
+}
+
+if ( wpzerospam_plugin_integration_enabled( 'ninja_forms' ) ) {
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/ninja-forms.php';
+}
+
+if ( wpzerospam_plugin_integration_enabled( 'bp_registrations' ) ) {
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/buddypress.php';
+}
+
+if ( wpzerospam_plugin_integration_enabled( 'wpforms' ) ) {
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/addons/wpforms.php';
+}
 
 /**
  * Plugin redirect functionality
