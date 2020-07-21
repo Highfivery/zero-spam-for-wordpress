@@ -3,7 +3,7 @@
  * Handles checking submitted comments for spam
  *
  * @package WordPressZeroSpam
- * @since 4.0.0
+ * @since 4.3.7
  */
 
 /**
@@ -29,3 +29,26 @@ if ( ! function_exists( 'wpzerospam_preprocess_comment' ) ) {
   }
 }
 add_action( 'preprocess_comment', 'wpzerospam_preprocess_comment' );
+
+/**
+ * Enqueue the comment form JS
+ */
+if ( ! function_exists( 'wpzerospam_comment_form' ) ) {
+  function wpzerospam_comment_form() {
+    $options = wpzerospam_options();
+
+    // Make sure comment spam detection is enabled before loading
+    if ( 'enabled' == $options['verify_comments'] ) {
+      // WordPress Zero Spam comment addon
+      wp_enqueue_script(
+        'wpzerospam-addon-comments',
+        plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+          '/assets/js/addons/wpzerospam-addon-comments.js',
+        [ 'wpzerospam' ],
+        $plugin['Version'],
+        true
+      );
+    }
+  }
+}
+add_action( 'comment_form', 'wpzerospam_comment_form' );

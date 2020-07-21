@@ -8,7 +8,7 @@
 
 $chart_limit = 20;
 ?>
-<div class="wpzerospam-box">
+<div class="wpzerospam-box wpzerospam-box-ip-list">
   <h3><?php _e( 'Most Spam by IP Address', 'wpzerospam' ); ?></h3>
   <div class="inside">
     <?php

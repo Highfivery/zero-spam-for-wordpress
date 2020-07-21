@@ -62,7 +62,7 @@ if ( ! function_exists( 'wpzerospam_get_log' ) ) {
  * Handles what happens when spam is detected
  */
 if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
-  function wpzerospam_spam_detected( $type, $data = [] ) {
+  function wpzerospam_spam_detected( $type, $data = [], $handle_error = true ) {
     $options = wpzerospam_options();
 
     wpzerospam_log_spam( $type, $data );
@@ -82,12 +82,16 @@ if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
       ]);
     }
 
-    if ( 'redirect' == $options['spam_handler'] ) {
-      wp_redirect( esc_url( $options['spam_redirect_url'] ) );
-      exit();
-    } else {
-      status_header( 403 );
-      die( $options['spam_message'] );
+    // Check if WordPress Zero Spam should handle the error. False for forms
+    // that process via AJAX & expect a json response.
+    if ( $handle_error ) {
+      if ( 'redirect' == $options['spam_handler'] ) {
+        wp_redirect( esc_url( $options['spam_redirect_url'] ) );
+        exit();
+      } else {
+        status_header( 403 );
+        die( $options['spam_message'] );
+      }
     }
   }
 }
@@ -128,8 +132,11 @@ if ( ! function_exists( 'wpzerospam_update_blocked_ip' ) ) {
     // First, check if the IP is already in the DB
     $check = wpzerospam_get_blocked_ips( $record['user_ip'] );
     if ( $check ) {
+      $attempts = $check->attempts;
+      $attempts++;
+
       // IP exists, update accordingly
-      $update = [];
+      $update = [ 'attempts' => $attempts ];
 
       if ( $record['blocked_type'] && $record['blocked_type'] != $check->blocked_type ) {
         $update['blocked_type'] = $record['blocked_type'];

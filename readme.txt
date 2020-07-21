@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.3.6
+Stable tag: 4.3.7
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -56,6 +56,10 @@ For more information, see the [plugin’s website](https://benmarshall.me/wordpr
 
 == Frequently Asked Questions ==
 
+= Why aren't spammy comments being blocked? =
+
+WordPress Zero Spam relies on the default core form id (`#commentform`) in order to detect comments. Verify your comment forms have this ID or add the class `wpzerospam` to them so the plugin knows to it should attempt to detect spam comments.
+
 = How can I integrate this into a plugin, theme or custom form? =
 
 It's easy as adding the class `wpzerospam` to the `form` element, then adding a check in the form processor that the `wpzerospam_key` post value matches the option value in the database using the `wpzerospam_key_check()` helper function.
@@ -87,6 +91,11 @@ Yes, that's what does the magic and keeps spam bots out.
 * `wpzerospam_wpform_spam` - Fires when a spam submission is made with a WPForm.
 
 == Changelog ==
+
+= 4.3.7 =
+
+* Optimized scripts & when they get loaded (only when needed)
+* Fixed bug with incrementing spam detections in the blocked IPs log
 
 = 4.3.6 =
 

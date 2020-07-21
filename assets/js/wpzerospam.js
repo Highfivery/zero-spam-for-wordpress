@@ -1,10 +1,7 @@
 var WordPressZeroSpam = {
   init: function() {
-    var forms = "#commentform";
-    forms += ", #registerform";
-    forms += ", #buddypress #signup_form";
+    var forms = "#buddypress #signup_form";
     forms += ", .wpzerospam";
-    forms += ", .ninja-forms-form";
     forms += ", .wpforms-form";
     forms += ", .gform_wrapper form";
 
@@ -19,28 +16,6 @@ var WordPressZeroSpam = {
           .attr( "name", "wpzerospam_key" )
           .attr( "value", wpzerospam.key )
           .appendTo( ".gform_wrapper form " );
-      });
-
-      // WPForms
-      jQuery( ".wpcf7-submit" ).click( function() {
-        jQuery( "<input>" )
-          .attr( "type", "hidden" )
-          .attr( "name", "wpzerospam_key" )
-          .attr( "value", wpzerospam.key )
-          .appendTo( ".wpcf7-form" );
-      });
-
-      // NinjaForms
-      jQuery( document ).on( "nfFormReady", function( e, layoutView ) {
-        var form = layoutView['$el'].find( 'form' );
-
-        jQuery( "<input>" )
-          .attr( "type", "hidden" )
-          .attr( "name", "wpzerospam_key" )
-          .attr( "value", wpzerospam.key )
-          .appendTo( form );
-
-        return true;
       });
 
       // All other forms
@@ -60,6 +35,9 @@ var WordPressZeroSpam = {
     }
   }
 };
+
+// Will hold the enqueues addons on request.
+var WordPressZeroSpamAddons = {};
 
 jQuery(function() {
   WordPressZeroSpam.init();
