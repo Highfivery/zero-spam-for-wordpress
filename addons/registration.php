@@ -40,19 +40,13 @@ if ( ! function_exists( 'wpzerospam_registration_form' ) ) {
     $options = get_option( 'wpzerospam' );
     if ( 'enabled' != $options['verify_registrations'] ) { return; }
 
-    // Retrieve the current plugin data (used to get the scripts version)
-    if(  ! function_exists('get_plugin_data') ) {
-      require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-    }
-    $plugin = get_plugin_data( WORDPRESS_ZERO_SPAM );
-
     // WordPress Zero Spam registration addon
     wp_enqueue_script(
       'wpzerospam-addon-registrations',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
         '/assets/js/addons/wpzerospam-addon-registrations.js',
       [ 'wpzerospam' ],
-      $plugin['Version'],
+      WORDPRESS_ZERO_SPAM_VERSION,
       true
     );
   }

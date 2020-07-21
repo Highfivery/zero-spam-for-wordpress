@@ -11,12 +11,6 @@
  */
 if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
   function wpzerospam_admin_scripts( $hook_suffix ) {
-    // Retrieve the current plugin data (used to get the scripts version)
-    if(  ! function_exists('get_plugin_data') ) {
-      require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-    }
-    $plugin = get_plugin_data( WORDPRESS_ZERO_SPAM );
-
     // Handle registering & enqueuing scripts based on the current admin page
     switch( $hook_suffix ) {
       case 'toplevel_page_wordpress-zero-spam':
@@ -44,7 +38,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
           plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
             '/assets/js/admin-dashboard.js',
           [ 'jquery', 'wpzerospam-charts' ],
-          $plugin['Version'],
+          WORDPRESS_ZERO_SPAM_VERSION,
           true
         );
 
@@ -54,7 +48,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
           plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
             '/assets/css/admin-dashboard.css',
           false,
-          $plugin['Version']
+          WORDPRESS_ZERO_SPAM_VERSION
         );
       break;
       case 'wp-zero-spam_page_wordpress-zero-spam-blocked-ips':
@@ -64,7 +58,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
           plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
             '/assets/js/admin-blocked-ips.js',
           [ 'jquery' ],
-          $plugin['Version'],
+          WORDPRESS_ZERO_SPAM_VERSION,
           true
         );
 
@@ -74,7 +68,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
           plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
             '/assets/css/admin-blocked-ips.css',
           false,
-          $plugin['Version']
+          WORDPRESS_ZERO_SPAM_VERSION
         );
       break;
     }
@@ -87,12 +81,6 @@ add_action( 'admin_enqueue_scripts', 'wpzerospam_admin_scripts' );
  */
 if ( ! function_exists( 'wpzerospam_enqueue_scripts' ) ) {
   function wpzerospam_enqueue_scripts() {
-    // Retrieve the current plugin data (used to get the scripts version)
-    if(  ! function_exists('get_plugin_data') ) {
-      require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-    }
-    $plugin = get_plugin_data( WORDPRESS_ZERO_SPAM );
-
     // Load the JS that contains the WordPressZeroSpam oject, needed on all
     // pages
     wp_enqueue_script(
@@ -100,7 +88,7 @@ if ( ! function_exists( 'wpzerospam_enqueue_scripts' ) ) {
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
         '/assets/js/wpzerospam.js',
       [ 'jquery' ],
-      $plugin['Version'],
+      WORDPRESS_ZERO_SPAM_VERSION,
       true
     );
 

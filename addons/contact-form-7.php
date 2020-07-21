@@ -27,18 +27,12 @@ add_action( 'wpcf7_validate', 'wpzerospam_wpcf7_validate' );
  */
 if ( ! function_exists( 'wpzerospam_cf7' ) ) {
   function wpzerospam_cf7() {
-    // Retrieve the current plugin data (used to get the scripts version)
-    if(  ! function_exists('get_plugin_data') ) {
-      require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
-    }
-    $plugin = get_plugin_data( WORDPRESS_ZERO_SPAM );
-
     wp_enqueue_script(
       'wpzerospam-addon-cf7',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
         '/assets/js/addons/wpzerospam-addon-cf7.js',
       [ 'wpzerospam' ],
-      $plugin['Version'],
+      WORDPRESS_ZERO_SPAM_VERSION,
       true
     );
   }
