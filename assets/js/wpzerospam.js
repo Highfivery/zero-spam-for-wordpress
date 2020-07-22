@@ -36,8 +36,8 @@ var WordPressZeroSpam = {
   }
 };
 
-// Will hold the enqueues addons on request.
-var WordPressZeroSpamAddons = {};
+// Will hold the enqueues integrations on request.
+var WordPressZeroSpamIntegrations = {};
 
 jQuery(function() {
   WordPressZeroSpam.init();

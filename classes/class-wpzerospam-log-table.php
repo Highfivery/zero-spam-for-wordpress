@@ -36,6 +36,7 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
       'region'        => __( 'Region', 'wpzerospam' ),
       'city'          => __( 'City', 'wpzerospam' ),
       'details'       => __( 'Details', 'wpzerospam' ),
+      'actions'       => __( 'Block IP', 'wpzerospam' ),
     ];
 
     return $columns;
@@ -67,6 +68,9 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
   // Render column
   function column_default( $item, $column_name ) {
     switch( $column_name ) {
+      case 'actions':
+        return '<a href="' . admin_url( 'admin.php?page=wordpress-zero-spam-blocked-ips&ip=' . $item->user_ip ) . '" class="button">' . __( 'Configure IP Block', 'wpzerospam' ) . '</a>';
+      break;
       case 'log_id':
         return $item->log_id;
       break;

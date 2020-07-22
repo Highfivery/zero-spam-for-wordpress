@@ -1,20 +1,26 @@
 /**
- * WordPress Zero Spam addon for handling core comment submissions.
+ * WordPress Zero Spam integration for handling WP forms.
  */
-WordPressZeroSpamAddons.registrations = {
+WordPressZeroSpamIntegrations.wpforms = {
   init: function() {
     // Make sure the WordPress Zero Spam key is available.
     if ( typeof wpzerospam.key == "undefined" ) { return; }
 
-    var $form = jQuery( '#registerform' );
+    var $form = jQuery( '.wpforms-form' );
 
     // If the form can't be found & should be, send a message to the console.
     if ( ! $form.length ) {
       console.log(
-        'WordPress Zero Spam was unable to locate the registration form (#registerform)'
+        'WordPress Zero Spam was unable to locate a WP Form (.wpforms-form)'
       );
       return true;
     }
+
+    console.log(
+      'WordPress Zero Spam located ' + $form.length + ' WP Form(s) (.wpforms-form)'
+    );
+
+    $form.attr( 'data-wpzerospam', 'protected' );
 
     // Triggered when the comment form is submitted
     $form.on( "submit", function() {
@@ -36,5 +42,5 @@ WordPressZeroSpamAddons.registrations = {
 }
 
 jQuery(function() {
-  WordPressZeroSpamAddons.registrations.init();
+  WordPressZeroSpamIntegrations.wpforms.init();
 });

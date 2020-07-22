@@ -323,7 +323,47 @@ if ( ! function_exists( 'wpzerospam_get_location' ) ) {
       ],
       'CA' => [
         'name' => 'Canada',
-        'regions' => []
+        'regions' => [
+          'AB' => [
+            'name' => 'Alberta'
+          ],
+          'BC' => [
+            'name' => 'British Columbia'
+          ],
+          'MB' => [
+            'name' => 'Manitoba'
+          ],
+          'NB' => [
+            'name' => 'New Brunswick'
+          ],
+          'NL' => [
+            'name' => 'Newfoundland and Labrador'
+          ],
+          'NS' => [
+            'name' => 'Nova Scotia'
+          ],
+          'ON' => [
+            'name' => 'Ontario'
+          ],
+          'PE' => [
+            'name' => 'Prince Edward Island'
+          ],
+          'QC' => [
+            'name' => 'Quebec'
+          ],
+          'SK' => [
+            'name' => 'Saskatchewan'
+          ],
+          'NT' => [
+            'name' => 'Northwest Territories'
+          ],
+          'NU' => [
+            'name' => 'Nunavut'
+          ],
+          'YT' => [
+            'name' => 'Yukon'
+          ]
+        ]
       ],
       'CV' => [
         'name' => 'Cape Verde',

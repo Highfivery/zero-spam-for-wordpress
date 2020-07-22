@@ -121,11 +121,17 @@ function wpzerospam_blocked_ips_page() {
     <?php endif; ?>
     <form method="post" action="<?php echo admin_url( 'admin.php' ); ?>">
       <input type="hidden" name="action" value="add_blocked_ip" />
-      <div class="wpzerospam-add-ip-container">
+      <div class="wpzerospam-add-ip-container<?php if( ! empty( $_REQUEST['ip'] ) ): ?> wpzerospam-add-ip-container-highlight<?php endif; ?>">
         <h2><?php _e( 'Add Blocked IP', 'wpzerospam' ); ?></h2>
         <div class="wpzerospam-add-ip-field">
           <label for="blocked-ip"><?php _e( 'IP Address', 'wpzerospam' ); ?></label>
-          <input type="text" id="blocked-ip" name="blocked_ip" value="" placeholder="e.g. xxx.xxx.x.x" />
+          <input
+            type="text"
+            id="blocked-ip"
+            name="blocked_ip"
+            value="<?php if( ! empty( $_REQUEST['ip'] ) ): echo esc_attr( $_REQUEST['ip'] ); endif; ?>"
+            placeholder="e.g. xxx.xxx.x.x"
+          />
         </div>
         <div class="wpzerospam-add-ip-field">
           <label for="blocked-type"><?php _e( 'Type', 'wpzerospam' ); ?></label>
@@ -146,8 +152,10 @@ function wpzerospam_blocked_ips_page() {
           <label for="blocked-end-date"><?php _e( 'End Date', 'wpzerospam' ); ?></label>
           <input type="datetime-local" id="blocked-end-date" name="blocked_end_date" value="" placeholder="<?php _e( 'Optional', 'wpzerospam' ); ?>" />
         </div>
+        <div class="wpzerospam-add-ip-field" id="wpzerospam-add-ip-field-submit">
+          <input type="submit" class="button button-primary" value="<?php _e( 'Add Blocked IP', 'wpzerospam' ); ?>" />
+        </div>
       </div>
-      <p style="margin-bottom: 2rem;"><input type="submit" class="button button-primary" value="<?php _e( 'Add Blocked IP', 'wpzerospam' ); ?>" /></p>
     </form>
 
 

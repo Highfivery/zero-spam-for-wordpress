@@ -37,11 +37,11 @@ if ( ! function_exists( 'wpzerospam_comment_form' ) ) {
     $options = get_option( 'wpzerospam' );
     if ( 'enabled' != $options['verify_comments'] ) { return; }
 
-    // WordPress Zero Spam comment addon
+    // WordPress Zero Spam comment integration
     wp_enqueue_script(
-      'wpzerospam-addon-comments',
+      'wpzerospam-integration-comments',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/addons/wpzerospam-addon-comments.js',
+        '/assets/js/integrations/wpzerospam-integration-comments.js',
       [ 'wpzerospam' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true

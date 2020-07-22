@@ -95,6 +95,10 @@ Yes, that's what does the magic and keeps spam bots out.
 = 4.3.10 =
 
 * Updated get_plugin_data calls to use a constant. See [#196](https://github.com/bmarshall511/wordpress-zero-spam/issues/196)
+* Added additional country regions for geolocation lookup
+* Renamed 'addons' to 'integrations'
+* Fixed issue with WPForm spam detections
+* Fix for plugin deactivation from v3 to v4 upgrade
 
 = 4.3.9 =
 

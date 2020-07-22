@@ -1,10 +1,30 @@
 .wpzerospam-add-ip-container {
   align-items: center;
+  background: #fff;
+  border: 1px solid #ccd0d4;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-wrap: wrap;
   margin-left: -10px;
   margin-right: -10px;
+  padding: 20px;
 }
+
+.wpzerospam-add-ip-container-highlight {
+  animation: wpzerospam-highlight 2s;
+  animation-fill-mode: forwards;
+}
+
+@keyframes wpzerospam-highlight {
+  0% {
+    background: #fff;
+  }
+
+  100% {
+    background: #FFF4DC;
+  }
+}
+
 
 .wpzerospam-add-ip-container h2,
 .wpzerospam-add-ip-field,
@@ -34,4 +54,9 @@
 
 #wpzerospam-add-ip-field-reason {
   flex-grow: 1;
+}
+
+#wpzerospam-add-ip-field-submit {
+  margin-top: 10px;
+  width: auto;
 }

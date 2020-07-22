@@ -28,9 +28,9 @@ add_action( 'wpcf7_validate', 'wpzerospam_wpcf7_validate' );
 if ( ! function_exists( 'wpzerospam_cf7' ) ) {
   function wpzerospam_cf7() {
     wp_enqueue_script(
-      'wpzerospam-addon-cf7',
+      'wpzerospam-integration-cf7',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/addons/wpzerospam-addon-cf7.js',
+        '/assets/js/integrations/wpzerospam-integration-cf7.js',
       [ 'wpzerospam' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true
