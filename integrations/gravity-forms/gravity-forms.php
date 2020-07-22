@@ -26,7 +26,7 @@ add_action( 'gform_pre_submission', 'wpzerospam_gform_validate' );
  * Enqueue the Gravity Forms JS
  */
 if ( ! function_exists( 'wpzerospam_gravity_forms' ) ) {
-  function wpzerospam_gravity_forms() {
+  function wpzerospam_gravity_forms( $form ) {
     wp_enqueue_script(
       'wpzerospam-integration-gravity-forms',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
@@ -37,4 +37,4 @@ if ( ! function_exists( 'wpzerospam_gravity_forms' ) ) {
     );
   }
 }
-add_action( 'wpcf7_enqueue_scripts', 'wpzerospam_gravity_forms' );
+add_action( 'gform_enqueue_scripts', 'wpzerospam_gravity_forms' );
