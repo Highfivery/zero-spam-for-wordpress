@@ -1,39 +1,38 @@
 /**
- * WordPress Zero Spam addon for handling core CF7 submissions.
+ * WordPress Zero Spam integration for handling core comment submissions.
  */
-WordPressZeroSpamIntegrations.cf7 = {
+WordPressZeroSpamIntegrations.registrations = {
   init: function() {
     // Make sure the WordPress Zero Spam key is available.
     if ( typeof wpzerospam.key == "undefined" ) { return; }
 
-    var $form = jQuery( '.wpcf7-form' );
+    var $form = jQuery( '#registerform' );
 
     // If the form can't be found & should be, send a message to the console.
     if ( ! $form.length ) {
       console.log(
-        'WordPress Zero Spam was unable to locate the CF7 form (.wpcf7-form)'
+        'WordPress Zero Spam was unable to locate any registration forms (#registerform)'
       );
       return true;
     }
 
     console.log(
-      'WordPress Zero Spam located ' + $form.length + ' CF7 form(s) (.wpcf7-form)'
+      'WordPress Zero Spam located ' + $form.length + ' registration form(s) (#registerform)'
     );
 
     $form.attr( 'data-wpzerospam', 'protected' );
 
-    // Triggered when the comment form is submitted
-    jQuery( ".wpcf7-submit", $form ).click( function() {
+    $form.on( "submit", function() {
       // Make sure the WordPress Zero Spam key isn't already on the form, if
       // not, add it.
-      if ( ! jQuery( '[name="wpzerospam_key"]', $form ).length ) {
+      if ( ! jQuery( '[name="wpzerospam_key"]', jQuery( this ) ).length ) {
         jQuery( "<input>" )
           .attr( "type", "hidden" )
           .attr( "name", "wpzerospam_key" )
           .attr( "value", wpzerospam.key )
-          .appendTo( $form );
+          .appendTo( jQuery(this) );
       } else {
-        jQuery( '[name="wpzerospam_key"]', $form ).value( wpzerospam.key );
+        jQuery( '[name="wpzerospam_key"]', jQuery( this ) ).value( wpzerospam.key );
       }
 
       return true;
@@ -42,5 +41,5 @@ WordPressZeroSpamIntegrations.cf7 = {
 }
 
 jQuery(function() {
-  WordPressZeroSpamIntegrations.cf7.init();
+  WordPressZeroSpamIntegrations.registrations.init();
 });

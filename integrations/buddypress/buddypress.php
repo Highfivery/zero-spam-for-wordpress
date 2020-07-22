@@ -21,3 +21,20 @@ if ( ! function_exists( 'wpzerospam_bp_signup_validate' ) ) {
   }
 }
 add_action( 'bp_signup_validate', 'wpzerospam_bp_signup_validate' );
+
+/**
+ * Enqueue the BuddyPress form JS
+ */
+if ( ! function_exists( 'wpzerospam_buddy_press' ) ) {
+  function wpzerospam_buddy_press() {
+    wp_enqueue_script(
+      'wpzerospam-integration-buddy-press',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/integrations/buddypress/js/buddypress.js',
+      [ 'wpzerospam' ],
+      WORDPRESS_ZERO_SPAM_VERSION,
+      true
+    );
+  }
+}
+add_action( 'wpcf7_enqueue_scripts', 'wpzerospam_buddy_press' );

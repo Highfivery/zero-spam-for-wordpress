@@ -30,7 +30,7 @@ if ( ! function_exists( 'wpzerospam_cf7' ) ) {
     wp_enqueue_script(
       'wpzerospam-integration-cf7',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/integrations/wpzerospam-integration-cf7.js',
+        '/integrations/contact-form-7/js/cf7.js',
       [ 'wpzerospam' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true

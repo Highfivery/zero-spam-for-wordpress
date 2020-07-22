@@ -41,7 +41,7 @@ if ( ! function_exists( 'wpzerospam_comment_form' ) ) {
     wp_enqueue_script(
       'wpzerospam-integration-comments',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/integrations/wpzerospam-integration-comments.js',
+        '/integrations/comments/js/comments.js',
       [ 'wpzerospam' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true

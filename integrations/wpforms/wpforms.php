@@ -36,7 +36,7 @@ if ( ! function_exists( 'wpzerospam_wpforms' ) ) {
     wp_enqueue_script(
       'wpzerospam-integration-wpforms',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/integrations/wpzerospam-integration-wpforms.js',
+        '/integrations/wpforms/js/wpforms.js',
       [ 'wpzerospam' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true

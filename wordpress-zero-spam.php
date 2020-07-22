@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version:           4.3.10
+ * Version:           4.4.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Ben Marshall
@@ -31,12 +31,17 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 // Define plugin constants
 define( 'WORDPRESS_ZERO_SPAM', __FILE__ );
 define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.1' );
-define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.3.10' );
+define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.4.0' );
 
 /**
  * Helpers
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/helpers.php';
+
+/**
+ * Plugin updates
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/updates.php';
 
 /**
  * Install plugin tables
@@ -95,11 +100,6 @@ function wpzerospam_db_check() {
 add_action( 'plugins_loaded', 'wpzerospam_db_check' );
 
 /**
- * Plugin updates
- */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/updates.php';
-
-/**
  * Plugin scripts
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/scripts.php';
@@ -112,27 +112,31 @@ require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/admin.php';
 /**
  * Below are the includes for individual spam check integrations
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/comments.php';
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/registration.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/comments/comments.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/registrations/registrations.php';
 
 if ( wpzerospam_plugin_integration_enabled( 'cf7' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/contact-form-7.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/contact-form-7/contact-form-7.php';
 }
 
 if ( wpzerospam_plugin_integration_enabled( 'gforms' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/gravity-forms.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/gravity-forms/gravity-forms.php';
 }
 
 if ( wpzerospam_plugin_integration_enabled( 'ninja_forms' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/ninja-forms.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/ninja-forms/ninja-forms.php';
 }
 
 if ( wpzerospam_plugin_integration_enabled( 'bp_registrations' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/buddypress.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/buddypress/buddypress.php';
 }
 
 if ( wpzerospam_plugin_integration_enabled( 'wpforms' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/wpforms.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/wpforms/wpforms.php';
+}
+
+if ( wpzerospam_plugin_integration_enabled( 'fluentform' ) ) {
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/fluentform/fluentform.php';
 }
 
 /**

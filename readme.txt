@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.3.10
+Stable tag: 4.4.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -41,6 +41,7 @@ WordPress Zero Spam was initially built based on the work by [David Walsh](http:
 * [Ninja Forms](https://wordpress.org/plugins/ninja-forms/) submissions
 * [BuddyPress](https://wordpress.org/plugins/buddypress/) registrations
 * [Contact Form by WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
+* [WP Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
 
 <small>This plugin does not support with Jetpack Comments. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).</small>
 
@@ -91,6 +92,11 @@ Yes, that's what does the magic and keeps spam bots out.
 * `wpzerospam_wpform_spam` - Fires when a spam submission is made with a WPForm.
 
 == Changelog ==
+
+= 4.4.0 =
+
+* Misc. code clean-up
+* Added support for the Fluent Forms plugin
 
 = 4.3.10 =
 

@@ -301,6 +301,10 @@ function wpzerospam_validate_options( $input ) {
   if ( empty( $input['verify_wpforms'] ) ) {
     $input['verify_wpforms'] = 'disabled';
   }
+
+  if ( empty( $input['verify_fluentform'] ) ) {
+    $input['verify_fluentform'] = 'disabled';
+  }
   return $input;
  }
 
@@ -529,6 +533,19 @@ function wpzerospam_admin_init() {
       'type'      => 'checkbox',
       'multi'     => false,
       'desc'      => 'Enables spam detection for WPForms submissions.',
+      'options'   => [
+        'enabled' => __( 'Enabled', 'wpzerospam' )
+      ]
+    ]);
+  }
+
+  // Fluent Form spam check
+  if ( is_plugin_active( 'fluentform/fluentform.php' ) ) {
+    add_settings_field( 'verify_fluentform', __( 'Verify Fluent Form Submissions', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+      'label_for' => 'verify_fluentform',
+      'type'      => 'checkbox',
+      'multi'     => false,
+      'desc'      => 'Enables spam detection for Fluent Form submissions.',
       'options'   => [
         'enabled' => __( 'Enabled', 'wpzerospam' )
       ]

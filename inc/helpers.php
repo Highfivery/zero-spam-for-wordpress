@@ -100,7 +100,15 @@ if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
  * Checks the post submission for a valid key
  */
 if ( ! function_exists( 'wpzerospam_key_check' ) ) {
-  function wpzerospam_key_check() {
+  function wpzerospam_key_check( $data = false ) {
+    if (
+      $data &&
+      ! empty( $data['wpzerospam_key'] ) &&
+      $data['wpzerospam_key'] == wpzerospam_get_key()
+    ) {
+      return true;
+    }
+
     if ( ! empty( $_POST['wpzerospam_key'] ) && $_POST['wpzerospam_key'] == wpzerospam_get_key() ) {
       return true;
     }
@@ -328,12 +336,13 @@ if ( ! function_exists( 'wpzerospam_plugin_integration_enabled' ) ) {
       require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
     }
 
-    $options = get_option( 'wpzerospam' );
+    $options = wpzerospam_options();
 
     $integrations = [
       'ninja_forms' => 'ninja-forms/ninja-forms.php',
       'cf7'         => 'contact-form-7/wp-contact-form-7.php',
       'gforms'      => 'gravityforms/gravityforms.php',
+      'fluentform'  => 'fluentform/fluentform.php',
       'wpforms'     => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ]
     ];
 
@@ -413,6 +422,10 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 
     if ( empty( $options['verify_wpforms'] ) ) {
       $options['verify_wpforms'] = 'enabled';
+    }
+
+    if ( empty( $options['verify_fluentform'] ) ) {
+      $options['verify_fluentform'] = 'enabled';
     }
 
     return $options;

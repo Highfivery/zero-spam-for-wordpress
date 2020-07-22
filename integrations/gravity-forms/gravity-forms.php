@@ -21,3 +21,20 @@ if ( ! function_exists( 'wpzerospam_gform_validate' ) ) {
   }
 }
 add_action( 'gform_pre_submission', 'wpzerospam_gform_validate' );
+
+/**
+ * Enqueue the Gravity Forms JS
+ */
+if ( ! function_exists( 'wpzerospam_gravity_forms' ) ) {
+  function wpzerospam_gravity_forms() {
+    wp_enqueue_script(
+      'wpzerospam-integration-gravity-forms',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/integrations/gravity-forms/js/gravity-forms.js',
+      [ 'wpzerospam' ],
+      WORDPRESS_ZERO_SPAM_VERSION,
+      true
+    );
+  }
+}
+add_action( 'wpcf7_enqueue_scripts', 'wpzerospam_gravity_forms' );

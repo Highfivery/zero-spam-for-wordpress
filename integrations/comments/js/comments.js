@@ -1,23 +1,25 @@
 /**
- * WordPress Zero Spam integration for handling WP forms.
+ * WordPress Zero Spam addon for handling core comment submissions.
  */
-WordPressZeroSpamIntegrations.wpforms = {
+WordPressZeroSpamIntegrations.comments = {
   init: function() {
     // Make sure the WordPress Zero Spam key is available.
     if ( typeof wpzerospam.key == "undefined" ) { return; }
 
-    var $form = jQuery( '.wpforms-form' );
+    // #ast-commentform - Astra theme support (changes the comment if to #ast-commentform)
+    // @TODO - Find a better way to support the Astra theme by checking if it's enabled.
+    var $form = jQuery( '#commentform, #ast-commentform' );
 
     // If the form can't be found & should be, send a message to the console.
     if ( ! $form.length ) {
       console.log(
-        'WordPress Zero Spam was unable to locate a WP Form (.wpforms-form)'
+        'WordPress Zero Spam was unable to locate any comment forms (#commentform)'
       );
       return true;
     }
 
     console.log(
-      'WordPress Zero Spam located ' + $form.length + ' WP Form(s) (.wpforms-form)'
+      'WordPress Zero Spam located ' + $form.length + ' comment form(s) (#commentform)'
     );
 
     $form.attr( 'data-wpzerospam', 'protected' );
@@ -42,5 +44,5 @@ WordPressZeroSpamIntegrations.wpforms = {
 }
 
 jQuery(function() {
-  WordPressZeroSpamIntegrations.wpforms.init();
+  WordPressZeroSpamIntegrations.comments.init();
 });
