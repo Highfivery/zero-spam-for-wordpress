@@ -16,7 +16,7 @@ require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/locations.php';
  */
 if ( ! function_exists( 'wpzerospam_get_ip_info' ) ) {
   function wpzerospam_get_ip_info( $ip ) {
-    $options  = wpzerospam_options();
+    $options = wpzerospam_options();
 
     if ( empty( $options['ipstack_api'] ) ) { return false; }
 
@@ -399,11 +399,13 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['block_handler'] ) ) { $options['block_handler'] = '403'; }
     if ( empty( $options['spam_redirect_url'] ) ) { $options['spam_redirect_url'] = 'https://www.google.com'; }
     if ( empty( $options['spam_message'] ) ) { $options['spam_message'] = __( 'There was a problem with your submission. Please go back and try again.', 'wpzerospam' ); }
-    if ( empty( $options['blocked_message'] ) ) { $options['blocked_message'] = __( 'You have been blocked from visiting this site.', 'wpzerospam' ); }
+    if ( empty( $options['blocked_message'] ) ) { $options['blocked_message'] = __( 'You have been blocked from visiting this site by WordPress Zero Spam due to detected spam activity.', 'wpzerospam' ); }
     if ( empty( $options['log_spam'] ) ) { $options['log_spam'] = 'disabled'; }
     if ( empty( $options['verify_comments'] ) ) { $options['verify_comments'] = 'enabled'; }
     if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
     if ( empty( $options['log_blocked_ips'] ) ) { $options['log_blocked_ips'] = 'disabled'; }
+
+    if ( empty( $options['botscout_api'] ) ) { $options['botscout_api'] = false; }
 
     if ( empty( $options['verify_cf7'] )  ) {
       $options['verify_cf7'] = 'enabled';
@@ -431,6 +433,14 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 
     if ( empty( $options['stop_forum_spam'] ) ) {
       $options['stop_forum_spam'] = 'enabled';
+    }
+
+    if ( empty( $options['strip_comment_links'] ) ) {
+      $options['strip_comment_links'] = 'disabled';
+    }
+
+    if ( empty( $options['strip_comment_author_links'] ) ) {
+      $options['strip_comment_author_links'] = 'disabled';
     }
 
     return $options;
@@ -503,11 +513,35 @@ if ( ! function_exists( 'wpzerospam_check_access' ) ) {
 
           return $access;
         }
-      } else {
-        // Stop Forum Spam blacklist is disabled & the IP wasn't found in the
-        // blocked IPs table.
-        return $access;
       }
+
+      // If enabled, check the BotScout blacklist
+      if ( 'enabled' == $options['botscout'] ) {
+        $botscout_request = wpzerospam_botscout_is_spam( $ip );
+        if ( ! $botscout_request ) {
+          // IP wasn't found in the Stop Forum Spam blacklist
+          return $access;
+        } else {
+          // IP was found in the Stop Forum Spam blacklist
+          $access['access'] = false;
+          $access['reason'] = 'BotScout';
+
+          return $access;
+        }
+      }
+
+      // Passed all tests
+      return $access;
+    }
+
+    // Check if in the blacklist
+    $in_blacklist = wpzerospam_in_blacklist( $ip );
+    if ( $in_blacklist ) {
+      // IP found in the blacklist
+      $access['access'] = false;
+      $access['reason'] = $in_blacklist->blacklist_service;
+
+      return $access;
     }
 
     // IP address was found in the blocked IPs list, determine the type and if
@@ -593,13 +627,98 @@ if ( ! function_exists( 'wpzerospam_current_url' ) ) {
 }
 
 /**
+ * Queries the BotScout API
+ *
+ * @link http://botscout.com/api.htm
+ *
+ * @since 4.6.0
+ */
+if ( ! function_exists( 'wpzerospam_botscout_request' ) ) {
+  function wpzerospam_botscout_request( $ip ) {
+    $options = wpzerospam_options();
+
+    if ( empty( $options['botscout_api'] ) ) { return false; }
+
+    $api_url  = 'https://botscout.com/test/?';
+    $params   = [ 'ip' => $ip, 'key' => $options['botscout_api'] ];
+    $endpoint = $api_url . http_build_query( $params );
+    $response = wp_remote_get( $endpoint );
+
+    if ( is_array( $response ) && ! is_wp_error( $response ) ) {
+      $data = wp_remote_retrieve_body( $response );
+
+      // Check if there's an error
+      if ( strpos( $data, '!' ) === false ) {
+        // Valid request
+        list( $matched, $type, $count ) = explode( "|", $data );
+        return [
+          'matched' => ( $matched == 'Y' ) ? true : false,
+          'count' => $count
+        ];
+      }
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Checks the post submission for a valid key
+ *
+ * @since 4.5.0
+ */
+if ( ! function_exists( 'wpzerospam_botscout_is_spam' ) ) {
+  function wpzerospam_botscout_is_spam( $ip ) {
+    // First check if the IP is already in the blacklist table
+    $in_blacklist = wpzerospam_in_blacklist( $ip );
+    if ( $in_blacklist ) {
+      // Check if the record should be updated
+      $last_updated = strtotime( $in_blacklist->last_updated );
+      $current_time = current_time( 'timestamp' );
+      $expiration   = $last_updated + MONTH_IN_SECONDS;
+
+      if ( $current_time > $expiration ) {
+        // Expired, update the record
+        $botscout_request = wpzerospam_botscout_request( $ip );
+        if ( $botscout_request && ! empty( $botscout['matched'] ) ) {
+          $botscout_request['blacklist_service'] = 'botscout';
+          $botscout_request['blacklist_id'] = $in_blacklist->blacklist_id;
+          wpzerospam_update_blacklist( $botscout_request );
+
+          return $botscout_request;
+        }
+      }
+
+      return $in_blacklist;
+    }
+
+    // Not in the blacklist, query the BotScout API now
+    $botscout_request = wpzerospam_botscout_request( $ip );
+    if (
+      $botscout_request &&
+      ! empty( $botscout_request['matched'] )
+    ) {
+      $new_record                      = $botscout_request;
+      $new_record['ip']                = $ip;
+      $new_record['blacklist_service'] = 'botscout';
+
+      wpzerospam_update_blacklist( $new_record );
+
+      return $new_record;
+    }
+
+    return false;
+  }
+}
+
+/**
  * Queries the Stop Forum Spam API
  *
  * @since 4.5.0
  */
 if ( ! function_exists( 'wpzerospam_stopforumspam_request' ) ) {
   function wpzerospam_stopforumspam_request( $ip ) {
-    $api_url  = 'http://api.stopforumspam.org/api?';
+    $api_url  = 'https://api.stopforumspam.org/api?';
     $params   = [ 'ip' => $ip, 'json' => '' ];
     $endpoint = $api_url . http_build_query( $params );
     $response = wp_remote_get( $endpoint );
@@ -636,6 +755,10 @@ if ( ! function_exists( 'wpzerospam_update_blacklist' ) ) {
 
     if ( ! empty( $data['blacklist_service'] ) ) {
       $update['blacklist_service'] = $data['blacklist_service'];
+    }
+
+    if ( ! empty( $data['count'] ) ) {
+      $update['blacklist_data']['count'] = intval( $data['count'] );
     }
 
     if ( ! empty( $data['appears'] ) ) {
@@ -703,6 +826,7 @@ if ( ! function_exists( 'wpzerospam_stopforumspam_is_spam' ) ) {
         // Expired, update the record
         $stopforumspam_request = wpzerospam_stopforumspam_request( $ip );
         if ( $stopforumspam_request ) {
+          $stopforumspam_request['blacklist_id'] = $in_blacklist->blacklist_id;
           wpzerospam_update_blacklist( $stopforumspam_request );
 
           return $stopforumspam_request;

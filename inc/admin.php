@@ -324,7 +324,7 @@ function wpzerospam_validate_options( $input ) {
   if ( empty( $input['log_blocked_ips'] ) ) { $input['log_blocked_ips'] = 'disabled'; }
   if ( empty( $input['auto_block_ips'] ) ) { $input['auto_block_ips'] = 'disabled'; }
   if ( empty( $input['auto_block_period'] ) ) { $input['auto_block_period'] = 0; }
-
+  if ( empty( $input['botscout_api'] ) ) { $input['botscout'] = false; }
 
   if ( empty( $input['verify_cf7'] ) ) {
     $input['verify_cf7'] = 'disabled';
@@ -352,6 +352,18 @@ function wpzerospam_validate_options( $input ) {
 
   if ( empty( $input['stop_forum_spam'] ) ) {
     $input['stop_forum_spam'] = 'disabled';
+  }
+
+  if ( empty( $input['strip_comment_links'] ) ) {
+    $input['strip_comment_links'] = 'disabled';
+  }
+
+  if ( empty( $input['strip_comment_author_links'] ) ) {
+    $input['strip_comment_author_links'] = 'disabled';
+  }
+
+  if ( empty( $input['blocked_message'] ) ) {
+    $input['blocked_message'] = 'You have been blocked from visiting this site by WordPress Zero Spam due to detected spam activity.';
   }
 
   return $input;
@@ -382,17 +394,50 @@ function wpzerospam_admin_init() {
   register_setting( 'wpzerospam', 'wpzerospam', 'wpzerospam_validate_options' );
 
   add_settings_section( 'wpzerospam_general_settings', __( 'General Settings', 'wpzerospam' ), 'wpzerospam_general_settings_cb', 'wpzerospam' );
+  add_settings_section( 'wpzerospam_onsite', __( 'On-site Spam Prevention', 'wpzerospam' ), 'wpzerospam_onsite_cb', 'wpzerospam' );
   add_settings_section( 'wpzerospam_spam_checks', __( 'Integrations & Third-party APIs', 'wpzerospam' ), 'wpzerospam_spam_checks_cb', 'wpzerospam' );
+
+  // Option to strips links in comments
+  add_settings_field( 'strip_comment_links', __( 'Strip Comment Links', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_onsite', [
+    'label_for' => 'strip_comment_links',
+    'type'      => 'checkbox',
+    'multi'     => false,
+    'desc'      => 'Spambots commonly post spam links in comments. Enable this option to strip links from comments.',
+    'options'   => [
+      'enabled' => __( 'Enabled', 'wpzerospam' )
+    ]
+  ]);
+
+  // Option to remove author links
+  add_settings_field( 'strip_comment_author_links', __( 'Strip Comment Author Links', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_onsite', [
+    'label_for' => 'strip_comment_author_links',
+    'type'      => 'checkbox',
+    'multi'     => false,
+    'desc'      => 'Spammers are well-known at injecting malicious links in the comment author website field, this option disables it.',
+    'options'   => [
+      'enabled' => __( 'Enabled', 'wpzerospam' )
+    ]
+  ]);
 
   if ( 'enabled' == $options['log_spam'] ) {
     // Redirect URL for spam detections
     add_settings_field( 'ipstack_api', __( 'ipstack API Key', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
       'label_for'   => 'ipstack_api',
       'type'        => 'text',
+      'placeholder' => __( 'Enter your ipstack API key.', 'wpzerospam' ),
       'class'       => 'regular-text',
-      'desc'        => 'Enter your <a href="https://ipstack.com/" target="_blank">ipstack API key</a> to enable location-based statistics.',
+      'desc'        => 'Enter your <a href="https://ipstack.com/" target="_blank">ipstack API key</a> to enable location-based statistics. Don\'t have an API key? <a href="https://ipstack.com/signup/free" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>',
     ]);
   }
+
+  // Enables the ability to check IPs against BotScout blacklists.
+  add_settings_field( 'botscout_api', __( 'BotScout API Key', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+    'label_for'   => 'botscout_api',
+    'type'        => 'text',
+    'class'       => 'regular-text',
+    'placeholder' => __( 'Enter your free BotScout API key.', 'wpzerospam' ),
+    'desc'        => 'Enter your BotScout API key to check user IPs against <a href="https://botscout.com/" target="_blank" rel="noopener noreferrer">BotScout</a>\'s blacklist. Don\'t have an API key? <a href="https://botscout.com/getkey.htm" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>'
+  ]);
 
   // Enables the ability to check IPs against Stop Forum Spam blacklists.
   add_settings_field( 'stop_forum_spam', __( 'Stop Forum Spam', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
@@ -455,7 +500,7 @@ function wpzerospam_admin_init() {
       'type'        => 'text',
       'class'       => 'large-text',
       'desc'        => 'The message that will be displayed to a blocked user.',
-      'placeholder' => __( 'You have been blocked from visiting this site.', 'wpzerospam' )
+      'placeholder' => __( 'You have been blocked from visiting this site by WordPress Zero Spam due to detected spam activity.', 'wpzerospam' )
     ]);
   }
 
@@ -618,6 +663,9 @@ function wpzerospam_general_settings_cb() {
 }
 
 function wpzerospam_spam_checks_cb() {
+}
+
+function wpzerospam_onsite_cb() {
 }
 
 function wpzerospam_field_cb( $args ) {

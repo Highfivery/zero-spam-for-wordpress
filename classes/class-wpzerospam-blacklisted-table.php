@@ -66,6 +66,9 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
           case 'stopforumspam':
             return '<a href="https://www.stopforumspam.com/" target="_blank" rel="noopener noreferrer">Stop Forum Spam</a>';
           break;
+          case 'botscout':
+            return '<a href="https://botscout.com/" target="_blank" rel="noopener noreferrer">BotScout</a>';
+          break;
           default:
             return $item->blacklist_service;
         }

@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.5.0
+Stable tag: 4.6.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -25,6 +25,7 @@ WordPress Zero Spam was initially built based on the work by [David Walsh](http:
 * **No moderation queues**, spam isn't a administrators' problem
 * **Blocks 99.9% of spam** submissions
 * **Blocks spammy IPs** from ever seeing your site
+* **Checks known spam blacklists** to prevent access ([Stop Forum Spam](https://www.stopforumspam.com/), [BotScout](https://botscout.com/))
 * **Auto-block IPs** when a spam detection is triggered
 * **Manually block IPs** either temporarily or permanently
 * **Developer-friendly**, integrate with any theme, plugin or form
@@ -42,6 +43,8 @@ WordPress Zero Spam was initially built based on the work by [David Walsh](http:
 * [BuddyPress](https://wordpress.org/plugins/buddypress/) registrations
 * [Contact Form by WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [WP Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
+
+While WordPress Zero Spam block 99.9% of the spam that comes through, there's still some other things you can do as a site owner to [stop WordPress spam](https://benmarshall.me/stop-wordpress-spam/).
 
 This plugin does not support Jetpack Comments. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments). If you're running something other than one of the supported plugins above, it won't detect spam submissions without some additional integration.
 
@@ -101,6 +104,12 @@ Yes, that's what does the magic and keeps spam bots out.
 3. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.6.0 =
+
+* Added option to strip links from comments
+* Added option to strip & disable the comment author website field
+* Added integration with the BotScout blacklist API
 
 = 4.5.0 =
 
