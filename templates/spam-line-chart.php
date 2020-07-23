@@ -40,9 +40,13 @@
           labels: <?php echo json_encode( $labels ); ?>,
           datasets: [{
             data: <?php echo json_encode( $data ); ?>,
-            backgroundColor: 'rgba(99, 0, 13, 0.1)',
+            backgroundColor: 'rgba(88, 0, 15, 0.5)',
             borderColor: '#63000D',
-            fill: true,
+            borderWidth: 4,
+            pointBorderWidth: 2,
+            pointBackgroundColor: '#58000f',
+            pointRadius: 5,
+            fill: false,
           }],
         },
         options: {

@@ -15,7 +15,7 @@ if ( ! function_exists( 'wpzerospam_fluentform_validate' ) ) {
       return;
     }
 
-    do_action( 'wpzerospam_cf7_spam' );
+    do_action( 'wpzerospam_fluentform_spam' );
 
     $data = [
       'insertData' => $insertData,

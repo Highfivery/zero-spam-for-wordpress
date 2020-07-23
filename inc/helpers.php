@@ -232,8 +232,9 @@ if ( ! function_exists( 'wpzerospam_tables' ) ) {
     global $wpdb;
 
     $tables = [
-      'log'     => $wpdb->prefix . 'wpzerospam_log',
-      'blocked' => $wpdb->prefix . 'wpzerospam_blocked'
+      'log'       => $wpdb->prefix . 'wpzerospam_log',
+      'blocked'   => $wpdb->prefix . 'wpzerospam_blocked',
+      'blacklist' => $wpdb->prefix . 'wpzerospam_blacklist'
     ];
 
     if ( ! $key ) {
@@ -408,8 +409,8 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
       $options['verify_cf7'] = 'enabled';
     }
 
-    if ( empty( $options['verify_gforms'] )  ) {
-      $options['verify_gforms'] = 'enabled';
+    if ( empty( $options['verify_gform'] )  ) {
+      $options['verify_gform'] = 'enabled';
     }
 
     if ( empty( $options['verify_ninja_forms'] )  ) {
@@ -426,6 +427,10 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 
     if ( empty( $options['verify_fluentform'] ) ) {
       $options['verify_fluentform'] = 'enabled';
+    }
+
+    if ( empty( $options['stop_forum_spam'] ) ) {
+      $options['stop_forum_spam'] = 'enabled';
     }
 
     return $options;
@@ -477,19 +482,38 @@ if ( ! function_exists( 'wpzerospam_check_access' ) ) {
       return $access;
     }
 
-    $options = wpzerospam_options();
+    $options      = wpzerospam_options();
+    $ip           = wpzerospam_ip();
+    $access['ip'] = $ip;
 
     // Check if the current user's IP address has been blocked
-    $ip          = wpzerospam_ip();
-    $is_blocked  = wpzerospam_get_blocked_ips( $ip );
-
+    $is_blocked = wpzerospam_get_blocked_ips( $ip );
     if ( ! $is_blocked ) {
-      return $access;
+      // IP hasen't been blocked
+      // If enabled, check the Stop Forum Spam blacklist
+      if ( 'enabled' == $options['stop_forum_spam'] ) {
+        $stop_forum_spam_is_spam = wpzerospam_stopforumspam_is_spam( $ip );
+        if ( ! $stop_forum_spam_is_spam ) {
+          // IP wasn't found in the Stop Forum Spam blacklist
+          return $access;
+        } else {
+          // IP was found in the Stop Forum Spam blacklist
+          $access['access'] = false;
+          $access['reason'] = 'Stop Forum Spam';
+
+          return $access;
+        }
+      } else {
+        // Stop Forum Spam blacklist is disabled & the IP wasn't found in the
+        // blocked IPs table.
+        return $access;
+      }
     }
 
+    // IP address was found in the blocked IPs list, determine the type and if
+    // it should still be blocked.
     if ( 'permanent' == $is_blocked->blocked_type ) {
       $access['access'] = false;
-      $access['ip']     = $ip;
       $access['reason'] = $is_blocked->reason;
     } else {
       $todays_date = new DateTime( current_time( 'mysql' ) );
@@ -565,5 +589,172 @@ if ( ! function_exists( 'wpzerospam_current_url' ) ) {
     }
 
     return $url;
+  }
+}
+
+/**
+ * Queries the Stop Forum Spam API
+ *
+ * @since 4.5.0
+ */
+if ( ! function_exists( 'wpzerospam_stopforumspam_request' ) ) {
+  function wpzerospam_stopforumspam_request( $ip ) {
+    $api_url  = 'http://api.stopforumspam.org/api?';
+    $params   = [ 'ip' => $ip, 'json' => '' ];
+    $endpoint = $api_url . http_build_query( $params );
+    $response = wp_remote_get( $endpoint );
+
+    if ( is_array( $response ) && ! is_wp_error( $response ) ) {
+      $data = wp_remote_retrieve_body( $response );
+      $data = json_decode( $data, true );
+      if ( ! empty( $data['success'] ) && ! empty( $data['ip'] ) ) {
+        return $data['ip'];
+      }
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Add/update blacklisted IP
+ *
+ * @since 4.5.0
+ */
+if ( ! function_exists( 'wpzerospam_update_blacklist' ) ) {
+  function wpzerospam_update_blacklist( $data ) {
+    global $wpdb;
+
+    $update = [
+      'last_updated'   => current_time( 'mysql' ),
+      'blacklist_data' => []
+    ];
+
+    if ( ! empty( $data['ip'] ) ) {
+      $update['user_ip'] = $data['ip'];
+    }
+
+    if ( ! empty( $data['blacklist_service'] ) ) {
+      $update['blacklist_service'] = $data['blacklist_service'];
+    }
+
+    if ( ! empty( $data['appears'] ) ) {
+      $update['blacklist_data']['appears'] = intval( $data['appears'] );
+    }
+
+    if ( ! empty( $data['confidence'] ) ) {
+      $update['blacklist_data']['confidence'] = floatval( $data['confidence'] );
+    }
+
+    if ( ! empty( $data['frequency'] ) ) {
+      $update['blacklist_data']['frequency'] = floatval( $data['frequency'] );
+    }
+
+    if ( ! empty( $data['lastseen'] ) ) {
+      $update['blacklist_data']['lastseen'] = floatval( $data['lastseen'] );
+    }
+
+    if ( ! empty( $data['delegated'] ) ) {
+      $update['blacklist_data']['delegated'] = floatval( $data['delegated'] );
+    }
+
+    if ( ! empty( $data['asn'] ) ) {
+      $update['blacklist_data']['asn'] = floatval( $data['asn'] );
+    }
+
+    if ( ! empty( $data['country'] ) ) {
+      $update['blacklist_data']['country'] = floatval( $data['country'] );
+    }
+
+    if ( ! empty( $update['blacklist_data'] ) ) {
+      $update['blacklist_data'] = json_encode( $update['blacklist_data'] );
+    }
+
+    if ( ! empty( $data['blacklist_id'] ) ) {
+      // Update
+      $wpdb->update( wpzerospam_tables( 'blacklist' ), $update, [
+        'blacklist_id' => $data['blacklist_id']
+      ]);
+      return true;
+    }
+
+    // Insert
+    $wpdb->insert( wpzerospam_tables( 'blacklist' ), $update );
+    return true;
+  }
+}
+
+/**
+ * Checks the post submission for a valid key
+ *
+ * @since 4.5.0
+ */
+if ( ! function_exists( 'wpzerospam_stopforumspam_is_spam' ) ) {
+  function wpzerospam_stopforumspam_is_spam( $ip ) {
+    // First check if the IP is already in the blacklist table
+    $in_blacklist = wpzerospam_in_blacklist( $ip );
+    if ( $in_blacklist ) {
+      // Check if the record should be updated
+      $last_updated = strtotime( $in_blacklist->last_updated );
+      $current_time = current_time( 'timestamp' );
+      $expiration   = $last_updated + MONTH_IN_SECONDS;
+
+      if ( $current_time > $expiration ) {
+        // Expired, update the record
+        $stopforumspam_request = wpzerospam_stopforumspam_request( $ip );
+        if ( $stopforumspam_request ) {
+          wpzerospam_update_blacklist( $stopforumspam_request );
+
+          return $stopforumspam_request;
+        }
+      }
+
+      return $in_blacklist;
+    }
+
+    // Not in the blacklist, query the Stop Forum Spam API now
+    $stopforumspam_request = wpzerospam_stopforumspam_request( $ip );
+    if (
+      $stopforumspam_request &&
+      ! empty( $stopforumspam_request['appears'] ) &&
+      'no' != $stopforumspam_request['appears']
+    ) {
+      $new_record                      = $stopforumspam_request;
+      $new_record['ip']                = $ip;
+      $new_record['blacklist_service'] = 'stopforumspam';
+
+      wpzerospam_update_blacklist( $new_record );
+
+      return $new_record;
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Returns a record from the blacklist table if one exists
+ *
+ * @since 4.5.0
+ */
+if ( ! function_exists( 'wpzerospam_in_blacklist' ) ) {
+  function wpzerospam_in_blacklist( $ip ) {
+    global $wpdb;
+
+    return $wpdb->get_row($wpdb->prepare(
+      'SELECT * FROM ' . wpzerospam_tables( 'blacklist' ) . ' WHERE user_ip = %s',
+      $ip
+    ));
+  }
+}
+
+/**
+ * Return all blacklisted IPs in the DB
+ */
+if ( ! function_exists( 'wpzerospam_get_blacklist' ) ) {
+  function wpzerospam_get_blacklist( $args = [] ) {
+    global $wpdb;
+
+    return $wpdb->get_results( 'SELECT * FROM ' . wpzerospam_tables( 'blacklist' ) );
   }
 }

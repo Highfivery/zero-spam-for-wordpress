@@ -751,7 +751,53 @@ if ( ! function_exists( 'wpzerospam_get_location' ) ) {
       ],
       'IT' => [
         'name' => 'Italy',
-        'regions' => []
+        'regions' => [
+          '65' => [
+            'name' => 'Abruzzo'
+          ],
+          '77' => [
+            'name' => 'Basilicata'
+          ],
+          '78' => [
+            'name' => 'Calabria'
+          ],
+          '72' => [
+            'name' => 'Campania'
+          ],
+          '45' => [
+            'name' => 'Emilia-Romagna'
+          ],
+          '62' => [
+            'name' => 'Lazio'
+          ],
+          '42' => [
+            'name' => 'Liguria'
+          ],
+          '25' => [
+            'name' => 'Lombardy'
+          ],
+          '57' => [
+            'name' => 'Marche'
+          ],
+          '67' => [
+            'name' => 'Molise'
+          ],
+          '21' => [
+            'name' => 'Piedmont'
+          ],
+          '75' => [
+            'name' => 'Apulia'
+          ],
+          '52' => [
+            'name' => 'Tuscany'
+          ],
+          '55' => [
+            'name' => 'Umbria'
+          ],
+          '34' => [
+            'name' => 'Veneto'
+          ]
+        ]
       ],
       'JM' => [
         'name' => 'Jamaica',
@@ -1249,7 +1295,23 @@ if ( ! function_exists( 'wpzerospam_get_location' ) ) {
       ],
       'SG' => [
         'name' => 'Singapore',
-        'regions' => []
+        'regions' => [
+          '01' => [
+            'name' => 'Central Singapore'
+          ],
+          '02' => [
+            'name' => 'North East'
+          ],
+          '03' => [
+            'name' => 'North West'
+          ],
+          '04' => [
+            'name' => 'South East'
+          ],
+          '05' => [
+            'name' => 'South West'
+          ]
+        ]
       ],
       'SK' => [
         'name' => 'Slovakia',

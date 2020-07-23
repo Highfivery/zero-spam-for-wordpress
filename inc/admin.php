@@ -27,6 +27,15 @@ function wpzerospam_admin_menu() {
 
   add_submenu_page(
     'wordpress-zero-spam',
+    __( 'Blacklisted IPs', 'wpzerospam' ),
+    __( 'Blacklisted IPs', 'wpzerospam' ),
+    'manage_options',
+    'wordpress-zero-spam-blacklisted',
+    'wpzerospam_blacklist_page'
+  );
+
+  add_submenu_page(
+    'wordpress-zero-spam',
     __( 'WordPress Zero Spam Settings', 'wpzerospam' ),
     __( 'Settings', 'wpzerospam' ),
     'manage_options',
@@ -35,6 +44,41 @@ function wpzerospam_admin_menu() {
   );
 }
 add_action( 'admin_menu', 'wpzerospam_admin_menu' );
+
+function wpzerospam_blacklist_page() {
+  if ( ! current_user_can( 'manage_options' ) ) { return; }
+  ?>
+  <div class="wrap">
+    <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+    <?php
+    /**
+     * Blocked IP table
+     */
+    require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/classes/class-wpzerospam-blacklisted-table.php';
+
+    $table_data = new WPZeroSpam_Blacklisted_Table();
+
+    // Setup page parameters
+    $current_page = $table_data->get_pagenum();
+    $current_page = ( isset( $current_page ) ) ? $current_page : 1;
+    $paged        = ( isset( $_GET['page'] ) ) ? absint( $_GET['page'] ) : $current_page;
+    $paged        = ( isset( $_GET['paged'] ) ) ? absint(  $_GET['paged'] ) : $current_page;
+    $paged        = ( isset( $args['paged'] ) ) ? $args['paged'] : $paged;
+
+    // Fetch, prepare, sort, and filter our data...
+    $table_data->prepare_items();
+    ?>
+    <form id="log-table" method="post">
+      <?php wp_nonce_field( 'wpzerospam_nonce', 'wpzerospam_nonce' ); ?>
+
+      <?php # Current page ?>
+      <input type="hidden" name="paged" value="<?php echo $paged; ?>" />
+
+      <?php $table_data->display(); ?>
+    </form>
+  </div>
+  <?php
+}
 
 add_action( 'admin_action_add_blocked_ip', 'wpzerospam_add_blocked_ip_action' );
 function wpzerospam_add_blocked_ip_action() {
@@ -305,6 +349,11 @@ function wpzerospam_validate_options( $input ) {
   if ( empty( $input['verify_fluentform'] ) ) {
     $input['verify_fluentform'] = 'disabled';
   }
+
+  if ( empty( $input['stop_forum_spam'] ) ) {
+    $input['stop_forum_spam'] = 'disabled';
+  }
+
   return $input;
  }
 
@@ -333,7 +382,28 @@ function wpzerospam_admin_init() {
   register_setting( 'wpzerospam', 'wpzerospam', 'wpzerospam_validate_options' );
 
   add_settings_section( 'wpzerospam_general_settings', __( 'General Settings', 'wpzerospam' ), 'wpzerospam_general_settings_cb', 'wpzerospam' );
-  add_settings_section( 'wpzerospam_spam_checks', __( 'Spam Checks', 'wpzerospam' ), 'wpzerospam_spam_checks_cb', 'wpzerospam' );
+  add_settings_section( 'wpzerospam_spam_checks', __( 'Integrations & Third-party APIs', 'wpzerospam' ), 'wpzerospam_spam_checks_cb', 'wpzerospam' );
+
+  if ( 'enabled' == $options['log_spam'] ) {
+    // Redirect URL for spam detections
+    add_settings_field( 'ipstack_api', __( 'ipstack API Key', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+      'label_for'   => 'ipstack_api',
+      'type'        => 'text',
+      'class'       => 'regular-text',
+      'desc'        => 'Enter your <a href="https://ipstack.com/" target="_blank">ipstack API key</a> to enable location-based statistics.',
+    ]);
+  }
+
+  // Enables the ability to check IPs against Stop Forum Spam blacklists.
+  add_settings_field( 'stop_forum_spam', __( 'Stop Forum Spam', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+    'label_for' => 'stop_forum_spam',
+    'type'      => 'checkbox',
+    'multi'     => false,
+    'desc'      => 'Checks user IPs against <a href="https://www.stopforumspam.com/" target="_blank" rel="noopener noreferrer">Stop Forum Spam</a>\'s blacklist.',
+    'options'   => [
+      'enabled' => __( 'Enabled', 'wpzerospam' )
+    ]
+  ]);
 
   // Determines is spam detected IPs should automatically be blocked
   add_settings_field( 'auto_block_ips', __( 'Auto-block IPs', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
@@ -441,16 +511,6 @@ function wpzerospam_admin_init() {
       'enabled' => __( 'Enabled', 'wpzerospam' )
     ]
   ]);
-
-  if ( 'enabled' == $options['log_spam'] ) {
-    // Redirect URL for spam detections
-    add_settings_field( 'ipstack_api', __( 'ipstack API Key', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
-      'label_for'   => 'ipstack_api',
-      'type'        => 'text',
-      'class'       => 'regular-text',
-      'desc'        => 'Enter your <a href="https://ipstack.com/" target="_blank">ipstack API key</a> to enable location-based statistics.',
-    ]);
-  }
 
   // Comment spam check
   add_settings_field( 'verify_comments', __( 'Verify Comments', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [

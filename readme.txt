@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.4.1
+Stable tag: 4.5.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -43,7 +43,9 @@ WordPress Zero Spam was initially built based on the work by [David Walsh](http:
 * [Contact Form by WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [WP Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
 
-<small>This plugin does not support with Jetpack Comments. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).</small>
+This plugin does not support Jetpack Comments. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments). If you're running something other than one of the supported plugins above, it won't detect spam submissions without some additional integration.
+
+Feel free to report any [bugs/feature requests here](https://github.com/bmarshall511/wordpress-zero-spam/issues).
 
 Have a question, comment or suggestion? Feel free to [contact me](https://benmarshall.me/contact/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam), follow me [on Twitter](https://twitter.com/bmarshall0511) or [visit my site](https://benmarshall.me/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
 
@@ -90,8 +92,20 @@ Yes, that's what does the magic and keeps spam bots out.
 * `wpzerospam_ninja_forms_spam` - Fires when a spam submission is made with a Ninja Form.
 * `wpzerospam_bp_registration_spam` - Fires when a BuddyPress spam registration is detected.
 * `wpzerospam_wpform_spam` - Fires when a spam submission is made with a WPForm.
+* `wpzerospam_fluentform_spam` - Fires when a spam submission is made with a WP Fluent Form
+
+== Screenshots ==
+
+1. WordPress Zero Spam dashboard
+2. WordPress Zero Spam blocked IPs
+3. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.5.0 =
+
+* Added integration with the Stop Forum Spam known spammy IPs
+* Fixed issue with Gravity Forms not being enabled by default
 
 = 4.4.1 =
 

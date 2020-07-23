@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version:           4.4.1
+ * Version:           4.5.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Ben Marshall
@@ -30,8 +30,8 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 // Define plugin constants
 define( 'WORDPRESS_ZERO_SPAM', __FILE__ );
-define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.1' );
-define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.4.1' );
+define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.2' );
+define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.5.0' );
 
 /**
  * Helpers
@@ -53,36 +53,54 @@ function wpzerospam_install() {
   $installed_db_version = get_option( 'wpzerospam_db_version' );
 
   if ( $installed_db_version != WORDPRESS_ZERO_SPAM_DB_VERSION ) {
-    $log_table     = wpzerospam_tables( 'log' );
-    $blocked_table = wpzerospam_tables( 'blocked' );
+    $log_table       = wpzerospam_tables( 'log' );
+    $blocked_table   = wpzerospam_tables( 'blocked' );
+    $blacklist_table = wpzerospam_tables( 'blacklist' );
 
-    $sql = "CREATE TABLE $log_table (
-      log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-      log_type VARCHAR(255) NOT NULL,
-      user_ip VARCHAR(255) NOT NULL,
-      date_recorded DATETIME NOT NULL,
-      page_url VARCHAR(255) NULL DEFAULT NULL,
-      submission_data LONGTEXT NULL DEFAULT NULL,
-      country VARCHAR(2) NULL DEFAULT NULL,
-      region VARCHAR(255) NULL DEFAULT NULL,
-      city VARCHAR(255) NULL DEFAULT NULL,
-      latitude VARCHAR(255) NULL DEFAULT NULL,
-      longitude VARCHAR(255) NULL DEFAULT NULL,
-      PRIMARY KEY (`log_id`)) $charset_collate;";
+    $sql = '';
+    if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $log_table . '\'' ) != $log_table ) {
+      $sql .= "CREATE TABLE $log_table (
+        log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        log_type VARCHAR(255) NOT NULL,
+        user_ip VARCHAR(255) NOT NULL,
+        date_recorded DATETIME NOT NULL,
+        page_url VARCHAR(255) NULL DEFAULT NULL,
+        submission_data LONGTEXT NULL DEFAULT NULL,
+        country VARCHAR(2) NULL DEFAULT NULL,
+        region VARCHAR(255) NULL DEFAULT NULL,
+        city VARCHAR(255) NULL DEFAULT NULL,
+        latitude VARCHAR(255) NULL DEFAULT NULL,
+        longitude VARCHAR(255) NULL DEFAULT NULL,
+        PRIMARY KEY (`log_id`)) $charset_collate;";
+    }
 
-    $sql .= "CREATE TABLE $blocked_table (
-      blocked_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-      blocked_type ENUM('permanent','temporary') NOT NULL DEFAULT 'temporary',
-      user_ip VARCHAR(255) NOT NULL,
-      date_added DATETIME NOT NULL,
-      start_block DATETIME NULL DEFAULT NULL,
-      end_block DATETIME NULL DEFAULT NULL,
-      reason VARCHAR(255) NULL DEFAULT NULL,
-      attempts BIGINT UNSIGNED NOT NULL,
-      PRIMARY KEY (`blocked_id`)) $charset_collate;";
+    if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $blocked_table . '\'' ) != $blocked_table ) {
+      $sql .= "CREATE TABLE $blocked_table (
+        blocked_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        blocked_type ENUM('permanent','temporary') NOT NULL DEFAULT 'temporary',
+        user_ip VARCHAR(255) NOT NULL,
+        date_added DATETIME NOT NULL,
+        start_block DATETIME NULL DEFAULT NULL,
+        end_block DATETIME NULL DEFAULT NULL,
+        reason VARCHAR(255) NULL DEFAULT NULL,
+        attempts BIGINT UNSIGNED NOT NULL,
+        PRIMARY KEY (`blocked_id`)) $charset_collate;";
+    }
 
-    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-    dbDelta( $sql );
+    if ( $wpdb->get_var( 'SHOW TABLES LIKE \'' . $blacklist_table . '\'' ) != $blacklist_table ) {
+      $sql .= "CREATE TABLE $blacklist_table (
+        blacklist_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_ip VARCHAR(255) NOT NULL,
+        last_updated DATETIME NOT NULL,
+        blacklist_service VARCHAR(255) NULL DEFAULT NULL,
+        blacklist_data LONGTEXT NULL DEFAULT NULL,
+        PRIMARY KEY (`blacklist_id`)) $charset_collate;";
+    }
+
+    if( $sql ) {
+      require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+      dbDelta( $sql );
+    }
 
     update_option( 'wpzerospam_db_version', WORDPRESS_ZERO_SPAM_DB_VERSION );
   }
