@@ -965,7 +965,7 @@ if ( ! function_exists( 'wpzerospam_get_blacklist' ) ) {
  */
 if ( ! function_exists( 'wpzerospam_send_detection' ) ) {
   function wpzerospam_send_detection( $data ) {
-    $api_url = 'https://benmarshall.me/wp-json/wpzerospamapi/v1/detection/';
+    $api_url = 'https://zerospam.org/wp-json/wpzerospamapi/v1/detection/';
 
     if (
       empty( $data['ip'] ) ||

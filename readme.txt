@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.7.0
+Stable tag: 4.7.1
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -116,6 +116,10 @@ Yes, that's what does the magic and keeps spam bots out.
 3. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.7.1 =
+
+* Update to the WP Zero Spam API
 
 = 4.7.0 =
 
