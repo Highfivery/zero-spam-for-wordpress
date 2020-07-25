@@ -11,6 +11,14 @@
  */
 if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
   function wpzerospam_admin_scripts( $hook_suffix ) {
+    wp_enqueue_style(
+      'wpzerospam-admin',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/assets/css/admin.css',
+      false,
+      WORDPRESS_ZERO_SPAM_VERSION
+    );
+
     wp_register_script(
       'wpzerospam-admin-tables',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
@@ -28,9 +36,9 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
       WORDPRESS_ZERO_SPAM_VERSION
     );
 
-
     // Handle registering & enqueuing scripts based on the current admin page
     switch( $hook_suffix ) {
+      case 'wp-zero-spam_page_wordpress-zero-spam-detections':
       case 'wp-zero-spam_page_wordpress-zero-spam-blacklisted':
         wp_enqueue_script( 'wpzerospam-admin-tables' );
         wp_enqueue_style( 'wpzerospam-admin-tables' );
@@ -61,11 +69,11 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
           false,
           WORDPRESS_ZERO_SPAM_VERSION
         );
-
-        wp_enqueue_script( 'wpzerospam-admin-tables' );
-        wp_enqueue_style( 'wpzerospam-admin-tables' );
       break;
       case 'wp-zero-spam_page_wordpress-zero-spam-blocked-ips':
+        wp_enqueue_script( 'wpzerospam-admin-tables' );
+        wp_enqueue_style( 'wpzerospam-admin-tables' );
+
         // Enqueue the JS for the WordPress Zero Spam blocked IPs page
         wp_enqueue_script(
           'wpzerospam-admin-blocked-ips',

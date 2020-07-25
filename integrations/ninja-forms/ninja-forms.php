@@ -7,6 +7,14 @@
  */
 
 /**
+ * Add the 'ninja_forms' spam type
+ */
+add_filter( 'wpzerospam_types', function( $types ) {
+  $types = array_merge( $types, [ 'ninja_forms' => 'Ninja Forms' ] );
+  return $types;
+});
+
+/**
  * Validation for Ninja Forms submissions
  */
 if ( ! function_exists( 'wpzerospam_ninja_forms_validate' ) ) {

@@ -7,6 +7,14 @@
  */
 
 /**
+ * Add the 'wpform' spam type
+ */
+add_filter( 'wpzerospam_types', function( $types ) {
+  $types = array_merge( $types, [ 'wpform' => 'WPForms' ] );
+  return $types;
+});
+
+/**
  * Validation for WPForms submissions
  *
  * @link https://wpforms.com/developers/wpforms_process_before/

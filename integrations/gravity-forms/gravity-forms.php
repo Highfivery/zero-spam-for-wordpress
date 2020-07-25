@@ -7,6 +7,14 @@
  */
 
 /**
+ * Add the 'fluentform' spam type
+ */
+add_filter( 'wpzerospam_types', function( $types ) {
+  $types = array_merge( $types, [ 'gform' => 'Gravity Forms' ] );
+  return $types;
+});
+
+/**
  * Validation for CF7 submissions
  */
 if ( ! function_exists( 'wpzerospam_gform_validate' ) ) {

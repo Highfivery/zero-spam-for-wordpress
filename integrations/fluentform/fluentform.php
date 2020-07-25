@@ -7,6 +7,14 @@
  */
 
 /**
+ * Add the 'fluentform' spam type
+ */
+add_filter( 'wpzerospam_types', function( $types ) {
+  $types = array_merge( $types, [ 'fluentform' => 'Fluent Forms' ] );
+  return $types;
+});
+
+/**
  * Validation for Fluent Form submissions
  */
 if ( ! function_exists( 'wpzerospam_fluentform_validate' ) ) {

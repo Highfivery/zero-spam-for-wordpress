@@ -7,6 +7,14 @@
  */
 
 /**
+ * Add the 'registration' spam type
+ */
+add_filter( 'wpzerospam_types', function( $types ) {
+  $types = array_merge( $types, [ 'registration' => 'Registration' ] );
+  return $types;
+});
+
+/**
  * Preprocess registration fields
  */
 if ( ! function_exists( 'wpzerospam_preprocess_registration' ) ) {

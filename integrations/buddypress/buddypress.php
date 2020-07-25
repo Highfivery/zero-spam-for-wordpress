@@ -7,6 +7,14 @@
  */
 
 /**
+ * Add the 'bp_registration' spam type
+ */
+add_filter( 'wpzerospam_types', function( $types ) {
+  $types = array_merge( $types, [ 'bp_registration' => 'BuddyPress Registration' ] );
+  return $types;
+});
+
+/**
  * Validation for BuddyPress registrations
  */
 if ( ! function_exists( 'wpzerospam_bp_signup_validate' ) ) {

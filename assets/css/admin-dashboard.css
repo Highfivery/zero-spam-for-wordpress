@@ -1,52 +1,3 @@
-.wpzerospam-callout {
-  align-items: center;
-  background: #fff;
-  border: 1px solid #ccd0d4;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-wrap: wrap;
-  padding: 20px;
-}
-
-.wpzerospam-callout h2 {
-  font-size: 18px;
-  margin-bottom: 10px;
-}
-
-.wpzerospam-callout p {
-  font-size: 14px;
-  margin-top: 0;
-}
-
-.wpzerospam-callout-actions {
-  display: block;
-  width: 100%;
-}
-
-.wpzerospam-callout-actions a.button {
-  display: block;
-  margin-bottom: 3px;
-  text-align: center;
-  width: 100%;
-}
-
-.wpzerospam-callout-actions a:last-child {
-  margin-bottom: 0;
-}
-
-@media (min-width: 960px) {
-  .wpzerospam-callout {
-    flex-wrap: nowrap;
-  }
-
-  .wpzerospam-callout-actions {
-    display: flex;
-    flex-wrap: wrap;
-    margin-left: 50px;
-    width: auto;
-  }
-}
-
 .wpzerospam-blocked-ip-option {
   margin-bottom: 0.3rem;
 }
@@ -103,6 +54,40 @@
 .wpzerospam-box .inside,
 .wpzerospam-box h3 {
   padding: 12px;
+}
+
+.wpzerospam-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wpzerospam-list li {
+  display: flex;
+}
+
+.wpzerospam-list-cell,
+.wpzerospam-list .wpzerospam-country-flag {
+  flex-shrink: 0;
+}
+
+.wpzerospam-list .wpzerospam-country-flag {
+  margin-right: 8px;
+  width: 16px;
+}
+
+.wpzerospam-list-cell {
+  width: 130px;
+}
+
+.wpzerospam-list-cell-small {
+  text-align: right;
+  width: 30px;
+}
+
+.wpzerospam-action {
+  flex-grow: 1;
+  text-align: right;
 }
 
 @media (min-width: 768px) {

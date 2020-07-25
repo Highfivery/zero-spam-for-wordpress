@@ -48,13 +48,59 @@ if ( ! function_exists( 'wpzerospam_get_ip_info' ) ) {
 }
 
 /**
- * Handles what happens when spam is detected
+ * Returns an array of spam detection types
+ */
+if ( ! function_exists( 'wpzerospam_types' ) ) {
+  function wpzerospam_types( $key = false ) {
+    $types = apply_filters( 'wpzerospam_types', [ 'blocked' => __( 'Access Blocked', 'wpzerospam' ) ] );
+
+    if ( $key ) {
+      if ( ! empty( $types[ $key ] ) ) {
+        return $types[ $key ];
+      }
+
+      return $key;
+    }
+
+    return $types;
+  }
+}
+
+/**
+ * Returns spam detections from the database
  */
 if ( ! function_exists( 'wpzerospam_get_log' ) ) {
-  function wpzerospam_get_log( $args = [] ) {
+  function wpzerospam_get_log( $args = false ) {
     global $wpdb;
 
-    return $wpdb->get_results( 'SELECT * FROM ' . wpzerospam_tables( 'log' ) );
+    if( 'total' == $args ) {
+      return $wpdb->get_var( 'SELECT COUNT(log_id) FROM ' . wpzerospam_tables( 'log' ));
+    }
+
+    $sql = 'SELECT * FROM ' . wpzerospam_tables( 'log' );
+    if ( is_array( $args ) ) {
+      if ( ! empty( $args['type'] ) ) {
+        $sql .= ' WHERE log_type = "' . $args['type'] . '"';
+      }
+
+      if ( ! empty( $args['orderby'] ) ) {
+        $sql .= ' ORDER BY ' . $args['orderby'];
+      }
+
+      if ( ! empty( $args['order'] ) ) {
+        $sql .= ' ' . $args['order'];
+      }
+
+      if ( ! empty( $args['limit'] ) ) {
+        $sql .= ' LIMIT ' . $args['limit'];
+      }
+
+      if ( ! empty( $args['offset'] ) ) {
+        $sql .= ', ' . $args['offset'];
+      }
+    }
+
+    return $wpdb->get_results( $sql );
   }
 }
 
@@ -64,17 +110,28 @@ if ( ! function_exists( 'wpzerospam_get_log' ) ) {
 if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
   function wpzerospam_spam_detected( $type, $data = [], $handle_error = true ) {
     $options = wpzerospam_options();
+    $ip      = wpzerospam_ip();
 
+    // Log the spam sttempt
     wpzerospam_log_spam( $type, $data );
 
-    // Check if the IP should be auto-blocked
-    if ( 'enabled' == $options['auto_block_ips'] ) {
+    // Check if number attempts should result in a permanent block
+    $blocked_ip = wpzerospam_get_blocked_ips( $ip );
+    if ( $blocked_ip && $blocked_ip->attempts >= $options['auto_block_permanently'] ) {
+      // Permanently block the IP
+      wpzerospam_update_blocked_ip( $ip , [
+        'blocked_type' => 'permanent',
+        'reason'       => $type . ' (permanently auto-blocked)'
+      ]);
+
+    // Check if the IP should be temporarily auto-blocked
+    } elseif ( 'enabled' == $options['auto_block_ips'] ) {
 
       $start_block = current_time( 'mysql' );
       $end_block   = new DateTime( $start_block );
       $end_block->add( new DateInterval( 'PT' . $options['auto_block_period'] . 'M' ) );
 
-      wpzerospam_update_blocked_ip( wpzerospam_ip(), [
+      wpzerospam_update_blocked_ip( $ip , [
         'blocked_type' => 'temporary',
         'start_block'  => $start_block,
         'end_block'    => $end_block->format('Y-m-d G:i:s'),
@@ -183,21 +240,28 @@ if ( ! function_exists( 'wpzerospam_log_spam' ) ) {
 
     $options = wpzerospam_options();
 
-    // Check if spam logging is enabled, also check if type is 'denied'
-    // (blocked IP address) & logging of blocked IPs is enabled.
-    if (
-      'enabled' != $options['log_spam'] ||
-      ( 'denied' == $type && 'enabled' != $options['log_blocked_ips'] )
-    ) {
-      // Logging disabled
-      return false;
-    }
-
     if ( ! empty( $data['ip'] ) ) {
       $ip_address = $data['ip'];
       unset( $data['ip'] );
     } else {
       $ip_address = wpzerospam_ip();
+    }
+
+    // Check is the spam detection should be shared
+    if ( 'enabled' == $options['share_detections'] ) {
+      wpzerospam_send_detection([
+        'ip'   => $ip_address,
+        'type' => $type
+      ]);
+    }
+
+    // Check if spam logging is enabled, also check if type is 'denied'
+    // (blocked IP address) & logging of blocked IPs is enabled.
+    if ( 'enabled' != $options['log_spam'] ||
+      ( 'blocked' == $type && 'enabled' != $options['log_blocked_ips'] )
+    ) {
+      // Logging disabled
+      return false;
     }
 
     $current_url   = wpzerospam_current_url();
@@ -404,11 +468,16 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['verify_comments'] ) ) { $options['verify_comments'] = 'enabled'; }
     if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
     if ( empty( $options['log_blocked_ips'] ) ) { $options['log_blocked_ips'] = 'disabled'; }
+    if ( empty( $options['auto_block_permanently'] ) ) { $options['auto_block_permanently'] = 3; }
 
     if ( empty( $options['botscout_api'] ) ) { $options['botscout_api'] = false; }
 
     if ( empty( $options['verify_cf7'] )  ) {
       $options['verify_cf7'] = 'enabled';
+    }
+
+    if ( empty( $options['share_detections'] )  ) {
+      $options['share_detections'] = 'enabled';
     }
 
     if ( empty( $options['verify_gform'] )  ) {
@@ -476,6 +545,45 @@ if ( ! function_exists( 'wpzerospam_ip' ) ) {
 }
 
 /**
+ * Return true/false if the IP is currently blocked
+ */
+if ( ! function_exists( 'wpzerospam_is_blocked' ) ) {
+  function wpzerospam_is_blocked( $blocked_ip_entry ) {
+    if ( 'permanent' == $blocked_ip_entry->blocked_type ) {
+      return true;
+    }
+
+    $todays_date = new DateTime( current_time( 'mysql' ) );
+
+    if ( ! empty( $blocked_ip_entry->start_block ) || ! empty( $blocked_ip_entry->end_block ) ) {
+      $start_block = ! empty( $blocked_ip_entry->start_block ) ? new DateTime( $blocked_ip_entry->start_block ): false;
+      $end_block   = ! empty( $is_blocked->end_block ) ? new DateTime( $is_blocked->end_block ): false;
+
+      // @TODO - I'm sure there's a better way to handle this
+      if (
+        (
+          $start_block && $end_block &&
+          $todays_date->getTimestamp() >= $start_block->getTimestamp() &&
+          $todays_date->getTimestamp() <= $end_block->getTimestamp()
+        ) || (
+          $start_block && ! $end_block &&
+          $todays_date->getTimestamp() >= $start_block->getTimestamp()
+        ) || (
+          ! $start_block && $end_block &&
+          $todays_date->getTimestamp() <= $end_block->getTimestamp()
+        )
+      ) {
+        return true;
+      }
+    } else {
+      return true;
+    }
+
+    return false;
+  }
+}
+
+/**
  * Checks to see if the current user has access to the site
  */
 if ( ! function_exists( 'wpzerospam_check_access' ) ) {
@@ -487,7 +595,14 @@ if ( ! function_exists( 'wpzerospam_check_access' ) ) {
     // Ignore admin dashboard & login page checks
     if (
       is_admin() || wpzerospam_is_login() ||
-      ( ! is_singular() && ! is_page() && ! is_single() && ! is_archive() && ! is_home() && ! is_front_page() )
+      (
+        ! is_singular() &&
+        ! is_page() &&
+        ! is_single() &&
+        ! is_archive() &&
+        ! is_home() &&
+        ! is_front_page()
+      )
     ) {
       return $access;
     }
@@ -544,47 +659,9 @@ if ( ! function_exists( 'wpzerospam_check_access' ) ) {
       return $access;
     }
 
-    // IP address was found in the blocked IPs list, determine the type and if
-    // it should still be blocked.
-    if ( 'permanent' == $is_blocked->blocked_type ) {
+    if ( wpzerospam_is_blocked( $is_blocked ) ) {
       $access['access'] = false;
       $access['reason'] = $is_blocked->reason;
-    } else {
-      $todays_date = new DateTime( current_time( 'mysql' ) );
-
-      if ( ! empty( $is_blocked->start_block ) || ! empty( $is_blocked->end_block ) ) {
-        $start_block = ! empty( $is_blocked->start_block ) ? new DateTime( $is_blocked->start_block ): false;
-        $end_block   = ! empty( $is_blocked->end_block ) ? new DateTime( $is_blocked->end_block ): false;
-
-        // @TODO - I'm sure there's a better way to handle this
-        if (
-          $start_block && $end_block &&
-          $todays_date->getTimestamp() >= $start_block->getTimestamp() &&
-          $todays_date->getTimestamp() <= $end_block->getTimestamp()
-        ) {
-          $access['access'] = false;
-          $access['ip']     = $ip;
-          $access['reason'] = $is_blocked->reason;
-        } elseif (
-          $start_block && ! $end_block &&
-          $todays_date->getTimestamp() >= $start_block->getTimestamp()
-        ) {
-          $access['access'] = false;
-          $access['ip']     = $ip;
-          $access['reason'] = $is_blocked->reason;
-        } elseif (
-          ! $start_block && $end_block &&
-          $todays_date->getTimestamp() <= $end_block->getTimestamp()
-        ) {
-          $access['access'] = false;
-          $access['ip']     = $ip;
-          $access['reason'] = $is_blocked->reason;
-        }
-      } else {
-        $access['access'] = false;
-        $access['ip']     = $ip;
-        $access['reason'] = $is_blocked->reason;
-      }
     }
 
     return $access;
@@ -880,5 +957,36 @@ if ( ! function_exists( 'wpzerospam_get_blacklist' ) ) {
     global $wpdb;
 
     return $wpdb->get_results( 'SELECT * FROM ' . wpzerospam_tables( 'blacklist' ) );
+  }
+}
+
+/**
+ * Sends a spam detection to the WordPress Zero Spam database
+ */
+if ( ! function_exists( 'wpzerospam_send_detection' ) ) {
+  function wpzerospam_send_detection( $data ) {
+    $api_url = 'https://benmarshall.me/wp-json/wpzerospamapi/v1/detection/';
+
+    if (
+      empty( $data['ip'] ) ||
+      empty( $data['type'] )
+    ) {
+      return false;
+    }
+
+    $request = wp_remote_post( $api_url, [
+      'method' => 'POST',
+      'body'   => [
+        'ip'   => $data['ip'],
+        'type' => $data['type'],
+        'site' => site_url()
+      ],
+      'sslverify' => true
+    ]);
+    if ( is_wp_error( $request ) ) {
+      return false;
+    }
+
+    return wp_remote_retrieve_body( $request );
   }
 }

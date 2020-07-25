@@ -7,6 +7,14 @@
  */
 
 /**
+ * Add the 'cf7' spam type
+ */
+add_filter( 'wpzerospam_types', function( $types ) {
+  $types = array_merge( $types, [ 'cf7' => 'Contact Form 7' ] );
+  return $types;
+});
+
+/**
  * Validation for CF7 submissions
  */
 if ( ! function_exists( 'wpzerospam_wpcf7_validate' ) ) {

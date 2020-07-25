@@ -56,6 +56,32 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
     return $sortable_columns;
   }
 
+  function extra_tablenav( $which ) {
+    global $cat_id;
+
+    if ( 'top' !== $which ) {
+      return;
+    }
+    ?>
+    <div class="alignleft actions">
+      <?php
+      echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type' ) . '</label>';
+      $options      = wpzerospam_types();
+      $current_type = ! empty( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : false;
+      ?>
+      <select name="type" id="filter-by-type">
+        <option value=""><?php _e( 'All types', 'wpzerospam' ); ?></option>
+        <?php foreach( $options as $key => $value ): ?>
+          <option<?php if ( $current_type == $key ): ?> selected="selected" <?php endif; ?> value="<?php echo $key; ?>"><?php echo $value; ?></option>
+        <?php endforeach; ?>
+      </select>
+      <?php
+      submit_button( __( 'Filter' ), '', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
+      ?>
+    </div>
+    <?php
+  }
+
   // Checkbox column
   function column_cb( $item ){
     return sprintf(
@@ -69,13 +95,18 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
   function column_default( $item, $column_name ) {
     switch( $column_name ) {
       case 'actions':
-        return '<a href="' . admin_url( 'admin.php?page=wordpress-zero-spam-blocked-ips&ip=' . $item->user_ip ) . '" class="button">' . __( 'Configure IP Block', 'wpzerospam' ) . '</a>';
+        $blocked_status = wpzerospam_get_blocked_ips( $item->user_ip );
+        if ( $blocked_status && wpzerospam_is_blocked( $blocked_status ) ) {
+          return '<span class="wpzerospam-blocked">' . __( 'Blocked', 'wpzerospam' ) . '</span>';
+        } else {
+          return '<a class="button" href="' . admin_url( 'admin.php?page=wordpress-zero-spam-blocked-ips&ip=' . $item->user_ip ) . '">' . __( 'Configure IP Block', 'wpzerospam' ) . '</a>';
+        }
       break;
       case 'log_id':
         return $item->log_id;
       break;
       case 'log_type':
-        return $item->log_type;
+        return '<span class="wpzerospam-' . $item->log_type . '">' . wpzerospam_types( $item->log_type ) . '</span>';
       break;
       case 'user_ip':
         return '<a href="https://whatismyipaddress.com/ip/' . $item->user_ip .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>';
@@ -87,7 +118,8 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
         if ( ! $item->country ) {
           return 'N/A';
         }
-        return wpzerospam_get_location( $item->country );
+
+        return '<img class="wpzerospam-country-flag" width="16" src="https://hatscripts.github.io/circle-flags/flags/' . strtolower( $item->country ) . '.svg" alt="' . wpzerospam_get_location( $item->country ) .'" /> ' . wpzerospam_get_location( $item->country );
       break;
       case 'region':
         $region = wpzerospam_get_location( $item->country, $item->region );
@@ -132,7 +164,7 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
 
             echo '<div class="wpzerospam-details-item">';
             echo '<div class="wpzerospam-details-label">' . __( 'Type', 'wpzerospam' ) . '</div>';
-            echo '<div class="wpzerospam-details-data">' . $item->log_type . '</div>';
+            echo '<div class="wpzerospam-details-data">' . wpzerospam_types( $item->log_type ) . '</div>';
             echo '</div>';
 
             if ( $item->country ) {
@@ -393,19 +425,36 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
     $hidden   = $this->get_hidden_columns();
     $sortable = $this->get_sortable_columns();
 
-    $data = wpzerospam_get_log();
-    usort( $data, [ &$this, 'sort_data' ] );
-
     $per_page     = 50;
     $current_page = $this->get_pagenum();
-    $total_items  = count( $data );
+    $offset       = $per_page * ( $current_page - 1 );
+    $order        = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( $_REQUEST['order'] ) : 'desc';
+    $orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( $_REQUEST['orderby'] ) : 'date_recorded';
+
+    $type = ! empty( $_POST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
+
+    $data = wpzerospam_get_log([
+      'limit'   => $per_page,
+      'offset'  => $offset,
+      'order'   => $order,
+      'orderby' => $orderby,
+      'type'    => $type
+    ]);
+    if ( ! $data ) { return false; }
+
+    usort( $data, [ &$this, 'sort_data' ] );
+
+    $total_items = wpzerospam_get_log( 'total' );
 
     $this->set_pagination_args([
       'total_items' => $total_items,
-      'per_page'    => $per_page
+      'per_page'    => $per_page,
+      'total_pages'	=> ceil( $total_items / $per_page ),
+      'orderby'	    => $orderby,
+			'order'		    => $order
     ]);
 
-    $data = array_slice ( $data, ( ( $current_page - 1 ) * $per_page ), $per_page );
+    //$data = array_slice ( $data, ( ( $current_page - 1 ) * $per_page ), $per_page );
 
     $this->_column_headers = [ $columns, $hidden, $sortable ];
     $this->items           = $data;

@@ -7,6 +7,14 @@
  */
 
 /**
+ * Add the 'comment' spam type
+ */
+add_filter( 'wpzerospam_types', function( $types ) {
+  $types = array_merge( $types, [ 'comment' => 'Comment' ] );
+  return $types;
+});
+
+/**
  * Preprocess comment fields
  */
 if ( ! function_exists( 'wpzerospam_preprocess_comment' ) ) {
