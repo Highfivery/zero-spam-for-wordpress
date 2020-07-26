@@ -76,7 +76,7 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
         <?php endforeach; ?>
       </select>
       <?php
-      submit_button( __( 'Filter' ), '', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
+      submit_button( __( 'Filter' ), '', 'filter_action', false );
       ?>
     </div>
     <?php
@@ -431,20 +431,34 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
     $order        = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( $_REQUEST['order'] ) : 'desc';
     $orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( $_REQUEST['orderby'] ) : 'date_recorded';
 
-    $type = ! empty( $_POST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
+    $log_type = ! empty( $_POST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
+    $user_ip  = ! empty( $_POST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
 
-    $data = wpzerospam_get_log([
+    $query_args = [
       'limit'   => $per_page,
       'offset'  => $offset,
       'order'   => $order,
-      'orderby' => $orderby,
-      'type'    => $type
-    ]);
+      'orderby' => $orderby
+    ];
+
+    if ( $log_type || $user_ip ) {
+      $query_args['where'] = [];
+
+      if ( $log_type ) {
+        $query_args['where']['log_type'] = $log_type;
+      }
+
+      if ( $user_ip ) {
+        $query_args['where']['user_ip'] = $user_ip;
+      }
+    }
+
+    $data = wpzerospam_query( 'log', $query_args );
     if ( ! $data ) { return false; }
 
     usort( $data, [ &$this, 'sort_data' ] );
 
-    $total_items = wpzerospam_get_log( 'total' );
+    $total_items = wpzerospam_query( 'log', $query_args, true );
 
     $this->set_pagination_args([
       'total_items' => $total_items,
@@ -453,8 +467,6 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
       'orderby'	    => $orderby,
 			'order'		    => $order
     ]);
-
-    //$data = array_slice ( $data, ( ( $current_page - 1 ) * $per_page ), $per_page );
 
     $this->_column_headers = [ $columns, $hidden, $sortable ];
     $this->items           = $data;

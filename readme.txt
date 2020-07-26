@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.7.1
+Stable tag: 4.8.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -23,11 +23,13 @@ WordPress Zero Spam blocks spam submissions including comments, registrations an
 * **No moderation queues**, spam isn't a administrators' problem
 * **Blocks 99.9% of spam** submissions
 * **Blocks spammy IPs** from ever seeing your site
-* **Checks known spam blacklists** ([Stop Forum Spam](https://www.stopforumspam.com/), [BotScout](https://botscout.com/))
+* **Checks spam blacklists** ([Zero Spam](https://zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/), [BotScout](https://botscout.com/))
 * **Auto-block IPs** when a spam detection is triggered
 * **Manually block IPs** either temporarily or permanently
 * **Developer-friendly**, integrate with any theme, plugin or form
 * **Detailed logging** to catch & block recurring spammers
+* **Geolocate IP addresses** to see where spammers are coming from
+* **Whitelist IPs** to avoid getting blocked
 * **Advanced settings** for complete control over spammers
 * **Charts &amp; statistics** for easy to understand spam analytics
 
@@ -116,6 +118,12 @@ Yes, that's what does the magic and keeps spam bots out.
 3. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.8.0 =
+
+* Added filter & seach options to admin tables
+* Various performance enhancements
+* Added ability to whitelist IP addresses
 
 = 4.7.1 =
 

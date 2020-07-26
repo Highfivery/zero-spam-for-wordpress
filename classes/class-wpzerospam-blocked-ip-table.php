@@ -55,6 +55,30 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
     return $sortable_columns;
   }
 
+  function extra_tablenav( $which ) {
+    global $cat_id;
+
+    if ( 'top' !== $which ) {
+      return;
+    }
+    ?>
+    <div class="alignleft actions">
+      <?php
+      echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type' ) . '</label>';
+      $current_type = ! empty( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : false;
+      ?>
+      <select name="type" id="filter-by-type">
+        <option value=""><?php _e( 'All types', 'wpzerospam' ); ?></option>
+        <option<?php if ( $current_type == 'permanent' ): ?> selected="selected" <?php endif; ?> value="permanent"><?php _e( 'Permanent', 'wpzerospam' ); ?></option>
+        <option<?php if ( $current_type == 'temporary' ): ?> selected="selected" <?php endif; ?> value="temporary"><?php _e( 'Temporary', 'wpzerospam' ); ?></option>
+      </select>
+      <?php
+      submit_button( __( 'Filter' ), '', 'filter_action', false );
+      ?>
+    </div>
+    <?php
+  }
+
   // Checkbox column
   function column_cb( $item ){
     return sprintf(
@@ -159,19 +183,48 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
     $hidden   = $this->get_hidden_columns();
     $sortable = $this->get_sortable_columns();
 
-    $data = wpzerospam_get_blocked_ips();
-    usort( $data, [ &$this, 'sort_data' ] );
-
     $per_page     = 50;
     $current_page = $this->get_pagenum();
-    $total_items  = count( $data );
+    $offset       = $per_page * ( $current_page - 1 );
+    $order        = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( $_REQUEST['order'] ) : 'desc';
+    $orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( $_REQUEST['orderby'] ) : 'date_added';
+
+    $user_ip      = ! empty( $_POST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
+    $blocked_type = ! empty( $_POST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
+
+    $query_args = [
+      'limit'   => $per_page,
+      'offset'  => $offset,
+      'order'   => $order,
+      'orderby' => $orderby
+    ];
+
+    if ( $blocked_type || $user_ip ) {
+      $query_args['where'] = [];
+
+      if ( $blocked_type ) {
+        $query_args['where']['blocked_type'] = $blocked_type;
+      }
+
+      if ( $user_ip ) {
+        $query_args['where']['user_ip'] = $user_ip;
+      }
+    }
+
+    $data = wpzerospam_query( 'blocked', $query_args );
+    if ( ! $data ) { return false; }
+
+    usort( $data, [ &$this, 'sort_data' ] );
+
+    $total_items = wpzerospam_query( 'blocked', $query_args, true );
 
     $this->set_pagination_args([
       'total_items' => $total_items,
-      'per_page'    => $per_page
+      'per_page'    => $per_page,
+      'total_pages'	=> ceil( $total_items / $per_page ),
+      'orderby'	    => $orderby,
+			'order'		    => $order
     ]);
-
-    $data = array_slice ( $data, ( ( $current_page - 1 ) * $per_page ), $per_page );
 
     $this->_column_headers = [ $columns, $hidden, $sortable ];
     $this->items           = $data;

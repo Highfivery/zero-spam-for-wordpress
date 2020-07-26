@@ -12,6 +12,83 @@
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/locations.php';
 
 /**
+ * Query the database
+ */
+if ( ! function_exists( 'wpzerospam_query' ) ) {
+  function wpzerospam_query( $table, $args = [], $return_total = false ) {
+    global $wpdb;
+
+    $sql = 'SELECT';
+
+    if ( ! $return_total ) {
+      if ( ! empty( $args['select'] ) ) {
+        $sql .= ' ' . implode( ',', $args['select'] );
+      } else {
+        $sql .= ' *';
+      }
+    } else {
+      $sql .= ' COUNT(*)';
+    }
+
+    $sql .= ' FROM ' . wpzerospam_tables( $table );
+
+    if ( ! empty( $args['where'] ) ) {
+      $sql .= ' WHERE';
+      $cnt = 0;
+      foreach( $args['where'] as $k => $v ) {
+        if ( $cnt ) {
+          $sql .= ' AND ';
+        } else {
+          $sql .= ' ';
+        }
+
+        if ( is_int( $v ) ) {
+          $sql .= $k . ' = ' . $v;
+        } else {
+          $sql .= $k . ' = "' . $v . '"';
+        }
+
+        $cnt++;
+      }
+    }
+
+    if ( ! empty( $args['orderby'] ) ) {
+      $sql .= ' ORDER BY ' . $args['orderby'];
+    }
+
+    if ( ! empty( $args['order'] ) ) {
+      $sql .= ' ' . $args['order'];
+    }
+
+    if ( ! $return_total ) {
+      if ( ! empty( $args['limit'] ) ) {
+        $sql .= ' LIMIT ' . $args['limit'];
+      }
+
+      if ( ! empty( $args['offset'] ) ) {
+        $sql .= ', ' . $args['offset'];
+      }
+    }
+
+    if ( ! $return_total ) {
+      return $wpdb->get_results( $sql );
+    } else {
+      return $wpdb->get_var( $sql );
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
  * Handles what happens when spam is detected
  */
 if ( ! function_exists( 'wpzerospam_get_ip_info' ) ) {
@@ -469,8 +546,8 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
     if ( empty( $options['log_blocked_ips'] ) ) { $options['log_blocked_ips'] = 'disabled'; }
     if ( empty( $options['auto_block_permanently'] ) ) { $options['auto_block_permanently'] = 3; }
-
     if ( empty( $options['botscout_api'] ) ) { $options['botscout_api'] = false; }
+    if ( empty( $options['ip_whitelist'] ) ) { $options['ip_whitelist'] = false; }
 
     if ( empty( $options['verify_cf7'] )  ) {
       $options['verify_cf7'] = 'enabled';
@@ -610,6 +687,17 @@ if ( ! function_exists( 'wpzerospam_check_access' ) ) {
     $options      = wpzerospam_options();
     $ip           = wpzerospam_ip();
     $access['ip'] = $ip;
+
+    // Check whitelist
+    $whitelist = $options['ip_whitelist'];
+    if ( $whitelist ) {
+      $whitelist = explode( PHP_EOL, $whitelist );
+      foreach( $whitelist as $k => $whitelisted_ip ) {
+        if ( $ip ==  $whitelisted_ip ) {
+          return $access;
+        }
+      }
+    }
 
     // Check if the current user's IP address has been blocked
     $is_blocked = wpzerospam_get_blocked_ips( $ip );

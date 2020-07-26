@@ -49,6 +49,31 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
     return $sortable_columns;
   }
 
+  function extra_tablenav( $which ) {
+    global $cat_id;
+
+    if ( 'top' !== $which ) {
+      return;
+    }
+    ?>
+    <div class="alignleft actions">
+      <?php
+      echo '<label class="screen-reader-text" for="filter-by-service">' . __( 'Filter by service' ) . '</label>';
+      $current_service = ! empty( $_POST['service'] ) ? sanitize_text_field( $_POST['service'] ) : false;
+      ?>
+      <select name="service" id="filter-by-service">
+        <option value=""><?php _e( 'All services', 'wpzerospam' ); ?></option>
+        <option<?php if ( $current_service == 'botscout' ): ?> selected="selected" <?php endif; ?> value="botscout"><?php _e( 'BotScout', 'wpzerospam' ); ?></option>
+        <option<?php if ( $current_service == 'stopforumspam' ): ?> selected="selected" <?php endif; ?> value="stopforumspam"><?php _e( 'Stop Forum Spam', 'wpzerospam' ); ?></option>
+          <option<?php if ( $current_service == 'zerospam' ): ?> selected="selected" <?php endif; ?> value="zerospam"><?php _e( 'Zero Spam', 'wpzerospam' ); ?></option>
+      </select>
+      <?php
+      submit_button( __( 'Filter' ), '', 'filter_action', false );
+      ?>
+    </div>
+    <?php
+  }
+
   // Checkbox column
   function column_cb( $item ){
     return sprintf(
@@ -178,19 +203,48 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
     $hidden   = $this->get_hidden_columns();
     $sortable = $this->get_sortable_columns();
 
-    $data = wpzerospam_get_blacklist();
-    usort( $data, [ &$this, 'sort_data' ] );
-
     $per_page     = 50;
     $current_page = $this->get_pagenum();
-    $total_items  = count( $data );
+    $offset       = $per_page * ( $current_page - 1 );
+    $order        = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( $_REQUEST['order'] ) : 'desc';
+    $orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( $_REQUEST['orderby'] ) : 'last_updated';
+
+    $user_ip           = ! empty( $_POST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
+    $blacklist_service = ! empty( $_POST['service'] ) ? sanitize_text_field( $_REQUEST['service'] ) : false;
+
+    $query_args = [
+      'limit'   => $per_page,
+      'offset'  => $offset,
+      'order'   => $order,
+      'orderby' => $orderby
+    ];
+
+    if ( $blacklist_service || $user_ip ) {
+      $query_args['where'] = [];
+
+      if ( $blacklist_service ) {
+        $query_args['where']['blacklist_service'] = $blacklist_service;
+      }
+
+      if ( $user_ip ) {
+        $query_args['where']['user_ip'] = $user_ip;
+      }
+    }
+
+    $data = wpzerospam_query( 'blacklist', $query_args );
+    if ( ! $data ) { return false; }
+
+    usort( $data, [ &$this, 'sort_data' ] );
+
+    $total_items = wpzerospam_query( 'blacklist', $query_args, true );
 
     $this->set_pagination_args([
       'total_items' => $total_items,
-      'per_page'    => $per_page
+      'per_page'    => $per_page,
+      'total_pages'	=> ceil( $total_items / $per_page ),
+      'orderby'	    => $orderby,
+			'order'		    => $order
     ]);
-
-    $data = array_slice ( $data, ( ( $current_page - 1 ) * $per_page ), $per_page );
 
     $this->_column_headers = [ $columns, $hidden, $sortable ];
     $this->items           = $data;

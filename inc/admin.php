@@ -13,7 +13,7 @@ function wpzerospam_admin_menu() {
     'manage_options',
     'wordpress-zero-spam',
     'wpzerospam_dashboard',
-    'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iNTEycHgiIGhlaWdodD0iNDc4cHgiIHZpZXdCb3g9IjAgMCA1MTIgNDc4IiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPgogICAgPCEtLSBHZW5lcmF0b3I6IFNrZXRjaCA1OCAoODQ2NjMpIC0gaHR0cHM6Ly9za2V0Y2guY29tIC0tPgogICAgPHRpdGxlPlJlY3RhbmdsZTwvdGl0bGU+CiAgICA8ZGVzYz5DcmVhdGVkIHdpdGggU2tldGNoLjwvZGVzYz4KICAgIDxnIGlkPSJQYWdlLTEiIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPgogICAgICAgIDxwYXRoIGQ9Ik0xNSwxMTIgTDI1Ni4yMjAwNTIsMTEyIEwyNTYuMjIwMDUyLDExMiBMMjU2LjIyMDA1MiwxNSBDMjU2LjIyMDA1Miw2LjcxNTcyODc1IDI2Mi45MzU3ODEsLTUuNTgzNjMxNDJlLTE1IDI3MS4yMjAwNTIsMCBMNDE2LDAgQzQyNC4yODQyNzEsLTMuMDk1MzQzOTdlLTE0IDQzMSw2LjcxNTcyODc1IDQzMSwxNSBMNDMxLDExMiBMNDMxLDExMiBMNDk3LDExMiBDNTA1LjI4NDI3MSwxMTIgNTEyLDExOC43MTU3MjkgNTEyLDEyNyBMNTEyLDQ2MyBDNTEyLDQ3MS4yODQyNzEgNTA1LjI4NDI3MSw0NzggNDk3LDQ3OCBMMTUsNDc4IEM2LjcxNTcyODc1LDQ3OCAxLjAxNDUzMDYzZS0xNSw0NzEuMjg0MjcxIDAsNDYzIEwwLDEyNyBDNi4zNDMzODAzMmUtMTUsMTE4LjcxNTcyOSA2LjcxNTcyODc1LDExMiAxNSwxMTIgWiIgaWQ9IlJlY3RhbmdsZSIgZmlsbD0iIzYzMDAwRCI+PC9wYXRoPgogICAgPC9nPgo8L3N2Zz4='
+    'data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iNTEycHgiIGhlaWdodD0iNDc4cHgiIHZpZXdCb3g9IjAgMCA1MTIgNDc4IiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPgogICAgPCEtLSBHZW5lcmF0b3I6IFNrZXRjaCA1OCAoODQ2NjMpIC0gaHR0cHM6Ly9za2V0Y2guY29tIC0tPgogICAgPHRpdGxlPmljb248L3RpdGxlPgogICAgPGRlc2M+Q3JlYXRlZCB3aXRoIFNrZXRjaC48L2Rlc2M+CiAgICA8ZyBpZD0iUGFnZS0xIiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgICAgICA8ZyBpZD0iaWNvbiIgZmlsbD0iI0ExQTVBOSIgZmlsbC1ydWxlPSJub256ZXJvIj4KICAgICAgICAgICAgPHBhdGggZD0iTTE1LDExMiBMMjU2LjIyMDA1MiwxMTIgTDI1Ni4yMjAwNTIsMTEyIEwyNTYuMjIwMDUyLDE1IEMyNTYuMjIwMDUyLDYuNzE1NzI4NzUgMjYyLjkzNTc4MSwwIDI3MS4yMjAwNTIsMCBMNDE2LDAgQzQyNC4yODQyNzEsMCA0MzEsNi43MTU3Mjg3NSA0MzEsMTUgTDQzMSwxMTIgTDQzMSwxMTIgTDQ5NywxMTIgQzUwNS4yODQyNzEsMTEyIDUxMiwxMTguNzE1NzI5IDUxMiwxMjcgTDUxMiw0NjMgQzUxMiw0NzEuMjg0MjcxIDUwNS4yODQyNzEsNDc4IDQ5Nyw0NzggTDE1LDQ3OCBDNi43MTU3Mjg3NSw0NzggMCw0NzEuMjg0MjcxIDAsNDYzIEwwLDEyNyBDMCwxMTguNzE1NzI5IDYuNzE1NzI4NzUsMTEyIDE1LDExMiBaIiBpZD0iUmVjdGFuZ2xlIj48L3BhdGg+CiAgICAgICAgPC9nPgogICAgPC9nPgo8L3N2Zz4='
   );
 
   add_submenu_page(
@@ -69,7 +69,7 @@ function wpzerospam_spam_detections_page() {
   <div class="wrap">
     <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/callout.php'; ?>
+    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
 
     <?php
     /**
@@ -91,10 +91,8 @@ function wpzerospam_spam_detections_page() {
     ?>
     <form id="log-table" method="post">
       <?php wp_nonce_field( 'wpzerospam_nonce', 'wpzerospam_nonce' ); ?>
-
-      <?php # Current page ?>
       <input type="hidden" name="paged" value="<?php echo $paged; ?>" />
-
+      <?php $table_data->search_box( __( 'Search IPs', 'wpzerospam' ), 'search-ip' ); ?>
       <?php $table_data->display(); ?>
     </form>
   </div>
@@ -107,7 +105,7 @@ function wpzerospam_blacklist_page() {
   <div class="wrap">
     <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/callout.php'; ?>
+    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
 
     <?php
     /**
@@ -129,10 +127,8 @@ function wpzerospam_blacklist_page() {
     ?>
     <form id="log-table" method="post">
       <?php wp_nonce_field( 'wpzerospam_nonce', 'wpzerospam_nonce' ); ?>
-
-      <?php # Current page ?>
       <input type="hidden" name="paged" value="<?php echo $paged; ?>" />
-
+      <?php $table_data->search_box( __( 'Search IPs', 'wpzerospam' ), 'search-ip' ); ?>
       <?php $table_data->display(); ?>
     </form>
   </div>
@@ -198,7 +194,7 @@ function wpzerospam_blocked_ips_page() {
   <div class="wrap">
     <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/callout.php'; ?>
+    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
 
     <?php if ( ! empty( $_GET['error'] ) ): ?>
       <div class="notice notice-error is-dismissible">
@@ -284,10 +280,8 @@ function wpzerospam_blocked_ips_page() {
     ?>
     <form id="log-table" method="post">
       <?php wp_nonce_field( 'wpzerospam_nonce', 'wpzerospam_nonce' ); ?>
-
-      <?php # Current page ?>
       <input type="hidden" name="paged" value="<?php echo $paged; ?>" />
-
+      <?php $table_data->search_box( __( 'Search IPs', 'wpzerospam' ), 'search-ip' ); ?>
       <?php $table_data->display(); ?>
     </form>
   </div>
@@ -306,7 +300,7 @@ function wpzerospam_dashboard() {
     <div class="wrap">
       <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-      <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/callout.php'; ?>
+      <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
 
       <h2><?php _e( 'Statistics', 'wpzerospam' ); ?></h2>
       <div class="wpzerospam-boxes">
@@ -325,7 +319,7 @@ function wpzerospam_options_page() {
     <div class="wrap">
       <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-      <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/callout.php'; ?>
+      <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
 
       <form action="options.php" method="post">
       <?php
@@ -352,6 +346,23 @@ function wpzerospam_validate_options( $input ) {
   if ( empty( $input['auto_block_period'] ) ) { $input['auto_block_period'] = 0; }
   if ( empty( $input['botscout_api'] ) ) { $input['botscout'] = false; }
   if ( empty( $input['auto_block_permanently'] ) ) { $input['auto_block_permanently'] = 3; }
+
+  if ( empty( $input['ip_whitelist'] ) ) {
+    $input['ip_whitelist'] = '';
+  } else {
+    $whitelist         = explode( PHP_EOL, $input['ip_whitelist'] );
+    $cleaned_whitelist = '';
+    foreach( $whitelist as $k => $whitelisted_ip ) {
+      $whitelisted_ip = trim( $whitelisted_ip );
+
+      if ( rest_is_ip_address( $whitelisted_ip ) ) {
+        if ( $cleaned_whitelist ) { $cleaned_whitelist .= "\n"; }
+        $cleaned_whitelist .= $whitelisted_ip;
+      }
+    }
+
+    $input['ip_whitelist'] = $cleaned_whitelist;
+  }
 
   if ( empty( $input['verify_cf7'] ) ) {
     $input['verify_cf7'] = 'disabled';
@@ -708,6 +719,15 @@ function wpzerospam_admin_init() {
       ]
     ]);
   }
+
+  // IP whitelist
+  add_settings_field( 'ip_whitelist', __( 'IP Whitelist', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+    'label_for'   => 'ip_whitelist',
+    'type'        => 'textarea',
+    'class'       => 'large-text',
+    'desc'        => 'Enter IPs that should be whitelisted (IPs that should never be blocked), one per line.',
+    'placeholder' => __( 'e.g. xxx.xxx.x.x', 'wpzerospam' )
+  ]);
 }
 add_action( 'admin_init', 'wpzerospam_admin_init' );
 
@@ -721,6 +741,9 @@ function wpzerospam_spam_checks_cb() {
 }
 
 function wpzerospam_onsite_cb() {
+}
+
+function wpzerospam_whitelist_cb() {
 }
 
 function wpzerospam_field_cb( $args ) {
