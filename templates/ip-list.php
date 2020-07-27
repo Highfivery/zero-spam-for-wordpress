@@ -36,28 +36,34 @@ $chart_limit = 20;
           $cnt++;
           if ( $cnt > $chart_limit ) { break; }
           ?>
-          <li>
+          <li class="wpzerospam-list-item">
+            <span class="wpzerospam-list-cell wpzerospam-list-cell-icon">
             <?php if ( ! empty( $ary['country'] ) ): ?>
               <img class="wpzerospam-country-flag" width="16" src="https://hatscripts.github.io/circle-flags/flags/<?php echo strtolower( $ary['country'] ); ?>.svg" alt="<?php echo wpzerospam_get_location( $ary['country'] ); ?>" />
             <?php endif; ?>
-            <a href="https://whatismyipaddress.com/ip/<?php echo $ip; ?>" target="_blank" rel="noopener noreferrer" class="wpzerospam-list-cell"><strong><?php echo $ip; ?></strong></a>
-            <span class="wpzerospam-list-cell">
-            <?php if ( ! empty( $ary['country'] ) ): ?>
-              <?php echo wpzerospam_get_location( $ary['country'] ); ?>
-            <?php endif; ?>
             </span>
-            <span class="wpzerospam-list-cell-small">
-              <?php echo $ary['count']; ?>
+            <span class="wpzerospam-list-cell wpzerospam-list-cell-ip">
+              <a href="https://whatismyipaddress.com/ip/<?php echo $ip; ?>" target="_blank" rel="noopener noreferrer"><strong><?php echo $ip; ?></strong></a>
             </span>
-            <span class="wpzerospam-action">
+            <span class="wpzerospam-list-cell wpzerospam-list-cell-country<?php if ( empty( $ary['country'] ) ): ?> wpzerospam-list-cell-na<?php endif; ?>">
+              <?php if ( ! empty( $ary['country'] ) ): ?>
+                <?php echo wpzerospam_get_location( $ary['country'] ); ?>
+              <?php else: ?>
+                N/A
+              <?php endif; ?>
+            </span>
+            <span class="wpzerospam-list-cell wpzerospam-list-cell-count">
+              <?php echo number_format( $ary['count'], 0 ); ?>
+            </span>
+            <span class="wpzerospam-list-cell wpzerospam-list-cell-action">
               <?php
               $blocked_status = wpzerospam_get_blocked_ips( $ip );
               if ( $blocked_status && wpzerospam_is_blocked( $blocked_status ) ):
-              ?>
+                ?>
                 <span class="wpzerospam-blocked"><?php _e( 'Blocked', 'wpzerospam' ); ?></span>
               <?php else: ?>
                 <a href="<?php echo admin_url( 'admin.php?page=wordpress-zero-spam-blocked-ips&ip=' . $ip ); ?>">
-                  <?php _e( 'Configure IP Block', 'wpzerospam' ); ?>
+                  <?php _e( 'Block IP', 'wpzerospam' ); ?>
                 </a>
               <?php endif; ?>
             </span>

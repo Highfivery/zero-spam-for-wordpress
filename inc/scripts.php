@@ -19,6 +19,24 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
       WORDPRESS_ZERO_SPAM_VERSION
     );
 
+    // Register Chart.js for graphs
+    wp_register_script(
+      'wpzerospam-charts',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/assets/js/Chart.bundle.min.js',
+      [],
+      '2.9.3'
+    );
+
+    // Register Chart.css for graphs
+    wp_register_style(
+      'wpzerospam-charts',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/assets/css/Chart.min.css',
+      false,
+      '2.9.3'
+    );
+
     wp_register_script(
       'wpzerospam-admin-tables',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
@@ -44,23 +62,9 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
         wp_enqueue_style( 'wpzerospam-admin-tables' );
       break;
       case 'toplevel_page_wordpress-zero-spam':
-        // Enqueue Chart.js for graphs
-        wp_register_script(
-          'wpzerospam-charts',
-          plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-            '/assets/js/Chart.bundle.min.js',
-          [],
-          '2.9.3'
-        );
-
-        // Enqueue Chart.css for graphs
-        wp_enqueue_style(
-          'wpzerospam-charts',
-          plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-            '/assets/css/Chart.min.css',
-          false,
-          '2.9.3'
-        );
+        // Enqueue Chart.js
+        wp_enqueue_script( 'wpzerospam-charts' );
+        wp_enqueue_style( 'wpzerospam-charts' );
 
         wp_enqueue_style(
           'wpzerospam-admin-dashboard',

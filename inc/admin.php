@@ -291,7 +291,7 @@ function wpzerospam_blocked_ips_page() {
 function wpzerospam_dashboard() {
   if ( ! current_user_can( 'manage_options' ) ) { return; }
 
-  $log = wpzerospam_get_log();
+  $log = wpzerospam_query( 'log' );
 
   $predefined_colors = [
     '#1a0003', '#4d000a', '#800011', '#b30017', '#e6001e', '#ff1a38', '#ff4d64', '#ff8090', '#ffb3bd', '#ffe5e9'
@@ -315,26 +315,26 @@ function wpzerospam_dashboard() {
 
 function wpzerospam_options_page() {
   if ( ! current_user_can( 'manage_options' ) ) { return; }
+  ?>
+  <div class="wrap">
+    <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+
+    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
+
+    <form action="options.php" method="post">
+    <?php
+    // Output security fields for the registered setting "wpzerospam"
+    settings_fields( 'wpzerospam' );
+
+    // Output setting sections and their fields
+    do_settings_sections( 'wpzerospam' );
+
+    // Output save settings button
+    submit_button( 'Save Settings' );
     ?>
-    <div class="wrap">
-      <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-
-      <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
-
-      <form action="options.php" method="post">
-      <?php
-      // Output security fields for the registered setting "wpzerospam"
-      settings_fields( 'wpzerospam' );
-
-      // Output setting sections and their fields
-      do_settings_sections( 'wpzerospam' );
-
-      // Output save settings button
-      submit_button( 'Save Settings' );
-      ?>
-      </form>
-    </div>
-  <?php
+    </form>
+  </div>
+<?php
 }
 
 function wpzerospam_validate_options( $input ) {

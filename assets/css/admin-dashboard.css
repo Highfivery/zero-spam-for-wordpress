@@ -26,6 +26,10 @@
   display: block;
 }
 
+
+/**
+ * Info boxes
+ */
 .wpzerospam-boxes {
   display: flex;
   flex-wrap: wrap;
@@ -56,51 +60,77 @@
   padding: 12px;
 }
 
+@media (min-width: 1024px) {
+  .wpzerospam-box {
+    width: calc(100% / 2 - 18px);
+  }
+}
+
+@media (min-width: 1200px) {
+  .wpzerospam-box {
+    width: calc(100% / 3 - 18px);
+  }
+
+  .wpzerospam-box-line-chart {
+    width: calc((100% / 3) * 2 - 18px);
+  }
+
+  .wpzerospam-box-countries-pie {
+    width: calc(100% / 2 - 18px);
+  }
+}
+
+
+
+/**
+ * List of IPs
+ */
 .wpzerospam-list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.wpzerospam-list li {
+.wpzerospam-list-item {
   display: flex;
 }
 
-.wpzerospam-list-cell,
-.wpzerospam-list .wpzerospam-country-flag {
+.wpzerospam-list-cell-icon,
+.wpzerospam-list-cell-ip,
+.wpzerospam-list-cell-count,
+.wpzerospam-list-cell-action {
+  flex-grow: 0;
   flex-shrink: 0;
 }
 
-.wpzerospam-list .wpzerospam-country-flag {
-  margin-right: 8px;
+.wpzerospam-list-cell-icon {
+  margin-right: 5px;
   width: 16px;
 }
 
-.wpzerospam-list-cell {
-  width: 130px;
+.wpzerospam-list-cell-ip {
+  width: 120px;
 }
 
-.wpzerospam-list-cell-small {
-  text-align: right;
-  width: 30px;
-}
-
-.wpzerospam-action {
+.wpzerospam-list-cell-country {
   flex-grow: 1;
+  font-size: 0.8rem;
+}
+
+.wpzerospam-list-cell-count,
+.wpzerospam-list-cell-action {
   text-align: right;
 }
 
-@media (min-width: 768px) {
-  .wpzerospam-box {
-    width: calc(100% / 3 - 18px);
-  }
+.wpzerospam-list-cell-count {
+  width: 50px;
+}
 
-  .wpzerospam-box-line-chart,
-  .wpzerospam-box-countries-pie {
-    width: calc(100% / 2 - 18px);
-  }
+.wpzerospam-list-cell-action {
+  margin-left: 5px;
+  width: 80px;
+}
 
-  .wpzerospam-box-line-chart {
-    width: calc((100% / 3) * 2 - 18px);
-  }
+.wpzerospam-list-cell-na {
+  color: #ccd0d4;
 }

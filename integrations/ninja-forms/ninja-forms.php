@@ -19,7 +19,6 @@ add_filter( 'wpzerospam_types', function( $types ) {
  */
 if ( ! function_exists( 'wpzerospam_ninja_forms_validate' ) ) {
   function wpzerospam_ninja_forms_validate( $form_data ) {
-
     if ( is_user_logged_in() ) {
       return $form_data;
     }
@@ -35,18 +34,9 @@ if ( ! function_exists( 'wpzerospam_ninja_forms_validate' ) ) {
 
         wpzerospam_spam_detected( 'ninja_forms', $form_data, false );
 
-        $errors = [
-          'form' => [
-            'wpzerospam' => $options['blocked_message'],
-          ]
-        ];
-
-        $response = [
-          'errors' => $errors,
-        ];
-        // @TODO - Find a way to display the error message to the user
-        echo wp_json_encode( $response );
-        wp_die();
+        // @TODO - This is a hacky way to display an error for spam detections,
+        // but only way I've found to show an error.
+        $form_data['errors']['fields'][1] = $options['spam_message'];
     }
 
     return $form_data;
@@ -54,21 +44,19 @@ if ( ! function_exists( 'wpzerospam_ninja_forms_validate' ) ) {
 }
 add_filter( 'ninja_forms_submit_data', 'wpzerospam_ninja_forms_validate' );
 
-if( ! class_exists( 'WordPressZeroSpam_NF_ExtraData' ) ) {
+if ( ! class_exists( 'WordPressZeroSpam_NF_ExtraData' ) ) {
   class WordPressZeroSpam_NF_ExtraData {
-    // Stores the form IDs we want to modify
     var $form_ids = [];
     var $script_added = false;
 
     public function __construct() {
-      add_action('ninja_forms_before_form_display', [ $this, 'addHooks' ]);
+      add_action( 'ninja_forms_before_form_display', [ $this, 'addHooks' ] );
     }
 
     public function addHooks( $form_id ) {
       $this->form_ids[] = $form_id;
 
-      //Make sure we only add the script once
-      if( ! $this->script_added ) {
+      if ( ! $this->script_added ) {
         add_action( 'wp_footer', [ $this, 'add_extra_to_form' ], 99 );
         $this->script_added = true;
       }
@@ -79,6 +67,7 @@ if( ! class_exists( 'WordPressZeroSpam_NF_ExtraData' ) ) {
       <script>
       (function() {
         var form_ids = [ <?php echo join( ", ", $this->form_ids ); ?> ];
+
         nfRadio.channel( "forms" ).on( "before:submit", function( e ) {
           if( form_ids.indexOf( +e.id ) === -1 ) return;
 

@@ -4,12 +4,110 @@
  *
  * @package WordPressZeroSpam
  * @since 4.0.0
+ * @link https://benmarshall.me/wordpress-zero-spam/
  */
 
 /**
  * Locations helper
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/locations.php';
+
+/**
+ * Returns the geolocation information for a specified IP address.
+ *
+ * @param string $ip IP address.
+ * @return array/false An array with the IP address location information or
+ * false if not found.
+ */
+if ( ! function_exists( 'wpzerospam_get_ip_info' ) ) {
+  function wpzerospam_get_ip_info( $ip ) {
+    $options = wpzerospam_options();
+
+    if ( empty( $options['ipstack_api'] ) ) { return false; }
+
+    $base_url   = 'http://api.ipstack.com/';
+    $remote_url = $base_url . $ip . '?access_key=' . $options['ipstack_api'];
+    $response   = wp_remote_get( $remote_url );
+
+    if ( is_array( $response ) && ! is_wp_error( $response ) ) {
+      $info = json_decode( $response['body'], true );
+
+      return [
+        'type'           => ! empty( $info['type'] ) ? sanitize_text_field( $info['type'] ) : false,
+        'continent_code' => ! empty( $info['continent_code'] ) ? sanitize_text_field( $info['continent_code'] ) : false,
+        'continent_name' => ! empty( $info['continent_name'] ) ? sanitize_text_field( $info['continent_name'] ) : false,
+        'country_code'   => ! empty( $info['country_code'] ) ? sanitize_text_field( $info['country_code'] ) : false,
+        'country_name'   => ! empty( $info['country_name'] ) ? sanitize_text_field( $info['country_name'] ) : false,
+        'region_code'    => ! empty( $info['region_code'] ) ? sanitize_text_field( $info['region_code'] ) : false,
+        'region_name'    => ! empty( $info['region_name'] ) ? sanitize_text_field( $info['region_name'] ) : false,
+        'city'           => ! empty( $info['city'] ) ? sanitize_text_field( $info['city'] ) : false,
+        'zip'            => ! empty( $info['zip'] ) ? sanitize_text_field( $info['zip'] ) : false,
+        'latitude'       => ! empty( $info['latitude'] ) ? sanitize_text_field( $info['latitude'] ) : false,
+        'longitude'      => ! empty( $info['longitude'] ) ? sanitize_text_field( $info['longitude'] ) : false,
+        'flag'           => ! empty( $info['location']['country_flag'] ) ? sanitize_text_field( $info['location']['country_flag'] ) : false,
+      ];
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Returns the human-readable spam type or an array of available spam types.
+ *
+ * @param string $type_key The key of the type that should be returned.
+ * @return string/array The human-readable type name or an array of all the
+ * available types.
+ */
+if ( ! function_exists( 'wpzerospam_types' ) ) {
+  function wpzerospam_types( $type_key = false ) {
+    $types = apply_filters( 'wpzerospam_types', [ 'blocked' => __( 'Access Blocked', 'wpzerospam' ) ] );
+
+    if ( $type_key ) {
+      if ( ! empty( $types[ $type_key ] ) ) {
+        return $types[ $type_key ];
+      }
+
+      return $type_key;
+    }
+
+    return $types;
+  }
+}
+
+/**
+ * Checks if either the submission data or $_POST contain the wpzerospam_key and
+ * if it matches whats in the database.
+ *
+ * @param array $submission_data An array of submission data that contains the
+ * wpzerospam_key field
+ * @return boolean true if the submission key matches the one in the database,
+ * false if it doesn’t.
+ */
+if ( ! function_exists( 'wpzerospam_key_check' ) ) {
+  function wpzerospam_key_check( $submission_data = false ) {
+    if (
+      $submission_data &&
+      ! empty( $submission_data['wpzerospam_key'] ) &&
+      $submission_data['wpzerospam_key'] == wpzerospam_get_key()
+    ) {
+      return true;
+    }
+
+    if ( ! empty( $_POST['wpzerospam_key'] ) && $_POST['wpzerospam_key'] == wpzerospam_get_key() ) {
+      return true;
+    }
+
+    return false;
+  }
+}
+
+
+
+
+
+
+
 
 /**
  * Query the database
@@ -91,99 +189,6 @@ if ( ! function_exists( 'wpzerospam_query' ) ) {
 /**
  * Handles what happens when spam is detected
  */
-if ( ! function_exists( 'wpzerospam_get_ip_info' ) ) {
-  function wpzerospam_get_ip_info( $ip ) {
-    $options = wpzerospam_options();
-
-    if ( empty( $options['ipstack_api'] ) ) { return false; }
-
-    $base_url   = 'http://api.ipstack.com/';
-    $remote_url = $base_url . $ip . '?access_key=' . $options['ipstack_api'];
-    $response   = wp_remote_get( $remote_url );
-
-    if ( is_array( $response ) && ! is_wp_error( $response ) ) {
-      $info = json_decode( $response['body'], true );
-
-      return [
-        'type'           => ! empty( $info['type'] ) ? sanitize_text_field( $info['type'] ) : false,
-        'continent_code' => ! empty( $info['continent_code'] ) ? sanitize_text_field( $info['continent_code'] ) : false,
-        'continent_name' => ! empty( $info['continent_name'] ) ? sanitize_text_field( $info['continent_name'] ) : false,
-        'country_code'   => ! empty( $info['country_code'] ) ? sanitize_text_field( $info['country_code'] ) : false,
-        'country_name'   => ! empty( $info['country_name'] ) ? sanitize_text_field( $info['country_name'] ) : false,
-        'region_code'    => ! empty( $info['region_code'] ) ? sanitize_text_field( $info['region_code'] ) : false,
-        'region_name'    => ! empty( $info['region_name'] ) ? sanitize_text_field( $info['region_name'] ) : false,
-        'city'           => ! empty( $info['city'] ) ? sanitize_text_field( $info['city'] ) : false,
-        'zip'            => ! empty( $info['zip'] ) ? sanitize_text_field( $info['zip'] ) : false,
-        'latitude'       => ! empty( $info['latitude'] ) ? sanitize_text_field( $info['latitude'] ) : false,
-        'longitude'      => ! empty( $info['longitude'] ) ? sanitize_text_field( $info['longitude'] ) : false,
-        'flag'           => ! empty( $info['location']['country_flag'] ) ? sanitize_text_field( $info['location']['country_flag'] ) : false,
-      ];
-    }
-
-    return false;
-  }
-}
-
-/**
- * Returns an array of spam detection types
- */
-if ( ! function_exists( 'wpzerospam_types' ) ) {
-  function wpzerospam_types( $key = false ) {
-    $types = apply_filters( 'wpzerospam_types', [ 'blocked' => __( 'Access Blocked', 'wpzerospam' ) ] );
-
-    if ( $key ) {
-      if ( ! empty( $types[ $key ] ) ) {
-        return $types[ $key ];
-      }
-
-      return $key;
-    }
-
-    return $types;
-  }
-}
-
-/**
- * Returns spam detections from the database
- */
-if ( ! function_exists( 'wpzerospam_get_log' ) ) {
-  function wpzerospam_get_log( $args = false ) {
-    global $wpdb;
-
-    if( 'total' == $args ) {
-      return $wpdb->get_var( 'SELECT COUNT(log_id) FROM ' . wpzerospam_tables( 'log' ));
-    }
-
-    $sql = 'SELECT * FROM ' . wpzerospam_tables( 'log' );
-    if ( is_array( $args ) ) {
-      if ( ! empty( $args['type'] ) ) {
-        $sql .= ' WHERE log_type = "' . $args['type'] . '"';
-      }
-
-      if ( ! empty( $args['orderby'] ) ) {
-        $sql .= ' ORDER BY ' . $args['orderby'];
-      }
-
-      if ( ! empty( $args['order'] ) ) {
-        $sql .= ' ' . $args['order'];
-      }
-
-      if ( ! empty( $args['limit'] ) ) {
-        $sql .= ' LIMIT ' . $args['limit'];
-      }
-
-      if ( ! empty( $args['offset'] ) ) {
-        $sql .= ', ' . $args['offset'];
-      }
-    }
-
-    return $wpdb->get_results( $sql );
-  }
-}
-
-/**
- * Handles what happens when spam is detected
- */
 if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
   function wpzerospam_spam_detected( $type, $data = [], $handle_error = true ) {
     $options = wpzerospam_options();
@@ -227,27 +232,6 @@ if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
         die( $options['spam_message'] );
       }
     }
-  }
-}
-
-/**
- * Checks the post submission for a valid key
- */
-if ( ! function_exists( 'wpzerospam_key_check' ) ) {
-  function wpzerospam_key_check( $data = false ) {
-    if (
-      $data &&
-      ! empty( $data['wpzerospam_key'] ) &&
-      $data['wpzerospam_key'] == wpzerospam_get_key()
-    ) {
-      return true;
-    }
-
-    if ( ! empty( $_POST['wpzerospam_key'] ) && $_POST['wpzerospam_key'] == wpzerospam_get_key() ) {
-      return true;
-    }
-
-    return false;
   }
 }
 
@@ -1062,7 +1046,7 @@ if ( ! function_exists( 'wpzerospam_send_detection' ) ) {
       return false;
     }
 
-    $request = wp_remote_post( $api_url, [
+    $request_args = [
       'method' => 'POST',
       'body'   => [
         'ip'   => $data['ip'],
@@ -1070,7 +1054,13 @@ if ( ! function_exists( 'wpzerospam_send_detection' ) ) {
         'site' => site_url()
       ],
       'sslverify' => true
-    ]);
+    ];
+
+    if ( WP_DEBUG ) {
+      $request_args['sslverify'] = false;
+    }
+
+    $request = wp_remote_post( $api_url, $request_args );
     if ( is_wp_error( $request ) ) {
       return false;
     }

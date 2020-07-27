@@ -7,12 +7,19 @@
  */
 
 /**
- * Get region name by code
+ * Returns the human-readable country or region name.
+ *
+ * * If no region is provided, it returns the country name.
+ * * If the country’s name isn’t available, it returns the country abbreviation.
+ * * If a region is provided, it returns the region name.
+ * * If the region name isn’t available, it returns the region abbreviation.
  *
  * @link https://en.wikipedia.org/wiki/ISO_3166-2:COUNTRY_CODE
+ * @param string $country_code The two letter country code.
+ * @param string $region_code  The two letter region code.
  */
 if ( ! function_exists( 'wpzerospam_get_location' ) ) {
-  function wpzerospam_get_location( $country, $region = false ) {
+  function wpzerospam_get_location( $country_code, $region_code = false ) {
     $locations = [
       'US' => [
         'name'    => 'United States',
@@ -1825,21 +1832,21 @@ if ( ! function_exists( 'wpzerospam_get_location' ) ) {
       ]
     ];
 
-    if ( ! $region ) {
-      if ( ! empty( $locations[ $country ]['name'] ) ) {
-        return $locations[ $country ]['name'];
-      } elseif( ! $country ) {
+    if ( ! $region_code ) {
+      if ( ! empty( $locations[ $country_code ]['name'] ) ) {
+        return $locations[ $country_code ]['name'];
+      } elseif( ! $country_code ) {
         return false;
       } else {
-        return $country;
+        return $country_code;
       }
     } else {
-      if ( ! empty( $locations[ $country ]['regions'][ $region ]['name'] ) ) {
-        return $locations[ $country ]['regions'][ $region ]['name'];
-      } elseif( ! $region ) {
+      if ( ! empty( $locations[ $country_code ]['regions'][ $region_code ]['name'] ) ) {
+        return $locations[ $country_code ]['regions'][ $region_code ]['name'];
+      } elseif( ! $region_code ) {
         return false;
       } else {
-        return $region;
+        return $region_code;
       }
     }
   }

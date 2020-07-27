@@ -166,35 +166,6 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
     return [];
   }
 
-  /**
-   * Allows you to sort the data by the variables set in the $_GET
-   *
-   * @return Mixed
-   */
-  private function sort_data( $a, $b ) {
-    // Set defaults
-    $orderby = 'last_updated';
-    $order   = 'desc';
-
-    // If orderby is set, use this as the sort column
-    if( ! empty( $_GET['orderby'] ) ) {
-      $orderby = $_GET['orderby'];
-    }
-
-    // If order is set use this as the order
-    if ( ! empty($_GET['order'] ) ) {
-      $order = $_GET['order'];
-    }
-
-    $result = strcmp( $a->$orderby, $b->$orderby );
-
-    if ( $order === 'asc' ) {
-      return $result;
-    }
-
-    return -$result;
-  }
-
   // Get results
   function prepare_items($args = []) {
     $this->process_bulk_action();
@@ -233,8 +204,6 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
 
     $data = wpzerospam_query( 'blacklist', $query_args );
     if ( ! $data ) { return false; }
-
-    usort( $data, [ &$this, 'sort_data' ] );
 
     $total_items = wpzerospam_query( 'blacklist', $query_args, true );
 
