@@ -510,7 +510,56 @@ if ( ! function_exists( 'wpzerospam_get_location' ) ) {
       ],
       'FR' => [
         'name' => 'France',
-        'regions' => []
+        'regions' => [
+          'ARA' => [
+            'name' => 'Auvergne-Rhône-Alpes'
+          ],
+          'BFC' => [
+            'name' => 'Bourgogne-Franche-Comté'
+          ],
+          'BRE' => [
+            'name' => 'Bretagne'
+          ],
+          'CVL' => [
+            'name' => 'Centre-Val de Loire'
+          ],
+          'COR' => [
+            'name' => 'Corse'
+          ],
+          'GES' => [
+            'name' => 'Grand-Est'
+          ],
+          'GUA' => [
+            'name' => 'Guadeloupe'
+          ],
+          'HDF' => [
+            'name' => 'Hauts-de-France'
+          ],
+          'IDF' => [
+            'name' => 'Île-de-France'
+          ],
+          'MAY' => [
+            'name' => 'Mayotte'
+          ],
+          'NOR' => [
+            'name' => 'Normandie'
+          ],
+          'NAQ' => [
+            'name' => 'Nouvelle-Aquitaine'
+          ],
+          'OCC' => [
+            'name' => 'Occitanie'
+          ],
+          'PDL' => [
+            'name' => 'Pays-de-la-Loire'
+          ],
+          'PDL' => [
+            'name' => 'Provence-Alpes-Côte-d’Azur'
+          ],
+          'LRE' => [
+            'name' => 'La Réunion'
+          ],
+        ]
       ],
       'GF' => [
         'name' => 'French Guiana',
@@ -1234,7 +1283,257 @@ if ( ! function_exists( 'wpzerospam_get_location' ) ) {
       ],
       'RU' => [
         'name' => 'Russian Federation',
-        'regions' => []
+        'regions' => [
+          'AD' => [
+            'name' => 'Adygeya, Respublika'
+          ],
+          'AL' => [
+            'name' => 'Altay, Respublika'
+          ],
+          'BA' => [
+            'name' => 'Bashkortostan, Respublika'
+          ],
+          'BU' => [
+            'name' => 'Buryatiya, Respublika'
+          ],
+          'CE' => [
+            'name' => 'Chechenskaya Respublika'
+          ],
+          'CU' => [
+            'name' => 'Chuvashskaya Respublika'
+          ],
+          'DA' => [
+            'name' => 'Dagestan, Respublika'
+          ],
+          'IN' => [
+            'name' => 'Ingushetiya, Respublika'
+          ],
+          'KB' => [
+            'name' => 'Kabardino-Balkarskaya Respublika'
+          ],
+          'KL' => [
+            'name' => 'Kalmykiya, Respublika'
+          ],
+          'KC' => [
+            'name' => 'Karachayevo-Cherkesskaya Respublika'
+          ],
+          'KR' => [
+            'name' => 'Kareliya, Respublika'
+          ],
+          'KK' => [
+            'name' => 'Khakasiya, Respublika'
+          ],
+          'KO' => [
+            'name' => 'Komi, Respublika'
+          ],
+          'ME' => [
+            'name' => 'Mariy El, Respublika'
+          ],
+          'MO' => [
+            'name' => 'Mordoviya, Respublika'
+          ],
+          'SA' => [
+            'name' => 'Saha, Respublika'
+          ],
+          'SE' => [
+            'name' => 'Severnaya Osetiya, Respublika'
+          ],
+          'TA' => [
+            'name' => 'Tatarstan, Respublika'
+          ],
+          'TY' => [
+            'name' => 'Tyva, Respublika'
+          ],
+          'UD' => [
+            'name' => 'Udmurtskaya Respublika'
+          ],
+          'ALT' => [
+            'name' => 'Altayskiy kray'
+          ],
+          'KAM' => [
+            'name' => 'Kamchatskiy kray'
+          ],
+          'KHA' => [
+            'name' => 'Khabarovskiy kray'
+          ],
+          'KDA' => [
+            'name' => 'Krasnodarskiy kray'
+          ],
+          'KYA' => [
+            'name' => 'Krasnoyarskiy kray'
+          ],
+          'PER' => [
+            'name' => 'Permskiy kray'
+          ],
+          'PRI' => [
+            'name' => 'Primorskiy kray'
+          ],
+          'STA' => [
+            'name' => 'Stavropol\'skiy kray'
+          ],
+          'ZAB' => [
+            'name' => 'Zabaykal\'skiy kray'
+          ],
+          'AMU' => [
+            'name' => 'Amurskaya oblast\''
+          ],
+          'ARK' => [
+            'name' => 'Arkhangel\'skaya oblast\''
+          ],
+          'AST' => [
+            'name' => 'Astrakhanskaya oblast\''
+          ],
+          'BEL' => [
+            'name' => 'Belgorodskaya oblast\''
+          ],
+          'BRY' => [
+            'name' => 'Bryanskaya oblast\''
+          ],
+          'CHE' => [
+            'name' => 'Chelyabinskaya oblast\''
+          ],
+          'IRK' => [
+            'name' => 'Irkutskaya oblast\''
+          ],
+          'IVA' => [
+            'name' => 'Ivanovskaya oblast\''
+          ],
+          'KGD' => [
+            'name' => 'Kaliningradskaya oblast\''
+          ],
+          'KLU' => [
+            'name' => 'Kaluzhskaya oblast\''
+          ],
+          'KEM' => [
+            'name' => 'Kemerovskaya oblast\''
+          ],
+          'KIR' => [
+            'name' => 'Kirovskaya oblast\''
+          ],
+          'KOS' => [
+            'name' => 'Kostromskaya oblast\''
+          ],
+          'KGN' => [
+            'name' => 'Kurganskaya oblast\''
+          ],
+          'KRS' => [
+            'name' => 'Kurskaya oblast\''
+          ],
+          'LEN' => [
+            'name' => 'Leningradskaya oblast\''
+          ],
+          'LIP' => [
+            'name' => 'Lipetskaya oblast\''
+          ],
+          'MAG' => [
+            'name' => 'Magadanskaya oblast\''
+          ],
+          'MOS' => [
+            'name' => 'Moskovskaya oblast\''
+          ],
+          'MUR' => [
+            'name' => 'Murmanskaya oblast\''
+          ],
+          'NIZ' => [
+            'name' => 'Nizhegorodskaya oblast\''
+          ],
+          'NGR' => [
+            'name' => 'Novgorodskaya oblast\''
+          ],
+          'NVS' => [
+            'name' => 'Novosibirskaya oblast\''
+          ],
+          'OMS' => [
+            'name' => 'Omskaya oblast\''
+          ],
+          'ORE' => [
+            'name' => 'Orenburgskaya oblast\''
+          ],
+          'ORL' => [
+            'name' => 'Orlovskaya oblast\''
+          ],
+          'PNZ' => [
+            'name' => 'Penzenskaya oblast\''
+          ],
+          'PSK' => [
+            'name' => 'Pskovskaya oblast\''
+          ],
+          'ROS' => [
+            'name' => 'Rostovskaya oblast\''
+          ],
+          'RYA' => [
+            'name' => 'Ryazanskaya oblast\''
+          ],
+          'SAK' => [
+            'name' => 'Sakhalinskaya oblast\''
+          ],
+          'SAM' => [
+            'name' => 'Samarskaya oblast\''
+          ],
+          'SAR' => [
+            'name' => 'Saratovskaya oblast\''
+          ],
+          'SMO' => [
+            'name' => 'Smolenskaya oblast\''
+          ],
+          'SVE' => [
+            'name' => 'Sverdlovskaya oblast\''
+          ],
+          'TAM' => [
+            'name' => 'Tambovskaya oblast\''
+          ],
+          'TOM' => [
+            'name' => 'Tomskaya oblast\''
+          ],
+          'TUL' => [
+            'name' => 'Tul\'skaya oblast\''
+          ],
+          'TVE' => [
+            'name' => 'Tverskaya oblast\''
+          ],
+          'TYU' => [
+            'name' => 'Tyumenskaya oblast\''
+          ],
+          'ULY' => [
+            'name' => 'Ul\'yanovskaya oblast\''
+          ],
+          'VLA' => [
+            'name' => 'Vladimirskaya oblast\''
+          ],
+          'VGG' => [
+            'name' => 'Volgogradskaya oblast\''
+          ],
+          'VLG' => [
+            'name' => 'Vologodskaya oblast\''
+          ],
+          'VOR' => [
+            'name' => 'Voronezhskaya oblast\''
+          ],
+          'YAR' => [
+            'name' => 'Yaroslavskaya oblast\''
+          ],
+          'MOW' => [
+            'name' => 'Moskva'
+          ],
+          'SPE' => [
+            'name' => 'Sankt-Peterburg'
+          ],
+          'YEV' => [
+            'name' => 'Yevreyskaya avtonomnaya oblast\''
+          ],
+          'CHU' => [
+            'name' => 'Chukotskiy avtonomnyy okrug'
+          ],
+          'KHM' => [
+            'name' => 'Khanty-Mansiyskiy avtonomnyy okrug'
+          ],
+          'NEN' => [
+            'name' => 'Nenetskiy avtonomnyy okrug'
+          ],
+          'YAN' => [
+            'name' => 'Yamalo-Nenetskiy avtonomnyy okrug'
+          ],
+        ]
       ],
       'RW' => [
         'name' => 'Rwanda',

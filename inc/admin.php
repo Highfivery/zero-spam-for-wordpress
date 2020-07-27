@@ -79,19 +79,12 @@ function wpzerospam_spam_detections_page() {
 
     $table_data = new WPZeroSpam_Log_Table();
 
-    // Setup page parameters
-    $current_page = $table_data->get_pagenum();
-    $current_page = (isset($current_page)) ? $current_page : 1;
-    $paged        = ( isset( $_GET['page'] ) ) ? absint( $_GET['page'] ) : $current_page;
-    $paged        = ( isset( $_GET['paged'] ) ) ? absint(  $_GET['paged'] ) : $current_page;
-    $paged        = ( isset( $args['paged'] ) ) ? $args['paged'] : $paged;
-
     // Fetch, prepare, sort, and filter our data...
     $table_data->prepare_items();
     ?>
     <form id="log-table" method="post">
       <?php wp_nonce_field( 'wpzerospam_nonce', 'wpzerospam_nonce' ); ?>
-      <input type="hidden" name="paged" value="<?php echo $paged; ?>" />
+      <input type="hidden" name="paged" value="1" />
       <?php $table_data->search_box( __( 'Search IPs', 'wpzerospam' ), 'search-ip' ); ?>
       <?php $table_data->display(); ?>
     </form>
@@ -115,19 +108,12 @@ function wpzerospam_blacklist_page() {
 
     $table_data = new WPZeroSpam_Blacklisted_Table();
 
-    // Setup page parameters
-    $current_page = $table_data->get_pagenum();
-    $current_page = ( isset( $current_page ) ) ? $current_page : 1;
-    $paged        = ( isset( $_GET['page'] ) ) ? absint( $_GET['page'] ) : $current_page;
-    $paged        = ( isset( $_GET['paged'] ) ) ? absint(  $_GET['paged'] ) : $current_page;
-    $paged        = ( isset( $args['paged'] ) ) ? $args['paged'] : $paged;
-
     // Fetch, prepare, sort, and filter our data...
     $table_data->prepare_items();
     ?>
-    <form id="log-table" method="post">
+    <form id="blacklist-table" method="post">
       <?php wp_nonce_field( 'wpzerospam_nonce', 'wpzerospam_nonce' ); ?>
-      <input type="hidden" name="paged" value="<?php echo $paged; ?>" />
+      <input type="hidden" name="paged" value="1" />
       <?php $table_data->search_box( __( 'Search IPs', 'wpzerospam' ), 'search-ip' ); ?>
       <?php $table_data->display(); ?>
     </form>
@@ -268,19 +254,12 @@ function wpzerospam_blocked_ips_page() {
 
     $table_data = new WPZeroSpam_Blocked_IP_Table();
 
-    // Setup page parameters
-    $current_page = $table_data->get_pagenum();
-    $current_page = ( isset( $current_page ) ) ? $current_page : 1;
-    $paged        = ( isset( $_GET['page'] ) ) ? absint( $_GET['page'] ) : $current_page;
-    $paged        = ( isset( $_GET['paged'] ) ) ? absint(  $_GET['paged'] ) : $current_page;
-    $paged        = ( isset( $args['paged'] ) ) ? $args['paged'] : $paged;
-
     // Fetch, prepare, sort, and filter our data...
     $table_data->prepare_items();
     ?>
-    <form id="log-table" method="post">
+    <form id="blocked-table" method="post">
       <?php wp_nonce_field( 'wpzerospam_nonce', 'wpzerospam_nonce' ); ?>
-      <input type="hidden" name="paged" value="<?php echo $paged; ?>" />
+      <input type="hidden" name="paged" value="1" />
       <?php $table_data->search_box( __( 'Search IPs', 'wpzerospam' ), 'search-ip' ); ?>
       <?php $table_data->display(); ?>
     </form>
@@ -386,6 +365,10 @@ function wpzerospam_validate_options( $input ) {
 
   if ( empty( $input['verify_fluentform'] ) ) {
     $input['verify_fluentform'] = 'disabled';
+  }
+
+  if ( empty( $input['verify_formidable'] ) ) {
+    $input['verify_formidable'] = 'disabled';
   }
 
   if ( empty( $input['stop_forum_spam'] ) ) {
@@ -714,6 +697,19 @@ function wpzerospam_admin_init() {
       'type'      => 'checkbox',
       'multi'     => false,
       'desc'      => 'Enables spam detection for Fluent Form submissions.',
+      'options'   => [
+        'enabled' => __( 'Enabled', 'wpzerospam' )
+      ]
+    ]);
+  }
+
+  // Formidable forms spam check
+  if ( is_plugin_active( 'formidable/formidable.php' ) ) {
+    add_settings_field( 'verify_formidable', __( 'Verify Formidable Form Submissions', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+      'label_for' => 'verify_formidable',
+      'type'      => 'checkbox',
+      'multi'     => false,
+      'desc'      => 'Enables spam detection for Formidable form submissions.',
       'options'   => [
         'enabled' => __( 'Enabled', 'wpzerospam' )
       ]

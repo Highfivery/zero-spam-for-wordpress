@@ -102,6 +102,44 @@ if ( ! function_exists( 'wpzerospam_key_check' ) ) {
   }
 }
 
+/**
+ * Sets the $_SERVER['REQUEST_URI'] for pages that extend WP_List_Table
+ *
+ * Fix for passing filters to WP_List_Table paging. See @link below.
+ *
+ * @since 4.8.2
+ * @link https://wordpress.stackexchange.com/questions/67669/how-to-stop-wpnonce-and-wp-http-referer-from-appearing-in-url/185006#185006
+ * @param array $query_args Array of the current query arguments for a table
+ * query.
+ * @return void
+ */
+if ( ! function_exists( 'wpzerospam_set_list_table_request_uri' ) ) {
+  function wpzerospam_set_list_table_request_uri( $query_args ) {
+    $paging_options = $query_args;
+    unset( $paging_options['offset'] );
+    unset( $paging_options['where'] );
+
+    if ( ! empty( $query_args['where'] ) ) {
+      foreach( $query_args['where'] as $key => $value ) {
+        switch( $key ) {
+          case 'blacklist_service':
+            $paging_options['service'] = $value;
+          break;
+          case 'user_ip':
+            $paging_options['s'] = $value;
+          break;
+          case 'blocked_type':
+          case 'log_type':
+            $paging_options['type'] = $value;
+          break;
+        }
+      }
+    }
+
+    $_SERVER['REQUEST_URI'] = add_query_arg( $paging_options, $_SERVER['REQUEST_URI'] );
+  }
+}
+
 
 
 
@@ -469,7 +507,8 @@ if ( ! function_exists( 'wpzerospam_plugin_integration_enabled' ) ) {
       'cf7'         => 'contact-form-7/wp-contact-form-7.php',
       'gforms'      => 'gravityforms/gravityforms.php',
       'fluentform'  => 'fluentform/fluentform.php',
-      'wpforms'     => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ]
+      'wpforms'     => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ],
+      'formidable'  => 'formidable/formidable.php',
     ];
 
     // Handle BuddyPress check a little differently for presence of a function
@@ -559,6 +598,10 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 
     if ( empty( $options['verify_fluentform'] ) ) {
       $options['verify_fluentform'] = 'enabled';
+    }
+
+    if ( empty( $options['verify_formidable'] ) ) {
+      $options['verify_formidable'] = 'enabled';
     }
 
     if ( empty( $options['stop_forum_spam'] ) ) {

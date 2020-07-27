@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.8.1
+Stable tag: 4.9.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -43,6 +43,7 @@ WordPress Zero Spam blocks spam submissions including comments, registrations an
 * [BuddyPress](https://wordpress.org/plugins/buddypress/) registrations
 * [Contact Form by WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [WP Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
+* [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://benmarshall.me/stop-wordpress-spam/) in its tracks.
 
@@ -64,7 +65,7 @@ WordPress Zero Spam is free &mdash; completely free & always will be. No premium
 2. Activate the plugin through the Plugins screen (*Plugins > Installed Plugins*).
 3. Visit the plugin setting to configure as needed (*Settings > WP Zero Spam*).
 
-For more information, see the [plugin’s website](https://benmarshall.me/wordpress-zero-spam).
+For more information & developer documentation, see the [plugin’s website](https://benmarshall.me/wordpress-zero-spam).
 
 == Frequently Asked Questions ==
 
@@ -110,6 +111,7 @@ Yes, that's what does the magic and keeps spam bots out.
 * `wpzerospam_bp_registration_spam` - Fires when a BuddyPress spam registration is detected
 * `wpzerospam_wpform_spam` - Fires when a spam submission is made with a WPForm
 * `wpzerospam_fluentform_spam` - Fires when a spam submission is made with a WP Fluent Form
+* `wpzerospam_formidable_spam` - Fires when a spam submission is made with a Formidable form
 
 == Screenshots ==
 
@@ -118,6 +120,15 @@ Yes, that's what does the magic and keeps spam bots out.
 3. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.9.0 =
+
+* Added support for [Formidable Forms](https://wordpress.org/plugins/formidable/). See [#112](https://github.com/bmarshall511/wordpress-zero-spam/issues/112).
+* Added additional country regions
+
+= 4.8.2 =
+
+* Fix for admin table paging keeping set filters
 
 = 4.8.1 =
 

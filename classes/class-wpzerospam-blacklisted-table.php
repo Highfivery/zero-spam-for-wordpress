@@ -59,7 +59,7 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
     <div class="alignleft actions">
       <?php
       echo '<label class="screen-reader-text" for="filter-by-service">' . __( 'Filter by service' ) . '</label>';
-      $current_service = ! empty( $_POST['service'] ) ? sanitize_text_field( $_POST['service'] ) : false;
+      $current_service = ! empty( $_REQUEST['service'] ) ? sanitize_text_field( $_REQUEST['service'] ) : false;
       ?>
       <select name="service" id="filter-by-service">
         <option value=""><?php _e( 'All services', 'wpzerospam' ); ?></option>
@@ -180,8 +180,8 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
     $order        = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( $_REQUEST['order'] ) : 'desc';
     $orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( $_REQUEST['orderby'] ) : 'last_updated';
 
-    $user_ip           = ! empty( $_POST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
-    $blacklist_service = ! empty( $_POST['service'] ) ? sanitize_text_field( $_REQUEST['service'] ) : false;
+    $user_ip           = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
+    $blacklist_service = ! empty( $_REQUEST['service'] ) ? sanitize_text_field( $_REQUEST['service'] ) : false;
 
     $query_args = [
       'limit'   => $per_page,
@@ -204,6 +204,9 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
 
     $data = wpzerospam_query( 'blacklist', $query_args );
     if ( ! $data ) { return false; }
+
+    // Set the $_SERVER['REQUEST_URI'] for paging
+    wpzerospam_set_list_table_request_uri( $query_args );
 
     $total_items = wpzerospam_query( 'blacklist', $query_args, true );
 
@@ -229,7 +232,7 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
       // Delete
       case 'delete':
         // Delete query
-        $nonce = ( isset( $_POST['wpzerospam_nonce'] ) ) ? $_POST['wpzerospam_nonce'] : '';
+        $nonce = ( isset( $_REQUEST['wpzerospam_nonce'] ) ) ? $_REQUEST['wpzerospam_nonce'] : '';
         if ( ! wp_verify_nonce( $nonce, 'wpzerospam_nonce' ) ) return false;
 
         if ( ! empty ( $ids ) && is_array( $ids ) ) {
