@@ -46,3 +46,10 @@
 .wpzerospam-details-data {
   flex-grow: 1;
 }
+
+.wpzerospam-small {
+  color: #666;
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1;
+}

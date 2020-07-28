@@ -37,6 +37,32 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
       '2.9.3'
     );
 
+    // Register jvectormap for world map
+    wp_register_script(
+      'wpzerospam-map',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/assets/js/jquery-jvectormap-2.0.5.min.js',
+      [ 'jquery' ],
+      '2.0.5'
+    );
+
+    wp_register_script(
+      'wpzerospam-world-map',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/assets/js/jquery-jvectormap-world-mill.js',
+      [ 'wpzerospam-map' ],
+      '2.0.5'
+    );
+
+    // Register jvectormap for world map
+    wp_register_style(
+      'wpzerospam-map',
+      plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
+        '/assets/css/jquery-jvectormap-2.0.5.css',
+      false,
+      '2.9.3'
+    );
+
     wp_register_script(
       'wpzerospam-admin-tables',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
@@ -65,6 +91,10 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
         // Enqueue Chart.js
         wp_enqueue_script( 'wpzerospam-charts' );
         wp_enqueue_style( 'wpzerospam-charts' );
+
+        // Enqueue jvectormap.js
+        wp_enqueue_script( 'wpzerospam-world-map' );
+        wp_enqueue_style( 'wpzerospam-map' );
 
         wp_enqueue_style(
           'wpzerospam-admin-dashboard',

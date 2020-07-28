@@ -283,10 +283,11 @@ function wpzerospam_dashboard() {
 
       <h2><?php _e( 'Statistics', 'wpzerospam' ); ?></h2>
       <div class="wpzerospam-boxes">
-        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/spam-line-chart.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/map.php'; ?>
         <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/ip-list.php'; ?>
         <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/countries-pie-chart.php'; ?>
         <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/regions-pie-chart.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/spam-line-chart.php'; ?>
       </div>
     </div>
   <?php

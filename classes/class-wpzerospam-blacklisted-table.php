@@ -94,6 +94,9 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
           case 'botscout':
             return '<a href="https://botscout.com/" target="_blank" rel="noopener noreferrer">BotScout</a>';
           break;
+          case 'zerospam':
+            return '<a href="https://zerospam.org/" target="_blank" rel="noopener noreferrer">Zero Spam</a>';
+          break;
           default:
             return $item->blacklist_service;
         }
@@ -108,7 +111,7 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
         if ( empty( $item->blacklist_data ) ) { return __( 'No details available.', 'wpzerospam' ); }
         ob_start();
         ?>
-        <button class="button action wpzerospam-details-trigger" data-id="<?php echo $item->blacklist_id; ?>"><?php _e( 'View Details', 'wpzerospam' ); ?></button>
+        <button class="button action wpzerospam-details-trigger" data-id="<?php echo $item->blacklist_id; ?>"><?php _e( 'View', 'wpzerospam' ); ?></button>
         <div class="wpzerospam-details-modal" id="wpzerospam-details-modal-<?php echo $item->blacklist_id; ?>">
           <div class="wpzerospam-details-modal-inner">
             <?php
@@ -126,13 +129,57 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
 
             echo '<div class="wpzerospam-details-item">';
             echo '<div class="wpzerospam-details-label">' . __( 'Service', 'wpzerospam' ) . '</div>';
-            echo '<div class="wpzerospam-details-data">' . $item->blacklist_service . '</div>';
+            echo '<div class="wpzerospam-details-data">';
+            switch( $item->blacklist_service ) {
+              case 'stopforumspam':
+                echo '<a href="https://www.stopforumspam.com/" target="_blank" rel="noopener noreferrer">Stop Forum Spam</a>';
+              break;
+              case 'botscout':
+                echo '<a href="https://botscout.com/" target="_blank" rel="noopener noreferrer">BotScout</a>';
+              break;
+              case 'zerospam':
+                echo '<a href="https://zerospam.org/" target="_blank" rel="noopener noreferrer">Zero Spam</a>';
+              break;
+              default:
+                echo $item->blacklist_service;
+            }
+            echo '</div>';
             echo '</div>';
 
             if ( ! empty( $item->blacklist_data ) ) {
               foreach( $item->blacklist_data as $key => $value ):
                 if ( ! $value ) { continue; }
                 switch( $key ):
+                  case 'appears':
+                    echo '<div class="wpzerospam-details-item">';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Appears', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
+                    echo '</div>';
+                  break;
+                  case 'confidence':
+                    echo '<div class="wpzerospam-details-item">';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Confidence', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-data">' . $value . '%</div>';
+                    echo '</div>';
+                  break;
+                  case 'frequency':
+                    echo '<div class="wpzerospam-details-item">';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Frequency', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
+                    echo '</div>';
+                  break;
+                  case 'lastseen':
+                    echo '<div class="wpzerospam-details-item">';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Last Seen', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
+                    echo '</div>';
+                  break;
+                  case 'asn':
+                    echo '<div class="wpzerospam-details-item">';
+                    echo '<div class="wpzerospam-details-label">' . __( 'ASN', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
+                    echo '</div>';
+                  break;
                   default:
                     echo '<div class="wpzerospam-details-item">';
                     echo '<div class="wpzerospam-details-label">' . $key . '</div>';

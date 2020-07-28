@@ -52,12 +52,8 @@
   vertical-align: text-bottom;
 }
 
-.wpzerospam-blocked {
-  color: #ca4a1f;
-}
-
-.wpzerospam-blocked::before {
-  background-image: url('../img/icon.svg');
+.wpzerospam-blocked::before,
+.wpzerospam-warning::before {
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
@@ -67,4 +63,20 @@
   margin-right: 3px;
   vertical-align: top;
   width: 16px;
+}
+
+.wpzerospam-blocked {
+  color: #ca4a1f;
+}
+
+.wpzerospam-blocked::before {
+  background-image: url('../img/icon.svg');
+}
+
+.wpzerospam-warning {
+  color: #fcb214;
+}
+
+.wpzerospam-warning::before {
+  background-image: url('../img/icon-yellow.svg');
 }

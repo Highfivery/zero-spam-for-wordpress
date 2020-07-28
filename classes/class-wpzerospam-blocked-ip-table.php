@@ -98,7 +98,16 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
         return $item->blocked_id;
       break;
       case 'blocked_type':
-        return $item->blocked_type;
+        switch( $item->blocked_type ) {
+          case 'permanent':
+            return '<span class="wpzerospam-blocked">Permanent</span>';
+          break;
+          case 'temporary':
+            return '<span class="wpzerospam-warning">Temporary</span>';
+          break;
+          default:
+            return $item->blocked_type;
+        }
       break;
       case 'date_added':
         return date( 'M j, Y g:ia' , strtotime( $item->date_added ) );
@@ -122,7 +131,16 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
           return 'N/A';
         }
 
-        return $item->reason;
+        switch( $item->reason ) {
+          case 'comment (permanently auto-blocked)':
+            return __( 'Comment <span class="wpzerospam-small">(<strong>permanently</strong> auto-blocked)</span>', 'wpzerospam' );
+          break;
+          case 'comment (auto-blocked)':
+            return __( 'Comment <span class="wpzerospam-small">(auto-blocked)</span>', 'wpzerospam' );
+          break;
+          default:
+            return $item->reason;
+        }
       break;
       case 'attempts':
         return $item->attempts;

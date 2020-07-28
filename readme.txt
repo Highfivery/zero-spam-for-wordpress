@@ -116,8 +116,10 @@ Yes, that's what does the magic and keeps spam bots out.
 == Screenshots ==
 
 1. WordPress Zero Spam dashboard
-2. WordPress Zero Spam blocked IPs
-3. WordPress Zero Spam settings
+2. WordPress Zero Spam detections log
+3. WordPress Zero Spam blocked IPs
+4. WordPress Zero Spam blacklisted IPs
+5. WordPress Zero Spam settings
 
 == Changelog ==
 
@@ -125,6 +127,8 @@ Yes, that's what does the magic and keeps spam bots out.
 
 * Added support for [Formidable Forms](https://wordpress.org/plugins/formidable/). See [#112](https://github.com/bmarshall511/wordpress-zero-spam/issues/112).
 * Added additional country regions
+* UI enhancments to the admin tables
+* Added a spam detection world map to the dashboard
 
 = 4.8.2 =
 

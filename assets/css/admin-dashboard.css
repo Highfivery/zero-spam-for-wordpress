@@ -64,6 +64,10 @@
   .wpzerospam-box {
     width: calc(100% / 2 - 18px);
   }
+
+  .wpzerospam-box-map {
+    width: calc(100% - 18px);
+  }
 }
 
 @media (min-width: 1200px) {
@@ -72,6 +76,10 @@
   }
 
   .wpzerospam-box-line-chart {
+    width: calc(100% - 18px);
+  }
+
+  .wpzerospam-box-map {
     width: calc((100% / 3) * 2 - 18px);
   }
 
