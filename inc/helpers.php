@@ -642,7 +642,7 @@ if ( ! function_exists( 'wpzerospam_ip' ) ) {
     $ip = explode( ',', $ip );
     $ip = trim( $ip[0] );
 
-    if ( false === WP_Http::is_ip_address( $ip ) ) { return false; }
+    if ( ! rest_is_ip_address( $ip ) ) { return false; }
 
     return $ip;
   }

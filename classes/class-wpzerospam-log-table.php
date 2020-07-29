@@ -187,7 +187,9 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
             }
 
             if ( ! empty( $item->submission_data ) ) {
-              foreach( $item->submission_data as $key => $value ):
+              $submission_data = json_decode( $item->submission_data, true );
+
+              foreach( $submission_data as $key => $value ):
                 if ( ! $value ) { continue; }
                 switch( $key ):
                   case 'comment_post_ID':
@@ -350,6 +352,14 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
                   case 'reason':
                     echo '<div class="wpzerospam-details-item">';
                     echo '<div class="wpzerospam-details-label">' . __( 'Reason', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
+                    echo '</div>';
+                  break;
+
+                  // Ninja Forms fields
+                  case 'id':
+                    echo '<div class="wpzerospam-details-item">';
+                    echo '<div class="wpzerospam-details-label">' . __( 'ID', 'wpzerospam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;

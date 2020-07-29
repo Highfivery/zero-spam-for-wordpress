@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.9.0
+Stable tag: 4.9.1
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -39,7 +39,7 @@ WordPress Zero Spam blocks spam submissions including comments, registrations an
 * WordPress user registrations
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
 * [Gravity Forms](https://www.gravityforms.com/) submissions
-* [Ninja Forms](https://wordpress.org/plugins/ninja-forms/) submissions
+* [Ninja Forms](https://wordpress.org/plugins/ninja-forms/) submissions*
 * [BuddyPress](https://wordpress.org/plugins/buddypress/) registrations
 * [Contact Form by WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [WP Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
@@ -122,6 +122,10 @@ Yes, that's what does the magic and keeps spam bots out.
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.9.1 =
+
+* Fix for PHP notice on the modals for spam detections
 
 = 4.9.0 =
 
