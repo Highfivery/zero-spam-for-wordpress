@@ -95,8 +95,7 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
   function column_default( $item, $column_name ) {
     switch( $column_name ) {
       case 'actions':
-        $blocked_status = wpzerospam_get_blocked_ips( $item->user_ip );
-        if ( $blocked_status && wpzerospam_is_blocked( $blocked_status ) ) {
+        if ( wpzerospam_is_blocked( $item->user_ip ) ) {
           return '<span class="wpzerospam-blocked">' . __( 'Blocked', 'wpzerospam' ) . '</span>';
         } else {
           return '<a class="button" href="' . admin_url( 'admin.php?page=wordpress-zero-spam-blocked-ips&ip=' . $item->user_ip ) . '">' . __( 'Block IP', 'wpzerospam' ) . '</a>';
@@ -421,7 +420,10 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
 
   // Register bulk actions
   function get_bulk_actions() {
-    $actions = [ 'delete' => __( 'Delete', 'wpzerospam' ) ];
+    $actions = [
+      'delete'     => __( 'Delete Selected', 'wpzerospam' ) ,
+      'delete_all' => __( 'Delete All Entries', 'wpzerospam' )
+    ];
 
     return $actions;
   }
@@ -510,6 +512,9 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
             $wpdb->delete( wpzerospam_tables( 'log' ), [ 'log_id' => $log_id  ] );
           }
         }
+      break;
+      case 'delete_all':
+        $wpdb->query( "TRUNCATE TABLE " . wpzerospam_tables( 'log' ) );
       break;
     }
   }

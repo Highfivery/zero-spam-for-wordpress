@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.9.2
+Stable tag: 4.9.3
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -13,9 +13,11 @@ WordPress Zero Spam makes blocking spam & malicious visitors a cinch. Just insta
 
 == Description ==
 
-Quit forcing users to answer silly questions, read confusing captchas, or take additional steps just to prove they're not spam. Stop malicious bots & hackers in their tracks before they ever have a chance to infiltrate your site &mdash; introducing WordPress Zero Spam.
+Quit forcing users to answer silly questions, read confusing captchas, or take additional steps just to prove they're not spam. Stop malicious bots & hackers in their tracks before they ever have a chance to infiltrate your site &mdash; **introducing WordPress Zero Spam**.
 
-[WordPress Zero Spam](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and a database of known malicious IPs from around the world to detect and block unwanted visitors. In addition, it integrates with other popular plugins to provide all around protection. Just install, activate, and enjoy a spam-free site.
+[WordPress Zero Spam](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and a database of known malicious IPs from around the world to detect and block unwanted visitors.
+
+In addition, it integrates with other popular plugins to provide all around protection. Just install, activate, and enjoy a spam-free site.
 
 = WordPress Zero Spam features =
 
@@ -23,7 +25,7 @@ Quit forcing users to answer silly questions, read confusing captchas, or take a
 * **No moderation queues**, spam isn't a administrators' problem
 * **Blocks 99.9% of spam** submissions
 * **Blocks malicious IPs** from ever seeing your site
-* **Check IPs against spam blacklists** ([Zero Spam](https://zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/), [BotScout](https://botscout.com/))
+* **IP blacklist spam checks** ([Zero Spam](https://zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/), [BotScout](https://botscout.com/))
 * **Auto-block IPs** when a spam detection is triggered
 * **Manually block IPs** either temporarily or permanently
 * **Developer-friendly**, integrate with any theme, plugin or form
@@ -56,7 +58,7 @@ WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's mo
 
 = Show Your Support =
 
-WordPress Zero Spam is free &mdash; completely free & always will be. No premium versions or addons you've gotta buy to access additional features. Help support it's development by [donating](https://benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) today.
+**WordPress Zero Spam is free &mdash; completely free & always will be.** No premium versions or addons you've gotta buy to access additional features. Help support it's development by [donating](https://benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) today.
 
 == Installation ==
 
@@ -70,7 +72,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 = Does WordPress Zero Spam check Ninja Forms submissions? =
 
-No. As of v4.10.0, WordPress Zero Spam no longer checks Ninja Form submissions. Support was dropped due its [required of JavaScript](https://developer.ninjaforms.com/codex/loading-the-form-via-ajax/) and how it submits forms. JavaScript is one of the techniques WordPress Zero Spam uses to determine if a submission is spam. Ninja Forms employs a similar method and has its own [spam detection](https://ninjaforms.com/blog/spam-wordpress-form/) feature.
+No. As of v4.10.0, WordPress Zero Spam no longer checks Ninja Form submissions. Support was dropped due its [requirement of JavaScript](https://developer.ninjaforms.com/codex/loading-the-form-via-ajax/) and how it submits forms. JavaScript is one of the techniques WordPress Zero Spam uses to determine if a submission is spam. Ninja Forms employs a similar method and has its own [spam detection](https://ninjaforms.com/blog/spam-wordpress-form/) feature.
 
 = Does WordPress Zero Spam check Jetpack comments? =
 
@@ -111,6 +113,14 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.9.3 =
+
+* Added a confidence threshold for Stop Form Spam checks. See [#202](https://github.com/bmarshall511/wordpress-zero-spam/issues/202);
+* Added an API timeout field to adjust how long a response is allowed to take.
+* Restructred several functions which fixed some interment bugs users were experiencing.
+* Added ability to delete all entries from a table.
+* This update **will delete all exisiting blacklisted IPs** to ensure visitors aren't getting blocked when that shouldn't be.
 
 = 4.9.2 =
 

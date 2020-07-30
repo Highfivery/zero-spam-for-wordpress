@@ -56,10 +56,7 @@ $chart_limit = 20;
               <?php echo number_format( $ary['count'], 0 ); ?>
             </span>
             <span class="wpzerospam-list-cell wpzerospam-list-cell-action">
-              <?php
-              $blocked_status = wpzerospam_get_blocked_ips( $ip );
-              if ( $blocked_status && wpzerospam_is_blocked( $blocked_status ) ):
-                ?>
+              <?php if ( wpzerospam_is_blocked( $ip ) ): ?>
                 <span class="wpzerospam-blocked"><?php _e( 'Blocked', 'wpzerospam' ); ?></span>
               <?php else: ?>
                 <a href="<?php echo admin_url( 'admin.php?page=wordpress-zero-spam-blocked-ips&ip=' . $ip ); ?>">

@@ -6,16 +6,27 @@
  * @since 4.0.0
  */
 
+/**
+ * Check if any updates should be preformed
+ */
+add_action( 'init', function() {
+  global $wpdb;
+  $update_version = get_option( 'wpzerospam_update_version' );
+
+  if ( ! $update_version ) {
+    // Clear the blacklist.
+    $wpdb->query( "TRUNCATE TABLE " . wpzerospam_tables( 'blacklist' ) );
+    update_option( 'wpzerospam_update_version', '1' );
+  }
+});
+
 
 /**
- * Transfers the blocked IPs that used to exist in options to the dedicated
- * table.
+ * Fixes issue with upgrade from 3 to 4
  *
  * @since 4.2.0
  */
 add_action( 'admin_init', function() {
-  $options = wpzerospam_options();
-
   if(  ! function_exists( 'is_plugin_active' ) ) {
     require_once( ABSPATH . 'wp-admin/includes/plugin.php' );
   }
@@ -33,19 +44,5 @@ add_action( 'admin_init', function() {
     function_exists( 'activate_plugin' )
   ) {
     activate_plugin( 'zero-spam/wordpress-zero-spam.php', '', true );
-  }
-
-  if ( ! empty( $options['blocked_ips'] ) ) {
-    // IPs found, transfer them to the database
-    foreach( $options['blocked_ips'] as $key => $ip ) {
-      if ( ! empty( $ips ) ) {
-        wpzerospam_update_blocked_ip( $ip['ip_address'], [
-          'reason' => $ip['reason']
-        ]);
-      }
-    }
-
-    unset( $options['blocked_ips'] );
-    update_option( 'wpzerospam', $options );
   }
 });

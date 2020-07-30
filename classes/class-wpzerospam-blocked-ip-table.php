@@ -150,7 +150,10 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
 
   // Register bulk actions
   function get_bulk_actions() {
-    $actions = [ 'delete' => __( 'Delete', 'wpzerospam' ) ];
+    $actions = [
+      'delete'     => __( 'Delete', 'wpzerospam' ),
+      'delete_all' => __( 'Delete All Entries', 'wpzerospam' )
+    ];
 
     return $actions;
   }
@@ -238,6 +241,9 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
             $wpdb->delete( wpzerospam_tables( 'blocked' ), [ 'blocked_id' => $blocked_id  ] );
           }
         }
+      break;
+      case 'delete_all':
+        $wpdb->query( "TRUNCATE TABLE " . wpzerospam_tables( 'blocked' ) );
       break;
     }
   }

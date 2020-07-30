@@ -32,6 +32,7 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
       'last_updated' => __( 'Last Updated', 'wpzerospam' ),
       'user_ip'      => __( 'IP Address', 'wpzerospam' ),
       'service'      => __( 'Service', 'wpzerospam' ),
+      'attempts'     => __( 'Attempts', 'wpzerospam' ),
       'details'      => __( 'Details', 'wpzerospam' )
     ];
 
@@ -44,6 +45,7 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
       'last_updated' => [ 'last_updated', false ],
       'user_ip'      => [ 'user_ip', false ],
       'service'      => [ 'service', false ],
+      'attempts'     => [ 'attempts', false ],
     ];
 
     return $sortable_columns;
@@ -100,6 +102,9 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
           default:
             return $item->blacklist_service;
         }
+      break;
+      case 'attempts':
+        return number_format( $item->attempts, 0 );
       break;
       case 'user_ip':
         return '<a href="https://whatismyipaddress.com/ip/' . $item->user_ip .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>';
@@ -199,7 +204,10 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
 
   // Register bulk actions
   function get_bulk_actions() {
-    $actions = [ 'delete' => __( 'Delete', 'wpzerospam' ) ];
+    $actions = [
+      'delete'     => __( 'Delete', 'wpzerospam' ),
+      'delete_all' => __( 'Delete All Entries', 'wpzerospam' )
+    ];
 
     return $actions;
   }
@@ -288,6 +296,9 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
             $wpdb->delete( wpzerospam_tables( 'blacklist' ), [ 'blacklist_id' => $blacklist_id  ] );
           }
         }
+      break;
+      case 'delete_all':
+        $wpdb->query( "TRUNCATE TABLE " . wpzerospam_tables( 'blacklist' ) );
       break;
     }
   }

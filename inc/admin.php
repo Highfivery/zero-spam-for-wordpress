@@ -326,6 +326,8 @@ function wpzerospam_validate_options( $input ) {
   if ( empty( $input['auto_block_period'] ) ) { $input['auto_block_period'] = 0; }
   if ( empty( $input['botscout_api'] ) ) { $input['botscout'] = false; }
   if ( empty( $input['auto_block_permanently'] ) ) { $input['auto_block_permanently'] = 3; }
+  if ( empty( $input['api_timeout'] ) ) { $input['api_timeout'] = 5; }
+  if ( empty( $input['stopforumspam_confidence_min'] ) ) { $input['stopforumspam_confidence_min'] = 20; }
 
   if ( empty( $input['ip_whitelist'] ) ) {
     $input['ip_whitelist'] = '';
@@ -485,6 +487,16 @@ function wpzerospam_admin_init() {
     ]
   ]);
 
+   // API timeout
+   add_settings_field( 'api_timeout', __( 'API Timeout', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+    'label_for'   => 'api_timeout',
+    'type'        => 'number',
+    'desc'        => 'Number of seconds to allow an API to return a response.<br /><strong>WARNING:</strong> Setting this too high could cause your site to load slowly. Setting too low may not allow an API enough time to respond with a result. <strong>Recommended is 5 seconds.</strong>',
+    'class'       => 'small-text',
+    'placeholder' => '30',
+    'suffix'      => __( 'seconds', 'wpzerospam' )
+  ]);
+
   if ( 'enabled' == $options['log_spam'] ) {
     // Redirect URL for spam detections
     add_settings_field( 'ipstack_api', __( 'ipstack API Key', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
@@ -514,6 +526,16 @@ function wpzerospam_admin_init() {
     'options'   => [
       'enabled' => __( 'Enabled', 'wpzerospam' )
     ]
+  ]);
+
+  // StopForumSpam confidence minimum
+  add_settings_field( 'stopforumspam_confidence_min', __( 'Stop Forum Spam Confidence Minimum', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+    'label_for'   => 'stopforumspam_confidence_min',
+    'type'        => 'number',
+    'desc'        => 'Minimum <a href="https://www.stopforumspam.com/usage" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being marked as spam/malicious.<br /><strong>WARNING:</strong> Setting this too low could cause users to be blocked that shouldn\'t be, <strong>recommended is 20%</strong>.',
+    'class'       => 'small-text',
+    'placeholder' => '20',
+    'suffix'      => __( '%', 'wpzerospam' )
   ]);
 
   // How to handle blocks

@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version:           4.9.2
+ * Version:           4.9.3
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Ben Marshall
@@ -30,8 +30,13 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 
 // Define plugin constants
 define( 'WORDPRESS_ZERO_SPAM', __FILE__ );
-define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.2' );
-define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.9.2' );
+define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.5' );
+define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.9.3' );
+
+/**
+ * Utility helper functions
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/utilities.php';
 
 /**
  * Helpers
@@ -87,6 +92,7 @@ function wpzerospam_install() {
       user_ip VARCHAR(39) NOT NULL,
       last_updated DATETIME NOT NULL,
       blacklist_service VARCHAR(255) NULL DEFAULT NULL,
+      attempts BIGINT UNSIGNED NOT NULL,
       blacklist_data LONGTEXT NULL DEFAULT NULL,
       PRIMARY KEY (`blacklist_id`)) $charset_collate;";
 
@@ -95,14 +101,10 @@ function wpzerospam_install() {
 
     if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $blocked_table ) ) === $blocked_table ) {
       $wpdb->query( "DELETE t1 FROM $blocked_table AS t1 JOIN $blocked_table AS t2 ON t2.blocked_id = t1.blocked_id WHERE t1.blocked_id < t2.blocked_id AND t1.user_ip = t2.user_ip" );
-
-      $wpdb->query( "ALTER TABLE $blocked_table ADD UNIQUE `user_ip` (`user_ip`(39));" );
     }
 
     if ( $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $blacklist_table ) ) === $blacklist_table ) {
       $wpdb->query( "DELETE t1 FROM $blacklist_table AS t1 JOIN $blacklist_table AS t2 ON t2.blacklist_id = t1.blacklist_id WHERE t1.blacklist_id < t2.blacklist_id AND t1.user_ip = t2.user_ip" );
-
-      $wpdb->query( "ALTER TABLE $blacklist_table ADD UNIQUE `user_ip` (`user_ip`(39));" );
     }
 
     update_option( 'wpzerospam_db_version', WORDPRESS_ZERO_SPAM_DB_VERSION );
@@ -176,7 +178,7 @@ if ( ! function_exists( 'wpzerospam_template_redirect' ) ) {
     $access = wpzerospam_check_access();
 
     if ( ! $access['access'] ) {
-      wpzerospam_attempt_blocked( $access['reason'] );
+      wpzerospam_attempt_blocked( $access['ip'], $access['reason'] );
     }
   }
 }
@@ -199,6 +201,7 @@ if ( ! function_exists( 'wpzerospam_uninstall' ) ) {
           delete_option( 'wpzerospam' );
           delete_option( 'wpzerospam_key' );
           delete_option( 'wpzerospam_db_version' );
+          delete_option( 'wpzerospam_update_version' );
 
           $tables = wpzerospam_tables();
           foreach( $tables as $key => $table ) {
@@ -211,6 +214,7 @@ if ( ! function_exists( 'wpzerospam_uninstall' ) ) {
       delete_option( 'wpzerospam' );
       delete_option( 'wpzerospam_key' );
       delete_option( 'wpzerospam_db_version' );
+      delete_option( 'wpzerospam_update_version' );
 
       $tables = wpzerospam_tables();
       foreach( $tables as $key => $table ) {
