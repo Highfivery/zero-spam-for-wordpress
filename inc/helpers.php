@@ -127,7 +127,8 @@ if ( ! function_exists( 'wpzerospam_is_api_blacklisted' ) ) {
     global $wpdb;
 
     // No need to check everytime a user visits a page
-
+    if ( wpzerospam_get_cookie( 'api_blacklist' ) ) { return false; }
+    wpzerospam_set_cookie( 'api_blacklist', current_time( 'timestamp' ) );
 
     $options = wpzerospam_options();
 
