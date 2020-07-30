@@ -69,13 +69,13 @@ function wpzerospam_spam_detections_page() {
   <div class="wrap">
     <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
+    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/callout.php'; ?>
 
     <?php
     /**
      * Log table
      */
-    require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/classes/class-wpzerospam-log-table.php';
+    require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wpzerospam-log-table.php';
 
     $table_data = new WPZeroSpam_Log_Table();
 
@@ -98,13 +98,13 @@ function wpzerospam_blacklist_page() {
   <div class="wrap">
     <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
+    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/callout.php'; ?>
 
     <?php
     /**
      * Blocked IP table
      */
-    require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/classes/class-wpzerospam-blacklisted-table.php';
+    require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wpzerospam-blacklisted-table.php';
 
     $table_data = new WPZeroSpam_Blacklisted_Table();
 
@@ -180,7 +180,7 @@ function wpzerospam_blocked_ips_page() {
   <div class="wrap">
     <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
+    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/callout.php'; ?>
 
     <?php if ( ! empty( $_GET['error'] ) ): ?>
       <div class="notice notice-error is-dismissible">
@@ -250,7 +250,7 @@ function wpzerospam_blocked_ips_page() {
     /**
      * Blocked IP table
      */
-    require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/classes/class-wpzerospam-blocked-ip-table.php';
+    require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wpzerospam-blocked-ip-table.php';
 
     $table_data = new WPZeroSpam_Blocked_IP_Table();
 
@@ -279,15 +279,15 @@ function wpzerospam_dashboard() {
     <div class="wrap">
       <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-      <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
+      <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/callout.php'; ?>
 
       <h2><?php _e( 'Statistics', 'wpzerospam' ); ?></h2>
       <div class="wpzerospam-boxes">
-        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/map.php'; ?>
-        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/ip-list.php'; ?>
-        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/countries-pie-chart.php'; ?>
-        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/regions-pie-chart.php'; ?>
-        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/spam-line-chart.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/map.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/ip-list.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/countries-pie-chart.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/regions-pie-chart.php'; ?>
+        <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/spam-line-chart.php'; ?>
       </div>
     </div>
   <?php
@@ -299,7 +299,7 @@ function wpzerospam_options_page() {
   <div class="wrap">
     <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/templates/callout.php'; ?>
+    <?php require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'templates/callout.php'; ?>
 
     <form action="options.php" method="post">
     <?php

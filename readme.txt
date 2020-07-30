@@ -17,7 +17,7 @@ Quit forcing users to answer silly questions, read confusing captchas, or take a
 
 [WordPress Zero Spam](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and a database of known malicious IPs from around the world to detect and block unwanted visitors.
 
-In addition, it integrates with other popular plugins to provide all around protection. Just install, activate, and enjoy a spam-free site.
+In addition, it integrates with other popular plugins to provide all around protection. **Just install, activate, and enjoy a spam-free site!**
 
 = WordPress Zero Spam features =
 
@@ -134,7 +134,8 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 * Fix for BotScout not checking IPs
 * Fix for table not found notice on activation
 
-4.9.1
+= 4.9.1 =
+
 Fix for PHP notice on the modals for spam detections
 
 = 4.9.0 =

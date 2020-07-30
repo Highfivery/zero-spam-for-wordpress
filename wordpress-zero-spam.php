@@ -36,17 +36,17 @@ define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.9.4' );
 /**
  * Utility helper functions
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/utilities.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/utilities.php';
 
 /**
  * Helpers
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/helpers.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/helpers.php';
 
 /**
  * Plugin updates
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/updates.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/updates.php';
 
 /**
  * Install plugin tables
@@ -125,46 +125,46 @@ add_action( 'plugins_loaded', 'wpzerospam_db_check' );
 /**
  * Plugin scripts
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/scripts.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/scripts.php';
 
 /**
  * Admin interface & functionality
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/admin.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/admin.php';
 
 /**
  * WP filters
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/filters.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/filters.php';
 
 /**
  * Below are the includes for individual spam check integrations
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/comments/comments.php';
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/registrations/registrations.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/comments/comments.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/registrations/registrations.php';
 
 if ( wpzerospam_plugin_integration_enabled( 'cf7' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/contact-form-7/contact-form-7.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/contact-form-7/contact-form-7.php';
 }
 
 if ( wpzerospam_plugin_integration_enabled( 'gforms' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/gravity-forms/gravity-forms.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/gravity-forms/gravity-forms.php';
 }
 
 if ( wpzerospam_plugin_integration_enabled( 'bp_registrations' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/buddypress/buddypress.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/buddypress/buddypress.php';
 }
 
 if ( wpzerospam_plugin_integration_enabled( 'wpforms' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/wpforms/wpforms.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/wpforms/wpforms.php';
 }
 
 if ( wpzerospam_plugin_integration_enabled( 'fluentform' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/fluentform/fluentform.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/fluentform/fluentform.php';
 }
 
 if ( wpzerospam_plugin_integration_enabled( 'formidable' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/integrations/formidable/formidable.php';
+  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/formidable/formidable.php';
 }
 
 /**

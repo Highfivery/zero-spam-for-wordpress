@@ -14,7 +14,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
     wp_enqueue_style(
       'wpzerospam-admin',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/css/admin.css',
+        'assets/css/admin.css',
       false,
       WORDPRESS_ZERO_SPAM_VERSION
     );
@@ -23,7 +23,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
     wp_register_script(
       'wpzerospam-charts',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/Chart.bundle.min.js',
+        'assets/js/Chart.bundle.min.js',
       [],
       '2.9.3'
     );
@@ -32,7 +32,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
     wp_register_style(
       'wpzerospam-charts',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/css/Chart.min.css',
+        'assets/css/Chart.min.css',
       false,
       '2.9.3'
     );
@@ -41,7 +41,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
     wp_register_script(
       'wpzerospam-map',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/jquery-jvectormap-2.0.5.min.js',
+        'assets/js/jquery-jvectormap-2.0.5.min.js',
       [ 'jquery' ],
       '2.0.5'
     );
@@ -49,7 +49,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
     wp_register_script(
       'wpzerospam-world-map',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/jquery-jvectormap-world-mill.js',
+        'assets/js/jquery-jvectormap-world-mill.js',
       [ 'wpzerospam-map' ],
       '2.0.5'
     );
@@ -58,7 +58,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
     wp_register_style(
       'wpzerospam-map',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/css/jquery-jvectormap-2.0.5.css',
+        'assets/css/jquery-jvectormap-2.0.5.css',
       false,
       '2.9.3'
     );
@@ -66,7 +66,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
     wp_register_script(
       'wpzerospam-admin-tables',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/admin-tables.js',
+        'assets/js/admin-tables.js',
       [ 'jquery' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true
@@ -75,7 +75,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
     wp_register_style(
       'wpzerospam-admin-tables',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/css/admin-tables.css',
+        'assets/css/admin-tables.css',
       false,
       WORDPRESS_ZERO_SPAM_VERSION
     );
@@ -99,7 +99,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
         wp_enqueue_style(
           'wpzerospam-admin-dashboard',
           plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-            '/assets/css/admin-dashboard.css',
+            'assets/css/admin-dashboard.css',
           false,
           WORDPRESS_ZERO_SPAM_VERSION
         );
@@ -112,7 +112,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
         wp_enqueue_script(
           'wpzerospam-admin-blocked-ips',
           plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-            '/assets/js/admin-blocked-ips.js',
+            'assets/js/admin-blocked-ips.js',
           [ 'jquery' ],
           WORDPRESS_ZERO_SPAM_VERSION,
           true
@@ -122,7 +122,7 @@ if ( ! function_exists( 'wpzerospam_admin_scripts' ) ) {
         wp_enqueue_style(
           'wpzerospam-admin-block_ips',
           plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-            '/assets/css/admin-blocked-ips.css',
+            'assets/css/admin-blocked-ips.css',
           false,
           WORDPRESS_ZERO_SPAM_VERSION
         );
@@ -142,7 +142,7 @@ if ( ! function_exists( 'wpzerospam_enqueue_scripts' ) ) {
     wp_enqueue_script(
       'wpzerospam',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/assets/js/wpzerospam.js',
+        'assets/js/wpzerospam.js',
       [ 'jquery' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true

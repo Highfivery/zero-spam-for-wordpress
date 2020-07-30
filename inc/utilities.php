@@ -12,7 +12,7 @@
 /**
  * Locations helper
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/locations.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/locations.php';
 
 /**
  * Get the user's current URL
