@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.9.4
+Stable tag: 4.9.5
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -104,6 +104,10 @@ It's easy as adding the class `wpzerospam` to the `form` element, then adding a 
 
 Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript be enabled to work properly.
 
+= Does WordPress Zero Spam use cookies? =
+
+Yes. It does not store any kind of personally identifiable information. Only one cookie is stored (`wpzerospam_api_blacklist`) to log the last time the site queried the blacklist APIs. This is used to boost performance so each page visit doesn't trigger an API call. The expiration can be set in *Admin > WP Zero Spam > Settings*
+
 == Screenshots ==
 
 1. WordPress Zero Spam dashboard
@@ -113,6 +117,12 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.9.5 =
+
+* Enhancement - Added the *BotScout Count Minimum* field in settings to allow sites to control when a BotScout result should be marked spam/malicious. See [BotScout's documentation](https://botscout.com/api.htm) for more information.
+* Enhancement - Improved performance by only querying the blacklist API once every X number of days (set in the admin settings).
+* Fix - Removed double slashes in some required PHP & JS paths.
 
 = 4.9.4 =
 

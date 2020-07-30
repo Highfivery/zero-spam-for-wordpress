@@ -328,6 +328,8 @@ function wpzerospam_validate_options( $input ) {
   if ( empty( $input['auto_block_permanently'] ) ) { $input['auto_block_permanently'] = 3; }
   if ( empty( $input['api_timeout'] ) ) { $input['api_timeout'] = 5; }
   if ( empty( $input['stopforumspam_confidence_min'] ) ) { $input['stopforumspam_confidence_min'] = 20; }
+  if ( empty( $input['botscout_count_min'] ) ) { $input['botscout_count_min'] = 5; }
+  if ( empty( $input['cookie_expiration'] ) ) { $input['cookie_expiration'] = 7; }
 
   if ( empty( $input['ip_whitelist'] ) ) {
     $input['ip_whitelist'] = '';
@@ -422,6 +424,16 @@ function wpzerospam_admin_init() {
   add_settings_section( 'wpzerospam_onsite', __( 'On-site Spam Prevention', 'wpzerospam' ), 'wpzerospam_onsite_cb', 'wpzerospam' );
   add_settings_section( 'wpzerospam_spam_checks', __( 'Integrations & Third-party APIs', 'wpzerospam' ), 'wpzerospam_spam_checks_cb', 'wpzerospam' );
 
+  // Cookie expiration
+  add_settings_field( 'cookie_expiration', __( 'Cookie Expiration', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+    'label_for'   => 'cookie_expiration',
+    'type'        => 'number',
+    'desc'        => 'Number of days until a user\'s cookie is expired. Helps boost site performance so blacklist API requests aren\'t sent each page visit. <strong>Minimum recommend is 7 days</strong>.',
+    'class'       => 'small-text',
+    'placeholder' => '7',
+    'suffix'      => __( 'days', 'wpzerospam' )
+  ]);
+
   // Determines is spam detections should be shared with WordPress Zero Spam
   add_settings_field( 'share_detections', __( 'Share Spam Detections', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
     'label_for' => 'share_detections',
@@ -515,6 +527,15 @@ function wpzerospam_admin_init() {
     'class'       => 'regular-text',
     'placeholder' => __( 'Enter your free BotScout API key.', 'wpzerospam' ),
     'desc'        => 'Enter your BotScout API key to check user IPs against <a href="https://botscout.com/" target="_blank" rel="noopener noreferrer">BotScout</a>\'s blacklist. Don\'t have an API key? <a href="https://botscout.com/getkey.htm" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>'
+  ]);
+
+  // BotScout count minimum
+  add_settings_field( 'botscout_count_min', __( 'BotScout Count Minimum', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+    'label_for'   => 'botscout_count_min',
+    'type'        => 'number',
+    'desc'        => 'Minimum <a href="https://botscout.com/api.htm" target="_blank" rel="noopener noreferrer">count</a> an IP must meet before being marked as spam/malicious.<br /><strong>WARNING:</strong> Setting this too low could cause users to be blocked that shouldn\'t be, <strong>recommended is 5</strong>.',
+    'class'       => 'small-text',
+    'placeholder' => '20',
   ]);
 
   // Enables the ability to check IPs against Stop Forum Spam blacklists.

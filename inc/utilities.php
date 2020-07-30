@@ -109,6 +109,8 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['ip_whitelist'] ) ) { $options['ip_whitelist'] = false; }
     if ( empty( $options['api_timeout'] ) ) { $options['api_timeout'] = 5; }
     if ( empty( $options['stopforumspam_confidence_min'] ) ) { $options['stopforumspam_confidence_min'] = 20; }
+    if ( empty( $options['botscout_count_min'] ) ) { $options['botscout_count_min'] = 5; }
+    if ( empty( $options['cookie_expiration'] ) ) { $options['cookie_expiration'] = 7; }
 
     if ( empty( $options['verify_cf7'] )  ) {
       $options['verify_cf7'] = 'enabled';

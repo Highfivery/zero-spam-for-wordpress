@@ -8,6 +8,31 @@
  */
 
 /**
+ * Sets a cookie
+ */
+if ( ! function_exists( 'wpzerospam_set_cookie' ) ) {
+  function wpzerospam_set_cookie( $key, $value ) {
+    $options    = wpzerospam_options();
+    $expiration = current_time( 'timestamp' ) + ( $options['cookie_expiration'] * DAY_IN_SECONDS );
+
+    setcookie( 'wpzerospam_' . $key, $value, $expiration, COOKIEPATH, COOKIE_DOMAIN );
+  }
+}
+
+/**
+ * Get a cookie
+ */
+if ( ! function_exists( 'wpzerospam_get_cookie' ) ) {
+  function wpzerospam_get_cookie( $key ) {
+    if ( ! empty( $_COOKIE[ 'wpzerospam_' . $key ] ) ) {
+      return $_COOKIE[ 'wpzerospam_' . $key ];
+    }
+
+    return false;
+  }
+}
+
+/**
  * Check access
  *
  * Determines if the current user IP should have access to the site.
@@ -101,6 +126,9 @@ if ( ! function_exists( 'wpzerospam_is_api_blacklisted' ) ) {
   function wpzerospam_is_api_blacklisted( $ip, $blacklisted_record = false ) {
     global $wpdb;
 
+    // No need to check everytime a user visits a page
+
+
     $options = wpzerospam_options();
 
     if ( $blacklisted_record ) {
@@ -118,7 +146,12 @@ if ( ! function_exists( 'wpzerospam_is_api_blacklisted' ) ) {
         );
 
         if ( $query ) {
-          if ( ! empty( $query['confidence'] ) && $query['confidence'] < $options['stopforumspam_confidence_min'] ) {
+          if (
+            // Check for Stop Forum Spam confidence level
+            ( ! empty( $query['confidence'] ) && $query['confidence'] < $options['stopforumspam_confidence_min'] ) ||
+            // Check for BotScout counts
+            ( ! empty( $query['count'] ) && $query['count'] < $options['botscout_count_min'] )
+          ) {
             // Does not meet the stopforumspam confidence minimum, delete record
             $wpdb->delete( wpzerospam_tables( 'blacklist' ), [
               'blacklist_id' => $blacklisted_record['blacklist_id']
@@ -175,6 +208,15 @@ if ( ! function_exists( 'wpzerospam_is_api_blacklisted' ) ) {
 
       $botscout = wpzerospam_query_blacklist_api( $ip, 'botscout' );
       if ( $botscout ) {
+        if ( ! empty( $botscout['count'] ) && $botscout['count'] < $options['botscout_count_min'] ) {
+          // Does not meet the botscout count minimum, delete record
+          $wpdb->delete( wpzerospam_tables( 'blacklist' ), [
+            'user_ip' => $ip
+          ]);
+
+          return false;
+        }
+
         $blacklisted_record = [
           'blacklist_service' => 'botscout',
           'user_ip'           => $ip,
