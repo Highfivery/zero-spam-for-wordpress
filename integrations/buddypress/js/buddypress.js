@@ -39,5 +39,5 @@ WordPressZeroSpamIntegrations.buddyPress = {
 }
 
 jQuery(function() {
-  WordPressZeroSpamIntegrations.cf7.init();
+  WordPressZeroSpamIntegrations.buddyPress.init();
 });
