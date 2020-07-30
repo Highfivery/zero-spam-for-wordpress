@@ -38,7 +38,7 @@ if ( ! function_exists( 'wpzerospam_gravity_forms' ) ) {
     wp_enqueue_script(
       'wpzerospam-integration-gravity-forms',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/integrations/gravity-forms/js/gravity-forms.js',
+        'integrations/gravity-forms/js/gravity-forms.js',
       [ 'wpzerospam' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true

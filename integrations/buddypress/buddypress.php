@@ -38,11 +38,11 @@ if ( ! function_exists( 'wpzerospam_buddy_press' ) ) {
     wp_enqueue_script(
       'wpzerospam-integration-buddy-press',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/integrations/buddypress/js/buddypress.js',
+        'integrations/buddypress/js/buddypress.js',
       [ 'wpzerospam' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true
     );
   }
 }
-add_action( 'wpcf7_enqueue_scripts', 'wpzerospam_buddy_press' );
+add_action( 'bp_before_register_page', 'wpzerospam_buddy_press' );

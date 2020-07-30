@@ -5,25 +5,25 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.9.1
+Stable tag: 4.9.2
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
-WordPress Zero Spam makes blocking spammers a cinch. Install, activate and enjoy a spam-free site &mdash; with third-party plugin support.
+WordPress Zero Spam makes blocking spam & malicious visitors a cinch. Just install, activate and enjoy a spam-free site.
 
 == Description ==
 
-Why force users to prove that they're humans by filling out captchas? Let bots prove they're not bots with the [WordPress Zero Spam plugin](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
+Quit forcing users to answer silly questions, read confusing captchas, or take additional steps just to prove they're not spam. Stop malicious bots & hackers in their tracks before they ever have a chance to infiltrate your site &mdash; introducing WordPress Zero Spam.
 
-WordPress Zero Spam blocks spam submissions including comments, registrations and more automatically without any config or setup. Just install, activate, and enjoy a spam-free site.
+[WordPress Zero Spam](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and a database of known malicious IPs from around the world to detect and block unwanted visitors. In addition, it integrates with other popular plugins to provide all around protection. Just install, activate, and enjoy a spam-free site.
 
-= Plugin Features =
+= WordPress Zero Spam features =
 
 * **No captcha**, spam isn't a users' problem
 * **No moderation queues**, spam isn't a administrators' problem
 * **Blocks 99.9% of spam** submissions
-* **Blocks spammy IPs** from ever seeing your site
-* **Checks spam blacklists** ([Zero Spam](https://zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/), [BotScout](https://botscout.com/))
+* **Blocks malicious IPs** from ever seeing your site
+* **Check IPs against spam blacklists** ([Zero Spam](https://zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/), [BotScout](https://botscout.com/))
 * **Auto-block IPs** when a spam detection is triggered
 * **Manually block IPs** either temporarily or permanently
 * **Developer-friendly**, integrate with any theme, plugin or form
@@ -33,17 +33,16 @@ WordPress Zero Spam blocks spam submissions including comments, registrations an
 * **Advanced settings** for complete control over spammers
 * **Charts &amp; statistics** for easy to understand spam analytics
 
-= Plugin Support =
+= WordPress Zero Spam also protects =
 
-* WordPress comments system
-* WordPress user registrations
+* WordPress core comments & user registrations
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
 * [Gravity Forms](https://www.gravityforms.com/) submissions
-* [Ninja Forms](https://wordpress.org/plugins/ninja-forms/) submissions*
 * [BuddyPress](https://wordpress.org/plugins/buddypress/) registrations
-* [Contact Form by WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
-* [WP Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
+* [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
+* [WP Fluent Form](https://wordpress.org/plugins/fluentform/) submissions
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
+* and can be easily integrated into any existing theme or plugin
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://benmarshall.me/stop-wordpress-spam/) in its tracks.
 
@@ -69,19 +68,19 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 == Frequently Asked Questions ==
 
-= Does WordPress Zero Spam work for Jetpack comments? =
+= Does WordPress Zero Spam check Ninja Forms submissions? =
 
-No. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
+No. As of v4.10.0, WordPress Zero Spam no longer checks Ninja Form submissions. Support was dropped due its [required of JavaScript](https://developer.ninjaforms.com/codex/loading-the-form-via-ajax/) and how it submits forms. JavaScript is one of the techniques WordPress Zero Spam uses to determine if a submission is spam. Ninja Forms employs a similar method and has its own [spam detection](https://ninjaforms.com/blog/spam-wordpress-form/) feature.
 
-= Why aren't spammy comments being blocked? =
+= Does WordPress Zero Spam check Jetpack comments? =
 
-WordPress Zero Spam relies on the default core form id (`#commentform`) in order to detect comments. Verify your comment forms have this ID or add the class `wpzerospam` to them so the plugin knows to it should attempt to detect spam comments.
+No. WordPress Zero Spam is unable to integrate Jetpack. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
 
-= How can I integrate this into a plugin, theme or custom form? =
+= Spam coments are still getting through, help! =
 
-It's easy as adding the class `wpzerospam` to the `form` element, then adding a check in the form processor that the `wpzerospam_key` post value matches the option value in the database using the `wpzerospam_key_check()` helper function.
+WordPress Zero Spam relies on the default core form id (`#commentform`) in order to check comment submissions. Verify your comment forms have this ID or add the class `wpzerospam` to enable it on your site.
 
-= Why does my registration form think every submission is spam? =
+= All registrations are marked as spam, help! =
 
 This is most likely due to a plugin or theme overriding the default markup of the registration form. Verify the form has an id of `registerform` or add the `wpzerospam` class to it.
 
@@ -93,25 +92,15 @@ Example with `wpzerospam` class:
 
 `<form name="registerform" class="wpzerospam" action="https://yourdomain.local/login/?action=register" method="post" novalidate="novalidate">`
 
-= Is JavaScript required for this plugin to work? =
+If you need help, please don't hesitate to [reach out](https://benmarshall.me/contact/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
 
-Yes, that's what does the magic and keeps spam bots out.
+= How do I integrate this into another plugin or theme? =
 
-= What filters are available? =
+It's easy as adding the class `wpzerospam` to the `form` element, then adding a check in the form processor that the `wpzerospam_key` post value matches the option value in the database using the `wpzerospam_key_check()` helper function. See the [plugin's documentation](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) for more information on available hooks & functions.
 
-* `wpzerospam_types` - Returns an array of available spam detection types
+= Is JavaScript required to check form submissions? =
 
-= What action hooks are available? =
-
-* `wpzerospam_comment_spam` - Fires when a spam comment is detected
-* `wpzerospam_registration_spam` - Fires when a spam registration is detected
-* `wpzerospam_cf7_spam` - Fires when a spam submission is made with a CF7 form
-* `wpzerospam_gform_spam` - Fires when a spam submission is made with a Gravity Form
-* `wpzerospam_ninja_forms_spam` - Fires when a spam submission is made with a Ninja Form
-* `wpzerospam_bp_registration_spam` - Fires when a BuddyPress spam registration is detected
-* `wpzerospam_wpform_spam` - Fires when a spam submission is made with a WPForm
-* `wpzerospam_fluentform_spam` - Fires when a spam submission is made with a WP Fluent Form
-* `wpzerospam_formidable_spam` - Fires when a spam submission is made with a Formidable form
+Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript be enabled to work properly.
 
 == Screenshots ==
 
@@ -123,9 +112,16 @@ Yes, that's what does the magic and keeps spam bots out.
 
 == Changelog ==
 
-= 4.9.1 =
+= 4.9.2 =
 
-* Fix for PHP notice on the modals for spam detections
+* Removed Ninja Form submission support. See FAQs for more details.
+* Fix for PHP notice on the log page in the view details modal.
+* Fix for double slashes in the JS URLs.
+* Fix for BotScout not checking IPs
+* Fix for table not found notice on activation
+
+4.9.1
+Fix for PHP notice on the modals for spam detections
 
 = 4.9.0 =
 

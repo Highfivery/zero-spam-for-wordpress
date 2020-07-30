@@ -13,6 +13,29 @@
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . '/inc/locations.php';
 
 /**
+ * Returns the human-readable spam type or an array of available spam types.
+ *
+ * @param string $type_key The key of the type that should be returned.
+ * @return string/array The human-readable type name or an array of all the
+ * available types.
+ */
+if ( ! function_exists( 'wpzerospam_types' ) ) {
+  function wpzerospam_types( $type_key = false ) {
+    $types = apply_filters( 'wpzerospam_types', [ 'blocked' => __( 'Access Blocked', 'wpzerospam' ) ] );
+
+    if ( $type_key ) {
+      if ( ! empty( $types[ $type_key ] ) ) {
+        return $types[ $type_key ];
+      }
+
+      return $type_key;
+    }
+
+    return $types;
+  }
+}
+
+/**
  * Returns the geolocation information for a specified IP address.
  *
  * @param string $ip IP address.
@@ -53,27 +76,228 @@ if ( ! function_exists( 'wpzerospam_get_ip_info' ) ) {
 }
 
 /**
- * Returns the human-readable spam type or an array of available spam types.
+ * Query the database tables
  *
- * @param string $type_key The key of the type that should be returned.
- * @return string/array The human-readable type name or an array of all the
- * available types.
+ * @return false/array False if not found, otherwise the blocked IP info.
  */
-if ( ! function_exists( 'wpzerospam_types' ) ) {
-  function wpzerospam_types( $type_key = false ) {
-    $types = apply_filters( 'wpzerospam_types', [ 'blocked' => __( 'Access Blocked', 'wpzerospam' ) ] );
+if ( ! function_exists( 'wpzerospam_query_table' ) ) {
+  function wpzerospam_query_table( $table, $args = [] ) {
+    global $wpdb;
 
-    if ( $type_key ) {
-      if ( ! empty( $types[ $type_key ] ) ) {
-        return $types[ $type_key ];
-      }
-
-      return $type_key;
+    // Select
+    $sql = 'SELECT ';
+    if ( ! empty( $args['select'] ) ) {
+      $sql .= implode( ',', $args['select'] );
+    } else {
+      $sql .= '*';
     }
 
-    return $types;
+    // From
+    $sql .= " from " . wpzerospam_tables( $table );
+
+    // Where
+    if ( ! empty( $args['where'] ) ) {
+      $sql .= ' WHERE ';
+      foreach( $args['where'] as $key => $value ) {
+        if ( is_int( $value ) ) {
+          $sql .= $key . ' = ' . $value . ' ';
+        } else {
+          $sql .= $key . ' = "' . $value . '" ';
+        }
+      }
+    }
+
+    // Limit
+    if ( ! empty( $args['limit'] ) ) {
+      $sql .= 'LIMIT ' . $args['limit'];
+
+      // Offset
+      if ( ! empty( $args['offset'] ) ) {
+        $sql .= ', ' . $args['offset'];
+      }
+    }
+
+    if ( ! empty( $args['limit'] ) && 1 == $args['limit'] ) {
+      return $wpdb->get_row( $sql, ARRAY_A );
+    } else {
+      return $wpdb->get_results( $sql, ARRAY_A );
+    }
   }
 }
+
+/**
+ * Whitelisted IPs
+ *
+ * @return array An array of whitelisted IP addresses.
+ */
+if ( ! function_exists( 'wpzerospam_get_whitelist' ) ) {
+  function wpzerospam_get_whitelist() {
+    $options = wpzerospam_options();
+    if ( $options['ip_whitelist'] ) {
+      $whitelist = explode( PHP_EOL, $options['ip_whitelist'] );
+      if ( $whitelist ) {
+        $whitelisted = [];
+        foreach( $whitelist as $k => $whitelisted_ip ) {
+          $whitelisted[ $whitelisted_ip ] = $whitelisted_ip;
+        }
+
+        return $whitelisted;
+      }
+    }
+
+    return false;
+  }
+}
+
+/**
+ * Check access
+ *
+ * Determines if the current user IP should have access to the site.
+ *
+ * @return array Includes info about the access check.
+ */
+if ( ! function_exists( 'wpzerospam_check_access' ) ) {
+  function wpzerospam_check_access() {
+    // Innocent until proven guilty...
+    $access = [ 'access' => true ];
+
+    // Always allow authenticated users & users trying to log in access
+    if ( is_user_logged_in() || wpzerospam_is_login() ) {
+      return $access;
+    }
+
+    /**
+     * Only check access for actual page vists. Some resource requests like
+     * favicons fire this function which causes duplicate entries in the DB.
+     *
+     * @TODO - Find a way to avoid these checks & ensure this function only gets
+     * fired on page requests vs. resources.
+     */
+    if (
+      ! is_singular() && ! is_page() && ! is_single() && ! is_archive() &&
+      ! is_home() && ! is_front_page()
+    ) {
+      return $access;
+    }
+
+    // Get the user's IP address then begin the checks
+    $options = wpzerospam_options();
+    $ip      = wpzerospam_ip();
+
+    // 1. Check whitelisted IP addresses
+    $whitelist = wpzerospam_get_whitelist();
+    if ( $whitelist && array_key_exists( $ip, $whitelist ) ) {
+      return $access;
+    }
+
+    // 2. Check if the user's IP address has been blocked
+    $blocked_ip = wpzerospam_query_table( 'blocked', [
+      'select' => [
+        'blocked_type',
+        'start_block',
+        'end_block',
+        'reason',
+        'attempts'
+      ],
+      'where'  => [ 'user_ip' => $ip ],
+      'limit'  => 1
+    ]);
+
+    if ( $blocked_ip ) {
+      if ( 'permanent' == $blocked_ip['blocked_type'] ) {
+        $access['access'] = false;
+        $access['reason'] = $blocked_ip['reason'];
+
+        return $access;
+      } else {
+        $current_datetime = current_time( 'timestamp' );
+        $start_block      = strtotime( $blocked_ip['start_block'] );
+        $end_block        = strtotime( $blocked_ip['end_block'] );
+        if (
+          $current_datetime >= $start_block &&
+          $current_datetime < $end_block
+        ) {
+          $access['access'] = false;
+          $access['reason'] = $blocked_ip['reason'];
+
+          return $access;
+        }
+      }
+    }
+
+    // 3. Check the blacklist
+    $blacklist_ip = wpzerospam_query_table( 'blacklist', [
+      'select' => [ 'blacklist_service' ],
+      'where'  => [ 'user_ip' => $ip ],
+      'limit'  => 1
+    ]);
+    if ( $blacklist_ip ) {
+      $access['access'] = false;
+      $access['reason'] = $blacklist_ip['blacklist_service'];
+
+      return $access;
+    }
+
+    // 4. Check the Stop Forum Spam blacklist
+    if ( 'enabled' == $options['stop_forum_spam'] ) {
+      $stop_forum_spam_is_spam = wpzerospam_stopforumspam_is_spam( $ip );
+      if ( $stop_forum_spam_is_spam ) {
+        $access['access'] = false;
+        $access['reason'] = 'Stop Forum Spam';
+
+        return $access;
+      }
+    }
+
+    // 5. Check the BotScout blacklist
+    if ( ! empty( $options['botscout'] ) ) {
+      $botscout_request = wpzerospam_botscout_is_spam( $ip );
+      if ( $botscout_request ) {
+        $access['access'] = false;
+        $access['reason'] = 'BotScout';
+
+        return $access;
+      }
+    }
+
+    return $access;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /**
  * Checks if either the submission data or $_POST contain the wpzerospam_key and
@@ -503,7 +727,6 @@ if ( ! function_exists( 'wpzerospam_plugin_integration_enabled' ) ) {
     $options = wpzerospam_options();
 
     $integrations = [
-      'ninja_forms' => 'ninja-forms/ninja-forms.php',
       'cf7'         => 'contact-form-7/wp-contact-form-7.php',
       'gforms'      => 'gravityforms/gravityforms.php',
       'fluentform'  => 'fluentform/fluentform.php',
@@ -582,10 +805,6 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 
     if ( empty( $options['verify_gform'] )  ) {
       $options['verify_gform'] = 'enabled';
-    }
-
-    if ( empty( $options['verify_ninja_forms'] )  ) {
-      $options['verify_ninja_forms'] = 'enabled';
     }
 
     if ( empty( $options['verify_bp_registrations'] ) ) {
@@ -684,102 +903,6 @@ if ( ! function_exists( 'wpzerospam_is_blocked' ) ) {
     }
 
     return false;
-  }
-}
-
-/**
- * Checks to see if the current user has access to the site
- */
-if ( ! function_exists( 'wpzerospam_check_access' ) ) {
-  function wpzerospam_check_access() {
-    $access = [
-      'access' => true
-    ];
-
-    // Ignore admin dashboard & login page checks
-    if (
-      is_admin() || wpzerospam_is_login() ||
-      (
-        ! is_singular() &&
-        ! is_page() &&
-        ! is_single() &&
-        ! is_archive() &&
-        ! is_home() &&
-        ! is_front_page()
-      )
-    ) {
-      return $access;
-    }
-
-    $options      = wpzerospam_options();
-    $ip           = wpzerospam_ip();
-    $access['ip'] = $ip;
-
-    // Check whitelist
-    $whitelist = $options['ip_whitelist'];
-    if ( $whitelist ) {
-      $whitelist = explode( PHP_EOL, $whitelist );
-      foreach( $whitelist as $k => $whitelisted_ip ) {
-        if ( $ip ==  $whitelisted_ip ) {
-          return $access;
-        }
-      }
-    }
-
-    // Check if the current user's IP address has been blocked
-    $is_blocked = wpzerospam_get_blocked_ips( $ip );
-    if ( ! $is_blocked ) {
-      // IP hasen't been blocked
-      // If enabled, check the Stop Forum Spam blacklist
-      if ( 'enabled' == $options['stop_forum_spam'] ) {
-        $stop_forum_spam_is_spam = wpzerospam_stopforumspam_is_spam( $ip );
-        if ( ! $stop_forum_spam_is_spam ) {
-          // IP wasn't found in the Stop Forum Spam blacklist
-          return $access;
-        } else {
-          // IP was found in the Stop Forum Spam blacklist
-          $access['access'] = false;
-          $access['reason'] = 'Stop Forum Spam';
-
-          return $access;
-        }
-      }
-
-      // If enabled, check the BotScout blacklist
-      if ( 'enabled' == $options['botscout'] ) {
-        $botscout_request = wpzerospam_botscout_is_spam( $ip );
-        if ( ! $botscout_request ) {
-          // IP wasn't found in the Stop Forum Spam blacklist
-          return $access;
-        } else {
-          // IP was found in the Stop Forum Spam blacklist
-          $access['access'] = false;
-          $access['reason'] = 'BotScout';
-
-          return $access;
-        }
-      }
-
-      // Passed all tests
-      return $access;
-    }
-
-    // Check if in the blacklist
-    $in_blacklist = wpzerospam_in_blacklist( $ip );
-    if ( $in_blacklist ) {
-      // IP found in the blacklist
-      $access['access'] = false;
-      $access['reason'] = $in_blacklist->blacklist_service;
-
-      return $access;
-    }
-
-    if ( wpzerospam_is_blocked( $is_blocked ) ) {
-      $access['access'] = false;
-      $access['reason'] = $is_blocked->reason;
-    }
-
-    return $access;
   }
 }
 

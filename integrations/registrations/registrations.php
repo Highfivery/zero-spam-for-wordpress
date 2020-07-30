@@ -52,7 +52,7 @@ if ( ! function_exists( 'wpzerospam_registration_form' ) ) {
     wp_enqueue_script(
       'wpzerospam-integration-registrations',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/integrations/registrations/js/registrations.js',
+        'integrations/registrations/js/registrations.js',
       [ 'wpzerospam' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true

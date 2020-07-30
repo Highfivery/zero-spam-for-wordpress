@@ -48,7 +48,7 @@ if ( ! function_exists( 'wpzerospam_fluentform' ) ) {
     wp_enqueue_script(
       'wpzerospam-integration-fluentform',
       plugin_dir_url( WORDPRESS_ZERO_SPAM ) .
-        '/integrations/fluentform/js/fluentform.js',
+        'integrations/fluentform/js/fluentform.js',
       [ 'wpzerospam' ],
       WORDPRESS_ZERO_SPAM_VERSION,
       true

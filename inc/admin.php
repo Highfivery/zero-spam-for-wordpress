@@ -352,10 +352,6 @@ function wpzerospam_validate_options( $input ) {
     $input['verify_gform'] = 'disabled';
   }
 
-  if ( empty( $input['verify_ninja_forms'] ) ) {
-    $input['verify_ninja_forms'] = 'disabled';
-  }
-
   if ( empty( $input['verify_bp_registrations'] ) ) {
     $input['verify_bp_registrations'] = 'disabled';
   }
@@ -646,19 +642,6 @@ function wpzerospam_admin_init() {
       'type'      => 'checkbox',
       'multi'     => false,
       'desc'      => 'Enables spam detection for Gravity Forms submissions.',
-      'options'   => [
-        'enabled' => __( 'Enabled', 'wpzerospam' )
-      ]
-    ]);
-  }
-
-  // Ninja Forms spam check
-  if ( is_plugin_active( 'ninja-forms/ninja-forms.php' ) ) {
-    add_settings_field( 'verify_ninja_forms', __( 'Verify Ninja Forms Submissions', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
-      'label_for' => 'verify_ninja_forms',
-      'type'      => 'checkbox',
-      'multi'     => false,
-      'desc'      => 'Enables spam detection for Ninja Forms submissions.',
       'options'   => [
         'enabled' => __( 'Enabled', 'wpzerospam' )
       ]
