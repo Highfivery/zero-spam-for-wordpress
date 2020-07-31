@@ -328,14 +328,14 @@ if ( ! function_exists( 'wpzerospam_detection' ) ) {
     if ( 'enabled' == $options['share_detections'] ) {
       wpzerospam_share_detection([
         'ip'   => $record['user_ip'],
-        'type' => $record['type']
+        'type' => $record['log_type']
       ]);
     }
 
     // Check if logging detections & 'blocks' are enabled.
     if (
       'enabled' != $options['log_spam'] ||
-      ('blocked' == $record['type'] && 'enabled' != $options['log_blocked_ips'])
+      ('blocked' == $record['log_type'] && 'enabled' != $options['log_blocked_ips'])
     ) {
       // Logging disabled.
       return false;
