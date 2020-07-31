@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.9.6
+Stable tag: 4.9.7
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -21,6 +21,7 @@ In addition, it integrates with other popular plugins to provide all around prot
 
 = WordPress Zero Spam features =
 
+* **Site security enhancements**, no config required
 * **No captcha**, spam isn't a users' problem
 * **No moderation queues**, spam isn't a administrators' problem
 * **Blocks 99.9% of spam** submissions
@@ -117,6 +118,12 @@ Yes. It does not store any kind of personally identifiable information. Only one
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.9.7 =
+
+* Enhancement - Added enhanced site security features (no configuration required)
+* Enhancement - Added plugin version to the information shared to Zero Spam (optional).
+* Optimization - Misc. code clean-up
 
 = 4.9.6 =
 

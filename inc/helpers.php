@@ -274,7 +274,7 @@ if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
       ]);
     }
 
-    wpzerospam_log_spam( 'blocked', [ 'reason' => $reason ] );
+    wpzerospam_detection( 'blocked', [ 'reason' => $reason ] );
 
     if ( 'redirect' == $options['block_handler'] ) {
       wp_redirect( esc_url( $options['blocked_redirect_url'] ) );
@@ -286,83 +286,141 @@ if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
- * Create a log entry if logging is enabled
+ * Fired anytime a malicious attempt or spam submission is detected.
+ *
+ * This functions logs (if enabled) detections & handles sharing those
+ * detections with Zero Spam (if enabled).
+ *
+ * @since 4.9.7
+ *
+ * @param string $type Machine-readable name of the detection type. Pass an 'ip'
+ *                     key to define a specific IP address vs. inferring it
+ *                     from the current users IP address.
+ * @param array  $data Optional. Array of additional information to log.
  */
-if ( ! function_exists( 'wpzerospam_log_spam' ) ) {
-  function wpzerospam_log_spam( $type, $data = [] ) {
+if ( ! function_exists( 'wpzerospam_detection' ) ) {
+  function wpzerospam_detection( $type, $data = [] ) {
     global $wpdb;
-
     $options = wpzerospam_options();
 
-    if ( ! empty( $data['ip'] ) ) {
-      $ip_address = $data['ip'];
-      unset( $data['ip'] );
-    } else {
-      $ip_address = wpzerospam_ip();
+    // Setup the detection record.
+    $record = [
+      'user_ip'       => wpzerospam_ip(),
+      'log_type'      => $type,
+      'date_recorded' => current_time( 'mysql' )
+    ];
+
+    // Check if an IP address is present, if not, get it from the current user.
+    if ( ! empty( $data['ip'] ) && rest_is_ip_address( $data['ip'] ) ) {
+      $record['user_ip'] = $data['ip'];
     }
 
-    // Check is the spam detection should be shared
-    if ( 'enabled' == $options['share_detections'] ) {
-      wpzerospam_send_detection([
-        'ip'   => $ip_address,
-        'type' => $type
-      ]);
-    }
-
-    // Check if spam logging is enabled, also check if type is 'denied'
-    // (blocked IP address) & logging of blocked IPs is enabled.
-    if ( 'enabled' != $options['log_spam'] ||
-      ( 'blocked' == $type && 'enabled' != $options['log_blocked_ips'] )
+    // Make sure an IP address was found.
+    if (
+      empty( $record['user_ip'] ) ||
+      ! rest_is_ip_address( $record['user_ip'] )
     ) {
-      // Logging disabled
       return false;
     }
 
-    $current_url   = wpzerospam_current_url();
-    $location_info = wpzerospam_get_ip_info( $ip_address );
-
-    // Add record to the database
-    $record = [
-      'log_type'        => $type,
-      'user_ip'         => wpzerospam_ip(),
-      'date_recorded'   => current_time( 'mysql' ),
-      'page_url'        => $current_url['full'],
-      'submission_data' => json_encode( $data )
-    ];
-
-    if ( $location_info ) {
-      $record['country']   = $location_info['country_code'];
-      $record['region']    = $location_info['region_code'];
-      $record['city']      = $location_info['city'];
-      $record['latitude']  = $location_info['latitude'];
-      $record['longitude'] = $location_info['longitude'];
+    // If sharing detections is enabled, send the detection to Zero Spam.
+    if ( 'enabled' == $options['share_detections'] ) {
+      wpzerospam_share_detection([
+        'ip'   => $record['user_ip'],
+        'type' => $record['type']
+      ]);
     }
 
-    $wpdb->insert( wpzerospam_tables( 'log' ), $record );
+    // Check if logging detections & 'blocks' are enabled.
+    if (
+      'enabled' != $options['log_spam'] ||
+      ('blocked' == $record['type'] && 'enabled' != $options['log_blocked_ips'])
+    ) {
+      // Logging disabled.
+      return false;
+    }
+
+    // Logging enabled, get the current URL & IP location information.
+    $location    = wpzerospam_get_ip_info( $record['user_ip'] );
+    $current_url = wpzerospam_current_url();
+
+    // Add additional information to the detection record.
+    $record['page_url']        = ! empty( $current_url['full'] ) ? $current_url['full'] : false;
+    $record['submission_data'] = json_encode( $data );
+
+    if ( $location ) {
+      $record['country']   = ! empty( $location['country_code'] ) ? $location['country_code'] : false;
+      $record['region']    = ! empty( $location['region_code'] ) ? $location['region_code'] : false;
+      $record['city']      = ! empty( $location['city'] ) ? $location['city'] : false;
+      $record['latitude']  = ! empty( $location['latitude'] ) ? $location['latitude'] : false;
+      $record['longitude'] = ! empty( $location['longitude'] ) ? $location['longitude'] : false;
+    }
+
+    return $wpdb->insert( wpzerospam_tables( 'log' ), $record );
   }
 }
+
+/**
+ * Shares a detection with the Zero Spam database.
+ */
+function wpzerospam_share_detection( $data ) {
+  // The Zero Spam API endpoint for sharing detections.
+  $api_url = 'https://zerospam.org/wp-json/wpzerospamapi/v1/detection/';
+
+  // Make sure a type & valid IP address are provided.
+  if (
+    empty( $data['ip'] ) ||
+    ! rest_is_ip_address( $data['ip'] ) ||
+    empty( $data['type'] )
+  ) {
+    return false;
+  }
+
+  // Setup the request parameters.
+  $request_args = [
+    'method' => 'POST',
+    'body'   => [
+      'ip'      => $data['ip'],
+      'type'    => $data['type'],
+      'site'    => site_url(),
+      'version' => WORDPRESS_ZERO_SPAM_VERSION
+    ],
+    'sslverify' => true
+  ];
+
+  // For debugging purposes only.
+  if ( WP_DEBUG ) {
+    $request_args['sslverify'] = false;
+  }
+
+  // Send the request.
+  $request = wp_remote_post( $api_url, $request_args );
+  if ( is_wp_error( $request ) ) {
+    // Request failed.
+    return false;
+  }
+
+  // Request succeeded, return the result.
+  return wp_remote_retrieve_body( $request );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -555,7 +613,7 @@ if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
     $ip      = wpzerospam_ip();
 
     // Log the spam sttempt
-    wpzerospam_log_spam( $type, $data );
+    wpzerospam_detection( $type, $data );
 
     // Check if number attempts should result in a permanent block
     $blocked_ip = wpzerospam_get_blocked_ips( $ip );
@@ -710,11 +768,11 @@ if ( ! function_exists( 'wpzerospam_plugin_integration_enabled' ) ) {
     $options = wpzerospam_options();
 
     $integrations = [
-      'cf7'         => 'contact-form-7/wp-contact-form-7.php',
+      'cf7'        => 'contact-form-7/wp-contact-form-7.php',
       'gform'      => 'gravityforms/gravityforms.php',
-      'fluentform'  => 'fluentform/fluentform.php',
-      'wpforms'     => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ],
-      'formidable'  => 'formidable/formidable.php',
+      'fluentform' => 'fluentform/fluentform.php',
+      'wpforms'    => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ],
+      'formidable' => 'formidable/formidable.php',
     ];
 
     // Handle BuddyPress check a little differently for presence of a function
@@ -767,42 +825,5 @@ if ( ! function_exists( 'wpzerospam_is_login' ) ) {
     }
 
     return false;
-  }
-}
-
-/**
- * Sends a spam detection to the WordPress Zero Spam database
- */
-if ( ! function_exists( 'wpzerospam_send_detection' ) ) {
-  function wpzerospam_send_detection( $data ) {
-    $api_url = 'https://zerospam.org/wp-json/wpzerospamapi/v1/detection/';
-
-    if (
-      empty( $data['ip'] ) ||
-      empty( $data['type'] )
-    ) {
-      return false;
-    }
-
-    $request_args = [
-      'method' => 'POST',
-      'body'   => [
-        'ip'   => $data['ip'],
-        'type' => $data['type'],
-        'site' => site_url()
-      ],
-      'sslverify' => true
-    ];
-
-    if ( WP_DEBUG ) {
-      $request_args['sslverify'] = false;
-    }
-
-    $request = wp_remote_post( $api_url, $request_args );
-    if ( is_wp_error( $request ) ) {
-      return false;
-    }
-
-    return wp_remote_retrieve_body( $request );
   }
 }

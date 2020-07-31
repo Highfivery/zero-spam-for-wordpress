@@ -1,15 +1,19 @@
 <?php
 /**
- * WP filters
+ * Action & filter hooks to boost site security
  *
  * @package WordPressZeroSpam
- * @since 4.6.0
+ * @since 4.9.7
  */
 
-
-if ( ! function_exists( 'wpzerospam_filters' ) ) {
-  function wpzerospam_filters() {
+/**
+ * WordPress filter hooks
+ */
+if ( ! function_exists( 'wpzerospam_filter_hooks' ) ) {
+  function wpzerospam_filter_hooks() {
     $options = wpzerospam_options();
+
+    add_filter( 'the_generator', 'wpzerospam_remove_generator' );
 
     if ( 'enabled' == $options['strip_comment_links'] ) {
       remove_filter( 'comment_text', 'make_clickable', 9 );
@@ -28,7 +32,25 @@ if ( ! function_exists( 'wpzerospam_filters' ) ) {
     }
   }
 }
-add_action( 'after_setup_theme', 'wpzerospam_filters' );
+
+/**
+ * WordPress action hooks
+ */
+if ( ! function_exists( 'wpzerospam_action_hooks' ) ) {
+  function wpzerospam_action_hooks() {
+    // Remove the generator meta tag
+    remove_action( 'wp_head', 'wp_generator' );
+  }
+}
+
+add_action( 'after_setup_theme', 'wpzerospam_filter_hooks' );
+add_action( 'after_setup_theme', 'wpzerospam_action_hooks' );
+
+if ( ! function_exists( 'wpzerospam_remove_generator' ) ) {
+  function wpzerospam_remove_generator() {
+    return '';
+  }
+}
 
 if ( ! function_exists( 'wpzerospam_remove_author_url_field' ) ) {
   function wpzerospam_remove_author_url_field( $fields ) {
