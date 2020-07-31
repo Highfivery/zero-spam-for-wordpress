@@ -428,7 +428,7 @@ function wpzerospam_admin_init() {
   add_settings_field( 'cookie_expiration', __( 'Cookie Expiration', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
     'label_for'   => 'cookie_expiration',
     'type'        => 'number',
-    'desc'        => 'Number of days until a user\'s cookie is expired. Helps boost site performance so blacklist API requests aren\'t sent each page visit. <strong>Minimum recommend is 7 days</strong>.',
+    'desc'        => 'Number of days until a user\'s cookie is expired. Helps boost site performance so access & blacklist checks aren\'t sent each page visit. <strong>Minimum recommend is 7 days</strong>.',
     'class'       => 'small-text',
     'placeholder' => '7',
     'suffix'      => __( 'days', 'wpzerospam' )

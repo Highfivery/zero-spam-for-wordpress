@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version:           4.9.5
+ * Version:           4.9.6
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Ben Marshall
@@ -31,7 +31,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 // Define plugin constants
 define( 'WORDPRESS_ZERO_SPAM', __FILE__ );
 define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.5' );
-define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.9.5' );
+define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.9.6' );
 
 /**
  * Utility helper functions
@@ -147,7 +147,7 @@ if ( wpzerospam_plugin_integration_enabled( 'cf7' ) ) {
   require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/contact-form-7/contact-form-7.php';
 }
 
-if ( wpzerospam_plugin_integration_enabled( 'gforms' ) ) {
+if ( wpzerospam_plugin_integration_enabled( 'gform' ) ) {
   require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/gravity-forms/gravity-forms.php';
 }
 
@@ -172,6 +172,9 @@ if ( wpzerospam_plugin_integration_enabled( 'formidable' ) ) {
  */
 if ( ! function_exists( 'wpzerospam_template_redirect' ) ) {
   function wpzerospam_template_redirect() {
+    // No need to check everytime a user visits a page
+    if ( wpzerospam_get_cookie( 'last_check' ) ) { return false; }
+
     $options = wpzerospam_options();
 
     // Check if the current user has access to the site
@@ -179,6 +182,8 @@ if ( ! function_exists( 'wpzerospam_template_redirect' ) ) {
 
     if ( ! $access['access'] ) {
       wpzerospam_attempt_blocked( $access['ip'], $access['reason'] );
+    } else {
+      wpzerospam_set_cookie( 'last_check', current_time( 'timestamp' ) );
     }
   }
 }
