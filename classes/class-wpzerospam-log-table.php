@@ -108,7 +108,7 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
         return '<span class="wpzerospam-' . $item->log_type . '">' . wpzerospam_types( $item->log_type ) . '</span>';
       break;
       case 'user_ip':
-        return '<a href="https://whatismyipaddress.com/ip/' . $item->user_ip .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>';
+        return '<a href="https://zerospam.org/ip-lookup/' . urlencode( $item->user_ip ) .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>';
       break;
       case 'date_recorded':
         return date( 'M j, Y g:ia' , strtotime( $item->date_recorded ) );
@@ -189,146 +189,10 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
               $submission_data = json_decode( $item->submission_data, true );
               foreach( $submission_data as $key => $value ):
                 if ( ! $value ) { continue; }
-                switch( $key ):
-                  case 'comment_post_ID':
-                    $post = get_post( $value  );
-                    echo '<div class="wpzerospam-details-item">';
-                    if ( ! $post ) { echo 'N/A'; } else {
-                      echo '<div class="wpzerospam-details-label">' . __( 'Comment Post', 'wpzerospam' ) . '</div>';
-                      echo '<div class="wpzerospam-details-data"><a href="' . get_the_permalink( $value ) . '">' . get_the_title( $value ) . '</a></div>';
-                    }
-                    echo '</div>';
-                  break;
-                  case 'comment_author':
-                    $author_shown = true;
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Author', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
-                    echo '</div>';
-                  break;
-                  case 'comment_author_email':
-                    $author_email = true;
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Email', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
-                    echo '</div>';
-                  break;
-                  case 'comment_author_url':
-                    $author_url= true;
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Website', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
-                    echo '</div>';
-                  break;
-                  case 'comment_content':
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Comment', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . sanitize_text_field( $value ) . '</div>';
-                    echo '</div>';
-                  break;
-                  case 'comment_type':
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Comment Type', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
-                    echo '</div>';
-                  break;
-                  case 'comment_parent':
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Comment Parent ID', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . '<a href="' . get_comment_link( $value  ) . '">' . $value . '</a>' . '</div>';
-                    echo '</div>';
-                  break;
-                  case 'comment_as_submitted':
-                    foreach( $value as $k => $v ):
-                      if ( ! $v ) { continue; }
 
-                      switch( $k ):
-                        case 'comment_author':
-                          if ( empty( $author_shown ) ) {
-                            echo '<div class="wpzerospam-details-item">';
-                            echo '<div class="wpzerospam-details-label">' . __( 'Author', 'wpzerospam' ) . '</div>';
-                            echo '<div class="wpzerospam-details-data">' . $v . '</div>';
-                            echo '</div>';
-                          }
-                        break;
-                        case 'comment_author_email':
-                          if ( empty( $author_email ) ) {
-                            echo '<div class="wpzerospam-details-item">';
-                            echo '<div class="wpzerospam-details-label">' . __( 'Email', 'wpzerospam' ) . '</div>';
-                            echo '<div class="wpzerospam-details-data">' . $v . '</div>';
-                            echo '</div>';
-                          }
-                        break;
-                        case 'comment_author_url':
-                          if ( empty( $author_url ) ) {
-                            echo '<div class="wpzerospam-details-item">';
-                            echo '<div class="wpzerospam-details-label">' . __( 'Website', 'wpzerospam' ) . '</div>';
-                            echo '<div class="wpzerospam-details-data">' . $v . '</div>';
-                            echo '</div>';
-                          }
-                        break;
-                        case 'comment_content':
-                          echo '<div class="wpzerospam-details-item">';
-                          echo '<div class="wpzerospam-details-label">' . __( 'Comment', 'wpzerospam' ) . '</div>';
-                          echo '<div class="wpzerospam-details-data">' . sanitize_text_field( $v ) . '</div>';
-                          echo '</div>';
-                        break;
-                        case 'user_ip':
-                          echo '<div class="wpzerospam-details-item">';
-                          echo '<div class="wpzerospam-details-label">' . __( 'User IP', 'wpzerospam' ) . '</div>';
-                          echo '<div class="wpzerospam-details-data"><a href="https://whatismyipaddress.com/ip/' . $item->user_ip .'" target="_blank" rel="noopener noreferrer">' . $v . '</a></div>';
-                          echo '</div>';
-                        break;
-                        case 'user_agent':
-                          echo '<div class="wpzerospam-details-item">';
-                          echo '<div class="wpzerospam-details-label">' . __( 'User Agent', 'wpzerospam' ) . '</div>';
-                          echo '<div class="wpzerospam-details-data">' . $v . '</div>';
-                          echo '</div>';
-                        break;
-                        case 'blog':
-                          echo '<div class="wpzerospam-details-item">';
-                          echo '<div class="wpzerospam-details-label">' . __( 'Site', 'wpzerospam' ) . '</div>';
-                          echo '<div class="wpzerospam-details-data">' . $v . '</div>';
-                          echo '</div>';
-                        break;
-                        case 'blog_lang':
-                          echo '<div class="wpzerospam-details-item">';
-                          echo '<div class="wpzerospam-details-label">' . __( 'Site Language', 'wpzerospam' ) . '</div>';
-                          echo '<div class="wpzerospam-details-data">' . $v . '</div>';
-                          echo '</div>';
-                        break;
-                        case 'blog_charset':
-                          echo '<div class="wpzerospam-details-item">';
-                          echo '<div class="wpzerospam-details-label">' . __( 'Site Charset', 'wpzerospam' ) . '</div>';
-                          echo '<div class="wpzerospam-details-data">' . $v . '</div>';
-                          echo '</div>';
-                        break;
-                        case 'permalink':
-                          echo '<div class="wpzerospam-details-item">';
-                          echo '<div class="wpzerospam-details-label">' . __( 'Permalink', 'wpzerospam' ) . '</div>';
-                          echo '<div class="wpzerospam-details-data">' . '<a href="' . $v . '" target="_blank">' . $v . '</a>' . '</div>';
-                          echo '</div>';
-                        break;
-                        default:
-                          echo '<div class="wpzerospam-details-item">';
-                          echo $k . ' - ';
-                          print_r( $v );
-                          echo '</div>';
-                      endswitch;
-                    endforeach;
-                  break;
-                  case 'akismet_result':
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Akismet Result', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
-                    echo '</div>';
-                  break;
-                  case 'akismet_pro_tip':
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Akismet Pro Tip', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
-                    echo '</div>';
-                  break;
+                do_action( 'wpzerospam_admin_submission_data_items', $key, $value );
+
+                switch( $key ):
                   case 'sanitized_user_login':
                     echo '<div class="wpzerospam-details-item">';
                     echo '<div class="wpzerospam-details-label">' . __( 'Sanitized User Login', 'wpzerospam' ) . '</div>';
@@ -402,7 +266,7 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
                   break;
 
                   default:
-                    echo '<div class="wpzerospam-details-item">';
+                    echo '<div class="wpzerospam-details-item wpzerospam-details-item-unknown">';
                     echo '<div class="wpzerospam-details-label">' . $key . '</div>';
                     echo '<div class="wpzerospam-details-data">' . json_encode( $value ) . '</div>';
                     echo '</div>';

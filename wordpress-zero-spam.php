@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version:           4.9.8
+ * Version:           4.9.9
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Ben Marshall
@@ -31,7 +31,7 @@ defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
 // Define plugin constants
 define( 'WORDPRESS_ZERO_SPAM', __FILE__ );
 define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.5' );
-define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.9.8' );
+define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.9.9' );
 
 /**
  * Utility helper functions
@@ -147,10 +147,6 @@ if ( wpzerospam_plugin_integration_enabled( 'cf7' ) ) {
   require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/contact-form-7/contact-form-7.php';
 }
 
-if ( wpzerospam_plugin_integration_enabled( 'gform' ) ) {
-  require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/gravity-forms/gravity-forms.php';
-}
-
 if ( wpzerospam_plugin_integration_enabled( 'bp_registrations' ) ) {
   require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/buddypress/buddypress.php';
 }
@@ -205,6 +201,7 @@ if ( ! function_exists( 'wpzerospam_uninstall' ) ) {
 
           delete_option( 'wpzerospam' );
           delete_option( 'wpzerospam_key' );
+          delete_option( 'wpzerospam_honeypot' );
           delete_option( 'wpzerospam_db_version' );
           delete_option( 'wpzerospam_update_version' );
 
@@ -218,6 +215,7 @@ if ( ! function_exists( 'wpzerospam_uninstall' ) ) {
     } else {
       delete_option( 'wpzerospam' );
       delete_option( 'wpzerospam_key' );
+      delete_option( 'wpzerospam_honeypot' );
       delete_option( 'wpzerospam_db_version' );
       delete_option( 'wpzerospam_update_version' );
 

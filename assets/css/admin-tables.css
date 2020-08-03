@@ -20,6 +20,8 @@
   border-radius: 5px;
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
   cursor: default;
+  display: flex;
+  flex-wrap: wrap;
   left: 50%;
   overflow: auto;
   max-height: 500px;
@@ -35,6 +37,11 @@
 .wpzerospam-details-item {
   display: flex;
   padding: 5px;
+  width: 100%;
+}
+
+.wpzerospam-details-item-unknown {
+  order: 9999999;
 }
 
 .wpzerospam-details-label {

@@ -92,7 +92,7 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
   function column_default( $item, $column_name ) {
     switch( $column_name ) {
       case 'user_ip':
-        return '<a href="https://whatismyipaddress.com/ip/' . $item->user_ip .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>';
+        return '<a href="https://zerospam.org/ip-lookup/' . urlencode( $item->user_ip ) .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>';
       break;
       case 'blocked_id':
         return $item->blocked_id;

@@ -15,6 +15,19 @@
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/locations.php';
 
 /**
+ * Outputs a honeypot field
+ *
+ * @since 4.9.9
+ *
+ * @return string Returns a HTML honeypot field.
+ */
+if ( ! function_exists( 'wpzerospam_honeypot_field' ) ) {
+  function wpzerospam_honeypot_field() {
+    return '<input type="text" name="' . wpzerospam_get_honeypot() . '" value="" style="display: none !important;" />';
+  }
+}
+
+/**
  * Get the user's current URL
  */
 if ( ! function_exists( 'wpzerospam_current_url' ) ) {
@@ -101,7 +114,6 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['spam_message'] ) ) { $options['spam_message'] = __( 'There was a problem with your submission. Please go back and try again.', 'wpzerospam' ); }
     if ( empty( $options['blocked_message'] ) ) { $options['blocked_message'] = __( 'You have been blocked from visiting this site by WordPress Zero Spam due to detected spam activity.', 'wpzerospam' ); }
     if ( empty( $options['log_spam'] ) ) { $options['log_spam'] = 'disabled'; }
-    if ( empty( $options['verify_comments'] ) ) { $options['verify_comments'] = 'enabled'; }
     if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
     if ( empty( $options['log_blocked_ips'] ) ) { $options['log_blocked_ips'] = 'disabled'; }
     if ( empty( $options['auto_block_permanently'] ) ) { $options['auto_block_permanently'] = 3; }
@@ -118,10 +130,6 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 
     if ( empty( $options['share_detections'] )  ) {
       $options['share_detections'] = 'enabled';
-    }
-
-    if ( empty( $options['verify_gform'] )  ) {
-      $options['verify_gform'] = 'enabled';
     }
 
     if ( empty( $options['verify_bp_registrations'] ) ) {
@@ -144,13 +152,7 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
       $options['stop_forum_spam'] = 'enabled';
     }
 
-    if ( empty( $options['strip_comment_links'] ) ) {
-      $options['strip_comment_links'] = 'disabled';
-    }
-
-    if ( empty( $options['strip_comment_author_links'] ) ) {
-      $options['strip_comment_author_links'] = 'disabled';
-    }
+    $options = apply_filters( 'wpzerospam_admin_fields_default', $options );
 
     return $options;
   }

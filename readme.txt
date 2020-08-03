@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.9.8
+Stable tag: 4.9.9
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -21,26 +21,26 @@ In addition, it integrates with other popular plugins to provide all around prot
 
 = WordPress Zero Spam features =
 
-* **Site security enhancements**, no config required
+* **Blocks 99.9% of spam** submissions
 * **No captcha**, spam isn't a users' problem
 * **No moderation queues**, spam isn't a administrators' problem
-* **Blocks 99.9% of spam** submissions
+* **Multiple spam detection techniques**, including *honeypot*.
+* **Site security enhancements**, no config required
 * **Blocks malicious IPs** from ever seeing your site
 * **IP blacklist spam checks** ([Zero Spam](https://zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/), [BotScout](https://botscout.com/))
 * **Auto-block IPs** when a spam detection is triggered
 * **Manually block IPs** either temporarily or permanently
-* **Developer-friendly**, integrate with any theme, plugin or form
-* **Detailed logging** to catch & block recurring spammers
-* **Geolocate IP addresses** to see where spammers are coming from
 * **Whitelist IPs** to avoid getting blocked
-* **Advanced settings** for complete control over spammers
+* **Geolocate IP addresses** to see where spammers are coming from
+* **Detailed logging** to catch & block recurring spammers
 * **Charts &amp; statistics** for easy to understand spam analytics
+* **Advanced settings** for complete control over spammers
+* **Developer-friendly**, integrate with any theme, plugin or form
 
 = WordPress Zero Spam also protects =
 
 * WordPress core comments & user registrations
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
-* [Gravity Forms](https://www.gravityforms.com/) submissions
 * [BuddyPress](https://wordpress.org/plugins/buddypress/) registrations
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [WP Fluent Form](https://wordpress.org/plugins/fluentform/) submissions
@@ -73,7 +73,15 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 = Does WordPress Zero Spam check Ninja Forms submissions? =
 
-No. As of v4.10.0, WordPress Zero Spam no longer checks Ninja Form submissions. Support was dropped due its [requirement of JavaScript](https://developer.ninjaforms.com/codex/loading-the-form-via-ajax/) and how it submits forms. JavaScript is one of the techniques WordPress Zero Spam uses to determine if a submission is spam. Ninja Forms employs a similar method and has its own [spam detection](https://ninjaforms.com/blog/spam-wordpress-form/) feature.
+No. As of v4.10.0, WordPress Zero Spam no longer checks Ninja Form submissions. Support was dropped due to its [requirement of JavaScript](https://developer.ninjaforms.com/codex/loading-the-form-via-ajax/) and how it submits forms. JavaScript is one of the techniques WordPress Zero Spam uses to determine if a submission is spam. Ninja Forms employs a similar method and has its own [spam detection](https://ninjaforms.com/blog/spam-wordpress-form/) feature.
+
+Does this mean WPZP won't do you any good? **Absolutely not.** WPZS employs other techniques and IP blacklist checks that will help prevent malicious IP and spambots from ever seeing your site. You will still get all of the benefits of this plugin, it just won't provide the extra check on Ninja Form submissions.
+
+= Does WordPress Zero Spam check Gravity Form submissions? =
+
+No. As of v4.9.9, WordPress Zero Spam no longer checks Gravity Form submissions. Support was dropped due the numerous addon plugins that can be installed & alter GF submissions. These addons will often conflict with how WPZS validates submissions. In addition, Gravity Forms already has a spam detection option that works  similar to how this plugin detects forms. You can enable it by going to the form settings and checking the *Enable anti-spam honeypot* option. For more information, see [Gravity Forms documentation](https://docs.gravityforms.com/form-settings/).
+
+Does this mean WPZP won't do you any good? **Absolutely not.** WPZS employs other techniques and IP blacklist checks that will help prevent malicious IP and spambots from ever seeing your site. You will still get all of the benefits of this plugin, it just won't provide the extra check on Gravity Form submissions.
 
 = Does WordPress Zero Spam check Jetpack comments? =
 
@@ -118,6 +126,13 @@ Yes. It does not store any kind of personally identifiable information. Only one
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.9.9 =
+
+* Enhancement - Strengthened spam detection for comment submission using a 'honeypot' field.
+* Enhancement - Added a 'honeypot' helper functions (`wpzerospam_honeypot_field()`, `wpzerospam_get_honeypot()`) to allow other forms, plugins, and themes to easily integrate a 'honeypot' check into submissions.
+* Enhancement - IP lookup links integrated in the admin dashboard and tables.
+* Deprecation - Gravity Forms is no longer supported &mdash; for the time being. See the plugin FAQs for more information.
 
 = 4.9.8 =
 

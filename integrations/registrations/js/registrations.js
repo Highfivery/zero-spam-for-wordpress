@@ -1,5 +1,5 @@
 /**
- * WordPress Zero Spam integration for handling core comment submissions.
+ * WordPress Zero Spam integration for handling core registration submissions.
  */
 WordPressZeroSpamIntegrations.registrations = {
   init: function() {

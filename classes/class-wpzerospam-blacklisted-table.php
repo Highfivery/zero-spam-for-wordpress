@@ -107,7 +107,7 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
         return number_format( $item->attempts, 0 );
       break;
       case 'user_ip':
-        return '<a href="https://whatismyipaddress.com/ip/' . $item->user_ip .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>';
+        return '<a href="https://zerospam.org/ip-lookup/' . $item->user_ip .'/" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>';
       break;
       case 'last_updated':
         return date( 'M j, Y g:ia' , strtotime( $item->last_updated ) );
@@ -124,7 +124,7 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
 
             echo '<div class="wpzerospam-details-item">';
             echo '<div class="wpzerospam-details-label">' . __( 'Detected Spam IP', 'wpzerospam' ) . '</div>';
-            echo '<div class="wpzerospam-details-data">' . '<a href="https://whatismyipaddress.com/ip/' . $item->user_ip .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>' . '</div>';
+            echo '<div class="wpzerospam-details-data">' . '<a href="https://zerospam.org/ip-lookup/' . urlencode( $item->user_ip ) .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>' . '</div>';
             echo '</div>';
 
             echo '<div class="wpzerospam-details-item">';

@@ -43,7 +43,7 @@ $chart_limit = 20;
             <?php endif; ?>
             </span>
             <span class="wpzerospam-list-cell wpzerospam-list-cell-ip">
-              <a href="https://whatismyipaddress.com/ip/<?php echo $ip; ?>" target="_blank" rel="noopener noreferrer"><strong><?php echo $ip; ?></strong></a>
+              <a href="https://zerospam.org/ip-lookup/<?php echo urlencode( $ip ); ?>" target="_blank" rel="noopener noreferrer"><strong><?php echo $ip; ?></strong></a>
             </span>
             <span class="wpzerospam-list-cell wpzerospam-list-cell-country<?php if ( empty( $ary['country'] ) ): ?> wpzerospam-list-cell-na<?php endif; ?>">
               <?php if ( ! empty( $ary['country'] ) ): ?>

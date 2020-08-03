@@ -274,7 +274,7 @@ if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
       ]);
     }
 
-    wpzerospam_detection( 'blocked', [ 'reason' => $reason ] );
+    wpzerospam_log_detection( 'blocked', [ 'reason' => $reason ] );
 
     if ( 'redirect' == $options['block_handler'] ) {
       wp_redirect( esc_url( $options['blocked_redirect_url'] ) );
@@ -287,7 +287,7 @@ if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
 }
 
 /**
- * Fired anytime a malicious attempt or spam submission is detected.
+ * Logs a spam detection.
  *
  * This functions logs (if enabled) detections & handles sharing those
  * detections with Zero Spam (if enabled).
@@ -299,8 +299,8 @@ if ( ! function_exists( 'wpzerospam_attempt_blocked' ) ) {
  *                     from the current users IP address.
  * @param array  $data Optional. Array of additional information to log.
  */
-if ( ! function_exists( 'wpzerospam_detection' ) ) {
-  function wpzerospam_detection( $type, $data = [] ) {
+if ( ! function_exists( 'wpzerospam_log_detection' ) ) {
+  function wpzerospam_log_detection( $type, $data = [] ) {
     global $wpdb;
     $options = wpzerospam_options();
 
@@ -404,6 +404,112 @@ function wpzerospam_share_detection( $data ) {
   // Request succeeded, return the result.
   return wp_remote_retrieve_body( $request );
 }
+
+/**
+ * Returns the generated key for checking submissions.
+ *
+ * @since 4.0.0
+ *
+ * @return string A unique key used for detections.
+ */
+if ( ! function_exists( 'wpzerospam_get_key' ) ) {
+  function wpzerospam_get_key() {
+    $key = get_option( 'wpzerospam_key' );
+    if ( ! $key ) {
+      $key = wp_generate_password( 64 );
+      update_option( 'wpzerospam_key', $key );
+    }
+
+    return $key;
+  }
+}
+
+/**
+ * Returns the generated key for checking submissions.
+ *
+ * @since 4.9.9
+ *
+ * @return string A unique key used for the 'honeypot' field.
+ */
+if ( ! function_exists( 'wpzerospam_get_honeypot' ) ) {
+  function wpzerospam_get_honeypot() {
+    $key = get_option( 'wpzerospam_honeypot' );
+    if ( ! $key ) {
+      $key = wp_generate_password( 5, false, false );
+      update_option( 'wpzerospam_honeypot', $key );
+    }
+
+    return $key;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * Handles what happens when spam is detected.
+ *
+ * @since 4.0.0
+ *
+ * @param string $type Machine-readable name for the type of spam.
+ * @param array $data Additional information submitted when the spam was detected.
+ * @param boolean $handle_detection Determines if this function should handle the function or is handled in the submission hook.
+ * @return void
+ */
+if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
+  function wpzerospam_spam_detected( $type, $data = [], $handle_detection = true ) {
+    $options = wpzerospam_options();
+    $ip      = wpzerospam_ip();
+
+    // Log the spam sttempt
+    wpzerospam_log_detection( $type, $data );
+
+    // Check if number attempts should result in a permanent block
+    $blocked_ip = wpzerospam_get_blocked_ips( $ip );
+    if ( $blocked_ip && $blocked_ip->attempts >= $options['auto_block_permanently'] ) {
+      // Permanently block the IP
+      wpzerospam_update_blocked_ip( $ip , [
+        'blocked_type' => 'permanent',
+        'reason'       => $type . ' (permanently auto-blocked)'
+      ]);
+
+    // Check if the IP should be temporarily auto-blocked
+    } elseif ( 'enabled' == $options['auto_block_ips'] ) {
+
+      $start_block = current_time( 'mysql' );
+      $end_block   = new DateTime( $start_block );
+      $end_block->add( new DateInterval( 'PT' . $options['auto_block_period'] . 'M' ) );
+
+      wpzerospam_update_blocked_ip( $ip , [
+        'blocked_type' => 'temporary',
+        'start_block'  => $start_block,
+        'end_block'    => $end_block->format('Y-m-d G:i:s'),
+        'reason'       => $type . ' (auto-blocked)'
+      ]);
+    }
+
+    // Check if WordPress Zero Spam should handle the error. False for forms
+    // that process via AJAX & expect a json response.
+    if ( $handle_detection ) {
+      if ( 'redirect' == $options['spam_handler'] ) {
+        wp_redirect( esc_url( $options['spam_redirect_url'] ) );
+        exit();
+      } else {
+        status_header( 403 );
+        die( $options['spam_message'] );
+      }
+    }
+  }
+}
+
+
+
 
 
 
@@ -604,54 +710,7 @@ if ( ! function_exists( 'wpzerospam_query' ) ) {
 
 
 
-/**
- * Handles what happens when spam is detected
- */
-if ( ! function_exists( 'wpzerospam_spam_detected' ) ) {
-  function wpzerospam_spam_detected( $type, $data = [], $handle_error = true ) {
-    $options = wpzerospam_options();
-    $ip      = wpzerospam_ip();
 
-    // Log the spam sttempt
-    wpzerospam_detection( $type, $data );
-
-    // Check if number attempts should result in a permanent block
-    $blocked_ip = wpzerospam_get_blocked_ips( $ip );
-    if ( $blocked_ip && $blocked_ip->attempts >= $options['auto_block_permanently'] ) {
-      // Permanently block the IP
-      wpzerospam_update_blocked_ip( $ip , [
-        'blocked_type' => 'permanent',
-        'reason'       => $type . ' (permanently auto-blocked)'
-      ]);
-
-    // Check if the IP should be temporarily auto-blocked
-    } elseif ( 'enabled' == $options['auto_block_ips'] ) {
-
-      $start_block = current_time( 'mysql' );
-      $end_block   = new DateTime( $start_block );
-      $end_block->add( new DateInterval( 'PT' . $options['auto_block_period'] . 'M' ) );
-
-      wpzerospam_update_blocked_ip( $ip , [
-        'blocked_type' => 'temporary',
-        'start_block'  => $start_block,
-        'end_block'    => $end_block->format('Y-m-d G:i:s'),
-        'reason'       => $type . ' (auto-blocked)'
-      ]);
-    }
-
-    // Check if WordPress Zero Spam should handle the error. False for forms
-    // that process via AJAX & expect a json response.
-    if ( $handle_error ) {
-      if ( 'redirect' == $options['spam_handler'] ) {
-        wp_redirect( esc_url( $options['spam_redirect_url'] ) );
-        exit();
-      } else {
-        status_header( 403 );
-        die( $options['spam_message'] );
-      }
-    }
-  }
-}
 
 /**
  * Add a IP address to the blocked table
@@ -710,20 +769,7 @@ if ( ! function_exists( 'wpzerospam_update_blocked_ip' ) ) {
   }
 }
 
-/**
- * Returns the generated key for checking submissions
- */
-if ( ! function_exists( 'wpzerospam_get_key' ) ) {
-  function wpzerospam_get_key() {
-    $key = get_option( 'wpzerospam_key' );
-    if ( ! $key ) {
-      $key = wp_generate_password( 64 );
-      update_option( 'wpzerospam_key', $key );
-    }
 
-    return $key;
-  }
-}
 
 /**
  * Validates a post submission
@@ -769,7 +815,6 @@ if ( ! function_exists( 'wpzerospam_plugin_integration_enabled' ) ) {
 
     $integrations = [
       'cf7'        => 'contact-form-7/wp-contact-form-7.php',
-      'gform'      => 'gravityforms/gravityforms.php',
       'fluentform' => 'fluentform/fluentform.php',
       'wpforms'    => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ],
       'formidable' => 'formidable/formidable.php',

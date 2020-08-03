@@ -6,6 +6,36 @@
  * @since 4.0.0
  */
 
+/**
+ * Returns output for detail item.
+ *
+ * @since 4.9.9
+ *
+ * @param string $label The item label.
+ * @param string $value The item value.
+ * @return string HTML for the detail item output.
+ */
+if ( ! function_exists( 'wpzerospam_details_item') ) {
+  function wpzerospam_admin_details_item( $label, $value ) {
+    ob_start();
+    ?>
+    <div class="wpzerospam-details-item">
+      <div class="wpzerospam-details-label"><?php echo $label; ?></div>
+      <div class="wpzerospam-details-data">
+        <?php
+        if ( is_array( $value ) ):
+          print_r( $value );
+        else:
+          echo $value;
+        endif;
+        ?>
+      </div>
+    </div>
+    <?php
+    return ob_get_clean();
+  }
+}
+
 function wpzerospam_admin_menu() {
   add_menu_page(
     __( 'WordPress Zero Spam Dashboard', 'wpzerospam' ),
@@ -319,7 +349,6 @@ function wpzerospam_options_page() {
 
 function wpzerospam_validate_options( $input ) {
   if ( empty( $input['log_spam'] ) ) { $input['log_spam'] = 'disabled'; }
-  if ( empty( $input['verify_comments'] ) ) { $input['verify_comments'] = 'disabled'; }
   if ( empty( $input['verify_registrations'] ) ) { $input['verify_registrations'] = 'disabled'; }
   if ( empty( $input['log_blocked_ips'] ) ) { $input['log_blocked_ips'] = 'disabled'; }
   if ( empty( $input['auto_block_ips'] ) ) { $input['auto_block_ips'] = 'disabled'; }
@@ -352,10 +381,6 @@ function wpzerospam_validate_options( $input ) {
     $input['verify_cf7'] = 'disabled';
   }
 
-  if ( empty( $input['verify_gform'] ) ) {
-    $input['verify_gform'] = 'disabled';
-  }
-
   if ( empty( $input['verify_bp_registrations'] ) ) {
     $input['verify_bp_registrations'] = 'disabled';
   }
@@ -376,21 +401,15 @@ function wpzerospam_validate_options( $input ) {
     $input['stop_forum_spam'] = 'disabled';
   }
 
-  if ( empty( $input['strip_comment_links'] ) ) {
-    $input['strip_comment_links'] = 'disabled';
-  }
-
   if ( empty( $input['share_detections'] ) ) {
     $input['share_detections'] = 'disabled';
-  }
-
-  if ( empty( $input['strip_comment_author_links'] ) ) {
-    $input['strip_comment_author_links'] = 'disabled';
   }
 
   if ( empty( $input['blocked_message'] ) ) {
     $input['blocked_message'] = 'You have been blocked from visiting this site by WordPress Zero Spam due to detected spam activity.';
   }
+
+  $input = apply_filters( 'wpzerospam_admin_validation', $input );
 
   return $input;
 }
@@ -475,28 +494,6 @@ function wpzerospam_admin_init() {
     'desc'        => 'Number of spam detections before an IP is permanently blocked.',
     'class'       => 'small-text',
     'placeholder' => 3
-  ]);
-
-  // Option to strips links in comments
-  add_settings_field( 'strip_comment_links', __( 'Strip Comment Links', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_onsite', [
-    'label_for' => 'strip_comment_links',
-    'type'      => 'checkbox',
-    'multi'     => false,
-    'desc'      => 'Spambots commonly post spam links in comments. Enable this option to strip links from comments.',
-    'options'   => [
-      'enabled' => __( 'Enabled', 'wpzerospam' )
-    ]
-  ]);
-
-  // Option to remove author links
-  add_settings_field( 'strip_comment_author_links', __( 'Strip Comment Author Links', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_onsite', [
-    'label_for' => 'strip_comment_author_links',
-    'type'      => 'checkbox',
-    'multi'     => false,
-    'desc'      => 'Spammers are well-known at injecting malicious links in the comment author website field, this option disables it.',
-    'options'   => [
-      'enabled' => __( 'Enabled', 'wpzerospam' )
-    ]
   ]);
 
    // API timeout
@@ -643,16 +640,7 @@ function wpzerospam_admin_init() {
     ]
   ]);
 
-  // Comment spam check
-  add_settings_field( 'verify_comments', __( 'Verify Comments', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
-    'label_for' => 'verify_comments',
-    'type'      => 'checkbox',
-    'multi'     => false,
-    'desc'      => 'Enables spam detection of submitted comments.',
-    'options'   => [
-      'enabled' => __( 'Enabled', 'wpzerospam' )
-    ]
-  ]);
+  do_action( 'wpzerospam_admin_fields' );
 
   // Registration spam check
   add_settings_field( 'verify_registrations', __( 'Verify Registrations', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
@@ -672,19 +660,6 @@ function wpzerospam_admin_init() {
       'type'      => 'checkbox',
       'multi'     => false,
       'desc'      => 'Enables spam detection for Contact Form 7 submissions.',
-      'options'   => [
-        'enabled' => __( 'Enabled', 'wpzerospam' )
-      ]
-    ]);
-  }
-
-  // Gravity Forms spam check
-  if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
-    add_settings_field( 'verify_gform', __( 'Verify Gravity Forms Submissions', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
-      'label_for' => 'verify_gform',
-      'type'      => 'checkbox',
-      'multi'     => false,
-      'desc'      => 'Enables spam detection for Gravity Forms submissions.',
       'options'   => [
         'enabled' => __( 'Enabled', 'wpzerospam' )
       ]
