@@ -19,7 +19,7 @@ add_filter( 'wpzerospam_types', function( $types ) {
  */
 if ( ! function_exists( 'wpzerospam_preprocess_registration' ) ) {
   function wpzerospam_preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
-    $options = get_option( 'wpzerospam' );
+    $options = wpzerospam_options();
     if ( 'enabled' != $options['verify_registrations'] ) { return $errors; }
 
     if ( ! wpzerospam_key_check() ) {
@@ -45,7 +45,7 @@ add_filter( 'registration_errors', 'wpzerospam_preprocess_registration', 10, 3 )
  */
 if ( ! function_exists( 'wpzerospam_registration_form' ) ) {
   function wpzerospam_registration_form() {
-    $options = get_option( 'wpzerospam' );
+    $options = wpzerospam_options();
     if ( 'enabled' != $options['verify_registrations'] ) { return; }
 
     // WordPress Zero Spam registration integration

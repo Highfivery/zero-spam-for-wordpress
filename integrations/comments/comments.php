@@ -178,7 +178,7 @@ add_action( 'wpzerospam_admin_submission_data_items', 'wpzerospam_comment_admin_
  */
 if ( ! function_exists( 'wpzerospam_comments_after_setup_theme' ) ) {
   function wpzerospam_comments_after_setup_theme() {
-    $options = get_option( 'wpzerospam' );
+    $options = wpzerospam_options();
 
     // Determines is author links should be stripped.
     if ( 'enabled' == $options['strip_comment_author_links'] ) {
@@ -317,7 +317,7 @@ if ( ! function_exists( 'wpzerospam_comments_form_defaults' ) ) {
  */
 if ( ! function_exists( 'wpzerospam_comments_preprocess' ) ) {
   function wpzerospam_comments_preprocess( $commentdata ) {
-    $options  = get_option( 'wpzerospam' );
+    $options  = wpzerospam_options();
     $honeypot = wpzerospam_get_honeypot();
 
     if (
