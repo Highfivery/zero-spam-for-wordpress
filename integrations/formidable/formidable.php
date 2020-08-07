@@ -67,7 +67,6 @@ add_action( 'frm_entry_form', 'wpzerospam_formidable_frm_entry_form' );
 if ( ! function_exists( 'wpzerospam_formidable_frm_entries_footer_scripts' ) ) {
   function wpzerospam_formidable_frm_entries_footer_scripts( $fields, $form ) {
     ?>
-    console.log("HEREIAM");
     jQuery( '[name="wpzerospam_key"]' ).val( "<?php echo wpzerospam_get_key(); ?>" );
     <?php
   }

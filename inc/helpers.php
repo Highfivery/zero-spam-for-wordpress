@@ -381,10 +381,15 @@ function wpzerospam_share_detection( $data ) {
   $request_args = [
     'method' => 'POST',
     'body'   => [
-      'ip'      => $data['ip'],
-      'type'    => $data['type'],
-      'site'    => site_url(),
-      'version' => WORDPRESS_ZERO_SPAM_VERSION
+      'ip'        => $data['ip'],
+      'type'      => $data['type'],
+      'site'      => site_url(),
+      'email'     => get_bloginfo( 'admin_email' ),
+      'wpversion' => get_bloginfo( 'version' ),
+      'name'      => get_bloginfo( 'name' ),
+      'desc'      => get_bloginfo( 'description' ),
+      'language'  => get_bloginfo( 'language' ),
+      'version'   => WORDPRESS_ZERO_SPAM_VERSION
     ],
     'sslverify' => true
   ];

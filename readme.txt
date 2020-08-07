@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.9.10
+Stable tag: 4.9.11
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -73,19 +73,19 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 = Does WordPress Zero Spam check Ninja Forms submissions? =
 
-No. As of v4.10.0, WordPress Zero Spam no longer checks Ninja Form submissions. Support was dropped due to its [requirement of JavaScript](https://developer.ninjaforms.com/codex/loading-the-form-via-ajax/) and how it submits forms. JavaScript is one of the techniques WordPress Zero Spam uses to determine if a submission is spam. Ninja Forms employs a similar method and has its own [spam detection](https://ninjaforms.com/blog/spam-wordpress-form/) feature.
+**No.** As of v4.10.0, WordPress Zero Spam no longer checks Ninja Form submissions. Support was dropped due to its [requirement of JavaScript](https://developer.ninjaforms.com/codex/loading-the-form-via-ajax/) and how it submits forms. JavaScript is one of the techniques WordPress Zero Spam uses to determine if a submission is spam. Ninja Forms employs a similar method and has its own [spam detection](https://ninjaforms.com/blog/spam-wordpress-form/) feature.
 
-Does this mean WPZP won't do you any good? **Absolutely not.** WPZS employs other techniques and IP blacklist checks that will help prevent malicious IP and spambots from ever seeing your site. You will still get all of the benefits of this plugin, it just won't provide the extra check on Ninja Form submissions.
+**Does this mean WPZP won't do you any good? Absolutely not.** WPZS employs other techniques and IP blacklist checks that will help prevent malicious IP and spambots from ever seeing your site. You will still get all of the benefits of this plugin, it just won't provide the extra check on Ninja Form submissions.
 
 = Does WordPress Zero Spam check Gravity Form submissions? =
 
-No. As of v4.9.9, WordPress Zero Spam no longer checks Gravity Form submissions. Support was dropped due the numerous addon plugins that can be installed & alter GF submissions. These addons will often conflict with how WPZS validates submissions. In addition, Gravity Forms already has a spam detection option that works  similar to how this plugin detects forms. You can enable it by going to the form settings and checking the *Enable anti-spam honeypot* option. For more information, see [Gravity Forms documentation](https://docs.gravityforms.com/form-settings/).
+**No.** As of v4.9.9, WordPress Zero Spam no longer checks Gravity Form submissions. Support was dropped due the numerous addon plugins that can be installed & alter GF submissions. These addons will often conflict with how WPZS validates submissions. In addition, Gravity Forms already has a spam detection option that works  similar to how this plugin detects forms. You can enable it by going to the form settings and checking the *Enable anti-spam honeypot* option. For more information, see [Gravity Forms documentation](https://docs.gravityforms.com/form-settings/).
 
-Does this mean WPZP won't do you any good? **Absolutely not.** WPZS employs other techniques and IP blacklist checks that will help prevent malicious IP and spambots from ever seeing your site. You will still get all of the benefits of this plugin, it just won't provide the extra check on Gravity Form submissions.
+**Does this mean WPZP won't do you any good? Absolutely not.** WPZS employs other techniques and IP blacklist checks that will help prevent malicious IP and spambots from ever seeing your site. You will still get all of the benefits of this plugin, it just won't provide the extra check on Gravity Form submissions.
 
 = Does WordPress Zero Spam check Jetpack comments? =
 
-No. WordPress Zero Spam is unable to integrate Jetpack. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
+**No.** WordPress Zero Spam is unable to integrate Jetpack. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
 
 = Spam coments are still getting through, help! =
 
@@ -115,7 +115,7 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 
 = Does WordPress Zero Spam use cookies? =
 
-Yes. It does not store any kind of personally identifiable information. Only one cookie is stored (`wpzerospam_api_blacklist`) to log the last time the site queried the blacklist APIs. This is used to boost performance so each page visit doesn't trigger an API call. The expiration can be set in *Admin > WP Zero Spam > Settings*
+**Yes. It does not store any kind of personally identifiable information.** Only one cookie is stored (`wpzerospam_api_blacklist`) to log the last time the site queried the blacklist APIs. This is used to boost performance so each page visit doesn't trigger an API call. The expiration can be set in *Admin > WP Zero Spam > Settings*
 
 == Screenshots ==
 
@@ -126,6 +126,11 @@ Yes. It does not store any kind of personally identifiable information. Only one
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.9.11 =
+
+* Optimization - Converted the WPZS JS to be a jQuery plugin to initialize and manage easier.
+* Fix - Fix for WPZS failing when the Autoptimize plugin is set to aggregate JS files. See [#205](https://github.com/bmarshall511/wordpress-zero-spam/issues/205).
 
 = 4.9.10 =
 
