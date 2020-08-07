@@ -53,4 +53,6 @@
 })(jQuery);
 
 // Initialize WPZS on form elements with the wpzerospam class.
-jQuery(".wpzerospam").WordPressZeroSpam();
+jQuery(function() {
+  jQuery(".wpzerospam").WordPressZeroSpam();
+});
