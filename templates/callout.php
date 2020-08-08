@@ -34,7 +34,7 @@
         __( '<strong>Integrate Zero Spam in any application</strong> with the <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam Blacklist API</a>.', 'zero-spam' ),
         [ 'strong' => [], 'a' => [ 'target' => [], 'href' => [], 'rel' => [] ] ]
       ),
-      esc_url( 'https://zerospam.org/spam-blacklist-api/' ),
+      esc_url( 'https://zerospam.org/spam-blacklist-api/' )
     );
     ?></p>
   </div>
