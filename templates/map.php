@@ -106,7 +106,7 @@ $options = wpzerospam_options();
           __( '<strong>Enter your <a href="%s" target="_blank" rel="noopener noreferrer">ipstack API Key</a></strong> to enable the world mp view of spam detections.', 'zero-spam' ),
           [ 'strong' => [], 'a' => [ 'target' => [], 'href' => [], 'rel' => [] ] ]
         ),
-        admin_url( 'admin.php?page=wordpress-zero-spam-settings' ),
+        admin_url( 'admin.php?page=wordpress-zero-spam-settings' )
       );
       ?></p>
     <?php endif; ?>
