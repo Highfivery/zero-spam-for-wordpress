@@ -17,8 +17,8 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
     global $status, $page;
 
     $args = [
-      'singular'  => __( 'Blocked IP', 'wpzerospam' ),
-      'plural'    => __( 'Blocked IPs', 'wpzerospam' ),
+      'singular'  => __( 'Blocked IP', 'zero-spam' ),
+      'plural'    => __( 'Blocked IPs', 'zero-spam' ),
       'ajax'      => true
     ];
     parent::__construct( $args );
@@ -29,13 +29,13 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
     // Render a checkbox instead of text
     $columns = [
       'cb'           => '<input type="checkbox" />',
-      'user_ip'      => __( 'IP Address', 'wpzerospam' ),
-      'blocked_type' => __( 'Type', 'wpzerospam' ),
-      'date_added'   => __( 'Date Added', 'wpzerospam' ),
-      'start_block'  => __( 'Start Date', 'wpzerospam' ),
-      'end_block'    => __( 'End Date', 'wpzerospam' ),
-      'reason'       => __( 'Reason', 'wpzerospam' ),
-      'attempts'     => __( 'Attempts', 'wpzerospam' ),
+      'user_ip'      => __( 'IP Address', 'zero-spam' ),
+      'blocked_type' => __( 'Type', 'zero-spam' ),
+      'date_added'   => __( 'Date Added', 'zero-spam' ),
+      'start_block'  => __( 'Start Date', 'zero-spam' ),
+      'end_block'    => __( 'End Date', 'zero-spam' ),
+      'reason'       => __( 'Reason', 'zero-spam' ),
+      'attempts'     => __( 'Attempts', 'zero-spam' ),
     ];
 
     return $columns;
@@ -64,16 +64,16 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
     ?>
     <div class="alignleft actions">
       <?php
-      echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type' ) . '</label>';
+      echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type', 'zero-spam' ) . '</label>';
       $current_type = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
       ?>
       <select name="type" id="filter-by-type">
-        <option value=""><?php _e( 'All types', 'wpzerospam' ); ?></option>
-        <option<?php if ( $current_type == 'permanent' ): ?> selected="selected" <?php endif; ?> value="permanent"><?php _e( 'Permanent', 'wpzerospam' ); ?></option>
-        <option<?php if ( $current_type == 'temporary' ): ?> selected="selected" <?php endif; ?> value="temporary"><?php _e( 'Temporary', 'wpzerospam' ); ?></option>
+        <option value=""><?php _e( 'All types', 'zero-spam' ); ?></option>
+        <option<?php if ( $current_type == 'permanent' ): ?> selected="selected" <?php endif; ?> value="permanent"><?php _e( 'Permanent', 'zero-spam' ); ?></option>
+        <option<?php if ( $current_type == 'temporary' ): ?> selected="selected" <?php endif; ?> value="temporary"><?php _e( 'Temporary', 'zero-spam' ); ?></option>
       </select>
       <?php
-      submit_button( __( 'Filter' ), '', 'filter_action', false );
+      submit_button( __( 'Filter', 'zero-spam' ), '', 'filter_action', false );
       ?>
     </div>
     <?php
@@ -100,10 +100,10 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
       case 'blocked_type':
         switch( $item->blocked_type ) {
           case 'permanent':
-            return '<span class="wpzerospam-blocked">Permanent</span>';
+            return '<span class="wpzerospam-blocked">' . __( 'Permanent', 'zero-spam' ) . '</span>';
           break;
           case 'temporary':
-            return '<span class="wpzerospam-warning">Temporary</span>';
+            return '<span class="wpzerospam-warning">' . __( 'Temporary', 'zero-spam' ) . '</span>';
           break;
           default:
             return $item->blocked_type;
@@ -133,10 +133,20 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
 
         switch( $item->reason ) {
           case 'comment (permanently auto-blocked)':
-            return __( 'Comment <span class="wpzerospam-small">(<strong>permanently</strong> auto-blocked)</span>', 'wpzerospam' );
+            return sprintf(
+              wp_kses(
+                __( 'Comment <span class="wpzerospam-small">(<strong>permanently</strong> auto-blocked)</span>', 'zero-spam' ),
+                [ 'span' => [ 'class' => [] ], 'strong' => [] ]
+              )
+            );
           break;
           case 'comment (auto-blocked)':
-            return __( 'Comment <span class="wpzerospam-small">(auto-blocked)</span>', 'wpzerospam' );
+            return sprintf(
+              wp_kses(
+                __( 'Comment <span class="wpzerospam-small">(auto-blocked)</span>', 'zero-spam' ),
+                [ 'span' => [ 'class' => [] ] ]
+              )
+            );
           break;
           default:
             return $item->reason;
@@ -151,8 +161,8 @@ class WPZeroSpam_Blocked_IP_Table extends WP_List_Table {
   // Register bulk actions
   function get_bulk_actions() {
     $actions = [
-      'delete'     => __( 'Delete', 'wpzerospam' ),
-      'delete_all' => __( 'Delete All Entries', 'wpzerospam' )
+      'delete'     => __( 'Delete', 'zero-spam' ),
+      'delete_all' => __( 'Delete All Entries', 'zero-spam' )
     ];
 
     return $actions;

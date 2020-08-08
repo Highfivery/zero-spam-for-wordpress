@@ -1,0 +1,875 @@
+#, fuzzy
+msgid ""
+msgstr ""
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+"Project-Id-Version: WordPress Zero Spam\n"
+"POT-Creation-Date: 2020-08-07 13:08-0500\n"
+"PO-Revision-Date: 2020-08-07 13:06-0500\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.4\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-Flags-xgettext: --add-comments=translators:\n"
+"X-Poedit-WPHeader: wordpress-zero-spam.php\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: __;_e;_n:1,2;_x:1,2c;_ex:1,2c;_nx:4c,1,2;esc_attr__;"
+"esc_attr_e;esc_attr_x:1,2c;esc_html__;esc_html_e;esc_html_x:1,2c;_n_noop:1,2;"
+"_nx_noop:3c,1,2;__ngettext_noop:1,2\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: *.min.js\n"
+
+#: classes/class-wpzerospam-blacklisted-table.php:20
+msgid "Blacklist"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:21
+msgid "Blacklist IPs"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:32
+#: classes/class-wpzerospam-blacklisted-table.php:131
+msgid "Last Updated"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:33
+#: classes/class-wpzerospam-blocked-ip-table.php:32
+#: classes/class-wpzerospam-log-table.php:34 inc/admin.php:245
+msgid "IP Address"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:34
+#: classes/class-wpzerospam-blacklisted-table.php:136
+msgid "Service"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:35
+#: classes/class-wpzerospam-blocked-ip-table.php:38
+msgid "Attempts"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:36
+#: classes/class-wpzerospam-log-table.php:38
+msgid "Details"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:63
+msgid "Filter by service"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:67
+msgid "All services"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:68
+msgid "BotScout"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:69 inc/admin.php:568
+msgid "Stop Forum Spam"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:70
+msgid "Zero Spam"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:73
+#: classes/class-wpzerospam-blocked-ip-table.php:76
+#: classes/class-wpzerospam-log-table.php:79
+msgid "Filter"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:116
+#: classes/class-wpzerospam-log-table.php:140
+msgid "No details available."
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:119
+#: classes/class-wpzerospam-log-table.php:143
+msgid "View"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:126
+#: classes/class-wpzerospam-log-table.php:148
+msgid "Detected Spam IP"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:160
+msgid "Appears"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:166
+msgid "Confidence"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:172
+msgid "Frequency"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:178
+msgid "Last Seen"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:184
+msgid "ASN"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:208
+#: classes/class-wpzerospam-blocked-ip-table.php:164
+msgid "Delete"
+msgstr ""
+
+#: classes/class-wpzerospam-blacklisted-table.php:209
+#: classes/class-wpzerospam-blocked-ip-table.php:165
+#: classes/class-wpzerospam-log-table.php:289
+msgid "Delete All Entries"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:20
+msgid "Blocked IP"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:21 inc/admin.php:70
+#: inc/admin.php:601
+msgid "Blocked IPs"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:33
+#: classes/class-wpzerospam-log-table.php:33
+#: classes/class-wpzerospam-log-table.php:163 inc/admin.php:255
+msgid "Type"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:34
+msgid "Date Added"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:35 inc/admin.php:266
+msgid "Start Date"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:36 inc/admin.php:270
+msgid "End Date"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:37
+#: classes/class-wpzerospam-log-table.php:216 inc/admin.php:262
+msgid "Reason"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:67
+#: classes/class-wpzerospam-log-table.php:68
+msgid "Filter by type"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:71
+#: classes/class-wpzerospam-log-table.php:73
+msgid "All types"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:72
+#: classes/class-wpzerospam-blocked-ip-table.php:103 inc/admin.php:258
+msgid "Permanent"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:73
+#: classes/class-wpzerospam-blocked-ip-table.php:106 inc/admin.php:257
+msgid "Temporary"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:138
+msgid ""
+"Comment <span class=\"wpzerospam-small\">(<strong>permanently</strong> auto-"
+"blocked)</span>"
+msgstr ""
+
+#: classes/class-wpzerospam-blocked-ip-table.php:146
+msgid "Comment <span class=\"wpzerospam-small\">(auto-blocked)</span>"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:20
+msgid "Spam Detection"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:21 inc/admin.php:60 inc/admin.php:61
+#: inc/admin.php:638 templates/map.php:97
+msgid "Spam Detections"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:32
+#: classes/class-wpzerospam-log-table.php:158
+msgid "Date"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:35
+#: classes/class-wpzerospam-log-table.php:169
+msgid "Country"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:36
+#: classes/class-wpzerospam-log-table.php:176
+msgid "Region"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:37
+#: classes/class-wpzerospam-log-table.php:183
+msgid "City"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:39
+#: classes/class-wpzerospam-log-table.php:101 templates/ip-list.php:63
+msgid "Block IP"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:99 templates/ip-list.php:60
+msgid "Blocked"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:153
+msgid "Page URL"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:198
+msgid "Sanitized User Login"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:204
+msgid "User Email"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:210
+msgid "Errors"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:224
+msgid "Form Action"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:230
+msgid "Form ID"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:236
+msgid "Form Key"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:242
+msgid "Item Key"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:248
+msgid "Form Values"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:258
+msgid "Source"
+msgstr ""
+
+#: classes/class-wpzerospam-log-table.php:288
+msgid "Delete Selected"
+msgstr ""
+
+#: inc/admin.php:41 inc/admin.php:51
+msgid "WordPress Zero Spam Dashboard"
+msgstr ""
+
+#: inc/admin.php:42
+msgid "WP Zero Spam"
+msgstr ""
+
+#: inc/admin.php:52
+msgid "Dashboard"
+msgstr ""
+
+#: inc/admin.php:69
+msgid "Blocked IP Addresses"
+msgstr ""
+
+#: inc/admin.php:78 inc/admin.php:79
+msgid "Blacklisted IPs"
+msgstr ""
+
+#: inc/admin.php:87
+msgid "WordPress Zero Spam Settings"
+msgstr ""
+
+#: inc/admin.php:88 inc/admin.php:422
+msgid "Settings"
+msgstr ""
+
+#: inc/admin.php:118 inc/admin.php:147 inc/admin.php:293
+msgid "Search IPs"
+msgstr ""
+
+#: inc/admin.php:221
+msgid "Please enter a valid IP address."
+msgstr ""
+
+#: inc/admin.php:224
+msgid "Please select a valid type."
+msgstr ""
+
+#: inc/admin.php:227
+msgid "Please select a date & time when the temporary block should end."
+msgstr ""
+
+#: inc/admin.php:232 inc/admin.php:237
+msgid "Dismiss this notice."
+msgstr ""
+
+#: inc/admin.php:236
+msgid "The blocked IP has been successfully added."
+msgstr ""
+
+#: inc/admin.php:243 inc/admin.php:274
+msgid "Add Blocked IP"
+msgstr ""
+
+#: inc/admin.php:263
+msgid "e.g. Spammed form"
+msgstr ""
+
+#: inc/admin.php:267 inc/admin.php:271
+msgid "Optional"
+msgstr ""
+
+#: inc/admin.php:314
+msgid "Statistics"
+msgstr ""
+
+#: inc/admin.php:409 inc/admin.php:633 inc/utilities.php:115
+msgid ""
+"You have been blocked from visiting this site by WordPress Zero Spam due to "
+"detected spam activity."
+msgstr ""
+
+#: inc/admin.php:441
+msgid "General Settings"
+msgstr ""
+
+#: inc/admin.php:442
+msgid "Auto-block Settings"
+msgstr ""
+
+#: inc/admin.php:443
+msgid "On-site Spam Prevention"
+msgstr ""
+
+#: inc/admin.php:444
+msgid "Integrations & Third-party APIs"
+msgstr ""
+
+#: inc/admin.php:447
+msgid "Cookie Expiration"
+msgstr ""
+
+#: inc/admin.php:451
+msgid ""
+"Number of days until a user's cookie is expired. Helps boost site "
+"performance so access & blacklist checks aren't sent each page visit. "
+"<strong>Minimum recommend is 7 days</strong>."
+msgstr ""
+
+#: inc/admin.php:456
+msgid "days"
+msgstr ""
+
+#: inc/admin.php:460
+msgid "Share Spam Detections"
+msgstr ""
+
+#: inc/admin.php:465
+msgid ""
+"Help support WordPress Zero Spam and strenghten its ability to detect "
+"spammers by sharing spam detections. The only data that's shared is the IP "
+"address, type & site where the spam was detected. <strong>Absolutely no "
+"personal data is shared.</strong>."
+msgstr ""
+
+#: inc/admin.php:469 inc/admin.php:480 inc/admin.php:580 inc/admin.php:681
+#: inc/admin.php:692 inc/admin.php:705 inc/admin.php:717 inc/admin.php:730
+#: inc/admin.php:743 inc/admin.php:756 inc/admin.php:769
+#: integrations/comments/comments.php:25 integrations/comments/comments.php:36
+#: integrations/comments/comments.php:47
+msgid "Enabled"
+msgstr ""
+
+#: inc/admin.php:474
+msgid "Auto-block IPs"
+msgstr ""
+
+#: inc/admin.php:478
+msgid "Auto-blocks IPs addresses that trigger a spam detection."
+msgstr ""
+
+#: inc/admin.php:486
+msgid "Auto-block Period"
+msgstr ""
+
+#: inc/admin.php:489
+msgid ""
+"Number of minutes a user will be blocked from viewing the site after being "
+"auto-blocked."
+msgstr ""
+
+#: inc/admin.php:492
+msgid "minutes"
+msgstr ""
+
+#: inc/admin.php:497
+msgid "Permanently Auto-block"
+msgstr ""
+
+#: inc/admin.php:500
+msgid "Number of spam detections before an IP is permanently blocked."
+msgstr ""
+
+#: inc/admin.php:506
+msgid "API Timeout"
+msgstr ""
+
+#: inc/admin.php:510
+msgid ""
+"Number of seconds to allow an API to return a response.<br /><strong>WARNING:"
+"</strong> Setting this too high could cause your site to load slowly. "
+"Setting too low may not allow an API enough time to respond with a result. "
+"<strong>Recommended is 5 seconds.</strong>."
+msgstr ""
+
+#: inc/admin.php:515
+msgid "seconds"
+msgstr ""
+
+#: inc/admin.php:520
+msgid "ipstack API Key"
+msgstr ""
+
+#: inc/admin.php:523
+msgid "Enter your ipstack API key."
+msgstr ""
+
+#: inc/admin.php:527
+#, php-format
+msgid ""
+"Enter your <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer"
+"\">ipstack API key</a> to enable location-based statistics. Don't have an "
+"API key? <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer"
+"\"><strong>Get one for free!</strong></a>"
+msgstr ""
+
+#: inc/admin.php:537
+msgid "BotScout API Key"
+msgstr ""
+
+#: inc/admin.php:541
+msgid "Enter your free BotScout API key."
+msgstr ""
+
+#: inc/admin.php:544
+#, php-format
+msgid ""
+"Enter your BotScout API key to check user IPs against <a href=\"%s\" target="
+"\"_blank\" rel=\"noopener noreferrer\">BotScout</a>'s blacklist. Don't have "
+"an API key? <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer"
+"\"><strong>Get one for free!</strong></a>"
+msgstr ""
+
+#: inc/admin.php:553
+msgid "BotScout Count Minimum"
+msgstr ""
+
+#: inc/admin.php:558
+#, php-format
+msgid ""
+"Minimum <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">count</"
+"a> an IP must meet before being marked as spam/malicious.<br /"
+"><strong>WARNING:</strong> Setting this too low could cause users to be "
+"blocked that shouldn't be, <strong>recommended is 5</strong>."
+msgstr ""
+
+#: inc/admin.php:574
+#, php-format
+msgid ""
+"Checks user IPs against <a href=\"%s\" target=\"_blank\" rel=\"noopener "
+"noreferrer\">Stop Forum Spam</a>'s blacklist."
+msgstr ""
+
+#: inc/admin.php:585
+msgid "Stop Forum Spam Confidence Minimum"
+msgstr ""
+
+#: inc/admin.php:590
+#, php-format
+msgid ""
+"Minimum <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer"
+"\">confidence score</a> an IP must meet before being marked as spam/"
+"malicious.<br /><strong>WARNING:</strong> Setting this too low could cause "
+"users to be blocked that shouldn't be, <strong>recommended is 20%%</strong>."
+msgstr ""
+
+#: inc/admin.php:604
+msgid ""
+"Determines how blocked IPs are handled when they attempt to visit the site."
+msgstr ""
+
+#: inc/admin.php:606 inc/admin.php:643
+msgid "Redirect user"
+msgstr ""
+
+#: inc/admin.php:609 inc/admin.php:646
+#, php-format
+msgid ""
+"Display a <a href=\"%s\" target=\"_blank\" rel=\"noreferrer noopener"
+"\"><code>403 Forbidden</code></a> error"
+msgstr ""
+
+#: inc/admin.php:619
+msgid "Redirect for Blocked Users"
+msgstr ""
+
+#: inc/admin.php:623
+msgid "URL blocked users will be taken to."
+msgstr ""
+
+#: inc/admin.php:628
+msgid "Blocked Message"
+msgstr ""
+
+#: inc/admin.php:632
+msgid "The message that will be displayed to a blocked user."
+msgstr ""
+
+#: inc/admin.php:641
+msgid "Determines how users are handled when spam is detected."
+msgstr ""
+
+#: inc/admin.php:656
+msgid "Redirect for Spam"
+msgstr ""
+
+#: inc/admin.php:660
+msgid "URL users will be taken to when a spam submission is detected."
+msgstr ""
+
+#: inc/admin.php:665
+msgid "Spam Detection Message"
+msgstr ""
+
+#: inc/admin.php:669
+msgid "The message that will be displayed when spam is detected."
+msgstr ""
+
+#: inc/admin.php:670 inc/utilities.php:114
+msgid "There was a problem with your submission. Please go back and try again."
+msgstr ""
+
+#: inc/admin.php:675
+msgid "Log Blocked IPs"
+msgstr ""
+
+#: inc/admin.php:679
+msgid "Enables logging of when IPs are blocked from accessing the site."
+msgstr ""
+
+#: inc/admin.php:686
+msgid "Log Spam Detections"
+msgstr ""
+
+#: inc/admin.php:690
+msgid ""
+"Enables logging of spam detections and provides an admin interface to view "
+"statistics."
+msgstr ""
+
+#: inc/admin.php:699
+msgid "Verify Registrations"
+msgstr ""
+
+#: inc/admin.php:703
+msgid "Enables spam detection for site registrations."
+msgstr ""
+
+#: inc/admin.php:711
+msgid "Verify CF7 Submissions"
+msgstr ""
+
+#: inc/admin.php:715
+msgid "Enables spam detection for Contact Form 7 submissions."
+msgstr ""
+
+#: inc/admin.php:724
+msgid "Verify BuddyPress Registrations"
+msgstr ""
+
+#: inc/admin.php:728
+msgid "Enables spam detection for BuddyPress registrations."
+msgstr ""
+
+#: inc/admin.php:737
+msgid "Verify WPForms Submissions"
+msgstr ""
+
+#: inc/admin.php:741
+msgid "Enables spam detection for WPForms submissions.zero-spam"
+msgstr ""
+
+#: inc/admin.php:750
+msgid "Verify Fluent Form Submissions"
+msgstr ""
+
+#: inc/admin.php:754
+msgid "Enables spam detection for Fluent Form submissions."
+msgstr ""
+
+#: inc/admin.php:763
+msgid "Verify Formidable Form Submissions"
+msgstr ""
+
+#: inc/admin.php:767
+msgid "Enables spam detection for Formidable form submissions."
+msgstr ""
+
+#: inc/admin.php:775
+msgid "IP Whitelist"
+msgstr ""
+
+#: inc/admin.php:779
+msgid ""
+"Enter IPs that should be whitelisted (IPs that should never be blocked), one "
+"per line."
+msgstr ""
+
+#: inc/admin.php:780
+msgid "e.g. xxx.xxx.x.x"
+msgstr ""
+
+#: inc/utilities.php:324
+msgid "Access Blocked"
+msgstr ""
+
+#: integrations/buddypress/buddypress.php:13
+msgid "BuddyPress Registration"
+msgstr ""
+
+#: integrations/comments/comments.php:19
+msgid "Strip Comment Links"
+msgstr ""
+
+#: integrations/comments/comments.php:23
+msgid ""
+"Spambots commonly post spam links in comments. Enable this option to strip "
+"links from comments."
+msgstr ""
+
+#: integrations/comments/comments.php:30
+msgid "Strip Comment Author Links"
+msgstr ""
+
+#: integrations/comments/comments.php:34
+msgid ""
+"Spammers are well-known at injecting malicious links in the comment author "
+"website field, this option disables it."
+msgstr ""
+
+#: integrations/comments/comments.php:41
+msgid "Detect Comment Spam"
+msgstr ""
+
+#: integrations/comments/comments.php:45
+msgid "Enables comment form submission protection."
+msgstr ""
+
+#: integrations/comments/comments.php:93
+msgid "Comment Post"
+msgstr ""
+
+#: integrations/comments/comments.php:96 integrations/comments/comments.php:119
+msgid "Author"
+msgstr ""
+
+#: integrations/comments/comments.php:99 integrations/comments/comments.php:124
+msgid "Email"
+msgstr ""
+
+#: integrations/comments/comments.php:102
+#: integrations/comments/comments.php:129
+msgid "Website"
+msgstr ""
+
+#: integrations/comments/comments.php:105
+#: integrations/comments/comments.php:133
+#: integrations/comments/comments.php:286
+msgid "Comment"
+msgstr ""
+
+#: integrations/comments/comments.php:108
+msgid "Comment Type"
+msgstr ""
+
+#: integrations/comments/comments.php:111
+msgid "Comment Parent ID"
+msgstr ""
+
+#: integrations/comments/comments.php:136
+msgid "User IP"
+msgstr ""
+
+#: integrations/comments/comments.php:139
+msgid "User Agent"
+msgstr ""
+
+#: integrations/comments/comments.php:142
+msgid "Site"
+msgstr ""
+
+#: integrations/comments/comments.php:145
+msgid "Site Language"
+msgstr ""
+
+#: integrations/comments/comments.php:148
+msgid "Site Charset"
+msgstr ""
+
+#: integrations/comments/comments.php:151
+msgid "Permalink"
+msgstr ""
+
+#: integrations/comments/comments.php:159
+msgid "Akismet Result"
+msgstr ""
+
+#: integrations/comments/comments.php:162
+msgid "Akismet Pro Tip"
+msgstr ""
+
+#: integrations/contact-form-7/contact-form-7.php:13
+msgid "Contact Form 7"
+msgstr ""
+
+#: integrations/fluentform/fluentform.php:13
+msgid "Fluent Forms"
+msgstr ""
+
+#: integrations/formidable/formidable.php:15
+msgid "Formidable Forms"
+msgstr ""
+
+#: integrations/registrations/registrations.php:13
+msgid "Registration"
+msgstr ""
+
+#: integrations/wpforms/wpforms.php:13
+msgid "WPForms"
+msgstr ""
+
+#: templates/callout.php:15
+#, php-format
+msgid ""
+"Help support the <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer"
+"\">WordPress Zero Spam</a> plugin."
+msgstr ""
+
+#: templates/callout.php:24
+#, php-format
+msgid ""
+"Support the continued development of the WPZS by <a href=\"%s\" target="
+"\"_blank\" rel=\"noopener noreferrer\">donating today</a>. Donation goes "
+"towards the time it takes to develop new features &amp; updates, but also "
+"helps provide pro bono work for nonprofits. <a href=\"%s\" target=\"_blank\" "
+"rel=\"noopener noreferrer\">Learn more</a>."
+msgstr ""
+
+#: templates/callout.php:34
+#, php-format
+msgid ""
+"<strong>Integrate Zero Spam in any application. </strong> Use the <a href="
+"\"%s\" target=\"_blank\" rel=\"noopener noreferrer\">Zero Spam Blacklist "
+"API</a> to easily put a stop to spam on any site or application."
+msgstr ""
+
+#: templates/callout.php:42
+msgid "Submit Bug/Feature Request"
+msgstr ""
+
+#: templates/callout.php:43
+msgid "Follow us on Twitter"
+msgstr ""
+
+#: templates/callout.php:44
+msgid "Like us on Facebook"
+msgstr ""
+
+#: templates/callout.php:45
+msgid "Learn more about Zero Spam"
+msgstr ""
+
+#: templates/callout.php:46
+msgid "Fork on Github"
+msgstr ""
+
+#: templates/callout.php:47
+msgid "Show your Support &mdash; Donate"
+msgstr ""
+
+#: templates/callout.php:51
+msgid "Your IP Address:"
+msgstr ""
+
+#: templates/countries-pie-chart.php:12
+msgid "Most Spam by Country"
+msgstr ""
+
+#: templates/countries-pie-chart.php:67 templates/ip-list.php:71
+#: templates/regions-pie-chart.php:82 templates/spam-line-chart.php:58
+msgid "No data to report yet."
+msgstr ""
+
+#: templates/ip-list.php:12
+msgid "Most Spam by IP Address"
+msgstr ""
+
+#: templates/map.php:11
+msgid "Spam Detections World Map"
+msgstr ""
+
+#: templates/map.php:106
+#, php-format
+msgid ""
+"<strong>Enter your <a href=\"%s\" target=\"_blank\" rel=\"noopener noreferrer"
+"\">ipstack API Key</a></strong> to enable the world mp view of spam "
+"detections."
+msgstr ""
+
+#: templates/regions-pie-chart.php:12
+msgid "Most Spam by Region"
+msgstr ""
+
+#: templates/spam-line-chart.php:10
+msgid "Spam by Date"
+msgstr ""
+
+#. Plugin Name of the plugin/theme
+msgid "WordPress Zero Spam"
+msgstr ""
+
+#. Plugin URI of the plugin/theme
+msgid "https://benmarshall.me/wordpress-zero-spam"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid ""
+"Tired of all the useless and bloated WordPress spam plugins? The WordPress "
+"Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate "
+"and say goodbye to spam.</strong> Based on work by <a href=\"http://"
+"davidwalsh.name/wordpress-comment-spam\" target=\"_blank\">David Walsh</a>."
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "Ben Marshall"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "https://benmarshall.me"
+msgstr ""

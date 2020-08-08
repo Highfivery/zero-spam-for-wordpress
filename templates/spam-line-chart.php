@@ -7,7 +7,7 @@
  */
 ?>
 <div class="wpzerospam-box wpzerospam-box-line-chart">
-  <h3><?php _e( 'Spam by Date', 'wpzerospam' ); ?></h3>
+  <h3><?php _e( 'Spam by Date', 'zero-spam' ); ?></h3>
   <div class="inside">
     <?php
     if ( $log ):
@@ -55,7 +55,7 @@
       });
       </script>
     <?php else: ?>
-      <?php _e( 'No data to report yet.', 'wpzerospam' ); ?>
+      <?php _e( 'No data to report yet.', 'zero-spam' ); ?>
     <?php endif; ?>
   </div>
 </div>

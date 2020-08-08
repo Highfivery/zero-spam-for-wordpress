@@ -49,17 +49,40 @@ In addition, it integrates with other popular plugins to provide all around prot
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://benmarshall.me/stop-wordpress-spam/) in its tracks.
 
-= Issues/Feature Requests =
+= Multilingual Supported =
 
-**Something not working as expected?** I wanna hear about it. Have an idea on how to improve the plugin? I'm all ears.
+We’ve integrated multi language support within the framework of our plugin, so you get a translated dashboard out of the box, and developer options to add even more languages.
 
-* [Submit an issue or feature request](https://github.com/bmarshall511/wordpress-zero-spam/issues) on GitHub
-* [Contact me directly](https://benmarshall.me/contact/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) on my site
-* [Follow me](https://twitter.com/bmarshall0511) on Twitter
+= Developer API =
 
-= Show Your Support =
+WordPress Zero Spam is free and open source. It’s the perfect solution to stopping spam and can be extended and integrated further. It was created and developed with the developer in mind, and we have already seen some truly remarkable addons already developed.
 
-**WordPress Zero Spam is free &mdash; completely free & always will be.** No premium versions or addons you've gotta buy to access additional features. Help support it's development by [donating](https://benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) today.
+To help you get started and learn just how to integrate with WordPress Zero Spam, visit the [plugin's documentation](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
+
+= Translations =
+
+* [French](https://translate.wordpress.org/locale/fr/default/wp-plugins/zero-spam/) – (fr_FR)
+* [Italian](https://translate.wordpress.org/locale/it/default/wp-plugins/zero-spam/) – (it_IT)
+
+= Be a contributor =
+
+If you want to contribute, go to the [WordPress Zero Spam GitHub Repository](https://github.com/bmarshall511/wordpress-zero-spam) and see where you can help. You can also add a new language via [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/zero-spam/).
+
+= Documentation and Support =
+
+* For documentation and tutorials, view the [documentation](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
+* If you have any more questions, visit our support on the [Plugin’s Forum](https://wordpress.org/support/plugin/zero-spam/).
+* For more information, FAQs and API documentation, check out [Zero Spam](https://zerospam.org/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
+
+= WordPress Zero Spam needs your support =
+
+**WordPress Zero Spam is free — completely free & always will be.** It is hard to continue development and support for this free plugin without contributions from users like you. If you enjoy using WordPress Zero Spam and find it useful, please consider making a [donation](https://benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam). Your donation will help encourage and support the plugin’s continued development and better user support.
+
+You can also show your support by:
+
+* liking our [Facebook Page](https://www.facebook.com/zerospamorg/);
+* following us on [Twitter](https://www.facebook.com/zerospamorg);
+* or rating us on [WordPress](https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5/#new-post) 🙂.
 
 == Installation ==
 
@@ -126,6 +149,13 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.9.12 =
+
+* Enhancement - Added support for the French & Italian languages. See [#207](https://github.com/bmarshall511/wordpress-zero-spam/issues/207).
+* Enhancement - Strengthened spam detection for registrations using a 'honeypot' field.
+* Enhancement - Strengthened spam detection for Contact Form 7 using a 'honeypot' field.
+* Fix - Fix for Contact Form 7 protection not firing.
 
 = 4.9.11 =
 

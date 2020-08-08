@@ -16,40 +16,40 @@
 if ( ! function_exists( 'wpzerospam_comments_admin_fields' ) ) {
   function wpzerospam_comments_admin_fields() {
     // Option to strips links in comments
-    add_settings_field( 'strip_comment_links', __( 'Strip Comment Links', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_onsite', [
+    add_settings_field( 'strip_comment_links', __( 'Strip Comment Links', 'zero-spam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_onsite', [
       'label_for' => 'strip_comment_links',
       'type'      => 'checkbox',
       'multi'     => false,
-      'desc'      => 'Spambots commonly post spam links in comments. Enable this option to strip links from comments.',
+      'desc'      => __( 'Spambots commonly post spam links in comments. Enable this option to strip links from comments.', 'zero-spam' ),
       'options'   => [
-        'enabled' => __( 'Enabled', 'wpzerospam' )
+        'enabled' => __( 'Enabled', 'zero-spam' )
       ]
     ]);
 
     // Option to remove author links
-    add_settings_field( 'strip_comment_author_links', __( 'Strip Comment Author Links', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_onsite', [
+    add_settings_field( 'strip_comment_author_links', __( 'Strip Comment Author Links', 'zero-spam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_onsite', [
       'label_for' => 'strip_comment_author_links',
       'type'      => 'checkbox',
       'multi'     => false,
-      'desc'      => 'Spammers are well-known at injecting malicious links in the comment author website field, this option disables it.',
+      'desc'      => __( 'Spammers are well-known at injecting malicious links in the comment author website field, this option disables it.', 'zero-spam' ),
       'options'   => [
-        'enabled' => __( 'Enabled', 'wpzerospam' )
+        'enabled' => __( 'Enabled', 'zero-spam' )
       ]
     ]);
 
     // Add option to enable/disable comment form submission protection.
-    add_settings_field( 'verify_comments', __( 'Detect Comment Spam', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+    add_settings_field( 'verify_comments', __( 'Detect Spam/Malicious Comments', 'zero-spam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
       'label_for' => 'verify_comments',
       'type'      => 'checkbox',
       'multi'     => false,
-      'desc'      => 'Enables comment form submission protection.',
+      'desc'      => __( 'Monitors comments for malicious links and automated spambot submissions.', 'zero-spam' ),
       'options'   => [
-        'enabled' => __( 'Enabled', 'wpzerospam' )
+        'enabled' => __( 'Enabled', 'zero-spam' )
       ]
     ]);
   }
 }
-add_action( 'wpzerospam_admin_fields', 'wpzerospam_comments_admin_fields' );
+add_action( 'wpzerospam_admin_options', 'wpzerospam_comments_admin_fields' );
 
 /**
  * Add validation to the comment form submission protection admin fields.
@@ -69,8 +69,8 @@ if ( ! function_exists( 'wpzerospam_comments_admin_validation' ) ) {
 }
 add_filter( 'wpzerospam_admin_validation', 'wpzerospam_comments_admin_validation' );
 
-if ( ! function_exists( 'wpzerospam_comment_admin_fields_default' ) ) {
-  function wpzerospam_comment_admin_fields_default( $defaults ) {
+if ( ! function_exists( 'wpzerospam_comments_admin_fields_default' ) ) {
+  function wpzerospam_comments_admin_fields_default( $defaults ) {
     if ( empty( $defaults['verify_comments'] ) ) { $defaults['verify_comments'] = 'enabled'; }
     if ( empty( $defaults['strip_comment_links'] ) ) { $defaults['strip_comment_links'] = 'disabled'; }
     if ( empty( $defaults['strip_comment_author_links'] ) ) { $defaults['strip_comment_author_links'] = 'disabled'; }
@@ -78,10 +78,10 @@ if ( ! function_exists( 'wpzerospam_comment_admin_fields_default' ) ) {
     return $defaults;
   }
 }
-add_filter( 'wpzerospam_admin_fields_default', 'wpzerospam_comment_admin_fields_default' );
+add_filter( 'wpzerospam_admin_option_defaults', 'wpzerospam_comments_admin_fields_default' );
 
-if ( ! function_exists( 'wpzerospam_comment_admin_submission_data_item' ) ) {
-  function wpzerospam_comment_admin_submission_data_item( $key, $value ) {
+if ( ! function_exists( 'wpzerospam_comments_admin_submission_data_item' ) ) {
+  function wpzerospam_comments_admin_submission_data_item( $key, $value ) {
     switch( $key ) {
       case 'comment_post_ID':
         $post = get_post( $value );
@@ -90,25 +90,25 @@ if ( ! function_exists( 'wpzerospam_comment_admin_submission_data_item' ) ) {
         } else {
           $item_value = 'N/A';
         }
-        echo wpzerospam_admin_details_item( __( 'Comment Post', 'wpzerospam' ), $item_value );
+        echo wpzerospam_admin_details_item( __( 'Comment Post', 'zero-spam' ), $item_value );
       break;
       case 'comment_author':
-        echo wpzerospam_admin_details_item( __( 'Author', 'wpzerospam' ), $value );
+        echo wpzerospam_admin_details_item( __( 'Author', 'zero-spam' ), $value );
       break;
       case 'comment_author_email':
-        echo wpzerospam_admin_details_item( __( 'Email', 'wpzerospam' ), $value );
+        echo wpzerospam_admin_details_item( __( 'Email', 'zero-spam' ), $value );
       break;
       case 'comment_author_url':
-        echo wpzerospam_admin_details_item( __( 'Website', 'wpzerospam' ), $value );
+        echo wpzerospam_admin_details_item( __( 'Website', 'zero-spam' ), $value );
       break;
       case 'comment_content':
-        echo wpzerospam_admin_details_item( __( 'Comment', 'wpzerospam' ), sanitize_text_field( $value ) );
+        echo wpzerospam_admin_details_item( __( 'Comment', 'zero-spam' ), sanitize_text_field( $value ) );
       break;
       case 'comment_type':
-        echo wpzerospam_admin_details_item( __( 'Comment Type', 'wpzerospam' ), $value );
+        echo wpzerospam_admin_details_item( __( 'Comment Type', 'zero-spam' ), $value );
       break;
       case 'comment_parent':
-        echo wpzerospam_admin_details_item( __( 'Comment Parent ID', 'wpzerospam' ), '<a href="' . get_comment_link( $value  ) . '">' . $value . '</a>' );
+        echo wpzerospam_admin_details_item( __( 'Comment Parent ID', 'zero-spam' ), '<a href="' . get_comment_link( $value  ) . '">' . $value . '</a>' );
       break;
       case 'comment_as_submitted':
         foreach( $value as $k => $v ):
@@ -116,39 +116,39 @@ if ( ! function_exists( 'wpzerospam_comment_admin_submission_data_item' ) ) {
           switch( $k ):
             case 'comment_author':
               if ( empty( $author_shown ) ) {
-                echo wpzerospam_admin_details_item( __( 'Author', 'wpzerospam' ), $v );
+                echo wpzerospam_admin_details_item( __( 'Author', 'zero-spam' ), $v );
               }
             break;
             case 'comment_author_email':
               if ( empty( $author_email ) ) {
-                echo wpzerospam_admin_details_item( __( 'Email', 'wpzerospam' ), $v );
+                echo wpzerospam_admin_details_item( __( 'Email', 'zero-spam' ), $v );
               }
             break;
             case 'comment_author_url':
               if ( empty( $author_url ) ) {
-                echo wpzerospam_admin_details_item( __( 'Website', 'wpzerospam' ), $v );
+                echo wpzerospam_admin_details_item( __( 'Website', 'zero-spam' ), $v );
               }
             break;
             case 'comment_content':
-              echo wpzerospam_admin_details_item( __( 'Comment', 'wpzerospam' ), sanitize_text_field( $v ) );
+              echo wpzerospam_admin_details_item( __( 'Comment', 'zero-spam' ), sanitize_text_field( $v ) );
             break;
             case 'user_ip':
-              echo wpzerospam_admin_details_item( __( 'User IP', 'wpzerospam' ), '<a href="https://zerospam.org/ip-lookup/' . urlencode( $v ) .'" target="_blank" rel="noopener noreferrer">' . $v . '</a>' );
+              echo wpzerospam_admin_details_item( __( 'User IP', 'zero-spam' ), '<a href="https://zerospam.org/ip-lookup/' . urlencode( $v ) .'" target="_blank" rel="noopener noreferrer">' . $v . '</a>' );
             break;
             case 'user_agent':
-              echo wpzerospam_admin_details_item( __( 'User Agent', 'wpzerospam' ), $v );
+              echo wpzerospam_admin_details_item( __( 'User Agent', 'zero-spam' ), $v );
             break;
             case 'blog':
-              echo wpzerospam_admin_details_item( __( 'Site', 'wpzerospam' ), $v );
+              echo wpzerospam_admin_details_item( __( 'Site', 'zero-spam' ), $v );
             break;
             case 'blog_lang':
-              echo wpzerospam_admin_details_item( __( 'Site Language', 'wpzerospam' ), $v );
+              echo wpzerospam_admin_details_item( __( 'Site Language', 'zero-spam' ), $v );
             break;
             case 'blog_charset':
-              echo wpzerospam_admin_details_item( __( 'Site Charset', 'wpzerospam' ), $v );
+              echo wpzerospam_admin_details_item( __( 'Site Charset', 'zero-spam' ), $v );
             break;
             case 'permalink':
-              echo wpzerospam_admin_details_item( __( 'Permalink', 'wpzerospam' ), '<a href="' . $v . '" target="_blank">' . $v . '</a>' );
+              echo wpzerospam_admin_details_item( __( 'Permalink', 'zero-spam' ), '<a href="' . $v . '" target="_blank">' . $v . '</a>' );
             break;
             default:
               echo wpzerospam_admin_details_item( $k, $v );
@@ -156,15 +156,33 @@ if ( ! function_exists( 'wpzerospam_comment_admin_submission_data_item' ) ) {
         endforeach;
       break;
       case 'akismet_result':
-        echo wpzerospam_admin_details_item( __( 'Akismet Result', 'wpzerospam' ), $value );
+        echo wpzerospam_admin_details_item( __( 'Akismet Result', 'zero-spam' ), $value );
       break;
       case 'akismet_pro_tip':
-        echo wpzerospam_admin_details_item( __( 'Akismet Pro Tip', 'wpzerospam' ), $value );
+        echo wpzerospam_admin_details_item( __( 'Akismet Pro Tip', 'zero-spam' ), $value );
       break;
     }
   }
 }
-add_action( 'wpzerospam_admin_submission_data_items', 'wpzerospam_comment_admin_submission_data_item', 10, 2 );
+add_action( 'wpzerospam_admin_submission_data_items', 'wpzerospam_comments_admin_submission_data_item', 10, 2 );
+
+if ( ! function_exists( 'wpzerospam_comments_defined_submission_data' ) ) {
+  function wpzerospam_comments_defined_submission_data( $submission_data_keys ) {
+    $submission_data_keys[] = 'comment_post_ID';
+    $submission_data_keys[] = 'comment_author';
+    $submission_data_keys[] = 'comment_author_email';
+    $submission_data_keys[] = 'comment_author_url';
+    $submission_data_keys[] = 'comment_content';
+    $submission_data_keys[] = 'comment_type';
+    $submission_data_keys[] = 'comment_parent';
+    $submission_data_keys[] = 'comment_as_submitted';
+    $submission_data_keys[] = 'akismet_result';
+    $submission_data_keys[] = 'akismet_pro_tip';
+
+    return $submission_data_keys;
+  }
+}
+add_filter( 'wpzerospam_defined_submission_data', 'wpzerospam_comments_defined_submission_data', 10, 1 );
 
 /**
  * Runs the comment form spam detections.
@@ -179,6 +197,9 @@ add_action( 'wpzerospam_admin_submission_data_items', 'wpzerospam_comment_admin_
 if ( ! function_exists( 'wpzerospam_comments_after_setup_theme' ) ) {
   function wpzerospam_comments_after_setup_theme() {
     $options = wpzerospam_options();
+
+    // Add the 'comment' spam type.
+    add_filter( 'wpzerospam_types', 'wpzerospam_comments_types' );
 
     // Determines is author links should be stripped.
     if ( 'enabled' == $options['strip_comment_author_links'] ) {
@@ -198,9 +219,6 @@ if ( ! function_exists( 'wpzerospam_comments_after_setup_theme' ) ) {
 
     // Check if detecting comments is enabled & user is unauthenticated.
     if ( 'enabled' != $options['verify_comments'] || is_user_logged_in() ) { return false; }
-
-    // Add the 'comment' spam type.
-    add_filter( 'wpzerospam_types', 'wpzerospam_comments_types' );
 
     // Add the 'honeypot' field to the comment form.
     add_filter( 'comment_form_defaults', 'wpzerospam_comments_form_defaults' );
@@ -283,7 +301,7 @@ if ( ! function_exists( 'wpzerospam_remove_author_url_field' ) ) {
  */
 if ( ! function_exists( 'wpzerospam_comments_types' ) ) {
   function wpzerospam_comments_types( $types ) {
-    $types = array_merge( $types, [ 'comment' => __( 'Comment', 'wpzerospam' ) ] );
+    $types = array_merge( $types, [ 'comment' => __( 'Comment', 'zero-spam' ) ] );
 
     return $types;
   }

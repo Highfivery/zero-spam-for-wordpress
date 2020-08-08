@@ -10,7 +10,7 @@
  * Add the 'wpform' spam type
  */
 add_filter( 'wpzerospam_types', function( $types ) {
-  $types = array_merge( $types, [ 'wpform' => 'WPForms' ] );
+  $types = array_merge( $types, [ 'wpform' => __( 'WPForms', 'zero-spam' ) ] );
   return $types;
 });
 
@@ -37,7 +37,7 @@ if ( ! function_exists( 'wpzerospam_wpforms_process_before' ) ) {
 add_action( 'wpforms_process_before', 'wpzerospam_wpforms_process_before', 10, 2 );
 
 /**
- * Enqueue the CF7 form JS
+ * Enqueue the WPForms form JS
  */
 if ( ! function_exists( 'wpzerospam_wpforms' ) ) {
   function wpzerospam_wpforms() {

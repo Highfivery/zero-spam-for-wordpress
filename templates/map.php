@@ -8,7 +8,7 @@
 $options = wpzerospam_options();
 ?>
 <div class="wpzerospam-box wpzerospam-box-map">
-  <h3><?php _e( 'Spam Detections World Map', 'wpzerospam' ); ?></h3>
+  <h3><?php _e( 'Spam Detections World Map', 'zero-spam' ); ?></h3>
   <div class="inside">
     <?php if ( $options['ipstack_api'] ): ?>
       <?php
@@ -94,13 +94,21 @@ $options = wpzerospam_options();
             label.html( names[index] );
           },
           onRegionTipShow: function(e, el, code){
-            el.html( el.html() + ' (<?php _e( 'Spam Detections', 'wpzerospam' ); ?>: ' + regionsData[code] + ')' );
+            el.html( el.html() + ' (<?php _e( 'Spam Detections', 'zero-spam' ); ?>: ' + regionsData[code] + ')' );
           }
         });
       });
       </script>
     <?php else: ?>
-      <p><?php _e( '<strong>Enter your <a href="' . admin_url( 'admin.php?page=wordpress-zero-spam-settings' ) . '">ipstack API Key</a></strong> to enable the world mp view of spam detections.', 'wpzerospam' ); ?></p>
+      <p><?php
+      echo sprintf(
+        wp_kses(
+          __( '<strong>Enter your <a href="%s" target="_blank" rel="noopener noreferrer">ipstack API Key</a></strong> to enable the world mp view of spam detections.', 'zero-spam' ),
+          [ 'strong' => [], 'a' => [ 'target' => [], 'href' => [], 'rel' => [] ] ]
+        ),
+        admin_url( 'admin.php?page=wordpress-zero-spam-settings' ),
+      );
+      ?></p>
     <?php endif; ?>
   </div>
 </div>

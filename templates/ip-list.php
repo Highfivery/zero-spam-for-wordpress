@@ -9,7 +9,7 @@
 $chart_limit = 20;
 ?>
 <div class="wpzerospam-box wpzerospam-box-ip-list">
-  <h3><?php _e( 'Most Spam by IP Address', 'wpzerospam' ); ?></h3>
+  <h3><?php _e( 'Most Spam by IP Address', 'zero-spam' ); ?></h3>
   <div class="inside">
     <?php
     if ( $log ):
@@ -57,10 +57,10 @@ $chart_limit = 20;
             </span>
             <span class="wpzerospam-list-cell wpzerospam-list-cell-action">
               <?php if ( wpzerospam_is_blocked( $ip ) ): ?>
-                <span class="wpzerospam-blocked"><?php _e( 'Blocked', 'wpzerospam' ); ?></span>
+                <span class="wpzerospam-blocked"><?php _e( 'Blocked', 'zero-spam' ); ?></span>
               <?php else: ?>
                 <a href="<?php echo admin_url( 'admin.php?page=wordpress-zero-spam-blocked-ips&ip=' . $ip ); ?>">
-                  <?php _e( 'Block IP', 'wpzerospam' ); ?>
+                  <?php _e( 'Block IP', 'zero-spam' ); ?>
                 </a>
               <?php endif; ?>
             </span>
@@ -68,7 +68,7 @@ $chart_limit = 20;
         <?php endforeach; ?>
       </ol>
     <?php else: ?>
-      <?php _e( 'No data to report yet.', 'wpzerospam' ); ?>
+      <?php _e( 'No data to report yet.', 'zero-spam' ); ?>
     <?php endif; ?>
   </div>
 </div>

@@ -10,7 +10,7 @@
  * Add the 'fluentform' spam type
  */
 add_filter( 'wpzerospam_types', function( $types ) {
-  $types = array_merge( $types, [ 'fluentform' => 'Fluent Forms' ] );
+  $types = array_merge( $types, [ 'fluentform' => __( 'Fluent Forms', 'zero-spam' ) ] );
   return $types;
 });
 

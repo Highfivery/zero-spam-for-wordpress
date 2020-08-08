@@ -17,8 +17,8 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
     global $status, $page;
 
     $args = [
-      'singular'  => __( 'Spam Detection', 'wpzerospam' ),
-      'plural'    => __( 'Spam Detections', 'wpzerospam' ),
+      'singular'  => __( 'Spam Detection', 'zero-spam' ),
+      'plural'    => __( 'Spam Detections', 'zero-spam' ),
       'ajax'      => true
     ];
     parent::__construct( $args );
@@ -29,14 +29,14 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
     // Render a checkbox instead of text
     $columns = [
       'cb'            => '<input type="checkbox" />',
-      'date_recorded' => __( 'Date', 'wpzerospam' ),
-      'log_type'      => __( 'Type', 'wpzerospam' ),
-      'user_ip'       => __( 'IP Address', 'wpzerospam' ),
-      'country'       => __( 'Country', 'wpzerospam' ),
-      'region'        => __( 'Region', 'wpzerospam' ),
-      'city'          => __( 'City', 'wpzerospam' ),
-      'details'       => __( 'Details', 'wpzerospam' ),
-      'actions'       => __( 'Block IP', 'wpzerospam' ),
+      'date_recorded' => __( 'Date', 'zero-spam' ),
+      'log_type'      => __( 'Type', 'zero-spam' ),
+      'user_ip'       => __( 'IP Address', 'zero-spam' ),
+      'country'       => __( 'Country', 'zero-spam' ),
+      'region'        => __( 'Region', 'zero-spam' ),
+      'city'          => __( 'City', 'zero-spam' ),
+      'details'       => __( 'Details', 'zero-spam' ),
+      'actions'       => __( 'Block IP', 'zero-spam' ),
     ];
 
     return $columns;
@@ -65,18 +65,18 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
     ?>
     <div class="alignleft actions">
       <?php
-      echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type' ) . '</label>';
+      echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type', 'zero-spam' ) . '</label>';
       $options      = wpzerospam_types();
       $current_type = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
       ?>
       <select name="type" id="filter-by-type">
-        <option value=""><?php _e( 'All types', 'wpzerospam' ); ?></option>
+        <option value=""><?php _e( 'All types', 'zero-spam' ); ?></option>
         <?php foreach( $options as $key => $value ): ?>
           <option<?php if ( $current_type == $key ): ?> selected="selected" <?php endif; ?> value="<?php echo $key; ?>"><?php echo $value; ?></option>
         <?php endforeach; ?>
       </select>
       <?php
-      submit_button( __( 'Filter' ), '', 'filter_action', false );
+      submit_button( __( 'Filter', 'zero-spam' ), '', 'filter_action', false );
       ?>
     </div>
     <?php
@@ -96,9 +96,9 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
     switch( $column_name ) {
       case 'actions':
         if ( wpzerospam_is_blocked( $item->user_ip ) ) {
-          return '<span class="wpzerospam-blocked">' . __( 'Blocked', 'wpzerospam' ) . '</span>';
+          return '<span class="wpzerospam-blocked">' . __( 'Blocked', 'zero-spam' ) . '</span>';
         } else {
-          return '<a class="button" href="' . admin_url( 'admin.php?page=wordpress-zero-spam-blocked-ips&ip=' . $item->user_ip ) . '">' . __( 'Block IP', 'wpzerospam' ) . '</a>';
+          return '<a class="button" href="' . admin_url( 'admin.php?page=wordpress-zero-spam-blocked-ips&ip=' . $item->user_ip ) . '">' . __( 'Block IP', 'zero-spam' ) . '</a>';
         }
       break;
       case 'log_id':
@@ -137,83 +137,66 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
         return $item->city;
       break;
       case 'details':
-        if ( empty( $item->submission_data ) ) { return __( 'No details available.', 'wpzerospam' ); }
+        if ( empty( $item->submission_data ) ) { return __( 'No details available.', 'zero-spam' ); }
         ob_start();
         ?>
-        <button class="button action wpzerospam-details-trigger" data-id="<?php echo $item->log_id; ?>"><?php _e( 'View', 'wpzerospam' ); ?></button>
+        <button class="button action wpzerospam-details-trigger" data-id="<?php echo $item->log_id; ?>"><?php _e( 'View', 'zero-spam' ); ?></button>
         <div class="wpzerospam-details-modal" id="wpzerospam-details-modal-<?php echo $item->log_id; ?>">
           <div class="wpzerospam-details-modal-inner">
             <?php
             echo '<div class="wpzerospam-details-item">';
-            echo '<div class="wpzerospam-details-label">' . __( 'Detected Spam IP', 'wpzerospam' ) . '</div>';
+            echo '<div class="wpzerospam-details-label">' . __( 'Detected Spam IP', 'zero-spam' ) . '</div>';
             echo '<div class="wpzerospam-details-data">' . '<a href="https://whatismyipaddress.com/ip/' . $item->user_ip .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a></div>';
             echo '</div>';
 
             echo '<div class="wpzerospam-details-item">';
-            echo '<div class="wpzerospam-details-label">' . __( 'Page URL', 'wpzerospam' ) . '</div>';
+            echo '<div class="wpzerospam-details-label">' . __( 'Page URL', 'zero-spam' ) . '</div>';
             echo '<div class="wpzerospam-details-data"><a href="' . esc_url( $item->page_url ) . '" target="_blank" rel="noreferrer noopener">' . $item->page_url . '</a></div>';
             echo '</div>';
 
             echo '<div class="wpzerospam-details-item">';
-            echo '<div class="wpzerospam-details-label">' . __( 'Date', 'wpzerospam' ) . '</div>';
+            echo '<div class="wpzerospam-details-label">' . __( 'Date', 'zero-spam' ) . '</div>';
             echo '<div class="wpzerospam-details-data">' . date( 'M j, Y g:ia' , strtotime( $item->date_recorded ) ) . '</div>';
             echo '</div>';
 
             echo '<div class="wpzerospam-details-item">';
-            echo '<div class="wpzerospam-details-label">' . __( 'Type', 'wpzerospam' ) . '</div>';
+            echo '<div class="wpzerospam-details-label">' . __( 'Type', 'zero-spam' ) . '</div>';
             echo '<div class="wpzerospam-details-data">' . wpzerospam_types( $item->log_type ) . '</div>';
             echo '</div>';
 
             if ( $item->country ) {
               echo '<div class="wpzerospam-details-item">';
-              echo '<div class="wpzerospam-details-label">' . __( 'Country', 'wpzerospam' ) . '</div>';
+              echo '<div class="wpzerospam-details-label">' . __( 'Country', 'zero-spam' ) . '</div>';
               echo '<div class="wpzerospam-details-data">' . wpzerospam_get_location( $item->country ) . '</div>';
               echo '</div>';
             }
 
             if ( $item->region ) {
               echo '<div class="wpzerospam-details-item">';
-              echo '<div class="wpzerospam-details-label">' . __( 'Region', 'wpzerospam' ) . '</div>';
+              echo '<div class="wpzerospam-details-label">' . __( 'Region', 'zero-spam' ) . '</div>';
               echo '<div class="wpzerospam-details-data">' . wpzerospam_get_location( $item->country, $item->region ) . '</div>';
               echo '</div>';
             }
 
             if ( $item->city ) {
               echo '<div class="wpzerospam-details-item">';
-              echo '<div class="wpzerospam-details-label">' . __( 'City', 'wpzerospam' ) . '</div>';
+              echo '<div class="wpzerospam-details-label">' . __( 'City', 'zero-spam' ) . '</div>';
               echo '<div class="wpzerospam-details-data">' . $item->city . '</div>';
               echo '</div>';
             }
 
             if ( ! empty( $item->submission_data ) ) {
               $submission_data = json_decode( $item->submission_data, true );
+
               foreach( $submission_data as $key => $value ):
                 if ( ! $value ) { continue; }
 
                 do_action( 'wpzerospam_admin_submission_data_items', $key, $value );
 
                 switch( $key ):
-                  case 'sanitized_user_login':
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Sanitized User Login', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
-                    echo '</div>';
-                  break;
-                  case 'user_email':
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'User Email', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . $value . '</div>';
-                    echo '</div>';
-                  break;
-                  case 'errors':
-                    echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Errors', 'wpzerospam' ) . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . json_encode( $value ) . '</div>';
-                    echo '</div>';
-                  break;
                   case 'reason':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Reason', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Reason', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;
@@ -221,31 +204,31 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
                   // Formidable fields
                   case 'frm_action':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Form Action', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Form Action', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;
                   case 'form_id':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Form ID', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Form ID', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;
                   case 'form_key':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Form Key', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Form Key', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;
                   case 'item_key':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Item Key', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Item Key', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;
                   case 'item_meta':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Form Values', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Form Values', 'zero-spam' ) . '</div>';
                     if ( is_array( $value ) ) {
                       echo '<div class="wpzerospam-details-data">' . implode( ", ", array_filter( $value ) ) . '</div>';
                     } else {
@@ -255,7 +238,7 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
                   break;
                   case '_wp_http_referer':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Source', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Source', 'zero-spam' ) . '</div>';
                     if ( $value ) {
                       $source_url = esc_url( site_url( $value ) );
                       echo '<div class="wpzerospam-details-data"><a href="' . $source_url . '" target="_blank" rel="noopener noreferrer">' . $source_url . '</a></div>';
@@ -266,10 +249,13 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
                   break;
 
                   default:
-                    echo '<div class="wpzerospam-details-item wpzerospam-details-item-unknown">';
-                    echo '<div class="wpzerospam-details-label">' . $key . '</div>';
-                    echo '<div class="wpzerospam-details-data">' . json_encode( $value ) . '</div>';
-                    echo '</div>';
+                    $defined_submission_data = apply_filters( 'wpzerospam_defined_submission_data', [] );
+                    if ( ! in_array( $key, $defined_submission_data ) ) {
+                      echo '<div class="wpzerospam-details-item wpzerospam-details-item-unknown">';
+                      echo '<div class="wpzerospam-details-label">' . $key . '</div>';
+                      echo '<div class="wpzerospam-details-data">' . json_encode( $value ) . '</div>';
+                      echo '</div>';
+                    }
                 endswitch;
               endforeach;
             };
@@ -285,8 +271,8 @@ class WPZeroSpam_Log_Table extends WP_List_Table {
   // Register bulk actions
   function get_bulk_actions() {
     $actions = [
-      'delete'     => __( 'Delete Selected', 'wpzerospam' ) ,
-      'delete_all' => __( 'Delete All Entries', 'wpzerospam' )
+      'delete'     => __( 'Delete Selected', 'zero-spam' ) ,
+      'delete_all' => __( 'Delete All Entries', 'zero-spam' )
     ];
 
     return $actions;

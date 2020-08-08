@@ -111,10 +111,9 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['spam_handler'] ) ) { $options['spam_handler'] = '403'; }
     if ( empty( $options['block_handler'] ) ) { $options['block_handler'] = '403'; }
     if ( empty( $options['spam_redirect_url'] ) ) { $options['spam_redirect_url'] = 'https://www.google.com'; }
-    if ( empty( $options['spam_message'] ) ) { $options['spam_message'] = __( 'There was a problem with your submission. Please go back and try again.', 'wpzerospam' ); }
-    if ( empty( $options['blocked_message'] ) ) { $options['blocked_message'] = __( 'You have been blocked from visiting this site by WordPress Zero Spam due to detected spam activity.', 'wpzerospam' ); }
+    if ( empty( $options['spam_message'] ) ) { $options['spam_message'] = __( 'There was a problem with your submission. Please go back and try again.', 'zero-spam' ); }
+    if ( empty( $options['blocked_message'] ) ) { $options['blocked_message'] = __( 'You have been blocked from visiting this site by WordPress Zero Spam due to detected spam activity.', 'zero-spam' ); }
     if ( empty( $options['log_spam'] ) ) { $options['log_spam'] = 'disabled'; }
-    if ( empty( $options['verify_registrations'] ) ) { $options['verify_registrations'] = 'enabled'; }
     if ( empty( $options['log_blocked_ips'] ) ) { $options['log_blocked_ips'] = 'disabled'; }
     if ( empty( $options['auto_block_permanently'] ) ) { $options['auto_block_permanently'] = 3; }
     if ( empty( $options['botscout_api'] ) ) { $options['botscout_api'] = false; }
@@ -123,10 +122,6 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['stopforumspam_confidence_min'] ) ) { $options['stopforumspam_confidence_min'] = 20; }
     if ( empty( $options['botscout_count_min'] ) ) { $options['botscout_count_min'] = 5; }
     if ( empty( $options['cookie_expiration'] ) ) { $options['cookie_expiration'] = 7; }
-
-    if ( empty( $options['verify_cf7'] )  ) {
-      $options['verify_cf7'] = 'enabled';
-    }
 
     if ( empty( $options['share_detections'] )  ) {
       $options['share_detections'] = 'enabled';
@@ -152,7 +147,7 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
       $options['stop_forum_spam'] = 'enabled';
     }
 
-    $options = apply_filters( 'wpzerospam_admin_fields_default', $options );
+    $options = apply_filters( 'wpzerospam_admin_options_defaults', $options );
 
     return $options;
   }

@@ -819,7 +819,6 @@ if ( ! function_exists( 'wpzerospam_plugin_integration_enabled' ) ) {
     $options = wpzerospam_options();
 
     $integrations = [
-      'cf7'        => 'contact-form-7/wp-contact-form-7.php',
       'fluentform' => 'fluentform/fluentform.php',
       'wpforms'    => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ],
       'formidable' => 'formidable/formidable.php',

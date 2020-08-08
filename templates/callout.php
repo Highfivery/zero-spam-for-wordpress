@@ -9,15 +9,43 @@
 
 <div class="wpzerospam-callout">
   <div class="wpzerospam-callout-content">
-    <h2><?php _e( 'Are you a fan of the <a href="https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=admin" target="_blank">WordPress Zero Spam</a> plugin? Show your support.', 'wpzerospam' ); ?></h2>
-    <p><?php _e( 'Help support the continued development of the WordPress Zero Spam plugin by <a href="https://benmarshall.me/donate?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=admin" target="_blank">donating today</a>. Your donation goes towards the time it takes to develop new features &amp; updates, but also helps provide pro bono work for nonprofits. <a href="https://benmarshall.me/donate?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=admin" target="_blank">Learn more</a>.', 'wpzerospam' ); ?></p>
-    <p><strong><?php _e( 'For the latest updates,', 'wpzerospam' ); ?></strong> <a href="https://twitter.com/ZeroSpamOrg" target="_blank" rel="noopener noreferrer"><?php _e( 'follow us on Twitter', 'wpzerospam' ); ?></a>, <a href="https://www.facebook.com/zerospamorg/" target="_blank" rel="noopener noreferrer"><?php _e( 'Facebook', 'wpzerospam' ); ?></a>, <?php _e( 'or', 'wpzerospam' ); ?> <a href="https://zerospam.org/" target="_blank" rel="noopener noreferrer"><?php _e( 'visit our website', 'wpzerospam' ); ?></a>.</p>
+    <h2><?php
+    echo sprintf(
+      wp_kses(
+        __( 'Help support the <a href="%s" target="_blank" rel="noopener noreferrer">WordPress Zero Spam</a> plugin.', 'zero-spam' ),
+        [ 'a' => [ 'target' => [], 'href' => [], 'rel' => [] ] ]
+      ),
+      esc_url( 'https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=donation' )
+    );
+    ?></h2>
+    <p><?php
+    echo sprintf(
+      wp_kses(
+        __( 'Support the continued development of the WPZS by <a href="%s" target="_blank" rel="noopener noreferrer">donating today</a>. Donation goes towards the time it takes to develop new features &amp; updates, but also helps provide pro bono work for nonprofits. <a href="%s" target="_blank" rel="noopener noreferrer">Learn more</a>.', 'zero-spam' ),
+        [ 'a' => [ 'target' => [], 'href' => [], 'rel' => [] ] ]
+      ),
+      esc_url( 'https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=donation' ),
+      esc_url( 'https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=donation' )
+    );
+    ?></p>
+    <p><?php
+    echo sprintf(
+      wp_kses(
+        __( '<strong>Integrate Zero Spam in any application</strong> with the <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam Blacklist API</a>.', 'zero-spam' ),
+        [ 'strong' => [], 'a' => [ 'target' => [], 'href' => [], 'rel' => [] ] ]
+      ),
+      esc_url( 'https://zerospam.org/spam-blacklist-api/' ),
+    );
+    ?></p>
   </div>
   <div class="wpzerospam-callout-actions">
-    <a href="https://github.com/bmarshall511/wordpress-zero-spam/issues" class="button" target="_blank"><?php _e( 'Submit Bug/Feature Request' ); ?></a>
-    <a href="https://github.com/bmarshall511/wordpress-zero-spam" class="button" target="_blank"><?php _e( 'Fork on Github' ); ?></a>
-    <a href="https://benmarshall.me/donate?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=admin" class="button button-primary" target="_blank"><?php _e( 'Show your Support &mdash; Donate' ); ?></a>
+    <a href="https://github.com/bmarshall511/wordpress-zero-spam/issues" class="button" target="_blank"><?php _e( 'Submit Bug/Feature Request', 'zero-spam' ); ?></a>
+    <a href="https://twitter.com/ZeroSpamOrg" class="button" target="_blank"><?php _e( 'Follow us on Twitter', 'zero-spam' ); ?></a>
+    <a href="https://www.facebook.com/zerospamorg/" class="button" target="_blank"><?php _e( 'Like us on Facebook', 'zero-spam' ); ?></a>
+    <a href="https://zerospam.org/" class="button" target="_blank"><?php _e( 'Learn more about Zero Spam', 'zero-spam' ); ?></a>
+    <a href="https://github.com/bmarshall511/wordpress-zero-spam" class="button" target="_blank"><?php _e( 'Fork on Github', 'zero-spam' ); ?></a>
+    <a href="https://benmarshall.me/donate?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=admin" class="button button-primary" target="_blank"><?php _e( 'Show your Support &mdash; Donate', 'zero-spam' ); ?></a>
   </div>
 </div>
 
-<p style="font-size: 1rem;"><strong><?php _e( 'Your IP Address:', 'wpzerospam' ); ?>:</strong> <code><?php echo wpzerospam_ip(); ?></code></p>
+<p><strong><?php _e( 'Your IP Address:', 'zero-spam' ); ?>:</strong> <code><?php echo wpzerospam_ip(); ?></code></p>

@@ -12,7 +12,7 @@
  * @since 4.9.0
  */
 add_filter( 'wpzerospam_types', function( $types ) {
-  $types = array_merge( $types, [ 'formidable' => 'Formidable Forms' ] );
+  $types = array_merge( $types, [ 'formidable' => __( 'Formidable Forms', 'zero-spam' ) ] );
   return $types;
 });
 

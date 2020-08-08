@@ -17,8 +17,8 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
     global $status, $page;
 
     $args = [
-      'singular'  => __( 'Blacklist', 'wpzerospam' ),
-      'plural'    => __( 'Blacklist IPs', 'wpzerospam' ),
+      'singular'  => __( 'Blacklist', 'zero-spam' ),
+      'plural'    => __( 'Blacklist IPs', 'zero-spam' ),
       'ajax'      => true
     ];
     parent::__construct( $args );
@@ -29,11 +29,11 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
     // Render a checkbox instead of text
     $columns = [
       'cb'           => '<input type="checkbox" />',
-      'last_updated' => __( 'Last Updated', 'wpzerospam' ),
-      'user_ip'      => __( 'IP Address', 'wpzerospam' ),
-      'service'      => __( 'Service', 'wpzerospam' ),
-      'attempts'     => __( 'Attempts', 'wpzerospam' ),
-      'details'      => __( 'Details', 'wpzerospam' )
+      'last_updated' => __( 'Last Updated', 'zero-spam' ),
+      'user_ip'      => __( 'IP Address', 'zero-spam' ),
+      'service'      => __( 'Service', 'zero-spam' ),
+      'attempts'     => __( 'Attempts', 'zero-spam' ),
+      'details'      => __( 'Details', 'zero-spam' )
     ];
 
     return $columns;
@@ -60,14 +60,14 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
     ?>
     <div class="alignleft actions">
       <?php
-      echo '<label class="screen-reader-text" for="filter-by-service">' . __( 'Filter by service' ) . '</label>';
+      echo '<label class="screen-reader-text" for="filter-by-service">' . __( 'Filter by service', 'zero-spam' ) . '</label>';
       $current_service = ! empty( $_REQUEST['service'] ) ? sanitize_text_field( $_REQUEST['service'] ) : false;
       ?>
       <select name="service" id="filter-by-service">
-        <option value=""><?php _e( 'All services', 'wpzerospam' ); ?></option>
-        <option<?php if ( $current_service == 'botscout' ): ?> selected="selected" <?php endif; ?> value="botscout"><?php _e( 'BotScout', 'wpzerospam' ); ?></option>
-        <option<?php if ( $current_service == 'stopforumspam' ): ?> selected="selected" <?php endif; ?> value="stopforumspam"><?php _e( 'Stop Forum Spam', 'wpzerospam' ); ?></option>
-          <option<?php if ( $current_service == 'zerospam' ): ?> selected="selected" <?php endif; ?> value="zerospam"><?php _e( 'Zero Spam', 'wpzerospam' ); ?></option>
+        <option value=""><?php _e( 'All services', 'zero-spam' ); ?></option>
+        <option<?php if ( $current_service == 'botscout' ): ?> selected="selected" <?php endif; ?> value="botscout"><?php _e( 'BotScout', 'zero-spam' ); ?></option>
+        <option<?php if ( $current_service == 'stopforumspam' ): ?> selected="selected" <?php endif; ?> value="stopforumspam"><?php _e( 'Stop Forum Spam', 'zero-spam' ); ?></option>
+          <option<?php if ( $current_service == 'zerospam' ): ?> selected="selected" <?php endif; ?> value="zerospam"><?php _e( 'Zero Spam', 'zero-spam' ); ?></option>
       </select>
       <?php
       submit_button( __( 'Filter' ), '', 'filter_action', false );
@@ -116,24 +116,24 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
         if ( empty( $item->blacklist_data ) ) { return __( 'No details available.', 'wpzerospam' ); }
         ob_start();
         ?>
-        <button class="button action wpzerospam-details-trigger" data-id="<?php echo $item->blacklist_id; ?>"><?php _e( 'View', 'wpzerospam' ); ?></button>
+        <button class="button action wpzerospam-details-trigger" data-id="<?php echo $item->blacklist_id; ?>"><?php _e( 'View', 'zero-spam' ); ?></button>
         <div class="wpzerospam-details-modal" id="wpzerospam-details-modal-<?php echo $item->blacklist_id; ?>">
           <div class="wpzerospam-details-modal-inner">
             <?php
             $item->blacklist_data = json_decode( $item->blacklist_data, true );
 
             echo '<div class="wpzerospam-details-item">';
-            echo '<div class="wpzerospam-details-label">' . __( 'Detected Spam IP', 'wpzerospam' ) . '</div>';
+            echo '<div class="wpzerospam-details-label">' . __( 'Detected Spam IP', 'zero-spam' ) . '</div>';
             echo '<div class="wpzerospam-details-data">' . '<a href="https://zerospam.org/ip-lookup/' . urlencode( $item->user_ip ) .'" target="_blank" rel="noopener noreferrer">' . $item->user_ip . '</a>' . '</div>';
             echo '</div>';
 
             echo '<div class="wpzerospam-details-item">';
-            echo '<div class="wpzerospam-details-label">' . __( 'Last Updated', 'wpzerospam' ) . '</div>';
+            echo '<div class="wpzerospam-details-label">' . __( 'Last Updated', 'zero-spam' ) . '</div>';
             echo '<div class="wpzerospam-details-data">' . date( 'M j, Y g:ia' , strtotime( $item->last_updated ) ) . '</div>';
             echo '</div>';
 
             echo '<div class="wpzerospam-details-item">';
-            echo '<div class="wpzerospam-details-label">' . __( 'Service', 'wpzerospam' ) . '</div>';
+            echo '<div class="wpzerospam-details-label">' . __( 'Service', 'zero-spam' ) . '</div>';
             echo '<div class="wpzerospam-details-data">';
             switch( $item->blacklist_service ) {
               case 'stopforumspam':
@@ -157,31 +157,31 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
                 switch( $key ):
                   case 'appears':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Appears', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Appears', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;
                   case 'confidence':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Confidence', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Confidence', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '%</div>';
                     echo '</div>';
                   break;
                   case 'frequency':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Frequency', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Frequency', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;
                   case 'lastseen':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'Last Seen', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'Last Seen', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;
                   case 'asn':
                     echo '<div class="wpzerospam-details-item">';
-                    echo '<div class="wpzerospam-details-label">' . __( 'ASN', 'wpzerospam' ) . '</div>';
+                    echo '<div class="wpzerospam-details-label">' . __( 'ASN', 'zero-spam' ) . '</div>';
                     echo '<div class="wpzerospam-details-data">' . $value . '</div>';
                     echo '</div>';
                   break;
@@ -205,8 +205,8 @@ class WPZeroSpam_Blacklisted_Table extends WP_List_Table {
   // Register bulk actions
   function get_bulk_actions() {
     $actions = [
-      'delete'     => __( 'Delete', 'wpzerospam' ),
-      'delete_all' => __( 'Delete All Entries', 'wpzerospam' )
+      'delete'     => __( 'Delete', 'zero-spam' ),
+      'delete_all' => __( 'Delete All Entries', 'zero-spam' )
     ];
 
     return $actions;

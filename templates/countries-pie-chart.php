@@ -9,7 +9,7 @@
 $chart_limit = 10;
 ?>
 <div class="wpzerospam-box wpzerospam-box-countries-pie">
-  <h3><?php _e( 'Most Spam by Country', 'wpzerospam' ); ?></h3>
+  <h3><?php _e( 'Most Spam by Country', 'zero-spam' ); ?></h3>
   <div class="inside">
     <?php
     if ( $log ):
@@ -64,7 +64,7 @@ $chart_limit = 10;
       });
       </script>
     <?php else: ?>
-      <?php _e( 'No data to report yet.', 'wpzerospam' ); ?>
+      <?php _e( 'No data to report yet.', 'zero-spam' ); ?>
     <?php endif; ?>
   </div>
 </div>

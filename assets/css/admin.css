@@ -20,15 +20,18 @@
 }
 
 .wpzerospam-callout-actions {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
   width: 100%;
 }
 
 .wpzerospam-callout-actions a.button {
   display: block;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  margin-left: 2px;
+  margin-right: 2px;
   text-align: center;
-  width: 100%;
+  width: calc(100% - 4px);
 }
 
 .wpzerospam-callout-actions a:last-child {
@@ -45,6 +48,10 @@
     flex-wrap: wrap;
     margin-left: 50px;
     width: auto;
+  }
+
+  .wpzerospam-callout-actions a.button {
+    width: calc(50% - 4px);
   }
 }
 

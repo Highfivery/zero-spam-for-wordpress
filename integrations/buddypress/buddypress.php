@@ -10,7 +10,7 @@
  * Add the 'bp_registration' spam type
  */
 add_filter( 'wpzerospam_types', function( $types ) {
-  $types = array_merge( $types, [ 'bp_registration' => 'BuddyPress Registration' ] );
+  $types = array_merge( $types, [ 'bp_registration' => __( 'BuddyPress Registration', 'zero-spam' ) ] );
   return $types;
 });
 
