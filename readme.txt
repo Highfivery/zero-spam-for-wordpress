@@ -5,7 +5,7 @@ Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_m
 Requires at least: 5.2
 Tested up to: 5.4.2
 Requires PHP: 7.1
-Stable tag: 4.9.11
+Stable tag: 4.9.12
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
