@@ -78,7 +78,7 @@ if ( ! function_exists( 'wpzerospam_comments_admin_fields_default' ) ) {
     return $defaults;
   }
 }
-add_filter( 'wpzerospam_admin_option_defaults', 'wpzerospam_comments_admin_fields_default' );
+add_filter( 'wpzerospam_admin_options_defaults', 'wpzerospam_comments_admin_fields_default' );
 
 if ( ! function_exists( 'wpzerospam_comments_admin_submission_data_item' ) ) {
   function wpzerospam_comments_admin_submission_data_item( $key, $value ) {

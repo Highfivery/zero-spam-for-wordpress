@@ -148,7 +148,6 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     }
 
     $options = apply_filters( 'wpzerospam_admin_options_defaults', $options );
-
     return $options;
   }
 }
