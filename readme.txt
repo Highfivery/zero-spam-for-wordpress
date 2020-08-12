@@ -3,9 +3,9 @@ Contributors: bmarshall511, jaredatch, EusebiuOprinoiu
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=wordpress_repo&utm_campaign=donate
 Requires at least: 5.2
-Tested up to: 5.4.2
+Tested up to: 5.5
 Requires PHP: 7.1
-Stable tag: 4.9.12
+Stable tag: 4.9.13
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
