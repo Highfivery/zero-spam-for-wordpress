@@ -150,6 +150,10 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 
 == Changelog ==
 
+= 4.9.13 =
+
+* Fix - PHP notices for comment options [#209](https://github.com/bmarshall511/wordpress-zero-spam/issues/209)
+
 = 4.9.12 =
 
 * Enhancement - Added support for the French & Italian languages. See [#207](https://github.com/bmarshall511/wordpress-zero-spam/issues/207).
