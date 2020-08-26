@@ -152,7 +152,7 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 * Enhancement - Various performance improvements & caching added.
 * Enhancement - Easier to use class methods for integrating Zero Spam into any plugin or theme.
 * Enhancement - New `WordPress_Zero_Spam` class added.
-* Enhancement - IPs are now checked agaisnt known, safe hosts and user agents (i.e. search engine crawlers).
+* Enhancement - IPs are now checked against known, safe hosts and user agents (i.e. search engine crawlers).
 * Enhancement - Added advanced debugging functionality.
 
 = 4.9.13 =
