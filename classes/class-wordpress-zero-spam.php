@@ -597,7 +597,7 @@ class WordPress_Zero_Spam {
 					'last_updated'      => current_time( 'mysql' ),
 					'blacklist_service' => $api_data['api'],
 					'blacklist_data'    => wp_json_encode( $api_data ),
-				),
+				)
 			);
 		}
 
