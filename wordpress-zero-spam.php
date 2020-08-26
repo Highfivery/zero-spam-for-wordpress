@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version:           4.9.13
+ * Version:           4.10.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Ben Marshall
@@ -24,15 +24,30 @@
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  */
 
-/**
- * Security Note: Blocks direct access to the plugin PHP files.
- */
-defined( 'ABSPATH' ) or die( 'No script kiddies please!' );
+// Security Note: Blocks direct access to the plugin PHP files.
+defined( 'ABSPATH' ) || die();
 
-// Define plugin constants
+// Define plugin constants.
 define( 'WORDPRESS_ZERO_SPAM', __FILE__ );
 define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.5' );
-define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.9.13' );
+define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.10.0' );
+
+/**
+ * Include the WordPress Zero Spam plugin class.
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wordpress-zero-spam.php';
+
+// Initialize the plugin.
+$wordpress_zero_spam = new WordPress_Zero_Spam();
+
+
+
+
+
+
+
+
+
 
 /**
  * Utility helper functions.
@@ -122,25 +137,3 @@ if ( wpzerospam_plugin_integration_enabled( 'fluentform' ) ) {
 if ( wpzerospam_plugin_integration_enabled( 'formidable' ) ) {
   require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/formidable/formidable.php';
 }
-
-/**
- * Plugin redirect functionality
- */
-if ( ! function_exists( 'wpzerospam_template_redirect' ) ) {
-  function wpzerospam_template_redirect() {
-    // No need to check everytime a user visits a page
-    if ( wpzerospam_get_cookie( 'last_check' ) ) { return false; }
-
-    $options = wpzerospam_options();
-
-    // Check if the current user has access to the site
-    $access = wpzerospam_check_access();
-
-    if ( ! $access['access'] ) {
-      wpzerospam_attempt_blocked( $access['ip'], $access['reason'] );
-    } else {
-      wpzerospam_set_cookie( 'last_check', current_time( 'timestamp' ) );
-    }
-  }
-}
-add_action( 'template_redirect', 'wpzerospam_template_redirect' );

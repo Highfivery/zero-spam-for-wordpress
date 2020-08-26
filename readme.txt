@@ -1,11 +1,11 @@
 === WordPress Zero Spam ===
 Contributors: bmarshall511, jaredatch, EusebiuOprinoiu
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
-Donate link: https://benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=wordpress_repo&utm_campaign=donate
+Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=wordpress_repo&utm_campaign=donate
 Requires at least: 5.2
 Tested up to: 5.5
 Requires PHP: 7.1
-Stable tag: 4.9.13
+Stable tag: 4.10.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -15,7 +15,7 @@ WordPress Zero Spam makes blocking spam & malicious visitors a cinch. Just insta
 
 Quit forcing users to answer silly questions, read confusing captchas, or take additional steps just to prove they're not spam. Stop malicious bots & hackers in their tracks before they ever have a chance to infiltrate your site &mdash; **introducing WordPress Zero Spam**.
 
-[WordPress Zero Spam](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and a database of known malicious IPs from around the world to detect and block unwanted visitors.
+[WordPress Zero Spam](https://www.benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and a database of known malicious IPs from around the world to detect and block unwanted visitors.
 
 In addition, it integrates with other popular plugins to provide all around protection. **Just install, activate, and enjoy a spam-free site!**
 
@@ -47,42 +47,39 @@ In addition, it integrates with other popular plugins to provide all around prot
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
 * and can be easily integrated into any existing theme or plugin
 
-WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://benmarshall.me/stop-wordpress-spam/) in its tracks.
+WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
 
 = Multilingual Supported =
 
-We’ve integrated multi language support within the framework of our plugin, so you get a translated dashboard out of the box, and developer options to add even more languages.
+We’ve integrated multi language support within the framework of our plugin, so you get a translated dashboard out of the box, and developer options to add even more languages. Contribute new languages via [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/zero-spam/).
+
+* [French](https://translate.wordpress.org/locale/fr/default/wp-plugins/zero-spam/) – (fr_FR)
+* [Italian](https://translate.wordpress.org/locale/it/default/wp-plugins/zero-spam/) – (it_IT)
 
 = Developer API =
 
 WordPress Zero Spam is free and open source. It’s the perfect solution to stopping spam and can be extended and integrated further. It was created and developed with the developer in mind, and we have already seen some truly remarkable addons already developed.
 
-To help you get started and learn just how to integrate with WordPress Zero Spam, visit the [plugin's documentation](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
+To help you get started and learn just how to integrate with WordPress Zero Spam, visit the [plugin's documentation](https://www.benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
 
-= Translations =
 
-* [French](https://translate.wordpress.org/locale/fr/default/wp-plugins/zero-spam/) – (fr_FR)
-* [Italian](https://translate.wordpress.org/locale/it/default/wp-plugins/zero-spam/) – (it_IT)
+= Help test & become a contributor =
 
-= Be a contributor =
+Help test future releases and contribute on the [WordPress Zero Spam GitHub Repository](https://github.com/bmarshall511/wordpress-zero-spam).
 
-If you want to contribute, go to the [WordPress Zero Spam GitHub Repository](https://github.com/bmarshall511/wordpress-zero-spam) and see where you can help. You can also add a new language via [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/zero-spam/).
+= Plugin Support =
 
-= Documentation and Support =
-
-* For documentation and tutorials, view the [documentation](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
-* If you have any more questions, visit our support on the [Plugin’s Forum](https://wordpress.org/support/plugin/zero-spam/).
-* For more information, FAQs and API documentation, check out [Zero Spam](https://zerospam.org/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
+* For usage &amp; tutorials, view the [documentation](https://www.benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
+* Have questions? Visit the [WordPress Zero Spam Forum](https://wordpress.org/support/plugin/zero-spam/).
+* More FAQs and API documentation can be found at [Zero Spam](https://zerospam.org/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
 
 = WordPress Zero Spam needs your support =
 
-**WordPress Zero Spam is free — completely free & always will be.** It is hard to continue development and support for this free plugin without contributions from users like you. If you enjoy using WordPress Zero Spam and find it useful, please consider making a [donation](https://benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam). Your donation will help encourage and support the plugin’s continued development and better user support.
+**WordPress Zero Spam is free — completely free & always will be.** It is hard to continue development and support for this free plugin without contributions from users like you. If you enjoy using WordPress Zero Spam and find it useful, please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam). Your donation will help encourage and support the plugin’s continued development and better user support.
 
-You can also show your support by:
-
-* liking our [Facebook Page](https://www.facebook.com/zerospamorg/);
-* following us on [Twitter](https://www.facebook.com/zerospamorg);
-* or rating us on [WordPress](https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5/#new-post) 🙂.
+* Like our [Facebook Page](https://www.facebook.com/zerospamorg/)
+* Follow us on [Twitter](https://www.facebook.com/zerospamorg)
+* Rate us on [WordPress](https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5/#new-post)
 
 == Installation ==
 
@@ -90,7 +87,7 @@ You can also show your support by:
 2. Activate the plugin through the Plugins screen (*Plugins > Installed Plugins*).
 3. Visit the plugin setting to configure as needed (*Settings > WP Zero Spam*).
 
-For more information & developer documentation, see the [plugin’s website](https://benmarshall.me/wordpress-zero-spam).
+For more information & developer documentation, see the [plugin’s website](https://www.benmarshall.me/wordpress-zero-spam).
 
 == Frequently Asked Questions ==
 
@@ -126,11 +123,11 @@ Example with `wpzerospam` class:
 
 `<form name="registerform" class="wpzerospam" action="https://yourdomain.local/login/?action=register" method="post" novalidate="novalidate">`
 
-If you need help, please don't hesitate to [reach out](https://benmarshall.me/contact/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
+If you need help, please don't hesitate to [reach out](https://www.benmarshall.me/contact/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
 
 = How do I integrate this into another plugin or theme? =
 
-It's easy as adding the class `wpzerospam` to the `form` element, then adding a check in the form processor that the `wpzerospam_key` post value matches the option value in the database using the `wpzerospam_key_check()` helper function. See the [plugin's documentation](https://benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) for more information on available hooks & functions.
+It's easy as adding the class `wpzerospam` to the `form` element, then adding a check in the form processor that the `wpzerospam_key` post value matches the option value in the database using the `wpzerospam_key_check()` helper function. See the [plugin's documentation](https://www.benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) for more information on available hooks & functions.
 
 = Is JavaScript required to check form submissions? =
 
@@ -149,6 +146,14 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.10.0 =
+
+* Enhancement - Various performance improvements & caching added.
+* Enhancement - Easier to use class methods for integrating Zero Spam into any plugin or theme.
+* Enhancement - New `WordPress_Zero_Spam` class added.
+* Enhancement - IPs are now checked agaisnt known, safe hosts and user agents (i.e. search engine crawlers).
+* Enhancement - Added advanced debugging functionality.
 
 = 4.9.13 =
 

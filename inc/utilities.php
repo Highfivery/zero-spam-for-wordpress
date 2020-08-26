@@ -153,70 +153,6 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
 }
 
 /**
- * Queries a blacklist API
- *
- * @param string $ip The IP address to query
- * @param string $service The API service to query
- * @return false/array False if not found, otherwise the IP info.
- */
-if ( ! function_exists( 'wpzerospam_query_blacklist_api' ) ) {
-  function wpzerospam_query_blacklist_api( $ip, $service ) {
-    $options = wpzerospam_options();
-
-    switch( $service ) {
-      case 'stopforumspam':
-        if ( 'enabled' != $options['stop_forum_spam'] ) { return false; }
-
-        $api_url  = 'https://api.stopforumspam.org/api?';
-        $params   = [ 'ip' => $ip, 'json' => '' ];
-        $endpoint = $api_url . http_build_query( $params );
-      break;
-      case 'botscout':
-        if ( empty( $options['botscout_api'] ) ) { return false; }
-
-        $api_url  = 'https://botscout.com/test/?';
-        $params   = [ 'ip' => $ip, 'key' => $options['botscout_api'] ];
-        $endpoint = $api_url . http_build_query( $params );
-      break;
-    }
-
-    if ( ! empty( $endpoint ) ) {
-      $response = wp_remote_get( $endpoint, [ 'timeout' => $options['api_timeout'] ] );
-      if ( is_array( $response ) && ! is_wp_error( $response ) ) {
-        $data = wp_remote_retrieve_body( $response );
-
-        switch( $service ) {
-          case 'stopforumspam':
-            $data = json_decode( $data, true );
-            if (
-              ! empty( $data['success'] ) &&
-              $data['success'] &&
-              ! empty( $data['ip'] ) &&
-              ! empty( $data['ip']['appears'] )
-            ) {
-              return $data['ip'];
-            }
-          break;
-          case 'botscout':
-            if ( strpos( $data, '!' ) === false ) {
-              list( $matched, $type, $count ) = explode( "|", $data );
-              if ( 'Y' == $matched ) {
-                return [
-                  'type'  => $type,
-                  'count' => $count
-                ];
-              }
-            }
-          break;
-        }
-      }
-    }
-
-    return false;
-  }
-}
-
-/**
  * Query the database tables
  *
  * @return false/array False if not found, otherwise the blocked IP info.
@@ -330,30 +266,6 @@ if ( ! function_exists( 'wpzerospam_types' ) ) {
 }
 
 /**
- * Whitelisted IPs
- *
- * @return array An array of whitelisted IP addresses.
- */
-if ( ! function_exists( 'wpzerospam_get_whitelist' ) ) {
-  function wpzerospam_get_whitelist() {
-    $options = wpzerospam_options();
-    if ( $options['ip_whitelist'] ) {
-      $whitelist = explode( PHP_EOL, $options['ip_whitelist'] );
-      if ( $whitelist ) {
-        $whitelisted = [];
-        foreach( $whitelist as $k => $whitelisted_ip ) {
-          $whitelisted[ $whitelisted_ip ] = $whitelisted_ip;
-        }
-
-        return $whitelisted;
-      }
-    }
-
-    return false;
-  }
-}
-
-/**
  * Checks if an IP is blocked
  *
  *  @param string IP address to check.
@@ -393,26 +305,5 @@ if ( ! function_exists( 'wpzerospam_is_blocked' ) ) {
     }
 
     return false;
-  }
-}
-
-/**
- * Checks if an IP is blacklisted
- *
- *  @param string IP address to check.
- *  @return boolean/array False is not blacklisted, otherwise an array with the
- *                        blacklisted IP information.
- */
-if ( ! function_exists( 'wpzerospam_is_blacklisted' ) ) {
-  function wpzerospam_is_blacklisted( $ip ) {
-    $blacklist_ip = wpzerospam_query_table( 'blacklist', [
-      'select' => [
-        'blacklist_service', 'blacklist_id', 'last_updated', 'attempts'
-      ],
-      'where'  => [ 'user_ip' => $ip ],
-      'limit'  => 1
-    ]);
-
-    return $blacklist_ip;
   }
 }
