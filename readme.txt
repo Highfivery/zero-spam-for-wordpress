@@ -147,6 +147,12 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 
 == Changelog ==
 
+= 4.10.1 =
+
+* Fix - PHP notice `Warning: array_merge(): Expected parameter 2 to be an array, bool given in /wp-content/plugins/zero-spam/classes/class-wordpress-zero-spam.php on line 532`. See https://wordpress.org/support/topic/warning-array_merge-14/#post-13319702.
+* Enhancement - Moved the security functions into the new `WordPress_Zero_Spam_Security` class.
+* Enhancement - General code clean-up & documentation.
+
 = 4.10.0 =
 
 * Enhancement - Various performance improvements & caching added.

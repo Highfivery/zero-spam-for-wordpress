@@ -37,8 +37,24 @@ define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.10.0' );
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wordpress-zero-spam.php';
 
+/**
+ * Include the WordPress Zero Spam security class.
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wordpress-zero-spam-security.php';
+
 // Initialize the plugin.
-$wordpress_zero_spam = new WordPress_Zero_Spam();
+$wordpress_zero_spam          = new WordPress_Zero_Spam();
+$wordpress_zero_spam_security = new WordPress_Zero_Spam_Security();
+
+/**
+ * Install & upgrade functionality.
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/install.php';
+
+/**
+ * Uninstall functionality.
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/uninstall.php';
 
 
 
@@ -65,16 +81,6 @@ require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/helpers.php';
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/updates.php';
 
 /**
- * Install & upgrade functionality.
- */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/install.php';
-
-/**
- * Uninstall functionality.
- */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/uninstall.php';
-
-/**
  * Plugin CSS & JS scripts.
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/scripts.php';
@@ -83,11 +89,6 @@ require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/scripts.php';
  * Admin interface & functionality.
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/admin.php';
-
-/**
- * Action & filter hooks for enhanced site security.
- */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/security.php';
 
 /**
  * Initializes the plugin.
