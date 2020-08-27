@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || die();
 /**
  * WordPress Zero Spam security class.
  */
-class WordPress_Zero_Spam_Security {
+class WPZeroSpam_Security {
 	/**
 	 * Class constructor.
 	 */

@@ -5,7 +5,7 @@ Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&u
 Requires at least: 5.2
 Tested up to: 5.5
 Requires PHP: 7.1
-Stable tag: 4.10.0
+Stable tag: 4.10.1
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -150,6 +150,7 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 = 4.10.1 =
 
 * Fix - PHP notice `Warning: array_merge(): Expected parameter 2 to be an array, bool given in /wp-content/plugins/zero-spam/classes/class-wordpress-zero-spam.php on line 532`. See https://wordpress.org/support/topic/warning-array_merge-14/#post-13319702.
+* Fix - StopForumSpam & BotScout being queried even if the options are disabled. See https://wordpress.org/support/topic/api-timeout/#post-13323551.
 * Enhancement - Moved the security functions into the new `WordPress_Zero_Spam_Security` class.
 * Enhancement - General code clean-up & documentation.
 

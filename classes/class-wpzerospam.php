@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || die();
 /**
  * WordPress Zero Spam class.
  */
-class WordPress_Zero_Spam {
+class WPZeroSpam {
 	/**
 	 * Contains all plugin options.
 	 *
@@ -31,6 +31,7 @@ class WordPress_Zero_Spam {
 		'log_spam'                     => false,
 		'log_blocked_ips'              => false,
 		'share_detections'             => true,
+		'stop_forum_spam'              => 'enabled',
 		'stopforumspam_confidence_min' => 20,
 		'botscout_count_min'           => 5,
 		'botscout_api'                 => false,
@@ -129,6 +130,10 @@ class WordPress_Zero_Spam {
 			'ia_archiver',
 		);
 
+		if ( ! $this->current_user_ip ) {
+			return false;
+		}
+
 		$ip_host    = gethostbyaddr( $this->current_user_ip );
 		$user_agent = ! empty( $_SERVER['HTTP_USER_AGENT'] ) ? esc_html( $_SERVER['HTTP_USER_AGENT'] ) : false;
 
@@ -167,6 +172,10 @@ class WordPress_Zero_Spam {
 			'blacklist_api'  => false,
 			'attempts'       => false,
 		);
+
+		if ( ! $ip ) {
+			return $access;
+		}
 
 		// Ignore logged in users.
 		if ( is_user_logged_in() ) {
@@ -658,6 +667,10 @@ class WordPress_Zero_Spam {
 		if ( false === $data ) {
 			switch ( $api ) {
 				case 'stopforumspam':
+					if ( 'enabled' !== $this->options['stop_forum_spam'] ) {
+						return false;
+					}
+
 					$api_url = 'https://api.stopforumspam.org/api?';
 					$params  = array(
 						'ip'   => $ip,
@@ -665,6 +678,10 @@ class WordPress_Zero_Spam {
 					);
 					break;
 				case 'botscout':
+					if ( ! $this->options['botscout_api'] ) {
+						return false;
+					}
+
 					$api_url = 'https://botscout.com/test/?';
 					$params  = array(
 						'ip'  => $ip,

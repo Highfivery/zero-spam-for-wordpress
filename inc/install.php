@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || die();
 function wpzerospam_install() {
 	global $wpdb;
 
-	$wordpress_zero_spam  = new WordPress_Zero_Spam();
+	$wordpress_zero_spam  = new WPZeroSpam();
 	$charset_collate      = $wpdb->get_charset_collate();
 	$installed_db_version = get_option( 'wpzerospam_db_version' );
 
@@ -30,8 +30,10 @@ function wpzerospam_install() {
       date_recorded DATETIME NOT NULL,
       page_url VARCHAR(255) NULL DEFAULT NULL,
       submission_data LONGTEXT NULL DEFAULT NULL,
-      country VARCHAR(2) NULL DEFAULT NULL,
-      region VARCHAR(255) NULL DEFAULT NULL,
+			country VARCHAR(2) NULL DEFAULT NULL,
+			country_name VARCHAR(255) NULL DEFAULT NULL,
+			region VARCHAR(255) NULL DEFAULT NULL,
+			region_name VARCHAR(255) NULL DEFAULT NULL,
       city VARCHAR(255) NULL DEFAULT NULL,
       latitude VARCHAR(255) NULL DEFAULT NULL,
       longitude VARCHAR(255) NULL DEFAULT NULL,

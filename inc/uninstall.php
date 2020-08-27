@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || die();
 function wpzerospam_uninstall() {
 	global $wpdb;
 
-	$wordpress_zero_spam = new WordPress_Zero_Spam();
+	$wordpress_zero_spam = new WPZeroSpam();
 
 	if ( is_multisite() ) {
 		$blogs = $wpdb->get_results( "SELECT blog_id FROM {$wpdb->blogs}", ARRAY_A );
