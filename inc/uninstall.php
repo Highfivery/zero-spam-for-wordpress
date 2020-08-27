@@ -29,7 +29,7 @@ function wpzerospam_uninstall() {
 				delete_option( 'wpzerospam_db_version' );
 				delete_option( 'wpzerospam_update_version' );
 
-				foreach ( $tables as $key => $wordpress_zero_spam->tables ) {
+				foreach ( $wordpress_zero_spam->tables as $key => $table ) {
 					$wpdb->query( "DROP TABLE IF EXISTS $table" );
 				}
 			}
@@ -42,7 +42,7 @@ function wpzerospam_uninstall() {
 		delete_option( 'wpzerospam_db_version' );
 		delete_option( 'wpzerospam_update_version' );
 
-		foreach ( $tables as $key => $wordpress_zero_spam->tables ) {
+		foreach ( $wordpress_zero_spam->tables as $key => $table ) {
 			$wpdb->query( "DROP TABLE IF EXISTS $table" );
 		}
 	}
