@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
- * Version:           4.10.0
+ * Version:           4.10.1
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author:            Ben Marshall
@@ -29,16 +29,40 @@ defined( 'ABSPATH' ) || die();
 
 // Define plugin constants.
 define( 'WORDPRESS_ZERO_SPAM', __FILE__ );
-define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.5' );
-define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.10.0' );
+define( 'WORDPRESS_ZERO_SPAM_DB_VERSION', '0.6' );
+define( 'WORDPRESS_ZERO_SPAM_VERSION', '4.10.1' );
 
 /**
  * Include the WordPress Zero Spam plugin class.
  */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wordpress-zero-spam.php';
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wpzerospam.php';
+
+/**
+ * Include the WordPress Zero Spam security class.
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wpzerospam-security.php';
+
+/**
+ * Include the WordPress Zero Spam comments class.
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wpzerospam-comments.php';
 
 // Initialize the plugin.
-$wordpress_zero_spam = new WordPress_Zero_Spam();
+$wpzerospam          = new WPZeroSpam();
+$wpzerospam_security = new WPZeroSpam_Security();
+
+// Fires the plugin WordPress hooks.
+$wpzerospam->initialize();
+
+/**
+ * Install & upgrade functionality.
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/install.php';
+
+/**
+ * Uninstall functionality.
+ */
+require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/uninstall.php';
 
 
 
@@ -65,16 +89,6 @@ require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/helpers.php';
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/updates.php';
 
 /**
- * Install & upgrade functionality.
- */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/install.php';
-
-/**
- * Uninstall functionality.
- */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/uninstall.php';
-
-/**
  * Plugin CSS & JS scripts.
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/scripts.php';
@@ -83,11 +97,6 @@ require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/scripts.php';
  * Admin interface & functionality.
  */
 require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/admin.php';
-
-/**
- * Action & filter hooks for enhanced site security.
- */
-require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'inc/security.php';
 
 /**
  * Initializes the plugin.

@@ -5,7 +5,7 @@ Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&u
 Requires at least: 5.2
 Tested up to: 5.5
 Requires PHP: 7.1
-Stable tag: 4.10.0
+Stable tag: 4.10.1
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -63,9 +63,9 @@ WordPress Zero Spam is free and open source. It’s the perfect solution to stop
 To help you get started and learn just how to integrate with WordPress Zero Spam, visit the [plugin's documentation](https://www.benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
 
 
-= Help test & become a contributor =
+= Help test & contribute to WordPress Zero Spam =
 
-Help test future releases and contribute on the [WordPress Zero Spam GitHub Repository](https://github.com/bmarshall511/wordpress-zero-spam).
+WordPress Zero Spam can only stay up-to-date and bug-free with the help of contributors and testers. You can help test upcoming releases and contribute by forking the project on [GitHub](https://github.com/bmarshall511/wordpress-zero-spam).
 
 = Plugin Support =
 
@@ -75,7 +75,7 @@ Help test future releases and contribute on the [WordPress Zero Spam GitHub Repo
 
 = WordPress Zero Spam needs your support =
 
-**WordPress Zero Spam is free — completely free & always will be.** It is hard to continue development and support for this free plugin without contributions from users like you. If you enjoy using WordPress Zero Spam and find it useful, please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam). Your donation will help encourage and support the plugin’s continued development and better user support.
+**WordPress Zero Spam is free — completely free & always will be.** It's hard to continue development and provide support without contributions. If you find using WordPress Zero Spam useful, please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam). Your donation will help encourage and support the plugin's continued development and user support.
 
 * Like our [Facebook Page](https://www.facebook.com/zerospamorg/)
 * Follow us on [Twitter](https://www.facebook.com/zerospamorg)
@@ -146,6 +146,13 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.10.1 =
+
+* Fix - PHP notice `Warning: array_merge(): Expected parameter 2 to be an array, bool given in /wp-content/plugins/zero-spam/classes/class-wordpress-zero-spam.php on line 532`. See https://wordpress.org/support/topic/warning-array_merge-14/#post-13319702.
+* Fix - StopForumSpam & BotScout being queried even if the options are disabled. See https://wordpress.org/support/topic/api-timeout/#post-13323551.
+* Enhancement - Moved the security functions into the new `WordPress_Zero_Spam_Security` class.
+* Enhancement - General code clean-up & documentation.
 
 = 4.10.0 =
 

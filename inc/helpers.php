@@ -100,7 +100,8 @@ function wpzerospam_share_detection( $data ) {
 
   // Setup the request parameters.
   $request_args = [
-    'method' => 'POST',
+		'method' => 'POST',
+		'timeout' => 100,
     'body'   => [
       'ip'        => $data['ip'],
       'type'      => $data['type'],

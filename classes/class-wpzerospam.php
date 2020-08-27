@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || die();
 /**
  * WordPress Zero Spam class.
  */
-class WordPress_Zero_Spam {
+class WPZeroSpam {
 	/**
 	 * Contains all plugin options.
 	 *
@@ -31,6 +31,7 @@ class WordPress_Zero_Spam {
 		'log_spam'                     => false,
 		'log_blocked_ips'              => false,
 		'share_detections'             => true,
+		'stop_forum_spam'              => 'enabled',
 		'stopforumspam_confidence_min' => 20,
 		'botscout_count_min'           => 5,
 		'botscout_api'                 => false,
@@ -66,14 +67,38 @@ class WordPress_Zero_Spam {
 	 * Class constructor.
 	 */
 	public function __construct() {
+		global $wpdb;
+
+		// Set the database tables.
+		$this->tables = array(
+			'log'       => $wpdb->prefix . 'wpzerospam_log',
+			'blocked'   => $wpdb->prefix . 'wpzerospam_blocked',
+			'blacklist' => $wpdb->prefix . 'wpzerospam_blacklist',
+		);
+	}
+
+	/**
+	 * Initializes the plugin.
+	 */
+	public function initialize() {
 		// Triggered on the WP init action.
 		add_action( 'init', array( $this, 'wp_init' ) );
 
 		// Triggered on the WP wp_footer action.
 		add_action( 'wp_footer', array( $this, 'wp_footer' ) );
 
+		// Triggered on he WP plugins_loaded action.
+		add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
+
 		// Handles IPs that have been denied access.
 		add_action( 'template_redirect', array( $this, 'access_check' ) );
+	}
+
+	/**
+	 * Loads the plugin text domain.
+	 */
+	public function plugins_loaded() {
+		load_plugin_textdomain( 'zero-spam', '', basename( dirname( WORDPRESS_ZERO_SPAM ) ) . '/languages/' );
 	}
 
 	/**
@@ -104,6 +129,10 @@ class WordPress_Zero_Spam {
 			'facebot',
 			'ia_archiver',
 		);
+
+		if ( ! $this->current_user_ip ) {
+			return false;
+		}
 
 		$ip_host    = gethostbyaddr( $this->current_user_ip );
 		$user_agent = ! empty( $_SERVER['HTTP_USER_AGENT'] ) ? esc_html( $_SERVER['HTTP_USER_AGENT'] ) : false;
@@ -143,6 +172,10 @@ class WordPress_Zero_Spam {
 			'blacklist_api'  => false,
 			'attempts'       => false,
 		);
+
+		if ( ! $ip ) {
+			return $access;
+		}
 
 		// Ignore logged in users.
 		if ( is_user_logged_in() ) {
@@ -366,7 +399,9 @@ class WordPress_Zero_Spam {
 	}
 
 	/**
-	 * Returns the current URL.
+	 * Returns the current page URL.
+	 *
+	 * @return string The current page URL.
 	 */
 	public function get_current_url() {
 		global $wp;
@@ -375,7 +410,9 @@ class WordPress_Zero_Spam {
 	}
 
 	/**
-	 * Retreives an IP geolocation.
+	 * Retrieves an IP geolocation.
+	 *
+	 * @param string $ip The IP to get geolocation information for.
 	 */
 	public function get_ip_geolocation( $ip ) {
 		if ( empty( $this->options['ipstack_api'] ) ) {
@@ -498,15 +535,6 @@ class WordPress_Zero_Spam {
 	 * Triggered on the WP init action.
 	 */
 	public function wp_init() {
-		global $wpdb;
-
-		// Set the database tables.
-		$this->tables = array(
-			'log'       => $wpdb->prefix . 'wpzerospam_log',
-			'blocked'   => $wpdb->prefix . 'wpzerospam_blocked',
-			'blacklist' => $wpdb->prefix . 'wpzerospam_blacklist',
-		);
-
 		// Set the plugin options.
 		$this->options = $this->get_options();
 		if ( empty( $this->options['blocked_message'] ) ) {
@@ -528,8 +556,13 @@ class WordPress_Zero_Spam {
 	 * Returns the saved plugin options.
 	 */
 	public function get_options() {
+		$saved_options = get_option( 'wpzerospam' );
+		if ( ! $saved_options || ! is_array( $saved_options ) ) {
+			$saved_options = array();
+		}
+
 		$options = $this->default_options;
-		$options = array_merge( $options, get_option( 'wpzerospam' ) );
+		$options = array_merge( $options, $saved_options );
 		$options = apply_filters( 'wpzerospam_options', $options );
 
 		return $options;
@@ -621,10 +654,11 @@ class WordPress_Zero_Spam {
 	}
 
 	/**
-	 * Gets an IP from an API.
+	 * Checks an IP using a third-party API.
 	 *
 	 * @param string $ip IP address to query.
-	 * @param string $api The API to query.
+	 * @param string $api The API to query. stopforumspam | botscout.
+	 * @return array The API query result.
 	 */
 	public function get_ip_from_api( $ip, $api ) {
 		$cache_key = sanitize_title( $api . '_' . $ip );
@@ -633,6 +667,10 @@ class WordPress_Zero_Spam {
 		if ( false === $data ) {
 			switch ( $api ) {
 				case 'stopforumspam':
+					if ( 'enabled' !== $this->options['stop_forum_spam'] ) {
+						return false;
+					}
+
 					$api_url = 'https://api.stopforumspam.org/api?';
 					$params  = array(
 						'ip'   => $ip,
@@ -640,6 +678,10 @@ class WordPress_Zero_Spam {
 					);
 					break;
 				case 'botscout':
+					if ( ! $this->options['botscout_api'] ) {
+						return false;
+					}
+
 					$api_url = 'https://botscout.com/test/?';
 					$params  = array(
 						'ip'  => $ip,
@@ -712,9 +754,10 @@ class WordPress_Zero_Spam {
 	}
 
 	/**
-	 * Checks if an IP has been blacklisted.
+	 * Checks if an IP has been blacklisted & returns the record if found.
 	 *
 	 * @param string $ip The IP address to check.
+	 * @return array|false The blacklisted API record or false if not found.
 	 */
 	public function get_blacklisted_ip( $ip ) {
 		$blacklisted_ip = $this->table_query(
@@ -744,9 +787,10 @@ class WordPress_Zero_Spam {
 	}
 
 	/**
-	 * Checks if an IP has been blocked.
+	 * Checks if an IP has been blocked & returns the record if found.
 	 *
 	 * @param string $ip The IP address to check.
+	 * @return array|false The blocked API record or false if not found.
 	 */
 	public function get_blocked_ip( $ip ) {
 		$blocked_ip = $this->table_query(
@@ -852,6 +896,8 @@ class WordPress_Zero_Spam {
 
 	/**
 	 * Returns the whitelisted IPs.
+	 *
+	 * @return array Array of whitelisted IP addresses defined in the plugin settings.
 	 */
 	public function get_whitelisted_ips() {
 		$whitelist = explode( PHP_EOL, $this->options['ip_whitelist'] );

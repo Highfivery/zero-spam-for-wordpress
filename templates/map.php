@@ -10,7 +10,7 @@ $options = wpzerospam_options();
 <div class="wpzerospam-box wpzerospam-box-map">
   <h3><?php _e( 'Spam Detections World Map', 'zero-spam' ); ?></h3>
   <div class="inside">
-    <?php if ( $options['ipstack_api'] ): ?>
+    <?php if ( ! empty( $options['ipstack_api'] ) ): ?>
       <?php
       $regions_data = [];
       $coords       = [];
