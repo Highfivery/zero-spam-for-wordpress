@@ -66,6 +66,15 @@ class WordPress_Zero_Spam {
 	 * Class constructor.
 	 */
 	public function __construct() {
+		global $wpdb;
+
+		// Set the database tables.
+		$this->tables = array(
+			'log'       => $wpdb->prefix . 'wpzerospam_log',
+			'blocked'   => $wpdb->prefix . 'wpzerospam_blocked',
+			'blacklist' => $wpdb->prefix . 'wpzerospam_blacklist',
+		);
+
 		// Triggered on the WP init action.
 		add_action( 'init', array( $this, 'wp_init' ) );
 
@@ -512,15 +521,6 @@ class WordPress_Zero_Spam {
 	 * Triggered on the WP init action.
 	 */
 	public function wp_init() {
-		global $wpdb;
-
-		// Set the database tables.
-		$this->tables = array(
-			'log'       => $wpdb->prefix . 'wpzerospam_log',
-			'blocked'   => $wpdb->prefix . 'wpzerospam_blocked',
-			'blacklist' => $wpdb->prefix . 'wpzerospam_blacklist',
-		);
-
 		// Set the plugin options.
 		$this->options = $this->get_options();
 		if ( empty( $this->options['blocked_message'] ) ) {

@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || die();
  */
 function wpzerospam_install() {
 	global $wpdb;
+	global $wordpress_zero_spam;
 
 	$charset_collate      = $wpdb->get_charset_collate();
 	$installed_db_version = get_option( 'wpzerospam_db_version' );
