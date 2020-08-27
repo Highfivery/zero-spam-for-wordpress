@@ -46,6 +46,9 @@ require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'classes/class-wordpress-zero-s
 $wordpress_zero_spam          = new WordPress_Zero_Spam();
 $wordpress_zero_spam_security = new WordPress_Zero_Spam_Security();
 
+// Fires the plugin WordPress hooks.
+$wordpress_zero_spam->initialize();
+
 /**
  * Install & upgrade functionality.
  */

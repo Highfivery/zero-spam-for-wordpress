@@ -74,7 +74,12 @@ class WordPress_Zero_Spam {
 			'blocked'   => $wpdb->prefix . 'wpzerospam_blocked',
 			'blacklist' => $wpdb->prefix . 'wpzerospam_blacklist',
 		);
+	}
 
+	/**
+	 * Initializes the plugin.
+	 */
+	public function initialize() {
 		// Triggered on the WP init action.
 		add_action( 'init', array( $this, 'wp_init' ) );
 
