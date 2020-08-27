@@ -63,9 +63,9 @@ WordPress Zero Spam is free and open source. It’s the perfect solution to stop
 To help you get started and learn just how to integrate with WordPress Zero Spam, visit the [plugin's documentation](https://www.benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
 
 
-= Help test & become a contributor =
+= Help test & contribute to WordPress Zero Spam =
 
-Help test future releases and contribute on the [WordPress Zero Spam GitHub Repository](https://github.com/bmarshall511/wordpress-zero-spam).
+WordPress Zero Spam can only stay up-to-date and bug-free with the help of contributors and testers. You can help test upcoming releases and contribute by forking the project on [GitHub](https://github.com/bmarshall511/wordpress-zero-spam).
 
 = Plugin Support =
 
@@ -75,7 +75,7 @@ Help test future releases and contribute on the [WordPress Zero Spam GitHub Repo
 
 = WordPress Zero Spam needs your support =
 
-**WordPress Zero Spam is free — completely free & always will be.** It is hard to continue development and support for this free plugin without contributions from users like you. If you enjoy using WordPress Zero Spam and find it useful, please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam). Your donation will help encourage and support the plugin’s continued development and better user support.
+**WordPress Zero Spam is free — completely free & always will be.** It's hard to continue development and provide support without contributions. If you find using WordPress Zero Spam useful, please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam). Your donation will help encourage and support the plugin's continued development and user support.
 
 * Like our [Facebook Page](https://www.facebook.com/zerospamorg/)
 * Follow us on [Twitter](https://www.facebook.com/zerospamorg)
