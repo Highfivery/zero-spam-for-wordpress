@@ -133,10 +133,6 @@ It's easy as adding the class `wpzerospam` to the `form` element, then adding a 
 
 Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript be enabled to work properly.
 
-= Does WordPress Zero Spam use cookies? =
-
-**Yes. It does not store any kind of personally identifiable information.** Only one cookie is stored (`wpzerospam_api_blacklist`) to log the last time the site queried the blacklist APIs. This is used to boost performance so each page visit doesn't trigger an API call. The expiration can be set in *Admin > WP Zero Spam > Settings*
-
 == Screenshots ==
 
 1. WordPress Zero Spam dashboard
@@ -146,6 +142,10 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.10.2 =
+
+* Update to comply with the GDPR/CCPA. See [#216](https://github.com/bmarshall511/wordpress-zero-spam/issues/216).
 
 = 4.10.1 =
 

@@ -433,10 +433,33 @@ function wpzerospam_admin_init() {
 
   register_setting( 'wpzerospam', 'wpzerospam', 'wpzerospam_validate_options' );
 
-  add_settings_section( 'wpzerospam_general_settings', __( 'General Settings', 'zero-spam' ), 'wpzerospam_general_settings_cb', 'wpzerospam' );
+  add_settings_section( 'wpzerospam_general_settings', __( 'General Plugin Settings', 'zero-spam' ), 'wpzerospam_general_settings_cb', 'wpzerospam' );
   add_settings_section( 'wpzerospam_autoblocks', __( 'Auto-block Settings', 'zero-spam' ), 'wpzerospam_autoblock_settings_cb', 'wpzerospam' );
   add_settings_section( 'wpzerospam_onsite', __( 'On-site Spam Prevention', 'zero-spam' ), 'wpzerospam_onsite_cb', 'wpzerospam' );
-  add_settings_section( 'wpzerospam_spam_checks', __( 'Integrations & Third-party APIs', 'zero-spam' ), 'wpzerospam_spam_checks_cb', 'wpzerospam' );
+	add_settings_section( 'wpzerospam_spam_checks', __( 'Integrations & Third-party APIs', 'zero-spam' ), 'wpzerospam_spam_checks_cb', 'wpzerospam' );
+
+  add_settings_field( 'share_detections', __( 'Share Spam/Malicious IP Detections', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+    'label_for' => 'share_detections',
+    'type'      => 'checkbox',
+    'multi'     => false,
+    'desc'      => sprintf(
+			wp_kses(
+      	__( 'Help support WordPress Zero Spam and strengthen its ability to detect spammers by sharing spam detections. For more information about what\'s being shared, see the plugin\'s <a href="%1$s" target="_blank" rel="noreferrer noopener">documentation</a>.', 'wpzerospam' ),
+      	array(
+					'strong' => array(),
+					'a'      => array(
+						'href'   => array(),
+						'rel'    => array(),
+						'target' => array(),
+					)
+				)
+			),
+			esc_url('https://www.benmarshall.me/wordpress-zero-spam/')
+		),
+    'options'   => [
+      'enabled' => __( 'Enabled', 'wpzerospam' )
+    ]
+  ]);
 
   // Cookie expiration
   add_settings_field( 'cookie_expiration', __( 'Cookie Expiration', 'zero-spam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
@@ -449,20 +472,6 @@ function wpzerospam_admin_init() {
     'class'       => 'small-text',
     'placeholder' => '7',
     'suffix'      => __( 'days', 'zero-spam' )
-  ]);
-
-  // Determines is spam detections should be shared with WordPress Zero Spam
-  add_settings_field( 'share_detections', __( 'Share Spam Detections', 'zero-spam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
-    'label_for' => 'share_detections',
-    'type'      => 'checkbox',
-    'multi'     => false,
-    'desc'      => wp_kses(
-      __( 'Help support WordPress Zero Spam and strenghten its ability to detect spammers by sharing spam detections. The only data that\'s shared is the IP address, type & site where the spam was detected. <strong>Absolutely no personal data is shared.</strong>.', 'zero-spam' ),
-      [ 'strong' => [] ]
-    ),
-    'options'   => [
-      'enabled' => __( 'Enabled', 'zero-spam' )
-    ]
   ]);
 
   // Determines is spam detected IPs should automatically be blocked
@@ -754,6 +763,12 @@ function wpzerospam_admin_init() {
 add_action( 'admin_init', 'wpzerospam_admin_init' );
 
 function wpzerospam_general_settings_cb() {
+	echo wp_kses(
+		__( '<strong>WordPress Zero Spam just works &mdash; no need for additional configuration.</strong> However, for more control over its functionality, you can configure the general settings below.', 'wpzerospam' ),
+		array(
+			'strong' => array(),
+		)
+	);
 }
 
 function wpzerospam_autoblock_settings_cb() {

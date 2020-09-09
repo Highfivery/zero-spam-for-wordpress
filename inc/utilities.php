@@ -124,7 +124,7 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
     if ( empty( $options['cookie_expiration'] ) ) { $options['cookie_expiration'] = 7; }
 
     if ( empty( $options['share_detections'] )  ) {
-      $options['share_detections'] = 'enabled';
+      $options['share_detections'] = 'disabled';
     }
 
     if ( empty( $options['verify_bp_registrations'] ) ) {
