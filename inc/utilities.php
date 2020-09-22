@@ -143,6 +143,10 @@ if ( ! function_exists( 'wpzerospam_options' ) ) {
       $options['verify_formidable'] = 'enabled';
     }
 
+    if ( empty( $options['verify_everest_forms'] ) ) {
+      $options['verify_everest_forms'] = 'enabled';
+    }
+
     if ( empty( $options['stop_forum_spam'] ) ) {
       $options['stop_forum_spam'] = 'enabled';
     }

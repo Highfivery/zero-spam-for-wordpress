@@ -541,9 +541,10 @@ if ( ! function_exists( 'wpzerospam_plugin_integration_enabled' ) ) {
     $options = wpzerospam_options();
 
     $integrations = [
-      'fluentform' => 'fluentform/fluentform.php',
-      'wpforms'    => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ],
-      'formidable' => 'formidable/formidable.php',
+      'fluentform'    => 'fluentform/fluentform.php',
+      'wpforms'       => [ 'wpforms/wpforms.php', 'wpforms-lite/wpforms.php' ],
+      'formidable'    => 'formidable/formidable.php',
+      'everest_forms' => 'everest-forms/everest-forms.php',
     ];
 
     // Handle BuddyPress check a little differently for presence of a function

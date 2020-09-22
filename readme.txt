@@ -45,6 +45,7 @@ In addition, it integrates with other popular plugins to provide all around prot
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [WP Fluent Form](https://wordpress.org/plugins/fluentform/) submissions
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
+* [Everest Forms](https://wordpress.org/plugins/everest-forms/) submissions
 * and can be easily integrated into any existing theme or plugin
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.

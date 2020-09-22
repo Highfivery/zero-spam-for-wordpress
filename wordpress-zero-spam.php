@@ -146,3 +146,7 @@ if ( wpzerospam_plugin_integration_enabled( 'fluentform' ) ) {
 if ( wpzerospam_plugin_integration_enabled( 'formidable' ) ) {
   require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/formidable/formidable.php';
 }
+
+if ( wpzerospam_plugin_integration_enabled( 'everest_forms' ) ) {
+	require plugin_dir_path( WORDPRESS_ZERO_SPAM ) . 'integrations/everest-forms/everest-forms.php';
+}

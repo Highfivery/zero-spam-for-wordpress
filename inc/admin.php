@@ -392,6 +392,10 @@ function wpzerospam_validate_options( $input ) {
     $input['verify_formidable'] = 'disabled';
   }
 
+  if ( empty( $input['verify_everest_forms'] ) ) {
+    $input['verify_everest_forms'] = 'disabled';
+  }
+
   if ( empty( $input['stop_forum_spam'] ) ) {
     $input['stop_forum_spam'] = 'disabled';
   }
@@ -718,7 +722,7 @@ function wpzerospam_admin_init() {
       'label_for' => 'verify_wpforms',
       'type'      => 'checkbox',
       'multi'     => false,
-      'desc'      => __( 'Enables spam detection for WPForms submissions.'. 'zero-spam' ),
+      'desc'      => __( 'Enables spam detection for WPForms submissions.', 'zero-spam' ),
       'options'   => [
         'enabled' => __( 'Enabled', 'zero-spam' )
       ]
@@ -745,6 +749,19 @@ function wpzerospam_admin_init() {
       'type'      => 'checkbox',
       'multi'     => false,
       'desc'      => __( 'Enables spam detection for Formidable form submissions.', 'zero-spam' ),
+      'options'   => [
+        'enabled' => __( 'Enabled', 'zero-spam' )
+      ]
+    ]);
+  }
+
+  // Everest Forms spam check
+  if ( is_plugin_active( 'everest-forms/everest-forms.php' ) ) {
+    add_settings_field( 'verify_everest_forms', __( 'Verify Everest Forms Submissions', 'zero-spam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_spam_checks', [
+      'label_for' => 'verify_everest_forms',
+      'type'      => 'checkbox',
+      'multi'     => false,
+      'desc'      => __( 'Enables spam detection for Everest Forms submissions.', 'zero-spam' ),
       'options'   => [
         'enabled' => __( 'Enabled', 'zero-spam' )
       ]
