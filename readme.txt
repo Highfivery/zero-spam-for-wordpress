@@ -5,7 +5,7 @@ Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&u
 Requires at least: 5.2
 Tested up to: 5.5
 Requires PHP: 7.1
-Stable tag: 4.10.1
+Stable tag: 4.11.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -142,6 +142,10 @@ Yes. One of the many techniques WordPress Zero Spam employs requires JavaScript 
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= 4.11.0 =
+
+* Added composer. See [#150](https://github.com/bmarshall511/wordpress-zero-spam/pull/150/).
 
 = 4.10.2 =
 
