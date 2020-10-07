@@ -366,9 +366,9 @@ class WPZeroSpam {
 
 
 		// If sharing detections is enabled, send the detection to Zero Spam.
-		if ( 'enabled' === $this->options['share_detections'] ) {
+		/*if ( 'enabled' === $this->options['share_detections'] ) {
 			$this->share_detection( $record['user_ip'], $record['log_type'] );
-		}
+		}*/
 
 		// Check if logging detections & 'blocks' are enabled.
 		if (

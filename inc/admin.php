@@ -438,7 +438,7 @@ function wpzerospam_admin_init() {
   add_settings_section( 'wpzerospam_onsite', __( 'On-site Spam Prevention', 'zero-spam' ), 'wpzerospam_onsite_cb', 'wpzerospam' );
 	add_settings_section( 'wpzerospam_spam_checks', __( 'Integrations & Third-party APIs', 'zero-spam' ), 'wpzerospam_spam_checks_cb', 'wpzerospam' );
 
-  add_settings_field( 'share_detections', __( 'Share Spam/Malicious IP Detections', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
+  /*add_settings_field( 'share_detections', __( 'Share Spam/Malicious IP Detections', 'wpzerospam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [
     'label_for' => 'share_detections',
     'type'      => 'checkbox',
     'multi'     => false,
@@ -459,7 +459,7 @@ function wpzerospam_admin_init() {
     'options'   => [
       'enabled' => __( 'Enabled', 'wpzerospam' )
     ]
-  ]);
+  ]);*/
 
   // Cookie expiration
   add_settings_field( 'cookie_expiration', __( 'Cookie Expiration', 'zero-spam' ), 'wpzerospam_field_cb', 'wpzerospam', 'wpzerospam_general_settings', [

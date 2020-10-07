@@ -47,10 +47,10 @@ if ( ! function_exists( 'wpzerospam_log_detection' ) ) {
 
     // If sharing detections is enabled, send the detection to Zero Spam.
     if ( 'enabled' == $options['share_detections'] ) {
-      wpzerospam_share_detection([
+      /*wpzerospam_share_detection([
         'ip'   => $record['user_ip'],
         'type' => $record['log_type']
-      ]);
+      ]);*/
     }
 
     // Check if logging detections & 'blocks' are enabled.
