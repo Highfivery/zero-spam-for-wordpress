@@ -75,8 +75,8 @@ class Autoloader {
 	private static function load_class( $relative_class_name ) {
 		$filename = strtolower(
 			preg_replace(
-				[ '/([a-z])([A-Z])/', '/_/', '/\\\/' ],
-				[ '$1-$2', '-', DIRECTORY_SEPARATOR ],
+				array( '/_/', '/\\\/' ),
+				array( '', DIRECTORY_SEPARATOR ),
 				$relative_class_name
 			)
 		);

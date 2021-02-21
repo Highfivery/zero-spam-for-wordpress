@@ -7,9 +7,15 @@
 
 namespace ZeroSpam;
 
-//use ZeroSpam\Core\Access;
-//use ZeroSpam\Core\Admin\Admin;
+use ZeroSpam\Includes\DB;
 use ZeroSpam\Core\Access;
+use ZeroSpam\Core\User;
+use ZeroSpam\Core\Admin\Admin;
+use ZeroSpam\Modules\BotScout;
+use ZeroSpam\Modules\StopForumSpam;
+use ZeroSpam\Modules\ipstack;
+use ZeroSpam\Modules\Zero_Spam;
+use ZeroSpam\Modules\Registration\Registration;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -38,9 +44,17 @@ class Plugin {
 	public static $instance = null;
 
 	/**
-	 * Access.
+	 * Admin.
 	 *
-	 * Holds the user access.
+	 * @since 5.0.0
+	 * @access public
+	 *
+	 * @var Admin
+	 */
+	public $admin;
+
+	/**
+	 * Access.
 	 *
 	 * @since 5.0.0
 	 * @access public
@@ -50,16 +64,64 @@ class Plugin {
 	public $access;
 
 	/**
-	 * Settings.
-	 *
-	 * Holds the plugin settings.
+	 * Database.
 	 *
 	 * @since 5.0.0
 	 * @access public
 	 *
-	 * @var Settings
+	 * @var DB
 	 */
-	public $settings;
+	public $db;
+
+	/**
+	 * Botscout.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 *
+	 * @var Botscout
+	 */
+	public $botscout;
+
+	/**
+	 * Stop Forum Spam.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 *
+	 * @var Stop_Forum_Spam
+	 */
+	public $stop_forum_spam;
+
+	/**
+	 * ipstack.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 *
+	 * @var ipstack
+	 */
+	public $ipstack;
+
+	/**
+	 * Zero Spam.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 *
+	 * @var Zero_Spam
+	 */
+	public $zero_spam;
+
+	/**
+	 * Registration.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 *
+	 * @var Registration
+	 */
+	public $registration;
 
 	/**
 	 * Plugin constructor.
@@ -152,9 +214,23 @@ class Plugin {
 	 * @access private
 	 */
 	private function init_components() {
-		//$admin = new Admin();
-		$access = new Access();
-		//$this->access = new Access();
+		$this->db              = new DB();
+		$this->registration    = new Registration();
+		$this->botscout        = new BotScout();
+		$this->stop_forum_spam = new StopForumSpam();
+		$this->ipstack         = new ipstack();
+		$this->zero_spam       = new Zero_Spam();
+
+		if (
+			! is_admin() &&
+			is_main_query()
+		) {
+			$this->access = new Access();
+		}
+
+		if ( is_admin() ) {
+			$this->admin = new Admin();
+		}
 	}
 }
 

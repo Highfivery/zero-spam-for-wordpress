@@ -30,7 +30,7 @@ defined( 'ABSPATH' ) || die();
 // Define plugin constants.
 define( 'ZEROSPAM', __FILE__ );
 define( 'ZEROSPAM_PATH', plugin_dir_path( ZEROSPAM ) );
-define( 'ZEROSPAM_DB_VERSION', '5.0' );
+define( 'ZEROSPAM_PLUGIN_BASE', plugin_basename( ZEROSPAM ) );
 define( 'ZEROSPAM_VERSION', '5.0.0' );
 
 add_action( 'plugins_loaded', 'zerospam_load_plugin_textdomain' );
