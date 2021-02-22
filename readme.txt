@@ -83,3 +83,4 @@ For more information & developer documentation, see the [plugin’s website](htt
 * Initial v5.0.0 release
 * Huge performance enhancements
 * More control over settings to fine-tune functionality
+* Lots of bug fixes & improvements
