@@ -14,8 +14,10 @@ use ZeroSpam\Core\Admin\Admin;
 use ZeroSpam\Modules\BotScout;
 use ZeroSpam\Modules\StopForumSpam;
 use ZeroSpam\Modules\ipstack;
+use ZeroSpam\Modules\Google;
 use ZeroSpam\Modules\Zero_Spam;
 use ZeroSpam\Modules\Registration\Registration;
+use ZeroSpam\Modules\Comments\Comments;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -104,6 +106,16 @@ class Plugin {
 	public $ipstack;
 
 	/**
+	 * Google.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 *
+	 * @var Google
+	 */
+	public $google;
+
+	/**
 	 * Zero Spam.
 	 *
 	 * @since 5.0.0
@@ -124,6 +136,16 @@ class Plugin {
 	public $registration;
 
 	/**
+	 * Comments.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 *
+	 * @var Comments
+	 */
+	public $comments;
+
+	/**
 	 * Plugin constructor.
 	 *
 	 * Initializing WordPress Zero Spam plugin.
@@ -135,6 +157,7 @@ class Plugin {
 		$this->register_autoloader();
 
 		add_action( 'init', array( $this, 'init' ), 0 );
+		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 	}
 
 	/**
@@ -216,7 +239,8 @@ class Plugin {
 	private function init_components() {
 		$this->db              = new DB();
 		$this->registration    = new Registration();
-		$this->botscout        = new BotScout();
+		$this->comments        = new Comments();
+		//$this->botscout        = new BotScout();
 		$this->stop_forum_spam = new StopForumSpam();
 		$this->ipstack         = new ipstack();
 		$this->zero_spam       = new Zero_Spam();
@@ -229,8 +253,21 @@ class Plugin {
 		}
 
 		if ( is_admin() ) {
-			$this->admin = new Admin();
+			$this->google = new Google();
+			$this->admin  = new Admin();
 		}
+	}
+
+	/**
+	 * Add to the types array.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 */
+	public function types( $types ) {
+		$types['blocked'] = __( 'Blocked', 'zerospam' );
+
+		return $types;
 	}
 }
 

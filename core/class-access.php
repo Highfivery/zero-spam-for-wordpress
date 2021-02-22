@@ -29,6 +29,7 @@ class Access {
 	 */
 	public function __construct() {
 		add_action( 'template_redirect', array( $this, 'access_check' ), 0 );
+		add_filter( 'zerospam_access_checks', array( $this, 'check_blocked' ), 0, 3 );
 	}
 
 	/**
@@ -54,7 +55,10 @@ class Access {
 
 					foreach ( $access['details'] as $key => $detail ) {
 						if ( ! empty( $detail['blocked'] ) ) {
-							ZeroSpam\Includes\DB::log( $key, $detail['details'] );
+							if ( empty( $detail['details']['failed'] ) ) {
+								$detail['details']['failed'] = $key;
+							}
+							ZeroSpam\Includes\DB::log( $detail['type'], $detail['details'] );
 						}
 					}
 				}
@@ -89,6 +93,29 @@ class Access {
 	}
 
 	/**
+	 * Checks if an IP has been blocked.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 */
+	public function check_blocked( $access_checks, $user_ip, $settings ) {
+		$access_checks['blocked'] = array(
+			'blocked' => false,
+		);
+
+		$blocked = ZeroSpam\Includes\DB::blocked( $user_ip );
+
+		if ( $blocked ) {
+			$access_checks['blocked']['blocked']           = true;
+			$access_checks['blocked']['type']              = 'blocked';
+			$access_checks['blocked']['details']           = $blocked;
+			$access_checks['blocked']['details']['failed'] = 'blocked_ips';
+		}
+
+		return $access_checks;
+	}
+
+	/**
 	 * Gets the current user's access.
 	 *
 	 * @since 5.0.0
@@ -113,48 +140,8 @@ class Access {
 			}
 
 			$access['details'] = $access_checks;
-
-			/*$this->get_blocked(
-				array(
-					'key_type' => 'ip',
-					'user_ip'  => $user_ip,
-				)
-			);
-			print_r($settings);*/
 		}
 
 		return $access;
-	}
-
-	/**
-	 * Get blocked records.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 */
-	public function get_blocked( $args = array() ) {
-
-		$cache_key = ZeroSpam\Core\Utilities::cache_key( $args );
-		$result    = wp_cache_get( $cache_key );
-
-		if ( false === $result ) {
-			$params = array();
-			if ( ! empty( $args['key_type'] ) ) {
-				$params['where']['key_type'] = array(
-					'value' => $args['key_type'],
-				);
-			}
-
-			if ( ! empty( $args['user_ip'] ) ) {
-				$params['where']['user_ip'] = array(
-					'value' => $args['user_ip'],
-				);
-			}
-
-			$result = ZeroSpam\Includes\DB::query( 'blocked', $params );
-			wp_cache_set( $cache_key, $result );
-		}
-
-		return $result;
 	}
 }

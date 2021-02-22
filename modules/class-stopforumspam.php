@@ -27,8 +27,9 @@ class StopForumSpam {
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
-
 		add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 3 );
+		add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registrations' ), 10, 3 );
+		add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1  );
 	}
 
 	/**
@@ -90,6 +91,18 @@ class StopForumSpam {
 			'value'       => ! empty( $options['stop_forum_spam_timeout'] ) ? $options['stop_forum_spam_timeout'] : 5,
 		);
 
+		$settings['stop_forum_spam_cache'] = array(
+			'title'       => __( 'Stop Forum Spam Cache Expiration', 'zerospam' ),
+			'section'     => 'stop_forum_spam',
+			'type'        => 'number',
+			'class'       => 'small-text',
+			'suffix'      => __( 'day(s)', 'zerospam' ),
+			'placeholder' => __( WEEK_IN_SECONDS, 'zerospam' ),
+			'min'         => 0,
+			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
+			'value'       => ! empty( $options['stop_forum_spam_cache'] ) ? $options['stop_forum_spam_cache'] : 14,
+		);
+
 		$settings['stop_forum_spam_confidence_min'] = array(
 			'title'       => __( 'Stop Forum Spam Confidence Minimum', 'zerospam' ),
 			'section'     => 'stop_forum_spam',
@@ -120,6 +133,169 @@ class StopForumSpam {
 	}
 
 	/**
+	 * Processes comments.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 */
+	public function preprocess_comments( $commentdata ) {
+		$settings = ZeroSpam\Core\Settings::get_settings();
+
+		if ( empty( $settings['stop_forum_spam']['value'] ) || 'enabled' !== $settings['stop_forum_spam']['value'] ) {
+			return $errors;
+		}
+
+		$response = self::query(
+			array(
+				'email' => $commentdata['comment_author_email'],
+			)
+		);
+		if ( $response ) {
+			$response = json_decode( $response, true );
+			if ( ! empty( $response['success'] ) && $response['success'] ) {
+
+				// Check email.
+				if (
+					! empty( $response['email'] ) &&
+					! empty( $response['email']['confidence'] ) &&
+					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&
+					floatval( $response['email']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
+				) {
+					$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+					if ( ! empty( $settings['registration_spam_message']['value'] ) ) {
+						$message = $settings['registration_spam_message']['value'];
+					}
+
+					if ( count( $errors->errors ) == 0 ) {
+						$errors->add( 'zerospam_error_stopformspam_email', __( $message, 'zerospam' ) );
+					}
+
+					$details = array(
+						'user_login' => $sanitized_user_login,
+						'user_email' => $user_email,
+						'failed'     => 'stop_forum_spam_email',
+					);
+					ZeroSpam\Includes\DB::log( 'registration', $details );
+				}
+			}
+		}
+
+
+		return $errors;
+	}
+
+	/**
+	 * Processes registrations.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 */
+	public function preprocess_registrations( $errors, $sanitized_user_login, $user_email ) {
+		$settings = ZeroSpam\Core\Settings::get_settings();
+
+		if ( empty( $settings['stop_forum_spam']['value'] ) || 'enabled' !== $settings['stop_forum_spam']['value'] ) {
+			return $errors;
+		}
+
+		$response = self::query(
+			array(
+				'username' => $sanitized_user_login,
+				'email'    => $user_email,
+			)
+		);
+		if ( $response ) {
+			$response = json_decode( $response, true );
+			if ( ! empty( $response['success'] ) && $response['success'] ) {
+				// Check username.
+				if (
+					! empty( $response['username'] ) &&
+					! empty( $response['username']['confidence'] ) &&
+					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&
+					floatval( $response['username']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
+				) {
+					$message = __( 'Your been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+					if ( ! empty( $settings['registration_spam_message']['value'] ) ) {
+						$message = $settings['registration_spam_message']['value'];
+					}
+					$errors->add( 'zerospam_error_stopformspam_username', __( $message, 'zerospam' ) );
+
+					$details = array(
+						'user_login' => $sanitized_user_login,
+						'user_email' => $user_email,
+						'failed'     => 'stop_forum_spam_username',
+					);
+					ZeroSpam\Includes\DB::log( 'registration', $details );
+				}
+
+				// Check email.
+				if (
+					! empty( $response['email'] ) &&
+					! empty( $response['email']['confidence'] ) &&
+					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&
+					floatval( $response['email']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
+				) {
+					$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+					if ( ! empty( $settings['registration_spam_message']['value'] ) ) {
+						$message = $settings['registration_spam_message']['value'];
+					}
+
+					if ( count( $errors->errors ) == 0 ) {
+						$errors->add( 'zerospam_error_stopformspam_email', __( $message, 'zerospam' ) );
+					}
+
+					$details = array(
+						'user_login' => $sanitized_user_login,
+						'user_email' => $user_email,
+						'failed'     => 'stop_forum_spam_email',
+					);
+					ZeroSpam\Includes\DB::log( 'registration', $details );
+				}
+			}
+		}
+
+
+		return $errors;
+	}
+
+	/**
+	 * Query the Stop Forum Spam API.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 */
+	public function query( $params ) {
+		$settings = ZeroSpam\Core\Settings::get_settings();
+
+		$cache_array = array( 'stop_forum_spam' );
+		$cache_array = array_merge( $cache_array, $params );
+		$cache_key = ZeroSpam\Core\Utilities::cache_key( $cache_array );
+
+		$response = wp_cache_get( $cache_key );
+		if ( false === $response ) {
+			$endpoint = 'https://api.stopforumspam.org/api?';
+			$params   = array( 'json' => '' );
+			$params   = array_merge( $cache_array, $params );
+			$endpoint = $endpoint . http_build_query( $params );
+
+			$timeout = 5;
+			if ( ! empty( $settings['stop_forum_spam_timeout'] ) ) {
+				$timeout = intval( $settings['stop_forum_spam_timeout']['value'] );
+			}
+
+			$response = ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
+			if ( $response ) {
+				$expiration = 14 * DAY_IN_SECONDS;
+				if ( ! empty( $settings['stop_forum_spam_cache']['value'] ) ) {
+					$expiration = $settings['stop_forum_spam_cache']['value'] * DAY_IN_SECONDS;
+				}
+				wp_cache_set( $cache_key, $response, 'zerospam', $expiration );
+			}
+		}
+
+		return $response;
+	}
+
+	/**
 	 * Stop Forum Spam access_check.
 	 *
 	 * @since 5.0.0
@@ -134,33 +310,7 @@ class StopForumSpam {
 			return $access_checks;
 		}
 
-		$cache_key = ZeroSpam\Core\Utilities::cache_key(
-			array(
-				'stop_forum_spam',
-				$user_ip,
-			)
-		);
-
-		$response = wp_cache_get( $cache_key );
-		if ( false === $response ) {
-			$endpoint = 'https://api.stopforumspam.org/api?';
-			$params   = array(
-				'ip'   => $user_ip,
-				'json' => '',
-			);
-			$endpoint = $endpoint . http_build_query( $params );
-
-			$timeout = 5;
-			if ( ! empty( $settings['stop_forum_spam_timeout'] ) ) {
-				$timeout = intval( $settings['stop_forum_spam_timeout']['value'] );
-			}
-
-			$response = ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
-			if ( $response ) {
-				wp_cache_set( $cache_key, $response );
-			}
-		}
-
+		$response = self::query( array( 'ip' => $user_ip ) );
 		if ( $response ) {
 			$response = json_decode( $response, true );
 			if (
@@ -170,12 +320,20 @@ class StopForumSpam {
 				! empty( $response['ip']['appears'] )
 			) {
 
+				$blacklisted = array(
+					'user_ip'           => $user_ip,
+					'blacklist_service' => 'stop_forum_spam',
+					'blacklist_data'    => wp_json_encode( $response['ip'] ),
+				);
+				ZeroSpam\Includes\DB::blacklisted( $blacklisted );
+
 				if (
 					! empty( $response['ip']['confidence'] ) &&
 					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&
 					floatval( $response['ip']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
 				) {
 					$access_checks['stop_forum_spam']['blocked'] = true;
+					$access_checks['stop_forum_spam']['type']    = 'blocked';
 					$access_checks['stop_forum_spam']['details'] = $response['ip'];
 				}
 			}

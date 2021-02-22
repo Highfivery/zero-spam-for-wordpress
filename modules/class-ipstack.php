@@ -88,6 +88,17 @@ class ipstack {
 			'value'       => ! empty( $options['ipstack_timeout'] ) ? $options['ipstack_timeout'] : 5,
 		);
 
+		$settings['ipstack_cache'] = array(
+			'title'       => __( 'ipstack Cache Expiration', 'zerospam' ),
+			'section'     => 'ipstack',
+			'type'        => 'number',
+			'class'       => 'small-text',
+			'suffix'      => __( 'day(s)', 'zerospam' ),
+			'placeholder' => __( '14', 'zerospam' ),
+			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
+			'value'       => ! empty( $options['ipstack_cache'] ) ? $options['ipstack_cache'] : 14,
+		);
+
 		return $settings;
 	}
 
@@ -169,7 +180,12 @@ class ipstack {
 			$response = ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
 			if ( $response ) {
 				$result = json_decode( $response, true );
-				wp_cache_set( $cache_key, $result );
+
+				$expiration = 14 * DAY_IN_SECONDS;
+				if ( ! empty( $settings['ipstack_cache']['value'] ) ) {
+					$expiration = $settings['ipstack_cache']['value'] * DAY_IN_SECONDS;
+				}
+				wp_cache_set( $cache_key, $result, 'zerospam', $expiration );
 			}
 		}
 

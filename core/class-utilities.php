@@ -25,7 +25,7 @@ class Utilities {
 	 *
 	 * @return string Returns a HTML honeypot field.
 	 */
-	public function honeypot_field() {
+	public static function honeypot_field() {
 		return '<input type="text" name="' . self::get_honeypot() . '" value="" style="display: none !important;" />';
 	}
 
@@ -37,7 +37,7 @@ class Utilities {
 	 *
 	 * @return string A unique key used for the 'honeypot' field.
 	 */
-	public function get_honeypot() {
+	public static function get_honeypot() {
 		$key = get_option( 'wpzerospam_honeypot' );
 		if ( ! $key ) {
 			$key = wp_generate_password( 5, false, false );
@@ -79,8 +79,6 @@ class Utilities {
 	 * @access public
 	 */
 	public static function current_url() {
-		global $wp;
-
-		return home_url( add_query_arg( array(), $wp->request ) );
+		return ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on' ? "https" : "http" ) . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 	}
 }

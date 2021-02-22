@@ -32,13 +32,24 @@ class Admin {
 	public $settings;
 
 	/**
+	 * Dashboard.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 *
+	 * @var Dashboard
+	 */
+	public $dashboard;
+
+	/**
 	 * Admin constructor.
 	 *
 	 * @since 5.0.0
 	 * @access public
 	 */
 	public function __construct() {
-		$this->settings = new Settings();
+		$this->settings  = new Settings();
+		$this->dashboard = new Dashboard();
 
 		add_filter( 'plugin_action_links_' . ZEROSPAM_PLUGIN_BASE, array( $this, 'plugin_action_links' ) );
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
