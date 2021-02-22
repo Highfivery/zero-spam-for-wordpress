@@ -18,6 +18,7 @@ use ZeroSpam\Modules\Google;
 use ZeroSpam\Modules\Zero_Spam;
 use ZeroSpam\Modules\Registration\Registration;
 use ZeroSpam\Modules\Comments\Comments;
+use ZeroSpam\Modules\ContactForm7\ContactForm7;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -44,106 +45,6 @@ class Plugin {
 	 * @var Plugin
 	 */
 	public static $instance = null;
-
-	/**
-	 * Admin.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Admin
-	 */
-	public $admin;
-
-	/**
-	 * Access.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Access
-	 */
-	public $access;
-
-	/**
-	 * Database.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var DB
-	 */
-	public $db;
-
-	/**
-	 * Botscout.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Botscout
-	 */
-	public $botscout;
-
-	/**
-	 * Stop Forum Spam.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Stop_Forum_Spam
-	 */
-	public $stop_forum_spam;
-
-	/**
-	 * ipstack.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var ipstack
-	 */
-	public $ipstack;
-
-	/**
-	 * Google.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Google
-	 */
-	public $google;
-
-	/**
-	 * Zero Spam.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Zero_Spam
-	 */
-	public $zero_spam;
-
-	/**
-	 * Registration.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Registration
-	 */
-	public $registration;
-
-	/**
-	 * Comments.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Comments
-	 */
-	public $comments;
 
 	/**
 	 * Plugin constructor.
@@ -237,24 +138,30 @@ class Plugin {
 	 * @access private
 	 */
 	private function init_components() {
-		$this->db              = new DB();
-		$this->registration    = new Registration();
-		$this->comments        = new Comments();
-		//$this->botscout        = new BotScout();
-		$this->stop_forum_spam = new StopForumSpam();
-		$this->ipstack         = new ipstack();
-		$this->zero_spam       = new Zero_Spam();
+		new DB();
+		new Registration();
+		new Comments();
+
+		include_once ABSPATH . 'wp-admin/includes/plugin.php';
+		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
+			new ContactForm7();
+		}
+
+		//= new BotScout();
+		new StopForumSpam();
+		new ipstack();
+		new Zero_Spam();
 
 		if (
 			! is_admin() &&
 			is_main_query()
 		) {
-			$this->access = new Access();
+			new Access();
 		}
 
 		if ( is_admin() ) {
-			$this->google = new Google();
-			$this->admin  = new Admin();
+			new Google();
+			new Admin();
 		}
 	}
 

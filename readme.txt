@@ -30,6 +30,12 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * Detailed logging to catch, investigate & block recurring offenders
 * Developer-friendly, integrate with any theme, plugin or form
 
+= WordPress Zero Spam also protects =
+
+* WordPress core comments & user registrations
+* [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
+* and can be easily integrated into any existing theme or plugin
+
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
 
 = Multilingual Supported =
