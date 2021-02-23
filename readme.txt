@@ -73,6 +73,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 = TBD =
 
 * Updated readme file & documentation
+* Can now be installed via composer
 
 = v5.0.0 =
 
