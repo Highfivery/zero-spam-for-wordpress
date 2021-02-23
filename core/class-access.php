@@ -46,7 +46,6 @@ class Access {
 		if ( ! empty( $access['blocked'] ) ) {
 			$settings = ZeroSpam\Core\Settings::get_settings();
 
-
 			if ( ! empty( $access['details'] ) && is_array( $access['details'] ) ) {
 				if ( ! empty( $settings['share_data']['value'] ) && 'enabled' === $settings['share_data']['value'] ) {
 					do_action( 'zerospam_share_blocked', $access['details'] );
@@ -94,6 +93,55 @@ class Access {
 	}
 
 	/**
+	 * Helper to get blocked record details.
+	 */
+	public function get_blocked_details( $blocked_record, $failed = false ) {
+		$access_check = array(
+			'blocked' => false,
+		);
+
+		if ( ! $blocked_record ) {
+			return $access_check;
+		}
+
+		$today = new \DateTime();
+
+		// Check the start & end dates (all blocks require a start date).
+		$start_date = new \DateTime();
+		if ( ! empty( $blocked_record['start_block'] ) ) {
+			$start_date = new \DateTime( $blocked_record['start_block'] );
+		}
+
+		if ( $today >= $start_date ) {
+			// Check the end date if temporary block.
+			if (
+				! empty( $blocked_record['blocked_type'] ) &&
+				'temporary' === $blocked_record['blocked_type']
+			) {
+				// Temporary block.
+				if ( ! empty( $blocked_record['end_block'] ) ) {
+					$end_date = new \DateTime( $blocked_record['end_block'] );
+
+					if ( $today < $end_date ) {
+						$access_check['blocked']            = true;
+						$access_check['type']              = 'blocked';
+						$access_check['details']           = $blocked_record;
+						$access_check['details']['failed'] = $failed;
+					}
+				}
+			} else {
+				// Permanent block.
+				$access_check['blocked']           = true;
+				$access_check['type']              = 'blocked';
+				$access_check['details']           = $blocked_record;
+				$access_check['details']['failed'] = $failed;
+			}
+		}
+
+		return $access_check;
+	}
+
+	/**
 	 * Checks if an IP has been blocked.
 	 *
 	 * @since 5.0.0
@@ -104,41 +152,27 @@ class Access {
 			'blocked' => false,
 		);
 
-		$blocked = ZeroSpam\Includes\DB::blocked( $user_ip );
-
-		if ( $blocked ) {
-			$today = new \DateTime();
-
-			// Check the start & end dates (all blocks require a start date).
-			$start_date = new \DateTime();
-			if ( ! empty( $blocked['start_block'] ) ) {
-				$start_date = new \DateTime( $blocked['start_block'] );
-			}
-
-			if ( $today >= $start_date ) {
-				// Check the end date if temporary block.
-				if (
-					! empty( $blocked['blocked_type'] ) &&
-					'temporary' === $blocked['blocked_type']
-				) {
-					// Temporary block.
-					if ( ! empty( $blocked['end_block'] ) ) {
-						$end_date = new \DateTime( $blocked['end_block'] );
-
-						if ( $today < $end_date ) {
-							$access_checks['blocked']['blocked']           = true;
-							$access_checks['blocked']['type']              = 'blocked';
-							$access_checks['blocked']['details']           = $blocked;
-							$access_checks['blocked']['details']['failed'] = 'blocked_ips';
-						}
+		// Attempt to get the IP address location & checked if block.
+		$location = apply_filters( 'zerospam_get_location', $user_ip );
+		if ( $location ) {
+			$location_keys = array( 'country_code', 'region_code', 'city', 'zip' );
+			foreach ( $location_keys as $key => $loc ) {
+				if ( ! empty( $location[ $loc ] ) ) {
+					$blocked = ZeroSpam\Includes\DB::blocked( $location[ $loc ], $loc );
+					if ( $blocked ) {
+						$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_' . $loc );
+						break;
 					}
-				} else {
-					// Permanent block.
-					$access_checks['blocked']['blocked']           = true;
-					$access_checks['blocked']['type']              = 'blocked';
-					$access_checks['blocked']['details']           = $blocked;
-					$access_checks['blocked']['details']['failed'] = 'blocked_ips';
 				}
+			}
+		}
+
+		// If passed location blocks, check the IP address.
+		if ( ! $access_checks['blocked'] ) {
+			// Check the user's IP access.
+			$blocked = ZeroSpam\Includes\DB::blocked( $user_ip );
+			if ( $blocked ) {
+				$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_ip' );
 			}
 		}
 

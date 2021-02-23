@@ -1,4 +1,50 @@
 (function($) {
+	var ZeroSpamAdmin = {
+		prepopulateFields: function( $btn ) {
+			var ip = $btn.data('ip');
+			$('input[name="blocked_ip"]', $('.zerospam-modal-block')).val('');
+			if ( ip ) {
+				$('input[name="blocked_ip"]', $('.zerospam-modal-block')).val(ip);
+			}
+
+			var keyType = $btn.data('keytype');
+			$('select[name="key_type"]', $('.zerospam-modal-block')).val('country_code');
+			if ( keyType ) {
+				$('select[name="key_type"]', $('.zerospam-modal-block')).val(keyType);
+			}
+
+			var blockedKey = $btn.data('blockedkey');
+			$('input[name="blocked_key"]', $('.zerospam-modal-block')).val('');
+			if ( blockedKey ) {
+				$('input[name="blocked_key"]', $('.zerospam-modal-block')).val(blockedKey);
+			}
+
+			var reason = $btn.data('reason');
+			$('input[name="blocked_reason"]', $('.zerospam-modal-block')).val('');
+			if ( reason ) {
+				$('input[name="blocked_reason"]', $('.zerospam-modal-block')).val(reason);
+			}
+
+			var type = $btn.data('type');
+			$('select[name="blocked_type"]', $('.zerospam-modal-block')).val('temporary');
+			if ( type ) {
+				$('select[name="blocked_type"]', $('.zerospam-modal-block')).val(type);
+			}
+
+			var startDate = $btn.data('start');
+			$('input[name="blocked_start_date"]', $('.zerospam-modal-block')).val('');
+			if ( startDate ) {
+				$('input[name="blocked_start_date"]', $('.zerospam-modal-block')).val(startDate);
+			}
+
+			var endDate = $btn.data('end');
+			$('input[name="blocked_end_date"]', $('.zerospam-modal-block')).val('');
+			if ( endDate ) {
+				$('input[name="blocked_end_date"]', $('.zerospam-modal-block')).val(endDate);
+			}
+		}
+	};
+
   $(function() {
     $( '.zerospam-details-trigger' ).click(function( e ) {
       e.preventDefault();
@@ -13,38 +59,19 @@
 			$('.zerospam-modal').removeClass('is-active');
 		});
 
+		$('.zerospam-block-location-trigger').click(function(e) {
+			e.preventDefault();
+
+			ZeroSpamAdmin.prepopulateFields($(this));
+
+			$('.zerospam-modal').removeClass('is-active');
+			$('#zerospam-block-location').addClass('is-active');
+		});
+
 		$('.zerospam-block-trigger').click(function(e) {
 			e.preventDefault();
 
-			var ip = $(this).data('ip');
-			$('input[name="blocked_ip"]', $('#zerospam-block-ip')).val('');
-			if ( ip ) {
-				$('input[name="blocked_ip"]', $('#zerospam-block-ip')).val(ip);
-			}
-
-			var reason = $(this).data('reason');
-			$('input[name="blocked_reason"]', $('#zerospam-block-ip')).val('');
-			if ( reason ) {
-				$('input[name="blocked_reason"]', $('#zerospam-block-ip')).val(reason);
-			}
-
-			var type = $(this).data('type');
-			$('select[name="blocked_type"]', $('#zerospam-block-ip')).val('temporary');
-			if ( type ) {
-				$('select[name="blocked_type"]', $('#zerospam-block-ip')).val(type);
-			}
-
-			var startDate = $(this).data('start');
-			$('input[name="blocked_start_date"]', $('#zerospam-block-ip')).val('');
-			if ( startDate ) {
-				$('input[name="blocked_start_date"]', $('#zerospam-block-ip')).val(startDate);
-			}
-
-			var endDate = $(this).data('end');
-			$('input[name="blocked_end_date"]', $('#zerospam-block-ip')).val('');
-			if ( endDate ) {
-				$('input[name="blocked_end_date"]', $('#zerospam-block-ip')).val(endDate);
-			}
+			ZeroSpamAdmin.prepopulateFields($(this));
 
 			$('.zerospam-modal').removeClass('is-active');
 			$('#zerospam-block-ip').addClass('is-active');

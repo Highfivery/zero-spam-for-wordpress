@@ -1,6 +1,6 @@
 <?php
 /**
- * Blocked table class.
+ * Blocked locations class.
  *
  * @package ZeroSpam
  */
@@ -14,11 +14,9 @@ use WP_List_Table;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Log table.
- *
- * @since 5.0.0
+ * Blocked locations table.
  */
-class BlockedTable extends WP_List_Table {
+class BlockedLocations extends WP_List_Table {
 
 	/**
 	 * Log table constructor.
@@ -30,8 +28,8 @@ class BlockedTable extends WP_List_Table {
 		global $status, $page;
 
 		$args = array(
-			'singular' => __( 'WordPress Zero Spam Blocked IP', 'zerospam' ),
-			'plural'   => __( 'WordPress Zero Spam Blocked IPs', 'zerospam' ),
+			'singular' => __( 'WordPress Zero Spam Blocked Location', 'zerospam' ),
+			'plural'   => __( 'WordPress Zero Spam Blocked Locations', 'zerospam' ),
 		);
 		parent::__construct( $args );
 	}
@@ -44,9 +42,6 @@ class BlockedTable extends WP_List_Table {
 	 */
 	public function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
-			case 'user_ip':
-				return '<a href="https://www.zerospam.org/ip-lookup/' . urlencode( $item[ $column_name ] ) .'" target="_blank" rel="noopener noreferrer">' . $item[ $column_name ] . '</a>';
-				break;
 			case 'date_added':
 			case 'start_block':
 			case 'end_block':
@@ -60,16 +55,29 @@ class BlockedTable extends WP_List_Table {
 
 				if ( empty( $item[ $column_name ] ) || '0000-00-00 00:00:00' === $item[ $column_name ] ) {
 					return 'N/A';
-				} else {
-					return gmdate( 'M j, Y g:ia' , strtotime( $item[ $column_name ] ) );
 				}
+
+				return gmdate( 'M j, Y g:ia' , strtotime( $item[ $column_name ] ) );
+				break;
+			case 'location':
+				if ( empty( $item['blocked_key'] ) ) {
+					return 'N/A';
+				}
+
+				$location = $item['blocked_key'];
+				if ( ! empty( $item['key_type'] ) ) {
+					$location .= ' (' . $item['key_type'] . ')';
+				}
+
+				return $location;
 				break;
 			case 'actions':
 				ob_start();
 					?>
 					<button
-						class="button zerospam-block-trigger"
-						data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"
+						class="button zerospam-block-location-trigger"
+						data-keytype="<?php echo esc_attr( $item['key_type'] ); ?>"
+						data-blockedkey="<?php echo esc_attr( $item['blocked_key'] ); ?>"
 						data-reason="<?php echo esc_attr( $item['reason'] ); ?>"
 						data-start="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $item['start_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $item['start_block'] ) ) ); ?>"
 						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $item['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $item['end_block'] ) ) ); ?>"
@@ -98,7 +106,7 @@ class BlockedTable extends WP_List_Table {
 	public function get_bulk_actions() {
 		$actions = array(
 			'delete'     => __( 'Delete Selected', 'zerospam' ),
-			//'delete_all' => __( 'Delete All IPs', 'zerospam' ),
+			//'delete_all' => __( 'Delete All Locations', 'zerospam' ),
 		);
 
 		return $actions;
@@ -143,16 +151,11 @@ class BlockedTable extends WP_List_Table {
 			'orderby' => $orderby,
 			'where'   => array(
 				'key_type' => array(
-					'value' => 'ip',
+					'value'    => array( 'country_code', 'region_code', 'zip', 'city' ),
+					'relation' => 'IN',
 				),
 			),
 		);
-
-		if ( $log_type ) {
-			$query_args['where']['blocked_type'] = array(
-				'value' => $log_type,
-			);
-		}
 
 		if ( $user_ip ) {
 			$query_args['where']['user_ip'] = array(
@@ -229,7 +232,7 @@ class BlockedTable extends WP_List_Table {
 			submit_button( __( 'Filter', 'zerospam' ), '', 'filter_action', false );
 			*/
 			?>
-			<button class="button zerospam-block-trigger"><?php echo __( 'Add Blocked IP Address', 'zerospam' ); ?></button>
+			<button class="button zerospam-block-location-trigger"><?php echo __( 'Add Blocked Location', 'zerospam' ); ?></button>
 		</div>
 		<?php
 	 }
@@ -242,10 +245,10 @@ class BlockedTable extends WP_List_Table {
 	 */
 	public function get_columns() {
 		$columns = array(
-			'cb'            => '<input type="checkbox" />',
+			'cb'           => '<input type="checkbox" />',
 			'date_added'   => __( 'Date', 'zerospam' ),
+			'location'     => __( 'Location', 'zerospam' ),
 			'blocked_type' => __( 'Type', 'zerospam' ),
-			'user_ip'      => __( 'IP Address', 'zerospam' ),
 			'start_block'  => __( 'Starts', 'zerospam' ),
 			'end_block'    => __( 'Ends', 'zerospam' ),
 			'reason'       => __( 'Reason', 'zerospam' ),
@@ -265,9 +268,9 @@ class BlockedTable extends WP_List_Table {
 		$sortable_columns = array(
 			'date_added'   => array( 'date_added', false ),
 			'blocked_type' => array( 'blocked_type', false ),
-			'user_ip'      => array( 'user_ip', false ),
 			'start_block'  => array( 'start_block', false ),
 			'end_block'    => array( 'end_block', false ),
+			'location'     => array( 'blocked_key', false ),
 		);
 
 		return $sortable_columns;

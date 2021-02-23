@@ -77,6 +77,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 * Added support for WooCommerce
 * Added Cloudflare IP address support (https://github.com/bmarshall511/wordpress-zero-spam/issues/220)
 * Update to data sharing option
+* Added ability to block individual locations (country, region, zip & city)
 
 = v5.0.1 =
 

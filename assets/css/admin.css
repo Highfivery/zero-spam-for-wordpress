@@ -153,6 +153,12 @@
 	width: 50%;
 }
 
+.zerospam-modal form label[for="location-type"],
+.zerospam-modal form label[for="location-key"],
+.zerospam-modal form.zerospam-block-location-form label[for="blocked-type"] {
+	width: calc(100% / 3);
+}
+
 .zerospam-modal input[type="text"],
 .zerospam-modal input[type="datetime-local"],
 .zerospam-modal select {

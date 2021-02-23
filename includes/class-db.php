@@ -22,7 +22,7 @@ class DB {
 	/**
 	 * Current DB version.
 	 */
-	const DB_VERSION = '0.4';
+	const DB_VERSION = '0.7';
 
 	/**
 	 * DB tables.
@@ -83,7 +83,7 @@ class DB {
 				blocked_type ENUM('permanent','temporary') NOT NULL DEFAULT 'temporary',
 				user_ip VARCHAR(39) NOT NULL,
 				blocked_key VARCHAR(255) NULL,
-				key_type ENUM('ip','email') NOT NULL DEFAULT 'ip',
+				key_type ENUM('ip','email','username','country_code','region_code','zip') NOT NULL DEFAULT 'ip',
 				date_added DATETIME NOT NULL,
 				start_block DATETIME NULL DEFAULT NULL,
 				end_block DATETIME NULL DEFAULT NULL,
@@ -123,7 +123,7 @@ class DB {
 
 			if ( $blocked ) {
 				// Update the record.
-				$record['last_updated'] = current_time( 'mysql' );
+				$record['date_added'] = current_time( 'mysql' );
 				return $wpdb->update(
 					$wpdb->prefix . self::$tables['blocked'],
 					$record,
@@ -251,6 +251,8 @@ class DB {
 
 				if ( is_numeric( $where['value'] ) ) {
 					$where_stmt .= $where['value'];
+				} elseif( is_array( $where['value'] ) ) {
+					$where_stmt .= "('" . implode( "','", $where['value'] ) . "')";
 				} else {
 					$where_stmt .= '"' . $where['value'] . '"';
 				}

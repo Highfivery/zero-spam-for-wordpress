@@ -38,7 +38,7 @@ class WooCommerce {
 	 * Add to the types array.
 	 */
 	public function types( $types ) {
-		$types['woocommerce'] = __( 'WooCommerce', 'zerospam' );
+		$types['woocommerce_registration'] = __( 'Registration (WooCommerce)', 'zerospam' );
 
 		return $types;
 	}
