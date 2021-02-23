@@ -1,3 +1,13 @@
+:root {
+	--zerospam-primary: #840012;
+}
+
+.zerospam-flag {
+	display: inline-block;
+	margin-right: 8px;
+	vertical-align: sub;
+}
+
 .zerospam-callout,
 .zerospam-modal {
 	background: #fff;
@@ -151,6 +161,22 @@
 
 .zerospam-modal input[type="submit"] {
 	margin-top: 16px;
+}
+
+.zerospam-type-blocked {
+	color: var(--zerospam-primary);
+}
+
+.zerospam-type-blocked::before {
+	background: url('../img/icon.svg');
+	background-repeat: no-repeat;
+	background-size: contain;
+	content: "";
+	display: inline-block;
+	height: 16px;
+	margin-right: 8px;
+	vertical-align: sub;
+	width: 16px;
 }
 
 @media (min-width: 768px) {

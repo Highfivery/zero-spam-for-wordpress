@@ -19,6 +19,7 @@ use ZeroSpam\Modules\Zero_Spam;
 use ZeroSpam\Modules\Registration\Registration;
 use ZeroSpam\Modules\Comments\Comments;
 use ZeroSpam\Modules\ContactForm7\ContactForm7;
+use ZeroSpam\Modules\WooCommerce\WooCommerce;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -145,6 +146,10 @@ class Plugin {
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
 		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
 			new ContactForm7();
+		}
+
+		if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
+			new WooCommerce();
 		}
 
 		//= new BotScout();

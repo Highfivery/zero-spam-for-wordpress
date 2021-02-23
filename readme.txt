@@ -34,6 +34,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 
 * WordPress core comments & user registrations
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
+* [WooCommerce](https://woocommerce.com/) registration forms
 * and can be easily integrated into any existing theme or plugin
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
@@ -69,6 +70,11 @@ For more information & developer documentation, see the [plugin’s website](htt
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= TBD =
+
+* Admin UI enhancements
+* Added support for WooCommerce
 
 = v5.0.1 =
 

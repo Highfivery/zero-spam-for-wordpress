@@ -37,16 +37,23 @@
 		do_action( 'zerospam_google_map', $coordinates );
 		?>
 		<ul class="zerospam-modal-list">
-			<?php if ( ! empty( $item['country_name'] ) || ! empty( $item['country'] ) ) : ?>
+			<?php if ( ! empty( $item['country'] ) ) : ?>
 				<li>
 					<strong><?php echo __( 'Country', 'zerospam' ); ?></strong>
 					<span>
-						<?php if ( ! empty( $item['country_name'] ) ) : ?>
-							<?php echo $item['country_name']; ?>
-						<?php endif; ?>
-						<?php if ( ! empty( $item['country'] ) ) : ?>
-							(<?php echo $item['country']; ?>)
-						<?php endif; ?>
+						<?php
+						$country_name = ! empty( $item['country_name'] ) ? $item['country_name'] : false;
+						$flag         = ZeroSpam\Core\Utilities::country_flag_url( $item['country'] );
+
+						$country = '<img src="' . $flag . '" width="16" height="16" alt="' . esc_attr( $country_name . ' (' . $item['country'] . ')' ) . '" class="zerospam-flag" />';
+						if ( $country_name ) {
+							$country .= $country_name . ' (' . $item['country'] . ')';
+						} else {
+							$country .= $item['country'];
+						}
+
+						echo $country;
+						?>
 					</span>
 				</li>
 			<?php endif; ?>

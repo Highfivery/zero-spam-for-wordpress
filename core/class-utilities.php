@@ -20,6 +20,15 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Returns a country flag image URL.
+	 *
+	 * @access public
+	 */
+	public static function country_flag_url( $country_code ) {
+		return 'https://hatscripts.github.io/circle-flags/flags/' . strtolower( $country_code ) . '.svg';
+	}
+
+	/**
 	 * Outputs a honeypot field
 	 *
 	 * @since 5.0.0

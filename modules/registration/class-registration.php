@@ -34,7 +34,7 @@ class Registration {
 			$settings = ZeroSpam\Core\Settings::get_settings();
 			if ( ! empty( $settings['verify_registrations']['value'] ) && 'enabled' === $settings['verify_registrations']['value'] ) {
 				add_action( 'register_form', array( $this, 'honeypot' ) );
-				add_filter( 'registration_errors', array( $this, 'preprocess_registrations' ), 10, 3 );
+				add_filter( 'registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
 			}
 		}
 	}
@@ -57,7 +57,7 @@ class Registration {
 	 * @since 5.0.0
 	 * @access public
 	 */
-	public function preprocess_registrations( $errors, $sanitized_user_login, $user_email ) {
+	public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
 		$settings = ZeroSpam\Core\Settings::get_settings();
 		$honeypot = ZeroSpam\Core\Utilities::get_honeypot();
 
@@ -112,7 +112,7 @@ class Registration {
 	}
 
 	/**
-	 * Botscout settings.
+	 * Registration settings.
 	 *
 	 * @since 5.0.0
 	 * @access public

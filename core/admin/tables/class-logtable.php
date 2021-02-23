@@ -45,12 +45,23 @@ class LogTable extends WP_List_Table {
 	public function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'log_type':
-				$types = apply_filters( 'zerospam_types', array() );
-				if ( ! empty( $types[ $item[ $column_name ] ] ) ) {
-					return $types[ $item[ $column_name ] ];
-				} else {
-					return $item[ $column_name ];
+				$value = ! empty( $item[ $column_name ] ) ? $item[ $column_name ] : false;
+				if ( ! $value ) {
+					return 'N/A';
 				}
+
+				$type = '<span class="zerospam-type-' . $value . '">';
+
+				$types = apply_filters( 'zerospam_types', array() );
+				if ( ! empty( $types[ $value ] ) ) {
+					$type .= $types[ $value ];
+				} else {
+					$type .= $value;
+				}
+
+				$type .= '</span>';
+
+				return $type;
 				break;
 			case 'user_ip':
 				return '<a href="https://www.zerospam.org/ip-lookup/' . urlencode( $item[ $column_name ] ) .'" target="_blank" rel="noopener noreferrer">' . $item[ $column_name ] . '</a>';
@@ -92,6 +103,22 @@ class LogTable extends WP_List_Table {
 				endif;
 
 				return ob_get_clean();
+				break;
+			case 'country':
+				if ( ! empty( $item[ $column_name ] ) ) {
+					$country_name = ! empty( $item['country_name'] ) ? $item['country_name'] : false;
+					$flag         = ZeroSpam\Core\Utilities::country_flag_url( $item[ $column_name ] );
+
+					$return = '<img src="' . $flag. '" width="16" height="16" alt="' . esc_attr( $country_name . ' (' . $item[ $column_name ] . ')' ) . '" class="zerospam-flag" />';
+					if ( $country_name ) {
+						$return .= $country_name . ' (' . $item[ $column_name ] . ')';
+					} else {
+						$return .= $item[ $column_name ];
+					}
+
+					return $return;
+				}
+				return 'N/A';
 				break;
 			default:
 				if ( empty( $item[ $column_name ] ) ) {
