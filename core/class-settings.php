@@ -76,7 +76,19 @@ class Settings {
 			'section' => 'improve',
 			'type'    => 'checkbox',
 			'options' => array(
-				'enabled' => __( 'Become a super contributor by opting in to share non-sensitive plugin data.', 'zerospam' ),
+				'enabled' => sprintf(
+					wp_kses(
+						__( 'Become a super contributor by opting in to share non-sensitive plugin data. <a href="%s" target="_blank" rel="noreferrer noopener">Learn more</a>.', 'zerospam' ),
+						array(
+							'a'    => array(
+								'target' => array(),
+								'href'   => array(),
+								'rel'    => array(),
+							),
+						)
+					),
+					esc_url( 'https://github.com/bmarshall511/wordpress-zero-spam/wiki/FAQ#what-data-is-shared-when-usage-data-sharing-is-enabled' )
+				),
 			),
 			'value'   => ! empty( $options['share_data'] ) ? $options['share_data'] : false,
 		);

@@ -76,6 +76,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 * Admin UI enhancements
 * Added support for WooCommerce
 * Added Cloudflare IP address support (https://github.com/bmarshall511/wordpress-zero-spam/issues/220)
+* Update to data sharing option
 
 = v5.0.1 =
 
