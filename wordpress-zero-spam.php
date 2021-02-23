@@ -15,7 +15,7 @@
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong> Based on work by <a href="http://davidwalsh.name/wordpress-comment-spam" target="_blank">David Walsh</a>.
  * Version:           5.0.0
  * Requires at least: 5.2
- * Requires PHP:      7.2
+ * Requires PHP:      7.3
  * Author:            Ben Marshall
  * Author URI:        https://benmarshall.me
  * Text Domain:       zerospam
@@ -35,9 +35,9 @@ define( 'ZEROSPAM_VERSION', '5.0.0' );
 
 add_action( 'plugins_loaded', 'zerospam_load_plugin_textdomain' );
 
-if ( ! version_compare( PHP_VERSION, '7.2', '>=' ) ) {
+if ( ! version_compare( PHP_VERSION, '7.3', '>=' ) ) {
 	add_action( 'admin_notices', 'zerospam_fail_php_version' );
-} elseif ( ! version_compare( get_bloginfo( 'version' ), '5.2', '>=' ) ) {
+} elseif ( ! version_compare( get_bloginfo( 'version' ), '5', '>=' ) ) {
 	add_action( 'admin_notices', 'zerospam_fail_wp_version' );
 } else {
 	require ZEROSPAM_PATH . 'includes/class-plugin.php';
