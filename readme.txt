@@ -70,7 +70,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 == Changelog ==
 
-= TBD =
+= v5.0.1 =
 
 * Updated readme file & documentation
 * Can now be installed via composer
