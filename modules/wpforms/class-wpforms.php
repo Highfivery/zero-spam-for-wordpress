@@ -65,7 +65,7 @@ class WPForms {
 			'section' => 'wpforms',
 			'type'    => 'checkbox',
 			'options' => array(
-				'enabled' => __( 'Monitor WPForms form submissions for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor WPForms submissions for malicious or automated spambots.', 'zerospam' ),
 			),
 			'value'   => ! empty( $options['verify_wpforms'] ) ? $options['verify_wpforms'] : false,
 		);

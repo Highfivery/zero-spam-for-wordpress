@@ -114,11 +114,11 @@ class ContactForm7 {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_contactform7'] = array(
-			'title'   => __( 'Detect Contact Form 7 Submissions', 'zerospam' ),
+			'title'   => __( 'Protect Contact Form 7 Submissions', 'zerospam' ),
 			'section' => 'contactform7',
 			'type'    => 'checkbox',
 			'options' => array(
-				'enabled' => __( 'Monitor Contact Form 7 form submissions for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor Contact Form 7 submissions for malicious or automated spambots.', 'zerospam' ),
 			),
 			'value'   => ! empty( $options['verify_contactform7'] ) ? $options['verify_contactform7'] : false,
 		);
