@@ -1,0 +1,36 @@
+{
+	"name": "bmarshall511/wordpress_zero_spam",
+	"description": "WordPress Zero Spam makes blocking spam & malicious visitors a cinch. Just install, activate and enjoy a spam-free site.",
+	"keywords": ["wordpress-plugin"],
+	"type": "wordpress-plugin",
+	"homepage": "https://www.benmarshall.me/wordpress-zero-spam",
+	"authors": [
+		{
+			"name": "Ben Marshall (bmarshall)",
+			"homepage": "https://www.benmarshall.me",
+			"role": "Maintainer"
+		}
+	],
+	"support": {
+		"issues": "https://github.com/bmarshall511/wordpress-zero-spam/issues"
+	},
+	"license": "GPL-2.0-or-later",
+	"minimum-stability": "stable",
+	"repositories": [
+		{
+			"type": "package",
+			"package": {
+				"name": "bmarshall511/wordpress-zero-spam",
+				"version": "master",
+				"source": {
+					"url": "git://github.com/bmarshall511/wordpress-zero-spam.git",
+					"type": "git",
+					"reference": "master"
+				}
+			}
+		}
+	],
+	"require": {
+		"php" : ">=7.2"
+	}
+}

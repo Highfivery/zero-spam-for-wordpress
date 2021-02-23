@@ -38,23 +38,9 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
 
-= Multilingual Supported =
-
-We’ve integrated multi language support within the framework of our plugin, so you get a translated dashboard out of the box, and developer options to add even more languages. Contribute new languages via [translate.wordpress.org](https://translate.wordpress.org/projects/wp-plugins/zero-spam/).
-
-= Help test & contribute to WordPress Zero Spam =
-
-WordPress Zero Spam can only stay up-to-date and bug-free with the help of contributors and testers. You can help test upcoming releases and contribute by forking the project on [GitHub](https://github.com/bmarshall511/wordpress-zero-spam).
-
-= Plugin Support =
-
-* For usage &amp; tutorials, view the [documentation](https://www.benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
-* Have questions? Visit the [WordPress Zero Spam Forum](https://wordpress.org/support/plugin/zero-spam/).
-* More FAQs and API documentation can be found at [Zero Spam](https://zerospam.org/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam).
-
 = WordPress Zero Spam needs your support =
 
-**WordPress Zero Spam is free — completely free & always will be.** It's hard to continue development and provide support without contributions. If you find using WordPress Zero Spam useful, please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam). Your donation will help encourage and support the plugin's continued development and user support.
+**WordPress Zero Spam is free — completely free & always will be.** Development requires resources, please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) to help encourage and support the plugin's continued support.
 
 * Like our [Facebook Page](https://www.facebook.com/zerospamorg/)
 * Follow us on [Twitter](https://www.facebook.com/zerospamorg)
@@ -83,6 +69,10 @@ For more information & developer documentation, see the [plugin’s website](htt
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= TBD =
+
+* Updated readme file & documentation
 
 = v5.0.0 =
 
