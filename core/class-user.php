@@ -11,19 +11,14 @@ namespace ZeroSpam\Core;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Admin.
+ * User class.
  *
- * Handles access checks.
- *
- * @since 5.0.0
+ * Handles getting user specific information.
  */
 class User {
 
 	/**
 	 * Gets the current user's IP.
-	 *
-	 * @since 5.0.0
-	 * @access public
 	 */
 	public static function get_ip() {
 		$settings = Settings::get_settings();

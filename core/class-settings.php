@@ -192,7 +192,7 @@ class Settings {
 
 		if ( $key ) {
 			if ( ! empty( $settings[ $key ]['value'] ) ) {
-				return $key;
+				return $settings[ $key ]['value'];
 			}
 
 			return false;

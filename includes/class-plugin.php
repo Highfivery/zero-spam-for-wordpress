@@ -20,6 +20,7 @@ use ZeroSpam\Modules\Registration\Registration;
 use ZeroSpam\Modules\Comments\Comments;
 use ZeroSpam\Modules\ContactForm7\ContactForm7;
 use ZeroSpam\Modules\WooCommerce\WooCommerce;
+use ZeroSpam\Modules\WPForms\WPForms;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -150,6 +151,13 @@ class Plugin {
 
 		if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
 			new WooCommerce();
+		}
+
+		if (
+			is_plugin_active( 'wpforms-lite/wpforms.php' ) ||
+			is_plugin_active( 'wpforms/wpforms.php' )
+		) {
+			new WPForms();
 		}
 
 		//= new BotScout();

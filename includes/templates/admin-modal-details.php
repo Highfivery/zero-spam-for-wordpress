@@ -104,12 +104,22 @@
 
 	<h4 class="zerospam-modal-headline"><?php echo __( 'Additional Details', 'zerospam' ); ?></h4>
 	<?php
+
 	if ( ! empty( $item['submission_data'] ) ) :
 		$submission_data = json_decode( $item['submission_data'], true );
 		echo '<ul class="zerospam-modal-list">';
 		foreach ( $submission_data as $key => $value ) :
 			?>
-			<li><strong><?php echo $key; ?></strong> <span><?php echo $value; ?></span></li>
+			<li>
+				<strong><?php echo $key; ?></strong>
+				<span>
+					<?php if ( is_array( $value ) ) : ?>
+						<?php echo wp_json_encode( $value ); ?>
+					<?php else : ?>
+						<?php echo $value; ?>
+					<?php endif; ?>
+				</span>
+			</li>
 			<?php
 		endforeach;
 		echo '</ul>';

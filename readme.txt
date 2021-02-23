@@ -27,6 +27,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * IP blacklist spam checks ([Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/))
 * Automatically & manually block IPs temporarily or permanently
 * Geolocate IP addresses to see where offenders are coming from
+* Block entire countries, regions, zip/postal codes & cities
 * Detailed logging to catch, investigate & block recurring offenders
 * Developer-friendly, integrate with any theme, plugin or form
 
@@ -35,6 +36,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * WordPress core comments & user registrations
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
 * [WooCommerce](https://woocommerce.com/) registration forms
+* [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * and can be easily integrated into any existing theme or plugin
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.

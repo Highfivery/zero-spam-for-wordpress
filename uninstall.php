@@ -2,7 +2,7 @@
 /**
  * Handles uninstalling the plugin
  *
- * @package WordPressZeroSpam
+ * @package ZeroSpam
  */
 
 // Security Note: Blocks direct access to the plugin PHP files.
