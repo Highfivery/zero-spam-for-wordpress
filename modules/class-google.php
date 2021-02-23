@@ -92,7 +92,7 @@ class Google {
 			'title'       => __( 'Google API Key', 'zerospam' ),
 			'section'     => 'google',
 			'type'        => 'text',
-			'class'       => 'regular-text',
+			'field_class' => 'regular-text',
 			'placeholder' => __( 'Enter your Google API key.', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(

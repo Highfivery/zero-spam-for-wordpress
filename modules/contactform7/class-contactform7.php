@@ -130,7 +130,7 @@ class ContactForm7 {
 				'desc'        => __( 'Displayed to the user when a submission is detected as spam/malicious.', 'zerospam' ),
 				'section'     => 'contactform7',
 				'type'        => 'text',
-				'class'       => 'large-text',
+				'field_class' => 'large-text',
 				'placeholder' => $message,
 				'value'       => ! empty( $options['contactform7_spam_message'] ) ? $options['contactform7_spam_message'] : $message,
 			);

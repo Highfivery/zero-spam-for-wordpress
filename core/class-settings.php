@@ -68,7 +68,7 @@ class Settings {
 	 * @since 5.0.0
 	 * @access public
 	 */
-	public static function get_settings() {
+	public static function get_settings( $key = false ) {
 		$options = get_option( 'wpzerospam' );
 
 		self::$settings['share_data'] = array(
@@ -115,7 +115,7 @@ class Settings {
 					'desc'        => __( 'The message that will be displayed to a blocked user.', 'zerospam' ),
 					'section'     => 'general',
 					'type'        => 'text',
-					'class'       => 'large-text',
+					'field_class' => 'large-text',
 					'placeholder' => $message,
 					'value'       => ! empty( $options['blocked_message'] ) ? $options['blocked_message'] : $message,
 				);
@@ -126,7 +126,7 @@ class Settings {
 					'desc'        => __( 'URL blocked users will be redirected to.', 'zerospam' ),
 					'section'     => 'general',
 					'type'        => 'url',
-					'class'       => 'regular-text',
+					'field_class' => 'regular-text',
 					'placeholder' => 'https://wordpress.org/plugins/zero-spam/',
 					'value'       => ! empty( $options['blocked_redirect_url'] ) ? $options['blocked_redirect_url'] : 'https://wordpress.org/plugins/zero-spam/',
 				);
@@ -142,6 +142,16 @@ class Settings {
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
 			'value'   => ! empty( $options['log_blocked_ips'] ) ? $options['log_blocked_ips'] : false,
+		);
+
+		self::$settings['ip_whitelist'] = array(
+			'title'       => __( 'IP Whitelist', 'zerospam' ),
+			'desc'        => __( 'Enter IPs that should be whitelisted (IPs that should never be blocked), one per line.', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'textarea',
+			'field_class' => 'regular-text code',
+			'placeholder' => '',
+			'value'       => ! empty( $options['ip_whitelist'] ) ? $options['ip_whitelist'] : false,
 		);
 
 		self::$settings['debug'] = array(
@@ -166,6 +176,16 @@ class Settings {
 			);
 		}
 
-		return apply_filters( 'zerospam_settings', self::$settings );
+		$settings = apply_filters( 'zerospam_settings', self::$settings );
+
+		if ( $key ) {
+			if ( ! empty( $settings[ $key ]['value'] ) ) {
+				return $key;
+			}
+
+			return false;
+		}
+
+		return $settings;
 	}
 }

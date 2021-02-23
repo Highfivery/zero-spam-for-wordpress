@@ -7,6 +7,8 @@
 
 namespace ZeroSpam\Core;
 
+use ZeroSpam;
+
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -80,5 +82,30 @@ class Utilities {
 	 */
 	public static function current_url() {
 		return ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on' ? "https" : "http" ) . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+	}
+
+	/**
+	 * Checks if an IP is on the whitelist.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 */
+	public static function is_whitelisted( $ip ) {
+		$settings = ZeroSpam\Core\Settings::get_settings();
+
+		// Check whitelist.
+		if ( ! empty( $settings['ip_whitelist']['value'] ) ) {
+			$whitelisted = explode( PHP_EOL, $settings['ip_whitelist']['value'] );
+			if ( $whitelisted ) {
+				foreach ( $whitelisted as $key => $whitelisted_ip ) {
+					$whitelisted_ip = trim( $whitelisted_ip );
+					if ( $whitelisted_ip === $ip ) {
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
 	}
 }

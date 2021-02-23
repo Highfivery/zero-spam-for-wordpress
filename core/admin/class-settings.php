@@ -107,6 +107,10 @@ class Settings {
 				$options['step'] = $setting['step'];
 			}
 
+			if ( ! empty( $setting['field_class'] ) ) {
+				$options['field_class'] = $setting['field_class'];
+			}
+
 			add_settings_field(
 				$key,
 				$setting['title'],
@@ -135,6 +139,21 @@ class Settings {
 	 */
 	public function settings_field( $args ) {
 		switch ( $args['type'] ) {
+			case 'textarea':
+				?>
+				<textarea
+					id="<?php echo esc_attr( $args['label_for'] ); ?>"
+					name="wpzerospam[<?php echo esc_attr( $args['label_for'] ); ?>]"
+					rows="5"
+					<?php if ( ! empty( $args['field_class'] ) ) : ?>
+						class="<?php echo esc_attr( $args['field_class'] ); ?>"
+					<?php endif; ?>
+					<?php if ( ! empty( $args['placeholder'] ) ) : ?>
+						placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
+					<?php endif; ?>
+				><?php if( ! empty( $args['value'] ) ) : ?><?php echo esc_attr( $args['value'] ); ?><?php endif; ?></textarea>
+				<?php
+				break;
 			case 'url':
 			case 'text':
 			case 'password':
@@ -148,8 +167,8 @@ class Settings {
 					<?php if( ! empty( $args['value'] ) ) : ?>
 						value="<?php echo esc_attr( $args['value'] ); ?>"
 					<?php endif; ?>
-					<?php if ( ! empty( $args['class'] ) ) : ?>
-						class="<?php echo esc_attr( $args['class'] ); ?>"
+					<?php if ( ! empty( $args['field_class'] ) ) : ?>
+						class="<?php echo esc_attr( $args['field_class'] ); ?>"
 					<?php endif; ?>
 					<?php if ( ! empty( $args['placeholder'] ) ) : ?>
 						placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
@@ -190,8 +209,8 @@ class Settings {
 							id="<?php echo esc_attr( $args['label_for'] . $key ); ?>"
 							name="<?php echo esc_attr( $name ); ?>"
 							value="<?php echo esc_attr( $key ); ?>"
-							<?php if ( ! empty( $args['class'] ) ) : ?>
-								class="<?php echo esc_attr( $args['class'] ); ?>"
+							<?php if ( ! empty( $args['field_class'] ) ) : ?>
+								class="<?php echo esc_attr( $args['field_class'] ); ?>"
 							<?php endif; ?>
 							<?php if ( $selected ) : ?>
 								checked="checked"
@@ -225,6 +244,7 @@ class Settings {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+			<?php require ZEROSPAM_PATH . 'includes/templates/admin-callout.php'; ?>
 
 			<form action="options.php" method="post">
 			<?php

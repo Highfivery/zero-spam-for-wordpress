@@ -137,7 +137,7 @@ class Registration {
 				'desc'        => __( 'Displayed to the user when a registration is detected as spam/malicious.', 'zerospam' ),
 				'section'     => 'registration',
 				'type'        => 'text',
-				'class'       => 'large-text',
+				'field_class' => 'large-text',
 				'placeholder' => $message,
 				'value'       => ! empty( $options['registration_spam_message'] ) ? $options['registration_spam_message'] : $message,
 			);

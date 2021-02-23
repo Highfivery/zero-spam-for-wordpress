@@ -103,7 +103,7 @@ class BotScout {
 			'title'       => __( 'BotScout API Key', 'zerospam' ),
 			'section'     => 'botscout',
 			'type'        => 'text',
-			'class'       => 'regular-text',
+			'field_class' => 'regular-text',
 			'placeholder' => __( 'Enter your free BotScout API key.', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(
@@ -127,7 +127,7 @@ class BotScout {
 			'title'       => __( 'BotScout API Timeout', 'zerospam' ),
 			'section'     => 'botscout',
 			'type'        => 'number',
-			'class'       => 'small-text',
+			'field_class' => 'small-text',
 			'suffix'      => __( 'seconds', 'zerospam' ),
 			'placeholder' => __( '5', 'zerospam' ),
 			'desc'        => __( 'Recommended setting is 5 seconds. Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond.', 'zerospam' ),

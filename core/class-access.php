@@ -46,18 +46,19 @@ class Access {
 		if ( ! empty( $access['blocked'] ) ) {
 			$settings = ZeroSpam\Core\Settings::get_settings();
 
-			if ( ! empty( $settings['log_blocked_ips']['value'] ) && 'enabled' === $settings['log_blocked_ips']['value'] ) {
-				if ( ! empty( $access['details'] ) && is_array( $access['details'] ) ) {
 
-					if ( ! empty( $settings['share_data']['value'] ) && 'enabled' === $settings['share_data']['value'] ) {
-						do_action( 'zerospam_share_blocked', $access['details'] );
-					}
+			if ( ! empty( $access['details'] ) && is_array( $access['details'] ) ) {
+				if ( ! empty( $settings['share_data']['value'] ) && 'enabled' === $settings['share_data']['value'] ) {
+					do_action( 'zerospam_share_blocked', $access['details'] );
+				}
 
-					foreach ( $access['details'] as $key => $detail ) {
-						if ( ! empty( $detail['blocked'] ) ) {
-							if ( empty( $detail['details']['failed'] ) ) {
-								$detail['details']['failed'] = $key;
-							}
+				foreach ( $access['details'] as $key => $detail ) {
+					if ( ! empty( $detail['blocked'] ) ) {
+						if ( empty( $detail['details']['failed'] ) ) {
+							$detail['details']['failed'] = $key;
+						}
+
+						if ( ! empty( $settings['log_blocked_ips']['value'] ) && 'enabled' === $settings['log_blocked_ips']['value'] ) {
 							ZeroSpam\Includes\DB::log( $detail['type'], $detail['details'] );
 						}
 					}
@@ -106,10 +107,39 @@ class Access {
 		$blocked = ZeroSpam\Includes\DB::blocked( $user_ip );
 
 		if ( $blocked ) {
-			$access_checks['blocked']['blocked']           = true;
-			$access_checks['blocked']['type']              = 'blocked';
-			$access_checks['blocked']['details']           = $blocked;
-			$access_checks['blocked']['details']['failed'] = 'blocked_ips';
+			$today = new \DateTime();
+
+			// Check the start & end dates (all blocks require a start date).
+			$start_date = new \DateTime();
+			if ( ! empty( $blocked['start_block'] ) ) {
+				$start_date = new \DateTime( $blocked['start_block'] );
+			}
+
+			if ( $today >= $start_date ) {
+				// Check the end date if temporary block.
+				if (
+					! empty( $blocked['blocked_type'] ) &&
+					'temporary' === $blocked['blocked_type']
+				) {
+					// Temporary block.
+					if ( ! empty( $blocked['end_block'] ) ) {
+						$end_date = new \DateTime( $blocked['end_block'] );
+
+						if ( $today < $end_date ) {
+							$access_checks['blocked']['blocked']           = true;
+							$access_checks['blocked']['type']              = 'blocked';
+							$access_checks['blocked']['details']           = $blocked;
+							$access_checks['blocked']['details']['failed'] = 'blocked_ips';
+						}
+					}
+				} else {
+					// Permanent block.
+					$access_checks['blocked']['blocked']           = true;
+					$access_checks['blocked']['type']              = 'blocked';
+					$access_checks['blocked']['details']           = $blocked;
+					$access_checks['blocked']['details']['failed'] = 'blocked_ips';
+				}
+			}
 		}
 
 		return $access_checks;
@@ -122,6 +152,8 @@ class Access {
 	 * @access public
 	 */
 	public function get_access() {
+		$settings = ZeroSpam\Core\Settings::get_settings();
+
 		$access = array(
 			'blocked' => false,
 		);
@@ -129,7 +161,9 @@ class Access {
 		$user_ip = ZeroSpam\Core\User::get_ip();
 
 		if ( $user_ip ) {
-			$settings = ZeroSpam\Core\Settings::get_settings();
+			if ( ZeroSpam\Core\Utilities::is_whitelisted( $user_ip ) ) {
+				return $access;
+			}
 
 			$access_checks = apply_filters( 'zerospam_access_checks', array(), $user_ip, $settings );
 			foreach ( $access_checks as $key => $check ) {

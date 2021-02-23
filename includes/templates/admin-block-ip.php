@@ -35,8 +35,14 @@
 </label>
 
 <label for="blocked-start-date">
-	<?php _e( 'Start Date', 'zerospam' ); ?>
-	<input type="datetime-local" id="blocked-start-date" name="blocked_start_date" value="" placeholder="<?php _e( 'Optional', 'zerospam' ); ?>" />
+	<?php esc_html_e( 'Start Date', 'zerospam' ); ?>
+	<input
+		type="datetime-local"
+		id="blocked-start-date"
+		name="blocked_start_date"
+		value=""
+		placeholder="<?php echo esc_attr( __( 'Optional', 'zerospam' ) ); ?>"
+	/>
 </label>
 
 <label for="blocked-end-date">

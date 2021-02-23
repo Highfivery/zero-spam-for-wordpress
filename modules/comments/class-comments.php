@@ -141,7 +141,7 @@ class Comments {
 				'desc'        => __( 'Displayed to the user when a comment is detected as spam/malicious.', 'zerospam' ),
 				'section'     => 'comments',
 				'type'        => 'text',
-				'class'       => 'large-text',
+				'field_class' => 'large-text',
 				'placeholder' => $message,
 				'value'       => ! empty( $options['comment_spam_message'] ) ? $options['comment_spam_message'] : $message,
 			);

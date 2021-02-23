@@ -27,7 +27,6 @@ class Dashboard {
 	 */
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
 		add_action( 'admin_action_add_blocked_ip', array( $this, 'block_ip' ) );
 	}
 
@@ -92,9 +91,7 @@ class Dashboard {
 			$record['end_block'] = gmdate( 'Y-m-d G:i:s', strtotime( $record['end_block'] ) );
 		}
 
-
-
-		if ( 'temporary' === $type && ! $data['end_block']  ) {
+		if ( 'temporary' === $record['blocked_type'] && ! $record['end_block']  ) {
 			wp_safe_redirect( $url . '&error=3' );
 			exit;
 		}
@@ -123,31 +120,6 @@ class Dashboard {
 			'wordpress-zero-spam-dashboard',
 			array( $this, 'dashboard_page' )
 		);
-	}
-
-	/**
-	 * Scripts.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 */
-	public function scripts( $hook_suffix ) {
-		if ( 'dashboard_page_wordpress-zero-spam-dashboard' === $hook_suffix ) {
-			wp_enqueue_style(
-				'zerospam-admin',
-				plugin_dir_url( ZEROSPAM ) . 'assets/css/admin.css',
-				false,
-				ZEROSPAM_VERSION
-			);
-
-			wp_enqueue_script(
-				'zerospam-admin',
-				plugin_dir_url( ZEROSPAM ) . 'assets/js/admin.js',
-				array(),
-				ZEROSPAM_VERSION,
-				true
-			);
-		}
 	}
 
 	/**

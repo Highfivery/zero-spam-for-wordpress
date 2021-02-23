@@ -133,7 +133,7 @@ class DB {
 				);
 			} else {
 				// Insert the record.
-				$record['last_updated'] = current_time( 'mysql' );
+				$record['date_added'] = current_time( 'mysql' );
 				return $wpdb->insert( $wpdb->prefix . self::$tables['blocked'], $record );
 			}
 		} elseif ( $key_type ) {

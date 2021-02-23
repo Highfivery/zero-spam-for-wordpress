@@ -22,38 +22,47 @@ defined( 'ABSPATH' ) || die();
 class Admin {
 
 	/**
-	 * Settings.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Settings
-	 */
-	public $settings;
-
-	/**
-	 * Dashboard.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Dashboard
-	 */
-	public $dashboard;
-
-	/**
 	 * Admin constructor.
 	 *
 	 * @since 5.0.0
 	 * @access public
 	 */
 	public function __construct() {
-		$this->settings  = new Settings();
-		$this->dashboard = new Dashboard();
+		new Settings();
+		new Dashboard();
 
 		add_filter( 'plugin_action_links_' . ZEROSPAM_PLUGIN_BASE, array( $this, 'plugin_action_links' ) );
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
+	}
+
+	/**
+	 * Scripts.
+	 *
+	 * @since 5.0.0
+	 * @access public
+	 */
+	public function scripts( $hook_suffix ) {
+		if (
+			'dashboard_page_wordpress-zero-spam-dashboard' === $hook_suffix ||
+			'settings_page_wordpress-zero-spam-settings' === $hook_suffix
+		) {
+			wp_enqueue_style(
+				'zerospam-admin',
+				plugin_dir_url( ZEROSPAM ) . 'assets/css/admin.css',
+				false,
+				ZEROSPAM_VERSION
+			);
+
+			wp_enqueue_script(
+				'zerospam-admin',
+				plugin_dir_url( ZEROSPAM ) . 'assets/js/admin.js',
+				array(),
+				ZEROSPAM_VERSION,
+				true
+			);
+		}
 	}
 
 	/**
