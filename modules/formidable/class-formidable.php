@@ -24,7 +24,7 @@ class Formidable {
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_formidable' ) ) {
+		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_formidable' ) && ZeroSpam\Core\Access::process() ) {
 			add_action( 'frm_entry_form', array( $this, 'honeypot' ), 10, 1 );
 			add_filter( 'frm_validate_entry', array( $this, 'preprocess_submission' ), 10, 2 );
 		}

@@ -28,8 +28,21 @@ class Access {
 	 * @access private
 	 */
 	public function __construct() {
-		add_action( 'template_redirect', array( $this, 'access_check' ), 0 );
-		add_filter( 'zerospam_access_checks', array( $this, 'check_blocked' ), 0, 3 );
+		if ( ZeroSpam\Core\Access::process() ) {
+			add_action( 'template_redirect', array( $this, 'access_check' ), 0 );
+			add_filter( 'zerospam_access_checks', array( $this, 'check_blocked' ), 0, 3 );
+		}
+	}
+
+	/**
+	 * Returns true if WordPress Zero Spam should process a submission.
+	 */
+	public static function process() {
+		if ( is_admin() || is_user_logged_in() ) {
+			return false;
+		}
+
+		return true;
 	}
 
 	/**

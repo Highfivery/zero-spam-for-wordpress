@@ -24,7 +24,7 @@ class WPForms {
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings('verify_wpforms') ) {
+		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings('verify_wpforms') && ZeroSpam\Core\Access::process() ) {
 			add_action( 'wpforms_frontend_output', array( $this, 'honeypot' ), 10, 1 );
 			add_action( 'wpforms_process', array( $this, 'preprocess_submission' ), 10, 3 );
 		}

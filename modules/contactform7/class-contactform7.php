@@ -30,7 +30,7 @@ class ContactForm7 {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		$settings = ZeroSpam\Core\Settings::get_settings();
-		if ( ! empty( $settings['verify_contactform7']['value'] ) && 'enabled' === $settings['verify_contactform7']['value'] ) {
+		if ( ! empty( $settings['verify_contactform7']['value'] ) && 'enabled' === $settings['verify_contactform7']['value'] && ZeroSpam\Core\Access::process() ) {
 			add_filter( 'wpcf7_form_elements', array( $this, 'honeypot' ), 10, 1 );
 			add_filter( 'wpcf7_validate', array( $this, 'preprocess_submission' ), 10, 2 );
 		}

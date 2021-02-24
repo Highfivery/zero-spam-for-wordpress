@@ -27,9 +27,12 @@ class StopForumSpam {
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
-		add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 3 );
-		add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registrations' ), 10, 3 );
-		add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1  );
+
+		if ( ZeroSpam\Core\Access::process() ) {
+			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 3 );
+			add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registrations' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1 );
+		}
 	}
 
 	/**
@@ -142,7 +145,7 @@ class StopForumSpam {
 		$settings = ZeroSpam\Core\Settings::get_settings();
 
 		if ( empty( $settings['stop_forum_spam']['value'] ) || 'enabled' !== $settings['stop_forum_spam']['value'] ) {
-			return $errors;
+			return $commentdata;
 		}
 
 		$response = self::query(
@@ -181,7 +184,7 @@ class StopForumSpam {
 		}
 
 
-		return $errors;
+		return $commentdata;
 	}
 
 	/**

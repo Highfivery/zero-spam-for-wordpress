@@ -31,7 +31,7 @@ class Comments {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		$settings = ZeroSpam\Core\Settings::get_settings();
-		if ( ! empty( $settings['verify_comments']['value'] ) && 'enabled' === $settings['verify_comments']['value'] ) {
+		if ( ! empty( $settings['verify_comments']['value'] ) && 'enabled' === $settings['verify_comments']['value'] && ZeroSpam\Core\Access::process() ) {
 			add_filter( 'comment_form_defaults', array( $this, 'honeypot' ) );
 			add_action( 'preprocess_comment', array( $this, 'preprocess_comments' ) );
 		}
@@ -84,6 +84,8 @@ class Comments {
 				)
 			);
 		}
+
+		$commentdata = apply_filters( 'zerospam_preprocess_comment', $commentdata );
 
 		return apply_filters( 'zerospam_preprocess_comment', $commentdata );
 	}

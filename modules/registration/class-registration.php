@@ -32,7 +32,7 @@ class Registration {
 			add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 			$settings = ZeroSpam\Core\Settings::get_settings();
-			if ( ! empty( $settings['verify_registrations']['value'] ) && 'enabled' === $settings['verify_registrations']['value'] ) {
+			if ( ! empty( $settings['verify_registrations']['value'] ) && 'enabled' === $settings['verify_registrations']['value'] && ZeroSpam\Core\Access::process() ) {
 				add_action( 'register_form', array( $this, 'honeypot' ) );
 				add_filter( 'registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
 			}

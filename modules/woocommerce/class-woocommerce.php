@@ -25,7 +25,7 @@ class WooCommerce {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		$settings = ZeroSpam\Core\Settings::get_settings();
-		if ( ! empty( $settings['woocommerce_protection']['value'] ) && 'enabled' === $settings['woocommerce_protection']['value'] ) {
+		if ( ! empty( $settings['woocommerce_protection']['value'] ) && 'enabled' === $settings['woocommerce_protection']['value'] && ZeroSpam\Core\Access::process() ) {
 			$settings = ZeroSpam\Core\Settings::get_settings();
 			if ( ! empty( $settings['verify_registrations']['value'] ) && 'enabled' === $settings['verify_registrations']['value'] ) {
 				add_action( 'woocommerce_register_form', array( $this, 'honeypot' ) );
