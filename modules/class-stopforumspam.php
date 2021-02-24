@@ -320,13 +320,6 @@ class StopForumSpam {
 				! empty( $response['ip']['appears'] )
 			) {
 
-				$blacklisted = array(
-					'user_ip'           => $user_ip,
-					'blacklist_service' => 'stop_forum_spam',
-					'blacklist_data'    => wp_json_encode( $response['ip'] ),
-				);
-				ZeroSpam\Includes\DB::blacklisted( $blacklisted );
-
 				if (
 					! empty( $response['ip']['confidence'] ) &&
 					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&

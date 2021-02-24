@@ -12,18 +12,12 @@ defined( 'ABSPATH' ) || die();
 
 /**
  * Settings.
- *
- * @since 5.0.0
  */
 class Settings {
 	/**
 	 * Settings.
 	 *
 	 * Holds the plugin settings.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 * @static
 	 *
 	 * @var Settings
 	 */
@@ -32,19 +26,12 @@ class Settings {
 	/**
 	 * Sections.
 	 *
-	 * @since 5.0.0
-	 * @access public
-	 * @static
-	 *
 	 * @var Settings
 	 */
 	public static $sections = array();
 
 	/**
 	 * Returns the plugin setting sections.
-	 *
-	 * @since 5.0.0
-	 * @access public
 	 */
 	public static function get_sections() {
 		self::$sections['improve'] = array(
@@ -65,8 +52,7 @@ class Settings {
 	/**
 	 * Returns the plugin settings.
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param string $key Optional. Get the value for a specific setting.
 	 */
 	public static function get_settings( $key = false ) {
 		$options = get_option( 'wpzerospam' );

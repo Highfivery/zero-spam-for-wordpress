@@ -21,15 +21,13 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 
 = WordPress Zero Spam features =
 
-* Blocks 99.9% of spam &amp; malicious visitors
 * No captcha, spam isn't a users' problem
 * No moderation queues, spam isn't a administrators' problem
-* IP blacklist spam checks ([Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/))
+* Third-party blacklist checks ([Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/))
 * Automatically & manually block IPs temporarily or permanently
 * Geolocate IP addresses to see where offenders are coming from
 * Block entire countries, regions, zip/postal codes & cities
 * Detailed logging to catch, investigate & block recurring offenders
-* Developer-friendly, integrate with any theme, plugin or form
 
 = WordPress Zero Spam also protects =
 
@@ -44,7 +42,7 @@ WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's mo
 
 = WordPress Zero Spam needs your support =
 
-**WordPress Zero Spam is free — completely free & always will be.** Development requires resources, please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) to help encourage and support the plugin's continued support.
+**WordPress Zero Spam is free & always will be.** Please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) to help encourage plugin's continued development.
 
 * Like our [Facebook Page](https://www.facebook.com/zerospamorg/)
 * Follow us on [Twitter](https://www.facebook.com/zerospamorg)
@@ -77,6 +75,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 = v5.0.3 =
 
 * Added support for Formidable Form Builder
+* Fixed PHP error related to a blacklist call
 
 = v5.0.2 =
 
