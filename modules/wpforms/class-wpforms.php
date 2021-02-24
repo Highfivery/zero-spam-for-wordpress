@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || die();
  */
 class WPForms {
 	/**
-	 * WooCommerce constructor.
+	 * WPForms constructor.
 	 */
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
@@ -40,7 +40,7 @@ class WPForms {
 	}
 
 	/**
-	 * Registration sections.
+	 * WPForms sections.
 	 */
 	public function sections( $sections ) {
 		$sections['wpforms'] = array(

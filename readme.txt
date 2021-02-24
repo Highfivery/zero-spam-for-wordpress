@@ -5,7 +5,7 @@ Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&u
 Requires at least: 5.2
 Tested up to: 5.6.2
 Requires PHP: 7.3
-Stable tag: 5.0.2
+Stable tag: 5.0.3
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -37,6 +37,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
 * [WooCommerce](https://woocommerce.com/) registration forms
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
+* [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
 * and can be easily integrated into any existing theme or plugin
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
@@ -72,6 +73,10 @@ For more information & developer documentation, see the [plugin’s website](htt
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.0.3 =
+
+* Added support for Formidable Form Builder
 
 = v5.0.2 =
 

@@ -22,6 +22,7 @@ class User {
 	 */
 	public static function get_ip() {
 		$settings = Settings::get_settings();
+		$ip       = false;
 
 		// Check if a debugging IP is enabled.
 		if (
@@ -29,37 +30,36 @@ class User {
 			'enabled' === $settings['debug']['value'] &&
 			! empty( $settings['debug_ip']['value'] )
 		) {
-			return $settings['debug_ip']['value'];
-		}
-
-		// Check against Cloudflare IPs.
-		if ( ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
-			$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
+			$ip = $settings['debug_ip']['value'];
+		} elseif ( ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+			// Check against Cloudflare's reported IP address.
+			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
 		} else {
-
 			// Handle all other IPs.
 			if ( ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) {
-				$ip = $_SERVER['HTTP_CLIENT_IP'];
+				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
 			} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-				$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
 			} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED'] ) ) {
-				$ip = $_SERVER['HTTP_X_FORWARDED'];
+				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED'] ) );
 			} elseif ( ! empty( $_SERVER['HTTP_FORWARDED_FOR'] ) ) {
-				$ip = $_SERVER['HTTP_FORWARDED_FOR'];
+				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_FORWARDED_FOR'] ) );
 			} elseif ( ! empty( $_SERVER['HTTP_FORWARDED'] ) ) {
-				$ip = $_SERVER['HTTP_FORWARDED'];
-			} else {
-				$ip = $_SERVER['REMOTE_ADDR'];
+				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_FORWARDED'] ) );
+			} elseif ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
+				$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
 			}
 		}
 
-		$ip = explode( ',', $ip );
-		$ip = trim( $ip[0] );
+		if ( $ip ) {
+			$ip = explode( ',', $ip );
+			$ip = trim( $ip[0] );
 
-		if ( ! rest_is_ip_address( $ip ) ) {
-			return false;
+			if ( ! rest_is_ip_address( $ip ) ) {
+				$ip = false;
+			}
 		}
 
-		return $ip;
+		return apply_filters( 'zerospam_get_ip', $ip );
 	}
 }

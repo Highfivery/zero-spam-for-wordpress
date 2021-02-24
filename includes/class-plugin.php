@@ -21,6 +21,7 @@ use ZeroSpam\Modules\Comments\Comments;
 use ZeroSpam\Modules\ContactForm7\ContactForm7;
 use ZeroSpam\Modules\WooCommerce\WooCommerce;
 use ZeroSpam\Modules\WPForms\WPForms;
+use ZeroSpam\Modules\Formidable\Formidable;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -94,9 +95,9 @@ class Plugin {
 			self::$instance = new self();
 
 			/**
-			 * Elementor loaded.
+			 * WordPress Zero Spam loaded.
 			 *
-			 * Fires when Elementor was fully loaded and instantiated.
+			 * Fires when WordPress Zero Spam was fully loaded and instantiated.
 			 *
 			 * @since 1.0.0
 			 */
@@ -145,6 +146,7 @@ class Plugin {
 		new Comments();
 
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
+
 		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
 			new ContactForm7();
 		}
@@ -158,6 +160,10 @@ class Plugin {
 			is_plugin_active( 'wpforms/wpforms.php' )
 		) {
 			new WPForms();
+		}
+
+		if ( is_plugin_active( 'formidable/formidable.php' ) ) {
+			new Formidable();
 		}
 
 		//= new BotScout();
