@@ -74,14 +74,10 @@ class Autoloader {
 	 */
 	private static function load_class( $relative_class_name ) {
 		$filename = strtolower(
-			preg_replace(
-				array( '/_/', '/\\\/' ),
-				array( '', DIRECTORY_SEPARATOR ),
-				$relative_class_name
-			)
+			str_replace( '_', '', $relative_class_name )
 		);
 
-		$filename_parts = explode( '/', $filename );
+		$filename_parts = explode( '\\', $filename );
 		$last_part      = array_key_last( $filename_parts );
 
 		$filename_parts[ $last_part ] = 'class-' . $filename_parts[ $last_part ];
