@@ -10,7 +10,8 @@
 
 .zerospam-callout,
 .zerospam-modal,
-.zerospam-notice  {
+.zerospam-notice,
+.zerospam-module  {
 	background: #fff;
 	border: 1px solid #ccd0d4;
 	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
@@ -18,13 +19,43 @@
 
 .zerospam-callout-col,
 .zerospam-modal,
-.zerospam-notice {
+.zerospam-notice,
+.zerospam-module {
+	box-sizing: border-box;
 	padding: 30px;
 }
 
 .zerospam-notice,
-.zerospam-callout {
+.zerospam-callout,
+.zerospam-module {
 	margin: 20px 0;
+}
+
+.zerospam-modules {
+	display: flex;
+	flex-wrap: wrap;
+	margin-left: -10px;
+	margin-right: -10px;
+}
+
+.zerospam-module {
+	margin-left: 10px;
+	margin-right: 10px;
+	width: calc(100% - 20px);
+}
+
+.zerospam-module h3 {
+	margin: 0 0 30px 0;
+}
+
+@media (min-width: 768px) {
+	.zerospam-module-map {
+		width: calc(60% - 20px);
+	}
+
+	.zerospam-module-ip {
+		width: calc(40% - 20px)
+	}
 }
 
 .zerospam-callout {
@@ -217,4 +248,34 @@
 	.zerospam-callout-col {
 		width: 50%;
 	}
+}
+
+.zerospam-list li {
+	align-items: center;
+	border-bottom: 1px solid #ccd0d4;
+	display: flex;
+	margin: 0;
+	padding: 5px 0;
+}
+
+.zerospam-list li:last-child {
+	border-bottom: 0;
+}
+
+.zerospam-list li span:first-child {
+	width: 35%;
+}
+
+.zerospam-list li span:nth-child(2) {
+	width: 35%;
+}
+
+.zerospam-list li span:nth-child(3) {
+	text-align: right;
+	width: 10%;
+}
+
+.zerospam-list li span:nth-child(4) {
+	text-align: right;
+	width: 20%;
 }

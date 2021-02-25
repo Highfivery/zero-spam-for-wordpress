@@ -198,18 +198,65 @@ class Dashboard {
 			<?php endif; ?>
 
 			<?php
-			$active_tab = 'log';
+			$active_tab = 'stats';
 			if ( ! empty( $_REQUEST['tab'] ) ) {
 				$active_tab = sanitize_text_field( $_REQUEST['tab'] );
 			}
 			?>
 			<div class="nav-tab-wrapper">
+				<a id="zerospam-settings-tab-stats" class="nav-tab<?php if ( 'stats' === $active_tab ) : ?> nav-tab-active<?php endif; ?>" href="<?php echo esc_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&tab=stats' ) ); ?>"><?php echo __( 'Statistics', 'zerospam' ); ?></a>
 				<a id="zerospam-settings-tab-log" class="nav-tab<?php if ( 'log' === $active_tab ) : ?> nav-tab-active<?php endif; ?>" href="<?php echo esc_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&tab=log' ) ); ?>"><?php echo __( 'Log', 'zerospam' ); ?></a>
 				<a id="zerospam-settings-tab-blocked-ips" class="nav-tab<?php if ( 'blocked' === $active_tab ) : ?> nav-tab-active<?php endif; ?>" href="<?php echo esc_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&tab=blocked' ) ); ?>"><?php echo __( 'Blocked IPs', 'zerospam' ); ?></a>
 				<a id="zerospam-settings-tab-blocked-locations" class="nav-tab<?php if ( 'blocked-locations' === $active_tab ) : ?> nav-tab-active<?php endif; ?>" href="<?php echo esc_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&tab=blocked-locations' ) ); ?>"><?php echo __( 'Blocked Locations', 'zerospam' ); ?></a>
 			</div>
 
 			<div class="zerospam-tabs">
+				<?php
+				if ( 'stats' === $active_tab ) :
+					$entries = ZeroSpam\Includes\DB::query( 'log' );
+
+					if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_ips' ) ) :
+						echo '<div class="zerospam-modules">';
+
+						echo '<div class="zerospam-module zerospam-module-map">';
+						echo '<h3>WordPress Zero Spam World Map</h3>';
+						require ZEROSPAM_PATH . 'includes/templates/admin-map.php';
+						echo '</div>';
+
+						?>
+						<div class="zerospam-module zerospam-module-ip">
+							<h3><?php esc_html_e( 'Most Detections by IP Address', 'zerospam' ); ?></h3>
+							<?php require ZEROSPAM_PATH . 'includes/templates/admin-ips.php'; ?>
+						</div>
+						<?php
+
+						echo '</div>';
+					else :
+						?>
+						<div class="zerospam-notice">
+							<?php
+							echo sprintf(
+								wp_kses(
+									/* translators: %s: url */
+									__( 'WordPress Zero Spam logging is currently <strong>disabled</strong>. It can be enabled on the <a href="%s">settings page</a>.', 'zerospam' ),
+									array(
+										'strong' => array(),
+										'a'    => array(
+											'href'   => array(),
+										),
+									)
+								),
+								esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) )
+							);
+							?>
+
+							<?php esc_html_e( '', 'zerospam' ); ?>
+						</div>
+						<?php
+					endif;
+				endif;
+				?>
+
 				<?php if ( 'log' === $active_tab ) : ?>
 					<div id="tab-log" class="zerospam-tab is-active">
 						<?php if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_ips' ) ) : ?>

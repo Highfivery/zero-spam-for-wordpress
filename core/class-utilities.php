@@ -24,8 +24,8 @@ class Utilities {
 	 *
 	 * @access public
 	 */
-	public static function countries() {
-		return apply_filters(
+	public static function countries( $key = false ) {
+		$countries = apply_filters(
 			'zerospam_countries',
 			array(
 				'AF' => 'Afghanistan',
@@ -269,6 +269,16 @@ class Utilities {
 				'ZW' => 'Zimbabwe',
 			)
 		);
+
+		if ( $key ) {
+			if ( ! empty( $countries[ $key ] ) ) {
+				return $countries[ $key ];
+			}
+
+			return false;
+		}
+
+		return $countries;
 	}
 
 	/**
