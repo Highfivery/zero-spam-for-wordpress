@@ -47,10 +47,6 @@ class Settings {
 	 * @access public
 	 */
 	public static function get_sections() {
-		self::$sections['improve'] = array(
-			'title' => __( 'Improve WordPress Zero Spam', 'zerospam' ),
-		);
-
 		self::$sections['general'] = array(
 			'title' => __( 'General Settings', 'zerospam' ),
 		);
@@ -73,11 +69,12 @@ class Settings {
 
 		self::$settings['share_data'] = array(
 			'title'   => __( 'Usage Data Sharing', 'zerospam' ),
-			'section' => 'improve',
+			'section' => 'general',
 			'type'    => 'checkbox',
 			'options' => array(
 				'enabled' => sprintf(
 					wp_kses(
+						/* translators: %s: url */
 						__( 'Become a super contributor by opting in to share non-sensitive plugin data. <a href="%s" target="_blank" rel="noreferrer noopener">Learn more</a>.', 'zerospam' ),
 						array(
 							'a'    => array(
@@ -102,6 +99,7 @@ class Settings {
 				'redirect' => __( 'Redirect user', 'zerospam' ),
 				'403'      => sprintf(
 					wp_kses(
+						/* translators: %s: url */
 						__( 'Display a <a href="%s" target="_blank" rel="noreferrer noopener"><code>403 Forbidden</code></a> error', 'zerospam' ),
 						array(
 							'code' => array(),
@@ -118,42 +116,46 @@ class Settings {
 			'value'   => ! empty( $options['block_handler'] ) ? $options['block_handler'] : 403,
 		);
 
-		switch ( self::$settings['block_handler']['value'] ) {
-			case 403:
-				$message = __( 'Your IP address has been blocked by WordPress Zero Spam due to detected spam/malicious activity.', 'zerospam' );
+		$message                           = __( 'Your IP address has been blocked by WordPress Zero Spam due to detected spam/malicious activity.', 'zerospam' );
+		self::$settings['blocked_message'] = array(
+			'title'       => __( 'Blocked Message', 'zerospam' ),
+			'desc'        => __( 'The message displayed to blocked users when \'Display a 403 Forbidden error\' is selected.', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'text',
+			'field_class' => 'large-text',
+			'placeholder' => $message,
+			'value'       => ! empty( $options['blocked_message'] ) ? $options['blocked_message'] : $message,
+		);
 
-				self::$settings['blocked_message'] = array(
-					'title'       => __( 'Blocked Message', 'zerospam' ),
-					'desc'        => __( 'The message that will be displayed to a blocked user.', 'zerospam' ),
-					'section'     => 'general',
-					'type'        => 'text',
-					'field_class' => 'large-text',
-					'placeholder' => $message,
-					'value'       => ! empty( $options['blocked_message'] ) ? $options['blocked_message'] : $message,
-				);
-				break;
-			case 'redirect':
-				self::$settings['blocked_redirect_url'] = array(
-					'title'       => __( 'Redirect for Blocked Users', 'zerospam' ),
-					'desc'        => __( 'URL blocked users will be redirected to.', 'zerospam' ),
-					'section'     => 'general',
-					'type'        => 'url',
-					'field_class' => 'regular-text',
-					'placeholder' => 'https://wordpress.org/plugins/zero-spam/',
-					'value'       => ! empty( $options['blocked_redirect_url'] ) ? $options['blocked_redirect_url'] : 'https://wordpress.org/plugins/zero-spam/',
-				);
-				break;
-		}
+		self::$settings['blocked_redirect_url'] = array(
+			'title'       => __( 'Blocked Users Redirect', 'zerospam' ),
+			'desc'        => __( 'The URL blocked users are redirected to when \'Redirect user\' is selected.', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'url',
+			'field_class' => 'regular-text',
+			'placeholder' => 'https://wordpress.org/plugins/zero-spam/',
+			'value'       => ! empty( $options['blocked_redirect_url'] ) ? $options['blocked_redirect_url'] : 'https://wordpress.org/plugins/zero-spam/',
+		);
 
 		self::$settings['log_blocked_ips'] = array(
 			'title'   => __( 'Log Blocked IPs', 'zerospam' ),
 			'section' => 'general',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging IPs that are blocked from accessing the site. High traffic sites should leave this disabled.', 'zerospam' ),
+			'desc'    => __( 'Enables logging IPs that are blocked from accessing the site.', 'zerospam' ),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
 			'value'   => ! empty( $options['log_blocked_ips'] ) ? $options['log_blocked_ips'] : false,
+		);
+
+		self::$settings['max_logs'] = array(
+			'title'       => __( 'Maximum Log Entries', 'zerospam' ),
+			'desc'        => __( 'The maximum number of log entries when logging is enabled. When the maximum is reached, the oldest entries will be deleted.', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'number',
+			'field_class' => 'small-text',
+			'placeholder' => 10000,
+			'value'       => ! empty( $options['max_logs'] ) ? $options['max_logs'] : 10000,
 		);
 
 		self::$settings['ip_whitelist'] = array(

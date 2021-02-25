@@ -111,7 +111,7 @@ class Comments {
 	 */
 	public function sections( $sections ) {
 		$sections['comments'] = array(
-			'title' => __( 'Comment Settings', 'zerospam' ),
+			'title' => __( 'Comments Integration', 'zerospam' ),
 		);
 
 		return $sections;

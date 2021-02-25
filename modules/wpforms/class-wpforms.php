@@ -44,7 +44,7 @@ class WPForms {
 	 */
 	public function sections( $sections ) {
 		$sections['wpforms'] = array(
-			'title' => __( 'WPForms Settings', 'zerospam' ),
+			'title' => __( 'WPForms Integration', 'zerospam' ),
 		);
 
 		return $sections;
@@ -109,7 +109,7 @@ class WPForms {
 	/**
 	 * Preprocess submission.
 	 */
-	public function preprocess_submission( $entry, $form_data ) {
+	public function preprocess_submission( $fields, $entry, $form_data ) {
 		$settings = ZeroSpam\Core\Settings::get_settings();
 		$honeypot = ZeroSpam\Core\Utilities::get_honeypot();
 
@@ -125,7 +125,8 @@ class WPForms {
 			wpforms()->process->errors[ $form_data['id'] ][0] = $message;
 
 			if ( ! empty( $settings['log_blocked_wpforms']['value'] ) && 'enabled' === $settings['log_blocked_wpforms']['value'] ) {
-				$details = $entry;
+				$details = $fields;
+				$details = array_merge( $details, $entry );
 				$details = array_merge( $details, $form_data );
 
 				$details['failed'] = 'honeypot';

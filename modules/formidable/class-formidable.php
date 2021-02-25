@@ -44,7 +44,7 @@ class Formidable {
 	 */
 	public function sections( $sections ) {
 		$sections['formidable'] = array(
-			'title' => __( 'Formidable Settings', 'zerospam' ),
+			'title' => __( 'Formidable Integration', 'zerospam' ),
 		);
 
 		return $sections;

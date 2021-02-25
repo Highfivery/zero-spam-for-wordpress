@@ -75,6 +75,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 = v5.0.5 =
 
 * Fix autoloader compatibility with Windows paths (https://github.com/bmarshall511/wordpress-zero-spam/pull/236)
+* Various admin UI improvements
 
 = v5.0.4 =
 

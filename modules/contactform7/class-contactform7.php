@@ -98,7 +98,7 @@ class ContactForm7 {
 	 */
 	public function sections( $sections ) {
 		$sections['contactform7'] = array(
-			'title' => __( 'Contact Form 7', 'zerospam' ),
+			'title' => __( 'Contact Form 7 Integration', 'zerospam' ),
 		);
 
 		return $sections;

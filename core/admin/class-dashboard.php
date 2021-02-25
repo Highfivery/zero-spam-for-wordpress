@@ -212,17 +212,41 @@ class Dashboard {
 			<div class="zerospam-tabs">
 				<?php if ( 'log' === $active_tab ) : ?>
 					<div id="tab-log" class="zerospam-tab is-active">
-						<h2><?php echo __( 'WordPress Zero Spam Log', 'zerospam' ); ?></h2>
-						<?php
-						$table_data = new ZeroSpam\Core\Admin\Tables\LogTable();
-						$table_data->prepare_items();
-						?>
-						<form id="zerospam-log-table" method="post">
-							<?php wp_nonce_field( 'zerospam_nonce', 'zerospam_nonce' ); ?>
-							<input type="hidden" name="paged" value="1" />
-							<?php $table_data->search_box( __( 'Search IPs', 'zerospam' ), 'search-ip' ); ?>
-							<?php $table_data->display(); ?>
-						</form>
+						<?php if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_ips' ) ) : ?>
+
+							<h2><?php echo __( 'WordPress Zero Spam Log', 'zerospam' ); ?></h2>
+							<?php
+							$table_data = new ZeroSpam\Core\Admin\Tables\LogTable();
+							$table_data->prepare_items();
+							?>
+							<form id="zerospam-log-table" method="post">
+								<?php wp_nonce_field( 'zerospam_nonce', 'zerospam_nonce' ); ?>
+								<input type="hidden" name="paged" value="1" />
+								<?php $table_data->search_box( __( 'Search IPs', 'zerospam' ), 'search-ip' ); ?>
+								<?php $table_data->display(); ?>
+							</form>
+
+						<?php else : ?>
+							<div class="zerospam-notice">
+								<?php
+								echo sprintf(
+									wp_kses(
+										/* translators: %s: url */
+										__( 'WordPress Zero Spam logging is currently <strong>disabled</strong>. It can be enabled on the <a href="%s">settings page</a>.', 'zerospam' ),
+										array(
+											'strong' => array(),
+											'a'    => array(
+												'href'   => array(),
+											),
+										)
+									),
+									esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) )
+								);
+								?>
+
+								<?php esc_html_e( '', 'zerospam' ); ?>
+							</div>
+						<?php endif; ?>
 					</div>
 				<?php endif; ?>
 

@@ -28,7 +28,7 @@ class Access {
 	 * @access private
 	 */
 	public function __construct() {
-		if ( ZeroSpam\Core\Access::process() ) {
+		if ( self::process() ) {
 			add_action( 'template_redirect', array( $this, 'access_check' ), 0 );
 			add_filter( 'zerospam_access_checks', array( $this, 'check_blocked' ), 0, 3 );
 		}

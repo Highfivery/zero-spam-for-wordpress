@@ -9,20 +9,26 @@
 }
 
 .zerospam-callout,
-.zerospam-modal {
+.zerospam-modal,
+.zerospam-notice  {
 	background: #fff;
 	border: 1px solid #ccd0d4;
 	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
 }
 
 .zerospam-callout-col,
-.zerospam-modal {
+.zerospam-modal,
+.zerospam-notice {
 	padding: 30px;
+}
+
+.zerospam-notice,
+.zerospam-callout {
+	margin: 20px 0;
 }
 
 .zerospam-callout {
 	display: flex;
-	margin: 20px 0;
 }
 
 .zerospam-callout h2,
@@ -39,6 +45,7 @@
 }
 
 .zerospam-modal {
+	box-sizing: border-box;
 	left: 50%;
 	max-width: 600px;
 	opacity: 0;
@@ -126,11 +133,32 @@
 	text-align: right;
 }
 
+/* Tabs */
+.zerospam-settings-tabs .form-table,
 .zerospam-tab {
 	display: none;
 }
 
-.zerospam-tab.is-active {
+.zerospam-settings-tabs h2 {
+	background: #fff;
+	border: 1px solid #ccd0d4;
+	box-shadow: 0 1px 1px rgb(0 0 0 / 4%);
+	display: block;
+	cursor: pointer;
+	margin: 15px 0 0 0;
+	padding: 15px 20px;
+}
+
+.zerospam-settings-tabs .form-table {
+	background: #fff;
+	border: 1px solid #ccd0d4;
+	border-top: 0;
+	margin: 0;
+	padding: 20px;
+}
+
+.zerospam-settings-tabs .form-table.is-active,
+.zerospam-tab.is-active  {
 	display: block;
 }
 

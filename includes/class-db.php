@@ -167,6 +167,17 @@ class DB {
 			return false;
 		}
 
+		/**
+		 * Check the total number of entries and delete the oldest if the maximum
+		 * has been reached.
+		 */
+		$total = $wpdb->get_var( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . self::$tables['log'] );
+		$max   = ZeroSpam\Core\Settings::get_settings( 'max_logs' );
+		if ( $total > $max ) {
+			$difference = $total - $max;
+			$wpdb->query( 'DELETE FROM ' . $wpdb->prefix . self::$tables['log'] . ' ORDER BY date_recorded ASC LIMIT ' . $difference );
+		}
+
 		$record = array(
 			'user_ip'         => ZeroSpam\Core\User::get_ip(),
 			'log_type'        => $type,

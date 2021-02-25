@@ -1,5 +1,31 @@
 (function($) {
 	var ZeroSpamAdmin = {
+		init: function() {
+			// Set active tab on the settings page.
+			var $settingsContainer = $('.zerospam-settings-tabs');
+			if ( $settingsContainer.length ) {
+				this.openTab(1, $settingsContainer);
+
+				$('h2', $settingsContainer).click(function(e) {
+					e.preventDefault();
+
+					const index = $settingsContainer.find('h2').index(this) + 1;
+					ZeroSpamAdmin.openTab(index);
+				});
+			}
+		},
+
+		openTab: function( index, $container ) {
+			$('.form-table', $container).removeClass('is-active');
+			$('.h2', $container).removeClass('is-active');
+
+			const $settingsTabContent = $('.form-table:nth-of-type(' + index + ')', $container);
+			const $settingsTab = $('h2:nth-of-type(' + index + ')', $container);
+
+			$settingsTabContent.addClass('is-active');
+			$settingsTab.addClass('is-active');
+		},
+
 		prepopulateFields: function( $btn ) {
 			var ip = $btn.data('ip');
 			$('input[name="blocked_ip"]', $('.zerospam-modal-block')).val('');
@@ -46,6 +72,8 @@
 	};
 
   $(function() {
+		ZeroSpamAdmin.init();
+
     $( '.zerospam-details-trigger' ).click(function( e ) {
       e.preventDefault();
 			$('.zerospam-modal').removeClass('is-active');

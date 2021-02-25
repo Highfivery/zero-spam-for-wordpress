@@ -105,7 +105,7 @@ class Registration {
 	 */
 	public function sections( $sections ) {
 		$sections['registration'] = array(
-			'title' => __( 'Registration Settings', 'zerospam' ),
+			'title' => __( 'Registration Integration', 'zerospam' ),
 		);
 
 		return $sections;

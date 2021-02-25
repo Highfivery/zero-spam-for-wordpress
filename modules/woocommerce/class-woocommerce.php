@@ -48,7 +48,7 @@ class WooCommerce {
 	 */
 	public function sections( $sections ) {
 		$sections['woocommerce'] = array(
-			'title' => __( 'WooCommerce Settings', 'zerospam' ),
+			'title' => __( 'WooCommerce Integration', 'zerospam' ),
 		);
 
 		return $sections;

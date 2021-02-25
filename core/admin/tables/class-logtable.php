@@ -174,6 +174,7 @@ class LogTable extends WP_List_Table {
 		$orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( $_REQUEST['orderby'] ) : 'date_recorded';
 
 		$log_type   = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
+		$country    = ! empty( $_REQUEST['country'] ) ? sanitize_text_field( $_REQUEST['country'] ) : false;
 		$user_ip    = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
 
 		$query_args = array(
@@ -193,6 +194,12 @@ class LogTable extends WP_List_Table {
 		if ( $user_ip ) {
 			$query_args['where']['user_ip'] = array(
 				'value' => $user_ip,
+			);
+		}
+
+		if ( $country ) {
+			$query_args['where']['country'] = array(
+				'value' => $country,
 			);
 		}
 
@@ -258,6 +265,17 @@ class LogTable extends WP_List_Table {
 				<option value=""><?php _e( 'All types', 'zerospam' ); ?></option>
 				<?php foreach ( $options as $key => $value ) : ?>
 					<option<?php if ( $current_type === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo $value; ?></option>
+				<?php endforeach; ?>
+			</select>
+
+			<?php
+			echo '<label class="screen-reader-text" for="filter-by-country">' . __( 'Filter by country', 'zerospam' ) . '</label>';
+			$current_country = ! empty( $_REQUEST['country'] ) ? sanitize_text_field( $_REQUEST['country'] ) : false;
+			?>
+			<select name="country" id="filter-by-country">
+				<option value=""><?php _e( 'All countries', 'zerospam' ); ?></option>
+				<?php foreach ( ZeroSpam\Core\Utilities::countries() as $key => $value ) : ?>
+					<option<?php if ( $current_country === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo $value; ?></option>
 				<?php endforeach; ?>
 			</select>
 			<?php
