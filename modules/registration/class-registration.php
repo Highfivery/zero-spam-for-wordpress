@@ -147,7 +147,7 @@ class Registration {
 			'title'   => __( 'Log Blocked Registrations', 'zerospam' ),
 			'section' => 'registration',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked registrations. High traffic sites should leave this disabled.', 'zerospam' ),
+			'desc'    => __( 'Enables logging blocked registrations.', 'zerospam' ),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),

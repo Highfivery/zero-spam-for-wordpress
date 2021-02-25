@@ -153,7 +153,7 @@ class Comments {
 			'title'   => __( 'Log Blocked Comments', 'zerospam' ),
 			'section' => 'comments',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked comments. High traffic sites should leave this disabled.', 'zerospam' ),
+			'desc'    => __( 'Enables logging blocked comments.', 'zerospam' ),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),

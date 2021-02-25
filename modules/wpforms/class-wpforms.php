@@ -87,7 +87,7 @@ class WPForms {
 			'title'   => __( 'Log Blocked WPForms Submissions', 'zerospam' ),
 			'section' => 'wpforms',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked WPForms submissions. High traffic sites should leave this disabled.', 'zerospam' ),
+			'desc'    => __( 'Enables logging blocked WPForms submissions.', 'zerospam' ),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),

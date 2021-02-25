@@ -140,7 +140,7 @@ class ContactForm7 {
 			'title'   => __( 'Log Blocked Contact Form 7 Submissions', 'zerospam' ),
 			'section' => 'contactform7',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked Contact Form 7 submissions. High traffic sites should leave this disabled.', 'zerospam' ),
+			'desc'    => __( 'Enables logging blocked Contact Form 7 submissions.', 'zerospam' ),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),

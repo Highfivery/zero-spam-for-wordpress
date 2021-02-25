@@ -87,7 +87,7 @@ class Formidable {
 			'title'   => __( 'Log Blocked Formidable Submissions', 'zerospam' ),
 			'section' => 'formidable',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked Formidable submissions. High traffic sites should leave this disabled.', 'zerospam' ),
+			'desc'    => __( 'Enables logging blocked Formidable submissions.', 'zerospam' ),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
