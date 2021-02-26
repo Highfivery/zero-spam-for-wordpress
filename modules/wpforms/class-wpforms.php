@@ -1,6 +1,6 @@
 <?php
 /**
- * WPForms class.
+ * WPForms class
  *
  * @package ZeroSpam
  */
@@ -13,25 +13,27 @@ use ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * WPForms.
+ * WPForms
  */
 class WPForms {
 	/**
-	 * WPForms constructor.
+	 * WPForms constructor
 	 */
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings('verify_wpforms') && ZeroSpam\Core\Access::process() ) {
+		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_wpforms' ) && ZeroSpam\Core\Access::process() ) {
 			add_action( 'wpforms_frontend_output', array( $this, 'honeypot' ), 10, 1 );
 			add_action( 'wpforms_process', array( $this, 'preprocess_submission' ), 10, 3 );
 		}
 	}
 
 	/**
-	 * Add to the types array.
+	 * Add to the types array
+	 *
+	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
 		$types['wpforms'] = __( 'WPForms', 'zerospam' );
@@ -40,7 +42,9 @@ class WPForms {
 	}
 
 	/**
-	 * WPForms sections.
+	 * WPForms sections
+	 *
+	 * @param array $sections Array of available setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['wpforms'] = array(
@@ -51,11 +55,9 @@ class WPForms {
 	}
 
 	/**
-	 * WPForms settings.
+	 * WPForms settings
 	 *
-	 * Registers WPForms setting fields.
-	 *
-	 * @param array $settings Array of WordPress Zero Spam settings.
+	 * @param array $settings Array of available settings.
 	 */
 	public function settings( $settings ) {
 		$options = get_option( 'wpzerospam' );
@@ -70,24 +72,26 @@ class WPForms {
 			'value'   => ! empty( $options['verify_wpforms'] ) ? $options['verify_wpforms'] : false,
 		);
 
-		if ( ! empty( $options['verify_wpforms'] ) && 'enabled' === $options['verify_wpforms'] ) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			$settings['wpforms_spam_message'] = array(
-				'title'       => __( 'WPForms Spam/Malicious Message', 'zerospam' ),
-				'desc'        => __( 'Displayed to the user when a submission is detected as spam/malicious.', 'zerospam' ),
-				'section'     => 'wpforms',
-				'type'        => 'text',
-				'field_class' => 'large-text',
-				'placeholder' => $message,
-				'value'       => ! empty( $options['wpforms_spam_message'] ) ? $options['wpforms_spam_message'] : $message,
-			);
-		}
+		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+
+		$settings['wpforms_spam_message'] = array(
+			'title'       => __( 'WPForms Spam/Malicious Message', 'zerospam' ),
+			'desc'        => __( 'When WPForms protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
+			'section'     => 'wpforms',
+			'type'        => 'text',
+			'field_class' => 'large-text',
+			'placeholder' => $message,
+			'value'       => ! empty( $options['wpforms_spam_message'] ) ? $options['wpforms_spam_message'] : $message,
+		);
 
 		$settings['log_blocked_wpforms'] = array(
 			'title'   => __( 'Log Blocked WPForms Submissions', 'zerospam' ),
 			'section' => 'wpforms',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked WPForms submissions.', 'zerospam' ),
+			'desc'    => wp_kses(
+				__( 'Enables logging blocked WPForms submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				array( 'strong' => array() )
+			),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
@@ -98,33 +102,32 @@ class WPForms {
 	}
 
 	/**
-	 * Add a 'honeypot' field to the form.
+	 * Add a 'honeypot' field to the form
 	 *
 	 * @param array $form_data Form data and settings.
 	 */
 	public function honeypot( $form_data ) {
+		// @codingStandardsIgnoreLine
 		echo ZeroSpam\Core\Utilities::honeypot_field();
 	}
 
 	/**
-	 * Preprocess submission.
+	 * Preprocess submission
+	 *
+	 * @param array $fields Sanitized entry field values/properties.
+	 * @param array $entry Original $_POST global.
+	 * @param array $form_data Form settings/data.
 	 */
 	public function preprocess_submission( $fields, $entry, $form_data ) {
 		$settings = ZeroSpam\Core\Settings::get_settings();
-		$honeypot = ZeroSpam\Core\Utilities::get_honeypot();
 
 		// Check honeypot.
-		if (
-			! empty( $_REQUEST[ $honeypot ] )
-		) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			if ( ! empty( $settings['wpforms_spam_message']['value'] ) ) {
-				$message = $settings['wpforms_spam_message']['value'];
-			}
-
+		// @codingStandardsIgnoreLine
+		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
+			$message = ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
 			wpforms()->process->errors[ $form_data['id'] ][0] = $message;
 
-			if ( ! empty( $settings['log_blocked_wpforms']['value'] ) && 'enabled' === $settings['log_blocked_wpforms']['value'] ) {
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_wpforms' ) ) {
 				$details = $fields;
 				$details = array_merge( $details, $entry );
 				$details = array_merge( $details, $form_data );

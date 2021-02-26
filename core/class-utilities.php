@@ -20,6 +20,32 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Returns the default detection meta title.
+	 *
+	 * @param string $setting_msg_key Optional. Setting message key.
+	 */
+	public static function detection_title( $setting_msg_key = false ) {
+		$title = __( 'Blocked by WordPress Zero Spam', 'zerospam' );
+
+		return apply_filters( 'zerospam_detection_title', $title, $setting_msg_key );
+	}
+
+	/**
+	 * Returns the default detection message.
+	 *
+	 * @param string $setting_msg_key Optional. Setting message key.
+	 */
+	public static function detection_message( $setting_msg_key = false ) {
+		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+
+		if ( $setting_msg_key && ! empty( ZeroSpam\Core\Settings::get_settings( $setting_msg_key ) ) ) {
+			$message = ZeroSpam\Core\Settings::get_settings( $setting_msg_key );
+		}
+
+		return apply_filters( 'zerospam_detection_message', $message, $setting_msg_key );
+	}
+
+	/**
 	 * Returns an array of countries.
 	 *
 	 * @access public

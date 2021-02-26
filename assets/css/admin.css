@@ -26,8 +26,7 @@
 }
 
 .zerospam-notice,
-.zerospam-callout,
-.zerospam-module {
+.zerospam-callout {
 	margin: 20px 0;
 }
 
@@ -39,8 +38,7 @@
 }
 
 .zerospam-module {
-	margin-left: 10px;
-	margin-right: 10px;
+	margin: 10px;
 	width: calc(100% - 20px);
 }
 
@@ -54,7 +52,12 @@
 	}
 
 	.zerospam-module-ip {
-		width: calc(40% - 20px)
+		width: calc(40% - 20px);
+	}
+
+	.zerospam-module-pie,
+	.zerospam-module-line-chart {
+		width: calc(50% - 20px)
 	}
 }
 
@@ -248,6 +251,10 @@
 	.zerospam-callout-col {
 		width: 50%;
 	}
+}
+
+.zerospam-list {
+	margin: 0;
 }
 
 .zerospam-list li {

@@ -11,7 +11,6 @@ use ZeroSpam\Includes\DB;
 use ZeroSpam\Core\Access;
 use ZeroSpam\Core\User;
 use ZeroSpam\Core\Admin\Admin;
-use ZeroSpam\Modules\BotScout;
 use ZeroSpam\Modules\StopForumSpam;
 use ZeroSpam\Modules\ipstack;
 use ZeroSpam\Modules\Google;
@@ -22,6 +21,7 @@ use ZeroSpam\Modules\ContactForm7\ContactForm7;
 use ZeroSpam\Modules\WooCommerce\WooCommerce;
 use ZeroSpam\Modules\WPForms\WPForms;
 use ZeroSpam\Modules\Formidable\Formidable;
+use ZeroSpam\Modules\FluentForms\FluentForms;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -166,7 +166,10 @@ class Plugin {
 			new Formidable();
 		}
 
-		//= new BotScout();
+		/*if ( is_plugin_active( 'fluentform/fluentform.php' ) ) {
+			new FluentForms();
+		}*/
+
 		new StopForumSpam();
 		new ipstack();
 		new Zero_Spam();

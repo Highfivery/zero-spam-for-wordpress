@@ -1,6 +1,6 @@
 <?php
 /**
- * Contact Form 7 class.
+ * Contact Form 7 class
  *
  * @package ZeroSpam
  */
@@ -13,64 +13,52 @@ use ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Contact Form 7.
- *
- * @since 5.0.0
+ * Contact Form 7
  */
 class ContactForm7 {
 	/**
-	 * Registration constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Contact Form 7 constructor
 	 */
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		$settings = ZeroSpam\Core\Settings::get_settings();
-		if ( ! empty( $settings['verify_contactform7']['value'] ) && 'enabled' === $settings['verify_contactform7']['value'] && ZeroSpam\Core\Access::process() ) {
+		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_contactform7' ) && ZeroSpam\Core\Access::process() ) {
 			add_filter( 'wpcf7_form_elements', array( $this, 'honeypot' ), 10, 1 );
 			add_filter( 'wpcf7_validate', array( $this, 'preprocess_submission' ), 10, 2 );
 		}
 	}
 
 	/**
-	 * Add a 'honeypot' field to the form.
+	 * Add a 'honeypot' field to the form
 	 *
-	 * @since 5.0.0
-	 *
-	 * @return string HTML to append to the form.
+	 * @param string $this_replace_all_form_tags Form tags.
 	 */
-	public function honeypot( $this_form_do_shortcode ) {
-		$this_form_do_shortcode .= ZeroSpam\Core\Utilities::honeypot_field();
+	public function honeypot( $this_replace_all_form_tags ) {
+		$this_replace_all_form_tags .= ZeroSpam\Core\Utilities::honeypot_field();
 
-		return $this_form_do_shortcode;
+		return $this_replace_all_form_tags;
 	}
 
 	/**
-	 * Preprocess submission.
+	 * Preprocess submission
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param WPCF7_Validation $result Validation.
+	 * @param WPCF7_FormTag    $tag Form tag.
 	 */
-	public function preprocess_submission( $result, $tags ) {
+	public function preprocess_submission( $result, $tag ) {
 		$settings = ZeroSpam\Core\Settings::get_settings();
-		$honeypot = ZeroSpam\Core\Utilities::get_honeypot();
 
 		// Check honeypot.
-		if (
-			! empty( $_REQUEST[ $honeypot ] )
-		) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			if ( ! empty( $settings['contactform7_spam_message']['value'] ) ) {
-				$message = $settings['contactform7_spam_message']['value'];
-			}
-			$result->invalidate( $tags[0], $message );
+		// @codingStandardsIgnoreLine
+		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
+			$message = ZeroSpam\Core\Utilities::detection_message( 'contactform7_spam_message' );
+			$result->invalidate( $tag[0], $message );
 
-			if ( ! empty( $settings['log_blocked_contactform7']['value'] ) && 'enabled' === $settings['log_blocked_contactform7']['value'] ) {
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_contactform7' ) ) {
 				$_REQUEST['failed'] = 'honeypot';
+				// @codingStandardsIgnoreLine
 				ZeroSpam\Includes\DB::log( 'contactform7', $_REQUEST );
 			}
 		}
@@ -79,10 +67,9 @@ class ContactForm7 {
 	}
 
 	/**
-	 * Add to the types array.
+	 * Add to the types array
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
 		$types['contactform7'] = __( 'Contact Form 7', 'zerospam' );
@@ -91,10 +78,9 @@ class ContactForm7 {
 	}
 
 	/**
-	 * Registration sections.
+	 * CF7 sections
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $sections Array of available setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['contactform7'] = array(
@@ -105,42 +91,43 @@ class ContactForm7 {
 	}
 
 	/**
-	 * Botscout settings.
+	 * CF7 settings
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $settings Array of available settings.
 	 */
 	public function settings( $settings ) {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_contactform7'] = array(
-			'title'   => __( 'Protect Contact Form 7 Submissions', 'zerospam' ),
+			'title'   => __( 'Protect CF7 Submissions', 'zerospam' ),
 			'section' => 'contactform7',
 			'type'    => 'checkbox',
 			'options' => array(
-				'enabled' => __( 'Monitor Contact Form 7 submissions for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor CF7 submissions for malicious or automated spambots.', 'zerospam' ),
 			),
 			'value'   => ! empty( $options['verify_contactform7'] ) ? $options['verify_contactform7'] : false,
 		);
 
-		if ( ! empty( $options['verify_contactform7'] ) && 'enabled' === $options['verify_contactform7'] ) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			$settings['contactform7_spam_message'] = array(
-				'title'       => __( 'Contact Form 7 Spam/Malicious Message', 'zerospam' ),
-				'desc'        => __( 'Displayed to the user when a submission is detected as spam/malicious.', 'zerospam' ),
-				'section'     => 'contactform7',
-				'type'        => 'text',
-				'field_class' => 'large-text',
-				'placeholder' => $message,
-				'value'       => ! empty( $options['contactform7_spam_message'] ) ? $options['contactform7_spam_message'] : $message,
-			);
-		}
+		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+
+		$settings['contactform7_spam_message'] = array(
+			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
+			'desc'        => __( 'When CF7 protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
+			'section'     => 'contactform7',
+			'type'        => 'text',
+			'field_class' => 'large-text',
+			'placeholder' => $message,
+			'value'       => ! empty( $options['contactform7_spam_message'] ) ? $options['contactform7_spam_message'] : $message,
+		);
 
 		$settings['log_blocked_contactform7'] = array(
-			'title'   => __( 'Log Blocked Contact Form 7 Submissions', 'zerospam' ),
+			'title'   => __( 'Log Blocked CF7 Submissions', 'zerospam' ),
 			'section' => 'contactform7',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked Contact Form 7 submissions.', 'zerospam' ),
+			'desc'    => wp_kses(
+				__( 'Enables logging blocked CF7 submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				array( 'strong' => array() )
+			),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),

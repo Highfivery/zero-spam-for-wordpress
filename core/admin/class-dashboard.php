@@ -228,6 +228,16 @@ class Dashboard {
 							<h3><?php esc_html_e( 'Most Detections by IP Address', 'zerospam' ); ?></h3>
 							<?php require ZEROSPAM_PATH . 'includes/templates/admin-ips.php'; ?>
 						</div>
+
+						<div class="zerospam-module zerospam-module-pie">
+							<h3><?php esc_html_e( 'Detections by Location', 'zerospam' ); ?></h3>
+							<?php require ZEROSPAM_PATH . 'includes/templates/admin-pie.php'; ?>
+						</div>
+
+						<div class="zerospam-module zerospam-module-line-chart">
+							<h3><?php esc_html_e( 'Detection History', 'zerospam' ); ?></h3>
+							<?php require ZEROSPAM_PATH . 'includes/templates/admin-line-chart.php'; ?>
+						</div>
 						<?php
 
 						echo '</div>';

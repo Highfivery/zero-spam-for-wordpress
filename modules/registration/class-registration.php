@@ -1,6 +1,6 @@
 <?php
 /**
- * Registration class.
+ * Registration class
  *
  * @package ZeroSpam
  */
@@ -13,16 +13,11 @@ use ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Registration.
- *
- * @since 5.0.0
+ * Registration
  */
 class Registration {
 	/**
-	 * Registration constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Registration constructor
 	 */
 	public function __construct() {
 
@@ -31,8 +26,7 @@ class Registration {
 			add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 			add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-			$settings = ZeroSpam\Core\Settings::get_settings();
-			if ( ! empty( $settings['verify_registrations']['value'] ) && 'enabled' === $settings['verify_registrations']['value'] && ZeroSpam\Core\Access::process() ) {
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_registrations' ) && ZeroSpam\Core\Access::process() ) {
 				add_action( 'register_form', array( $this, 'honeypot' ) );
 				add_filter( 'registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
 			}
@@ -40,10 +34,9 @@ class Registration {
 	}
 
 	/**
-	 * Add to the types array.
+	 * Add to the types array
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
 		$types['registration'] = __( 'Registration', 'zerospam' );
@@ -52,26 +45,20 @@ class Registration {
 	}
 
 	/**
-	 * Preprocess registrations.
+	 * Preprocess registrations
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param WP_Error $errors A WP_Error object containing any errors encountered during registration.
+	 * @param string   $sanitized_user_login User's username after it has been sanitized.
+	 * @param string   $user_email User's email.
 	 */
 	public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
-		$honeypot = ZeroSpam\Core\Utilities::get_honeypot();
-
 		// Check honeypot.
-		if (
-			! empty( $_REQUEST[ $honeypot ] )
-		) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			if ( ! empty( $settings['registration_spam_message']['value'] ) ) {
-				$message = $settings['registration_spam_message']['value'];
-			}
-			$errors->add( 'zerospam_error', __( $message, 'zerospam' ) );
+		// @codingStandardsIgnoreLine
+		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
+			$message = ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
+			$errors->add( 'zerospam_error', $message );
 
-			if ( ! empty( $settings['log_blocked_registrations']['value'] ) && 'enabled' === $settings['log_blocked_registrations']['value'] ) {
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
 				$details = array(
 					'user_login' => $sanitized_user_login,
 					'user_email' => $user_email,
@@ -87,21 +74,17 @@ class Registration {
 	}
 
 	/**
-	 * Add a 'honeypot' field to the registration form.
-	 *
-	 * @since 5.0.0
-	 *
-	 * @return string HTML to append to the registration form.
+	 * Add a 'honeypot' field to the registration form
 	 */
 	public function honeypot() {
+		// @codingStandardsIgnoreLine
 		echo ZeroSpam\Core\Utilities::honeypot_field();
 	}
 
 	/**
-	 * Registration sections.
+	 * Registration sections
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $sections Array of available setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['registration'] = array(
@@ -112,16 +95,15 @@ class Registration {
 	}
 
 	/**
-	 * Registration settings.
+	 * Registration settings
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $settings Array of available settings.
 	 */
 	public function settings( $settings ) {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_registrations'] = array(
-			'title'   => __( 'Detect Spam/Malicious Registrations', 'zerospam' ),
+			'title'   => __( 'Protect Registrations', 'zerospam' ),
 			'section' => 'registration',
 			'type'    => 'checkbox',
 			'options' => array(
@@ -130,24 +112,26 @@ class Registration {
 			'value'   => ! empty( $options['verify_registrations'] ) ? $options['verify_registrations'] : false,
 		);
 
-		if ( ! empty( $options['verify_registrations'] ) && 'enabled' === $options['verify_registrations'] ) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			$settings['registration_spam_message'] = array(
-				'title'       => __( 'Registration Spam/Malicious Message', 'zerospam' ),
-				'desc'        => __( 'Displayed to the user when a registration is detected as spam/malicious.', 'zerospam' ),
-				'section'     => 'registration',
-				'type'        => 'text',
-				'field_class' => 'large-text',
-				'placeholder' => $message,
-				'value'       => ! empty( $options['registration_spam_message'] ) ? $options['registration_spam_message'] : $message,
-			);
-		}
+		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+
+		$settings['registration_spam_message'] = array(
+			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
+			'desc'        => __( 'When registration protection is enabled, the message displayed to the user when a registration has been detected as spam/malicious.', 'zerospam' ),
+			'section'     => 'registration',
+			'type'        => 'text',
+			'field_class' => 'large-text',
+			'placeholder' => $message,
+			'value'       => ! empty( $options['registration_spam_message'] ) ? $options['registration_spam_message'] : $message,
+		);
 
 		$settings['log_blocked_registrations'] = array(
 			'title'   => __( 'Log Blocked Registrations', 'zerospam' ),
 			'section' => 'registration',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked registrations.', 'zerospam' ),
+			'desc'    => wp_kses(
+				__( 'Enables logging blocked registrations. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				array( 'strong' => array() )
+			),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),

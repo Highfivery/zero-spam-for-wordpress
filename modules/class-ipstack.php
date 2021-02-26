@@ -68,8 +68,8 @@ class ipstack {
 						),
 					)
 				),
-				esc_url( 'https://ipstack.com/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' ),
-				esc_url( 'https://ipstack.com/signup/free#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
+				esc_url( 'https://ipstack.com?fpr=zerospam' ),
+				esc_url( 'https://ipstack.com/product?fpr=zerospam' )
 			),
 			'section'     => 'ipstack',
 			'type'        => 'text',

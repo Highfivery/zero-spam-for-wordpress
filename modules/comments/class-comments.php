@@ -1,6 +1,6 @@
 <?php
 /**
- * Comments class.
+ * Comments class
  *
  * @package ZeroSpam
  */
@@ -14,34 +14,27 @@ use WP_Error;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Comments.
- *
- * @since 5.0.0
+ * Comments
  */
 class Comments {
 	/**
-	 * Comments constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Comments constructor
 	 */
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		$settings = ZeroSpam\Core\Settings::get_settings();
-		if ( ! empty( $settings['verify_comments']['value'] ) && 'enabled' === $settings['verify_comments']['value'] && ZeroSpam\Core\Access::process() ) {
+		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) && ZeroSpam\Core\Access::process() ) {
 			add_filter( 'comment_form_defaults', array( $this, 'honeypot' ) );
 			add_action( 'preprocess_comment', array( $this, 'preprocess_comments' ) );
 		}
 	}
 
 	/**
-	 * Add to the types array.
+	 * Add to the types array
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
 		$types['comment'] = __( 'Comment', 'zerospam' );
@@ -50,20 +43,17 @@ class Comments {
 	}
 
 	/**
-	 * Preprocess comments.
+	 * Preprocess comments
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $commentdata Comment data array.
 	 */
-	public function preprocess_comments( $commentdata  ) {
+	public function preprocess_comments( $commentdata ) {
 		$settings = ZeroSpam\Core\Settings::get_settings();
-		$honeypot = ZeroSpam\Core\Utilities::get_honeypot();
 
 		// Check honeypot.
-		if (
-			! empty( $_REQUEST[ $honeypot ] )
-		) {
-			if ( ! empty( $settings['log_blocked_comments']['value'] ) && 'enabled' === $settings['log_blocked_comments']['value'] ) {
+		// @codingStandardsIgnoreLine
+		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_comments' ) ) {
 				$details = array(
 					'failed' => 'honeypot',
 				);
@@ -71,14 +61,21 @@ class Comments {
 				ZeroSpam\Includes\DB::log( 'comment', $details );
 			}
 
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			if ( ! empty( $settings['comment_spam_message']['value'] ) ) {
-				$message = $settings['comment_spam_message']['value'];
-			}
+			$message = ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
 
 			wp_die(
-				$message,
-				__( 'Blocked by WordPress Zero Spam', 'zerospam' ),
+				wp_kses(
+					$message,
+					array(
+						'a'      => array(
+							'target' => array(),
+							'href'   => array(),
+							'rel'    => array(),
+						),
+						'strong' => array(),
+					)
+				),
+				esc_html( ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ) ),
 				array(
 					'response' => 403,
 				)
@@ -91,23 +88,20 @@ class Comments {
 	}
 
 	/**
-	 * Add a 'honeypot' field to the comment form.
+	 * Add a 'honeypot' field to the comment form
 	 *
-	 * @since 5.0.0
-	 *
-	 * @return array The default comment form arguments.
+	 * @param array $defaults The default comment form arguments.
 	 */
-	function honeypot( $defaults ) {
+	public function honeypot( $defaults ) {
 		$defaults['fields']['wpzerospam_hp'] = ZeroSpam\Core\Utilities::honeypot_field();
 
 		return $defaults;
 	}
 
 	/**
-	 * Comment sections.
+	 * Comment sections
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $sections Array of available setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['comments'] = array(
@@ -118,16 +112,15 @@ class Comments {
 	}
 
 	/**
-	 * Botscout settings.
+	 * Comment settings
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $settings Array of available settings.
 	 */
 	public function settings( $settings ) {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_comments'] = array(
-			'title'   => __( 'Detect Spam/Malicious Comments', 'zerospam' ),
+			'title'   => __( 'Protect Comments', 'zerospam' ),
 			'section' => 'comments',
 			'type'    => 'checkbox',
 			'options' => array(
@@ -136,24 +129,26 @@ class Comments {
 			'value'   => ! empty( $options['verify_comments'] ) ? $options['verify_comments'] : false,
 		);
 
-		if ( ! empty( $options['verify_comments'] ) && 'enabled' === $options['verify_comments'] ) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			$settings['comment_spam_message'] = array(
-				'title'       => __( 'Comment Spam/Malicious Message', 'zerospam' ),
-				'desc'        => __( 'Displayed to the user when a comment is detected as spam/malicious.', 'zerospam' ),
-				'section'     => 'comments',
-				'type'        => 'text',
-				'field_class' => 'large-text',
-				'placeholder' => $message,
-				'value'       => ! empty( $options['comment_spam_message'] ) ? $options['comment_spam_message'] : $message,
-			);
-		}
+		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+
+		$settings['comment_spam_message'] = array(
+			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
+			'desc'        => __( 'When comment protection is enabled, the message displayed to the user when a comment has been detected as spam/malicious.', 'zerospam' ),
+			'section'     => 'comments',
+			'type'        => 'text',
+			'field_class' => 'large-text',
+			'placeholder' => $message,
+			'value'       => ! empty( $options['comment_spam_message'] ) ? $options['comment_spam_message'] : $message,
+		);
 
 		$settings['log_blocked_comments'] = array(
 			'title'   => __( 'Log Blocked Comments', 'zerospam' ),
 			'section' => 'comments',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked comments.', 'zerospam' ),
+			'desc'    => wp_kses(
+				__( 'Enables logging blocked comments. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				array( 'strong' => array() )
+			),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),

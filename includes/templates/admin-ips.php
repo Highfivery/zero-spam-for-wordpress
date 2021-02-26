@@ -27,7 +27,7 @@ if ( $ips ) {
 ?>
 <ul class="zerospam-list">
 	<?php
-	$limit = 10;
+	$limit = 12;
 	$cnt   = 0;
 	foreach ( $ips as $ip => $data ) :
 		$cnt++;

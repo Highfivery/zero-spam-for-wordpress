@@ -1,6 +1,6 @@
 <?php
 /**
- * WooCommerce class.
+ * WooCommerce class
  *
  * @package ZeroSpam
  */
@@ -13,21 +13,19 @@ use ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * WooCommerce.
+ * WooCommerce
  */
 class WooCommerce {
 	/**
-	 * WooCommerce constructor.
+	 * WooCommerce constructor
 	 */
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		$settings = ZeroSpam\Core\Settings::get_settings();
-		if ( ! empty( $settings['woocommerce_protection']['value'] ) && 'enabled' === $settings['woocommerce_protection']['value'] && ZeroSpam\Core\Access::process() ) {
-			$settings = ZeroSpam\Core\Settings::get_settings();
-			if ( ! empty( $settings['verify_registrations']['value'] ) && 'enabled' === $settings['verify_registrations']['value'] ) {
+		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'woocommerce_protection' ) && ZeroSpam\Core\Access::process() ) {
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_registrations' ) ) {
 				add_action( 'woocommerce_register_form', array( $this, 'honeypot' ) );
 				add_action( 'woocommerce_register_post', array( $this, 'preprocess_registration' ), 10, 3 );
 			}
@@ -35,7 +33,9 @@ class WooCommerce {
 	}
 
 	/**
-	 * Add to the types array.
+	 * Add to the types array
+	 *
+	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
 		$types['woocommerce_registration'] = __( 'Registration (WooCommerce)', 'zerospam' );
@@ -44,7 +44,9 @@ class WooCommerce {
 	}
 
 	/**
-	 * Registration sections.
+	 * WooCommerce sections
+	 *
+	 * @param array $sections Array of available setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['woocommerce'] = array(
@@ -55,7 +57,9 @@ class WooCommerce {
 	}
 
 	/**
-	 * WooCommerce settings.
+	 * WooCommerce settings
+	 *
+	 * @param array $settings Array of available settings.
 	 */
 	public function settings( $settings ) {
 		$options = get_option( 'wpzerospam' );
@@ -75,7 +79,7 @@ class WooCommerce {
 	}
 
 	/**
-	 * Add a 'honeypot' field to the WooCommerce registration form.
+	 * Add a 'honeypot' field to the WooCommerce registration form
 	 */
 	public function honeypot() {
 		$honeypot = ZeroSpam\Core\Utilities::get_honeypot();
@@ -87,23 +91,22 @@ class WooCommerce {
 	}
 
 	/**
-	 * Preprocess registrations.
+	 * Preprocess registrations
+	 *
+	 * @param string $username The username.
+	 * @param string $email The email.
+	 * @param object $errors Errors object.
 	 */
 	public function preprocess_registration( $username, $email, $errors ) {
 		$settings = ZeroSpam\Core\Settings::get_settings();
-		$honeypot = ZeroSpam\Core\Utilities::get_honeypot();
 
 		// Check honeypot.
-		if (
-			! empty( $_REQUEST[ $honeypot ] )
-		) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			if ( ! empty( $settings['registration_spam_message']['value'] ) ) {
-				$message = $settings['registration_spam_message']['value'];
-			}
-			$errors->add( 'zerospam_error', __( $message, 'zerospam' ) );
+		// @codingStandardsIgnoreLine
+		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
+			$message = ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
+			$errors->add( 'zerospam_error', $message );
 
-			if ( ! empty( $settings['log_blocked_registrations']['value'] ) && 'enabled' === $settings['log_blocked_registrations']['value'] ) {
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
 				$details = array(
 					'user_login' => $username,
 					'user_email' => $email,

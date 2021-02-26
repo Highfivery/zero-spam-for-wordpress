@@ -1,6 +1,6 @@
 <?php
 /**
- * Formidable class.
+ * Formidable class
  *
  * @package ZeroSpam
  */
@@ -13,11 +13,11 @@ use ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Formidable.
+ * Formidable
  */
 class Formidable {
 	/**
-	 * Formidable constructor.
+	 * Formidable constructor
 	 */
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
@@ -31,7 +31,9 @@ class Formidable {
 	}
 
 	/**
-	 * Add to the types array.
+	 * Add to the types array
+	 *
+	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
 		$types['formidable'] = __( 'Formidable', 'zerospam' );
@@ -40,7 +42,9 @@ class Formidable {
 	}
 
 	/**
-	 * Formidable sections.
+	 * Formidable sections
+	 *
+	 * @param array $sections Array of available setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['formidable'] = array(
@@ -51,11 +55,9 @@ class Formidable {
 	}
 
 	/**
-	 * Formidable settings.
+	 * Formidable settings
 	 *
-	 * Registers Formidable setting fields.
-	 *
-	 * @param array $settings Array of WordPress Zero Spam settings.
+	 * @param array $settings Array of available settings.
 	 */
 	public function settings( $settings ) {
 		$options = get_option( 'wpzerospam' );
@@ -70,24 +72,26 @@ class Formidable {
 			'value'   => ! empty( $options['verify_formidable'] ) ? $options['verify_formidable'] : false,
 		);
 
-		if ( ! empty( $options['verify_formidable'] ) && 'enabled' === $options['verify_formidable'] ) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			$settings['formidable_spam_message'] = array(
-				'title'       => __( 'Formidable Spam/Malicious Message', 'zerospam' ),
-				'desc'        => __( 'Displayed to the user when a submission is detected as spam/malicious.', 'zerospam' ),
-				'section'     => 'formidable',
-				'type'        => 'text',
-				'field_class' => 'large-text',
-				'placeholder' => $message,
-				'value'       => ! empty( $options['formidable_spam_message'] ) ? $options['formidable_spam_message'] : $message,
-			);
-		}
+		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+
+		$settings['formidable_spam_message'] = array(
+			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
+			'desc'        => __( 'When Formidable protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
+			'section'     => 'formidable',
+			'type'        => 'text',
+			'field_class' => 'large-text',
+			'placeholder' => $message,
+			'value'       => ! empty( $options['formidable_spam_message'] ) ? $options['formidable_spam_message'] : $message,
+		);
 
 		$settings['log_blocked_formidable'] = array(
 			'title'   => __( 'Log Blocked Formidable Submissions', 'zerospam' ),
 			'section' => 'formidable',
 			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging blocked Formidable submissions.', 'zerospam' ),
+			'desc'    => wp_kses(
+				__( 'Enables logging blocked Formidable submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				array( 'strong' => array() )
+			),
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
@@ -98,33 +102,32 @@ class Formidable {
 	}
 
 	/**
-	 * Add a 'honeypot' field to the form.
+	 * Add a 'honeypot' field to the form
 	 *
 	 * @param array $form_data Form data and settings.
 	 */
 	public function honeypot( $form_data ) {
+		// @codingStandardsIgnoreLine
 		echo ZeroSpam\Core\Utilities::honeypot_field();
 	}
 
 	/**
-	 * Preprocess submission.
+	 * Preprocess submission
+	 *
+	 * @param array $errors Array of errors.
+	 * @param array $values Array of values.
 	 */
 	public function preprocess_submission( $errors, $values ) {
 		$settings = ZeroSpam\Core\Settings::get_settings();
-		$honeypot = ZeroSpam\Core\Utilities::get_honeypot();
 
 		// Check honeypot.
-		if (
-			! empty( $_REQUEST[ $honeypot ] )
-		) {
-			$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-			if ( ! empty( $settings['formidable_spam_message']['value'] ) ) {
-				$message = $settings['formidable_spam_message']['value'];
-			}
+		// @codingStandardsIgnoreLine
+		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
+			$message = ZeroSpam\Core\Utilities::detection_message( 'formidable_spam_message' );
 
 			$errors['zerospam_honeypot'] = $message;
 
-			if ( ! empty( $settings['log_blocked_formidable']['value'] ) && 'enabled' === $settings['log_blocked_formidable']['value'] ) {
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_formidable' ) ) {
 				$details           = $values;
 				$details['failed'] = 'honeypot';
 				ZeroSpam\Includes\DB::log( 'formidable', $details );

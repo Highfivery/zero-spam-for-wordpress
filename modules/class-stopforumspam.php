@@ -164,25 +164,36 @@ class StopForumSpam {
 					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&
 					floatval( $response['email']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
 				) {
-					$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-					if ( ! empty( $settings['registration_spam_message']['value'] ) ) {
-						$message = $settings['registration_spam_message']['value'];
+
+					if ( ! empty( $settings['log_blocked_comments']['value'] ) && 'enabled' === $settings['log_blocked_comments']['value'] ) {
+						$details = array(
+							'failed' => 'stop_forum_spam_email',
+						);
+						$details = array_merge( $details, $commentdata );
+						ZeroSpam\Includes\DB::log( 'comment', $details );
 					}
 
-					if ( count( $errors->errors ) == 0 ) {
-						$errors->add( 'zerospam_error_stopformspam_email', __( $message, 'zerospam' ) );
-					}
-
-					$details = array(
-						'user_login' => $sanitized_user_login,
-						'user_email' => $user_email,
-						'failed'     => 'stop_forum_spam_email',
+					$message = ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
+					wp_die(
+						wp_kses(
+							$message,
+							array(
+								'a'      => array(
+									'target' => array(),
+									'href'   => array(),
+									'rel'    => array(),
+								),
+								'strong' => array(),
+							)
+						),
+						esc_html( ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ) ),
+						array(
+							'response' => 403,
+						)
 					);
-					ZeroSpam\Includes\DB::log( 'registration', $details );
 				}
 			}
 		}
-
 
 		return $commentdata;
 	}
@@ -209,6 +220,8 @@ class StopForumSpam {
 		if ( $response ) {
 			$response = json_decode( $response, true );
 			if ( ! empty( $response['success'] ) && $response['success'] ) {
+				$message = ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
+
 				// Check username.
 				if (
 					! empty( $response['username'] ) &&
@@ -216,18 +229,16 @@ class StopForumSpam {
 					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&
 					floatval( $response['username']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
 				) {
-					$message = __( 'Your been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-					if ( ! empty( $settings['registration_spam_message']['value'] ) ) {
-						$message = $settings['registration_spam_message']['value'];
-					}
-					$errors->add( 'zerospam_error_stopformspam_username', __( $message, 'zerospam' ) );
+					$errors->add( 'zerospam_error_stopformspam_username', $message );
 
-					$details = array(
-						'user_login' => $sanitized_user_login,
-						'user_email' => $user_email,
-						'failed'     => 'stop_forum_spam_username',
-					);
-					ZeroSpam\Includes\DB::log( 'registration', $details );
+					if ( ! empty( $settings['log_blocked_registrations']['value'] ) && 'enabled' === $settings['log_blocked_registrations']['value'] ) {
+						$details = array(
+							'user_login' => $sanitized_user_login,
+							'user_email' => $user_email,
+							'failed'     => 'stop_forum_spam_username',
+						);
+						ZeroSpam\Includes\DB::log( 'registration', $details );
+					}
 				}
 
 				// Check email.
@@ -237,25 +248,21 @@ class StopForumSpam {
 					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&
 					floatval( $response['email']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
 				) {
-					$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
-					if ( ! empty( $settings['registration_spam_message']['value'] ) ) {
-						$message = $settings['registration_spam_message']['value'];
-					}
-
 					if ( count( $errors->errors ) == 0 ) {
 						$errors->add( 'zerospam_error_stopformspam_email', __( $message, 'zerospam' ) );
 					}
 
-					$details = array(
-						'user_login' => $sanitized_user_login,
-						'user_email' => $user_email,
-						'failed'     => 'stop_forum_spam_email',
-					);
-					ZeroSpam\Includes\DB::log( 'registration', $details );
+					if ( ! empty( $settings['log_blocked_registrations']['value'] ) && 'enabled' === $settings['log_blocked_registrations']['value'] ) {
+						$details = array(
+							'user_login' => $sanitized_user_login,
+							'user_email' => $user_email,
+							'failed'     => 'stop_forum_spam_email',
+						);
+						ZeroSpam\Includes\DB::log( 'registration', $details );
+					}
 				}
 			}
 		}
-
 
 		return $errors;
 	}
