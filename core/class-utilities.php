@@ -1,6 +1,6 @@
 <?php
 /**
- * Utilities class.
+ * Utilities class
  *
  * @package ZeroSpam
  */
@@ -13,9 +13,7 @@ use ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Utilities.
- *
- * @since 5.0.0
+ * Utilities
  */
 class Utilities {
 

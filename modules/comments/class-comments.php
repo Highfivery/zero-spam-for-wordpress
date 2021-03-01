@@ -120,13 +120,14 @@ class Comments {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_comments'] = array(
-			'title'   => __( 'Protect Comments', 'zerospam' ),
-			'section' => 'comments',
-			'type'    => 'checkbox',
-			'options' => array(
+			'title'       => __( 'Protect Comments', 'zerospam' ),
+			'section'     => 'comments',
+			'type'        => 'checkbox',
+			'options'     => array(
 				'enabled' => __( 'Monitor comments for malicious or automated spambots.', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['verify_comments'] ) ? $options['verify_comments'] : false,
+			'value'       => ! empty( $options['verify_comments'] ) ? $options['verify_comments'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
@@ -142,17 +143,18 @@ class Comments {
 		);
 
 		$settings['log_blocked_comments'] = array(
-			'title'   => __( 'Log Blocked Comments', 'zerospam' ),
-			'section' => 'comments',
-			'type'    => 'checkbox',
-			'desc'    => wp_kses(
+			'title'       => __( 'Log Blocked Comments', 'zerospam' ),
+			'section'     => 'comments',
+			'type'        => 'checkbox',
+			'desc'        => wp_kses(
 				__( 'Enables logging blocked comments. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
 				array( 'strong' => array() )
 			),
-			'options' => array(
+			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['log_blocked_comments'] ) ? $options['log_blocked_comments'] : false,
+			'value'       => ! empty( $options['log_blocked_comments'] ) ? $options['log_blocked_comments'] : false,
+			'recommended' => 'enabled',
 		);
 
 		return $settings;

@@ -35,6 +35,37 @@ class Admin {
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
+
+		// Check first-time config.
+		$configured = get_option( 'zerospam_configured' );
+		if ( ! $configured ) {
+			add_action( 'admin_notices', array( $this, 'not_configured_notice' ) );
+		}
+
+		if ( ! empty( $_REQUEST['zerospam-auto-configure'] ) ) {
+			\ZeroSpam\Core\Settings::auto_configure();
+		}
+	}
+
+	/**
+	 * Display not configured notice.
+	 */
+	public function not_configured_notice() {
+		$message = sprintf(
+			wp_kses(
+				/* translators: %s: url */
+				__( 'Thanks for installing WordPress Zero Spam! Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <a href="%2$s">click here</a> to automatically configure recommended settings.', 'zerospam' ),
+				array(
+					'a' => array(
+						'href' => array(),
+					),
+				)
+			),
+			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
+			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-auto-configure=1' ) )
+		);
+
+		add_settings_error( 'zerospam-notices', 'zerospam-configure', $message, 'info' );
 	}
 
 	/**

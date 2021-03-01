@@ -44,26 +44,14 @@ if ( ! version_compare( PHP_VERSION, '7.3', '>=' ) ) {
 }
 
 /**
- * Load Elementor textdomain.
- *
- * Load gettext translate for Elementor text domain.
- *
- * @since 1.0.0
- *
- * @return void
+ * Load plugin textdomain
  */
 function zerospam_load_plugin_textdomain() {
 	load_plugin_textdomain( 'zerospam' );
 }
 
 /**
- * WordPress Zero Spam admin notice for minimum PHP version.
- *
- * Warning when the site doesn't have the minimum required PHP version.
- *
- * @since 5.0.0
- *
- * @return void
+ * WordPress Zero Spam admin notice for minimum PHP version
  */
 function zerospam_fail_php_version() {
 	/* translators: %s: PHP version */
@@ -73,13 +61,7 @@ function zerospam_fail_php_version() {
 }
 
 /**
- * WordPress Zero Spam admin notice for minimum WordPress version.
- *
- * Warning when the site doesn't have the minimum required WordPress version.
- *
- * @since 5.0.0
- *
- * @return void
+ * WordPress Zero Spam admin notice for minimum WordPress version
  */
 function zerospam_fail_wp_version() {
 	/* translators: %s: WordPress version */

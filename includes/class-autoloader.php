@@ -11,12 +11,10 @@ namespace ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * WordPress Zero Spam autoloader.
+ * WordPress Zero Spam autoloader
  *
  * WordPress Zero Spam autoloader handler class is responsible for loading the
  * different classes needed to run the plugin.
- *
- * @since 5.0.0
  */
 class Autoloader {
 

@@ -65,14 +65,15 @@ class WooCommerce {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['woocommerce_protection'] = array(
-			'title'   => __( 'WooCommerce Protection', 'zerospam' ),
-			'section' => 'woocommerce',
-			'type'    => 'checkbox',
-			'desc'    => __( 'Enables integration with the WooCommerce.', 'zerospam' ),
-			'options' => array(
+			'title'       => __( 'WooCommerce Protection', 'zerospam' ),
+			'section'     => 'woocommerce',
+			'type'        => 'checkbox',
+			'desc'        => __( 'Enables integration with the WooCommerce.', 'zerospam' ),
+			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['woocommerce_protection'] ) ? $options['woocommerce_protection'] : false,
+			'value'       => ! empty( $options['woocommerce_protection'] ) ? $options['woocommerce_protection'] : false,
+			'recommended' => 'enabled',
 		);
 
 		return $settings;

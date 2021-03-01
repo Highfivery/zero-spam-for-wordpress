@@ -99,13 +99,14 @@ class ContactForm7 {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_contactform7'] = array(
-			'title'   => __( 'Protect CF7 Submissions', 'zerospam' ),
-			'section' => 'contactform7',
-			'type'    => 'checkbox',
-			'options' => array(
+			'title'       => __( 'Protect CF7 Submissions', 'zerospam' ),
+			'section'     => 'contactform7',
+			'type'        => 'checkbox',
+			'options'     => array(
 				'enabled' => __( 'Monitor CF7 submissions for malicious or automated spambots.', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['verify_contactform7'] ) ? $options['verify_contactform7'] : false,
+			'value'       => ! empty( $options['verify_contactform7'] ) ? $options['verify_contactform7'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
@@ -121,17 +122,18 @@ class ContactForm7 {
 		);
 
 		$settings['log_blocked_contactform7'] = array(
-			'title'   => __( 'Log Blocked CF7 Submissions', 'zerospam' ),
-			'section' => 'contactform7',
-			'type'    => 'checkbox',
-			'desc'    => wp_kses(
+			'title'       => __( 'Log Blocked CF7 Submissions', 'zerospam' ),
+			'section'     => 'contactform7',
+			'type'        => 'checkbox',
+			'desc'        => wp_kses(
 				__( 'Enables logging blocked CF7 submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
 				array( 'strong' => array() )
 			),
-			'options' => array(
+			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['log_blocked_contactform7'] ) ? $options['log_blocked_contactform7'] : false,
+			'value'       => ! empty( $options['log_blocked_contactform7'] ) ? $options['log_blocked_contactform7'] : false,
+			'recommended' => 'enabled',
 		);
 
 		return $settings;
