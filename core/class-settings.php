@@ -204,7 +204,13 @@ class Settings {
 
 		self::$settings['debug_ip'] = array(
 			'title'       => __( 'Debug IP', 'zerospam' ),
-			'desc'        => __( 'Mock a IP address for debugging.', 'zerospam' ),
+			'desc'        => wp_kses(
+				/* translators: %s: url */
+				__( 'Mock a IP address for debugging. <strong>WARNING: This overrides all visitor IP addresses and while enabled could block legit visitors from accessing the site.</strong>', 'zerospam' ),
+				array(
+					'strong' => array(),
+				)
+			),
 			'section'     => 'debug',
 			'type'        => 'text',
 			'placeholder' => '127.0.0.1',
