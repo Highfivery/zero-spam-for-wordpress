@@ -27,7 +27,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * Automatically & manually block IPs temporarily or permanently
 * Geolocate IP addresses to see where offenders are coming from
 * Block entire countries, regions, zip/postal codes & cities
-* Detailed logging to catch, investigate & block recurring offenders
+* Automatically update the WP core disallowed list weekly using [splorp's Comment Blacklist for WordPress](https://github.com/splorp/wordpress-comment-blacklist)
 
 = WordPress Zero Spam also protects =
 
@@ -77,6 +77,8 @@ For more information & developer documentation, see the [plugin’s website](htt
 * Added first-time configuration notice & auto-configure recommended settings functionality
 * Added the ability to regenerate the honeypot ID
 * Various admin UI improvements
+* WP Disallowed Comment Keys are automatically updated weekly using https://github.com/splorp/wordpress-comment-blacklist
+* Strengthened comment spam detections using WP core disallowed list
 
 = v5.0.6 =
 

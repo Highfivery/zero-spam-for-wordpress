@@ -48,19 +48,48 @@ class Comments {
 	 * @param array $commentdata Comment data array.
 	 */
 	public function preprocess_comments( $commentdata ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$block_user = false;
+		$block_type = false;
+		$settings   = ZeroSpam\Core\Settings::get_settings();
 
 		// Check honeypot.
 		// @codingStandardsIgnoreLine
 		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
+			$block_user = true;
+			$block_type = 'honeypot';
+		}
+
+		// Check comment disallowed list.
+		$disallowed_check = array(
+			'author'  => ! empty( $commentdata['comment_author'] ) ? $commentdata['comment_author'] : false,
+			'email'   => ! empty( $commentdata['comment_author_email'] ) ? $commentdata['comment_author_email'] : false,
+			'url'     => ! empty( $commentdata['comment_author_url'] ) ? $commentdata['comment_author_url'] : false,
+			'content' => ! empty( $commentdata['comment_content'] ) ? $commentdata['comment_content'] : false,
+			'ip'      => \ZeroSpam\Core\User::get_ip(),
+			'agent'   => ! empty( $commentdata['comment_agent'] ) ? $commentdata['comment_agent'] : false,
+		);
+
+		if ( wp_check_comment_disallowed_list(
+			$disallowed_check['author'],
+			$disallowed_check['email'],
+			$disallowed_check['url'],
+			$disallowed_check['content'],
+			$disallowed_check['ip'],
+			$disallowed_check['agent'],
+		) ) {
+			$block_user = true;
+			$block_type = 'disallowed_list';
+		}
+
+		if ( $block_user && $block_type ) {
+			// Log if enabled.
 			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_comments' ) ) {
 				$details = array(
-					'failed' => 'honeypot',
+					'failed' => $block_type,
 				);
 				$details = array_merge( $details, $commentdata );
 				ZeroSpam\Includes\DB::log( 'comment', $details );
 			}
-
 			$message = ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
 
 			wp_die(
