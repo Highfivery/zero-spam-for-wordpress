@@ -48,13 +48,28 @@ class Settings {
 	}
 
 	/**
+	 * Validates plugin settings before save.
+	 */
+	public function settings_validation( $input ) {
+		update_option( 'zerospam_configured', 1 );
+
+		return $input;
+	}
+
+	/**
 	 * Register settings.
 	 *
 	 * @since 5.0.0
 	 * @access public
 	 */
 	public function register_settings() {
-		register_setting( 'wpzerospam', 'wpzerospam' );
+		register_setting(
+			'wpzerospam',
+			'wpzerospam',
+			array(
+				'sanitize_callback' => array( $this, 'settings_validation' ),
+			)
+		);
 
 		foreach ( ZeroSpam\Core\Settings::get_sections() as $key => $section ) {
 			add_settings_section(

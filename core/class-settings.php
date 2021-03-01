@@ -74,6 +74,7 @@ class Settings {
 
 		if ( $recommended_settings ) {
 			update_option( 'wpzerospam', $recommended_settings );
+			update_option( 'zerospam_configured', 1 );
 		}
 
 		wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) );

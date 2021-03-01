@@ -5,7 +5,7 @@ Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&u
 Requires at least: 5.2
 Tested up to: 5.6.2
 Requires PHP: 7.3
-Stable tag: 5.0.6
+Stable tag: 5.0.7
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -71,6 +71,10 @@ For more information & developer documentation, see the [plugin’s website](htt
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.0.7 =
+
+* Added first-time configuration notice & auto-configure recommended settings functionality
 
 = v5.0.6 =
 
