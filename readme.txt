@@ -80,6 +80,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 * Various admin UI improvements
 * WP Disallowed Comment Keys are automatically updated weekly using https://github.com/splorp/wordpress-comment-blacklist
 * Strengthened comment spam detections using WP core disallowed list
+* [David Walsh's spam technique](https://davidwalsh.name/wordpress-comment-spam#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam) is back! https://github.com/bmarshall511/wordpress-zero-spam/issues/247
 
 = v5.0.6 =
 
