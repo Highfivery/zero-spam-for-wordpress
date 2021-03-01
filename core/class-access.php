@@ -61,7 +61,7 @@ class Access {
 
 			if ( ! empty( $access['details'] ) && is_array( $access['details'] ) ) {
 				if ( ! empty( $settings['share_data']['value'] ) && 'enabled' === $settings['share_data']['value'] ) {
-					do_action( 'zerospam_share_blocked', $access['details'] );
+					do_action( 'zerospam_share_blocked', $access );
 				}
 
 				foreach ( $access['details'] as $key => $detail ) {
@@ -125,6 +125,7 @@ class Access {
 			$start_date = new \DateTime( $blocked_record['start_block'] );
 		}
 
+		$blocked = false;
 		if ( $today >= $start_date ) {
 			// Check the end date if temporary block.
 			if (
@@ -136,19 +137,20 @@ class Access {
 					$end_date = new \DateTime( $blocked_record['end_block'] );
 
 					if ( $today < $end_date ) {
-						$access_check['blocked']            = true;
-						$access_check['type']              = 'blocked';
-						$access_check['details']           = $blocked_record;
-						$access_check['details']['failed'] = $failed;
+						$blocked = true;
 					}
 				}
 			} else {
 				// Permanent block.
-				$access_check['blocked']           = true;
-				$access_check['type']              = 'blocked';
-				$access_check['details']           = $blocked_record;
-				$access_check['details']['failed'] = $failed;
+				$blocked = true;
 			}
+		}
+
+		if ( $blocked ) {
+			$access_check['blocked']            = true;
+			$access_check['type']              = 'blocked';
+			$access_check['details']           = $blocked_record;
+			$access_check['details']['failed'] = $failed;
 		}
 
 		return $access_check;
@@ -166,7 +168,7 @@ class Access {
 		);
 
 		// Attempt to get the IP address location & checked if block.
-		$location = apply_filters( 'zerospam_get_location', $user_ip );
+		$location = ZeroSpam\Modules\ipstack::get_geolocation( $user_ip );
 		if ( $location ) {
 			$location_keys = array( 'country_code', 'region_code', 'city', 'zip' );
 			foreach ( $location_keys as $key => $loc ) {
@@ -200,14 +202,15 @@ class Access {
 	 */
 	public function get_access() {
 		$settings = ZeroSpam\Core\Settings::get_settings();
+		$user_ip  = ZeroSpam\Core\User::get_ip();
 
 		$access = array(
 			'blocked' => false,
 		);
 
-		$user_ip = ZeroSpam\Core\User::get_ip();
-
 		if ( $user_ip ) {
+			$access['ip'] = $user_ip;
+
 			if ( ZeroSpam\Core\Utilities::is_whitelisted( $user_ip ) ) {
 				return $access;
 			}

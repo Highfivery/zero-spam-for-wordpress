@@ -13,7 +13,7 @@
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong>.
- * Version:           5.0.6
+ * Version:           5.0.7
  * Requires at least: 5.2
  * Requires PHP:      7.3
  * Author:            Ben Marshall
@@ -31,7 +31,7 @@ defined( 'ABSPATH' ) || die();
 define( 'ZEROSPAM', __FILE__ );
 define( 'ZEROSPAM_PATH', plugin_dir_path( ZEROSPAM ) );
 define( 'ZEROSPAM_PLUGIN_BASE', plugin_basename( ZEROSPAM ) );
-define( 'ZEROSPAM_VERSION', '5.0.6' );
+define( 'ZEROSPAM_VERSION', '5.0.7' );
 
 add_action( 'plugins_loaded', 'zerospam_load_plugin_textdomain' );
 
@@ -44,26 +44,14 @@ if ( ! version_compare( PHP_VERSION, '7.3', '>=' ) ) {
 }
 
 /**
- * Load Elementor textdomain.
- *
- * Load gettext translate for Elementor text domain.
- *
- * @since 1.0.0
- *
- * @return void
+ * Load plugin textdomain
  */
 function zerospam_load_plugin_textdomain() {
 	load_plugin_textdomain( 'zerospam' );
 }
 
 /**
- * WordPress Zero Spam admin notice for minimum PHP version.
- *
- * Warning when the site doesn't have the minimum required PHP version.
- *
- * @since 5.0.0
- *
- * @return void
+ * WordPress Zero Spam admin notice for minimum PHP version
  */
 function zerospam_fail_php_version() {
 	/* translators: %s: PHP version */
@@ -73,13 +61,7 @@ function zerospam_fail_php_version() {
 }
 
 /**
- * WordPress Zero Spam admin notice for minimum WordPress version.
- *
- * Warning when the site doesn't have the minimum required WordPress version.
- *
- * @since 5.0.0
- *
- * @return void
+ * WordPress Zero Spam admin notice for minimum WordPress version
  */
 function zerospam_fail_wp_version() {
 	/* translators: %s: WordPress version */

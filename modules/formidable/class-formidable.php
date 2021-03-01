@@ -63,13 +63,14 @@ class Formidable {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_formidable'] = array(
-			'title'   => __( 'Protect Formidable Submissions', 'zerospam' ),
-			'section' => 'formidable',
-			'type'    => 'checkbox',
-			'options' => array(
+			'title'       => __( 'Protect Formidable Submissions', 'zerospam' ),
+			'section'     => 'formidable',
+			'type'        => 'checkbox',
+			'options'     => array(
 				'enabled' => __( 'Monitor Formidable submissions for malicious or automated spambots.', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['verify_formidable'] ) ? $options['verify_formidable'] : false,
+			'value'       => ! empty( $options['verify_formidable'] ) ? $options['verify_formidable'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
@@ -85,17 +86,18 @@ class Formidable {
 		);
 
 		$settings['log_blocked_formidable'] = array(
-			'title'   => __( 'Log Blocked Formidable Submissions', 'zerospam' ),
-			'section' => 'formidable',
-			'type'    => 'checkbox',
-			'desc'    => wp_kses(
+			'title'       => __( 'Log Blocked Formidable Submissions', 'zerospam' ),
+			'section'     => 'formidable',
+			'type'        => 'checkbox',
+			'desc'        => wp_kses(
 				__( 'Enables logging blocked Formidable submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
 				array( 'strong' => array() )
 			),
-			'options' => array(
+			'options'    => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['log_blocked_formidable'] ) ? $options['log_blocked_formidable'] : false,
+			'value'       => ! empty( $options['log_blocked_formidable'] ) ? $options['log_blocked_formidable'] : false,
+			'recommended' => 'enabled',
 		);
 
 		return $settings;

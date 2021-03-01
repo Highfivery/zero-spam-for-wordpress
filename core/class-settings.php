@@ -59,6 +59,26 @@ class Settings {
 	}
 
 	/**
+	 * Configures the plugin's recommended settings.
+	 */
+	public function auto_configure() {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+
+		$recommended_settings = array();
+		foreach ( $settings as $key => $setting ) {
+			$recommended_settings[ $key ] = $setting['value'];
+			if ( isset( $setting['recommended'] ) ) {
+				$recommended_settings[ $key ] = $setting['recommended'];
+			}
+		}
+
+		if ( $recommended_settings ) {
+			update_option( 'wpzerospam', $recommended_settings );
+			update_option( 'zerospam_configured', 1 );
+		}
+	}
+
+	/**
 	 * Returns the plugin settings.
 	 *
 	 * @since 5.0.0
@@ -68,10 +88,10 @@ class Settings {
 		$options = get_option( 'wpzerospam' );
 
 		self::$settings['share_data'] = array(
-			'title'   => __( 'Usage Data Sharing', 'zerospam' ),
-			'section' => 'general',
-			'type'    => 'checkbox',
-			'options' => array(
+			'title'       => __( 'Usage Data Sharing', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'checkbox',
+			'options'     => array(
 				'enabled' => sprintf(
 					wp_kses(
 						/* translators: %s: url */
@@ -87,7 +107,8 @@ class Settings {
 					esc_url( 'https://github.com/bmarshall511/wordpress-zero-spam/wiki/FAQ#what-data-is-shared-when-usage-data-sharing-is-enabled' )
 				),
 			),
-			'value'   => ! empty( $options['share_data'] ) ? $options['share_data'] : false,
+			'value'       => ! empty( $options['share_data'] ) ? $options['share_data'] : false,
+			'recommended' => 'enabled',
 		);
 
 		self::$settings['block_handler'] = array(
@@ -111,12 +132,13 @@ class Settings {
 						)
 					),
 					esc_url( 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403' )
-				)
+				),
 			),
 			'value'   => ! empty( $options['block_handler'] ) ? $options['block_handler'] : 403,
 		);
 
-		$message                           = __( 'Your IP address has been blocked by WordPress Zero Spam due to detected spam/malicious activity.', 'zerospam' );
+		$message = __( 'Your IP address has been blocked by WordPress Zero Spam due to detected spam/malicious activity.', 'zerospam' );
+
 		self::$settings['blocked_message'] = array(
 			'title'       => __( 'Blocked Message', 'zerospam' ),
 			'desc'        => __( 'The message displayed to blocked users when \'Display a 403 Forbidden error\' is selected.', 'zerospam' ),
@@ -138,14 +160,15 @@ class Settings {
 		);
 
 		self::$settings['log_blocked_ips'] = array(
-			'title'   => __( 'Log Blocked IPs', 'zerospam' ),
-			'section' => 'general',
-			'type'    => 'checkbox',
-			'desc'    => __( 'Enables logging IPs that are blocked from accessing the site.', 'zerospam' ),
-			'options' => array(
+			'title'       => __( 'Log Blocked IPs', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'checkbox',
+			'desc'        => __( 'Enables logging IPs that are blocked from accessing the site.', 'zerospam' ),
+			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['log_blocked_ips'] ) ? $options['log_blocked_ips'] : false,
+			'value'       => ! empty( $options['log_blocked_ips'] ) ? $options['log_blocked_ips'] : false,
+			'recommended' => 'enabled',
 		);
 
 		self::$settings['max_logs'] = array(
@@ -179,16 +202,40 @@ class Settings {
 			'value'   => ! empty( $options['debug'] ) ? $options['debug'] : false,
 		);
 
-		if ( 'enabled' === self::$settings['debug']['value'] ) {
-			self::$settings['debug_ip'] = array(
-				'title'       => __( 'Debug IP', 'zerospam' ),
-				'desc'        => __( 'Mock a IP address for debugging.', 'zerospam' ),
-				'section'     => 'debug',
-				'type'        => 'text',
-				'placeholder' => '127.0.0.1',
-				'value'       => ! empty( $options['debug_ip'] ) ? $options['debug_ip'] : false,
-			);
-		}
+		self::$settings['debug_ip'] = array(
+			'title'       => __( 'Debug IP', 'zerospam' ),
+			'desc'        => wp_kses(
+				/* translators: %s: url */
+				__( 'Mock a IP address for debugging. <strong>WARNING: This overrides all visitor IP addresses and while enabled could block legit visitors from accessing the site.</strong>', 'zerospam' ),
+				array(
+					'strong' => array(),
+				)
+			),
+			'section'     => 'debug',
+			'type'        => 'text',
+			'placeholder' => '127.0.0.1',
+			'value'       => ! empty( $options['debug_ip'] ) ? $options['debug_ip'] : false,
+		);
+
+		self::$settings['regenerate_honeypot'] = array(
+			'title'   => __( 'Regenerate Honeypot ID', 'zerospam' ),
+			'desc'    => __( 'Helpful if spam is getting through. Current honeypot ID: <code>' . \ZeroSpam\Core\Utilities::get_honeypot() . '</code>', 'zerospam' ),
+			'section' => 'general',
+			'type'    => 'html',
+			'html'    => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( '<a href="%s" class="button button-primary">Regenerate Honeypot ID</a>', 'zerospam' ),
+					array(
+						'a'    => array(
+							'href'  => array(),
+							'class' => array(),
+						),
+					)
+				),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-regenerate-honeypot=1' ) )
+			),
+		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings );
 

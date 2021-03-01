@@ -28,6 +28,7 @@ class Comments {
 		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) && ZeroSpam\Core\Access::process() ) {
 			add_filter( 'comment_form_defaults', array( $this, 'honeypot' ) );
 			add_action( 'preprocess_comment', array( $this, 'preprocess_comments' ) );
+			add_action( 'comment_form_before_fields', array( $this, 'enqueue_davidwalsh' ) );
 		}
 	}
 
@@ -48,14 +49,44 @@ class Comments {
 	 * @param array $commentdata Comment data array.
 	 */
 	public function preprocess_comments( $commentdata ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$block_user = false;
+		$block_type = false;
+		$settings   = ZeroSpam\Core\Settings::get_settings();
 
 		// Check honeypot.
 		// @codingStandardsIgnoreLine
 		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
+			$block_user = true;
+			$block_type = 'honeypot';
+		}
+
+		// Check comment disallowed list.
+		$disallowed_check = array(
+			'author'  => ! empty( $commentdata['comment_author'] ) ? $commentdata['comment_author'] : false,
+			'email'   => ! empty( $commentdata['comment_author_email'] ) ? $commentdata['comment_author_email'] : false,
+			'url'     => ! empty( $commentdata['comment_author_url'] ) ? $commentdata['comment_author_url'] : false,
+			'content' => ! empty( $commentdata['comment_content'] ) ? $commentdata['comment_content'] : false,
+			'ip'      => \ZeroSpam\Core\User::get_ip(),
+			'agent'   => ! empty( $commentdata['comment_agent'] ) ? $commentdata['comment_agent'] : false,
+		);
+
+		if ( wp_check_comment_disallowed_list(
+			$disallowed_check['author'],
+			$disallowed_check['email'],
+			$disallowed_check['url'],
+			$disallowed_check['content'],
+			$disallowed_check['ip'],
+			$disallowed_check['agent'],
+		) ) {
+			$block_user = true;
+			$block_type = 'disallowed_list';
+		}
+
+		if ( $block_user && $block_type ) {
+			// Log if enabled.
 			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_comments' ) ) {
 				$details = array(
-					'failed' => 'honeypot',
+					'failed' => $block_type,
 				);
 				$details = array_merge( $details, $commentdata );
 				ZeroSpam\Includes\DB::log( 'comment', $details );
@@ -81,8 +112,6 @@ class Comments {
 				)
 			);
 		}
-
-		$commentdata = apply_filters( 'zerospam_preprocess_comment', $commentdata );
 
 		return apply_filters( 'zerospam_preprocess_comment', $commentdata );
 	}
@@ -120,13 +149,14 @@ class Comments {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_comments'] = array(
-			'title'   => __( 'Protect Comments', 'zerospam' ),
-			'section' => 'comments',
-			'type'    => 'checkbox',
-			'options' => array(
+			'title'       => __( 'Protect Comments', 'zerospam' ),
+			'section'     => 'comments',
+			'type'        => 'checkbox',
+			'options'     => array(
 				'enabled' => __( 'Monitor comments for malicious or automated spambots.', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['verify_comments'] ) ? $options['verify_comments'] : false,
+			'value'       => ! empty( $options['verify_comments'] ) ? $options['verify_comments'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
@@ -142,17 +172,18 @@ class Comments {
 		);
 
 		$settings['log_blocked_comments'] = array(
-			'title'   => __( 'Log Blocked Comments', 'zerospam' ),
-			'section' => 'comments',
-			'type'    => 'checkbox',
-			'desc'    => wp_kses(
+			'title'       => __( 'Log Blocked Comments', 'zerospam' ),
+			'section'     => 'comments',
+			'type'        => 'checkbox',
+			'desc'        => wp_kses(
 				__( 'Enables logging blocked comments. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
 				array( 'strong' => array() )
 			),
-			'options' => array(
+			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['log_blocked_comments'] ) ? $options['log_blocked_comments'] : false,
+			'value'       => ! empty( $options['log_blocked_comments'] ) ? $options['log_blocked_comments'] : false,
+			'recommended' => 'enabled',
 		);
 
 		return $settings;

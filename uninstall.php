@@ -26,6 +26,8 @@ if ( is_multisite() ) {
 			delete_option( 'wpzerospam' );
 			delete_option( 'wpzerospam_honeypot' );
 			delete_option( 'zerospam_db_version' );
+			delete_option( 'zerospam_configured' );
+			delete_option( 'zerospam_davidwalsh' );
 
 			foreach ( $tables as $key => $table ) {
 				$wpdb->query( "DROP TABLE IF EXISTS " . $wpdb->prefix . $table );
@@ -37,6 +39,8 @@ if ( is_multisite() ) {
 	delete_option( 'wpzerospam' );
 	delete_option( 'wpzerospam_honeypot' );
 	delete_option( 'zerospam_db_version' );
+	delete_option( 'zerospam_configured' );
+	delete_option( 'zerospam_davidwalsh' );
 
 	foreach ( $tables as $key => $table ) {
 		$wpdb->query( "DROP TABLE IF EXISTS " . $wpdb->prefix . $table );

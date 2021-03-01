@@ -22,15 +22,10 @@ class DB {
 	/**
 	 * Current DB version.
 	 */
-	const DB_VERSION = '0.7';
+	const DB_VERSION = '0.8';
 
 	/**
 	 * DB tables.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
-	 * @var Assets_Manager
 	 */
 	public static $tables = array(
 		'log'       => 'wpzerospam_log',
@@ -49,17 +44,13 @@ class DB {
 	}
 
 	/**
-	 * Installs & updates the DB tables.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Installs & updates the DB tables
 	 */
 	public function update() {
 		if ( self::DB_VERSION !== get_site_option( 'zerospam_db_version' ) ) {
 			global $wpdb;
 
-			$charset_collate      = $wpdb->get_charset_collate();
-			$installed_db_version = get_option( 'zerospam_db_version' );
+			$charset_collate = $wpdb->get_charset_collate();
 
 			$sql = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['log'] . " (
 				log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -76,7 +67,7 @@ class DB {
 				zip VARCHAR(10) NULL DEFAULT NULL,
 				latitude VARCHAR(255) NULL DEFAULT NULL,
 				longitude VARCHAR(255) NULL DEFAULT NULL,
-				PRIMARY KEY (`log_id`)) $charset_collate;";
+				PRIMARY KEY (log_id)) $charset_collate;";
 
 			$sql .= 'CREATE TABLE ' . $wpdb->prefix . self::$tables['blocked'] . " (
 				blocked_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -88,7 +79,7 @@ class DB {
 				start_block DATETIME NULL DEFAULT NULL,
 				end_block DATETIME NULL DEFAULT NULL,
 				reason VARCHAR(255) NULL DEFAULT NULL,
-				PRIMARY KEY (`blocked_id`)) $charset_collate;";
+				PRIMARY KEY (blocked_id)) $charset_collate;";
 
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			dbDelta( $sql );

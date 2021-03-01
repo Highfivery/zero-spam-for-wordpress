@@ -28,7 +28,6 @@ class ipstack {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 		add_filter( 'zerospam_log_record', array( $this, 'log_record' ) );
-		add_filter( 'zerospam_get_location', array( $this, 'get_geolocation' ), 10, 1 );
 	}
 
 	/**

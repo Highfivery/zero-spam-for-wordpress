@@ -1,6 +1,6 @@
 <?php
 /**
- * Main plugin class.
+ * Main plugin class
  *
  * @package ZeroSpam
  */
@@ -10,6 +10,7 @@ namespace ZeroSpam;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Core\Access;
 use ZeroSpam\Core\User;
+use ZeroSpam\Core\Cron;
 use ZeroSpam\Core\Admin\Admin;
 use ZeroSpam\Modules\StopForumSpam;
 use ZeroSpam\Modules\ipstack;
@@ -22,40 +23,25 @@ use ZeroSpam\Modules\WooCommerce\WooCommerce;
 use ZeroSpam\Modules\WPForms\WPForms;
 use ZeroSpam\Modules\Formidable\Formidable;
 use ZeroSpam\Modules\FluentForms\FluentForms;
+use ZeroSpam\Modules\DavidWalsh\DavidWalsh;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
 /**
- * WordPress Zero Spam plugin.
- *
- * The main plugin handler class is responsible for initializing WordPress Zero
- * Spam. The class registers and all the components required to run the plugin.
- *
- * @since 5.0.0
+ * WordPress Zero Spam plugin
  */
 class Plugin {
 
 	/**
-	 * Instance.
-	 *
-	 * Holds the plugin instance.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 * @static
+	 * Instance
 	 *
 	 * @var Plugin
 	 */
 	public static $instance = null;
 
 	/**
-	 * Plugin constructor.
-	 *
-	 * Initializing WordPress Zero Spam plugin.
-	 *
-	 * @since 5.0.0
-	 * @access private
+	 * Plugin constructor
 	 */
 	private function __construct() {
 		$this->register_autoloader();
@@ -65,13 +51,7 @@ class Plugin {
 	}
 
 	/**
-	 * Register autoloader.
-	 *
-	 * WordPress Zero Spam autoloader loads all the classes needed to run the
-	 * plugin.
-	 *
-	 * @since 5.0.0
-	 * @access private
+	 * Register autoloader
 	 */
 	private function register_autoloader() {
 		require_once ZEROSPAM_PATH . 'includes/class-autoloader.php';
@@ -80,15 +60,7 @@ class Plugin {
 	}
 
 	/**
-	 * Instance.
-	 *
-	 * Ensures only one instance of the plugin class is loaded or can be loaded.
-	 *
-	 * @since 1.0.0
-	 * @access public
-	 * @static
-	 *
-	 * @return Plugin An instance of the class.
+	 * Instance
 	 */
 	public static function instance() {
 		if ( is_null( self::$instance ) ) {
@@ -108,19 +80,13 @@ class Plugin {
 	}
 
 	/**
-	 * Init.
-	 *
-	 * Initialize WordPress Zero Spam Plugin. Checks if the current user should be
-	 * blocked.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Init
 	 */
 	public function init() {
 		$this->init_components();
 
 		/**
-		 * WordPress Zero Spam init.
+		 * WordPress Zero Spam init
 		 *
 		 * Fires on WordPress Zero Spam init, after WordPress Zero Spam has finished
 		 * loading but before any headers are sent.
@@ -131,19 +97,18 @@ class Plugin {
 	}
 
 	/**
-	 * Init components.
+	 * Init components
 	 *
 	 * Initialize WordPress Zero Spam components. Register actions, initialize all
 	 * the components that run WordPress Zero Spam, and if in admin page
 	 * initialize admin components.
-	 *
-	 * @since 5.0.0
-	 * @access private
 	 */
 	private function init_components() {
 		new DB();
+		new Cron();
 		new Registration();
 		new Comments();
+		new DavidWalsh();
 
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
 
@@ -188,10 +153,7 @@ class Plugin {
 	}
 
 	/**
-	 * Add to the types array.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Add to the types array
 	 */
 	public function types( $types ) {
 		$types['blocked'] = __( 'Blocked', 'zerospam' );

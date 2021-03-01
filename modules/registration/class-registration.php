@@ -103,13 +103,14 @@ class Registration {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_registrations'] = array(
-			'title'   => __( 'Protect Registrations', 'zerospam' ),
-			'section' => 'registration',
-			'type'    => 'checkbox',
-			'options' => array(
+			'title'       => __( 'Protect Registrations', 'zerospam' ),
+			'section'     => 'registration',
+			'type'        => 'checkbox',
+			'options'     => array(
 				'enabled' => __( 'Monitor registrations for malicious or automated spambots.', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['verify_registrations'] ) ? $options['verify_registrations'] : false,
+			'value'       => ! empty( $options['verify_registrations'] ) ? $options['verify_registrations'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
@@ -125,17 +126,18 @@ class Registration {
 		);
 
 		$settings['log_blocked_registrations'] = array(
-			'title'   => __( 'Log Blocked Registrations', 'zerospam' ),
-			'section' => 'registration',
-			'type'    => 'checkbox',
-			'desc'    => wp_kses(
+			'title'       => __( 'Log Blocked Registrations', 'zerospam' ),
+			'section'     => 'registration',
+			'type'        => 'checkbox',
+			'desc'        => wp_kses(
 				__( 'Enables logging blocked registrations. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
 				array( 'strong' => array() )
 			),
-			'options' => array(
+			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['log_blocked_registrations'] ) ? $options['log_blocked_registrations'] : false,
+			'value'       => ! empty( $options['log_blocked_registrations'] ) ? $options['log_blocked_registrations'] : false,
+			'recommended' => 'enabled',
 		);
 
 		return $settings;

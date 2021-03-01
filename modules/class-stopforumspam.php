@@ -59,13 +59,13 @@ class StopForumSpam {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['stop_forum_spam'] = array(
-			'title'   => __( 'Stop Forum Spam', 'zerospam' ),
-			'section' => 'stop_forum_spam',
-			'type'    => 'checkbox',
-			'options' => array(
+			'title'       => __( 'Stop Forum Spam', 'zerospam' ),
+			'section'     => 'stop_forum_spam',
+			'type'        => 'checkbox',
+			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'desc'    => sprintf(
+			'desc'        => sprintf(
 				wp_kses(
 					__( 'Checks user IPs against <a href="%s" target="_blank" rel="noopener noreferrer">Stop Forum Spam</a>\'s blacklist.', 'zerospam' ),
 					array(
@@ -79,7 +79,8 @@ class StopForumSpam {
 				),
 				esc_url( 'https://www.stopforumspam.com/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
 			),
-			'value'   => ! empty( $options['stop_forum_spam'] ) ? $options['stop_forum_spam'] : false,
+			'value'       => ! empty( $options['stop_forum_spam'] ) ? $options['stop_forum_spam'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$settings['stop_forum_spam_timeout'] = array(

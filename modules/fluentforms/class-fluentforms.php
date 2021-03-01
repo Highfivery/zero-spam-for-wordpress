@@ -62,13 +62,14 @@ class FluentForms {
 		$options = get_option( 'wpzerospam' );
 
 		$settings['verify_fluentforms'] = array(
-			'title'   => __( 'Protect Fluent Form Submissions', 'zerospam' ),
-			'section' => 'fluentforms',
-			'type'    => 'checkbox',
-			'options' => array(
+			'title'       => __( 'Protect Fluent Form Submissions', 'zerospam' ),
+			'section'     => 'fluentforms',
+			'type'        => 'checkbox',
+			'options'     => array(
 				'enabled' => __( 'Monitor Fluent Form submissions for malicious or automated spambots.', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['verify_fluentforms'] ) ? $options['verify_fluentforms'] : false,
+			'value'       => ! empty( $options['verify_fluentforms'] ) ? $options['verify_fluentforms'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
@@ -84,17 +85,18 @@ class FluentForms {
 		);
 
 		$settings['log_blocked_fluentforms'] = array(
-			'title'   => __( 'Log Blocked Fluent Form Submissions', 'zerospam' ),
-			'section' => 'fluentforms',
-			'type'    => 'checkbox',
-			'desc'    => wp_kses(
+			'title'       => __( 'Log Blocked Fluent Form Submissions', 'zerospam' ),
+			'section'     => 'fluentforms',
+			'type'        => 'checkbox',
+			'desc'        => wp_kses(
 				__( 'Enables logging blocked Fluent Form submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
 				array( 'strong' => array() )
 			),
-			'options' => array(
+			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'value'   => ! empty( $options['log_blocked_fluentforms'] ) ? $options['log_blocked_fluentforms'] : false,
+			'value'       => ! empty( $options['log_blocked_fluentforms'] ) ? $options['log_blocked_fluentforms'] : false,
+			'recommended' => 'enabled',
 		);
 
 		return $settings;

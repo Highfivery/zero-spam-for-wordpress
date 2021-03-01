@@ -28,6 +28,36 @@ class Settings {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+
+		if ( ! empty( $_REQUEST['zerospam-auto-configure'] ) ) {
+			\ZeroSpam\Core\Settings::auto_configure();
+
+			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-msg=WordPress Zero Spam has been auto-configured to the recommended settings.' ) );
+			exit;
+		}
+
+		if ( ! empty( $_REQUEST['zerospam-regenerate-honeypot'] ) ) {
+			self::regenerate_honeypot();
+
+			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-msg=The WordPress Zero Spam honeypot ID has been successfully regenerated.' ) );
+			exit;
+		}
+
+		if ( ! empty( $_REQUEST['zerospam-msg'] ) ) {
+			add_action(
+				'admin_notices',
+				function() {
+					add_settings_error( 'zerospam-notices', 'zerospam-msg', esc_html( $_REQUEST['zerospam-msg'] ), 'success' );
+				}
+			);
+		}
+	}
+
+	/**
+	 * Regenerates the honeypot ID.
+	 */
+	public function regenerate_honeypot() {
+		\ZeroSpam\Core\Utilities::get_honeypot( true );
 	}
 
 	/**
@@ -48,13 +78,28 @@ class Settings {
 	}
 
 	/**
+	 * Validates plugin settings before save.
+	 */
+	public function settings_validation( $input ) {
+		update_option( 'zerospam_configured', 1 );
+
+		return $input;
+	}
+
+	/**
 	 * Register settings.
 	 *
 	 * @since 5.0.0
 	 * @access public
 	 */
 	public function register_settings() {
-		register_setting( 'wpzerospam', 'wpzerospam' );
+		register_setting(
+			'wpzerospam',
+			'wpzerospam',
+			array(
+				'sanitize_callback' => array( $this, 'settings_validation' ),
+			)
+		);
 
 		foreach ( ZeroSpam\Core\Settings::get_sections() as $key => $section ) {
 			add_settings_section(
@@ -107,6 +152,10 @@ class Settings {
 				$options['step'] = $setting['step'];
 			}
 
+			if ( ! empty( $setting['html'] ) ) {
+				$options['html'] = $setting['html'];
+			}
+
 			if ( ! empty( $setting['field_class'] ) ) {
 				$options['field_class'] = $setting['field_class'];
 			}
@@ -139,6 +188,9 @@ class Settings {
 	 */
 	public function settings_field( $args ) {
 		switch ( $args['type'] ) {
+			case 'html':
+				echo $args['html'];
+				break;
 			case 'textarea':
 				?>
 				<textarea
