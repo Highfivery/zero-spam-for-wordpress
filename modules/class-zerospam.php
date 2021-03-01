@@ -20,8 +20,7 @@ class Zero_Spam {
 	/**
 	 * The zerospam.org API endpoint
 	 */
-	//const API_ENDPOINT = 'https://www.zerospam.org/wp-json/zerospam/v1/';
-	const API_ENDPOINT = 'http://localhost:10023/wp-json/zerospam/v1/';
+	const API_ENDPOINT = 'https://www.zerospam.org/wp-json/zerospam/v1/';
 
 	/**
 	 * Constructor
