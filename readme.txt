@@ -75,6 +75,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 = v5.0.7 =
 
 * Added first-time configuration notice & auto-configure recommended settings functionality
+* Added the ability to regenerate the honeypot ID
 
 = v5.0.6 =
 

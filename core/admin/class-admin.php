@@ -41,10 +41,6 @@ class Admin {
 		if ( ! $configured ) {
 			add_action( 'admin_notices', array( $this, 'not_configured_notice' ) );
 		}
-
-		if ( ! empty( $_REQUEST['zerospam-auto-configure'] ) ) {
-			\ZeroSpam\Core\Settings::auto_configure();
-		}
 	}
 
 	/**

@@ -334,9 +334,9 @@ class Utilities {
 	 *
 	 * @return string A unique key used for the 'honeypot' field.
 	 */
-	public static function get_honeypot() {
+	public static function get_honeypot( $regenerate = false ) {
 		$key = get_option( 'wpzerospam_honeypot' );
-		if ( ! $key ) {
+		if ( ! $key || $regenerate ) {
 			$key = wp_generate_password( 5, false, false );
 			update_option( 'wpzerospam_honeypot', $key );
 		}

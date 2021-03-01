@@ -76,9 +76,6 @@ class Settings {
 			update_option( 'wpzerospam', $recommended_settings );
 			update_option( 'zerospam_configured', 1 );
 		}
-
-		wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) );
-		exit;
 	}
 
 	/**
@@ -212,6 +209,26 @@ class Settings {
 			'type'        => 'text',
 			'placeholder' => '127.0.0.1',
 			'value'       => ! empty( $options['debug_ip'] ) ? $options['debug_ip'] : false,
+		);
+
+		self::$settings['regenerate_honeypot'] = array(
+			'title'   => __( 'Regenerate Honeypot ID', 'zerospam' ),
+			'desc'    => __( 'Helpful if spam is getting through. Current honeypot ID: <code>' . \ZeroSpam\Core\Utilities::get_honeypot() . '</code>', 'zerospam' ),
+			'section' => 'general',
+			'type'    => 'html',
+			'html'    => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( '<a href="%s" class="button button-primary">Regenerate Honeypot ID</a>', 'zerospam' ),
+					array(
+						'a'    => array(
+							'href'  => array(),
+							'class' => array(),
+						),
+					)
+				),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-regenerate-honeypot=1' ) )
+			),
 		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings );
