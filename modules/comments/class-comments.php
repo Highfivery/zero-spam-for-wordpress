@@ -28,6 +28,7 @@ class Comments {
 		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) && ZeroSpam\Core\Access::process() ) {
 			add_filter( 'comment_form_defaults', array( $this, 'honeypot' ) );
 			add_action( 'preprocess_comment', array( $this, 'preprocess_comments' ) );
+			add_action( 'comment_form_before_fields', array( $this, 'enqueue_davidwalsh' ) );
 		}
 	}
 
@@ -90,6 +91,7 @@ class Comments {
 				$details = array_merge( $details, $commentdata );
 				ZeroSpam\Includes\DB::log( 'comment', $details );
 			}
+
 			$message = ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
 
 			wp_die(
@@ -110,8 +112,6 @@ class Comments {
 				)
 			);
 		}
-
-		$commentdata = apply_filters( 'zerospam_preprocess_comment', $commentdata );
 
 		return apply_filters( 'zerospam_preprocess_comment', $commentdata );
 	}

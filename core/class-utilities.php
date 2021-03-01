@@ -18,6 +18,39 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Validates submitted data agaisnt the WP core disallowed list.
+	 */
+	public static function is_disallowed( $content ) {
+		$disallowed_keys = trim( get_option( 'disallowed_keys' ) );
+		if ( empty( $disallowed_keys ) ) {
+			return false;
+		}
+
+		$disallowed_words = explode( "\n", $disallowed_keys );
+
+		// Ensure HTML tags are not being used to bypass the list of disallowed characters and words.
+		$content = wp_strip_all_tags( $content );
+
+		foreach ( (array) $disallowed_words as $word ) {
+			$word = trim( $word );
+
+			if ( empty( $word ) ) {
+				continue;
+			}
+
+			// Do some escaping magic so that '#' chars in the spam words don't break things.
+			$word = preg_quote( $word, '#' );
+
+			$pattern = "#$word#i";
+			if ( preg_match( $pattern, $content ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Returns the default detection meta title.
 	 *
 	 * @param string $setting_msg_key Optional. Setting message key.

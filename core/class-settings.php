@@ -132,7 +132,7 @@ class Settings {
 						)
 					),
 					esc_url( 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403' )
-				)
+				),
 			),
 			'value'   => ! empty( $options['block_handler'] ) ? $options['block_handler'] : 403,
 		);

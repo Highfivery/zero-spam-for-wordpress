@@ -28,6 +28,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * Geolocate IP addresses to see where offenders are coming from
 * Block entire countries, regions, zip/postal codes & cities
 * Automatically update the WP core disallowed list weekly using [splorp's Comment Blacklist for WordPress](https://github.com/splorp/wordpress-comment-blacklist)
+* Multiple detection techniques including [David Walsh's solution](https://davidwalsh.name/wordpress-comment-spam) for stopping WordPress spam.
 
 = WordPress Zero Spam also protects =
 

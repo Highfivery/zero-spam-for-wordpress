@@ -23,6 +23,7 @@ use ZeroSpam\Modules\WooCommerce\WooCommerce;
 use ZeroSpam\Modules\WPForms\WPForms;
 use ZeroSpam\Modules\Formidable\Formidable;
 use ZeroSpam\Modules\FluentForms\FluentForms;
+use ZeroSpam\Modules\DavidWalsh\DavidWalsh;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -107,6 +108,7 @@ class Plugin {
 		new Cron();
 		new Registration();
 		new Comments();
+		new DavidWalsh();
 
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
 
