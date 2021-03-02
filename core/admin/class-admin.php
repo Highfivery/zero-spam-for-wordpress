@@ -50,9 +50,10 @@ class Admin {
 		$message = sprintf(
 			wp_kses(
 				/* translators: %s: url */
-				__( 'Thanks for installing WordPress Zero Spam! Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <a href="%2$s">click here</a> to automatically configure recommended settings.', 'zerospam' ),
+				__( 'Thanks for installing WordPress Zero Spam! Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>.', 'zerospam' ),
 				array(
-					'a' => array(
+					'strong' => array(),
+					'a'      => array(
 						'href' => array(),
 					),
 				)
@@ -61,7 +62,8 @@ class Admin {
 			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-auto-configure=1' ) )
 		);
 
-		add_settings_error( 'zerospam-notices', 'zerospam-configure', $message, 'info' );
+		$class = 'notice notice-success';
+		printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), $message );
 	}
 
 	/**
