@@ -232,13 +232,19 @@ class StopForumSpam {
 				) {
 					$errors->add( 'zerospam_error_stopformspam_username', $message );
 
+					$details = array(
+						'user_login' => $sanitized_user_login,
+						'user_email' => $user_email,
+						'failed'     => 'stop_forum_spam_username',
+					);
 					if ( ! empty( $settings['log_blocked_registrations']['value'] ) && 'enabled' === $settings['log_blocked_registrations']['value'] ) {
-						$details = array(
-							'user_login' => $sanitized_user_login,
-							'user_email' => $user_email,
-							'failed'     => 'stop_forum_spam_username',
-						);
 						ZeroSpam\Includes\DB::log( 'registration', $details );
+					}
+
+					// Share the detection if enabled.
+					if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+						$details['type'] = 'registration';
+						do_action( 'zerospam_share_detection', $details );
 					}
 				}
 

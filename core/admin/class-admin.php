@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin class.
+ * Admin class
  *
  * @package ZeroSpam
  */
@@ -13,19 +13,12 @@ use ZeroSpam\Core\Admin\Admin;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Admin.
- *
- * Handles access checks.
- *
- * @since 5.0.0
+ * Admin
  */
 class Admin {
 
 	/**
-	 * Admin constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Admin constructor
 	 */
 	public function __construct() {
 		new Settings();

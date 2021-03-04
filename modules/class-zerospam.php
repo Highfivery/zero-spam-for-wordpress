@@ -21,6 +21,7 @@ class Zero_Spam {
 	 * The zerospam.org API endpoint
 	 */
 	const API_ENDPOINT = 'https://www.zerospam.org/wp-json/zerospam/v1/';
+	//const API_ENDPOINT = 'http://localhost:10023/wp-json/zerospam/v1/';
 
 	/**
 	 * Constructor
@@ -28,6 +29,64 @@ class Zero_Spam {
 	public function __construct() {
 		// Fires when a user is blocked from accessing the site.
 		add_action( 'zerospam_share_blocked', array( $this, 'share_blocked' ), 10, 1 );
+
+		// Fires when a user submission has been detected as spam.
+		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
+	}
+
+	/**
+	 * Global API data.
+	 */
+	public function global_api_data() {
+		$api_data                   = array();
+		$api_data['site_url']       = site_url();
+		$api_data['admin_email']    = get_bloginfo( 'admin_email' );
+		$api_data['wp_version']     = get_bloginfo( 'version' );
+		$api_data['site_name']      = get_bloginfo( 'name' );
+		$api_data['site_desc']      = get_bloginfo( 'description' );
+		$api_data['site_language']  = get_bloginfo( 'language' );
+		$api_data['plugin_version'] = ZEROSPAM_VERSION;
+
+		return $api_data;
+	}
+
+	/**
+	 * Share detection details with zerospam.org
+	 *
+	 * @param array $data Contains all detection details.
+	 */
+	public function share_detection( $data ) {
+		$endpoint = self::API_ENDPOINT . 'add-detection/';
+
+		$ip = \ZeroSpam\Core\User::get_ip();
+
+		if ( ! $ip || ! $data || ! is_array( $data ) || empty( $data['type'] ) ) {
+			return false;
+		}
+
+		$api_data = array(
+			'user_ip' => $ip,
+			'type'    => trim( sanitize_text_field( $data['type'] ) ),
+			'data'    => array(),
+		);
+
+		// Loop through & clean the data.
+		foreach ( $data as $key => $value ) {
+			$api_data['data'][ $key ] = trim( sanitize_text_field( $value ) );
+		}
+
+		// Attempt to get the geolocation information.
+		$api_data['location'] = ZeroSpam\Modules\ipstack::get_geolocation( $ip );
+
+		$global_data = self::global_api_data();
+		$api_data    = array_merge( $api_data, $global_data );
+
+		// Send the data to zerospam.org.
+		$args = array(
+			'body' => $api_data,
+		);
+
+		wp_remote_post( $endpoint, $args );
 	}
 
 	/**
@@ -88,24 +147,15 @@ class Zero_Spam {
 
 		// Only query the API if there's data to be sent.
 		if ( ! empty( $api_data['checks'] ) ) {
-			// Add site details.
-			$api_data['site_url']       = site_url();
-			$api_data['admin_email']    = get_bloginfo( 'admin_email' );
-			$api_data['wp_version']     = get_bloginfo( 'version' );
-			$api_data['site_name']      = get_bloginfo( 'name' );
-			$api_data['site_desc']      = get_bloginfo( 'description' );
-			$api_data['site_language']  = get_bloginfo( 'language' );
-			$api_data['plugin_version'] = ZEROSPAM_VERSION;
+			$global_data = self::global_api_data();
+			$api_data    = array_merge( $api_data, $global_data );
 
 			// Send the data to zerospam.org.
 			$args = array(
 				'body' => $api_data,
 			);
 
-			$response = wp_remote_post( $endpoint, $args );
-			if ( ! is_wp_error( $response ) ) {
-				wp_remote_retrieve_body( $response );
-			}
+			wp_remote_post( $endpoint, $args );
 		}
 	}
 }

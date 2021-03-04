@@ -58,13 +58,19 @@ class Registration {
 			$message = ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
 			$errors->add( 'zerospam_error', $message );
 
+			$details = array(
+				'user_login' => $sanitized_user_login,
+				'user_email' => $user_email,
+				'failed'     => 'honeypot',
+			);
 			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
-				$details = array(
-					'user_login' => $sanitized_user_login,
-					'user_email' => $user_email,
-					'failed'     => 'honeypot',
-				);
 				ZeroSpam\Includes\DB::log( 'registration', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'registration';
+				do_action( 'zerospam_share_detection', $details );
 			}
 		}
 

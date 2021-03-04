@@ -61,10 +61,7 @@ class Settings {
 	}
 
 	/**
-	 * Admin menu.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Admin menu
 	 */
 	public function admin_menu() {
 		add_submenu_page(
@@ -87,10 +84,7 @@ class Settings {
 	}
 
 	/**
-	 * Register settings.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Register settings
 	 */
 	public function register_settings() {
 		register_setting(
@@ -172,19 +166,13 @@ class Settings {
 	}
 
 	/**
-	 * Settings section.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Settings section
 	 */
 	public function settings_section( $arg ) {
 	}
 
 	/**
-	 * Settings field.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Settings field
 	 */
 	public function settings_field( $args ) {
 		switch ( $args['type'] ) {
@@ -284,10 +272,7 @@ class Settings {
 	}
 
 	/**
-	 * Settings page.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Settings page
 	 */
 	public function settings_page() {
 		if ( ! current_user_can( 'manage_options' ) ) {

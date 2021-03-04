@@ -1,6 +1,6 @@
 <?php
 /**
- * Settings class.
+ * Settings class
  *
  * @package ZeroSpam
  */
@@ -11,40 +11,26 @@ namespace ZeroSpam\Core;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Settings.
- *
- * @since 5.0.0
+ * Settings
  */
 class Settings {
+
 	/**
-	 * Settings.
-	 *
-	 * Holds the plugin settings.
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 * @static
+	 * Settings
 	 *
 	 * @var Settings
 	 */
 	public static $settings = array();
 
 	/**
-	 * Sections.
+	 * Sections
 	 *
-	 * @since 5.0.0
-	 * @access public
-	 * @static
-	 *
-	 * @var Settings
+	 * @var Sections
 	 */
 	public static $sections = array();
 
 	/**
-	 * Returns the plugin setting sections.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Returns the plugin setting sections
 	 */
 	public static function get_sections() {
 		self::$sections['general'] = array(
@@ -61,7 +47,7 @@ class Settings {
 	/**
 	 * Configures the plugin's recommended settings.
 	 */
-	public function auto_configure() {
+	public static function auto_configure() {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
 
 		$recommended_settings = array();
@@ -79,10 +65,7 @@ class Settings {
 	}
 
 	/**
-	 * Returns the plugin settings.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Returns the plugin settings
 	 */
 	public static function get_settings( $key = false ) {
 		$options = get_option( 'wpzerospam' );

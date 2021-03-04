@@ -51,7 +51,6 @@ class Comments {
 	public function preprocess_comments( $commentdata ) {
 		$block_user = false;
 		$block_type = false;
-		$settings   = ZeroSpam\Core\Settings::get_settings();
 
 		// Check honeypot.
 		// @codingStandardsIgnoreLine
@@ -83,13 +82,20 @@ class Comments {
 		}
 
 		if ( $block_user && $block_type ) {
+			$details = array(
+				'failed' => $block_type,
+			);
+			$details = array_merge( $details, $commentdata );
+
 			// Log if enabled.
 			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_comments' ) ) {
-				$details = array(
-					'failed' => $block_type,
-				);
-				$details = array_merge( $details, $commentdata );
 				ZeroSpam\Includes\DB::log( 'comment', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'comment';
+				do_action( 'zerospam_share_detection', $details );
 			}
 
 			$message = ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );

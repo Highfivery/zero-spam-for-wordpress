@@ -378,10 +378,7 @@ class Utilities {
 	}
 
 	/**
-	 * Returns a cache key.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Returns a cache key
 	 */
 	public static function cache_key( $args, $table = false ) {
 		return sanitize_title( $table . '_' . implode( '_', $args ) );
