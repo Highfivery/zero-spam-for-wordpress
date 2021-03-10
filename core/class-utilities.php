@@ -385,10 +385,7 @@ class Utilities {
 	}
 
 	/**
-	 * Remote get.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Remote get
 	 */
 	public static function remote_get( $endpoint, $args = array() ) {
 		$response = wp_remote_get( $endpoint, $args );

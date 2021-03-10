@@ -13,16 +13,11 @@ use ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * ipstack.
- *
- * @since 5.0.0
+ * ipstack
  */
 class ipstack {
 	/**
-	 * ipstack constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Constructor
 	 */
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
@@ -31,10 +26,7 @@ class ipstack {
 	}
 
 	/**
-	 * ipstack sections.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Sections
 	 */
 	public function sections( $sections ) {
 		$sections['ipstack'] = array(
@@ -45,10 +37,7 @@ class ipstack {
 	}
 
 	/**
-	 * Botscout settings.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Settings
 	 */
 	public function settings( $settings ) {
 		$options = get_option( 'wpzerospam' );
@@ -103,10 +92,7 @@ class ipstack {
 	}
 
 	/**
-	 * Log record filter.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Log record filter
 	 */
 	public static function log_record( $record ) {
 		$location = self::get_geolocation( ZeroSpam\Core\User::get_ip() );
@@ -148,10 +134,7 @@ class ipstack {
 	}
 
 	/**
-	 * Get geolocation.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Get geolocation
 	 */
 	public static function get_geolocation( $ip ) {
 		$settings = ZeroSpam\Core\Settings::get_settings();

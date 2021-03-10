@@ -135,9 +135,9 @@ class Plugin {
 			new FluentForms();
 		}*/
 
+		new Zero_Spam();
 		new StopForumSpam();
 		new ipstack();
-		new Zero_Spam();
 
 		if (
 			! is_admin() &&

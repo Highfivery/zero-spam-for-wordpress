@@ -27,11 +27,133 @@ class Zero_Spam {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+
 		// Fires when a user is blocked from accessing the site.
 		add_action( 'zerospam_share_blocked', array( $this, 'share_blocked' ), 10, 1 );
 
 		// Fires when a user submission has been detected as spam.
 		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
+	}
+
+	/**
+	 * Sections
+	 */
+	public function sections( $sections ) {
+		$sections['zerospam'] = array(
+			'title' => __( 'Zero Spam Integration', 'zerospam' ),
+		);
+
+		return $sections;
+	}
+
+	/**
+	 * Settings
+	 */
+	public function settings( $settings ) {
+		$options = get_option( 'wpzerospam' );
+
+		$settings['zerospam'] = array(
+			'title'       => __( 'Zero Spam', 'zerospam' ),
+			'section'     => 'zerospam',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => __( 'Enabled', 'zerospam' ),
+			),
+			'desc'        => sprintf(
+				wp_kses(
+					__( 'Checks user IPs & submissions against <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam</a>\'s blacklist.', 'zerospam' ),
+					array(
+						'strong' => array(),
+						'a'      => array(
+							'target' => array(),
+							'href'   => array(),
+							'rel'    => array(),
+						),
+					)
+				),
+				esc_url( 'https://www.zerospam.org/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
+			),
+			'value'       => ! empty( $options['zerospam'] ) ? $options['zerospam'] : false,
+			'recommended' => 'enabled',
+		);
+
+		$settings['zerospam_license'] = array(
+			'title'       => __( 'Zero Spam License Key', 'zerospam' ),
+			'desc'        => sprintf(
+				wp_kses(
+					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam license key</a> to enable enhanced premium protection. Don\'t have an license key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one now!</strong></a>', 'zerospam' ),
+					array(
+						'strong' => array(),
+						'a'      => array(
+							'target' => array(),
+							'href'   => array(),
+							'rel'    => array(),
+						),
+					)
+				),
+				esc_url( 'https://www.zerospam.org/' ),
+				esc_url( 'https://www.zerospam.org/product/premium/' )
+			),
+			'section'     => 'zerospam',
+			'type'        => 'text',
+			'field_class' => 'regular-text',
+			'placeholder' => __( 'Enter your Zero Spam license key.', 'zerospam' ),
+			'value'       => ! empty( $options['zerospam_license'] ) ? $options['zerospam_license'] : false,
+		);
+
+		$settings['zerospam_timeout'] = array(
+			'title'       => __( 'Zero Spam API Timeout', 'zerospam' ),
+			'section'     => 'zerospam',
+			'type'        => 'number',
+			'field_class' => 'small-text',
+			'suffix'      => __( 'seconds', 'zerospam' ),
+			'placeholder' => __( '5', 'zerospam' ),
+			'min'         => 0,
+			'desc'        => __( 'Recommended setting is 5 seconds. Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond.', 'zerospam' ),
+			'value'       => ! empty( $options['zerospam_timeout'] ) ? $options['zerospam_timeout'] : 5,
+		);
+
+		$settings['zerospam_cache'] = array(
+			'title'       => __( 'Zero Spam Cache Expiration', 'zerospam' ),
+			'section'     => 'zerospam',
+			'type'        => 'number',
+			'field_class' => 'small-text',
+			'suffix'      => __( 'day(s)', 'zerospam' ),
+			'placeholder' => __( WEEK_IN_SECONDS, 'zerospam' ),
+			'min'         => 0,
+			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
+			'value'       => ! empty( $options['zerospam_cache'] ) ? $options['zerospam_cache'] : 14,
+		);
+
+		$settings['zerospam_confidence_min'] = array(
+			'title'       => __( 'Zero Spam Confidence Minimum', 'zerospam' ),
+			'section'     => 'zerospam',
+			'type'        => 'number',
+			'field_class' => 'small-text',
+			'suffix'      => __( '%', 'zerospam' ),
+			'placeholder' => __( '30', 'zerospam' ),
+			'min'         => 0,
+			'max'         => 100,
+			'step'        => 0.1,
+			'desc'      => sprintf(
+				wp_kses(
+					__( 'Recommended setting is 20%%. Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be.', 'zerospam' ),
+					array(
+						'a' => array(
+							'target' => array(),
+							'href'   => array(),
+							'rel'    => array(),
+						),
+					)
+				),
+				esc_url( 'https://www.zerospam.org/spam-blacklist-api/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
+			),
+			'value'       => ! empty( $options['zerospam_confidence_min'] ) ? $options['zerospam_confidence_min'] : 30,
+		);
+
+		return $settings;
 	}
 
 	/**

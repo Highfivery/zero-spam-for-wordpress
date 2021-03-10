@@ -28,7 +28,6 @@ class Comments {
 		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) && ZeroSpam\Core\Access::process() ) {
 			add_filter( 'comment_form_defaults', array( $this, 'honeypot' ) );
 			add_action( 'preprocess_comment', array( $this, 'preprocess_comments' ) );
-			add_action( 'comment_form_before_fields', array( $this, 'enqueue_davidwalsh' ) );
 		}
 	}
 
