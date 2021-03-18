@@ -74,9 +74,7 @@ class Registration {
 			}
 		}
 
-		$errors = apply_filters( 'zerospam_registration_errors', $errors, $sanitized_user_login, $user_email );
-
-		return $errors;
+		return apply_filters( 'zerospam_registration_errors', $errors, $sanitized_user_login, $user_email );
 	}
 
 	/**

@@ -29,6 +29,8 @@ class Admin {
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
 
+		// Check if promotional message should be displayed.
+
 		// Check first-time config.
 		$configured = get_option( 'zerospam_configured' );
 		if ( ! $configured ) {

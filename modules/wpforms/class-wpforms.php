@@ -129,13 +129,21 @@ class WPForms {
 			$message = ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
 			wpforms()->process->errors[ $form_data['id'] ][0] = $message;
 
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_wpforms' ) ) {
-				$details = $fields;
-				$details = array_merge( $details, $entry );
-				$details = array_merge( $details, $form_data );
+			$details = $fields;
+			$details = array_merge( $details, $entry );
+			$details = array_merge( $details, $form_data );
 
-				$details['failed'] = 'honeypot';
+			$details['failed'] = 'honeypot';
+
+			// Log if enabled.
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_wpforms' ) ) {
 				ZeroSpam\Includes\DB::log( 'wpforms', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'wpforms';
+				do_action( 'zerospam_share_detection', $details );
 			}
 		}
 	}

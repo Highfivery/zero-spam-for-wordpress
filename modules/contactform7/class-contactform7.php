@@ -56,10 +56,19 @@ class ContactForm7 {
 			$message = ZeroSpam\Core\Utilities::detection_message( 'contactform7_spam_message' );
 			$result->invalidate( $tag[0], $message );
 
+			$details           = $_REQUEST;
+			$details['failed'] = 'honeypot';
+
+			// Log if enabled.
 			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_contactform7' ) ) {
-				$_REQUEST['failed'] = 'honeypot';
 				// @codingStandardsIgnoreLine
-				ZeroSpam\Includes\DB::log( 'contactform7', $_REQUEST );
+				ZeroSpam\Includes\DB::log( 'contactform7', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'contactform7';
+				do_action( 'zerospam_share_detection', $details );
 			}
 		}
 

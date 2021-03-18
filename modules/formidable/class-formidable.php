@@ -129,10 +129,18 @@ class Formidable {
 
 			$errors['zerospam_honeypot'] = $message;
 
+			$details           = $values;
+			$details['failed'] = 'honeypot';
+
+			// Log if enabled.
 			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_formidable' ) ) {
-				$details           = $values;
-				$details['failed'] = 'honeypot';
 				ZeroSpam\Includes\DB::log( 'formidable', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'formidable';
+				do_action( 'zerospam_share_detection', $details );
 			}
 		}
 

@@ -25,8 +25,46 @@ class DavidWalsh {
 
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) && \ZeroSpam\Core\Access::process() ) {
 			add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
-			add_action( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ) );
+			add_action( 'login_enqueue_scripts', array( $this, 'scripts' ) );
+
+			add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1 );
+			add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
 		}
+	}
+
+	/**
+	 * Preprocess registrations
+	 *
+	 * @param WP_Error $errors A WP_Error object containing any errors encountered during registration.
+	 * @param string   $sanitized_user_login User's username after it has been sanitized.
+	 * @param string   $user_email User's email.
+	 */
+	public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
+		if ( empty( $_REQUEST['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $_REQUEST['zerospam_david_walsh_key'] ) {
+
+			$details = array(
+				'user_login' => $sanitized_user_login,
+				'user_email' => $user_email,
+				'failed'     => 'david_walsh',
+			);
+
+			// Log if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
+				\ZeroSpam\Includes\DB::log( 'registration', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'registration';
+				do_action( 'zerospam_share_detection', $details );
+			}
+
+			$message = \ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
+
+			$errors->add( 'zerospam_error', $message );
+		}
+
+		return $errors;
 	}
 
 	/**
@@ -35,17 +73,25 @@ class DavidWalsh {
 	 * @param array $commentdata Comment data array.
 	 */
 	public function preprocess_comments( $commentdata ) {
-		if ( empty( $_REQUEST['zerospam_david_walsh_key'] || self::get_davidwalsh() === $_REQUEST['zerospam_david_walsh_key'] ) ) {
+		if ( empty( $_REQUEST['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $_REQUEST['zerospam_david_walsh_key'] ) {
+
+			$details = array(
+				'failed' => 'david_walsh',
+			);
+			$details = array_merge( $details, $commentdata );
+
 			// Log if enabled.
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_comments' ) ) {
-				$details = array(
-					'failed' => 'david_walsh',
-				);
-				$details = array_merge( $details, $commentdata );
-				ZeroSpam\Includes\DB::log( 'comment', $details );
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_comments' ) ) {
+				\ZeroSpam\Includes\DB::log( 'comment', $details );
 			}
 
-			$message = ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
+			// Share the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'comment';
+				do_action( 'zerospam_share_detection', $details );
+			}
+
+			$message = \ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
 
 			wp_die(
 				wp_kses(
@@ -59,7 +105,7 @@ class DavidWalsh {
 						'strong' => array(),
 					)
 				),
-				esc_html( ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ) ),
+				esc_html( \ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ) ),
 				array(
 					'response' => 403,
 				)

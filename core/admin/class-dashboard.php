@@ -259,8 +259,6 @@ class Dashboard {
 								esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) )
 							);
 							?>
-
-							<?php esc_html_e( '', 'zerospam' ); ?>
 						</div>
 						<?php
 					endif;
@@ -300,8 +298,6 @@ class Dashboard {
 									esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) )
 								);
 								?>
-
-								<?php esc_html_e( '', 'zerospam' ); ?>
 							</div>
 						<?php endif; ?>
 					</div>

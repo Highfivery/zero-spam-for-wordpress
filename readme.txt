@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=wordpress_repo&utm_campaign=donate
 Requires at least: 5.2
-Tested up to: 5.6.2
+Tested up to: 5.7
 Requires PHP: 7.3
-Stable tag: 5.0.9
+Stable tag: 5.0.11
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -72,6 +72,15 @@ For more information & developer documentation, see the [plugin’s website](htt
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.0.11 =
+
+* Improved protection for comments, CF7, Formidbale, registrations, WooCommerce and WPForms submissions.
+* David Walsh detection technique applied to core WP registration forms.
+
+= v5.0.10 =
+
+* PHP notice fix
 
 = v5.0.9 =
 
