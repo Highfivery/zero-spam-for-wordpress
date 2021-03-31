@@ -33,7 +33,7 @@
   };
 
   $(function() {
-    var selectors = '#commentform, #registerform';
+    var selectors = '#commentform, #registerform, .wpforms-form';
     if (typeof ZeroSpamDavidWalsh.selectors != "undefined" && ZeroSpamDavidWalsh.selectors ) {
       selectors += ',' + ZeroSpamDavidWalsh.selectors
     }

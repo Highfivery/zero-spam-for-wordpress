@@ -127,7 +127,7 @@ class WPForms {
 		// @codingStandardsIgnoreLine
 		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
 			$message = ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
-			wpforms()->process->errors[ $form_data['id'] ][0] = $message;
+			wpforms()->process->errors[ $form_data['id'] ]['header'] = $message;
 
 			$details = $fields;
 			$details = array_merge( $details, $entry );
@@ -146,5 +146,7 @@ class WPForms {
 				do_action( 'zerospam_share_detection', $details );
 			}
 		}
+
+		do_action( 'zerospam_preprocess_wpforms_submission', $form_data );
 	}
 }

@@ -38,7 +38,7 @@ class Access {
 	 * Returns true if WordPress Zero Spam should process a submission.
 	 */
 	public static function process() {
-		if ( is_admin() || is_user_logged_in() ) {
+		if ( ( is_admin() && ! wp_doing_ajax() ) || is_user_logged_in() ) {
 			return false;
 		}
 

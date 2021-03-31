@@ -5,7 +5,7 @@ Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&u
 Requires at least: 5.2
 Tested up to: 5.7
 Requires PHP: 7.3
-Stable tag: 5.0.11
+Stable tag: 5.0.12
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -72,6 +72,11 @@ For more information & developer documentation, see the [plugin’s website](htt
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.0.12 =
+
+* Fixed issues with WPForms AJAX forms not getting validated by WordPress Zero Spam [#238](https://github.com/bmarshall511/wordpress-zero-spam/issues/238)
+* David Walsh detection technique applied to WPForms
 
 = v5.0.11 =
 

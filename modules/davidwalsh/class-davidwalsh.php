@@ -29,6 +29,33 @@ class DavidWalsh {
 
 			add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1 );
 			add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
+			add_action( 'zerospam_preprocess_wpforms_submission', array( $this, 'preprocess_wpforms_submission' ), 10, 1 );
+		}
+	}
+
+	/**
+	 * Preprocess WPForms submission
+	 */
+	public function preprocess_wpforms_submission( $form_data ) {
+		if ( empty( $_REQUEST['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $_REQUEST['zerospam_david_walsh_key'] ) {
+			$message = \ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
+			wpforms()->process->errors[ $form_data['id'] ]['header'] = $message;
+
+			$details = array(
+				'form_data' => $form_data,
+				'failed'    => 'david_walsh',
+			);
+
+			// Log if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_wpforms' ) ) {
+				\ZeroSpam\Includes\DB::log( 'wpforms', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'wpforms';
+				do_action( 'zerospam_share_detection', $details );
+			}
 		}
 	}
 
