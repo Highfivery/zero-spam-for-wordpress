@@ -1,5 +1,5 @@
 === WordPress Zero Spam ===
-Contributors: bmarshall511
+Contributors: bmarshall511,
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=wordpress_repo&utm_campaign=donate
 Requires at least: 5.2
@@ -76,7 +76,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 = v5.0.12 =
 
 * Fixed issues with WPForms AJAX forms not getting validated by WordPress Zero Spam [#238](https://github.com/bmarshall511/wordpress-zero-spam/issues/238)
-* David Walsh detection technique applied to WPForms
+* David Walsh detection technique applied to WPForms & CF7
 
 = v5.0.11 =
 

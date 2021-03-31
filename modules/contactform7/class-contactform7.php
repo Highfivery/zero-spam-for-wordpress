@@ -72,7 +72,7 @@ class ContactForm7 {
 			}
 		}
 
-		return $result;
+		return apply_filters( 'zerospam_preprocess_cf7_submission', $result, $tag );
 	}
 
 	/**

@@ -29,8 +29,38 @@ class DavidWalsh {
 
 			add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1 );
 			add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_cf7_submission', array( $this, 'preprocess_cf7_submission' ), 10, 2 );
 			add_action( 'zerospam_preprocess_wpforms_submission', array( $this, 'preprocess_wpforms_submission' ), 10, 1 );
 		}
+	}
+
+	/**
+	 * Preprocess CF7 submission
+	 */
+	public function preprocess_cf7_submission( $result, $tag ) {
+		if ( empty( $_REQUEST['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $_REQUEST['zerospam_david_walsh_key'] ) {
+			$message = \ZeroSpam\Core\Utilities::detection_message( 'contactform7_spam_message' );
+			$result->invalidate( $tag[0], $message );
+
+			$details = array(
+				'result'    => $result,
+				'tag'       => $tag,
+				'failed'    => 'david_walsh',
+			);
+
+			// Log if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_contactform7' ) ) {
+				\ZeroSpam\Includes\DB::log( 'contactform7', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'contactform7';
+				do_action( 'zerospam_share_detection', $details );
+			}
+		}
+
+		return $result;
 	}
 
 	/**
