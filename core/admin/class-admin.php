@@ -33,7 +33,7 @@ class Admin {
 
 		// Check first-time config.
 		$configured = get_option( 'zerospam_configured' );
-		if (  $configured ) {
+		if ( ! $configured ) {
 			add_action( 'admin_notices', array( $this, 'not_configured_notice' ) );
 		}
 	}
