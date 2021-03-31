@@ -45,7 +45,7 @@ class Admin {
 		$message = sprintf(
 			wp_kses(
 				/* translators: %s: url */
-				__( 'Thanks for installing WordPress Zero Spam! Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>. For enhanced protection, use a <a href="%3$s" target="_blank">Zero Spam premium license</a>.', 'zerospam' ),
+				__( 'Thanks for installing WordPress Zero Spam! Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>. For enhanced protection, get a <a href="%3$s" target="_blank">Zero Spam premium license</a>.', 'zerospam' ),
 				array(
 					'strong' => array(),
 					'a'      => array(
