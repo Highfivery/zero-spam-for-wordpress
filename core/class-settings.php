@@ -220,6 +220,18 @@ class Settings {
 			),
 		);
 
+		self::$settings['sync_disallowed_keys'] = array(
+			'title'       => __( 'Sync Disallowed Keys', 'zerospam' ),
+			'desc'        => __( 'Automatically sync WP core\'s disallowed words option with <a href="https://github.com/splorp/wordpress-comment-blacklist/" target="_blank" rel="noreferrer noopener">splorp\'s Comment Blacklist for WordPress</a>.', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => __( 'Enabled', 'zerospam' ),
+			),
+			'value'       => ! empty( $options['sync_disallowed_keys'] ) ? $options['sync_disallowed_keys'] : false,
+			'recommended' => 'enabled',
+		);
+
 		$settings = apply_filters( 'zerospam_settings', self::$settings );
 
 		if ( $key ) {

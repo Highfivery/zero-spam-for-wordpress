@@ -33,7 +33,7 @@ class Admin {
 
 		// Check first-time config.
 		$configured = get_option( 'zerospam_configured' );
-		if ( ! $configured ) {
+		if (  $configured ) {
 			add_action( 'admin_notices', array( $this, 'not_configured_notice' ) );
 		}
 	}
@@ -45,16 +45,18 @@ class Admin {
 		$message = sprintf(
 			wp_kses(
 				/* translators: %s: url */
-				__( 'Thanks for installing WordPress Zero Spam! Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>.', 'zerospam' ),
+				__( 'Thanks for installing WordPress Zero Spam! Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>. For enhanced protection, use a <a href="%3$s" target="_blank">Zero Spam premium license</a>.', 'zerospam' ),
 				array(
 					'strong' => array(),
 					'a'      => array(
-						'href' => array(),
+						'href'   => array(),
+						'target' => array(),
 					),
 				)
 			),
 			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-auto-configure=1' ) )
+			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-auto-configure=1' ) ),
+			esc_url( 'https://www.zerospam.org/product/premium/' )
 		);
 
 		$class = 'notice notice-success';

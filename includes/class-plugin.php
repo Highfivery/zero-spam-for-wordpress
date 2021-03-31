@@ -104,6 +104,7 @@ class Plugin {
 	 * initialize admin components.
 	 */
 	private function init_components() {
+		new Zero_Spam();
 		new DB();
 		new Cron();
 		new Registration();
@@ -135,7 +136,6 @@ class Plugin {
 			new FluentForms();
 		}*/
 
-		new Zero_Spam();
 		new StopForumSpam();
 		new ipstack();
 

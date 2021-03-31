@@ -39,10 +39,12 @@ class Cron {
 	 * Updates the WP core blacklist.
 	 */
 	public function update_blacklist() {
-		$response = wp_remote_get( 'https://raw.githubusercontent.com/splorp/wordpress-comment-blacklist/master/blacklist.txt' );
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'sync_disallowed_keys' ) ) {
+			$response = wp_remote_get( 'https://raw.githubusercontent.com/splorp/wordpress-comment-blacklist/master/blacklist.txt' );
 
-		if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
-			update_option( 'disallowed_keys', wp_remote_retrieve_body( $response ) );
+			if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
+				update_option( 'disallowed_keys', wp_remote_retrieve_body( $response ) );
+			}
 		}
 	}
 

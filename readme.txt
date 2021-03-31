@@ -75,8 +75,10 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 = v5.0.12 =
 
-* Fixed issues with WPForms AJAX forms not getting validated by WordPress Zero Spam [#238](https://github.com/bmarshall511/wordpress-zero-spam/issues/238)
+* Fixed issue with WPForms AJAX forms not getting validated by WordPress Zero Spam [#238](https://github.com/bmarshall511/wordpress-zero-spam/issues/238)
 * David Walsh detection technique applied to WPForms & CF7
+* Miscellaneous admin UI improvements
+* Added ability to disable syncing WP's Disallowed Comment Keys
 
 = v5.0.11 =
 
