@@ -296,7 +296,7 @@ class BlockedTable extends WP_List_Table {
 	public function process_bulk_action() {
 		global $wpdb;
 
-		$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+		$ids = ( isset( $_REQUEST['ids'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['ids'] ) ) : '';
 
 		switch( $this->current_action() ) {
 			case 'delete':

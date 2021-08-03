@@ -47,7 +47,7 @@ class Settings {
 			add_action(
 				'admin_notices',
 				function() {
-					add_settings_error( 'zerospam-notices', 'zerospam-msg', esc_html( $_REQUEST['zerospam-msg'] ), 'success' );
+					add_settings_error( 'zerospam-notices', 'zerospam-msg', sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ), 'success' );
 				}
 			);
 		}
@@ -255,7 +255,23 @@ class Settings {
 							<?php if ( $selected ) : ?>
 								checked="checked"
 							<?php endif; ?>
-						/> <?php echo $label; ?>
+						/> 
+						<?php
+						echo wp_kses(
+							$label,
+							array(
+								'a' => array(
+									'target' => array(),
+									'href'   => array(),
+									'class'  => array(),
+									'rel'    => array(),
+								),
+								'strong' => array(),
+								'b'      => array(),
+								'code'   => array(),
+							)
+						);
+						?>
 					</label><br />
 				<?php
 				}
@@ -263,11 +279,37 @@ class Settings {
 		}
 
 		if ( ! empty( $args['suffix'] ) ) {
-			echo $args['suffix'];
+			echo wp_kses(
+				$args['suffix'],
+				array(
+					'a' => array(
+						'target' => array(),
+						'href'   => array(),
+						'class'  => array(),
+						'rel'    => array(),
+					),
+					'strong' => array(),
+					'b'      => array(),
+					'code'   => array(),
+				)
+			);
 		}
 
 		if ( ! empty( $args['desc'] ) ) {
-			echo '<p class="description">' . $args['desc'] . '</p>';
+			echo '<p class="description">' . wp_kses(
+				$args['desc'],
+				array(
+					'a'      => array(
+						'target' => array(),
+						'href'   => array(),
+						'class'  => array(),
+						'rel'    => array(),
+					),
+					'strong' => array(),
+					'b'      => array(),
+					'code'   => array(),
+				)
+			) . '</p>';
 		}
 	}
 

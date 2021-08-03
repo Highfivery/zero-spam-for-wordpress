@@ -349,11 +349,11 @@ class LogTable extends WP_List_Table {
 	public function process_bulk_action() {
 		global $wpdb;
 
-		$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+		$ids = ( isset( $_REQUEST['ids'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['ids'] ) ) : '';
 
-		switch( $this->current_action() ) {
+		switch ( $this->current_action() ) {
 			case 'delete':
-				$nonce = ( isset( $_REQUEST['zerospam_nonce'] ) ) ? sanitize_text_field( $_REQUEST['zerospam_nonce'] ) : '';
+				$nonce = ( isset( $_REQUEST['zerospam_nonce'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['zerospam_nonce'] ) ) : '';
 				if ( ! wp_verify_nonce( $nonce, 'zerospam_nonce' ) ) {
 					return false;
 				}
