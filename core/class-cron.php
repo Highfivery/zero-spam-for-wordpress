@@ -40,19 +40,15 @@ class Cron {
 	 */
 	public function update_blacklist() {
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'sync_disallowed_keys' ) ) {
-			$response = wp_remote_get( 'https://raw.githubusercontent.com/splorp/wordpress-comment-blacklist/master/blacklist.txt' );
-
-			if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
-				update_option( 'disallowed_keys', wp_remote_retrieve_body( $response ) );
+			global $wp_filesystem;
+			if ( empty( $wp_filesystem ) ) {
+				require_once ABSPATH . '/wp-admin/includes/file.php';
+				WP_Filesystem();
 			}
-		}
-	}
+			$text = $wp_filesystem->get_contents( ZEROSPAM_PATH . 'assets/blacklist.txt' );
 
-	/**
-	 * Processes the blocked log.
-	 */
-	public function process_blocked() {
-		ZeroSpam\Core\Log::process_log();
+			update_option( 'disallowed_keys', $text );
+		}
 	}
 
 	/**
