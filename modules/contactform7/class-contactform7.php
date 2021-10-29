@@ -25,9 +25,17 @@ class ContactForm7 {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_contactform7' ) && ZeroSpam\Core\Access::process() ) {
+			add_action( 'wpcf7_enqueue_scripts', array( $this, 'wpcf7_enqueue_scripts' ) );
 			add_filter( 'wpcf7_form_elements', array( $this, 'honeypot' ), 10, 1 );
 			add_filter( 'wpcf7_validate', array( $this, 'preprocess_submission' ), 10, 2 );
 		}
+	}
+
+	/**
+	 * Fires when a Contact Form 7 form is loaded on the page.
+	 */
+	public function wpcf7_enqueue_scripts() {
+		do_action( 'zerospam_wpcf7_enqueue_scripts' );
 	}
 
 	/**

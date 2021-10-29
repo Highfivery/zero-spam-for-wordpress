@@ -24,8 +24,14 @@ class DavidWalsh {
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) && \ZeroSpam\Core\Access::process() ) {
-			add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
+			add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ), 0 );
 			add_action( 'login_enqueue_scripts', array( $this, 'scripts' ) );
+
+			add_action( 'zerospam_comment_form_before', array( $this, 'enqueue_script' ) );
+			// See https://contactform7.com/loading-javascript-and-stylesheet-only-when-it-is-necessary/.
+			add_action( 'zerospam_wpcf7_enqueue_scripts', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_register_form', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_wpforms_frontend_output', array( $this, 'enqueue_script' ) );
 
 			add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1 );
 			add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
@@ -35,7 +41,14 @@ class DavidWalsh {
 	}
 
 	/**
-	 * Preprocess CF7 submission
+	 * Enqueues the script.
+	 */
+	public function enqueue_script() {
+		wp_enqueue_script( 'zerospam-davidwalsh' );
+	}
+
+	/**
+	 * Preprocess CF7 submission.
 	 */
 	public function preprocess_cf7_submission( $result, $tag ) {
 		if ( empty( $_REQUEST['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $_REQUEST['zerospam_david_walsh_key'] ) {
@@ -249,7 +262,7 @@ class DavidWalsh {
 	 * Register scripts
 	 */
 	public function scripts() {
-		wp_enqueue_script(
+		wp_register_script(
 			'zerospam-davidwalsh',
 			plugin_dir_url( ZEROSPAM ) . 'modules/davidwalsh/assets/js/davidwalsh.js',
 			array( 'jquery' ),

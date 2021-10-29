@@ -26,6 +26,7 @@ class Comments {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) && ZeroSpam\Core\Access::process() ) {
+			add_action( 'comment_form_before', array( $this, 'comment_form_before' ) );
 			add_filter( 'comment_form_defaults', array( $this, 'honeypot' ) );
 			add_action( 'preprocess_comment', array( $this, 'preprocess_comments' ) );
 		}
@@ -40,6 +41,13 @@ class Comments {
 		$types['comment'] = __( 'Comment', 'zerospam' );
 
 		return $types;
+	}
+
+	/**
+	 * Fires before the comment form.
+	 */
+	public function comment_form_before() {
+		do_action( 'zerospam_comment_form_before' );
 	}
 
 	/**

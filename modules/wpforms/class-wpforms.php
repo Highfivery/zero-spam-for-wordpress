@@ -25,6 +25,7 @@ class WPForms {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_wpforms' ) && ZeroSpam\Core\Access::process() ) {
+			add_action( 'wpforms_frontend_output', array( $this, 'wpforms_frontend_output' ) );
 			add_action( 'wpforms_frontend_output', array( $this, 'honeypot' ), 10, 1 );
 			add_action( 'wpforms_process', array( $this, 'preprocess_submission' ), 10, 3 );
 		}
@@ -39,6 +40,13 @@ class WPForms {
 		$types['wpforms'] = __( 'WPForms', 'zerospam' );
 
 		return $types;
+	}
+
+	/**
+	 * Fires before a form is displayed on the site’s frontend, only if the form exists and contains fields.
+	 */
+	public function wpforms_frontend_output() {
+		do_action( 'zerospam_wpforms_frontend_output' );
 	}
 
 	/**

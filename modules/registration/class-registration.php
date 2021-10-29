@@ -27,6 +27,7 @@ class Registration {
 			add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_registrations' ) && ZeroSpam\Core\Access::process() ) {
+				add_action( 'register_form', array( $this, 'register_form' ) );
 				add_action( 'register_form', array( $this, 'honeypot' ) );
 				add_filter( 'registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
 			}
@@ -42,6 +43,13 @@ class Registration {
 		$types['registration'] = __( 'Registration', 'zerospam' );
 
 		return $types;
+	}
+
+	/**
+	 * Fires following the ‘Email’ field in the user registration form.
+	 */
+	public function register_form() {
+		do_action( 'zerospam_register_form' );
 	}
 
 	/**
