@@ -63,6 +63,10 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 **No.** WordPress Zero Spam is unable to integrate Jetpack. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
 
+= How do I boost performance of the plugin? =
+
+Caching is highly recommended and will prevent repeated calls to third-party API and access checks on each page visit.
+
 == Screenshots ==
 
 1. WordPress Zero Spam dashboard
@@ -81,6 +85,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 * perf(davidwalsh): resolves #266, only loads the david walsh script on pages that are needed
 * fix(caching): resolves #258, added no-cache header to the blocked page output
 * refactor(stopforumspam): increased the default confidence score for stop forum spam to help prevent false positives
+* docs(faq): added common question about how to boost performance of the plugin
 
 = v5.0.13 =
 
