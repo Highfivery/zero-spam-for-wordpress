@@ -167,13 +167,15 @@ class Access {
 			'blocked' => false,
 		);
 
-		// Attempt to get the IP address location & checked if block.
-		$location = ZeroSpam\Modules\ipstack::get_geolocation( $user_ip );
-		if ( $location ) {
+		// Attempt to get the IP address location from ipstack & checked if block.
+		$ipstack_location = ZeroSpam\Modules\ipstack::get_geolocation( $user_ip );
+		if ( $ipstack_location && ! empty( $ipstack_location['error'] ) ) {
+			ZeroSpam\Core\Utilities::log( wp_json_encode( $ipstack_location['error'] ) );
+		} elseif ( $ipstack_location ) {
 			$location_keys = array( 'country_code', 'region_code', 'city', 'zip' );
 			foreach ( $location_keys as $key => $loc ) {
-				if ( ! empty( $location[ $loc ] ) ) {
-					$blocked = ZeroSpam\Includes\DB::blocked( $location[ $loc ], $loc );
+				if ( ! empty( $ipstack_location[ $loc ] ) ) {
+					$blocked = ZeroSpam\Includes\DB::blocked( $ipstack_location[ $loc ], $loc );
 					if ( $blocked ) {
 						$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_' . $loc );
 						break;

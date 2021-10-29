@@ -153,7 +153,7 @@ class Plugin {
 	}
 
 	/**
-	 * Add to the types array
+	 * Add to the types array.
 	 */
 	public function types( $types ) {
 		$types['blocked'] = __( 'Blocked', 'zerospam' );

@@ -5,19 +5,19 @@
  * @package    WordPressZeroSpam
  * @subpackage WordPress
  * @since      5.0.0
- * @author     Ben Marshall
- * @copyright  2021 Ben Marshall
+ * @author     Highfivery LLC
+ * @copyright  2021 Highfivery LLC
  * @license    GPL-2.0-or-later
  *
  * @wordpress-plugin
  * Plugin Name:       WordPress Zero Spam
- * Plugin URI:        https://benmarshall.me/wordpress-zero-spam
+ * Plugin URI:        https://www.highfivery.com/projects/zero-spam/
  * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong>.
- * Version:           5.0.13
+ * Version:           5.1.0
  * Requires at least: 5.2
  * Requires PHP:      7.3
- * Author:            Ben Marshall
- * Author URI:        https://benmarshall.me
+ * Author:            Highfivery LLC
+ * Author URI:        https://www.highfivery.com/
  * Text Domain:       zerospam
  * Domain Path:       /languages
  * License:           GPL v2 or later
@@ -31,7 +31,7 @@ defined( 'ABSPATH' ) || die();
 define( 'ZEROSPAM', __FILE__ );
 define( 'ZEROSPAM_PATH', plugin_dir_path( ZEROSPAM ) );
 define( 'ZEROSPAM_PLUGIN_BASE', plugin_basename( ZEROSPAM ) );
-define( 'ZEROSPAM_VERSION', '5.0.13' );
+define( 'ZEROSPAM_VERSION', '5.1.0' );
 
 add_action( 'plugins_loaded', 'zerospam_load_plugin_textdomain' );
 

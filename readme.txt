@@ -3,9 +3,9 @@ Contributors: bmarshall511,
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Donate link: https://www.benmarshall.me/donate/?utm_source=wordpress_zero_spam&utm_medium=wordpress_repo&utm_campaign=donate
 Requires at least: 5.2
-Tested up to: 5.8
+Tested up to: 5.8.1
 Requires PHP: 7.3
-Stable tag: 5.0.13
+Stable tag: 5.1.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -72,6 +72,10 @@ For more information & developer documentation, see the [plugin’s website](htt
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.1.0 =
+
+* feat(ipstack): ipstack errors are logged to the zerospam.log file in the uploads directory
 
 = v5.0.13 =
 
