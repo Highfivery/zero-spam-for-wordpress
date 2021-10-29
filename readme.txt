@@ -80,6 +80,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 * feat(admin): resolves #264, adds ability to export & import settings
 * perf(davidwalsh): resolves #266, only loads the david walsh script on pages that are needed
 * fix(caching): resolves #258, added no-cache header to the blocked page output
+* refactor(stopforumspam): increased the default confidence score for stop forum spam to help prevent false positives
 
 = v5.0.13 =
 

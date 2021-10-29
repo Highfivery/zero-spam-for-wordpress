@@ -113,13 +113,13 @@ class StopForumSpam {
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( '%', 'zerospam' ),
-			'placeholder' => __( '30', 'zerospam' ),
+			'placeholder' => __( '50', 'zerospam' ),
 			'min'         => 0,
 			'max'         => 100,
 			'step'        => 0.1,
 			'desc'      => sprintf(
 				wp_kses(
-					__( 'Recommended setting is 20%%. Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be.', 'zerospam' ),
+					__( 'Recommended setting is 50%%. Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be.', 'zerospam' ),
 					array(
 						'a' => array(
 							'target' => array(),
@@ -130,7 +130,7 @@ class StopForumSpam {
 				),
 				esc_url( 'https://www.stopforumspam.com/usage#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
 			),
-			'value'       => ! empty( $options['stop_forum_spam_confidence_min'] ) ? $options['stop_forum_spam_confidence_min'] : 30,
+			'value'       => ! empty( $options['stop_forum_spam_confidence_min'] ) ? $options['stop_forum_spam_confidence_min'] : 50,
 		);
 
 		return $settings;
