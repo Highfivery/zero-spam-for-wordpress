@@ -28,6 +28,7 @@ class Settings {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_action_import_settings', array( $this, 'import_settings' ) );
 
 		if ( ! empty( $_REQUEST['zerospam-auto-configure'] ) ) {
 			\ZeroSpam\Core\Settings::auto_configure();
@@ -50,6 +51,46 @@ class Settings {
 					add_settings_error( 'zerospam-notices', 'zerospam-msg', sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ), 'success' );
 				}
 			);
+		}
+	}
+
+	/**
+	 * Imports settings.
+	 *
+	 * @since 5.1.0
+	 */
+	public function import_settings() {
+		$redirect = ! empty( $_POST['redirect'] ) ? esc_url( sanitize_text_field( wp_unslash( $_POST['redirect'] ) ) ) : get_site_url();
+		$redirect = wp_parse_url( $redirect );
+
+		$redirect['query'] = str_replace(
+			array(
+				'zerospam-success=1',
+				'zerospam-error=1',
+			),
+			'',
+			$redirect['query']
+		);
+
+		$redirect = $redirect['scheme'] . '://' . $redirect['host'] . ( ! empty( $redirect['port'] ) ? ':' . $redirect['port'] : '' ) . $redirect['path'] . '?' . $redirect['query'];
+
+		if ( isset( $_POST['zerospam'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['zerospam'] ) ), 'import_settings' ) ) {
+			$settings_json = sanitize_text_field( wp_unslash( $_POST['settings'] ) ); // @codingStandardsIgnoreLine
+			if ( ! empty( $settings_json ) ) {
+				$settings = json_decode( $settings_json, true );
+				if ( json_last_error() === JSON_ERROR_NONE ) {
+					update_option( 'wpzerospam', $settings, true );
+
+					wp_safe_redirect( $redirect . '&zerospam-success=1' );
+					exit;
+				} else {
+					wp_safe_redirect( $redirect . '&zerospam-error=1' );
+			exit;
+				}
+			}
+		} else {
+			wp_safe_redirect( $redirect . '&zerospam-error=1' );
+			exit;
 		}
 	}
 
@@ -255,7 +296,7 @@ class Settings {
 							<?php if ( $selected ) : ?>
 								checked="checked"
 							<?php endif; ?>
-						/> 
+						/>
 						<?php
 						echo wp_kses(
 							$label,
@@ -325,6 +366,26 @@ class Settings {
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			<?php require ZEROSPAM_PATH . 'includes/templates/admin-callout.php'; ?>
 
+			<?php if ( ! empty( $_GET['zerospam-error'] ) ): ?>
+				<div class="notice notice-error is-dismissible">
+					<p><strong>
+						<?php
+						switch( intval( $_GET['zerospam-error'] ) ) :
+							case 1:
+								esc_html_e( 'There was a problem importing the settings JSON. Please try again.', 'zerospam' );
+								break;
+						endswitch;
+						?>
+					</strong></p>
+					<button type="button" class="notice-dismiss"><span class="screen-reader-text"><?php esc_html_e( 'Dismiss this notice.', 'zerospam' ); ?></span></button>
+				</div>
+			<?php elseif ( ! empty( $_GET['zerospam-success'] ) ): ?>
+				<div class="notice notice-success is-dismissible">
+					<p><strong><?php esc_html_e( 'The settings JSON has been successfully imported.', 'zerospam' ); ?></strong></p>
+					<button type="button" class="notice-dismiss"><span class="screen-reader-text"><?php esc_html_e( 'Dismiss this notice.', 'zerospam' ); ?>.</span></button>
+				</div>
+			<?php endif; ?>
+
 			<form action="options.php" method="post">
 			<?php
 			// Output security fields for the registered setting "wpzerospam".
@@ -336,9 +397,35 @@ class Settings {
 
 			// Output save settings button.
 			submit_button( 'Save Settings' );
-			echo '</div>';
 			?>
 			</form>
+
+			<h3><?php esc_html_e( 'Settings Import/Export', 'zerospam' ); ?></h3>
+			<p><?php esc_html_e( 'Quickly export and import your saved settings into other sites below.', 'zerospam' ); ?></p>
+			<?php
+			$settings      = ZeroSpam\Core\Settings::get_settings();
+			$settings_json = array();
+			foreach ( $settings as $key => $data ) {
+				$settings_json[ $key ] = $data['value'];
+			}
+			?>
+			<div class="zerospam-export-import-block">
+				<div class="zerospam-export-import-block-column">
+					<h4><?php esc_html_e( 'Settings JSON', 'zerospam' ); ?></h4>
+					<textarea readonly class="large-text code" rows="10"><?php echo wp_json_encode( $settings_json ); ?></textarea>
+				</div>
+				<div class="zerospam-export-import-block-column">
+					<h4><?php esc_html_e( 'Paste the settings JSON to import.', 'zerospam' ); ?></h4>
+					<form method="post" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" class="zerospam-import-settings-form">
+					<?php wp_nonce_field( 'import_settings', 'zerospam' ); ?>
+					<input type="hidden" name="action" value="import_settings" />
+					<input type="hidden" name="redirect" value="<?php echo esc_url( ZeroSpam\Core\Utilities::current_url() ); ?>" />
+					<textarea class="large-text code" name="settings" rows="10"></textarea>
+					<input type="submit" class="button button-primary" value="<?php esc_html_e( 'Import Settings', 'zerospam' ); ?>" />
+					</form>
+				</div>
+			</div>
+			<?php echo '</div>'; ?>
 		</div>
 		<?php
 	}

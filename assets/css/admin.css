@@ -293,3 +293,19 @@
 	text-align: right;
 	width: 22%;
 }
+
+.zerospam-export-import-block {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.zerospam-export-import-block-column {
+	width: 100%;
+}
+
+
+@media (min-width: 768px) {
+	.zerospam-export-import-block-column {
+		width: 50%;
+	}
+}

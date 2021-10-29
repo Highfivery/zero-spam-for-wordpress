@@ -77,6 +77,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 * feat(ipstack): ipstack errors are logged to the zerospam.log file in the uploads directory
 * feat(cloudflare): resolves #267, checks http_cf_ipcountry against blocked countries
+* feat(admin): resolves #264, adds ability to export & import settings
 * perf(davidwalsh): resolves #266, only loads the david walsh script on pages that are needed
 
 = v5.0.13 =
