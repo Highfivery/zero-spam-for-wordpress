@@ -15,7 +15,7 @@ WordPress Zero Spam makes blocking spam & malicious visitors a cinch. Just insta
 
 Quit forcing people to answer questions or confusing captchas to prove they're not spam. Stop malicious users before they ever have a chance to infiltrate your site &mdash; **introducing WordPress Zero Spam**.
 
-[WordPress Zero Spam](https://www.benmarshall.me/wordpress-zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and databases of known malicious IPs from around the world to detect and block unwanted visitors.
+[WordPress Zero Spam](https://www.highfivery.com/projects/zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and databases of known malicious IPs from around the world to detect and block unwanted visitors.
 
 **Just install, activate, and enjoy a spam-free site!**
 
@@ -27,7 +27,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * Automatically & manually block IPs temporarily or permanently
 * Geolocate IP addresses to see where offenders are coming from
 * Block entire countries, regions, zip/postal codes & cities
-* Sync the WP core disallowed list weekly using [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist)
+* Automatically update the disallowed list using [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist)
 * Multiple detection techniques including [David Walsh's solution](https://davidwalsh.name/wordpress-comment-spam)
 
 = WordPress Zero Spam also protects =
