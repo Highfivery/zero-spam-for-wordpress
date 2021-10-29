@@ -79,6 +79,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 * feat(cloudflare): resolves #267, checks http_cf_ipcountry against blocked countries
 * feat(admin): resolves #264, adds ability to export & import settings
 * perf(davidwalsh): resolves #266, only loads the david walsh script on pages that are needed
+* fix(caching): resolves #258, added no-cache header to the blocked page output
 
 = v5.0.13 =
 

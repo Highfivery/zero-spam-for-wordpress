@@ -80,6 +80,10 @@ class Access {
 			if ( ! empty( $settings['block_handler']['value'] ) ) {
 				switch ( $settings['block_handler']['value'] ) {
 					case 403:
+						header( 'Cache-Control: no-cache, no-store, must-revalidate' );
+						header( 'Pragma: no-cache' );
+						header( 'Expires: 0' );
+
 						$message = __( 'Your IP address has been blocked by WordPress Zero Spam due to detected spam/malicious activity.', 'zerospam' );
 						if ( ! empty( $settings['blocked_message']['value'] ) ) {
 							$message = $settings['blocked_message']['value'];
