@@ -184,6 +184,15 @@ class Access {
 			}
 		}
 
+		// Try getting country from Cloudflare.
+		$cloudflare_country_code = ! empty( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ? $_SERVER['HTTP_CF_IPCOUNTRY'] : false;
+		if ( $cloudflare_country_code ) {
+			$blocked = ZeroSpam\Includes\DB::blocked( $cloudflare_country_code, 'country_code' );
+			if ( $blocked ) {
+				$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_country_code' );
+			}
+		}
+
 		// If passed location blocks, check the IP address.
 		if ( ! $access_checks['blocked'] ) {
 			// Check the user's IP access.

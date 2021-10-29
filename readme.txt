@@ -76,6 +76,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 = v5.1.0 =
 
 * feat(ipstack): ipstack errors are logged to the zerospam.log file in the uploads directory
+* feat(cloudflare): resolves #267, checks http_cf_ipcountry against blocked countries
 
 = v5.0.13 =
 
