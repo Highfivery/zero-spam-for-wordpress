@@ -42,7 +42,7 @@ class Zero_Spam {
 	 */
 	public function sections( $sections ) {
 		$sections['zerospam'] = array(
-			'title' => __( 'Zero Spam Integration', 'zerospam' ),
+			'title' => __( 'Zero Spam Enhanced Protection', 'zerospam' ),
 		);
 
 		return $sections;
