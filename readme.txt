@@ -79,7 +79,7 @@ Caching is highly recommended and will prevent repeated calls to third-party API
 
 = v5.1.1 =
 
-* feat(geolocation): added support for ipinfo geolocation
+* feat(geolocation): resolves #270, added support for ipinfo geolocation
 * refactor(admin): wordpress coding standards fixes
 * refactor(settings): minor update to settings section title
 * docs(readme): updated readme file
