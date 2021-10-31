@@ -1,0 +1,57 @@
+{
+    "name": "ipinfo/ipinfo",
+    "type": "library",
+    "description": "The official PHP library for IPinfo, the most reliable, accurate, and in-depth source of IP address data available anywhere. We process terabytes of data to produce our custom IP geolocation, company, carrier and IP type data sets. Visit our developer docs at https://ipinfo.io/developers.",
+    "keywords": [
+        "ipinfo"
+    ],
+    "homepage": "https://github.com/ipinfo/php",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "James Timmins",
+            "email": "jameshtimmins@gmail.com",
+            "homepage": "https://github.com/jhtimmins",
+            "role": "Developer"
+        },
+        {
+            "name": "Uman Shahzad",
+            "email": "uman@mslm.io",
+            "homepage": "https://github.com/UmanShahzad",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=7.3",
+        "guzzlehttp/guzzle": "^6.3||^7.0",
+        "sabre/cache": "^1.0",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": ">=8 <10",
+        "squizlabs/php_codesniffer": "^3.5.8"
+    },
+    "autoload": {
+        "psr-4": {
+            "ipinfo\\ipinfo\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ipinfo\\ipinfo\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "check-style": "phpcs -p --standard=PSR2 --runtime-set ignore_errors_on_exit 1 --runtime-set ignore_warnings_on_exit 1 src tests",
+        "fix-style": "phpcbf -p --standard=PSR2 --runtime-set ignore_errors_on_exit 1 --runtime-set ignore_warnings_on_exit 1 src tests"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "2.3-dev"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

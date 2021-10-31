@@ -323,8 +323,11 @@ class Dashboard {
 					<div id="tab-blocked-locations" class="zerospam-tab is-active">
 						<h2><?php echo __( 'Blocked Locations', 'zerospam' ); ?></h2>
 						<?php
-						if ( ! ZeroSpam\Core\Settings::get_settings( 'ipstack_api' ) ) {
-							_e( '<strong>Blocking locations is currently disabled.</strong> A valid ipstack API key is required (defined in the plugin settings).', 'zerospam' );
+						if (
+							! ZeroSpam\Core\Settings::get_settings( 'ipstack_api' ) &&
+							! ZeroSpam\Core\Settings::get_settings( 'ipinfo_access_token' )
+						) {
+							_e( '<strong>Blocking locations is currently disabled.</strong> A valid ipstack API key or IPinfo access token is required (defined in the plugin settings).', 'zerospam' );
 						}
 
 						$table_data = new ZeroSpam\Core\Admin\Tables\BlockedLocations();

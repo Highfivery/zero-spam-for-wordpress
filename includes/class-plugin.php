@@ -14,6 +14,7 @@ use ZeroSpam\Core\Cron;
 use ZeroSpam\Core\Admin\Admin;
 use ZeroSpam\Modules\StopForumSpam;
 use ZeroSpam\Modules\ipstack;
+use ZeroSpam\Modules\IPinfoModule;
 use ZeroSpam\Modules\Google;
 use ZeroSpam\Modules\Zero_Spam;
 use ZeroSpam\Modules\Registration\Registration;
@@ -138,6 +139,7 @@ class Plugin {
 
 		new StopForumSpam();
 		new ipstack();
+		new IPinfoModule();
 
 		if (
 			! is_admin() &&

@@ -33,6 +33,8 @@ define( 'ZEROSPAM_PATH', plugin_dir_path( ZEROSPAM ) );
 define( 'ZEROSPAM_PLUGIN_BASE', plugin_basename( ZEROSPAM ) );
 define( 'ZEROSPAM_VERSION', '5.1.0' );
 
+require_once ZEROSPAM_PATH . 'vendor/autoload.php';
+
 add_action( 'plugins_loaded', 'zerospam_load_plugin_textdomain' );
 
 if ( ! version_compare( PHP_VERSION, '7.3', '>=' ) ) {

@@ -459,4 +459,50 @@ class Utilities {
 
 		return false;
 	}
+
+	/**
+	 * Get an IP address geolocation information.
+	 *
+	 * @since 5.1.1
+	 *
+	 * @param string $ip IP address.
+	 */
+	public static function geolocation( $ip ) {
+		$location_information = false;
+
+		// First check the ipstack API.
+		$ipstack_location = ZeroSpam\Modules\ipstack::get_geolocation( $ip );
+		if ( $ipstack_location && ! empty( $ipstack_location['error'] ) ) {
+			self::log( wp_json_encode( $ipstack_location['error'] ) );
+		} elseif ( $ipstack_location ) {
+			$location_information = $ipstack_location;
+		}
+
+		// If ipstack geolocation information unavailable, check IPinfo's API.
+		if ( ! $location_information ) {
+			$ipinfo_location = ZeroSpam\Modules\IPinfoModule::get_geolocation( $ip );
+			if ( $ipinfo_location ) {
+				$location_information = json_decode( wp_json_encode( $ipinfo_location ), true );
+
+				// Standarize the geolocation output.
+				if ( ! empty( $location_information['country'] ) ) {
+					$location_information['country_code'] = $location_information['country'];
+					unset( $location_information['country'] );
+				}
+
+				if ( ! empty( $location_information['postal'] ) ) {
+					$location_information['zip'] = $location_information['postal'];
+					unset( $location_information['postal'] );
+				}
+
+				if ( ! empty( $location_information['region'] ) ) {
+					// @TODO - Convert to 2-letter code, currently outputs full name.
+					$location_information['region_code'] = $location_information['region'];
+					unset( $location_information['region'] );
+				}
+			}
+		}
+
+		return $location_information;
+	}
 }

@@ -171,15 +171,19 @@ class Access {
 			'blocked' => false,
 		);
 
-		// Attempt to get the IP address location from ipstack & checked if block.
-		$ipstack_location = ZeroSpam\Modules\ipstack::get_geolocation( $user_ip );
-		if ( $ipstack_location && ! empty( $ipstack_location['error'] ) ) {
-			ZeroSpam\Core\Utilities::log( wp_json_encode( $ipstack_location['error'] ) );
-		} elseif ( $ipstack_location ) {
-			$location_keys = array( 'country_code', 'region_code', 'city', 'zip' );
+		// Check if geolocation information is available, if so, check if blocked.
+		$geolocation_information = ZeroSpam\Core\Utilities::geolocation( $user_ip );
+		if ( $geolocation_information ) {
+			$location_keys = array(
+				'country_code',
+				'region_code',
+				'city',
+				'zip',
+			);
+
 			foreach ( $location_keys as $key => $loc ) {
-				if ( ! empty( $ipstack_location[ $loc ] ) ) {
-					$blocked = ZeroSpam\Includes\DB::blocked( $ipstack_location[ $loc ], $loc );
+				if ( ! empty( $geolocation_information[ $loc ] ) ) {
+					$blocked = ZeroSpam\Includes\DB::blocked( $geolocation_information[ $loc ], $loc );
 					if ( $blocked ) {
 						$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_' . $loc );
 						break;

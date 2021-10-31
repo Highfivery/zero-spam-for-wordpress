@@ -30,7 +30,7 @@ class ipstack {
 	 */
 	public function sections( $sections ) {
 		$sections['ipstack'] = array(
-			'title' => __( 'ipstack Integration', 'zerospam' ),
+			'title' => __( 'ipstack Geolocation Integration', 'zerospam' ),
 		);
 
 		return $sections;
@@ -46,7 +46,7 @@ class ipstack {
 			'title'       => __( 'ipstack API Key', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">ipstack API key</a> to enable location-based statistics. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zerospam' ),
+					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">ipstack API key</a> to enable geolocation features. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zerospam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -92,10 +92,12 @@ class ipstack {
 	}
 
 	/**
-	 * Log record filter
+	 * Log record filter.
+	 *
+	 * @param array $record DB record entry.
 	 */
 	public static function log_record( $record ) {
-		$location = self::get_geolocation( ZeroSpam\Core\User::get_ip() );
+		$location = self::get_geolocation( $record['user_ip'] );
 		if ( $location ) {
 			if ( ! empty( $location['country_code'] ) ) {
 				$record['country'] = $location['country_code'];
