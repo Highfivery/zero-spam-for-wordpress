@@ -49,11 +49,14 @@
 			);
 			?>
 		</p>
+		<a class="button button-primary" href="https://www.zerospam.org/subscribe/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Enable Enhanced Protection', 'zerospam' ); ?></a>
 	</div>
 	<div class="zerospam-callout-col zerospam-callout-actions">
 		<ul>
-			<li><a href="https://www.zerospam.org/subscribe/" target="_blank"><?php esc_html_e( 'Get a Zero Spam API License', 'zerospam' ); ?></a></li>
+			<li><a href="https://www.zerospam.org/subscribe/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license" target="_blank"><?php esc_html_e( 'Get a Zero Spam API License', 'zerospam' ); ?></a></li>
 			<li><a href="https://github.com/bmarshall511/wordpress-zero-spam/issues" target="_blank"><?php esc_html_e( 'Submit a Bug or Feature Request', 'zerospam' ); ?></a></li>
+			<li><a href="https://github.com/bmarshall511/wordpress-zero-spam/wiki" target="_blank" rel="noreferrer noopener"><?php esc_html_e( 'WordPress Zero Spam Plugin Documentation', 'zerospam' ); ?></a></li>
+			<li><a href="https://github.com/bmarshall511/wordpress-zero-spam" target="_blank" rel="noreferrer noopener"><?php esc_html_e( 'Become a Contributor &mdash; Fork on Github', 'zerospam' ); ?></a></li>
 			<li><a href="https://twitter.com/ZeroSpamOrg" target="_blank"><?php _e( 'Follow us on Twitter', 'zerospam' ); ?></a> &amp; <a href="https://www.facebook.com/zerospamorg/" target="_blank"><?php esc_html_e( 'Facebook', 'zerospam' ); ?></a></li>
 		</ul>
 	</div>

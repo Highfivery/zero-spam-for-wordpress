@@ -9,7 +9,7 @@ Stable tag: 5.1.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
-WordPress Zero Spam makes blocking spam & malicious visitors a cinch. Just install, activate and enjoy a spam-free site.
+WordPress Zero Spam makes blocking spam & malicious visitors a cinch. Just install, activate, configure and enjoy a spam-free site.
 
 == Description ==
 
@@ -76,6 +76,12 @@ Caching is highly recommended and will prevent repeated calls to third-party API
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.1.1 =
+
+* refactor(admin): wordpress coding standards fixes
+* refactor(settings): minor update to settings section title
+* docs(readme): updated readme file
 
 = v5.1.0 =
 
