@@ -12,7 +12,7 @@
  * @wordpress-plugin
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://www.highfivery.com/projects/zero-spam/
- * Description:       Tired of all the useless and bloated WordPress spam plugins? The WordPress Zero Spam plugin makes blocking spam a cinch. <strong>Just install, activate and say goodbye to spam.</strong>.
+ * Description:       Tired of all the worthless and bloated WordPress anti-spam plugins? The WordPress Zero Spam plugin makes blocking spam &amp; malicious activity a cinch. <strong>Just install, activate, configure, and say goodbye to spam.</strong>
  * Version:           5.1.0
  * Requires at least: 5.2
  * Requires PHP:      7.3

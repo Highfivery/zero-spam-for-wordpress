@@ -48,7 +48,7 @@ class Settings {
 	 * Configures the plugin's recommended settings.
 	 */
 	public static function auto_configure() {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = self::get_settings();
 
 		$recommended_settings = array();
 		foreach ( $settings as $key => $setting ) {
@@ -65,7 +65,9 @@ class Settings {
 	}
 
 	/**
-	 * Returns the plugin settings
+	 * Returns the plugin settings.
+	 *
+	 * @param string $key Setting key to retrieve.
 	 */
 	public static function get_settings( $key = false ) {
 		$options = get_option( 'wpzerospam' );

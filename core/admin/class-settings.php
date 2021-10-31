@@ -406,7 +406,9 @@ class Settings {
 			$settings      = ZeroSpam\Core\Settings::get_settings();
 			$settings_json = array();
 			foreach ( $settings as $key => $data ) {
-				$settings_json[ $key ] = $data['value'];
+				if ( isset( $data['value'] ) ) {
+					$settings_json[ $key ] = $data['value'];
+				}
 			}
 			?>
 			<div class="zerospam-export-import-block">
