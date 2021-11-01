@@ -75,6 +75,7 @@ class ipstack {
 			'placeholder' => __( '5', 'zerospam' ),
 			'desc'        => __( 'Recommended setting is 5 seconds. Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond.', 'zerospam' ),
 			'value'       => ! empty( $options['ipstack_timeout'] ) ? $options['ipstack_timeout'] : 5,
+			'recommended' => 5,
 		);
 
 		$settings['ipstack_cache'] = array(
@@ -86,6 +87,7 @@ class ipstack {
 			'placeholder' => __( '14', 'zerospam' ),
 			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
 			'value'       => ! empty( $options['ipstack_cache'] ) ? $options['ipstack_cache'] : 14,
+			'recommended' => 14,
 		);
 
 		return $settings;

@@ -42,7 +42,7 @@ if ( ! version_compare( PHP_VERSION, '7.3', '>=' ) ) {
 } elseif ( ! version_compare( get_bloginfo( 'version' ), '5', '>=' ) ) {
 	add_action( 'admin_notices', 'zerospam_fail_wp_version' );
 } else {
-	require ZEROSPAM_PATH . 'includes/class-plugin.php';
+	require_once ZEROSPAM_PATH . 'includes/class-plugin.php';
 }
 
 /**
@@ -70,4 +70,8 @@ function zerospam_fail_wp_version() {
 	$message      = sprintf( esc_html__( 'WordPress Zero Spam requires WordPress version %s+. Because you are using an earlier version, the plugin is currently NOT RUNNING.', 'zerospam' ), '5' );
 	$html_message = sprintf( '<div class="error">%s</div>', wpautop( $message ) );
 	echo wp_kses_post( $html_message );
+}
+
+if ( defined( 'WP_CLI' ) && WP_CLI ) {
+	require_once ZEROSPAM_PATH . 'includes/class-cli.php';
 }

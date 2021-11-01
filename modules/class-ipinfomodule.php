@@ -81,6 +81,7 @@ class IPinfoModule {
 			'placeholder' => __( '14', 'zerospam' ),
 			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
 			'value'       => ! empty( $options['ipinfo_cache'] ) ? $options['ipinfo_cache'] : 14,
+			'recommended' => 14,
 		);
 
 		return $settings;

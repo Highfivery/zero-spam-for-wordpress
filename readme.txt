@@ -63,9 +63,15 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 **No.** WordPress Zero Spam is unable to integrate Jetpack. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
 
-= How do I boost performance of the plugin? =
+= How do I boost performance of WordPress Zero Spam? =
 
 Caching is highly recommended and will prevent repeated calls to third-party API and access checks on each page visit.
+
+= What WP-CLI commands are available for WordPress Zero Spam? =
+
+* `wp zerospam autoconfigure` &mdash; Auto-configures with recommended settings.
+* `wp zerospam settings` &mdash; Displays all plugin settings.
+* `wp zerospam set --[SETTING_KEY]=[VALUE]` &mdash; Updates a plugin setting.
 
 == Screenshots ==
 
@@ -80,6 +86,7 @@ Caching is highly recommended and will prevent repeated calls to third-party API
 = v5.1.1 =
 
 * feat(geolocation): resolves #270, added support for ipinfo geolocation
+* feat(cli): resolves #271, added WP CLI support
 * refactor(admin): wordpress coding standards fixes
 * refactor(settings): minor update to settings section title
 * docs(readme): updated readme file

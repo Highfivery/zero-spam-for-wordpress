@@ -135,6 +135,7 @@ class Registration {
 			'field_class' => 'large-text',
 			'placeholder' => $message,
 			'value'       => ! empty( $options['registration_spam_message'] ) ? $options['registration_spam_message'] : $message,
+			'recommended' => $message,
 		);
 
 		$settings['log_blocked_registrations'] = array(

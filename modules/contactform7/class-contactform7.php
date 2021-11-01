@@ -136,6 +136,7 @@ class ContactForm7 {
 			'field_class' => 'large-text',
 			'placeholder' => $message,
 			'value'       => ! empty( $options['contactform7_spam_message'] ) ? $options['contactform7_spam_message'] : $message,
+			'recommended' => $message,
 		);
 
 		$settings['log_blocked_contactform7'] = array(

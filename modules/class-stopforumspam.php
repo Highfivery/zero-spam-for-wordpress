@@ -93,6 +93,7 @@ class StopForumSpam {
 			'min'         => 0,
 			'desc'        => __( 'Recommended setting is 5 seconds. Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond.', 'zerospam' ),
 			'value'       => ! empty( $options['stop_forum_spam_timeout'] ) ? $options['stop_forum_spam_timeout'] : 5,
+			'recommended' => 5,
 		);
 
 		$settings['stop_forum_spam_cache'] = array(
@@ -105,6 +106,7 @@ class StopForumSpam {
 			'min'         => 0,
 			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
 			'value'       => ! empty( $options['stop_forum_spam_cache'] ) ? $options['stop_forum_spam_cache'] : 14,
+			'recommended' => 14,
 		);
 
 		$settings['stop_forum_spam_confidence_min'] = array(
@@ -131,6 +133,7 @@ class StopForumSpam {
 				esc_url( 'https://www.stopforumspam.com/usage#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
 			),
 			'value'       => ! empty( $options['stop_forum_spam_confidence_min'] ) ? $options['stop_forum_spam_confidence_min'] : 50,
+			'recommended' => 50,
 		);
 
 		return $settings;

@@ -82,6 +82,7 @@ class FluentForms {
 			'field_class' => 'large-text',
 			'placeholder' => $message,
 			'value'       => ! empty( $options['fluentforms_spam_message'] ) ? $options['fluentforms_spam_message'] : $message,
+			'recommended' => $message,
 		);
 
 		$settings['log_blocked_fluentforms'] = array(

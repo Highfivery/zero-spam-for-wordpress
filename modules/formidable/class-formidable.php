@@ -83,6 +83,7 @@ class Formidable {
 			'field_class' => 'large-text',
 			'placeholder' => $message,
 			'value'       => ! empty( $options['formidable_spam_message'] ) ? $options['formidable_spam_message'] : $message,
+			'recommended' => $message,
 		);
 
 		$settings['log_blocked_formidable'] = array(

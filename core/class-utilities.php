@@ -18,13 +18,41 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Update a plugin settings.
+	 *
+	 * @param string $key Setting key.
+	 * @param string $value Setting value.
+	 */
+	public static function update_setting( $key, $value ) {
+		$settings     = \ZeroSpam\Core\Settings::get_settings();
+		$new_settings = array();
+
+		if ( ! isset( $settings[ $key ] ) ) {
+			self::log( $key . ' is not a valid setting key.' );
+			return false;
+		}
+
+		foreach ( $settings as $k => $array ) {
+			if ( $key === $k ) {
+				$new_settings[ $k ] = $value;
+			} else {
+				$new_settings[ $k ] = isset( $array['value'] ) ? $array['value'] : false;
+			}
+		}
+
+		update_option( 'wpzerospam', $new_settings, true );
+
+		return true;
+	}
+
+	/**
 	 * Write an entry to a log file in the uploads directory.
 	 *
 	 * @since 5.1.0
 	 *
-	 * @param mixed $entry String or array of the information to write to the log.
-	 * @param string $file Optional. The file basename for the .log file.
+	 * @param mixed  $entry String or array of the information to write to the log.
 	 * @param string $mode Optional. The type of write. See 'mode' at https://www.php.net/manual/en/function.fopen.php.
+	 * @param string $file Optional. The file basename for the .log file.
 	 * @return boolean|int Number of bytes written to the lof file, false otherwise.
 	 */
 	public static function log( $entry, $mode = 'a', $file = 'zerospam' ) {

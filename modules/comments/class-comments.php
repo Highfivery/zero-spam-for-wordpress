@@ -182,6 +182,7 @@ class Comments {
 			'field_class' => 'large-text',
 			'placeholder' => $message,
 			'value'       => ! empty( $options['comment_spam_message'] ) ? $options['comment_spam_message'] : $message,
+			'recommended' => $message,
 		);
 
 		$settings['log_blocked_comments'] = array(

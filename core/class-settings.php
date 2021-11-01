@@ -52,7 +52,7 @@ class Settings {
 
 		$recommended_settings = array();
 		foreach ( $settings as $key => $setting ) {
-			$recommended_settings[ $key ] = $setting['value'];
+			$recommended_settings[ $key ] = isset( $setting['value'] ) ? $setting['value'] : false;
 			if ( isset( $setting['recommended'] ) ) {
 				$recommended_settings[ $key ] = $setting['recommended'];
 			}
@@ -97,11 +97,11 @@ class Settings {
 		);
 
 		self::$settings['block_handler'] = array(
-			'title'   => __( 'IP Block Handler', 'zerospam' ),
-			'desc'    => __( 'Determines how blocked IPs are handled when they attempt to access the site.', 'zerospam' ),
-			'section' => 'general',
-			'type'    => 'radio',
-			'options' => array(
+			'title'       => __( 'IP Block Handler', 'zerospam' ),
+			'desc'        => __( 'Determines how blocked IPs are handled when they attempt to access the site.', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'radio',
+			'options'     => array(
 				'redirect' => __( 'Redirect user', 'zerospam' ),
 				'403'      => sprintf(
 					wp_kses(
@@ -119,7 +119,8 @@ class Settings {
 					esc_url( 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403' )
 				),
 			),
-			'value'   => ! empty( $options['block_handler'] ) ? $options['block_handler'] : 403,
+			'value'       => ! empty( $options['block_handler'] ) ? $options['block_handler'] : 403,
+			'recommended' => 403,
 		);
 
 		$message = __( 'Your IP address has been blocked by WordPress Zero Spam due to detected spam/malicious activity.', 'zerospam' );
@@ -132,6 +133,7 @@ class Settings {
 			'field_class' => 'large-text',
 			'placeholder' => $message,
 			'value'       => ! empty( $options['blocked_message'] ) ? $options['blocked_message'] : $message,
+			'recommended' => $message,
 		);
 
 		self::$settings['blocked_redirect_url'] = array(
@@ -142,6 +144,7 @@ class Settings {
 			'field_class' => 'regular-text',
 			'placeholder' => 'https://wordpress.org/plugins/zero-spam/',
 			'value'       => ! empty( $options['blocked_redirect_url'] ) ? $options['blocked_redirect_url'] : 'https://wordpress.org/plugins/zero-spam/',
+			'recommended' => 'https://wordpress.org/plugins/zero-spam/',
 		);
 
 		self::$settings['log_blocked_ips'] = array(
@@ -164,6 +167,7 @@ class Settings {
 			'field_class' => 'small-text',
 			'placeholder' => 10000,
 			'value'       => ! empty( $options['max_logs'] ) ? $options['max_logs'] : 10000,
+			'recommended' => 10000,
 		);
 
 		self::$settings['ip_whitelist'] = array(

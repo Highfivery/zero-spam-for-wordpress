@@ -113,6 +113,7 @@ class Zero_Spam {
 			'min'         => 0,
 			'desc'        => __( 'Recommended setting is 5 seconds. Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond.', 'zerospam' ),
 			'value'       => ! empty( $options['zerospam_timeout'] ) ? $options['zerospam_timeout'] : 5,
+			'recommended' => 5,
 		);
 
 		$settings['zerospam_cache'] = array(
@@ -125,6 +126,7 @@ class Zero_Spam {
 			'min'         => 0,
 			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
 			'value'       => ! empty( $options['zerospam_cache'] ) ? $options['zerospam_cache'] : 14,
+			'recommended' => 14,
 		);
 
 		$settings['zerospam_confidence_min'] = array(
@@ -151,6 +153,7 @@ class Zero_Spam {
 				esc_url( 'https://www.zerospam.org/spam-blacklist-api/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
 			),
 			'value'       => ! empty( $options['zerospam_confidence_min'] ) ? $options['zerospam_confidence_min'] : 30,
+			'recommended' => 30,
 		);
 
 		return $settings;

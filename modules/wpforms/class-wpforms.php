@@ -91,6 +91,7 @@ class WPForms {
 			'field_class' => 'large-text',
 			'placeholder' => $message,
 			'value'       => ! empty( $options['wpforms_spam_message'] ) ? $options['wpforms_spam_message'] : $message,
+			'recommended' => $message,
 		);
 
 		$settings['log_blocked_wpforms'] = array(
