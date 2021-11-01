@@ -6,29 +6,30 @@
  * @since 5.0.0
  */
 
+$settings = \ZeroSpam\Core\Settings::get_settings();
 ?>
 
 <div class="zerospam-callout">
 	<div class="zerospam-callout-col">
-		<h2>
-			<?php
-			echo sprintf(
-				wp_kses(
-					/* translators: %s: Zero Spam API link */
-					__( 'Super-charge WordPress Zero Spam with a <a href="%s" target="_blank" rel="noopener noreferrer"> Zero Spam API License</a>.', 'zerospam' ),
-					array(
-						'a' => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( 'https://www.zerospam.org/subscribe/' )
-			);
-			?>
-		</h2>
-		<p>
+		<?php if ( 'enabled' !== $settings['zerospam']['value'] || empty( $settings['zerospam_license']['value'] ) ) : ?>
+			<h2>
+				<?php
+				echo sprintf(
+					wp_kses(
+						/* translators: %s: Zero Spam API link */
+						__( 'Super-charge WordPress Zero Spam with a <a href="%s" target="_blank" rel="noopener noreferrer"> Zero Spam API License</a>.', 'zerospam' ),
+						array(
+							'a' => array(
+								'target' => array(),
+								'href'   => array(),
+								'rel'    => array(),
+							),
+						)
+					),
+					esc_url( 'https://www.zerospam.org/subscribe/' )
+				);
+				?>
+			</h2>
 			<?php
 			echo sprintf(
 				wp_kses(
@@ -48,12 +49,52 @@
 				esc_url( 'https://www.zerospam.org/subscribe/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license' )
 			);
 			?>
-		</p>
-		<a class="button button-primary" href="https://www.zerospam.org/subscribe/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Enable Enhanced Protection', 'zerospam' ); ?></a>
+			<a class="button button-primary" href="https://www.zerospam.org/subscribe/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license" target="_blank" rel="noopener noreferrer"><?php esc_html_e( 'Enable Enhanced Protection', 'zerospam' ); ?></a>
+			<a href="https://www.zerospam.org/?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-secondary"><?php esc_html_e( 'Learn More', 'zerospam' ); ?></a>
+		<?php else : ?>
+			<h2>
+				<?php
+				echo sprintf(
+					wp_kses(
+						/* translators: %s: Zero Spam link */
+						__( 'Congratulations, <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> enhanced protection is enabled!', 'zerospam' ),
+						array(
+							'a' => array(
+								'target' => array(),
+								'href'   => array(),
+								'rel'    => array(),
+							),
+						)
+					),
+					esc_url( 'https://www.zerospam.org/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license' )
+				);
+				?>
+			</h2>
+			<?php
+			echo sprintf(
+				wp_kses(
+					/* translators: %s: Zero Spam API link */
+					__( '<p><a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> is comprised of a global detection network of over 30,000+ apps and sites that monitor traffic and usage in real-time to detect malicious activity.</p>', 'zerospam' ),
+					array(
+						'a'      => array(
+							'target' => array(),
+							'href'   => array(),
+							'rel'    => array(),
+						),
+						'p'      => array(),
+						'strong' => array(),
+					)
+				),
+				esc_url( 'https://www.zerospam.org/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license' )
+			);
+			?>
+		<?php endif; ?>
 	</div>
 	<div class="zerospam-callout-col zerospam-callout-actions">
 		<ul>
-			<li><a href="https://www.zerospam.org/subscribe/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license" target="_blank"><?php esc_html_e( 'Get a Zero Spam API License', 'zerospam' ); ?></a></li>
+			<?php if ( 'enabled' !== $settings['zerospam']['value'] || empty( $settings['zerospam_license']['value'] ) ) : ?>
+				<li><a href="https://www.zerospam.org/subscribe/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license" target="_blank"><?php esc_html_e( 'Get a Zero Spam API License', 'zerospam' ); ?></a></li>
+			<?php endif; ?>
 			<li><a href="https://github.com/bmarshall511/wordpress-zero-spam/issues" target="_blank"><?php esc_html_e( 'Submit a Bug or Feature Request', 'zerospam' ); ?></a></li>
 			<li><a href="https://github.com/bmarshall511/wordpress-zero-spam/wiki" target="_blank" rel="noreferrer noopener"><?php esc_html_e( 'WordPress Zero Spam Plugin Documentation', 'zerospam' ); ?></a></li>
 			<li><a href="https://github.com/bmarshall511/wordpress-zero-spam" target="_blank" rel="noreferrer noopener"><?php esc_html_e( 'Become a Contributor &mdash; Fork on Github', 'zerospam' ); ?></a></li>

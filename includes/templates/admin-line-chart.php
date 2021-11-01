@@ -54,6 +54,7 @@ foreach ( $data as $date => $count ) {
 			data: {
 				labels: <?php echo wp_json_encode( $labels ); ?>,
 				datasets: [{
+					label: '<?php esc_html_e( 'Number of Detections', 'zerospam' ); ?>',
 					data: <?php echo wp_json_encode( $chart_data ); ?>,
 					backgroundColor: 'rgba(88, 0, 15, 0.5)',
 					borderColor: '#63000D',

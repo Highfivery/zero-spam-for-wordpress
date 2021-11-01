@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.8.1
 Requires PHP: 7.3
-Stable tag: 5.1.0
+Stable tag: 5.1.1
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -87,6 +87,7 @@ Caching is highly recommended and will prevent repeated calls to third-party API
 
 * feat(geolocation): resolves #270, added support for ipinfo geolocation
 * feat(cli): resolves #271, added WP CLI support
+* feat(admin): resolves #237, new admin dashboard widget
 * refactor(admin): wordpress coding standards fixes
 * refactor(settings): minor update to settings section title
 * docs(readme): updated readme file

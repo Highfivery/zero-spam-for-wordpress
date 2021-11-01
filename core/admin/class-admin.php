@@ -28,6 +28,7 @@ class Admin {
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
+		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
 
 		// Check if promotional message should be displayed.
 
@@ -36,6 +37,74 @@ class Admin {
 		if ( ! $configured ) {
 			add_action( 'admin_notices', array( $this, 'not_configured_notice' ) );
 		}
+	}
+
+	/**
+	 * Register the admin dashboard widget.
+	 */
+	public function register_dashboard_widget() {
+		wp_add_dashboard_widget(
+			'zerospam_dashboard_widget',
+			__( 'WordPress Zero Spam', 'zerospam' ),
+			array( $this, 'dashboard_widget' )
+		);
+	}
+
+	/**
+	 * Output for the admin dashboard widget.
+	 */
+	public function dashboard_widget() {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$entries = \ZeroSpam\Includes\DB::query( 'log' );
+
+		if ( 'enabled' !== $settings['zerospam']['value'] || empty( $settings['zerospam_license']['value'] ) ) {
+			?>
+			<div style="background-color: #f6f7f7; padding: 25px; margin-bottom: 20px;">
+				<h3>
+					<?php
+					echo sprintf(
+						wp_kses(
+							/* translators: %s: Zero Spam API link */
+							__( '<strong>Super-charge WordPress Zero Spam with a <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam API License</a>.</strong>', 'zerospam' ),
+							array(
+								'a'      => array(
+									'target' => array(),
+									'href'   => array(),
+									'rel'    => array(),
+								),
+								'strong' => array(),
+							)
+						),
+						esc_url( 'https://www.zerospam.org/subscribe/' )
+					);
+					?>
+				</h3>
+				<?php
+				echo sprintf(
+					wp_kses(
+						/* translators: %s: Zero Spam API link */
+						__( '<p><strong>Enable enhanced protection</strong> and super-charge your site with the power of a global detection network that monitors traffic and usage in real-time to detect malicious activity.</p>', 'zerospam' ),
+						array(
+							'a'      => array(
+								'target' => array(),
+								'href'   => array(),
+								'rel'    => array(),
+								'style'  => array(),
+							),
+							'p'      => array(),
+							'strong' => array(),
+						)
+					)
+				);
+				?>
+				<a href="https://www.zerospam.org/subscribe/?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php esc_html_e( 'Get a Zero Spam License', 'zerospam' ); ?></a>
+				<a href="https://www.zerospam.org/?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-secondary"><?php esc_html_e( 'Learn More', 'zerospam' ); ?></a>
+			</div>
+			<?php
+		}
+		?>
+	<?php require ZEROSPAM_PATH . 'includes/templates/admin-line-chart.php'; ?>
+		<?php
 	}
 
 	/**
