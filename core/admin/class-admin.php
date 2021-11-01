@@ -59,7 +59,7 @@ class Admin {
 
 		if ( 'enabled' !== $settings['zerospam']['value'] || empty( $settings['zerospam_license']['value'] ) ) {
 			?>
-			<div style="background-color: #f6f7f7; padding: 25px; margin-bottom: 20px;">
+			<div style="background-color: #f6f7f7; padding: 25px; margin-bottom: 20px; border-left: 4px solid #72aee6;">
 				<h3>
 					<?php
 					echo sprintf(
