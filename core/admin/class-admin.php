@@ -75,7 +75,7 @@ class Admin {
 								'strong' => array(),
 							)
 						),
-						esc_url( 'https://www.zerospam.org/subscribe/' )
+						esc_url( ZEROSPAM_URL . 'subscribe/' )
 					);
 					?>
 				</h3>
@@ -97,8 +97,8 @@ class Admin {
 					)
 				);
 				?>
-				<a href="https://www.zerospam.org/subscribe/?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php esc_html_e( 'Get a Zero Spam License', 'zerospam' ); ?></a>
-				<a href="https://www.zerospam.org/?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-secondary"><?php esc_html_e( 'Learn More', 'zerospam' ); ?></a>
+				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>subscribe/?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php esc_html_e( 'Get a Zero Spam License', 'zerospam' ); ?></a>
+				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-secondary"><?php esc_html_e( 'Learn More', 'zerospam' ); ?></a>
 			</div>
 			<?php
 		}
@@ -125,7 +125,7 @@ class Admin {
 			),
 			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
 			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-auto-configure=1' ) ),
-			esc_url( 'https://www.zerospam.org/product/premium/' )
+			esc_url( ZEROSPAM_URL . 'product/premium/' )
 		);
 
 		$class = 'notice notice-success';

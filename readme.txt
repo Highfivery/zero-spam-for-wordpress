@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.8.1
 Requires PHP: 7.3
-Stable tag: 5.1.1
+Stable tag: 5.1.2
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -27,7 +27,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * Automatically & manually block IPs temporarily or permanently
 * Geolocate IP addresses to see where offenders are coming from
 * Block entire countries, regions, zip/postal codes & cities
-* Automatically update the disallowed list using [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist)
+* Optional disallowed list using [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist)
 * Multiple detection techniques including [David Walsh's solution](https://davidwalsh.name/wordpress-comment-spam)
 
 = WordPress Zero Spam also protects =
@@ -65,9 +65,9 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 = How do I boost performance of WordPress Zero Spam? =
 
-Caching is highly recommended and will prevent repeated calls to third-party API and access checks on each page visit.
+**Enabled caching.** Caching is highly recommended and will prevent repeated calls to third-party API and access checks on each page visit.
 
-= What WP-CLI commands are available for WordPress Zero Spam? =
+= What WordPress Zero Spam WP-CLI commands are available? =
 
 * `wp zerospam autoconfigure` &mdash; Auto-configures with recommended settings.
 * `wp zerospam settings` &mdash; Displays all plugin settings.
@@ -82,6 +82,11 @@ Caching is highly recommended and will prevent repeated calls to third-party API
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.1.2 =
+
+* docs(readme): updated readme file
+* refactor(misc): added some functionality to make debugging easier
 
 = v5.1.1 =
 

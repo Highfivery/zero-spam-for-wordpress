@@ -46,7 +46,7 @@ if ( $ips ) {
 						height="16"
 					/>
 				<?php endif; ?>
-				<a href="https://www.zerospam.org/ip-lookup/<?php echo urlencode( $ip ); ?>" target="_blank" rel="noopener noreferrer">
+				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>ip-lookup/<?php echo urlencode( $ip ); ?>" target="_blank" rel="noopener noreferrer">
 					<?php echo $ip; ?>
 				</a>
 			</span>

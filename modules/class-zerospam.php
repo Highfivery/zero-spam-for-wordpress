@@ -20,8 +20,7 @@ class Zero_Spam {
 	/**
 	 * The zerospam.org API endpoint
 	 */
-	const API_ENDPOINT = 'https://www.zerospam.org/wp-json/zerospam/v1/';
-	//const API_ENDPOINT = 'http://localhost:10023/wp-json/zerospam/v1/';
+	const API_ENDPOINT = ZEROSPAM_URL . 'wp-json/zerospam/v1/';
 
 	/**
 	 * Constructor
@@ -73,7 +72,7 @@ class Zero_Spam {
 						),
 					)
 				),
-				esc_url( 'https://www.zerospam.org/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
+				esc_url( ZEROSPAM_URL . '?utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
 			),
 			'value'       => ! empty( $options['zerospam'] ) ? $options['zerospam'] : false,
 			'recommended' => 'enabled',
@@ -93,8 +92,8 @@ class Zero_Spam {
 						),
 					)
 				),
-				esc_url( 'https://www.zerospam.org/' ),
-				esc_url( 'https://www.zerospam.org/product/premium/' )
+				esc_url( ZEROSPAM_URL ),
+				esc_url( ZEROSPAM_URL . 'product/premium/' )
 			),
 			'section'     => 'zerospam',
 			'type'        => 'text',
@@ -150,7 +149,7 @@ class Zero_Spam {
 						),
 					)
 				),
-				esc_url( 'https://www.zerospam.org/spam-blacklist-api/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
+				esc_url( ZEROSPAM_URL . 'spam-blacklist-api/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
 			),
 			'value'       => ! empty( $options['zerospam_confidence_min'] ) ? $options['zerospam_confidence_min'] : 30,
 			'recommended' => 30,

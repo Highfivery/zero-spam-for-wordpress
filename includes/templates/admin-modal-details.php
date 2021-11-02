@@ -18,7 +18,7 @@
 	<ul class="zerospam-modal-list">
 		<li>
 			<strong><?php echo __( 'IP Address', 'zerospam' ); ?></strong>
-			<span><?php echo '<a href="https://www.zerospam.org/ip-lookup/' . urlencode( $item['user_ip'] ) .'" target="_blank" rel="noopener noreferrer">' . $item['user_ip'] . '</a>'; ?></span>
+			<span><?php echo '<a href="' . ZEROSPAM_URL . 'ip-lookup/' . urlencode( $item['user_ip'] ) .'" target="_blank" rel="noopener noreferrer">' . $item['user_ip'] . '</a>'; ?></span>
 		</li>
 		<li>
 			<strong><?php echo __( 'Type', 'zerospam' ); ?></strong>
