@@ -39,8 +39,6 @@ if ( defined( 'ZEROSPAM_DEVELOPMENT_URL' ) ) {
 	define( 'ZEROSPAM_URL', 'https://www.zerospam.org/' );
 }
 
-require_once ZEROSPAM_PATH . 'vendor/autoload.php';
-
 add_action( 'plugins_loaded', 'zerospam_load_plugin_textdomain' );
 
 if ( ! version_compare( PHP_VERSION, '7.3', '>=' ) ) {

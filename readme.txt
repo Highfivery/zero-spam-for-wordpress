@@ -87,6 +87,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 * docs(readme): updated readme file
 * refactor(misc): added some functionality to make debugging easier
+* fix(ipinfo): resolves #273, loads the ipinfo library only if enabled
 
 = v5.1.1 =
 

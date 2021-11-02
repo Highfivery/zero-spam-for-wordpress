@@ -508,6 +508,9 @@ class Utilities {
 
 		// If ipstack geolocation information unavailable, check IPinfo's API.
 		if ( ! $location_information ) {
+			// Load the IPinfo library.
+			require_once ZEROSPAM_PATH . 'vendor/autoload.php';
+
 			$ipinfo_location = ZeroSpam\Modules\IPinfoModule::get_geolocation( $ip );
 			if ( $ipinfo_location ) {
 				$location_information = json_decode( wp_json_encode( $ipinfo_location ), true );
