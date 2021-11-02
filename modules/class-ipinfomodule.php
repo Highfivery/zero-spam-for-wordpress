@@ -131,6 +131,9 @@ class IPinfoModule {
 	 * @param string $ip IP address.
 	 */
 	public static function get_geolocation( $ip ) {
+		// Load the IPinfo library.
+		require_once ZEROSPAM_PATH . 'vendor/autoload.php';
+
 		$settings = ZeroSpam\Core\Settings::get_settings();
 
 		if ( empty( $settings['ipinfo_access_token']['value'] ) ) {
@@ -150,6 +153,7 @@ class IPinfoModule {
 			$result = $client->getDetails( $ip );
 
 			if ( $result ) {
+				$result     = json_decode( wp_json_encode( $result ), true );
 				$expiration = 14 * DAY_IN_SECONDS;
 				if ( ! empty( $settings['ipinfo_cache']['value'] ) ) {
 					$expiration = $settings['ipinfo_cache']['value'] * DAY_IN_SECONDS;

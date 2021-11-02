@@ -493,47 +493,138 @@ class Utilities {
 	 *
 	 * @since 5.1.1
 	 *
-	 * @param string $ip IP address.
+	 * @param string $ip IP address to lookup.
+	 * @return boolean|array False if geolocation is unavailable or array of location information.
 	 */
 	public static function geolocation( $ip ) {
-		$location_information = false;
+		// The standarized location array that will be returned.
+		$location_details = array(
+			'type'           => false,
+			'hostname'       => false,
+			'timezone'       => false,
+			'organization'   => false,
+			'continent_code' => false,
+			'continent_name' => false,
+			'country_code'   => false,
+			'country_name'   => false,
+			'zip'            => false,
+			'region_code'    => false,
+			'region_name'    => false,
+			'city'           => false,
+			'latitude'       => false,
+			'longitude'      => false,
+		);
 
-		// First check the ipstack API.
-		$ipstack_location = ZeroSpam\Modules\ipstack::get_geolocation( $ip );
-		if ( $ipstack_location && ! empty( $ipstack_location['error'] ) ) {
-			self::log( wp_json_encode( $ipstack_location['error'] ) );
-		} elseif ( $ipstack_location ) {
-			$location_information = $ipstack_location;
+		// 1. Check for the country code via server variables.
+		if ( ! empty( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) {
+			// Check Cloudflare.
+			$location_details['country_code'] = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_IPCOUNTRY'] ) );
+		} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_COUNTRY'] ) ) {
+			// Check Cloudways.
+			$location_details['country_code'] = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_COUNTRY'] ) );
 		}
 
-		// If ipstack geolocation information unavailable, check IPinfo's API.
-		if ( ! $location_information ) {
-			// Load the IPinfo library.
-			require_once ZEROSPAM_PATH . 'vendor/autoload.php';
-
-			$ipinfo_location = ZeroSpam\Modules\IPinfoModule::get_geolocation( $ip );
-			if ( $ipinfo_location ) {
-				$location_information = json_decode( wp_json_encode( $ipinfo_location ), true );
-
-				// Standarize the geolocation output.
-				if ( ! empty( $location_information['country'] ) ) {
-					$location_information['country_code'] = $location_information['country'];
-					unset( $location_information['country'] );
+		// 2. Query the ipstack API.
+		$ipstack_location = \ZeroSpam\Modules\ipstack::get_geolocation( $ip );
+		if ( $ipstack_location ) {
+			// ipstack API key provided, process the response.
+			if ( ! empty( $ipstack_location['error'] ) ) {
+				// ipstack returned an error, log it for future reference.
+				self::log( wp_json_encode( $ipstack_location['error'] ) );
+			} else {
+				// Add available location info to the standarized array.
+				if ( ! empty( $ipstack_location['type'] ) ) {
+					$location_details['type'] = $ipstack_location['type'];
 				}
 
-				if ( ! empty( $location_information['postal'] ) ) {
-					$location_information['zip'] = $location_information['postal'];
-					unset( $location_information['postal'] );
+				if ( ! empty( $ipstack_location['continent_code'] ) ) {
+					$location_details['continent_code'] = $ipstack_location['continent_code'];
 				}
 
-				if ( ! empty( $location_information['region'] ) ) {
-					// @TODO - Convert to 2-letter code, currently outputs full name.
-					$location_information['region_code'] = $location_information['region'];
-					unset( $location_information['region'] );
+				if ( ! empty( $ipstack_location['continent_name'] ) ) {
+					$location_details['continent_name'] = $ipstack_location['continent_name'];
+				}
+
+				if ( ! empty( $ipstack_location['country_code'] ) ) {
+					$location_details['country_code'] = $ipstack_location['country_code'];
+				}
+
+				if ( ! empty( $ipstack_location['country_name'] ) ) {
+					$location_details['country_name'] = $ipstack_location['country_name'];
+				}
+
+				if ( ! empty( $ipstack_location['region_code'] ) ) {
+					$location_details['region_code'] = $ipstack_location['region_code'];
+				}
+
+				if ( ! empty( $ipstack_location['region_name'] ) ) {
+					$location_details['region_name'] = $ipstack_location['region_name'];
+				}
+
+				if ( ! empty( $ipstack_location['city'] ) ) {
+					$location_details['city'] = $ipstack_location['city'];
+				}
+
+				if ( ! empty( $ipstack_location['zip'] ) ) {
+					$location_details['zip'] = $ipstack_location['zip'];
+				}
+
+				if ( ! empty( $ipstack_location['latitude'] ) ) {
+					$location_details['latitude'] = $ipstack_location['latitude'];
+				}
+
+				if ( ! empty( $ipstack_location['longitude'] ) ) {
+					$location_details['longitude'] = $ipstack_location['longitude'];
 				}
 			}
 		}
 
-		return $location_information;
+		// 3. Query the IPinfo API.
+		$ipinfo_location = ZeroSpam\Modules\IPinfoModule::get_geolocation( $ip );
+		if ( $ipinfo_location ) {
+			// IPinfo token provided, process the response.
+			// Add available location info to the standarized array.
+			if ( ! empty( $ipinfo_location['hostname'] ) ) {
+				$location_details['hostname'] = $ipinfo_location['hostname'];
+			}
+
+			if ( ! empty( $ipinfo_location['city'] ) ) {
+				$location_details['city'] = $ipinfo_location['city'];
+			}
+
+			if ( ! empty( $ipinfo_location['region'] ) ) {
+				$location_details['region_name'] = $ipinfo_location['region'];
+			}
+
+			if ( ! empty( $ipinfo_location['country'] ) ) {
+				$location_details['country_code'] = $ipinfo_location['country'];
+			}
+
+			if ( ! empty( $ipinfo_location['org'] ) ) {
+				$location_details['organization'] = $ipinfo_location['org'];
+			}
+
+			if ( ! empty( $ipinfo_location['postal'] ) ) {
+				$location_details['zip'] = $ipinfo_location['postal'];
+			}
+
+			if ( ! empty( $ipinfo_location['timezone'] ) ) {
+				$location_details['timezone'] = $ipinfo_location['timezone'];
+			}
+
+			if ( ! empty( $ipinfo_location['country_name'] ) ) {
+				$location_details['country_name'] = $ipinfo_location['country_name'];
+			}
+
+			if ( ! empty( $ipinfo_location['latitude'] ) ) {
+				$location_details['latitude'] = $ipinfo_location['latitude'];
+			}
+
+			if ( ! empty( $ipinfo_location['longitude'] ) ) {
+				$location_details['longitude'] = $ipinfo_location['longitude'];
+			}
+		}
+
+		return $location_details;
 	}
 }

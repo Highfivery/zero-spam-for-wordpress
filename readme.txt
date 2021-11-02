@@ -85,6 +85,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 = v5.1.2 =
 
+* perf(geolocation): improved performance for geolocation and data sharing
 * docs(readme): updated readme file
 * refactor(misc): added some functionality to make debugging easier
 * fix(ipinfo): resolves #273, loads the ipinfo library only if enabled

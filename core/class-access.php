@@ -165,6 +165,10 @@ class Access {
 	 *
 	 * @since 5.0.0
 	 * @access public
+	 *
+	 * @param array  $access_checks Array of exisiting access checks.
+	 * @param string $user_ip The user's IP address.
+	 * @param array  $settings The plugin settings.
 	 */
 	public function check_blocked( $access_checks, $user_ip, $settings ) {
 		$access_checks['blocked'] = array(
@@ -172,8 +176,10 @@ class Access {
 		);
 
 		// Check if geolocation information is available, if so, check if blocked.
-		$geolocation_information = ZeroSpam\Core\Utilities::geolocation( $user_ip );
+		$geolocation_information = \ZeroSpam\Core\Utilities::geolocation( $user_ip );
 		if ( $geolocation_information ) {
+			// Geolocation information available, check the blocked locations.
+			// Available blocked location keys.
 			$location_keys = array(
 				'country_code',
 				'region_code',
@@ -183,7 +189,7 @@ class Access {
 
 			foreach ( $location_keys as $key => $loc ) {
 				if ( ! empty( $geolocation_information[ $loc ] ) ) {
-					$blocked = ZeroSpam\Includes\DB::blocked( $geolocation_information[ $loc ], $loc );
+					$blocked = \ZeroSpam\Includes\DB::blocked( $geolocation_information[ $loc ], $loc );
 					if ( $blocked ) {
 						$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_' . $loc );
 						break;
@@ -192,19 +198,10 @@ class Access {
 			}
 		}
 
-		// Try getting country from Cloudflare.
-		$cloudflare_country_code = ! empty( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ? $_SERVER['HTTP_CF_IPCOUNTRY'] : false;
-		if ( $cloudflare_country_code ) {
-			$blocked = ZeroSpam\Includes\DB::blocked( $cloudflare_country_code, 'country_code' );
-			if ( $blocked ) {
-				$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_country_code' );
-			}
-		}
-
 		// If passed location blocks, check the IP address.
 		if ( ! $access_checks['blocked'] ) {
 			// Check the user's IP access.
-			$blocked = ZeroSpam\Includes\DB::blocked( $user_ip );
+			$blocked = \ZeroSpam\Includes\DB::blocked( $user_ip );
 			if ( $blocked ) {
 				$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_ip' );
 			}
@@ -234,7 +231,13 @@ class Access {
 				return $access;
 			}
 
-			$access_checks = apply_filters( 'zerospam_access_checks', array(), $user_ip, $settings );
+			$access_checks = apply_filters(
+				'zerospam_access_checks',
+				array(),
+				$user_ip,
+				$settings
+			);
+
 			foreach ( $access_checks as $key => $check ) {
 				if ( ! empty( $check['blocked'] ) ) {
 					$access['blocked'] = true;

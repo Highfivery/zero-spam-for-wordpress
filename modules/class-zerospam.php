@@ -238,32 +238,49 @@ class Zero_Spam {
 		$api_data['user_ip'] = $ip;
 
 		// Attempt to get the geolocation information.
-		$api_data['location'] = ZeroSpam\Modules\ipstack::get_geolocation( $ip );
+		$api_data['location'] = \ZeroSpam\Core\Utilities::geolocation( $ip );
 
-		// Only send $details that were blocked.
-		if ( $details && is_array( $details ) ) {
-			foreach ( $details as $check_key => $check_details ) {
-				if (
-					! empty( $check_details['blocked'] ) &&
-					! empty( $check_details['type'] )
-				) {
-					// User didn't pass the $check_key check.
-					$api_data['checks'][ $check_key ] = array(
+		// Loop through the individual access checks to determine what should be sent.
+		$ignore_failed_reasons = array(
+			'blocked_country_code',
+			'blocked_region_code',
+			'blocked_city',
+			'blocked_zip',
+		);
+
+		foreach ( $details as $access_check_key => $check_details ) {
+			// Check if the user failed the access check.
+			if ( ! empty( $check_details['blocked'] ) ) {
+				// Check if came from blocked table.
+				if ( 'blocked' === $access_check_key ) {
+					// Check if one of the 'failed' reasons should be shared.
+					if (
+						! empty( $check_details['details'] ) &&
+						! empty( $check_details['details']['failed'] ) &&
+						in_array( $check_details['details']['failed'], $ignore_failed_reasons, true )
+					) {
+						// Doesn't need to be sent.
+						continue;
+					} else {
+						// Send it.
+						$api_data['checks'][ $access_check_key ] = array(
+							'type' => $check_details['type'],
+						);
+
+						// Add additional details if available.
+						if ( ! empty( $check_details['details'] && is_array( $check_details['details'] ) ) ) {
+							//$api_data['checks'][ $access_check_key ]['details']
+						}
+					}
+				} else {
+					// Not from the blocked table, send it.
+					$api_data['checks'][ $access_check_key ] = array(
 						'type' => $check_details['type'],
 					);
 
 					// Add additional details if available.
 					if ( ! empty( $check_details['details'] && is_array( $check_details['details'] ) ) ) {
-						$details_data = $check_details['details'];
-
-						// Add country if not already set and available.
-						if (
-							empty( $api_data['location']['country_code'] ) &&
-							! empty( $details_data['country'] ) &&
-							2 === strlen( $details_data['country'] )
-						) {
-							$api_data['location']['country_code'] = $details_data['country'];
-						}
+						//$api_data['checks'][ $access_check_key ]['details']
 					}
 				}
 			}
