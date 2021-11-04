@@ -20,7 +20,6 @@ use ZeroSpam\Modules\Zero_Spam;
 use ZeroSpam\Modules\Registration\Registration;
 use ZeroSpam\Modules\Comments\Comments;
 use ZeroSpam\Modules\ContactForm7\ContactForm7;
-use ZeroSpam\Modules\WooCommerce\WooCommerce;
 use ZeroSpam\Modules\WPForms\WPForms;
 use ZeroSpam\Modules\Formidable\Formidable;
 use ZeroSpam\Modules\FluentForms\FluentForms;
@@ -116,10 +115,6 @@ class Plugin {
 
 		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
 			new ContactForm7();
-		}
-
-		if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
-			new WooCommerce();
 		}
 
 		if (

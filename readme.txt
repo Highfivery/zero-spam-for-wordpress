@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.8.1
 Requires PHP: 7.3
-Stable tag: 5.1.2
+Stable tag: 5.1.3
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -34,7 +34,6 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 
 * WordPress core comments & user registrations
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
-* [WooCommerce](https://woocommerce.com/) registration forms
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
 * and can be easily integrated into any existing theme or plugin
@@ -82,6 +81,10 @@ For more information & developer documentation, see the [plugin’s website](htt
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.1.3 =
+
+* refactor(woocommerce): woocommerce registration forms support dropped in place of 3rd-party IP checks
 
 = v5.1.2 =
 
