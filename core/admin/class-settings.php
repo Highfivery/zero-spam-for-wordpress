@@ -107,7 +107,7 @@ class Settings {
 	public function admin_menu() {
 		add_submenu_page(
 			'options-general.php',
-			__( 'WordPress Zero Spam Settings', 'zerospam' ),
+			__( 'Zero Spam Settings', 'zerospam' ),
 			__( 'Zero Spam', 'zerospam' ),
 			'manage_options',
 			'wordpress-zero-spam-settings',

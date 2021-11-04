@@ -17,7 +17,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 
 [WordPress Zero Spam](https://www.highfivery.com/projects/zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and databases of known malicious IPs from around the world to detect and block unwanted visitors.
 
-**Just install, activate, and enjoy a spam-free site!**
+**Just install, activate, configure, and enjoy a spam-free site!**
 
 = WordPress Zero Spam features =
 
@@ -85,6 +85,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 = v5.1.3 =
 
 * refactor(woocommerce): woocommerce registration forms support dropped in place of 3rd-party IP checks
+* docs(admin): misc updates to admin interface
 
 = v5.1.2 =
 
