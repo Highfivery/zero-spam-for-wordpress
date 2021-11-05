@@ -198,6 +198,15 @@ class Access {
 			}
 		}
 
+		// If passed location blocks, check the IP address.
+		if ( ! $access_checks['blocked'] ) {
+			// Check the user's IP access.
+			$blocked = \ZeroSpam\Includes\DB::blocked( $user_ip );
+			if ( $blocked ) {
+				$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_ip' );
+			}
+		}
+
 		return $access_checks;
 	}
 

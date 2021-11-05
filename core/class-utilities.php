@@ -21,6 +21,13 @@ class Utilities {
 	 * Refreshes the .htaccess file
 	 */
 	public static function refresh_htaccess() {
+		// Check IP Block Method setting.
+		$settings = \ZeroSpam\Core\Settings::get_settings( 'block_method' );
+
+		if ( ! $settings || 'php' === $settings ) {
+			return false;
+		}
+
 		$denied_ips    = array();
 		$htaccess_file = get_home_path() . '.htaccess';
 		if ( is_writable( $htaccess_file ) ) {
@@ -36,7 +43,19 @@ class Utilities {
 
 			if ( $denied_ips ) {
 				$lines = array();
-				$lines[] = 'Deny from ' . implode( $denied_ips, ' ' );
+
+				if ( 'htaccess_legacy' === $settings ) {
+					$lines[] = 'Deny from ' . implode( $denied_ips, ' ' );
+				} elseif ( 'htaccess_modern' === $settings ) {
+					$lines[] = '<RequireAll>';
+					$lines[] = 'Require all granted';
+					$lines[] = 'Require not ip ' . implode( $denied_ips, ' ' );
+					$lines[] = '</RequireAll>';
+				}
+			}
+
+			if ( empty( $lines ) ) {
+				return false;
 			}
 
 			if ( insert_with_markers( $htaccess_file, 'WordPress Zero Spam', $lines ) ) {

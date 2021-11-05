@@ -123,6 +123,20 @@ class Settings {
 			'recommended' => 403,
 		);
 
+		self::$settings['block_method'] = array(
+			'title'       => __( 'IP Block Method', 'zerospam' ),
+			'desc'        => __( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version could cause the website to crash</strong> and require a manual fix to the .htaccess file.', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'radio',
+			'options'     => array(
+				'htaccess_legacy' => __( '.htaccess (Apache servers < 2.4)', 'zerospam' ),
+				'htaccess_modern' => __( '.htaccess (Apache servers >= 2.4)', 'zerospam' ),
+				'php'             => __( 'PHP', 'zerospam' ),
+			),
+			'value'       => ! empty( $options['block_method'] ) ? $options['block_method'] : 'php',
+			'recommended' => 'php',
+		);
+
 		$message = __( 'Your IP address has been blocked by WordPress Zero Spam due to detected spam/malicious activity.', 'zerospam' );
 
 		self::$settings['blocked_message'] = array(
