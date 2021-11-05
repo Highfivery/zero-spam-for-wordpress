@@ -18,6 +18,40 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Refreshes the .htaccess file
+	 */
+	public static function refresh_htaccess() {
+		$denied_ips    = array();
+		$htaccess_file = get_home_path() . '.htaccess';
+		if ( is_writable( $htaccess_file ) ) {
+			$blocked_ips = \ZeroSpam\Includes\DB::get_blocked();
+			if ( $blocked_ips ) {
+				foreach ( $blocked_ips as $key => $record ) {
+					$details = \ZeroSpam\Core\Access::get_blocked_details( $record );
+					if ( $details['blocked'] ) {
+						$denied_ips[] = $details['details']['user_ip'];
+					}
+				}
+			}
+
+			if ( $denied_ips ) {
+				$lines = array();
+				$lines[] = 'Deny from ' . implode( $denied_ips, ' ' );
+			}
+
+			if ( insert_with_markers( $htaccess_file, 'WordPress Zero Spam', $lines ) ) {
+				return true;
+			} else {
+				\ZeroSpam\Core\Utilities::log( 'Unable to update the .htacess file, unknown error.' );
+			}
+		} else {
+			\ZeroSpam\Core\Utilities::log( 'Unable to update the .htacess file, unwriteable.' );
+		}
+
+		return false;
+	}
+
+	/**
 	 * Update a plugin settings.
 	 *
 	 * @param string $key Setting key.

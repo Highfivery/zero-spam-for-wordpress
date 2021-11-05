@@ -230,6 +230,7 @@ class BlockedTable extends WP_List_Table {
 			*/
 			?>
 			<button class="button zerospam-block-trigger"><?php echo __( 'Add Blocked IP Address', 'zerospam' ); ?></button>
+			<a href="<?php echo esc_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&tab=blocked&zerospam-refresh-htaccess=1' ) ); ?>" class="button"><?php esc_html_e( 'Refresh .htaccess', 'zerospam' ); ?></a>
 		</div>
 		<?php
 	 }

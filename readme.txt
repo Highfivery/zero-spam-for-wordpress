@@ -84,6 +84,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 = v5.1.3 =
 
+* perf(blocked ips): moved blocked ips to .htacess for improved performance
 * refactor(woocommerce): woocommerce registration forms support dropped in place of 3rd-party IP checks
 * docs(admin): misc updates to admin interface
 

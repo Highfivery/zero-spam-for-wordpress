@@ -112,7 +112,7 @@ class Access {
 	/**
 	 * Helper to get blocked record details.
 	 */
-	public function get_blocked_details( $blocked_record, $failed = false ) {
+	public static function get_blocked_details( $blocked_record, $failed = false ) {
 		$access_check = array(
 			'blocked' => false,
 		);
@@ -195,15 +195,6 @@ class Access {
 						break;
 					}
 				}
-			}
-		}
-
-		// If passed location blocks, check the IP address.
-		if ( ! $access_checks['blocked'] ) {
-			// Check the user's IP access.
-			$blocked = \ZeroSpam\Includes\DB::blocked( $user_ip );
-			if ( $blocked ) {
-				$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_ip' );
 			}
 		}
 

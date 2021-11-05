@@ -26,8 +26,15 @@ class Dashboard {
 	 * @access public
 	 */
 	public function __construct() {
+		add_action( 'admin_init', array( $this, 'admin_init' ) );
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
 		add_action( 'admin_action_add_blocked_ip', array( $this, 'block_ip' ) );
+	}
+
+	public function admin_init() {
+		if ( ! empty( $_REQUEST['zerospam-refresh-htaccess'] ) ) {
+			\ZeroSpam\Core\Utilities::refresh_htaccess();
+		}
 	}
 
 	/**
@@ -122,6 +129,9 @@ class Dashboard {
 			wp_safe_redirect( $url . '&zerospam-error=4' );
 			exit;
 		}
+
+		// Add the the .htaccess file.
+		\ZeroSpam\Core\Utilities::refresh_htaccess();
 
 		wp_safe_redirect( $url . '&zerospam-success=1' );
   	exit;

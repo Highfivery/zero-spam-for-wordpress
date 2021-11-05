@@ -89,6 +89,15 @@ class DB {
 	}
 
 	/**
+	 * Returns all blocked IP addresses.
+	 */
+	public static function get_blocked() {
+		global $wpdb;
+
+		return $wpdb->get_results( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'], ARRAY_A );
+	}
+
+	/**
 	 * Adds/returns a blocked IP.
 	 *
 	 * @since 5.0.0
