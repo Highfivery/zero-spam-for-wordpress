@@ -18,6 +18,24 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Returns list of recommended blocked email domains.
+	 */
+	public static function blocked_email_domains() {
+		global $wp_filesystem;
+		if ( empty( $wp_filesystem ) ) {
+			require_once ABSPATH . '/wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		$text = $wp_filesystem->get_contents( ZEROSPAM_PATH . 'assets/disposable-email-domains.txt' );
+		if ( ! $text ) {
+			return false;
+		}
+
+		return explode( "\n", $text );
+	}
+
+	/**
 	 * Refreshes the .htaccess file
 	 */
 	public static function refresh_htaccess() {
@@ -61,10 +79,10 @@ class Utilities {
 			if ( insert_with_markers( $htaccess_file, 'WordPress Zero Spam', $lines ) ) {
 				return true;
 			} else {
-				\ZeroSpam\Core\Utilities::log( 'Unable to update the .htacess file, unknown error.' );
+				self::log( 'Unable to update the .htacess file, unknown error.' );
 			}
 		} else {
-			\ZeroSpam\Core\Utilities::log( 'Unable to update the .htacess file, unwriteable.' );
+			self::log( 'Unable to update the .htacess file, unwriteable.' );
 		}
 
 		return false;

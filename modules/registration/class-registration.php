@@ -60,6 +60,33 @@ class Registration {
 	 * @param string   $user_email User's email.
 	 */
 	public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
+
+		// Check blocked email domains.
+		$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
+		if ( $blocked_email_domains ) {
+			$blocked_email_domains_array = explode( "\n", $blocked_email_domains );
+			$tmp_domain                  = explode( '@', $user_email );
+			$domain                      = array_pop( $tmp_domain );
+
+			if ( in_array( $domain, $blocked_email_domains_array, true ) ) {
+				// Email domain has been blocked.
+				$message = ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
+				$errors->add( 'zerospam_error', $message );
+
+				$details = array(
+					'user_login' => $sanitized_user_login,
+					'user_email' => $user_email,
+					'failed'     => 'blocked_email_domain',
+				);
+
+				if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
+					ZeroSpam\Includes\DB::log( 'registration', $details );
+				}
+
+				return apply_filters( 'zerospam_registration_errors', $errors, $sanitized_user_login, $user_email );
+			}
+		}
+
 		// Check honeypot.
 		// @codingStandardsIgnoreLine
 		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {

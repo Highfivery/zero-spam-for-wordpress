@@ -45,6 +45,27 @@ class Settings {
 	}
 
 	/**
+	 * Updates blocked email domains with recommended settings.
+	 */
+	public static function update_blocked_email_domains() {
+		$settings                          = self::get_settings();
+		$recommended_blocked_email_domains = \ZeroSpam\Core\Utilities::blocked_email_domains();
+
+		$new_settings = array();
+		foreach ( $settings as $key => $setting ) {
+			if ( 'blocked_email_domains' === $key ) {
+				$new_settings[ $key ] = implode( "\n", $recommended_blocked_email_domains );
+			} else {
+				$new_settings[ $key ] = isset( $setting['value'] ) ? $setting['value'] : false;
+			}
+		}
+
+		if ( $new_settings ) {
+			update_option( 'wpzerospam', $new_settings );
+		}
+	}
+
+	/**
 	 * Configures the plugin's recommended settings.
 	 */
 	public static function auto_configure() {
@@ -72,6 +93,33 @@ class Settings {
 	public static function get_settings( $key = false ) {
 		$options = get_option( 'wpzerospam' );
 
+		self::$settings['use_recommended_settings'] = array(
+			'title'   => __( 'Use Recommended Settings', 'zerospam' ),
+			'desc'    => sprintf(
+				wp_kses(
+					__( '<strong>WARNING:</strong> This will override all existing settings.', 'zerospam' ),
+					array(
+						'strong' => array(),
+					)
+				)
+			),
+			'section' => 'general',
+			'type'    => 'html',
+			'html'    => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( '<a href="%s" class="button button-primary">Override &amp; Update Settings</a>', 'zerospam' ),
+					array(
+						'a'    => array(
+							'href'  => array(),
+							'class' => array(),
+						),
+					)
+				),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-auto-configure=1' ) )
+			),
+		);
+
 		self::$settings['share_data'] = array(
 			'title'       => __( 'Usage Data Sharing', 'zerospam' ),
 			'section'     => 'general',
@@ -80,7 +128,7 @@ class Settings {
 				'enabled' => sprintf(
 					wp_kses(
 						/* translators: %s: url */
-						__( 'Become a super contributor by opting in to share non-sensitive plugin data. <a href="%s" target="_blank" rel="noreferrer noopener">Learn more</a>.', 'zerospam' ),
+						__( 'Join <a href="%1$s" target="_blank" rel="noreferrer noopener">Zero Spam\'s global community</a> &amp; report detections by opting in to share non-sensitive data. <a href="%2$s" target="_blank" rel="noreferrer noopener">Learn more</a>.', 'zerospam' ),
 						array(
 							'a'    => array(
 								'target' => array(),
@@ -89,11 +137,31 @@ class Settings {
 							),
 						)
 					),
+					esc_url( ZEROSPAM_URL . '?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=data_sharing' ),
 					esc_url( 'https://github.com/bmarshall511/wordpress-zero-spam/wiki/FAQ#what-data-is-shared-when-usage-data-sharing-is-enabled' )
 				),
 			),
 			'value'       => ! empty( $options['share_data'] ) ? $options['share_data'] : false,
 			'recommended' => 'enabled',
+		);
+
+		global $wp_roles;
+		$roles       = $wp_roles->roles;
+		$roles_array = array();
+
+		foreach ( $roles as $role => $data ) {
+			$roles_array[ $role ] = $data['name'];
+		}
+
+		self::$settings['widget_visibility'] = array(
+			'title'       => __( 'Dashboard Widget Visibility', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'select',
+			'desc'        => __( 'Select which user roles have access to the admin dashboard widget. You may control-click (Windows) or command-click (Mac) to select more than one.', 'zerospam' ),
+			'options'     => $roles_array,
+			'value'       => ! empty( $options['widget_visibility'] ) ? $options['widget_visibility'] : false,
+			'recommended' => array( 'administrator' ),
+			'multiple'    => true,
 		);
 
 		self::$settings['block_handler'] = array(
@@ -185,7 +253,7 @@ class Settings {
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_ips'] ) ? $options['log_blocked_ips'] : false,
-			'recommended' => 'enabled',
+			'recommended' => false,
 		);
 
 		self::$settings['max_logs'] = array(
@@ -207,6 +275,45 @@ class Settings {
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
 			'value'       => ! empty( $options['ip_whitelist'] ) ? $options['ip_whitelist'] : false,
+		);
+
+		$recommended_blocked_email_domains       = \ZeroSpam\Core\Utilities::blocked_email_domains();
+		self::$settings['blocked_email_domains'] = array(
+			'title'       => __( 'Blocked Email Domains', 'zerospam' ),
+			'desc'        => __( 'Enter a list of email domains that should be blocked, one per line.', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'textarea',
+			'field_class' => 'regular-text code',
+			'placeholder' => '',
+			'value'       => ! empty( $options['blocked_email_domains'] ) ? $options['blocked_email_domains'] : false,
+			'recommended' => implode( "\n", $recommended_blocked_email_domains ),
+		);
+
+		self::$settings['update_blocked_email_domains'] = array(
+			'title'   => __( 'Use Blocked Email Domains Recommendation', 'zerospam' ),
+			'desc'    => sprintf(
+				wp_kses(
+					__( '<strong>WARNING:</strong> This will override all existing blocked email domains with Zero Spam\'s recommended domains.', 'zerospam' ),
+					array(
+						'strong' => array(),
+					)
+				)
+			),
+			'section' => 'general',
+			'type'    => 'html',
+			'html'    => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( '<a href="%s" class="button button-primary">Override &amp; Update Blocked Email Domains</a>', 'zerospam' ),
+					array(
+						'a'    => array(
+							'href'  => array(),
+							'class' => array(),
+						),
+					)
+				),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-update-blocked-email-domains=1' ) )
+			),
 		);
 
 		self::$settings['debug'] = array(
@@ -265,25 +372,6 @@ class Settings {
 			),
 			'value'       => ! empty( $options['sync_disallowed_keys'] ) ? $options['sync_disallowed_keys'] : false,
 			'recommended' => 'enabled',
-		);
-
-		global $wp_roles;
-		$roles       = $wp_roles->roles;
-		$roles_array = array();
-
-		foreach ( $roles as $role => $data ) {
-			$roles_array[ $role ] = $data['name'];
-		}
-
-		self::$settings['widget_visibility'] = array(
-			'title'       => __( 'Dashboard Widget Visibility', 'zerospam' ),
-			'section'     => 'general',
-			'type'        => 'select',
-			'desc'        => __( 'Select which user roles have access to the admin dashboard widget. You may control-click (Windows) or command-click (Mac) to select more than one.', 'zerospam' ),
-			'options'     => $roles_array,
-			'value'       => ! empty( $options['widget_visibility'] ) ? $options['widget_visibility'] : false,
-			'recommended' => 'enabled',
-			'multiple'    => true,
 		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings );

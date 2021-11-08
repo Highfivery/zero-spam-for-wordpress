@@ -66,6 +66,22 @@ class Comments {
 			$block_type = 'honeypot';
 		}
 
+		// Check blocked email domains.
+		if ( ! empty( $commentdata['comment_author_email'] ) ) {
+			$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
+			if ( $blocked_email_domains ) {
+				$blocked_email_domains_array = explode( "\n", $blocked_email_domains );
+				$tmp_domain                  = explode( '@', $commentdata['comment_author_email'] );
+				$domain                      = array_pop( $tmp_domain );
+
+				if ( in_array( $domain, $blocked_email_domains_array, true ) ) {
+					// Email domain has been blocked.
+					$block_user = true;
+					$block_type = 'blocked_email_domain';
+				}
+			}
+		}
+
 		// Check comment disallowed list.
 		$disallowed_check = array(
 			'author'  => ! empty( $commentdata['comment_author'] ) ? $commentdata['comment_author'] : false,
@@ -88,6 +104,7 @@ class Comments {
 			$block_type = 'disallowed_list';
 		}
 
+		// If blocked, log and send the details.
 		if ( $block_user && $block_type ) {
 			$details = array(
 				'failed' => $block_type,
@@ -100,7 +117,11 @@ class Comments {
 			}
 
 			// Share the detection if enabled.
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+			if (
+				'enabled' === ZeroSpam\Core\Settings::get_settings( 'share_data' ) &&
+				'blocked_email_domain' !== $block_type &&
+				'disallowed_list' !== $block_type
+			) {
 				$details['type'] = 'comment';
 				do_action( 'zerospam_share_detection', $details );
 			}

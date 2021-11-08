@@ -44,6 +44,13 @@ class Settings {
 			exit;
 		}
 
+		if ( ! empty( $_REQUEST['zerospam-update-blocked-email-domains'] ) ) {
+			\ZeroSpam\Core\Settings::update_blocked_email_domains();
+
+			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-msg=The blocked email domains settings has been successfully updated with the recommended domains.' ) );
+			exit;
+		}
+
 		if ( ! empty( $_REQUEST['zerospam-msg'] ) ) {
 			add_action(
 				'admin_notices',
@@ -293,7 +300,7 @@ class Settings {
 						<?php
 						foreach ( $args['options'] as $key => $label ) :
 							$selected = false;
-							if ( ! empty( $args['multiple'] ) ) :
+							if ( ! empty( $args['multiple'] ) && is_array( $args['value'] ) ) :
 								if ( in_array( $key, $args['value'], true ) ) :
 									$selected = true;
 								endif;

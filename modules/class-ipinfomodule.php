@@ -131,13 +131,13 @@ class IPinfoModule {
 	 * @param string $ip IP address.
 	 */
 	public static function get_geolocation( $ip ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings();
 
 		if ( empty( $settings['ipinfo_access_token']['value'] ) ) {
 			return false;
 		}
 
-		$cache_key = ZeroSpam\Core\Utilities::cache_key(
+		$cache_key = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'ipinfo',
 				$ip,
@@ -149,8 +149,14 @@ class IPinfoModule {
 			// Load the IPinfo library.
 			require_once ZEROSPAM_PATH . 'vendor/autoload.php';
 
-			$client = new IPinfo( $settings['ipinfo_access_token']['value'] );
-			$result = $client->getDetails( $ip );
+			try {
+				$client = new IPinfo( $settings['ipinfo_access_token']['value'] );
+				$result = $client->getDetails( $ip );
+			} catch ( \ipinfo\ipinfo\IPinfoException $e ) {
+				\ZeroSpam\Core\Utilities::log( $e->__toString() );
+			} catch ( Exception $e ) {
+				\ZeroSpam\Core\Utilities::log( $e->__toString() );
+			}
 
 			if ( $result ) {
 				$result     = json_decode( wp_json_encode( $result ), true );

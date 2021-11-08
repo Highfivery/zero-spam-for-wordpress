@@ -28,6 +28,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * Geolocate IP addresses to see where offenders are coming from
 * Block entire countries, regions, zip/postal codes & cities
 * Optional disallowed list using [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist)
+* Block known disposable &amp; malicious email domains using [disposable](https://github.com/disposable)
 * Multiple detection techniques including [David Walsh's solution](https://davidwalsh.name/wordpress-comment-spam)
 
 = WordPress Zero Spam also protects =
@@ -85,7 +86,11 @@ For more information & developer documentation, see the [plugin’s website](htt
 = v5.1.5 =
 
 * feat(dashboard widget): resolves #275, added the ability to control the dashboard widget visibility
+* feat(settings): button to quickly override and update settings to zero spam's recommended
+* feat(email domains): resolves #246, ability to block disposable and malicious email domains
+* perf(sharing): sharing detections optimized
 * docs(htaccess): added a notice & recommended max number of blocked ips when using .htaccess
+* fix(ipinfo): fix for uncaught ipinfo exception
 
 = v5.1.4 =
 
