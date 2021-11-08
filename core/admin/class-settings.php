@@ -195,6 +195,10 @@ class Settings {
 				$options['field_class'] = $setting['field_class'];
 			}
 
+			if ( ! empty( $setting['multiple'] ) ) {
+				$options['multiple'] = $setting['multiple'];
+			}
+
 			add_settings_field(
 				$key,
 				$setting['title'],
@@ -264,6 +268,51 @@ class Settings {
 						step="<?php echo esc_attr( $args['step'] ); ?>"
 					<?php endif; ?>
 				/>
+				<?php
+				break;
+			case 'select':
+				if ( empty( $args['options'] ) ) {
+					return;
+				}
+
+				$name = 'wpzerospam[' . esc_attr( $args['label_for'] ) . ']';
+				if ( ! empty( $args['multiple'] ) ) :
+					$name = 'wpzerospam[' . esc_attr( $args['label_for'] ) . '][]';
+				endif;
+				?>
+				<select
+					id="<?php echo esc_attr( $args['label_for'] ); ?>"
+					name="<?php echo esc_attr( $name ); ?>"
+					<?php if ( ! empty( $args['multiple'] ) ) : ?>
+						multiple
+					<?php endif; ?>
+					<?php if ( ! empty( $args['field_class'] ) ) : ?>
+						class="<?php echo esc_attr( $args['field_class'] ); ?>"
+					<?php endif; ?>
+				>
+						<?php
+						foreach ( $args['options'] as $key => $label ) :
+							$selected = false;
+							if ( ! empty( $args['multiple'] ) ) :
+								if ( in_array( $key, $args['value'], true ) ) :
+									$selected = true;
+								endif;
+							else :
+								if ( ! empty( $args['value'] ) && $args['value'] == $key ) {
+									$selected = true;
+								}
+							endif;
+							?>
+							<option
+								value="<?php echo esc_attr( $key ); ?>"
+								<?php if ( $selected ) : ?>
+									selected="selected"
+								<?php endif; ?>
+							>
+								<?php esc_html_e( $label ); ?>
+							</option>
+						<?php endforeach; ?>
+				</select>
 				<?php
 				break;
 			case 'checkbox':

@@ -252,6 +252,25 @@ class Settings {
 			'recommended' => 'enabled',
 		);
 
+		global $wp_roles;
+		$roles       = $wp_roles->roles;
+		$roles_array = array();
+
+		foreach ( $roles as $role => $data ) {
+			$roles_array[ $role ] = $data['name'];
+		}
+
+		self::$settings['widget_visibility'] = array(
+			'title'       => __( 'Dashboard Widget Visibility', 'zerospam' ),
+			'section'     => 'general',
+			'type'        => 'select',
+			'desc'        => __( 'Select which user roles have access to the admin dashboard widget. You may control-click (Windows) or command-click (Mac) to select more than one.', 'zerospam' ),
+			'options'     => $roles_array,
+			'value'       => ! empty( $options['widget_visibility'] ) ? $options['widget_visibility'] : false,
+			'recommended' => 'enabled',
+			'multiple'    => true,
+		);
+
 		$settings = apply_filters( 'zerospam_settings', self::$settings );
 
 		if ( $key ) {

@@ -43,11 +43,17 @@ class Admin {
 	 * Register the admin dashboard widget.
 	 */
 	public function register_dashboard_widget() {
-		wp_add_dashboard_widget(
-			'zerospam_dashboard_widget',
-			__( 'WordPress Zero Spam', 'zerospam' ),
-			array( $this, 'dashboard_widget' )
-		);
+		$selected_user_roles = \ZeroSpam\Core\Settings::get_settings( 'widget_visibility' );
+		$user                = wp_get_current_user();
+		$roles               = (array) $user->roles;
+
+		if ( ! empty( array_intersect( $roles, $selected_user_roles ) ) ) {
+			wp_add_dashboard_widget(
+				'zerospam_dashboard_widget',
+				__( 'WordPress Zero Spam', 'zerospam' ),
+				array( $this, 'dashboard_widget' )
+			);
+		}
 	}
 
 	/**
