@@ -45,6 +45,22 @@ class Settings {
 	}
 
 	/**
+	 * Updates core disallowed words.
+	 */
+	public static function update_disallowed_words() {
+		global $wp_filesystem;
+		if ( empty( $wp_filesystem ) ) {
+			require_once ABSPATH . '/wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+		$text = $wp_filesystem->get_contents( ZEROSPAM_PATH . 'assets/blacklist.txt' );
+
+		if ( $text ) {
+			update_option( 'disallowed_keys', $text );
+		}
+	}
+
+	/**
 	 * Updates blocked email domains with recommended settings.
 	 */
 	public static function update_blocked_email_domains() {
@@ -316,6 +332,46 @@ class Settings {
 			),
 		);
 
+		self::$settings['regenerate_honeypot'] = array(
+			'title'   => __( 'Regenerate Honeypot ID', 'zerospam' ),
+			'desc'    => __( 'Helpful if spam is getting through. Current honeypot ID: <code>' . \ZeroSpam\Core\Utilities::get_honeypot() . '</code>', 'zerospam' ),
+			'section' => 'general',
+			'type'    => 'html',
+			'html'    => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( '<a href="%s" class="button button-primary">Regenerate Honeypot ID</a>', 'zerospam' ),
+					array(
+						'a'    => array(
+							'href'  => array(),
+							'class' => array(),
+						),
+					)
+				),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-regenerate-honeypot=1' ) )
+			),
+		);
+
+		self::$settings['update_disallowed_words'] = array(
+			'title'   => __( 'Override &amp; Update Core Disallowed Words', 'zerospam' ),
+			'desc'    => __( 'Update WP core\'s disallowed words option with <a href="https://github.com/splorp/wordpress-comment-blacklist/" target="_blank" rel="noreferrer noopener">splorp\'s Comment Blacklist for WordPress</a>. <strong>WARNING:</strong> This will override any existing words.', 'zerospam' ),
+			'section' => 'general',
+			'type'    => 'html',
+			'html'    => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( '<a href="%s" class="button button-primary">Override &amp; Update Core Disallowed Words</a>', 'zerospam' ),
+					array(
+						'a'    => array(
+							'href'  => array(),
+							'class' => array(),
+						),
+					)
+				),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-update-disallowed-words=1' ) )
+			),
+		);
+
 		self::$settings['debug'] = array(
 			'title'   => __( 'Debug', 'zerospam' ),
 			'desc'    => __( 'For troubleshooting site issues.', 'zerospam' ),
@@ -340,38 +396,6 @@ class Settings {
 			'type'        => 'text',
 			'placeholder' => '127.0.0.1',
 			'value'       => ! empty( $options['debug_ip'] ) ? $options['debug_ip'] : false,
-		);
-
-		self::$settings['regenerate_honeypot'] = array(
-			'title'   => __( 'Regenerate Honeypot ID', 'zerospam' ),
-			'desc'    => __( 'Helpful if spam is getting through. Current honeypot ID: <code>' . \ZeroSpam\Core\Utilities::get_honeypot() . '</code>', 'zerospam' ),
-			'section' => 'general',
-			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( '<a href="%s" class="button button-primary">Regenerate Honeypot ID</a>', 'zerospam' ),
-					array(
-						'a'    => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-					)
-				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-regenerate-honeypot=1' ) )
-			),
-		);
-
-		self::$settings['sync_disallowed_keys'] = array(
-			'title'       => __( 'Sync Disallowed Keys', 'zerospam' ),
-			'desc'        => __( 'Automatically sync WP core\'s disallowed words option with <a href="https://github.com/splorp/wordpress-comment-blacklist/" target="_blank" rel="noreferrer noopener">splorp\'s Comment Blacklist for WordPress</a>.', 'zerospam' ),
-			'section'     => 'general',
-			'type'        => 'checkbox',
-			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
-			),
-			'value'       => ! empty( $options['sync_disallowed_keys'] ) ? $options['sync_disallowed_keys'] : false,
-			'recommended' => 'enabled',
 		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings );

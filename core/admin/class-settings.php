@@ -51,6 +51,13 @@ class Settings {
 			exit;
 		}
 
+		if ( ! empty( $_REQUEST['zerospam-update-disallowed-words'] ) ) {
+			\ZeroSpam\Core\Settings::update_disallowed_words();
+
+			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-msg=Your site\'s disallowed words list has been successfully updated.' ) );
+			exit;
+		}
+
 		if ( ! empty( $_REQUEST['zerospam-msg'] ) ) {
 			add_action(
 				'admin_notices',

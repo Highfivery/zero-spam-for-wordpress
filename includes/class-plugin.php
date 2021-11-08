@@ -10,7 +10,6 @@ namespace ZeroSpam;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Core\Access;
 use ZeroSpam\Core\User;
-use ZeroSpam\Core\Cron;
 use ZeroSpam\Core\Admin\Admin;
 use ZeroSpam\Modules\StopForumSpam;
 use ZeroSpam\Modules\ipstack;
@@ -106,7 +105,6 @@ class Plugin {
 	private function init_components() {
 		new Zero_Spam();
 		new DB();
-		new Cron();
 		new Registration();
 		new Comments();
 		new DavidWalsh();
