@@ -317,6 +317,25 @@ class Dashboard {
 					<div id="tab-blocked-ips" class="zerospam-tab is-active">
 						<h2><?php echo __( 'Blocked IPs', 'zerospam' ); ?></h2>
 						<?php
+						$block_method = \ZeroSpam\Core\Settings::get_settings( 'block_method' );
+						if ( ! empty( $block_method ) && 'php' !== $block_method ) :
+							echo sprintf(
+								wp_kses(
+									/* translators: %s: url */
+									__( '<p>When using .htaccess &amp; due to <a href="%s" target="_blank" rel="noreferrer noopener">character limit restrictions</a>, <strong>no more than 170 blocked IP addresses recommended</strong>.</p>', 'zerospam' ),
+									array(
+										'strong' => array(),
+										'a'    => array(
+											'target' => array(),
+											'href'   => array(),
+											'rel'    => array(),
+										),
+									)
+								),
+								esc_url( 'https://httpd.apache.org/docs/current/en/configuring.html' ),
+							);
+						endif;
+
 						$table_data = new ZeroSpam\Core\Admin\Tables\BlockedTable();
 						$table_data->prepare_items();
 						?>

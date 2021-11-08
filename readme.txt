@@ -85,6 +85,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 = v5.1.5 =
 
 * feat(dashboard widget): resolves #275, added the ability to control the dashboard widget visibility
+* docs(htaccess): added a notice & recommended max number of blocked ips when using .htaccess
 
 = v5.1.4 =
 

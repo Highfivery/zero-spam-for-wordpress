@@ -125,7 +125,22 @@ class Settings {
 
 		self::$settings['block_method'] = array(
 			'title'       => __( 'IP Block Method', 'zerospam' ),
-			'desc'        => __( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version could cause the website to crash</strong> and require a manual fix to the .htaccess file.', 'zerospam' ),
+			'desc'        => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version or adding <a href="%s" target="_blank" rel="noreferrer noopener">more than 8190 characters</a> could cause the website to crash</strong> and require a manual fix to the .htaccess file. If this happens &amp; you\'re unsure how to fix, contact <a href="%s" target="_blank" rel="noreferrer noopener">Highfivery</a> for a rapid response and resolution.', 'zerospam' ),
+					array(
+						'strong' => array(),
+						'a'    => array(
+							'target' => array(),
+							'href'   => array(),
+							'rel'    => array(),
+						),
+					)
+				),
+				esc_url( 'https://httpd.apache.org/docs/current/en/configuring.html' ),
+				esc_url( 'https://www.highfivery.com/?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_htaccess&utm_campaign=zerospam_plugin' )
+			),
 			'section'     => 'general',
 			'type'        => 'radio',
 			'options'     => array(

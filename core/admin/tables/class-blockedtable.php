@@ -236,9 +236,7 @@ class BlockedTable extends WP_List_Table {
 			if ( ! empty( $settings ) && 'php' !== $settings ) :
 				?>
 				<a href="<?php echo esc_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&tab=blocked&zerospam-refresh-htaccess=1' ) ); ?>" class="button"><?php esc_html_e( 'Refresh .htaccess', 'zerospam' ); ?></a>
-				<?php
-			endif;
-			?>
+			<?php endif; ?>
 		</div>
 		<?php
 	 }

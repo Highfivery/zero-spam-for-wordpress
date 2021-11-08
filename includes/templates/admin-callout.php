@@ -123,7 +123,7 @@ $settings = \ZeroSpam\Core\Settings::get_settings();
 					'small'  => array(),
 				)
 			),
-			esc_url( 'https://www.highfivery.com?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_callout&utm_campaign=zerospam_plugin' )
+			esc_url( 'https://www.highfivery.com/?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_callout&utm_campaign=zerospam_plugin' )
 		);
 		?>
 	</div>
