@@ -89,6 +89,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 * feat(settings): button to quickly override and update settings to zero spam's recommended
 * feat(email domains): resolves #246, ability to block disposable and malicious email domains
 * perf(sharing): sharing detections optimized
+* chore(disallowed list): updated to the lastest splorp's disallowed list
 * docs(htaccess): added a notice & recommended max number of blocked ips when using .htaccess
 * fix(ipinfo): fix for uncaught ipinfo exception
 
