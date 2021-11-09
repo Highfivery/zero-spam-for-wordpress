@@ -7,8 +7,6 @@
 
 namespace ZeroSpam\Modules\FluentForms;
 
-use ZeroSpam;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -24,10 +22,167 @@ class FluentForms {
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_fluentforms' ) && ZeroSpam\Core\Access::process() ) {
-			// @TODO
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_fluentforms' ) && \ZeroSpam\Core\Access::process() ) {
+			// Fires before a Fluent Form is rendered.
+			add_action( 'fluentform_load_form_assets', array( $this, 'before_form_render' ), 10 );
+
+			// Adds Zero Spam's honeypot field.
+			add_filter( 'fluentform_rendering_form', array( $this, 'render_form' ), 10, 1 );
+
+			// Processes the form.
+			add_action( 'fluentform_before_insert_submission', array( $this, 'process_form' ), 10, 3 );
+
+			// Validates email addresses.
+			add_filter( 'fluentform_validate_input_item_input_email', array( $this, 'validate_email' ), 10, 5 );
 		}
 	}
+
+	/**
+	 * Fires before a form is rendered.
+	 */
+	public function before_form_render() {
+		do_action( 'zerospam_fluentforms_form' );
+	}
+
+	/**
+	 * Adds Zero Spam's custom form fields.
+	 *
+	 * @see https://fluentforms.com/docs/fluentform_rendering_form/
+	 *
+	 * @param $form The $form Object.
+	 */
+	public function render_form( $form ) {
+		// Add Zero Spam's honeypot field.
+		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
+
+		$form->fields['fields'][] = array(
+			'element'    => 'input_hidden',
+			'attributes' => array(
+				'type'  => 'hidden',
+				'name'  => $honeypot_field_name,
+				'value' => '',
+			),
+		);
+
+		return $form;
+	}
+
+	/**
+	 * Processes a Fluent Form submission after it's validation is completed.
+	 *
+	 * @see https://fluentforms.com/docs/fluentform_before_insert_submission/
+	 *
+	 * @param array  $insert_data submission_data Array.
+	 * @param array  $data        $_POST[‘data’] from submission.
+	 * @param object $form        The $form Object.
+	 */
+	public function process_form( $insert_data, $data, $form ) {
+		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'fluentforms_spam_message' );
+
+		// Check Zero Spam's honeypot field.
+		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
+
+		// Create the details array for logging & sharing data.
+		$details = array(
+			'insert_data' => $insert_data,
+			'data'        => $data,
+			'form'        => array(
+				'id'    => $form->id,
+				'title' => $form->title,
+			),
+		);
+
+		if ( ! isset( $data[ $honeypot_field_name ] ) || ! empty( $data[ $honeypot_field_name ] ) ) {
+			// Failed the honeypot check.
+			$details['failed'] = 'honeypot';
+
+			// Log the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_fluentforms' ) ) {
+				\ZeroSpam\Includes\DB::log( 'fluent_form', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details['type'] = 'fluent_form';
+				do_action( 'zerospam_share_detection', $details );
+			}
+
+			wp_send_json(
+				array(
+					'errors' => array(
+						'zerospam_honeypot' => $error_message,
+					),
+				),
+				422
+			);
+		}
+
+
+		// Fire hook for additional validation (ex. David Walsh script).
+		$errors = apply_filters( 'zerospam_preprocess_fluentform_submission', array(), $insert_data, $data, $form );
+
+		if ( ! empty( $errors ) ) {
+			$errors_array = array();
+			foreach ( $errors as $key => $message ) {
+				$errors_array[ $key ] = $message;
+
+				$details['failed'] = str_replace( 'zerospam_', '', $key );
+
+				// Log the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_fluentforms' ) ) {
+					\ZeroSpam\Includes\DB::log( 'fluent_form', $details );
+				}
+
+				// Share the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+					$details['type'] = 'fluent_form';
+					do_action( 'zerospam_share_detection', $details );
+				}
+			}
+
+			wp_send_json(
+				array(
+					'errors' => $errors_array,
+				),
+				422
+			);
+		}
+	}
+
+	/**
+	 * Validates email inputs.
+	 *
+	 * @see https://fluentforms.com/docs/fluentform_validate_input_item_input_text/
+	 *
+	 * @param string $error     Error message.
+	 * @param array  $field     Contains the fill field settings.
+	 * @param array  $form_data Contains all the user input values as key pair.
+	 * @param array  $fields    All fields of the form.
+	 * @param object $form      The $form Object.
+	 */
+	public function validate_email( $error, $field, $form_data, $fields, $form ) {
+		$error_message         = \ZeroSpam\Core\Utilities::detection_message( 'fluentforms_spam_message' );
+		$blocked_email_domains = \ZeroSpam\Core\Utilities::blocked_email_domains();
+
+		if ( ! $blocked_email_domains ) {
+			return $error;
+		}
+
+		$field_name = $field['name'];
+		if ( empty( $form_data[ $field_name ] ) ) {
+			return $error;
+		}
+
+		$email_address = explode( '@', $form_data[ $field_name ] );
+		$email_domain  = array_pop( $email_address );
+
+		if ( in_array( $email_domain, $blocked_email_domains, true ) ) {
+			return array( $error_message );
+		}
+
+		return $error;
+	}
+
 
 	/**
 	 * Add to the types array

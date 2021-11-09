@@ -126,9 +126,9 @@ class Plugin {
 			new Formidable();
 		}
 
-		/*if ( is_plugin_active( 'fluentform/fluentform.php' ) ) {
+		if ( is_plugin_active( 'fluentform/fluentform.php' ) ) {
 			new FluentForms();
-		}*/
+		}
 
 		new StopForumSpam();
 		new ipstack();

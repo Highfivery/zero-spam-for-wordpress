@@ -37,6 +37,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
+* [Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
 * and can be easily integrated into any existing theme or plugin
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
@@ -85,6 +86,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 = v5.1.6 =
 
+* feat(fluent forms): Fluent Forms is now supported
 * fix(php notice): resolves #277, fix for array_intersect(): Argument #2 must be of type array, bool
 
 = v5.1.5 =

@@ -36,9 +36,13 @@ class Access {
 
 	/**
 	 * Returns true if WordPress Zero Spam should process a submission.
+	 *
+	 * @param boolean $ignore_ajax True if AJAX shouldn't be checked.
 	 */
-	public static function process() {
-		if ( ( is_admin() && ! wp_doing_ajax() ) || is_user_logged_in() ) {
+	public static function process( $ignore_ajax = false ) {
+		if ( $ignore_ajax && is_admin() || is_user_logged_in() ) {
+			return false;
+		} elseif ( ! $ignore_ajax && ( is_admin() && ! wp_doing_ajax() ) || is_user_logged_in() ) {
 			return false;
 		}
 
