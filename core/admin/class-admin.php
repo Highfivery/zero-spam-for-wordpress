@@ -47,12 +47,14 @@ class Admin {
 		$user                = wp_get_current_user();
 		$roles               = (array) $user->roles;
 
-		if ( ! empty( array_intersect( $roles, $selected_user_roles ) ) ) {
-			wp_add_dashboard_widget(
-				'zerospam_dashboard_widget',
-				__( 'WordPress Zero Spam', 'zerospam' ),
-				array( $this, 'dashboard_widget' )
-			);
+		if ( is_array( $selected_user_roles ) && is_array( $roles ) ) {
+			if ( ! empty( array_intersect( $roles, $selected_user_roles ) ) ) {
+				wp_add_dashboard_widget(
+					'zerospam_dashboard_widget',
+					__( 'WordPress Zero Spam', 'zerospam' ),
+					array( $this, 'dashboard_widget' )
+				);
+			}
 		}
 	}
 

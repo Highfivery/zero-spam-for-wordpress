@@ -307,7 +307,7 @@ class Settings {
 						<?php
 						foreach ( $args['options'] as $key => $label ) :
 							$selected = false;
-							if ( ! empty( $args['multiple'] ) && is_array( $args['value'] ) ) :
+							if ( ! empty( $args['value'] ) && ! empty( $args['multiple'] ) && is_array( $args['value'] ) ) :
 								if ( in_array( $key, $args['value'], true ) ) :
 									$selected = true;
 								endif;
