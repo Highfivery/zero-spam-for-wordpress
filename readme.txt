@@ -87,6 +87,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 = v5.2.0 =
 
 * perf(sharing): blocked ips are no longer shared with zerospam.org
+* refactor(zero spam api): updated version on the zero spam api endpoint
 
 = v5.1.6 =
 

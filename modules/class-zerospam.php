@@ -20,7 +20,7 @@ class Zero_Spam {
 	/**
 	 * The zerospam.org API endpoint
 	 */
-	const API_ENDPOINT = ZEROSPAM_URL . 'wp-json/zerospam/v1/';
+	const API_ENDPOINT = ZEROSPAM_URL . 'wp-json/zerospam/v2/';
 
 	/**
 	 * Constructor
