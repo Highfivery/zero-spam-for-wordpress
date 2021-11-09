@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.8.1
 Requires PHP: 7.3
-Stable tag: 5.1.6
+Stable tag: 5.2.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -83,6 +83,10 @@ For more information & developer documentation, see the [plugin’s website](htt
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.2.0 =
+
+* perf(sharing): blocked ips are no longer shared with zerospam.org
 
 = v5.1.6 =
 
