@@ -117,7 +117,6 @@ class FluentForms {
 			);
 		}
 
-
 		// Fire hook for additional validation (ex. David Walsh script).
 		$errors = apply_filters( 'zerospam_preprocess_fluentform_submission', array(), $insert_data, $data, $form );
 

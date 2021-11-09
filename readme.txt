@@ -86,7 +86,7 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 = v5.1.6 =
 
-* feat(fluent forms): Fluent Forms is now supported
+* feat(fluent forms): resolves #276, fluent forms is now supported
 * fix(php notice): resolves #277, fix for array_intersect(): Argument #2 must be of type array, bool
 
 = v5.1.5 =
