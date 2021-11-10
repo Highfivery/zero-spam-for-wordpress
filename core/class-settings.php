@@ -302,7 +302,7 @@ class Settings {
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
 			'value'       => ! empty( $options['blocked_email_domains'] ) ? $options['blocked_email_domains'] : false,
-			'recommended' => implode( "\n", $recommended_blocked_email_domains ),
+			'recommended' => $recommended_blocked_email_domains ? implode( "\n", $recommended_blocked_email_domains ) : '',
 		);
 
 		self::$settings['update_blocked_email_domains'] = array(
