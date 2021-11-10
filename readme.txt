@@ -74,6 +74,16 @@ For more information & developer documentation, see the [plugin’s website](htt
 * `wp zerospam settings` &mdash; Displays all plugin settings.
 * `wp zerospam set --[SETTING_KEY]=[VALUE]` &mdash; Updates a plugin setting.
 
+= Are you getting a `ftp_fget` PHP warning? =
+
+Some hosts have issues with they way they access files. If you're seeing a `ftp_fget` PHP notice, setting the `FS_METHOD` constant to `direct` in `wp-config.php` above the line `/* That's all, stop editing! Happy Pressing. */` should solve the problem:
+
+```
+define('FS_METHOD', 'direct');
+```
+
+If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs/plugins-known-issues#define-fs_method) for more information and what to do to resolve it with their `$_ENV['PANTHEON_ENVIRONMENT']` variable check.
+
 == Screenshots ==
 
 1. WordPress Zero Spam dashboard
@@ -88,6 +98,10 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 * perf(sharing): blocked ips are no longer shared with zerospam.org
 * refactor(zero spam api): updated version on the zero spam api endpoint
+
+= v5.1.7 =
+
+* fix(php notice): fix for some hosts firing a php notice when unable to retrieve the list of recommended blocked email domains
 
 = v5.1.6 =
 
