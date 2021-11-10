@@ -130,6 +130,10 @@ class Plugin {
 			new FluentForms();
 		}
 
+		/*if ( is_plugin_active( 'ninja-forms/ninja-forms.php' ) ) {
+			new \ZeroSpam\Modules\NinjaForms\NinjaForms();
+		}*/
+
 		new StopForumSpam();
 		new ipstack();
 		new IPinfoModule();
