@@ -161,7 +161,7 @@ class DB {
 
 		$page_url  = ZeroSpam\Core\Utilities::current_url();
 		$extension = substr( $page_url, strrpos( $page_url, '.' ) + 1 );
-		$ignore    = array( 'map', 'js', 'css' );
+		$ignore    = array( 'map', 'js', 'css', 'ico' );
 		if ( in_array( $extension, $ignore, true ) ) {
 			// Ignore assets.
 			return false;

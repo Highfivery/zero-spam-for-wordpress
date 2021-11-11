@@ -11,9 +11,6 @@ use ZeroSpam\Includes\DB;
 use ZeroSpam\Core\Access;
 use ZeroSpam\Core\User;
 use ZeroSpam\Core\Admin\Admin;
-use ZeroSpam\Modules\StopForumSpam;
-use ZeroSpam\Modules\ipstack;
-use ZeroSpam\Modules\IPinfoModule;
 use ZeroSpam\Modules\Google;
 use ZeroSpam\Modules\Zero_Spam;
 use ZeroSpam\Modules\Registration\Registration;
@@ -136,9 +133,10 @@ class Plugin {
 			new \ZeroSpam\Modules\NinjaForms\NinjaForms();
 		}*/
 
-		new StopForumSpam();
-		new ipstack();
-		new IPinfoModule();
+		new \ZeroSpam\Modules\StopForumSpam();
+		new \ZeroSpam\Modules\ProjectHoneypot();
+		new \ZeroSpam\Modules\ipstack();
+		new \ZeroSpam\Modules\IPinfoModule();
 
 		if (
 			! is_admin() &&

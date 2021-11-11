@@ -1,6 +1,6 @@
 === WordPress Zero Spam ===
 Contributors: bmarshall511,
-Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
+Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.8.2
@@ -33,7 +33,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 
 = WordPress Zero Spam also protects =
 
-* WordPress core comments & user registrations
+* WordPress core comments, user registrations &amp; login attempts
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
@@ -97,7 +97,9 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = v5.2.0 =
 
 * feat(login): now protects user login attempts
+* feat(project honeypot): resolves #201, project honeypot ip checks now integrated
 * perf(sharing): blocked ips are no longer shared with zerospam.org
+* perf(database): doesn't log .ico requests anymore that normally resulted in 2 entries per detection
 * style(admin): misc admin interface improvements
 * refactor(misc): cleaning up code & wordpress coding standards updates
 * refactor(zero spam api): updated version on the zero spam api endpoint
