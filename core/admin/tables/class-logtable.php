@@ -67,7 +67,7 @@ class LogTable extends WP_List_Table {
 				return '<a href="' . ZEROSPAM_URL . 'ip-lookup/' . urlencode( $item[ $column_name ] ) .'" target="_blank" rel="noopener noreferrer">' . $item[ $column_name ] . '</a>';
 				break;
 			case 'date_recorded':
-				return date( 'M j, Y g:ia' , strtotime( $item[ $column_name ] ) );
+				return gmdate( 'm/d/y g:ia' , strtotime( $item[ $column_name ] ) );
 				break;
 			case 'details':
 				ob_start();

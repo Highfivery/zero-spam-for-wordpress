@@ -119,7 +119,7 @@ class Login {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['login'] = __( 'Login', 'zerospam' );
+		$types['login'] = __( 'Login Attempt', 'zerospam' );
 
 		return $types;
 	}

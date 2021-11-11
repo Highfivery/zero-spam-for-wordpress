@@ -98,6 +98,8 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 * feat(login): now protects user login attempts
 * perf(sharing): blocked ips are no longer shared with zerospam.org
+* style(admin): misc admin interface improvements
+* refactor(misc): cleaning up code & wordpress coding standards updates
 * refactor(zero spam api): updated version on the zero spam api endpoint
 
 = v5.1.7 =

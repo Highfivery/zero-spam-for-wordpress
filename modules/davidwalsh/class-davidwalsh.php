@@ -32,7 +32,7 @@ class DavidWalsh {
 			add_action( 'zerospam_wpcf7_enqueue_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_register_form', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_wpforms_frontend_output', array( $this, 'enqueue_script' ) );
-			add_action( 'zerospam_fluentforms_form', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_fluentforms_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_login_scripts', array( $this, 'enqueue_script' ) );
 
 			add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1 );

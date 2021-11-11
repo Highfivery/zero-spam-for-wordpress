@@ -23,8 +23,8 @@ class FluentForms {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_fluentforms' ) && \ZeroSpam\Core\Access::process() ) {
-			// Fires before a Fluent Form is rendered.
-			add_action( 'fluentform_load_form_assets', array( $this, 'before_form_render' ), 10 );
+			// Load scripts.
+			add_action( 'fluentform_load_form_assets', array( $this, 'scripts' ), 10 );
 
 			// Adds Zero Spam's honeypot field.
 			add_filter( 'fluentform_rendering_form', array( $this, 'render_form' ), 10, 1 );
@@ -40,8 +40,8 @@ class FluentForms {
 	/**
 	 * Fires before a form is rendered.
 	 */
-	public function before_form_render() {
-		do_action( 'zerospam_fluentforms_form' );
+	public function scripts() {
+		do_action( 'zerospam_fluentforms_scripts' );
 	}
 
 	/**
