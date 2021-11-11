@@ -23,7 +23,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 
 * No captcha, spam isn't a users' problem
 * No moderation queues, spam isn't a administrators' problem
-* Third-party blacklist checks ([Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/))
+* [Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/) &amp; [Project Honeypot](https://www.projecthoneypot.org/) integration
 * Automatically & manually block IPs temporarily or permanently
 * Geolocate IP addresses to see where offenders are coming from
 * Block entire countries, regions, zip/postal codes & cities
