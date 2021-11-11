@@ -269,7 +269,7 @@ class Settings {
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_ips'] ) ? $options['log_blocked_ips'] : false,
-			'recommended' => false,
+			'recommended' => 'enabled',
 		);
 
 		self::$settings['max_logs'] = array(

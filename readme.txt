@@ -3,7 +3,7 @@ Contributors: bmarshall511,
 Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 5.8.1
+Tested up to: 5.8.2
 Requires PHP: 7.3
 Stable tag: 5.2.0
 License: GNU GPLv3
@@ -96,6 +96,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.2.0 =
 
+* feat(login): now protects user login attempts
 * perf(sharing): blocked ips are no longer shared with zerospam.org
 * refactor(zero spam api): updated version on the zero spam api endpoint
 

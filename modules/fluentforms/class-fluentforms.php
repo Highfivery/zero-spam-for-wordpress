@@ -189,7 +189,7 @@ class FluentForms {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['fluentforms'] = __( 'Fluent Forms', 'zerospam' );
+		$types['fluent_form'] = __( 'Fluent Form', 'zerospam' );
 
 		return $types;
 	}

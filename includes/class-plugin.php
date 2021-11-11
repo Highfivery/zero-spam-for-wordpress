@@ -109,6 +109,8 @@ class Plugin {
 		new Comments();
 		new DavidWalsh();
 
+		new \ZeroSpam\Modules\Login\Login();
+
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
 
 		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
