@@ -6,31 +6,17 @@
  */
 
 if ( empty( $entries ) ) {
+	echo sprintf(
+		wp_kses(
+			__( '<strong>Good news!</strong> There haven\'t been any detections of malicious or spammy IPs yet.', 'zerospam' ),
+			array(
+				'strong' => array(),
+			)
+		)
+	);
+
 	return;
 }
-
-wp_enqueue_script(
-	'zerospam-jvectormap',
-	plugins_url( 'assets/js/jquery-jvectormap-2.0.5.min.js', ZEROSPAM ),
-	array( 'jquery' ),
-	'2.0.5',
-	false
-);
-
-wp_enqueue_script(
-	'zerospam-jvectormap-world',
-	plugins_url( 'assets/js/jquery-jvectormap-world-mill.js', ZEROSPAM ),
-	array( 'zerospam-jvectormap' ),
-	'2.0.5',
-	false
-);
-
-wp_enqueue_style(
-	'zerospam-jvectormap-world',
-	plugins_url( 'assets/css/jquery-jvectormap-2.0.5.css', ZEROSPAM ),
-	array(),
-	'2.0.5'
-);
 
 $regions_data = array();
 $coords       = array();
@@ -71,6 +57,43 @@ foreach ( $entries as $key => $entry ) {
 		}
 	}
 }
+
+if ( empty( $locations ) ) :
+	echo sprintf(
+		wp_kses(
+			/* translators: %s: url */
+			__( 'Current detections have no geolocation information available. Enable ipstack and/or IPinfo on the <a href="%1$s">settings page</a>.', 'zerospam' ),
+			array(
+				'a' => array( 'href' => array() ),
+			)
+		),
+		esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
+	);
+	return;
+endif;
+
+wp_enqueue_script(
+	'zerospam-jvectormap',
+	plugins_url( 'assets/js/jquery-jvectormap-2.0.5.min.js', ZEROSPAM ),
+	array( 'jquery' ),
+	'2.0.5',
+	false
+);
+
+wp_enqueue_script(
+	'zerospam-jvectormap-world',
+	plugins_url( 'assets/js/jquery-jvectormap-world-mill.js', ZEROSPAM ),
+	array( 'zerospam-jvectormap' ),
+	'2.0.5',
+	false
+);
+
+wp_enqueue_style(
+	'zerospam-jvectormap-world',
+	plugins_url( 'assets/css/jquery-jvectormap-2.0.5.css', ZEROSPAM ),
+	array(),
+	'2.0.5'
+);
 ?>
 
 <div id="world-map" style="width: 100%; height: 490px"></div>

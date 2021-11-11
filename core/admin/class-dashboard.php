@@ -229,7 +229,14 @@ class Dashboard {
 						echo '<div class="zerospam-modules">';
 
 						echo '<div class="zerospam-module zerospam-module-map">';
-						echo '<h3>WordPress Zero Spam World Map</h3>';
+						echo sprintf(
+							wp_kses(
+								__( '<h3>Detections World Map</h3>', 'zerospam' ),
+								array(
+									'h3' => array(),
+								)
+							)
+						);
 						require ZEROSPAM_PATH . 'includes/templates/admin-map.php';
 						echo '</div>';
 

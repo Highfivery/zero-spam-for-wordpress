@@ -238,7 +238,8 @@
 .zerospam-type-login::before,
 .zerospam-type-registration::before,
 .zerospam-type-comment::before,
-.zerospam-type-fluent_form::before {
+.zerospam-type-fluent_form::before,
+.zerospam-type-wpforms::before {
 	background-repeat: no-repeat;
 	background-size: contain;
 	content: "";
@@ -268,6 +269,11 @@
 /* Type: fluent_form */
 .zerospam-type-fluent_form::before {
 	background-image: url('../img/icon-fluent-forms.svg');
+}
+
+/* Type: wpforms */
+.zerospam-type-wpforms::before {
+	background-image: url('../img/icon-wpforms.svg');
 }
 
 @media (min-width: 768px) {
