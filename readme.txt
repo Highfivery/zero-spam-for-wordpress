@@ -1,11 +1,11 @@
 === WordPress Zero Spam ===
 Contributors: bmarshall511,
-Tags: comments, spam, antispam, anti-spam, comment spam, spambot, spammer, spam free, spam blocker, registration spam
+Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 5.8.1
+Tested up to: 5.8.2
 Requires PHP: 7.3
-Stable tag: 5.1.7
+Stable tag: 5.2.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -23,7 +23,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 
 * No captcha, spam isn't a users' problem
 * No moderation queues, spam isn't a administrators' problem
-* Third-party blacklist checks ([Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/))
+* [Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/) &amp; [Project Honeypot](https://www.projecthoneypot.org/) integration
 * Automatically & manually block IPs temporarily or permanently
 * Geolocate IP addresses to see where offenders are coming from
 * Block entire countries, regions, zip/postal codes & cities
@@ -33,7 +33,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 
 = WordPress Zero Spam also protects =
 
-* WordPress core comments & user registrations
+* WordPress core comments, user registrations &amp; login attempts
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
@@ -93,6 +93,16 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.2.0 =
+
+* feat(login): now protects user login attempts
+* feat(project honeypot): resolves #201, project honeypot ip checks now integrated
+* perf(sharing): blocked ips are no longer shared with zerospam.org
+* perf(database): doesn't log .ico requests anymore that normally resulted in 2 entries per detection
+* style(admin): misc admin interface improvements
+* refactor(misc): cleaning up code & wordpress coding standards updates
+* refactor(zero spam api): updated version on the zero spam api endpoint
 
 = v5.1.7 =
 

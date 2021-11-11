@@ -64,10 +64,6 @@ class Access {
 			$settings = ZeroSpam\Core\Settings::get_settings();
 
 			if ( ! empty( $access['details'] ) && is_array( $access['details'] ) ) {
-				if ( ! empty( $settings['share_data']['value'] ) && 'enabled' === $settings['share_data']['value'] ) {
-					do_action( 'zerospam_share_blocked', $access );
-				}
-
 				foreach ( $access['details'] as $key => $detail ) {
 					if ( ! empty( $detail['blocked'] ) ) {
 						if ( empty( $detail['details']['failed'] ) ) {

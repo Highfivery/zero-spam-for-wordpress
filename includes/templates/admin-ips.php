@@ -6,6 +6,15 @@
  */
 
 if ( empty( $entries ) ) {
+	echo sprintf(
+		wp_kses(
+			__( 'Nothing to report.', 'zerospam' ),
+			array(
+				'strong' => array(),
+			)
+		)
+	);
+
 	return;
 }
 

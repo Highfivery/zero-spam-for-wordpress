@@ -130,7 +130,7 @@ class StopForumSpam {
 						),
 					)
 				),
-				esc_url( 'https://www.stopforumspam.com/usage#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
+				esc_url( 'https://www.stopforumspam.com/usage?utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
 			),
 			'value'       => ! empty( $options['stop_forum_spam_confidence_min'] ) ? $options['stop_forum_spam_confidence_min'] : 50,
 			'recommended' => 50,

@@ -7,8 +7,6 @@
 
 namespace ZeroSpam\Modules\WPForms;
 
-use ZeroSpam;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -24,10 +22,86 @@ class WPForms {
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_wpforms' ) && ZeroSpam\Core\Access::process() ) {
-			add_action( 'wpforms_frontend_output', array( $this, 'wpforms_frontend_output' ) );
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_wpforms' ) && \ZeroSpam\Core\Access::process() ) {
+			// Adds Zero Spam's honeypot field.
 			add_action( 'wpforms_frontend_output', array( $this, 'honeypot' ), 10, 1 );
+
+			// Load scripts.
+			add_action( 'wpforms_frontend_output', array( $this, 'scripts' ) );
+
+			// Processes the form.
 			add_action( 'wpforms_process', array( $this, 'preprocess_submission' ), 10, 3 );
+		}
+	}
+
+	/**
+	 * Adds Zero Spam's honeypot field.
+	 */
+	public function honeypot() {
+		// @codingStandardsIgnoreLine
+		echo \ZeroSpam\Core\Utilities::honeypot_field();
+	}
+
+	/**
+	 * Preprocess submission
+	 *
+	 * @param array $fields Sanitized entry field values/properties.
+	 * @param array $entry Original $_POST global.
+	 * @param array $form_data Form settings/data.
+	 */
+	public function preprocess_submission( $fields, $entry, $form_data ) {
+		// Get the error message.
+		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
+
+		// Create the details array for logging & sharing data.
+		$details = $fields;
+		$details = array_merge( $details, $entry );
+		$details = array_merge( $details, $form_data );
+
+		$details['type'] = 'wpforms';
+
+		// Begin validation checks.
+		$validation_errors = array();
+
+		// Check Zero Spam's honeypot field.
+		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
+		// @codingStandardsIgnoreLine
+		if ( isset( $_REQUEST[ $honeypot_field_name ] ) && ! empty( $_REQUEST[ $honeypot_field_name ] ) ) {
+			// Failed the honeypot check.
+			$details['failed'] = 'honeypot';
+
+			$validation_errors[] = 'honeypot';
+		}
+
+		// Fire hook for additional validation (ex. David Walsh script).
+		// @codingStandardsIgnoreLine
+		$errors = apply_filters( 'zerospam_preprocess_wpforms_submission', array(), $form_data, $_REQUEST );
+
+		if ( ! empty( $errors ) ) {
+			foreach ( $errors as $key => $message ) {
+				$validation_errors[] = str_replace( 'zerospam_', '', $key );
+
+				$details['failed'] = str_replace( 'zerospam_', '', $key );
+			}
+		}
+
+		if ( ! empty( $validation_errors ) ) {
+			// Failed validations, log & send details if enabled.
+			foreach ( $validation_errors as $key => $fail ) {
+				$details['failed'] = $fail;
+
+				// Log the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_wpforms' ) ) {
+					\ZeroSpam\Includes\DB::log( 'wpforms', $details );
+				}
+
+				// Share the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+					do_action( 'zerospam_share_detection', $details );
+				}
+			}
+
+			wpforms()->process->errors[ $form_data['id'] ]['header'] = $error_message;
 		}
 	}
 
@@ -45,8 +119,8 @@ class WPForms {
 	/**
 	 * Fires before a form is displayed on the site’s frontend, only if the form exists and contains fields.
 	 */
-	public function wpforms_frontend_output() {
-		do_action( 'zerospam_wpforms_frontend_output' );
+	public function scripts() {
+		do_action( 'zerospam_wpforms_scripts' );
 	}
 
 	/**
@@ -110,52 +184,5 @@ class WPForms {
 		);
 
 		return $settings;
-	}
-
-	/**
-	 * Add a 'honeypot' field to the form
-	 *
-	 * @param array $form_data Form data and settings.
-	 */
-	public function honeypot( $form_data ) {
-		// @codingStandardsIgnoreLine
-		echo ZeroSpam\Core\Utilities::honeypot_field();
-	}
-
-	/**
-	 * Preprocess submission
-	 *
-	 * @param array $fields Sanitized entry field values/properties.
-	 * @param array $entry Original $_POST global.
-	 * @param array $form_data Form settings/data.
-	 */
-	public function preprocess_submission( $fields, $entry, $form_data ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
-
-		// Check honeypot.
-		// @codingStandardsIgnoreLine
-		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
-			$message = ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
-			wpforms()->process->errors[ $form_data['id'] ]['header'] = $message;
-
-			$details = $fields;
-			$details = array_merge( $details, $entry );
-			$details = array_merge( $details, $form_data );
-
-			$details['failed'] = 'honeypot';
-
-			// Log if enabled.
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_wpforms' ) ) {
-				ZeroSpam\Includes\DB::log( 'wpforms', $details );
-			}
-
-			// Share the detection if enabled.
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
-				$details['type'] = 'wpforms';
-				do_action( 'zerospam_share_detection', $details );
-			}
-		}
-
-		do_action( 'zerospam_preprocess_wpforms_submission', $form_data );
 	}
 }

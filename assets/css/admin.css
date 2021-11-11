@@ -233,20 +233,47 @@
 	margin-top: 16px;
 }
 
-.zerospam-type-blocked {
-	color: var(--zerospam-primary);
-}
-
-.zerospam-type-blocked::before {
-	background: url('../img/icon.svg');
+/* Type theming */
+.zerospam-type-blocked::before,
+.zerospam-type-login::before,
+.zerospam-type-registration::before,
+.zerospam-type-comment::before,
+.zerospam-type-fluent_form::before,
+.zerospam-type-wpforms::before {
 	background-repeat: no-repeat;
 	background-size: contain;
 	content: "";
 	display: inline-block;
 	height: 16px;
-	margin-right: 8px;
+	margin-right: 5px;
 	vertical-align: sub;
 	width: 16px;
+}
+
+/* Type: blocked */
+.zerospam-type-blocked {
+	color: var(--zerospam-primary);
+}
+
+.zerospam-type-blocked::before {
+	background-image: url('../img/icon.svg');
+}
+
+/* Type: login, registration, comment */
+.zerospam-type-login::before,
+.zerospam-type-registration::before,
+.zerospam-type-comment::before {
+	background-image: url('../img/icon-wordpress.svg');
+}
+
+/* Type: fluent_form */
+.zerospam-type-fluent_form::before {
+	background-image: url('../img/icon-fluent-forms.svg');
+}
+
+/* Type: wpforms */
+.zerospam-type-wpforms::before {
+	background-image: url('../img/icon-wpforms.svg');
 }
 
 @media (min-width: 768px) {

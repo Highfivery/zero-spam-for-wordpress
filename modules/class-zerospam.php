@@ -20,7 +20,7 @@ class Zero_Spam {
 	/**
 	 * The zerospam.org API endpoint
 	 */
-	const API_ENDPOINT = ZEROSPAM_URL . 'wp-json/zerospam/v1/';
+	const API_ENDPOINT = ZEROSPAM_URL . 'wp-json/zerospam/v2/';
 
 	/**
 	 * Constructor
@@ -28,9 +28,6 @@ class Zero_Spam {
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
-
-		// Fires when a user is blocked from accessing the site.
-		add_action( 'zerospam_share_blocked', array( $this, 'share_blocked' ), 10, 1 );
 
 		// Fires when a user submission has been detected as spam.
 		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
@@ -211,92 +208,5 @@ class Zero_Spam {
 		);
 
 		wp_remote_post( $endpoint, $args );
-	}
-
-	/**
-	 * Share blocked details with zerospam.org
-	 *
-	 * @param array $access Contains all access details.
-	 */
-	public function share_blocked( $access ) {
-		$endpoint = self::API_ENDPOINT . 'add-blocked/';
-
-		// Only send details if the user was blocked.
-		if ( empty( $access['blocked'] ) ) {
-			return false;
-		}
-
-		$api_data = array( 'checks' => array() );
-		$ip       = ! empty( $access['ip'] ) ? $access['ip'] : false;
-		$details  = ! empty( $access['details'] ) ? $access['details'] : false;
-
-		// Require an IP address.
-		if ( ! $ip ) {
-			return false;
-		}
-
-		$api_data['user_ip'] = $ip;
-
-		// Attempt to get the geolocation information.
-		$api_data['location'] = \ZeroSpam\Core\Utilities::geolocation( $ip );
-
-		// Loop through the individual access checks to determine what should be sent.
-		$ignore_failed_reasons = array(
-			'blocked_country_code',
-			'blocked_region_code',
-			'blocked_city',
-			'blocked_zip',
-		);
-
-		foreach ( $details as $access_check_key => $check_details ) {
-			// Check if the user failed the access check.
-			if ( ! empty( $check_details['blocked'] ) ) {
-				// Check if came from blocked table.
-				if ( 'blocked' === $access_check_key ) {
-					// Check if one of the 'failed' reasons should be shared.
-					if (
-						! empty( $check_details['details'] ) &&
-						! empty( $check_details['details']['failed'] ) &&
-						in_array( $check_details['details']['failed'], $ignore_failed_reasons, true )
-					) {
-						// Doesn't need to be sent.
-						continue;
-					} else {
-						// Send it.
-						$api_data['checks'][ $access_check_key ] = array(
-							'type' => $check_details['type'],
-						);
-
-						// Add additional details if available.
-						if ( ! empty( $check_details['details'] && is_array( $check_details['details'] ) ) ) {
-							//$api_data['checks'][ $access_check_key ]['details']
-						}
-					}
-				} else {
-					// Not from the blocked table, send it.
-					$api_data['checks'][ $access_check_key ] = array(
-						'type' => $check_details['type'],
-					);
-
-					// Add additional details if available.
-					if ( ! empty( $check_details['details'] && is_array( $check_details['details'] ) ) ) {
-						//$api_data['checks'][ $access_check_key ]['details']
-					}
-				}
-			}
-		}
-
-		// Only query the API if there's data to be sent.
-		if ( ! empty( $api_data['checks'] ) ) {
-			$global_data = self::global_api_data();
-			$api_data    = array_merge( $api_data, $global_data );
-
-			// Send the data to zerospam.org.
-			$args = array(
-				'body' => $api_data,
-			);
-
-			wp_remote_post( $endpoint, $args );
-		}
 	}
 }

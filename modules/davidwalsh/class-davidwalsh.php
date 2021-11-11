@@ -31,14 +31,16 @@ class DavidWalsh {
 			// See https://contactform7.com/loading-javascript-and-stylesheet-only-when-it-is-necessary/.
 			add_action( 'zerospam_wpcf7_enqueue_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_register_form', array( $this, 'enqueue_script' ) );
-			add_action( 'zerospam_wpforms_frontend_output', array( $this, 'enqueue_script' ) );
-			add_action( 'zerospam_fluentforms_form', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_wpforms_scripts', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_fluentforms_scripts', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_login_scripts', array( $this, 'enqueue_script' ) );
 
 			add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1 );
 			add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_cf7_submission', array( $this, 'preprocess_cf7_submission' ), 10, 2 );
-			add_action( 'zerospam_preprocess_wpforms_submission', array( $this, 'preprocess_wpforms_submission' ), 10, 1 );
+			add_filter( 'zerospam_preprocess_wpforms_submission', array( $this, 'preprocess_wpforms_submission' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_fluentform_submission', array( $this, 'preprocess_fluentform_submission' ), 10, 4 );
+			add_filter( 'zerospam_preprocess_login_attempt', array( $this, 'preprocess_login_attempt' ), 10, 4 );
 		}
 	}
 
@@ -47,6 +49,25 @@ class DavidWalsh {
 	 */
 	public function enqueue_script() {
 		wp_enqueue_script( 'zerospam-davidwalsh' );
+	}
+
+	/**
+	 * Preprocesses a login attempt.
+	 *
+	 * @param array            $errors   Array of submission errors.
+	 * @param WP_User|WP_Error $user     WP_User or WP_Error object if a previous callback failed authentication.
+	 * @param string           $password Password to check against the user.
+	 * @param array            $post     Form post array.
+	 */
+	public function preprocess_login_attempt( $errors, $user, $password, $post ) {
+		if ( empty( $post['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $post['zerospam_david_walsh_key'] ) {
+			// Failed the David Walsh check.
+			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'login_spam_message' );
+
+			$errors['zerospam_david_walsh'] = $error_message;
+		}
+
+		return $errors;
 	}
 
 	/**
@@ -61,6 +82,24 @@ class DavidWalsh {
 		if ( empty( $data['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $data['zerospam_david_walsh_key'] ) {
 			// Failed the David Walsh check.
 			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'fluentforms_spam_message' );
+
+			$errors['zerospam_david_walsh'] = $error_message;
+		}
+
+		return $errors;
+	}
+
+	/**
+	 * Preprocess a WPForms submission.
+	 *
+	 * @param array $errors    Array of submission errors.
+	 * @param array $form_data Submitted form values.
+	 * @param array $post      Form post array.
+	 */
+	public function preprocess_wpforms_submission( $errors, $form_data, $post ) {
+		if ( empty( $post['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $post['zerospam_david_walsh_key'] ) {
+			// Failed the David Walsh check.
+			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
 
 			$errors['zerospam_david_walsh'] = $error_message;
 		}
@@ -95,32 +134,6 @@ class DavidWalsh {
 		}
 
 		return $result;
-	}
-
-	/**
-	 * Preprocess WPForms submission
-	 */
-	public function preprocess_wpforms_submission( $form_data ) {
-		if ( empty( $_REQUEST['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $_REQUEST['zerospam_david_walsh_key'] ) {
-			$message = \ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
-			wpforms()->process->errors[ $form_data['id'] ]['header'] = $message;
-
-			$details = array(
-				'form_data' => $form_data,
-				'failed'    => 'david_walsh',
-			);
-
-			// Log if enabled.
-			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_wpforms' ) ) {
-				\ZeroSpam\Includes\DB::log( 'wpforms', $details );
-			}
-
-			// Share the detection if enabled.
-			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
-				$details['type'] = 'wpforms';
-				do_action( 'zerospam_share_detection', $details );
-			}
-		}
 	}
 
 	/**

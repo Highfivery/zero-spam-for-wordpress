@@ -6,23 +6,17 @@
  */
 
 if ( empty( $entries ) ) {
+	echo sprintf(
+		wp_kses(
+			__( 'Nothing to report yet.', 'zerospam' ),
+			array(
+				'strong' => array(),
+			)
+		)
+	);
+
 	return;
 }
-
-wp_enqueue_script(
-	'zerospam-chart',
-	plugins_url( 'assets/js/Chart.bundle.min.js', ZEROSPAM ),
-	array( 'jquery' ),
-	'2.9.4',
-	false
-);
-
-wp_enqueue_style(
-	'zerospam-chart',
-	plugins_url( 'assets/css/Chart.min.css', ZEROSPAM ),
-	array(),
-	'2.9.4'
-);
 
 $limit = 10;
 
@@ -54,6 +48,35 @@ foreach ( $entries as $key => $entry ) :
 		$countries[ $k ]++;
 	endif;
 endforeach;
+
+if ( empty( $countries ) ) :
+	echo sprintf(
+		wp_kses(
+			/* translators: %s: url */
+			__( 'No geolocation information available, enable ipstack and/or IPinfo on the <a href="%1$s">settings page</a>.', 'zerospam' ),
+			array(
+				'a' => array( 'href' => array() ),
+			)
+		),
+		esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
+	);
+	return;
+endif;
+
+wp_enqueue_script(
+	'zerospam-chart',
+	plugins_url( 'assets/js/Chart.bundle.min.js', ZEROSPAM ),
+	array( 'jquery' ),
+	'2.9.4',
+	false
+);
+
+wp_enqueue_style(
+	'zerospam-chart',
+	plugins_url( 'assets/css/Chart.min.css', ZEROSPAM ),
+	array(),
+	'2.9.4'
+);
 
 if ( $countries ) :
 	arsort( $countries );
