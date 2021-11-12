@@ -236,7 +236,7 @@ class Settings {
 			'recommended' => 'php',
 		);
 
-		$message = __( 'Your IP address has been blocked by WordPress Zero Spam due to detected spam/malicious activity.', 'zerospam' );
+		$message = __( 'Your IP address has been blocked due to detected spam/malicious activity.', 'zerospam' );
 
 		self::$settings['blocked_message'] = array(
 			'title'       => __( 'Blocked Message', 'zerospam' ),
