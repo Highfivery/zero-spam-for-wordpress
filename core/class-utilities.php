@@ -18,6 +18,46 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Recursive sanitation for an array.
+	 *
+	 * @param array  $array Array to sanitize.
+	 * @param string $type  Type of sanitization.
+	 */
+	public static function sanitize_array( $array, $type = 'sanitize_text_field' ) {
+		if ( ! is_array( $array ) ) {
+			switch ( $type ) {
+				case 'sanitize_text_field':
+					$array = sanitize_text_field( $array );
+					break;
+				case 'esc_html':
+					$array = esc_html( $array );
+					break;
+				default:
+					$array = sanitize_text_field( $array );
+			}
+		} else {
+			foreach ( $array as $key => &$value ) {
+				if ( is_array( $value ) ) {
+					$value = self::sanitize_array( $value );
+				} else {
+					switch ( $type ) {
+						case 'sanitize_text_field':
+							$value = sanitize_text_field( $value );
+							break;
+						case 'esc_html':
+							$value = esc_html( $value );
+							break;
+						default:
+							$value = sanitize_text_field( $value );
+					}
+				}
+			}
+		}
+
+		return $array;
+	}
+
+	/**
 	 * Returns list of recommended blocked email domains.
 	 */
 	public static function blocked_email_domains() {
@@ -531,7 +571,9 @@ class Utilities {
 	 * @access public
 	 */
 	public static function current_url() {
-		return ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on' ? "https" : "http" ) . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+		$url = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on' ? "https" : "http" ) . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+
+		return $url;
 	}
 
 	/**

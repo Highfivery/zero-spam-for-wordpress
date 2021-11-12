@@ -151,15 +151,15 @@ class DB {
 	}
 
 	/**
-	 * Log.
+	 * Log
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param string $type    Type of log.
+	 * @param array  $details Array of details for the log entry.
 	 */
 	public static function log( $type, $details ) {
 		global $wpdb;
 
-		$page_url  = ZeroSpam\Core\Utilities::current_url();
+		$page_url  = \ZeroSpam\Core\Utilities::current_url();
 		$extension = substr( $page_url, strrpos( $page_url, '.' ) + 1 );
 		$ignore    = array( 'map', 'js', 'css', 'ico' );
 		if ( in_array( $extension, $ignore, true ) ) {
@@ -171,16 +171,20 @@ class DB {
 		 * Check the total number of entries and delete the oldest if the maximum
 		 * has been reached.
 		 */
-		$total = $wpdb->get_var( 'SELECT COUNT(*) FROM ' . $wpdb->prefix . self::$tables['log'] );
-		$max   = ZeroSpam\Core\Settings::get_settings( 'max_logs' );
-		if ( $total > $max ) {
-			$difference = $total - $max;
-			$wpdb->query( 'DELETE FROM ' . $wpdb->prefix . self::$tables['log'] . ' ORDER BY date_recorded ASC LIMIT ' . $difference );
+		$log_table       = $wpdb->prefix . self::$tables['log'];
+		$total_entries   = $wpdb->get_var( "SELECT COUNT(*) FROM $log_table" );
+		$maximum_entries = \ZeroSpam\Core\Settings::get_settings( 'max_logs' );
+
+		if ( $total_entries > $maximum_entries ) {
+			$difference = $total_entries - $maximum_entries;
+			$wpdb->query( "DELETE FROM $log_table ORDER BY date_recorded ASC LIMIT $difference" );
 		}
 
-		$record = array(
-			'user_ip'         => ZeroSpam\Core\User::get_ip(),
-			'log_type'        => $type,
+		// Sanitize details array.
+		$details = \ZeroSpam\Core\Utilities::sanitize_array( $details );
+		$record  = array(
+			'user_ip'         => \ZeroSpam\Core\User::get_ip(),
+			'log_type'        => sanitize_text_field( $type ),
 			'date_recorded'   => current_time( 'mysql' ),
 			'page_url'        => $page_url,
 			'submission_data' => wp_json_encode( $details ),
