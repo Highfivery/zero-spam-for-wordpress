@@ -97,6 +97,8 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = v5.2.2 =
 
 * fix(db): resolves #281, fixes db update error for multisite installations
+* fix(db): fix for unsanitized db log entries
+* style(admin): new cf7 icon added for blocked log
 
 = v5.2.1 =
 
