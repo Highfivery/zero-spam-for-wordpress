@@ -84,7 +84,7 @@ class DB {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			dbDelta( $sql );
 
-			update_option( 'zerospam_db_version', self::DB_VERSION );
+			update_site_option( 'zerospam_db_version', self::DB_VERSION );
 		}
 	}
 
