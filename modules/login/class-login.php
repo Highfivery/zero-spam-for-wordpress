@@ -31,6 +31,9 @@ class Login {
 
 			// Load scripts.
 			add_action( 'login_enqueue_scripts', array( $this, 'scripts' ), 10 );
+
+			// Add script to WooCommerce login.
+			add_action( 'woocommerce_login_form_start', array( $this, 'scripts' ), 10 );
 		}
 	}
 
