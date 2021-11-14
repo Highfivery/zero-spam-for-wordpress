@@ -110,6 +110,10 @@ class Plugin {
 
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
 
+		if ( is_plugin_active( 'give/give.php' ) ) {
+			new \ZeroSpam\Modules\Give\Give();
+		}
+
 		if ( is_plugin_active( 'contact-form-7/wp-contact-form-7.php' ) ) {
 			new ContactForm7();
 		}

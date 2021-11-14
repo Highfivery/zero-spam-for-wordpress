@@ -34,6 +34,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 = WordPress Zero Spam also protects =
 
 * WordPress core comments, user registrations &amp; login attempts
+* [GiveWP](https://wordpress.org/plugins/give/) donation submissions
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
@@ -78,9 +79,8 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 Some hosts have issues with they way they access files. If you're seeing a `ftp_fget` PHP notice, setting the `FS_METHOD` constant to `direct` in `wp-config.php` above the line `/* That's all, stop editing! Happy Pressing. */` should solve the problem:
 
-```
-define('FS_METHOD', 'direct');
-```
+`define('FS_METHOD', 'direct');`
+
 
 If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs/plugins-known-issues#define-fs_method) for more information and what to do to resolve it with their `$_ENV['PANTHEON_ENVIRONMENT']` variable check.
 
@@ -96,6 +96,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.2.3 =
 
+* feat(givewp): now support givewp donation forms
 * style(notices): minor update to default detection notice
 
 = v5.2.2 =
