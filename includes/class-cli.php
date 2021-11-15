@@ -6,15 +6,15 @@
  */
 class ZeroSpamCLI {
 	/**
-	 * Auto-configure the plugin with recommended settings.
+	 * Auto-configure the plugin with recommended settings
 	 */
 	public function autoconfigure() {
 		\ZeroSpam\Core\Settings::auto_configure();
-		WP_CLI::success( 'Zero Spam has been successfully auto-configured using the recommended defaults.' );
+		WP_CLI::success( __( 'Zero Spam has been successfully auto-configured using the recommended defaults.', 'zerospam' ) );
 	}
 
 	/**
-	 * Outputs settings.
+	 * Outputs settings
 	 */
 	public function settings() {
 		$zerospam_settings = \ZeroSpam\Core\Settings::get_settings();
@@ -32,9 +32,9 @@ class ZeroSpamCLI {
 	}
 
 	/**
-	 * Update a plugin setting(s).
+	 * Update a plugin setting(s)
 	 *
-	 * @param array $args Positional arguments.
+	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Array of settings to update.
 	 */
 	public function set( $args, $assoc_args ) {
@@ -53,7 +53,7 @@ class ZeroSpamCLI {
 				}
 			}
 		} else {
-			WP_CLI::error( 'Opps! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).' );
+			WP_CLI::error( __( 'Opps! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zerospam' ) );
 		}
 	}
 }

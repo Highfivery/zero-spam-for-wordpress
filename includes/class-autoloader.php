@@ -11,38 +11,34 @@ namespace ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * WordPress Zero Spam autoloader
+ * Plugin autoloader
  *
- * WordPress Zero Spam autoloader handler class is responsible for loading the
- * different classes needed to run the plugin.
+ * Autoloader handler class is responsible for loading the different classes
+ * needed to run the plugin.
  */
 class Autoloader {
 
 	/**
-	 * Default path for autoloader.
+	 * Default path for autoloader
 	 *
 	 * @var string
 	 */
 	private static $default_path;
 
 	/**
-	 * Default namespace for autoloader.
+	 * Default namespace for autoloader
 	 *
 	 * @var string
 	 */
 	private static $default_namespace;
 
 	/**
-	 * Run autoloader.
+	 * Run autoloader
 	 *
 	 * Register a function as `__autoload()` implementation.
 	 *
-	 * @param string $default_path
-	 * @param string $default_namespace
-	 *
-	 * @since 5.0.0
-	 * @access public
-	 * @static
+	 * @param string $default_path      Default class path.
+	 * @param string $default_namespace Default namespace.
 	 */
 	public static function run( $default_path = '', $default_namespace = '' ) {
 		if ( '' === $default_path ) {
@@ -60,13 +56,9 @@ class Autoloader {
 	}
 
 	/**
-	 * Load class.
+	 * Load class
 	 *
 	 * For a given class name, require the class file.
-	 *
-	 * @since 5.0.0
-	 * @access private
-	 * @static
 	 *
 	 * @param string $relative_class_name Class name.
 	 */
@@ -89,13 +81,9 @@ class Autoloader {
 	}
 
 	/**
-	 * Autoload.
+	 * Autoload
 	 *
 	 * For a given class, check if it exist and load it.
-	 *
-	 * @since 5.0.0
-	 * @access private
-	 * @static
 	 *
 	 * @param string $class Class name.
 	 */
@@ -104,7 +92,11 @@ class Autoloader {
 			return;
 		}
 
-		$relative_class_name = preg_replace( '/^' . self::$default_namespace . '\\\/', '', $class );
+		$relative_class_name = preg_replace(
+			'/^' . self::$default_namespace . '\\\/',
+			'',
+			$class
+		);
 
 		$final_class_name = self::$default_namespace . '\\' . $relative_class_name;
 

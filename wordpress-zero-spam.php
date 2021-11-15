@@ -12,8 +12,8 @@
  * @wordpress-plugin
  * Plugin Name:       WordPress Zero Spam
  * Plugin URI:        https://www.highfivery.com/projects/zero-spam/
- * Description:       Tired of all the worthless and bloated WordPress anti-spam plugins? The WordPress Zero Spam plugin makes blocking spam &amp; malicious activity a cinch. <strong>Just install, activate, configure, and say goodbye to spam.</strong>
- * Version:           5.2.3
+ * Description:       Tired of all the worthless and bloated WordPress anti-spam & security plugins? WordPress Zero Spam makes blocking spam &amp; malicious activity a cinch. <strong>Just install, activate, configure, and say goodbye to spam.</strong>
+ * Version:           5.2.4
  * Requires at least: 5.2
  * Requires PHP:      7.3
  * Author:            Highfivery LLC
@@ -31,7 +31,7 @@ defined( 'ABSPATH' ) || die();
 define( 'ZEROSPAM', __FILE__ );
 define( 'ZEROSPAM_PATH', plugin_dir_path( ZEROSPAM ) );
 define( 'ZEROSPAM_PLUGIN_BASE', plugin_basename( ZEROSPAM ) );
-define( 'ZEROSPAM_VERSION', '5.2.3' );
+define( 'ZEROSPAM_VERSION', '5.2.4' );
 
 if ( defined( 'ZEROSPAM_DEVELOPMENT_URL' ) ) {
 	define( 'ZEROSPAM_URL', ZEROSPAM_DEVELOPMENT_URL );
@@ -57,7 +57,7 @@ function zerospam_load_plugin_textdomain() {
 }
 
 /**
- * WordPress Zero Spam admin notice for minimum PHP version
+ * Admin notice for minimum PHP version
  */
 function zerospam_fail_php_version() {
 	/* translators: %s: PHP version */
@@ -67,7 +67,7 @@ function zerospam_fail_php_version() {
 }
 
 /**
- * WordPress Zero Spam admin notice for minimum WordPress version
+ * Admin notice for minimum WordPress version
  */
 function zerospam_fail_wp_version() {
 	/* translators: %s: WordPress version */

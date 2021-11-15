@@ -1,31 +1,27 @@
 <?php
 /**
- * DB class.
+ * Database class
  *
  * @package ZeroSpam
  */
 
 namespace ZeroSpam\Includes;
 
-use ZeroSpam;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
 /**
- * WordPress Zero Spam DB class.
- *
- * @since 5.0.0
+ * Database class
  */
 class DB {
 
-	/**
-	 * Current DB version.
-	 */
+	// Current DB version.
 	const DB_VERSION = '0.8';
 
 	/**
-	 * DB tables.
+	 * DB tables
+	 *
+	 * @var array $tables List of plugin database tables.
 	 */
 	public static $tables = array(
 		'log'       => 'wpzerospam_log',
@@ -34,10 +30,7 @@ class DB {
 	);
 
 	/**
-	 * DB constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Constructor
 	 */
 	public function __construct() {
 		add_action( 'init', array( $this, 'update' ) );
@@ -89,19 +82,20 @@ class DB {
 	}
 
 	/**
-	 * Returns all blocked IP addresses.
+	 * Returns all blocked IP addresses
 	 */
 	public static function get_blocked() {
 		global $wpdb;
 
+		// @codingStandardsIgnoreLine
 		return $wpdb->get_results( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'], ARRAY_A );
 	}
 
 	/**
-	 * Adds/returns a blocked IP.
+	 * Adds/returns a blocked IP
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array          $record   Record to add into the database.
+	 * @param boolean|string $key_type Type of record entry to add.
 	 */
 	public static function blocked( $record, $key_type = false ) {
 		global $wpdb;
@@ -124,6 +118,7 @@ class DB {
 			if ( $blocked ) {
 				// Update the record.
 				$record['date_added'] = current_time( 'mysql' );
+				// @codingStandardsIgnoreLine
 				return $wpdb->update(
 					$wpdb->prefix . self::$tables['blocked'],
 					$record,
@@ -134,16 +129,20 @@ class DB {
 			} else {
 				// Insert the record.
 				$record['date_added'] = current_time( 'mysql' );
+				// @codingStandardsIgnoreLine
 				return $wpdb->insert( $wpdb->prefix . self::$tables['blocked'], $record );
 			}
 		} elseif ( $key_type ) {
 			// Get record by key.
+			// @codingStandardsIgnoreLine
 			return $wpdb->get_row( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE key_type = "' . $key_type . '" AND blocked_key = "' . $record . '"', ARRAY_A );
 		} elseif ( is_int( $record ) ) {
 			// Get record by ID.
+			// @codingStandardsIgnoreLine
 			return $wpdb->get_row( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE blocked_id = "' . $record . '"', ARRAY_A );
 		} elseif ( rest_is_ip_address( $record ) ) {
 			// Get record by IP.
+			// @codingStandardsIgnoreLine
 			return $wpdb->get_row( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE user_ip = "' . $record . '"', ARRAY_A );
 		}
 
@@ -171,12 +170,16 @@ class DB {
 		 * Check the total number of entries and delete the oldest if the maximum
 		 * has been reached.
 		 */
-		$log_table       = $wpdb->prefix . self::$tables['log'];
+		$log_table = $wpdb->prefix . self::$tables['log'];
+
+		// @codingStandardsIgnoreLine
 		$total_entries   = $wpdb->get_var( "SELECT COUNT(*) FROM $log_table" );
 		$maximum_entries = \ZeroSpam\Core\Settings::get_settings( 'max_logs' );
 
 		if ( $total_entries > $maximum_entries ) {
 			$difference = $total_entries - $maximum_entries;
+
+			// @codingStandardsIgnoreLine
 			$wpdb->query( "DELETE FROM $log_table ORDER BY date_recorded ASC LIMIT $difference" );
 		}
 
@@ -196,14 +199,16 @@ class DB {
 	}
 
 	/**
-	 * Delete a record.
+	 * Delete a record
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param string $table Database table key.
+	 * @param string $key   Database record key.
+	 * @param string $value Database record value.
 	 */
 	public static function delete( $table, $key, $value ) {
 		global $wpdb;
 
+		// @codingStandardsIgnoreLine
 		$wpdb->delete(
 			$wpdb->prefix . self::$tables[ $table ],
 			array(
@@ -213,22 +218,22 @@ class DB {
 	}
 
 	/**
-	 * Delete everything in a table.
+	 * Delete everything in a table
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param string $table Database table to truncate.
 	 */
 	public static function delete_all( $table ) {
 		global $wpdb;
 
+		// @codingStandardsIgnoreLine
 		$wpdb->query( "TRUNCATE TABLE " . $wpdb->prefix . self::$tables[ $table ] );
 	}
 
 	/**
-	 * Query the DB.
+	 * Query the DB
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param string $table Database table to query.
+	 * @param array  $args  Arguments for the select statement.
 	 */
 	public static function query( $table, $args = array() ) {
 		global $wpdb;
@@ -266,7 +271,7 @@ class DB {
 
 				if ( is_numeric( $where['value'] ) ) {
 					$where_stmt .= $where['value'];
-				} elseif( is_array( $where['value'] ) ) {
+				} elseif ( is_array( $where['value'] ) ) {
 					$where_stmt .= "('" . implode( "','", $where['value'] ) . "')";
 				} else {
 					$where_stmt .= '"' . $where['value'] . '"';
@@ -291,7 +296,7 @@ class DB {
 		if ( ! empty( $args['offset'] ) ) {
 			$sql .= ' OFFSET ' . $args['offset'];
 		}
-
+		// @codingStandardsIgnoreLine
 		return $wpdb->get_results( $sql, ARRAY_A );
 	}
 }

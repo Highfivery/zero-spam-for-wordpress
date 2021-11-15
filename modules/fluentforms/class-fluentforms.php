@@ -226,7 +226,7 @@ class FluentForms {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'You IP has been flagged as spam/malicious.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
 
 		$settings['fluentforms_spam_message'] = array(
 			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),

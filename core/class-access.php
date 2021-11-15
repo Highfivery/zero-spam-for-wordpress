@@ -28,6 +28,8 @@ class Access {
 	 * @access private
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
+
 		if ( self::process() ) {
 			add_action( 'template_redirect', array( $this, 'access_check' ), 0 );
 			add_filter( 'zerospam_access_checks', array( $this, 'check_blocked' ), 0, 3 );
@@ -249,5 +251,14 @@ class Access {
 		}
 
 		return $access;
+	}
+
+	/**
+	 * Add to the types array.
+	 */
+	public function types( $types ) {
+		$types['blocked'] = __( 'Blocked', 'zerospam' );
+
+		return $types;
 	}
 }

@@ -13,17 +13,12 @@ use ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Settings.
- *
- * @since 5.0.0
+ * Settings
  */
 class Settings {
 
 	/**
-	 * Admin constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Admin constructor
 	 */
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
@@ -69,9 +64,7 @@ class Settings {
 	}
 
 	/**
-	 * Imports settings.
-	 *
-	 * @since 5.1.0
+	 * Imports settings
 	 */
 	public function import_settings() {
 		$redirect = ! empty( $_POST['redirect'] ) ? esc_url( sanitize_text_field( wp_unslash( $_POST['redirect'] ) ) ) : get_site_url();
@@ -109,7 +102,7 @@ class Settings {
 	}
 
 	/**
-	 * Regenerates the honeypot ID.
+	 * Regenerates the honeypot ID
 	 */
 	public function regenerate_honeypot() {
 		\ZeroSpam\Core\Utilities::get_honeypot( true );
@@ -130,7 +123,7 @@ class Settings {
 	}
 
 	/**
-	 * Validates plugin settings before save.
+	 * Validates plugin settings before save
 	 */
 	public function settings_validation( $input ) {
 		update_option( 'zerospam_configured', 1 );
@@ -424,73 +417,46 @@ class Settings {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
+
+		$base_admin_link = 'options-general.php?page=wordpress-zero-spam-settings';
+		// @codingStandardsIgnoreLine
+		$current_tab = ! empty( $_REQUEST['tab'] ) ? esc_html( $_REQUEST['tab'] ) : 'settings';
+		$admin_tabs  = array(
+			'settings' => array(
+				'title'    => __( 'Settings', 'zerospam' ),
+				'template' => 'settings',
+			),
+			'export' => array(
+				'title'    => __( 'Export/Import Settings', 'zerospam' ),
+				'template' => 'export',
+			),
+		);
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
+
 			<?php require ZEROSPAM_PATH . 'includes/templates/admin-callout.php'; ?>
 
-			<?php if ( ! empty( $_GET['zerospam-error'] ) ): ?>
-				<div class="notice notice-error is-dismissible">
-					<p><strong>
-						<?php
-						switch( intval( $_GET['zerospam-error'] ) ) :
-							case 1:
-								esc_html_e( 'There was a problem importing the settings JSON. Please try again.', 'zerospam' );
-								break;
-						endswitch;
-						?>
-					</strong></p>
-					<button type="button" class="notice-dismiss"><span class="screen-reader-text"><?php esc_html_e( 'Dismiss this notice.', 'zerospam' ); ?></span></button>
-				</div>
-			<?php elseif ( ! empty( $_GET['zerospam-success'] ) ): ?>
-				<div class="notice notice-success is-dismissible">
-					<p><strong><?php esc_html_e( 'The settings JSON has been successfully imported.', 'zerospam' ); ?></strong></p>
-					<button type="button" class="notice-dismiss"><span class="screen-reader-text"><?php esc_html_e( 'Dismiss this notice.', 'zerospam' ); ?>.</span></button>
-				</div>
-			<?php endif; ?>
+			<nav class="nav-tab-wrapper" style="margin-bottom: 16px;">
+				<?php
+				foreach ( $admin_tabs as $key => $tab ) :
+					$admin_url = admin_url( $base_admin_link . '&amp;tab=' . $key );
+					$classes   = array( 'nav-tab' );
 
-			<form action="options.php" method="post">
-			<?php
-			// Output security fields for the registered setting "wpzerospam".
-			settings_fields( 'wpzerospam' );
+					if ( $current_tab === $key ) :
+						$classes[] = 'nav-tab-active';
+					endif;
+					?>
+					<a
+						href="<?php echo esc_url( $admin_url ); ?>"
+						class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>"
+					>
+						<?php echo esc_html( $tab['title'] ); ?>
+					</a>
+				<?php endforeach; ?>
+			</nav>
 
-			echo '<div class="zerospam-settings-tabs">';
-			// Output setting sections and their fields.
-			do_settings_sections( 'wpzerospam' );
-
-			// Output save settings button.
-			submit_button( 'Save Settings' );
-			?>
-			</form>
-
-			<h3><?php esc_html_e( 'Settings Import/Export', 'zerospam' ); ?></h3>
-			<p><?php esc_html_e( 'Quickly export and import your saved settings into other sites below.', 'zerospam' ); ?></p>
-			<?php
-			$settings      = ZeroSpam\Core\Settings::get_settings();
-			$settings_json = array();
-			foreach ( $settings as $key => $data ) {
-				if ( isset( $data['value'] ) ) {
-					$settings_json[ $key ] = $data['value'];
-				}
-			}
-			?>
-			<div class="zerospam-export-import-block">
-				<div class="zerospam-export-import-block-column">
-					<h4><?php esc_html_e( 'Settings JSON', 'zerospam' ); ?></h4>
-					<textarea readonly class="large-text code" rows="10"><?php echo wp_json_encode( $settings_json ); ?></textarea>
-				</div>
-				<div class="zerospam-export-import-block-column">
-					<h4><?php esc_html_e( 'Paste the settings JSON to import.', 'zerospam' ); ?></h4>
-					<form method="post" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>" class="zerospam-import-settings-form">
-					<?php wp_nonce_field( 'import_settings', 'zerospam' ); ?>
-					<input type="hidden" name="action" value="import_settings" />
-					<input type="hidden" name="redirect" value="<?php echo esc_url( ZeroSpam\Core\Utilities::current_url() ); ?>" />
-					<textarea class="large-text code" name="settings" rows="10"></textarea>
-					<input type="submit" class="button button-primary" value="<?php esc_html_e( 'Import Settings', 'zerospam' ); ?>" />
-					</form>
-				</div>
-			</div>
-			<?php echo '</div>'; ?>
+			<?php require ZEROSPAM_PATH . 'includes/templates/settings/' . $admin_tabs[ $current_tab ]['template'] . '.php'; ?>
 		</div>
 		<?php
 	}

@@ -159,7 +159,7 @@ class Login {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
 
 		$settings['login_spam_message'] = array(
 			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),

@@ -7,8 +7,6 @@
 
 namespace ZeroSpam\Core\Admin;
 
-use ZeroSpam\Core\Admin\Admin;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -18,19 +16,17 @@ defined( 'ABSPATH' ) || die();
 class Admin {
 
 	/**
-	 * Admin constructor
+	 * Constructor
 	 */
 	public function __construct() {
-		new Settings();
-		new Dashboard();
+		new \ZeroSpam\Core\Admin\Settings();
+		new \ZeroSpam\Core\Admin\Dashboard();
 
 		add_filter( 'plugin_action_links_' . ZEROSPAM_PLUGIN_BASE, array( $this, 'plugin_action_links' ) );
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
 		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
-
-		// Check if promotional message should be displayed.
 
 		// Check first-time config.
 		$configured = get_option( 'zerospam_configured' );
@@ -40,7 +36,7 @@ class Admin {
 	}
 
 	/**
-	 * Register the admin dashboard widget.
+	 * Register the admin dashboard widget
 	 */
 	public function register_dashboard_widget() {
 		$selected_user_roles = \ZeroSpam\Core\Settings::get_settings( 'widget_visibility' );
@@ -59,11 +55,11 @@ class Admin {
 	}
 
 	/**
-	 * Output for the admin dashboard widget.
+	 * Output for the admin dashboard widget
 	 */
 	public function dashboard_widget() {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
-		$entries = \ZeroSpam\Includes\DB::query( 'log' );
+		$entries  = \ZeroSpam\Includes\DB::query( 'log' );
 
 		if ( 'enabled' !== $settings['zerospam']['value'] || empty( $settings['zerospam_license']['value'] ) ) {
 			?>
@@ -116,7 +112,7 @@ class Admin {
 	}
 
 	/**
-	 * Display not configured notice.
+	 * Display not configured notice
 	 */
 	public function not_configured_notice() {
 		$message = sprintf(
@@ -141,10 +137,7 @@ class Admin {
 	}
 
 	/**
-	 * Scripts.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Scripts
 	 */
 	public function scripts( $hook_suffix ) {
 		if (
@@ -169,18 +162,13 @@ class Admin {
 	}
 
 	/**
-	 * Plugin action links.
+	 * Plugin action links
 	 *
 	 * Adds action links to the plugin list table
 	 *
 	 * Fired by `plugin_action_links` filter.
 	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
 	 * @param array $links An array of plugin action links.
-	 *
-	 * @return array An array of plugin action links.
 	 */
 	public function plugin_action_links( $links ) {
 		$settings_link = sprintf( '<a href="%1$s">%2$s</a>', admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ), __( 'Settings', 'zerospam' ) );
@@ -197,21 +185,16 @@ class Admin {
 	 *
 	 * Fired by `plugin_row_meta` filter.
 	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
 	 * @param array  $plugin_meta An array of the plugin's metadata, including
 	 *                            the version, author, author URI, and plugin URI.
 	 * @param string $plugin_file Path to the plugin file, relative to the plugins
 	 *                            directory.
-	 *
-	 * @return array An array of plugin row meta links.
 	 */
 	public function plugin_row_meta( $plugin_meta, $plugin_file ) {
 		if ( ZEROSPAM_PLUGIN_BASE === $plugin_file ) {
-			$row_meta = [
+			$row_meta = array(
 				'docs' => '<a href="https://github.com/bmarshall511/wordpress-zero-spam/wiki" aria-label="' . esc_attr( __( 'View WordPress Zero Spam Documentation', 'zerospam' ) ) . '" target="_blank">' . __( 'Docs & FAQs', 'zerospam' ) . '</a>',
-			];
+			);
 
 			$plugin_meta = array_merge( $plugin_meta, $row_meta );
 		}
@@ -226,12 +209,7 @@ class Admin {
 	 *
 	 * Fired by `admin_footer_text` filter.
 	 *
-	 * @since 5.0.0
-	 * @access public
-	 *
 	 * @param string $footer_text The content that will be printed.
-	 *
-	 * @return string The content that will be printed.
 	 */
 	public function admin_footer_text( $footer_text ) {
 		$current_screen     = get_current_screen();
