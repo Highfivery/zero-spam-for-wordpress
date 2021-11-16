@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.8.2
 Requires PHP: 7.3
-Stable tag: 5.2.4
+Stable tag: 5.2.5
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -63,6 +63,12 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 == Frequently Asked Questions ==
 
+= Does WordPress Zero Spam block user IPs? =
+
+*Not by itself.* WordPress Zero Spam does not block IP addresses by itself. Visitors that are getting blocked have either been manually blocked by the site admin or appear in one of the IP blacklist like [Stop Forum Spam](https://www.stopforumspam.com/), [Project Honeypot](https://www.projecthoneypot.org/), or the [Zero Spam IP database](https://www.zerospam.org).
+
+If a legitimate user is getting blocked, check the Log (Admin > Dashboard > Zero Spam > Log) to get further details why they were blocked. You can adjust how strict the 3rd-party blacklist checks are or disable those if you find that your users are prone to being flagged as spam/malicious.
+
 = Does WordPress Zero Spam check Jetpack comments? =
 
 **No.** WordPress Zero Spam is unable to integrate Jetpack. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
@@ -95,6 +101,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.2.5 =
+
+* docs(readme): misc. readme file updates
 
 = v5.2.4 =
 
