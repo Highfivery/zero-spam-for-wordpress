@@ -14,17 +14,12 @@ use WP_List_Table;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Log table.
- *
- * @since 5.0.0
+ * Log table
  */
 class LogTable extends WP_List_Table {
 
 	/**
-	 * Log table constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Constructor
 	 */
 	public function __construct() {
 		global $status, $page;
@@ -37,10 +32,7 @@ class LogTable extends WP_List_Table {
 	}
 
 	/**
-	 * Column values.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Column values
 	 */
 	public function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
@@ -69,19 +61,15 @@ class LogTable extends WP_List_Table {
 			case 'date_recorded':
 				return gmdate( 'm/d/y g:ia' , strtotime( $item[ $column_name ] ) );
 				break;
-			case 'details':
+			case 'actions':
 				ob_start();
 				?>
-				<button class="button zerospam-details-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>"><?php _e( 'View', 'zerospam' ); ?></button>
+				<button class="button zerospam-details-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>"><?php esc_html_e( 'Details', 'zerospam' ); ?></button>
 				<div class="zerospam-modal" id="zerospam-details-<?php echo esc_attr( $item['log_id'] ); ?>">
 					<button class="zerospam-close-modal" aria-label="<?php echo esc_attr( __( 'Close Modal', 'zerospam' ) ); ?>"></button>
 					<?php require ZEROSPAM_PATH . 'includes/templates/admin-modal-details.php'; ?>
 				</div>
 				<?php
-				return ob_get_clean();
-				break;
-			case 'actions':
-				ob_start();
 				$blocked = ZeroSpam\Includes\DB::blocked( $item['user_ip'] );
 				if ( $blocked ) :
 					?>
@@ -93,12 +81,12 @@ class LogTable extends WP_List_Table {
 						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $blocked['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $blocked['end_block'] ) ) ); ?>"
 						data-type="<?php echo esc_attr( $blocked['blocked_type'] ); ?>"
 					>
-						<?php _e( 'Update Block', 'zerospam' ); ?>
+						<?php esc_html_e( 'Update Block', 'zerospam' ); ?>
 					</button>
 					<?php
 				else :
 					?>
-					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"><?php _e( 'Block IP', 'zerospam' ); ?></button>
+					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"><?php esc_html_e( 'Block IP', 'zerospam' ); ?></button>
 					<?php
 				endif;
 
@@ -130,10 +118,7 @@ class LogTable extends WP_List_Table {
 	}
 
 	/**
-	 * Bulk actions.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Bulk actions
 	 */
 	public function get_bulk_actions() {
 		$actions = array(
@@ -145,20 +130,14 @@ class LogTable extends WP_List_Table {
 	}
 
 	/**
-	 * Hidable columns.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Hidable columns
 	 */
 	public function get_hidden_columns() {
 		return array();
 	}
 
 	/**
-	 * Prepare log items.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Prepare log items
 	 */
 	public function prepare_items( $args = array() ) {
 		$this->process_bulk_action();
@@ -245,10 +224,7 @@ class LogTable extends WP_List_Table {
 	}
 
 	/**
-	 * Add more filters.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Add more filters
 	 */
 	public function extra_tablenav( $which ) {
 		if ( 'top' !== $which ) {
@@ -286,10 +262,7 @@ class LogTable extends WP_List_Table {
 	 }
 
 	/**
-	 * Define table columns.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Define table columns
 	 */
 	public function get_columns() {
 		$columns = array(
@@ -299,8 +272,6 @@ class LogTable extends WP_List_Table {
 			'user_ip'       => __( 'IP Address', 'zerospam' ),
 			'country'       => __( 'Country', 'zerospam' ),
 			'region'        => __( 'Region', 'zerospam' ),
-			'city'          => __( 'City', 'zerospam' ),
-			'details'       => __( 'Details', 'zerospam' ),
 			'actions'       => __( 'Actions', 'zerospam' ),
 		);
 
@@ -308,10 +279,7 @@ class LogTable extends WP_List_Table {
 	}
 
 	/**
-	 * Sortable columns.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Sortable columns
 	 */
 	public function get_sortable_columns() {
 		$sortable_columns = array(
@@ -320,17 +288,13 @@ class LogTable extends WP_List_Table {
 			'user_ip'       => array( 'user_ip', false ),
 			'country'       => array( 'country', false ),
 			'region'        => array( 'region', false ),
-			'city'          => array( 'city', false ),
 		);
 
 		return $sortable_columns;
 	}
 
 	/**
-	 * Column contact.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Column contact
 	 */
 	public function column_cb( $item ) {
 		return sprintf(
@@ -341,10 +305,7 @@ class LogTable extends WP_List_Table {
 	}
 
 	/**
-	 * Process bulk actions.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Process bulk actions
 	 */
 	public function process_bulk_action() {
 		global $wpdb;
