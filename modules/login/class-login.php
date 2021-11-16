@@ -77,8 +77,6 @@ class Login {
 		// @codingStandardsIgnoreLine
 		if ( isset( $_POST[ $honeypot_field_name ] ) && ! empty( $_POST[ $honeypot_field_name ] ) ) {
 			// Failed the honeypot check.
-			$details['failed'] = 'honeypot';
-
 			$validation_errors[] = 'honeypot';
 		}
 
@@ -89,8 +87,6 @@ class Login {
 		if ( ! empty( $errors ) ) {
 			foreach ( $errors as $key => $message ) {
 				$validation_errors[] = str_replace( 'zerospam_', '', $key );
-
-				$details['failed'] = str_replace( 'zerospam_', '', $key );
 			}
 		}
 

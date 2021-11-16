@@ -29,6 +29,7 @@ class Plugin {
 		$this->register_autoloader();
 
 		add_action( 'init', array( $this, 'init' ), 0 );
+		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 	}
 
 	/**
@@ -136,6 +137,11 @@ class Plugin {
 			new \ZeroSpam\Modules\FluentForms\FluentForms();
 		}
 
+		// MemberPress plugin module.
+		if ( is_plugin_active( 'memberpress/memberpress.php' ) ) {
+			new \ZeroSpam\Modules\MemberPress\MemberPress();
+		}
+
 		// Preform the firewall access check.
 		if ( ! is_admin() && is_main_query() ) {
 			new \ZeroSpam\Core\Access();
@@ -149,6 +155,17 @@ class Plugin {
 			// Google API module.
 			new \ZeroSpam\Modules\Google();
 		}
+	}
+
+	/**
+	 * Add to the types array
+	 *
+	 * @param array $types Types of detections.
+	 */
+	public function types( $types ) {
+		$types['blocked'] = __( 'Blocked', 'zerospam' );
+
+		return $types;
 	}
 }
 

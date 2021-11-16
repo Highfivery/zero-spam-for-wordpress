@@ -71,6 +71,7 @@ class Comments {
 			$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
 			if ( $blocked_email_domains ) {
 				$blocked_email_domains_array = explode( "\n", $blocked_email_domains );
+				$blocked_email_domains_array = array_map( 'trim', $blocked_email_domains_array );
 				$tmp_domain                  = explode( '@', $commentdata['comment_author_email'] );
 				$domain                      = array_pop( $tmp_domain );
 

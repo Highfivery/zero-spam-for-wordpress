@@ -241,7 +241,9 @@
 .zerospam-type-fluent_form::before,
 .zerospam-type-wpforms::before,
 .zerospam-type-contactform7::before,
-.zerospam-type-givewp::before {
+.zerospam-type-givewp::before,
+.zerospam-type-memberpress_registration::before {
+	background-position: center;
 	background-repeat: no-repeat;
 	background-size: contain;
 	content: "";
@@ -283,7 +285,12 @@
 	background-image: url('../img/icon-cf7.png');
 }
 
-/* Type gicewp */
+/* Type: memberpress_registration */
+.zerospam-type-memberpress_registration::before {
+	background-image: url('../img/icon-memberpress.svg');
+}
+
+/* Type: givewp */
 .zerospam-type-givewp::before {
 	background-image: url('../img/icon-givewp.png');
 }

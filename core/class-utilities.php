@@ -72,7 +72,10 @@ class Utilities {
 			return false;
 		}
 
-		return explode( "\n", $text );
+		$emails_array = explode( "\n", $text );
+		$emails_array = array_map( 'trim', $emails_array );
+
+		return $emails_array;
 	}
 
 	/**

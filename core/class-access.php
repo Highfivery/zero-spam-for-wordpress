@@ -13,19 +13,12 @@ use ZeroSpam;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Admin.
- *
- * Handles access checks.
- *
- * @since 5.0.0
+ * Access
  */
 class Access {
 
 	/**
-	 * Access constructor.
-	 *
-	 * @since 5.0.0
-	 * @access private
+	 * Cnstructor
 	 */
 	public function __construct() {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
@@ -251,14 +244,5 @@ class Access {
 		}
 
 		return $access;
-	}
-
-	/**
-	 * Add to the types array.
-	 */
-	public function types( $types ) {
-		$types['blocked'] = __( 'Blocked', 'zerospam' );
-
-		return $types;
 	}
 }

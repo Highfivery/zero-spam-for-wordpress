@@ -33,7 +33,7 @@
   };
 
   $(function() {
-    var selectors = '#commentform, #registerform, .wpforms-form, .wpcf7-form, .frm-fluent-form, #loginform, .woocommerce-form-login';
+    var selectors = '#commentform, #registerform, .wpforms-form, .wpcf7-form, .frm-fluent-form, #loginform, .woocommerce-form-login, .mepr-signup-form';
     if (typeof ZeroSpamDavidWalsh.selectors != "undefined" && ZeroSpamDavidWalsh.selectors ) {
       selectors += ',' + ZeroSpamDavidWalsh.selectors
     }
