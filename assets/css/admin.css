@@ -242,7 +242,8 @@
 .zerospam-type-wpforms::before,
 .zerospam-type-contactform7::before,
 .zerospam-type-givewp::before,
-.zerospam-type-memberpress_registration::before {
+.zerospam-type-memberpress_registration::before,
+.zerospam-type-mailchimp4wp::before {
 	background-position: center;
 	background-repeat: no-repeat;
 	background-size: contain;
@@ -293,6 +294,11 @@
 /* Type: givewp */
 .zerospam-type-givewp::before {
 	background-image: url('../img/icon-givewp.png');
+}
+
+/* Type: mailchimp4wp */
+.zerospam-type-mailchimp4wp::before {
+	background-image: url('../img/icon-mc4wp.svg');
 }
 
 @media (min-width: 768px) {

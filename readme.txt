@@ -40,6 +40,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
 * [Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
 * [MemberPress](https://memberpress.com/) registrations
+* [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) submissions
 * and can be easily integrated into any existing theme or plugin
 
 WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
@@ -98,6 +99,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = v5.2.4 =
 
 * feat(memberpress): resolves #283, now supports memberpress registration forms
+* feat(mailchimp4wp): resolves #121, now supports mailchimp4wp forms
 * refactor(misc): misc. updates to comply with wordpress coding standards.
 * style(admin): misc. admin interface improvements
 

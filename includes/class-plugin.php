@@ -142,6 +142,11 @@ class Plugin {
 			new \ZeroSpam\Modules\MemberPress\MemberPress();
 		}
 
+		// Mailchimp for WordPress plugin module.
+		if ( is_plugin_active( 'mailchimp-for-wp/mailchimp-for-wp.php' ) ) {
+			new \ZeroSpam\Modules\MailchimpForWP\MailchimpForWP();
+		}
+
 		// Preform the firewall access check.
 		if ( ! is_admin() && is_main_query() ) {
 			new \ZeroSpam\Core\Access();

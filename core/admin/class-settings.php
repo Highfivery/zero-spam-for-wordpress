@@ -53,6 +53,13 @@ class Settings {
 			exit;
 		}
 
+		if ( ! empty( $_REQUEST['delete-error-log'] ) ) {
+			\ZeroSpam\Core\Utilities::delete_error_log();
+
+			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&tab=error&zerospam-msg=The error log has been successfully deleted.' ) );
+			exit;
+		}
+
 		if ( ! empty( $_REQUEST['zerospam-msg'] ) ) {
 			add_action(
 				'admin_notices',
@@ -429,6 +436,10 @@ class Settings {
 			'export' => array(
 				'title'    => __( 'Export/Import Settings', 'zerospam' ),
 				'template' => 'export',
+			),
+			'error' => array(
+				'title'    => __( 'Error Log', 'zerospam' ),
+				'template' => 'errors',
 			),
 		);
 		?>

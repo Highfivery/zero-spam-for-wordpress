@@ -34,6 +34,7 @@ class DavidWalsh {
 			add_action( 'zerospam_wpforms_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_fluentforms_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_login_scripts', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_mailchimp4wp_scripts', array( $this, 'enqueue_script' ) );
 			add_filter(
 				'zerospam_memberpress_scripts',
 				function( $scripts ) {
@@ -52,6 +53,7 @@ class DavidWalsh {
 			add_filter( 'zerospam_preprocess_fluentform_submission', array( $this, 'preprocess_fluentform_submission' ), 10, 4 );
 			add_filter( 'zerospam_preprocess_login_attempt', array( $this, 'preprocess_login_attempt' ), 10, 4 );
 			add_filter( 'zerospam_preprocess_memberpress_registration', array( $this, 'preprocess_memberpress_registration' ), 10, 2 );
+			add_filter( 'zerospam_preprocess_mailchimp4wp', array( $this, 'preprocess_mailchimp4wp_registration' ), 10, 2 );
 		}
 	}
 
@@ -60,6 +62,23 @@ class DavidWalsh {
 	 */
 	public function enqueue_script() {
 		wp_enqueue_script( 'zerospam-davidwalsh' );
+	}
+
+	/**
+	 * Preprocesses a Mailchimp form submission.
+	 *
+	 * @param array $errors Array of submission errors.
+	 * @param array $post   Form post array.
+	 */
+	public function preprocess_mailchimp4wp_registration( $errors, $post ) {
+		if ( empty( $post['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $post['zerospam_david_walsh_key'] ) {
+			// Failed the David Walsh check.
+			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'mailchimp4wp_spam_message' );
+
+			$errors['zerospam_david_walsh'] = $error_message;
+		}
+
+		return $errors;
 	}
 
 	/**

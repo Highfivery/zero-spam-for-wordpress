@@ -1,19 +1,19 @@
 <?php
 /**
- * MemberPress class
+ * Mailchimp for WordPress class
  *
  * @package ZeroSpam
  */
 
-namespace ZeroSpam\Modules\MemberPress;
+namespace ZeroSpam\Modules\MailchimpForWP;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
 /**
- * MemberPress
+ * Mailchimp for WordPress class
  */
-class MemberPress {
+class MailchimpForWP {
 	/**
 	 * Constructor
 	 */
@@ -23,55 +23,71 @@ class MemberPress {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_memberpress_registration' ) &&
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_mailchimp4wp' ) &&
 			\ZeroSpam\Core\Access::process()
 		) {
 			// Add Zero Spam's honeypot field to the registration form.
-			add_action( 'mepr-checkout-before-submit', array( $this, 'add_honeypot' ) );
+			add_filter( 'mc4wp_form_content', array( $this, 'add_honeypot' ), 10, 3 );
 
-			// Preprocess registration form submissions.
-			add_filter( 'mepr-validate-signup', array( $this, 'process_form' ) );
+			// Preprocess Mailchimp form submissions.
+			add_filter( 'mc4wp_form_errors', array( $this, 'process_form' ), 10, 1 );
+
+			// Add the error key and message.
+			add_filter( 'mc4wp_form_messages', array( $this, 'error_keys' ), 10, 1 );
 
 			// Add scripts.
-			add_filter( 'mepr-signup-scripts', array( $this, 'scripts' ), 10, 1 );
+			add_action( 'mc4wp_load_form_scripts', array( $this, 'scripts' ), 10 );
 		}
 	}
 
 	/**
 	 * Load the add-on scripts
-	 *
-	 * @param array $prereqs Script keys.
 	 */
-	public function scripts( $prereqs ) {
-		$scripts = apply_filters( 'zerospam_memberpress_scripts', $prereqs );
-
-		return $scripts;
+	public function scripts() {
+		do_action( 'zerospam_mailchimp4wp_scripts' );
 	}
 
 	/**
-	 * Adds Zero Spam's honeypot field.
+	 * Adds Zero Spam's honeypot field
+	 *
+	 * @param string             $content Form content.
+	 * @param MC4WP_Form         $form    Form object.
+	 * @param MC4WP_Form_Element $element Form element.
 	 */
-	public function add_honeypot() {
-		// @codingStandardsIgnoreLine
-		echo \ZeroSpam\Core\Utilities::honeypot_field();
+	public function add_honeypot( $content, $form, $element ) {
+		$content .= \ZeroSpam\Core\Utilities::honeypot_field();
+
+		return $content;
 	}
 
 	/**
-	 * Processes a registration submission.
+	 * Registers an additional Mailchimp for WP error message to match our error
+	 * code from above.
 	 *
-	 * @param array $errors Array of errors.
+	 * @param array $messages Array of error codes.
+	 */
+	public function error_keys( $messages ) {
+		// Get the error message.
+		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'mailchimp4wp_spam_message' );
+
+		$messages['zerospam'] = $error_message;
+
+		return $messages;
+	}
+
+	/**
+	 * Processes a Mailchimp form submission.
+	 *
+	 * @param array $errors An array of error codes.
 	 */
 	public function process_form( $errors ) {
 		// @codingStandardsIgnoreLine
 		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
 
-		// Get the error message.
-		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'memberpress_regsitration_spam_message' );
-
 		// Create the details array for logging & sharing data.
 		$details = array(
 			'post' => $post,
-			'type' => 'memberpress_registration',
+			'type' => 'mailchimp4wp',
 		);
 
 		// Check Zero Spam's honeypot field.
@@ -87,10 +103,10 @@ class MemberPress {
 
 		// Check blocked email domains.
 		$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
-		if ( $blocked_email_domains && ! empty( $post['user_email'] ) ) {
+		if ( $blocked_email_domains && ! empty( $post['EMAIL'] ) ) {
 			$blocked_email_domains_array = explode( "\n", $blocked_email_domains );
 			$blocked_email_domains_array = array_map( 'trim', $blocked_email_domains_array );
-			$tmp_domain                  = explode( '@', $post['user_email'] );
+			$tmp_domain                  = explode( '@', $post['EMAIL'] );
 			$domain                      = trim( array_pop( $tmp_domain ) );
 
 			if ( in_array( $domain, $blocked_email_domains_array, true ) ) {
@@ -101,7 +117,7 @@ class MemberPress {
 
 		// Fire hook for additional validation (ex. David Walsh script).
 		// @codingStandardsIgnoreLine
-		$filtered_errors = apply_filters( 'zerospam_preprocess_memberpress_registration', array(), $post );
+		$filtered_errors = apply_filters( 'zerospam_preprocess_mailchimp4wp', array(), $post );
 
 		if ( ! empty( $filtered_errors ) ) {
 			foreach ( $filtered_errors as $key => $message ) {
@@ -115,8 +131,8 @@ class MemberPress {
 				$details['failed'] = $fail;
 
 				// Log the detection if enabled.
-				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_memberpress_registrations' ) ) {
-					\ZeroSpam\Includes\DB::log( 'memberpress_registration', $details );
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_mailchimp4wp' ) ) {
+					\ZeroSpam\Includes\DB::log( 'mailchimp4wp', $details );
 				}
 
 				// Share the detection if enabled.
@@ -125,7 +141,7 @@ class MemberPress {
 				}
 			}
 
-			$errors[] = $error_message;
+			$errors[] = 'zerospam';
 		}
 
 		return $errors;
@@ -137,7 +153,7 @@ class MemberPress {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['memberpress_registration'] = __( 'MemberPress Registration', 'zerospam' );
+		$types['mailchimp4wp'] = __( 'Mailchimp for WordPress', 'zerospam' );
 
 		return $types;
 	}
@@ -148,8 +164,8 @@ class MemberPress {
 	 * @param array $sections Array of available setting sections.
 	 */
 	public function sections( $sections ) {
-		$sections['memberpress'] = array(
-			'title' => __( 'MemberPress Integration', 'zerospam' ),
+		$sections['mailchimp4wp'] = array(
+			'title' => __( 'Mailchimp for WordPress Integration', 'zerospam' ),
 		);
 
 		return $sections;
@@ -163,42 +179,42 @@ class MemberPress {
 	public function settings( $settings ) {
 		$options = get_option( 'wpzerospam' );
 
-		$settings['verify_memberpress_registration'] = array(
-			'title'       => __( 'Protect Registration Forms', 'zerospam' ),
-			'section'     => 'memberpress',
+		$settings['verify_mailchimp4wp'] = array(
+			'title'       => __( 'Protect Forms', 'zerospam' ),
+			'section'     => 'mailchimp4wp',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor MemberPress registrations for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor Mailchimp form submissions for malicious or automated spambots.', 'zerospam' ),
 			),
-			'value'       => ! empty( $options['verify_memberpress_registration'] ) ? $options['verify_memberpress_registration'] : false,
+			'value'       => ! empty( $options['verify_mailchimp4wp'] ) ? $options['verify_mailchimp4wp'] : false,
 			'recommended' => 'enabled',
 		);
 
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
 
-		$settings['memberpress_regsitration_spam_message'] = array(
-			'title'       => __( 'Registration Spam/Malicious Message', 'zerospam' ),
-			'desc'        => __( 'When registration protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
-			'section'     => 'memberpress',
+		$settings['mailchimp4wp_spam_message'] = array(
+			'title'       => __( 'Mailchimp Spam/Malicious Message', 'zerospam' ),
+			'desc'        => __( 'When Mailchimp form protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
+			'section'     => 'mailchimp4wp',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
-			'value'       => ! empty( $options['memberpress_regsitration_spam_message'] ) ? $options['memberpress_regsitration_spam_message'] : $message,
+			'value'       => ! empty( $options['mailchimp4wp_spam_message'] ) ? $options['mailchimp4wp_spam_message'] : $message,
 			'recommended' => $message,
 		);
 
-		$settings['log_blocked_memberpress_registrations'] = array(
+		$settings['log_blocked_mailchimp4wp'] = array(
 			'title'       => __( 'Log Blocked Registrations', 'zerospam' ),
-			'section'     => 'memberpress',
+			'section'     => 'mailchimp4wp',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked registration attempts. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				__( 'Enables logging blocked Mailchimp form submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
-			'value'       => ! empty( $options['log_blocked_memberpress_registrations'] ) ? $options['log_blocked_memberpress_registrations'] : false,
+			'value'       => ! empty( $options['log_blocked_mailchimp4wp'] ) ? $options['log_blocked_mailchimp4wp'] : false,
 			'recommended' => 'enabled',
 		);
 

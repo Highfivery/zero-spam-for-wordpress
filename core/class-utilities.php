@@ -58,6 +58,45 @@ class Utilities {
 	}
 
 	/**
+	 * Deletes the error log.
+	 */
+	public static function delete_error_log() {
+		$upload_dir = wp_upload_dir();
+		$upload_dir = $upload_dir['basedir'];
+		$file       = $upload_dir . '/zerospam.log';
+
+		if ( $file_path && file_exists( $file_path ) ) {
+			wp_delete_file( $file );
+		}
+	}
+
+	/**
+	 * Returns an array from the Zero Spam error log.
+	 */
+	public static function get_error_log() {
+		global $wp_filesystem;
+		if ( empty( $wp_filesystem ) ) {
+			require_once ABSPATH . '/wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		$upload_dir = wp_upload_dir();
+		$upload_dir = $upload_dir['basedir'];
+		$file       = $upload_dir . '/zerospam.log';
+
+		if ( $file && file_exists( $file ) ) {
+			$text = $wp_filesystem->get_contents( $file );
+			if ( ! $text ) {
+				return false;
+			}
+
+			return $text;
+		}
+
+		return false;
+	}
+
+	/**
 	 * Returns list of recommended blocked email domains.
 	 */
 	public static function blocked_email_domains() {
