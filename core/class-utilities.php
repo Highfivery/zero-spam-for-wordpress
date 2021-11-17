@@ -58,14 +58,14 @@ class Utilities {
 	}
 
 	/**
-	 * Deletes the error log.
+	 * Deletes the error log
 	 */
 	public static function delete_error_log() {
 		$upload_dir = wp_upload_dir();
 		$upload_dir = $upload_dir['basedir'];
 		$file       = $upload_dir . '/zerospam.log';
 
-		if ( $file_path && file_exists( $file_path ) ) {
+		if ( file_exists( $file ) ) {
 			wp_delete_file( $file );
 		}
 	}

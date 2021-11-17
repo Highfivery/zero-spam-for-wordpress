@@ -25,13 +25,7 @@ class User {
 		$ip       = false;
 
 		// Check if a debugging IP is enabled.
-		if (
-			! empty( $settings['debug']['value'] ) &&
-			'enabled' === $settings['debug']['value'] &&
-			! empty( $settings['debug_ip']['value'] )
-		) {
-			$ip = $settings['debug_ip']['value'];
-		} elseif ( ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+		if ( ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
 			// Check against Cloudflare's reported IP address.
 			$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
 		} else {

@@ -108,6 +108,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 * perf(everything): refactoring of code for a boost in performance
 * docs(readme): misc. readme file updates
+* fix(admin): fix for error log not clearing
 
 = v5.2.4 =
 

@@ -7,26 +7,29 @@
 
 namespace ZeroSpam\Modules;
 
-use ZeroSpam;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
 /**
- * Google maps.
- *
- * @since 5.0.0
+ * Google maps
  */
 class Google {
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 
-		$settings = ZeroSpam\Core\Settings::get_settings();
-		if ( ! empty( $settings['google_api']['value'] ) ) {
+		$api_key = \ZeroSpam\Core\Settings::get_settings( 'google_api' );
+		if ( ! empty( $api_key ) ) {
 			add_action( 'zerospam_google_map', array( $this, 'map' ), 10, 2 );
 		}
 	}
@@ -35,7 +38,7 @@ class Google {
 	 * Embeds a map
 	 */
 	public function map( $coordinates ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings();
 
 		if ( ! empty( $settings['google_api']['value'] ) ) {
 			$url        = 'https://www.google.com/maps/embed/v1/place?';
@@ -60,21 +63,20 @@ class Google {
 	}
 
 	/**
-	 * Google maps sections.
+	 * Admin setting sections
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['google'] = array(
-			'title' => __( 'Google Integration', 'zerospam' ),
+			'title' => __( 'Google API Integration (geolocation)', 'zerospam' ),
 		);
 
 		return $sections;
 	}
 
 	/**
-	 * Botscout settings
+	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
 	 * @param array $options  Array of saved database options.
@@ -88,6 +90,7 @@ class Google {
 			'placeholder' => __( 'Enter your Google API key.', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(
+					/* translators: %1$s: Replaced with the Google API key URL */
 					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Google API key</a> for Google Maps integration.', 'zerospam' ),
 					array(
 						'a'      => array(

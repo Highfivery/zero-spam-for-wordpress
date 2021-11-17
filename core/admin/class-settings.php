@@ -226,8 +226,10 @@ class Settings {
 
 	/**
 	 * Settings section
+	 *
+	 * @param array $args Section arguments.
 	 */
-	public function settings_section( $arg ) {
+	public function settings_section( $args ) {
 	}
 
 	/**

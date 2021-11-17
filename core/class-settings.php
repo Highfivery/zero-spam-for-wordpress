@@ -37,10 +37,6 @@ class Settings {
 			'title' => __( 'General Settings', 'zerospam' ),
 		);
 
-		self::$sections['debug'] = array(
-			'title' => __( 'Debug', 'zerospam' ),
-		);
-
 		return apply_filters( 'zerospam_setting_sections', self::$sections );
 	}
 
@@ -370,32 +366,6 @@ class Settings {
 				),
 				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-update-disallowed-words=1' ) )
 			),
-		);
-
-		self::$settings['debug'] = array(
-			'title'   => __( 'Debug', 'zerospam' ),
-			'desc'    => __( 'For troubleshooting site issues.', 'zerospam' ),
-			'section' => 'debug',
-			'type'    => 'checkbox',
-			'options' => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
-			),
-			'value'   => ! empty( $options['debug'] ) ? $options['debug'] : false,
-		);
-
-		self::$settings['debug_ip'] = array(
-			'title'       => __( 'Debug IP', 'zerospam' ),
-			'desc'        => wp_kses(
-				/* translators: %s: url */
-				__( 'Mock a IP address for debugging. <strong>WARNING: This overrides all visitor IP addresses and while enabled could block legit visitors from accessing the site.</strong>', 'zerospam' ),
-				array(
-					'strong' => array(),
-				)
-			),
-			'section'     => 'debug',
-			'type'        => 'text',
-			'placeholder' => '127.0.0.1',
-			'value'       => ! empty( $options['debug_ip'] ) ? $options['debug_ip'] : false,
 		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings, $options );

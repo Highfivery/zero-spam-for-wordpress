@@ -75,6 +75,11 @@ class Plugin {
 		// IPinfo module.
 		new \ZeroSpam\Modules\IPinfoModule();
 
+		if ( is_admin() ) {
+			// Google API module.
+			new \ZeroSpam\Modules\Google();
+		}
+
 		// David Walsh module.
 		new \ZeroSpam\Modules\DavidWalsh\DavidWalsh();
 
@@ -127,6 +132,9 @@ class Plugin {
 		if ( is_plugin_active( 'mailchimp-for-wp/mailchimp-for-wp.php' ) ) {
 			new \ZeroSpam\Modules\MailchimpForWP\MailchimpForWP();
 		}
+
+		// Debug module.
+		new \ZeroSpam\Modules\Debug();
 	}
 
 	/**
@@ -142,9 +150,6 @@ class Plugin {
 		if ( is_admin() ) {
 			// Plugin admin module.
 			new \ZeroSpam\Core\Admin\Admin();
-
-			// Google API module.
-			new \ZeroSpam\Modules\Google();
 		}
 	}
 
