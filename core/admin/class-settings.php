@@ -1,13 +1,11 @@
 <?php
 /**
- * Settings class.
+ * Settings class
  *
  * @package ZeroSpam
  */
 
 namespace ZeroSpam\Core\Admin;
-
-use ZeroSpam;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -23,50 +21,68 @@ class Settings {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_init', array( $this, 'process_actions' ) );
 		add_action( 'admin_action_import_settings', array( $this, 'import_settings' ) );
 
-		if ( ! empty( $_REQUEST['zerospam-auto-configure'] ) ) {
-			\ZeroSpam\Core\Settings::auto_configure();
-
-			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-msg=WordPress Zero Spam has been auto-configured to the recommended settings.' ) );
-			exit;
-		}
-
-		if ( ! empty( $_REQUEST['zerospam-regenerate-honeypot'] ) ) {
-			self::regenerate_honeypot();
-
-			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-msg=The WordPress Zero Spam honeypot ID has been successfully regenerated.' ) );
-			exit;
-		}
-
-		if ( ! empty( $_REQUEST['zerospam-update-blocked-email-domains'] ) ) {
-			\ZeroSpam\Core\Settings::update_blocked_email_domains();
-
-			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-msg=The blocked email domains settings has been successfully updated with the recommended domains.' ) );
-			exit;
-		}
-
-		if ( ! empty( $_REQUEST['zerospam-update-disallowed-words'] ) ) {
-			\ZeroSpam\Core\Settings::update_disallowed_words();
-
-			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-msg=Your site\'s disallowed words list has been successfully updated.' ) );
-			exit;
-		}
-
-		if ( ! empty( $_REQUEST['delete-error-log'] ) ) {
-			\ZeroSpam\Core\Utilities::delete_error_log();
-
-			wp_safe_redirect( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&tab=error&zerospam-msg=The error log has been successfully deleted.' ) );
-			exit;
-		}
-
+		// @codingStandardsIgnoreLine
 		if ( ! empty( $_REQUEST['zerospam-msg'] ) ) {
 			add_action(
 				'admin_notices',
 				function() {
+					// @codingStandardsIgnoreLine
 					add_settings_error( 'zerospam-notices', 'zerospam-msg', sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ), 'success' );
 				}
 			);
+		}
+	}
+
+	/**
+	 * Processes actions
+	 */
+	public function process_actions() {
+		// @codingStandardsIgnoreLine
+		$action   = ! empty( $_REQUEST['zerospam-action'] ) ? trim( sanitize_text_field( $_REQUEST['zerospam-action'] ) ) : false;
+		$redirect = false;
+		$message  = false;
+
+		switch ( $action ) {
+			case 'auto-configure':
+				$redirect = '&tab=settings';
+				$message  = __( 'WordPress Zero Spam has successfully been auto-configured with the recommended settings.', 'zerospam' );
+				\ZeroSpam\Core\Settings::auto_configure();
+				break;
+			case 'regenerate-honeypot':
+				$redirect = '&tab=settings';
+				$message  = __( 'WordPress Zero Spam\'s honeypot ID has been successfully reset.', 'zerospam' );
+				self::regenerate_honeypot();
+				break;
+			case 'update-blocked-email-domains':
+				$redirect = '&tab=settings';
+				$message  = __( 'WordPress Zero Spam\'s blocked email domains have been successfully updated to the recommended.', 'zerospam' );
+				\ZeroSpam\Core\Settings::update_blocked_email_domains();
+				break;
+			case 'update-disallowed-words':
+				$redirect = '&tab=settings';
+				$message  = __( 'WordPress\'s disallowed words list has been successfully updated to the recommended.', 'zerospam' );
+				\ZeroSpam\Core\Settings::update_disallowed_words();
+				break;
+			case 'delete-error-log':
+				$redirect = '&tab=error';
+				$message  = __( 'WordPress Zero Spam\'s error log has been successfully deleted.', 'zerospam' );
+				\ZeroSpam\Core\Utilities::delete_error_log();
+				break;
+		}
+
+		if ( $redirect ) {
+			$redirect_url  = 'options-general.php?page=wordpress-zero-spam-settings';
+			$redirect_url .= $redirect;
+
+			if ( $message ) {
+				$redirect_url .= '&zerospam-msg=' . $message;
+			}
+
+			wp_safe_redirect( admin_url( $redirect_url ) );
+			exit;
 		}
 	}
 
@@ -150,7 +166,7 @@ class Settings {
 			)
 		);
 
-		foreach ( ZeroSpam\Core\Settings::get_sections() as $key => $section ) {
+		foreach ( \ZeroSpam\Core\Settings::get_sections() as $key => $section ) {
 			add_settings_section(
 				'zerospam_' . $key,
 				$section['title'],
@@ -159,7 +175,7 @@ class Settings {
 			);
 		}
 
-		foreach ( ZeroSpam\Core\Settings::get_settings() as $key => $setting ) {
+		foreach ( \ZeroSpam\Core\Settings::get_settings() as $key => $setting ) {
 			$options = array(
 				'label_for' => $key,
 				'type'      => $setting['type'],
@@ -435,11 +451,11 @@ class Settings {
 				'title'    => __( 'Settings', 'zerospam' ),
 				'template' => 'settings',
 			),
-			'export' => array(
+			'export'   => array(
 				'title'    => __( 'Export/Import Settings', 'zerospam' ),
 				'template' => 'export',
 			),
-			'error' => array(
+			'error'    => array(
 				'title'    => __( 'Error Log', 'zerospam' ),
 				'template' => 'errors',
 			),

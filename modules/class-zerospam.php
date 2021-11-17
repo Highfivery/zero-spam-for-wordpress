@@ -70,7 +70,7 @@ class Zero_Spam {
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: Replaced with the Zero Spam URL */
-					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam</a>.', 'zerospam' ),
+					__( 'Blocks visitor IPs, email addresses &amp; usernames that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam</a>.', 'zerospam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(

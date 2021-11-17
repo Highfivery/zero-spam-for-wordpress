@@ -29,7 +29,6 @@ class Plugin {
 		$this->register_autoloader();
 		$this->init_modules();
 
-		add_action( 'init', array( $this, 'init' ), 0 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 	}
 
@@ -57,6 +56,14 @@ class Plugin {
 	 * Initializes modules
 	 */
 	private function init_modules() {
+		if ( is_admin() ) {
+			// Plugin admin module.
+			new \ZeroSpam\Core\Admin\Admin();
+		}
+
+		// Preform the firewall access check.
+		new \ZeroSpam\Core\Access();
+
 		// Database functionality.
 		new \ZeroSpam\Includes\DB();
 
@@ -135,22 +142,6 @@ class Plugin {
 
 		// Debug module.
 		new \ZeroSpam\Modules\Debug();
-	}
-
-	/**
-	 * Fires after WordPress has finished loading but before any headers are sent.
-	 */
-	public function init() {
-		// Preform the firewall access check.
-		if ( ! is_admin() && is_main_query() ) {
-			new \ZeroSpam\Core\Access();
-		}
-
-		// If in admin, loaded needed classes.
-		if ( is_admin() ) {
-			// Plugin admin module.
-			new \ZeroSpam\Core\Admin\Admin();
-		}
 	}
 
 	/**

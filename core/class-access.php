@@ -1,6 +1,6 @@
 <?php
 /**
- * Access class.
+ * Access class
  *
  * @package ZeroSpam
  */
@@ -18,12 +18,19 @@ defined( 'ABSPATH' ) || die();
 class Access {
 
 	/**
-	 * Cnstructor
+	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( self::process() ) {
+		if ( ! is_admin() && is_main_query() && self::process() ) {
 			add_action( 'template_redirect', array( $this, 'access_check' ), 0 );
 			add_filter( 'zerospam_access_checks', array( $this, 'check_blocked' ), 0, 3 );
 		}
@@ -45,12 +52,7 @@ class Access {
 	}
 
 	/**
-	 * Access check.
-	 *
-	 * Determines if the current user should be blocked.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Access check
 	 */
 	public function access_check() {
 		$access = self::get_access();
@@ -156,10 +158,7 @@ class Access {
 	}
 
 	/**
-	 * Checks if an IP has been blocked.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Checks if an IP has been blocked
 	 *
 	 * @param array  $access_checks Array of exisiting access checks.
 	 * @param string $user_ip The user's IP address.
@@ -206,10 +205,7 @@ class Access {
 	}
 
 	/**
-	 * Gets the current user's access.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Gets the current user's access
 	 */
 	public function get_access() {
 		$settings = ZeroSpam\Core\Settings::get_settings();

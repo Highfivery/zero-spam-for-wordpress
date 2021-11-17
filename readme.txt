@@ -106,6 +106,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.2.5 =
 
+* feat(givewp): now checks submitted emails against the blocked email domains list
 * perf(everything): refactoring of code for a boost in performance
 * docs(readme): misc. readme file updates
 * fix(admin): fix for error log not clearing

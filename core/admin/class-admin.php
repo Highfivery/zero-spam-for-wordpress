@@ -14,7 +14,6 @@ defined( 'ABSPATH' ) || die();
  * Admin
  */
 class Admin {
-
 	/**
 	 * Constructor
 	 */
@@ -22,6 +21,13 @@ class Admin {
 		new \ZeroSpam\Core\Admin\Settings();
 		new \ZeroSpam\Core\Admin\Dashboard();
 
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'plugin_action_links_' . ZEROSPAM_PLUGIN_BASE, array( $this, 'plugin_action_links' ) );
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
@@ -106,9 +112,8 @@ class Admin {
 			</div>
 			<?php
 		}
-		?>
-	<?php require ZEROSPAM_PATH . 'includes/templates/admin-line-chart.php'; ?>
-		<?php
+
+		require ZEROSPAM_PATH . 'includes/templates/admin-line-chart.php';
 	}
 
 	/**
@@ -128,7 +133,7 @@ class Admin {
 				)
 			),
 			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-auto-configure=1' ) ),
+			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=auto-configure' ) ),
 			esc_url( ZEROSPAM_URL . 'product/premium/' )
 		);
 

@@ -128,7 +128,7 @@ class Settings {
 						),
 					)
 				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-auto-configure=1' ) )
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=auto-configure' ) )
 			),
 		);
 
@@ -324,13 +324,22 @@ class Settings {
 						),
 					)
 				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-update-blocked-email-domains=1' ) )
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-email-domains' ) )
 			),
 		);
 
 		self::$settings['regenerate_honeypot'] = array(
 			'title'   => __( 'Regenerate Honeypot ID', 'zerospam' ),
-			'desc'    => __( 'Helpful if spam is getting through. Current honeypot ID: <code>' . \ZeroSpam\Core\Utilities::get_honeypot() . '</code>', 'zerospam' ),
+			'desc'    => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( 'Helpful if spam is getting through. Current honeypot ID: <code>%s</code>', 'zerospam' ),
+					array(
+						'code' => array(),
+					)
+				),
+				\ZeroSpam\Core\Utilities::get_honeypot()
+			),
 			'section' => 'general',
 			'type'    => 'html',
 			'html'    => sprintf(
@@ -344,7 +353,7 @@ class Settings {
 						),
 					)
 				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-regenerate-honeypot=1' ) )
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=regenerate-honeypot' ) )
 			),
 		);
 
@@ -364,7 +373,7 @@ class Settings {
 						),
 					)
 				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-update-disallowed-words=1' ) )
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ) )
 			),
 		);
 
