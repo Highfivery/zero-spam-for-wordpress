@@ -1,45 +1,47 @@
 <?php
 /**
- * Stop Forum Spam class.
+ * Stop Forum Spam class
  *
  * @package ZeroSpam
  */
 
 namespace ZeroSpam\Modules;
 
-use ZeroSpam;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
 /**
- * Stop Forum Spam.
- *
- * @since 5.0.0
+ * Stop Forum Spam
  */
 class StopForumSpam {
 	/**
-	 * Stop Forum Spam constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Constructor
 	 */
 	public function __construct() {
-		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_action( 'init', array( $this, 'init' ) );
+	}
 
-		if ( ZeroSpam\Core\Access::process() ) {
-			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 3 );
-			add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registrations' ), 10, 3 );
-			add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1 );
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
+		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'stop_forum_spam' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
+			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 2 );
+			add_filter( 'zerospam_preprocess_registration_submission', array( $this, 'preprocess_registrations' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_comment_submission', array( $this, 'preprocess_comments' ), 10, 3 );
 		}
 	}
 
 	/**
-	 * Stop Forum Spam sections.
+	 * Admin setting sections
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['stop_forum_spam'] = array(
@@ -50,16 +52,14 @@ class StopForumSpam {
 	}
 
 	/**
-	 * Stop Forum Spam settings.
+	 * Admin settings
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['stop_forum_spam'] = array(
-			'title'       => __( 'Stop Forum Spam', 'zerospam' ),
+			'title'       => __( 'Status', 'zerospam' ),
 			'section'     => 'stop_forum_spam',
 			'type'        => 'checkbox',
 			'options'     => array(
@@ -67,7 +67,8 @@ class StopForumSpam {
 			),
 			'desc'        => sprintf(
 				wp_kses(
-					__( 'Checks user IPs against <a href="%s" target="_blank" rel="noopener noreferrer">Stop Forum Spam</a>\'s blacklist.', 'zerospam' ),
+					/* translators: %s: Replaced with the Stop Forum Spam URL */
+					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Stop Forum Spam</a>.', 'zerospam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -84,33 +85,33 @@ class StopForumSpam {
 		);
 
 		$settings['stop_forum_spam_timeout'] = array(
-			'title'       => __( 'Stop Forum Spam API Timeout', 'zerospam' ),
+			'title'       => __( 'API Timeout', 'zerospam' ),
 			'section'     => 'stop_forum_spam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'seconds', 'zerospam' ),
 			'placeholder' => __( '5', 'zerospam' ),
 			'min'         => 0,
-			'desc'        => __( 'Recommended setting is 5 seconds. Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond; recommended 5 seconds.', 'zerospam' ),
 			'value'       => ! empty( $options['stop_forum_spam_timeout'] ) ? $options['stop_forum_spam_timeout'] : 5,
 			'recommended' => 5,
 		);
 
 		$settings['stop_forum_spam_cache'] = array(
-			'title'       => __( 'Stop Forum Spam Cache Expiration', 'zerospam' ),
+			'title'       => __( 'Cache Expiration', 'zerospam' ),
 			'section'     => 'stop_forum_spam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zerospam' ),
-			'placeholder' => __( WEEK_IN_SECONDS, 'zerospam' ),
+			'placeholder' => WEEK_IN_SECONDS,
 			'min'         => 0,
-			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zerospam' ),
 			'value'       => ! empty( $options['stop_forum_spam_cache'] ) ? $options['stop_forum_spam_cache'] : 14,
 			'recommended' => 14,
 		);
 
 		$settings['stop_forum_spam_confidence_min'] = array(
-			'title'       => __( 'Stop Forum Spam Confidence Minimum', 'zerospam' ),
+			'title'       => __( 'Confidence Minimum', 'zerospam' ),
 			'section'     => 'stop_forum_spam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
@@ -119,9 +120,10 @@ class StopForumSpam {
 			'min'         => 0,
 			'max'         => 100,
 			'step'        => 0.1,
-			'desc'      => sprintf(
+			'desc'        => sprintf(
 				wp_kses(
-					__( 'Recommended setting is 50%%. Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be.', 'zerospam' ),
+					/* translators: %s: Replaced with the Stop Forum Spam URL */
+					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 50%%', 'zerospam' ),
 					array(
 						'a' => array(
 							'target' => array(),
@@ -140,26 +142,26 @@ class StopForumSpam {
 	}
 
 	/**
-	 * Processes comments.
+	 * Processes comments
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array  $errors                Array of errors.
+	 * @param array  $post                  Post array.
+	 * @param string $detection_message_key Detection message key.
 	 */
-	public function preprocess_comments( $commentdata ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
-
-		if ( empty( $settings['stop_forum_spam']['value'] ) || 'enabled' !== $settings['stop_forum_spam']['value'] ) {
-			return $commentdata;
+	public function preprocess_comments( $errors, $post, $detection_message_key ) {
+		if ( empty( $post['comment_author_email'] ) ) {
+			return $errors;
 		}
 
 		$response = self::query(
 			array(
-				'email' => $commentdata['comment_author_email'],
+				'email' => $post['comment_author_email'],
 			)
 		);
 		if ( $response ) {
 			$response = json_decode( $response, true );
 			if ( ! empty( $response['success'] ) && $response['success'] ) {
+				$settings = \ZeroSpam\Core\Settings::get_settings();
 
 				// Check email.
 				if (
@@ -168,48 +170,23 @@ class StopForumSpam {
 					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&
 					floatval( $response['email']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
 				) {
-
-					if ( ! empty( $settings['log_blocked_comments']['value'] ) && 'enabled' === $settings['log_blocked_comments']['value'] ) {
-						$details = array(
-							'failed' => 'stop_forum_spam_email',
-						);
-						$details = array_merge( $details, $commentdata );
-						ZeroSpam\Includes\DB::log( 'comment', $details );
-					}
-
-					$message = ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
-					wp_die(
-						wp_kses(
-							$message,
-							array(
-								'a'      => array(
-									'target' => array(),
-									'href'   => array(),
-									'rel'    => array(),
-								),
-								'strong' => array(),
-							)
-						),
-						esc_html( ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ) ),
-						array(
-							'response' => 403,
-						)
-					);
+					$errors[] = 'stop_forum_spam_email';
 				}
 			}
 		}
 
-		return $commentdata;
+		return $errors;
 	}
 
 	/**
-	 * Processes registrations.
+	 * Processes registrations
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param WP_Error $errors               A WP_Error object containing any errors encountered during registration.
+	 * @param string   $sanitized_user_login User's username after it has been sanitized.
+	 * @param string   $user_email           User's email.
 	 */
 	public function preprocess_registrations( $errors, $sanitized_user_login, $user_email ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings();
 
 		if ( empty( $settings['stop_forum_spam']['value'] ) || 'enabled' !== $settings['stop_forum_spam']['value'] ) {
 			return $errors;
@@ -224,7 +201,7 @@ class StopForumSpam {
 		if ( $response ) {
 			$response = json_decode( $response, true );
 			if ( ! empty( $response['success'] ) && $response['success'] ) {
-				$message = ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
+				$message = \ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
 
 				// Check username.
 				if (
@@ -241,7 +218,7 @@ class StopForumSpam {
 						'failed'     => 'stop_forum_spam_username',
 					);
 					if ( ! empty( $settings['log_blocked_registrations']['value'] ) && 'enabled' === $settings['log_blocked_registrations']['value'] ) {
-						ZeroSpam\Includes\DB::log( 'registration', $details );
+						\ZeroSpam\Includes\DB::log( 'registration', $details );
 					}
 
 					// Share the detection if enabled.
@@ -259,7 +236,7 @@ class StopForumSpam {
 					floatval( $response['email']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
 				) {
 					if ( count( $errors->errors ) == 0 ) {
-						$errors->add( 'zerospam_error_stopformspam_email', __( $message, 'zerospam' ) );
+						$errors->add( 'zerospam_error_stopformspam_email', $message );
 					}
 
 					if ( ! empty( $settings['log_blocked_registrations']['value'] ) && 'enabled' === $settings['log_blocked_registrations']['value'] ) {
@@ -268,7 +245,7 @@ class StopForumSpam {
 							'user_email' => $user_email,
 							'failed'     => 'stop_forum_spam_email',
 						);
-						ZeroSpam\Includes\DB::log( 'registration', $details );
+						\ZeroSpam\Includes\DB::log( 'registration', $details );
 					}
 				}
 			}
@@ -278,17 +255,16 @@ class StopForumSpam {
 	}
 
 	/**
-	 * Query the Stop Forum Spam API.
+	 * Query the Stop Forum Spam API
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $params Array of query parameters.
 	 */
 	public function query( $params ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings();
 
 		$cache_array = array( 'stop_forum_spam' );
 		$cache_array = array_merge( $cache_array, $params );
-		$cache_key = ZeroSpam\Core\Utilities::cache_key( $cache_array );
+		$cache_key   = \ZeroSpam\Core\Utilities::cache_key( $cache_array );
 
 		$response = wp_cache_get( $cache_key );
 		if ( false === $response ) {
@@ -302,7 +278,7 @@ class StopForumSpam {
 				$timeout = intval( $settings['stop_forum_spam_timeout']['value'] );
 			}
 
-			$response = ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
+			$response = \ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
 			if ( $response ) {
 				$expiration = 14 * DAY_IN_SECONDS;
 				if ( ! empty( $settings['stop_forum_spam_cache']['value'] ) ) {
@@ -316,12 +292,14 @@ class StopForumSpam {
 	}
 
 	/**
-	 * Stop Forum Spam access_check.
+	 * Stop Forum Spam access_check
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array  $access_checks Access checks.
+	 * @param string $user_ip       User IP.
 	 */
-	public function access_check( $access_checks, $user_ip, $settings ) {
+	public function access_check( $access_checks, $user_ip ) {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+
 		$access_checks['stop_forum_spam'] = array(
 			'blocked' => false,
 		);

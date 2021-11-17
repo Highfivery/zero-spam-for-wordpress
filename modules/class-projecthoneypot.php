@@ -1,6 +1,6 @@
 <?php
 /**
- * Project Honeypot httpBL class.
+ * Project Honeypot httpBL class
  *
  * @package ZeroSpam
  */
@@ -15,14 +15,21 @@ defined( 'ABSPATH' ) || die();
  */
 class ProjectHoneypot {
 	/**
-	 * Constructor.
+	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 
 		if ( \ZeroSpam\Core\Access::process() ) {
-			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 3 );
+			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 2 );
 		}
 	}
 
@@ -31,14 +38,18 @@ class ProjectHoneypot {
 	 *
 	 * @param array  $access_checks Current access checks array.
 	 * @param string $user_ip       IP address to check.
-	 * @param array  $settings      Plugin settings.
 	 */
-	public function access_check( $access_checks, $user_ip, $settings ) {
+	public function access_check( $access_checks, $user_ip ) {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+
 		$access_checks['project_honeypot'] = array(
 			'blocked' => false,
 		);
 
-		if ( empty( $settings['project_honeypot']['value'] ) || 'enabled' !== $settings['project_honeypot']['value'] ) {
+		if (
+			empty( $settings['project_honeypot']['value'] ) ||
+			'enabled' !== $settings['project_honeypot']['value']
+		) {
 			return $access_checks;
 		}
 
@@ -151,7 +162,7 @@ class ProjectHoneypot {
 	}
 
 	/**
-	 * Project Honeypot sections
+	 * Admin setting sections
 	 *
 	 * @param array $sections Array of available setting sections.
 	 */
@@ -164,15 +175,14 @@ class ProjectHoneypot {
 	}
 
 	/**
-	 * Project Honeypot settings
+	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['project_honeypot'] = array(
-			'title'       => __( 'Project Honeypot', 'zerospam' ),
+			'title'       => __( 'Status', 'zerospam' ),
 			'section'     => 'project_honeypot',
 			'type'        => 'checkbox',
 			'options'     => array(
@@ -180,8 +190,8 @@ class ProjectHoneypot {
 			),
 			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %s: url */
-					__( 'Checks user IPs against <a href="%s" target="_blank" rel="noopener noreferrer">Project Honeypot</a>\'s blacklist.', 'zerospam' ),
+					/* translators: %s: Replaced with the Project Honeypot URL */
+					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Project Honeypot</a>.', 'zerospam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -198,10 +208,10 @@ class ProjectHoneypot {
 		);
 
 		$settings['project_honeypot_access_key'] = array(
-			'title'       => __( 'Project Honeypot Access Key', 'zerospam' ),
+			'title'       => __( 'Access Key', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %s: url */
+					/* translators: %1s: Replaced with the Project Honeypot URL, %2s: Replaced with the Project Honeypot account creation URL */
 					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Project Honeypot</a> access key. Don\'t have an access key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zerospam' ),
 					array(
 						'strong' => array(),
@@ -223,20 +233,20 @@ class ProjectHoneypot {
 		);
 
 		$settings['project_honeypot_cache'] = array(
-			'title'       => __( 'Project Honeypot Cache Expiration', 'zerospam' ),
+			'title'       => __( 'Cache Expiration', 'zerospam' ),
 			'section'     => 'project_honeypot',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zerospam' ),
-			'placeholder' => __( WEEK_IN_SECONDS, 'zerospam' ),
+			'placeholder' => WEEK_IN_SECONDS,
 			'min'         => 0,
-			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zerospam' ),
 			'value'       => ! empty( $options['project_honeypot_cache'] ) ? $options['project_honeypot_cache'] : 14,
 			'recommended' => 14,
 		);
 
 		$settings['project_honeypot_score_min'] = array(
-			'title'       => __( 'Project Honeypot Threat Score Minimum', 'zerospam' ),
+			'title'       => __( 'Threat Score Minimum', 'zerospam' ),
 			'section'     => 'project_honeypot',
 			'type'        => 'number',
 			'field_class' => 'small-text',
@@ -244,10 +254,10 @@ class ProjectHoneypot {
 			'min'         => 0,
 			'max'         => 255,
 			'step'        => 1,
-			'desc'      => sprintf(
+			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %s: url */
-					__( 'Recommended setting is 50. Minimum <a href="%s" target="_blank" rel="noopener noreferrer">threat score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be.', 'zerospam' ),
+					/* translators: %s: Replaced with the Project Honeypot threat page URL */
+					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">threat score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 50.', 'zerospam' ),
 					array(
 						'a' => array(
 							'target' => array(),

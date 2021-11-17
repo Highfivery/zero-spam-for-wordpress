@@ -13,23 +13,33 @@ namespace ZeroSpam\Modules\DavidWalsh;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Zero Spam
+ * David Walsh
  */
 class DavidWalsh {
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
-		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_action( 'init', array( $this, 'init' ) );
+	}
 
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) && \ZeroSpam\Core\Access::process() ) {
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
+		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
 			add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ), 0 );
 			add_action( 'login_enqueue_scripts', array( $this, 'scripts' ) );
 
-			add_action( 'zerospam_comment_form_before', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_comment_scripts', array( $this, 'enqueue_script' ) );
 			// See https://contactform7.com/loading-javascript-and-stylesheet-only-when-it-is-necessary/.
-			add_action( 'zerospam_wpcf7_enqueue_scripts', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_wpcf7_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_register_form', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_wpforms_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_fluentforms_scripts', array( $this, 'enqueue_script' ) );
@@ -46,34 +56,35 @@ class DavidWalsh {
 				1
 			);
 
-			add_filter( 'zerospam_preprocess_comment', array( $this, 'preprocess_comments' ), 10, 1 );
-			add_filter( 'zerospam_registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
-			add_filter( 'zerospam_preprocess_cf7_submission', array( $this, 'preprocess_cf7_submission' ), 10, 2 );
-			add_filter( 'zerospam_preprocess_wpforms_submission', array( $this, 'preprocess_wpforms_submission' ), 10, 3 );
-			add_filter( 'zerospam_preprocess_fluentform_submission', array( $this, 'preprocess_fluentform_submission' ), 10, 4 );
-			add_filter( 'zerospam_preprocess_login_attempt', array( $this, 'preprocess_login_attempt' ), 10, 4 );
-			add_filter( 'zerospam_preprocess_memberpress_registration', array( $this, 'preprocess_memberpress_registration' ), 10, 2 );
-			add_filter( 'zerospam_preprocess_mailchimp4wp', array( $this, 'preprocess_mailchimp4wp_registration' ), 10, 2 );
+			add_filter( 'zerospam_preprocess_comment_submission', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_registration_submission', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_cf7_submission', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_wpforms_submission', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_fluentform_submission', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_login_attempt', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_memberpress_registration', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_mailchimp4wp', array( $this, 'validate_post' ), 10, 3 );
 		}
 	}
 
 	/**
-	 * Enqueues the script.
+	 * Enqueues the script
 	 */
 	public function enqueue_script() {
 		wp_enqueue_script( 'zerospam-davidwalsh' );
 	}
 
 	/**
-	 * Preprocesses a Mailchimp form submission.
+	 * Validates a submission against the David Walsh field.
 	 *
-	 * @param array $errors Array of submission errors.
-	 * @param array $post   Form post array.
+	 * @param array  $errors            Array of submission errors.
+	 * @param array  $post              Form post array.
+	 * @param string $detection_msg_key Detection message key.
 	 */
-	public function preprocess_mailchimp4wp_registration( $errors, $post ) {
+	public function validate_post( $errors, $post, $detection_msg_key ) {
 		if ( empty( $post['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $post['zerospam_david_walsh_key'] ) {
 			// Failed the David Walsh check.
-			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'mailchimp4wp_spam_message' );
+			$error_message = \ZeroSpam\Core\Utilities::detection_message( $detection_msg_key );
 
 			$errors['zerospam_david_walsh'] = $error_message;
 		}
@@ -82,194 +93,9 @@ class DavidWalsh {
 	}
 
 	/**
-	 * Preprocesses a MemberPress registration submission.
+	 * Admin setting sections
 	 *
-	 * @param array $errors Array of submission errors.
-	 * @param array $post   Form post array.
-	 */
-	public function preprocess_memberpress_registration( $errors, $post ) {
-		if ( empty( $post['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $post['zerospam_david_walsh_key'] ) {
-			// Failed the David Walsh check.
-			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'memberpress_regsitration_spam_message' );
-
-			$errors['zerospam_david_walsh'] = $error_message;
-		}
-
-		return $errors;
-	}
-
-	/**
-	 * Preprocesses a login attempt.
-	 *
-	 * @param array            $errors   Array of submission errors.
-	 * @param WP_User|WP_Error $user     WP_User or WP_Error object if a previous callback failed authentication.
-	 * @param string           $password Password to check against the user.
-	 * @param array            $post     Form post array.
-	 */
-	public function preprocess_login_attempt( $errors, $user, $password, $post ) {
-		if ( empty( $post['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $post['zerospam_david_walsh_key'] ) {
-			// Failed the David Walsh check.
-			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'login_spam_message' );
-
-			$errors['zerospam_david_walsh'] = $error_message;
-		}
-
-		return $errors;
-	}
-
-	/**
-	 * Preprocesses a Fluent Form submission.
-	 *
-	 * @param array  $errors Array of submission errors.
-	 * @param array  $insert_data submission_data Array.
-	 * @param array  $data        $_POST[‘data’] from submission.
-	 * @param object $form        The $form Object.
-	 */
-	public function preprocess_fluentform_submission( $errors, $insert_data, $data, $form ) {
-		if ( empty( $data['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $data['zerospam_david_walsh_key'] ) {
-			// Failed the David Walsh check.
-			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'fluentforms_spam_message' );
-
-			$errors['zerospam_david_walsh'] = $error_message;
-		}
-
-		return $errors;
-	}
-
-	/**
-	 * Preprocess a WPForms submission.
-	 *
-	 * @param array $errors    Array of submission errors.
-	 * @param array $form_data Submitted form values.
-	 * @param array $post      Form post array.
-	 */
-	public function preprocess_wpforms_submission( $errors, $form_data, $post ) {
-		if ( empty( $post['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $post['zerospam_david_walsh_key'] ) {
-			// Failed the David Walsh check.
-			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
-
-			$errors['zerospam_david_walsh'] = $error_message;
-		}
-
-		return $errors;
-	}
-
-	/**
-	 * Preprocess CF7 submission.
-	 */
-	public function preprocess_cf7_submission( $result, $tag ) {
-		if ( empty( $_REQUEST['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $_REQUEST['zerospam_david_walsh_key'] ) {
-			$message = \ZeroSpam\Core\Utilities::detection_message( 'contactform7_spam_message' );
-			$result->invalidate( $tag[0], $message );
-
-			$details = array(
-				'result'    => $result,
-				'tag'       => $tag,
-				'failed'    => 'david_walsh',
-			);
-
-			// Log if enabled.
-			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_contactform7' ) ) {
-				\ZeroSpam\Includes\DB::log( 'contactform7', $details );
-			}
-
-			// Share the detection if enabled.
-			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
-				$details['type'] = 'contactform7';
-				do_action( 'zerospam_share_detection', $details );
-			}
-		}
-
-		return $result;
-	}
-
-	/**
-	 * Preprocess registrations
-	 *
-	 * @param WP_Error $errors A WP_Error object containing any errors encountered during registration.
-	 * @param string   $sanitized_user_login User's username after it has been sanitized.
-	 * @param string   $user_email User's email.
-	 */
-	public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
-		if ( empty( $_REQUEST['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $_REQUEST['zerospam_david_walsh_key'] ) {
-
-			$details = array(
-				'user_login' => $sanitized_user_login,
-				'user_email' => $user_email,
-				'failed'     => 'david_walsh',
-			);
-
-			// Log if enabled.
-			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
-				\ZeroSpam\Includes\DB::log( 'registration', $details );
-			}
-
-			// Share the detection if enabled.
-			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
-				$details['type'] = 'registration';
-				do_action( 'zerospam_share_detection', $details );
-			}
-
-			$message = \ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
-
-			$errors->add( 'zerospam_error', $message );
-		}
-
-		return $errors;
-	}
-
-	/**
-	 * Preprocess comments
-	 *
-	 * @param array $commentdata Comment data array.
-	 */
-	public function preprocess_comments( $commentdata ) {
-		if ( empty( $_REQUEST['zerospam_david_walsh_key'] ) || self::get_davidwalsh() !== $_REQUEST['zerospam_david_walsh_key'] ) {
-
-			$details = array(
-				'failed' => 'david_walsh',
-			);
-			$details = array_merge( $details, $commentdata );
-
-			// Log if enabled.
-			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_comments' ) ) {
-				\ZeroSpam\Includes\DB::log( 'comment', $details );
-			}
-
-			// Share the detection if enabled.
-			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
-				$details['type'] = 'comment';
-				do_action( 'zerospam_share_detection', $details );
-			}
-
-			$message = \ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
-
-			wp_die(
-				wp_kses(
-					$message,
-					array(
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-						'strong' => array(),
-					)
-				),
-				esc_html( \ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ) ),
-				array(
-					'response' => 403,
-				)
-			);
-		}
-
-		return $commentdata;
-	}
-
-	/**
-	 * David Walsh settings section
-	 *
-	 * @param array $sections Array of available setting sections.
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['davidwalsh'] = array(
@@ -280,13 +106,12 @@ class DavidWalsh {
 	}
 
 	/**
-	 * David Walsh settings
+	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['davidwalsh'] = array(
 			'title'       => __( 'David Walsh Technique', 'zerospam' ),
 			'desc'        => sprintf(

@@ -15,14 +15,24 @@ defined( 'ABSPATH' ) || die();
  */
 class WPForms {
 	/**
-	 * WPForms constructor
+	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_wpforms' ) && \ZeroSpam\Core\Access::process() ) {
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_wpforms' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
 			// Adds Zero Spam's honeypot field.
 			add_action( 'wpforms_frontend_output', array( $this, 'honeypot' ), 10, 1 );
 
@@ -45,11 +55,14 @@ class WPForms {
 	/**
 	 * Preprocess submission
 	 *
-	 * @param array $fields Sanitized entry field values/properties.
-	 * @param array $entry Original $_POST global.
+	 * @param array $fields    Sanitized entry field values/properties.
+	 * @param array $entry     Original $_POST global.
 	 * @param array $form_data Form settings/data.
 	 */
 	public function preprocess_submission( $fields, $entry, $form_data ) {
+		// @codingStandardsIgnoreLine
+		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
+
 		// Get the error message.
 		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'wpforms_spam_message' );
 
@@ -66,7 +79,7 @@ class WPForms {
 		// Check Zero Spam's honeypot field.
 		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
 		// @codingStandardsIgnoreLine
-		if ( isset( $_REQUEST[ $honeypot_field_name ] ) && ! empty( $_REQUEST[ $honeypot_field_name ] ) ) {
+		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
 			// Failed the honeypot check.
 			$details['failed'] = 'honeypot';
 
@@ -74,14 +87,11 @@ class WPForms {
 		}
 
 		// Fire hook for additional validation (ex. David Walsh script).
-		// @codingStandardsIgnoreLine
-		$errors = apply_filters( 'zerospam_preprocess_wpforms_submission', array(), $form_data, $_REQUEST );
+		$errors = apply_filters( 'zerospam_preprocess_wpforms_submission', array(), $post, 'wpforms_spam_message' );
 
 		if ( ! empty( $errors ) ) {
 			foreach ( $errors as $key => $message ) {
 				$validation_errors[] = str_replace( 'zerospam_', '', $key );
-
-				$details['failed'] = str_replace( 'zerospam_', '', $key );
 			}
 		}
 
@@ -106,7 +116,7 @@ class WPForms {
 	}
 
 	/**
-	 * Add to the types array
+	 * Add to the detection types array
 	 *
 	 * @param array $types Array of available detection types.
 	 */
@@ -117,16 +127,16 @@ class WPForms {
 	}
 
 	/**
-	 * Fires before a form is displayed on the site’s frontend, only if the form exists and contains fields.
+	 * Load the scripts
 	 */
 	public function scripts() {
 		do_action( 'zerospam_wpforms_scripts' );
 	}
 
 	/**
-	 * WPForms sections
+	 * Admin setting sections
 	 *
-	 * @param array $sections Array of available setting sections.
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['wpforms'] = array(
@@ -137,13 +147,12 @@ class WPForms {
 	}
 
 	/**
-	 * WPForms settings
+	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['verify_wpforms'] = array(
 			'title'       => __( 'Protect WPForms Submissions', 'zerospam' ),
 			'section'     => 'wpforms',
@@ -155,7 +164,7 @@ class WPForms {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
 
 		$settings['wpforms_spam_message'] = array(
 			'title'       => __( 'WPForms Spam/Malicious Message', 'zerospam' ),

@@ -77,6 +77,8 @@ If a legitimate user is getting blocked, check the Log (Admin > Dashboard > Zero
 
 **Enabled caching.** Caching is highly recommended and will prevent repeated calls to third-party API and access checks on each page visit.
 
+You can also adjust the cache and API timeout settings in admin depending on your server and specific needs.
+
 = What WordPress Zero Spam WP-CLI commands are available? =
 
 * `wp zerospam autoconfigure` &mdash; Auto-configures with recommended settings.
@@ -104,6 +106,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.2.5 =
 
+* perf(everything): refactoring of code for a boost in performance
 * docs(readme): misc. readme file updates
 
 = v5.2.4 =

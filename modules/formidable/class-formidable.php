@@ -7,8 +7,6 @@
 
 namespace ZeroSpam\Modules\Formidable;
 
-use ZeroSpam;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -17,14 +15,24 @@ defined( 'ABSPATH' ) || die();
  */
 class Formidable {
 	/**
-	 * Formidable constructor
+	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_formidable' ) && ZeroSpam\Core\Access::process() ) {
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_formidable' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
 			add_action( 'frm_entry_form', array( $this, 'honeypot' ), 10, 1 );
 			add_filter( 'frm_validate_entry', array( $this, 'preprocess_submission' ), 10, 2 );
 		}
@@ -58,10 +66,9 @@ class Formidable {
 	 * Formidable settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['verify_formidable'] = array(
 			'title'       => __( 'Protect Formidable Submissions', 'zerospam' ),
 			'section'     => 'formidable',
@@ -73,7 +80,7 @@ class Formidable {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
 
 		$settings['formidable_spam_message'] = array(
 			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
@@ -94,7 +101,7 @@ class Formidable {
 				__( 'Enables logging blocked Formidable submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
 				array( 'strong' => array() )
 			),
-			'options'    => array(
+			'options'     => array(
 				'enabled' => __( 'Enabled', 'zerospam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_formidable'] ) ? $options['log_blocked_formidable'] : false,
@@ -111,7 +118,7 @@ class Formidable {
 	 */
 	public function honeypot( $form_data ) {
 		// @codingStandardsIgnoreLine
-		echo ZeroSpam\Core\Utilities::honeypot_field();
+		echo \ZeroSpam\Core\Utilities::honeypot_field();
 	}
 
 	/**
@@ -121,28 +128,47 @@ class Formidable {
 	 * @param array $values Array of values.
 	 */
 	public function preprocess_submission( $errors, $values ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
-
-		// Check honeypot.
 		// @codingStandardsIgnoreLine
-		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
-			$message = ZeroSpam\Core\Utilities::detection_message( 'formidable_spam_message' );
+		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
 
-			$errors['zerospam_honeypot'] = $message;
+		// Get the error message.
+		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'formidable_spam_message' );
 
-			$details           = $values;
+		// Create the details array for logging & sharing data.
+		$details = $values;
+
+		$details['type'] = 'formidable';
+
+		// Begin validation checks.
+		$validation_errors = array();
+
+		// Check Zero Spam's honeypot field.
+		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
+		// @codingStandardsIgnoreLine
+		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
+			// Failed the honeypot check.
 			$details['failed'] = 'honeypot';
 
-			// Log if enabled.
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_formidable' ) ) {
-				ZeroSpam\Includes\DB::log( 'formidable', $details );
+			$validation_errors[] = 'honeypot';
+		}
+
+		if ( ! empty( $validation_errors ) ) {
+			// Failed validations, log & send details if enabled.
+			foreach ( $validation_errors as $key => $fail ) {
+				$details['failed'] = $fail;
+
+				// Log the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_formidable' ) ) {
+					\ZeroSpam\Includes\DB::log( 'formidable', $details );
+				}
+
+				// Share the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+					do_action( 'zerospam_share_detection', $details );
+				}
 			}
 
-			// Share the detection if enabled.
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
-				$details['type'] = 'formidable';
-				do_action( 'zerospam_share_detection', $details );
-			}
+			$errors['zerospam_honeypot'] = $error_message;
 		}
 
 		return $errors;

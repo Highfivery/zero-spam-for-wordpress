@@ -7,7 +7,6 @@
 
 namespace ZeroSpam\Modules;
 
-use ZeroSpam;
 use \ipinfo\ipinfo\IPinfo;
 
 // Security Note: Blocks direct access to the plugin PHP files.
@@ -21,37 +20,43 @@ class IPinfoModule {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_log_record', array( $this, 'log_record' ) );
 	}
 
 	/**
-	 * Sections
+	 * Admin setting sections
 	 *
-	 * @param array $sections Admin settings section.
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['ipinfo'] = array(
-			'title' => __( 'IPinfo Geolocation Integration', 'zerospam' ),
+			'title' => __( 'IPinfo Integration (geolocation)', 'zerospam' ),
 		);
 
 		return $sections;
 	}
 
 	/**
-	 * Settings
+	 * Admin settings
 	 *
-	 * @param array $settings Admin setting fields.
+	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['ipinfo_access_token'] = array(
-			'title'       => __( 'IPinfo Access Token', 'zerospam' ),
+			'title'       => __( 'Access Token', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %s: IPinfo URL */
+					/* translators: %1$s: Replaced with the IPInfo URL, %2$s: Replaced with the IPinfo signup URL */
 					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">IPinfo access token</a> to enable geolocation features. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zerospam' ),
 					array(
 						'strong' => array(),
@@ -73,13 +78,13 @@ class IPinfoModule {
 		);
 
 		$settings['ipinfo_cache'] = array(
-			'title'       => __( 'IPinfo Cache Expiration', 'zerospam' ),
+			'title'       => __( 'Cache Expiration', 'zerospam' ),
 			'section'     => 'ipinfo',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zerospam' ),
 			'placeholder' => __( '14', 'zerospam' ),
-			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zerospam' ),
 			'value'       => ! empty( $options['ipinfo_cache'] ) ? $options['ipinfo_cache'] : 14,
 			'recommended' => 14,
 		);

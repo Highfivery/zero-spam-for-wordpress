@@ -60,9 +60,19 @@ function zerospam_load_plugin_textdomain() {
  * Admin notice for minimum PHP version
  */
 function zerospam_fail_php_version() {
-	/* translators: %s: PHP version */
-	$message      = sprintf( esc_html__( 'WordPress Zero Spam requires PHP version %s+, plugin is currently NOT RUNNING.', 'zerospam' ), '7.3' );
-	$html_message = sprintf( '<div class="error">%s</div>', wpautop( $message ) );
+	$message = sprintf(
+		/* translators: %s: replaced with the PHP version number */
+		esc_html__(
+			'WordPress Zero Spam requires PHP version %s+, plugin is currently NOT RUNNING.',
+			'zerospam'
+		),
+		'7.3'
+	);
+	$html_message = sprintf(
+		/* translators: %s: replaced with the error message */
+		'<div class="error">%s</div>',
+		wpautop( $message )
+	);
 	echo wp_kses_post( $html_message );
 }
 
@@ -70,8 +80,14 @@ function zerospam_fail_php_version() {
  * Admin notice for minimum WordPress version
  */
 function zerospam_fail_wp_version() {
-	/* translators: %s: WordPress version */
-	$message      = sprintf( esc_html__( 'WordPress Zero Spam requires WordPress version %s+. Because you are using an earlier version, the plugin is currently NOT RUNNING.', 'zerospam' ), '5' );
+	$message = sprintf(
+		/* translators: %s: replaced with the WordPress version number */
+		esc_html__(
+			'WordPress Zero Spam requires WordPress version %s+. Because you are using an earlier version, the plugin is currently NOT RUNNING.',
+			'zerospam'
+		),
+		'5'
+	);
 	$html_message = sprintf( '<div class="error">%s</div>', wpautop( $message ) );
 	echo wp_kses_post( $html_message );
 }

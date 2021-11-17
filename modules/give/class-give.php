@@ -15,14 +15,24 @@ defined( 'ABSPATH' ) || die();
  */
 class Give {
 	/**
-	 * Add-on constructor
+	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_givewp' ) && \ZeroSpam\Core\Access::process() ) {
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_givewp' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
 			// Adds Zero Spam's honeypot field.
 			add_action( 'give_donation_form_bottom', array( $this, 'add_honeypot' ), 10 );
 
@@ -74,6 +84,15 @@ class Give {
 			$validation_errors[] = 'honeypot';
 		}
 
+		// Check blocked email domains.
+		if (
+			! empty( $post_data['give_email'] ) &&
+			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $post_data['give_email'] )
+		) {
+			// Email domain has been blocked.
+			$validation_errors[] = 'blocked_email_domain';
+		}
+
 		if ( ! empty( $validation_errors ) ) {
 			// Failed validations, log & send details if enabled.
 			foreach ( $validation_errors as $key => $fail ) {
@@ -122,10 +141,9 @@ class Give {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['verify_givewp'] = array(
 			'title'       => __( 'Protect GiveWP Submissions', 'zerospam' ),
 			'section'     => 'givewp',

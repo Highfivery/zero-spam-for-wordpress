@@ -7,8 +7,6 @@
 
 namespace ZeroSpam\Modules\Registration;
 
-use ZeroSpam;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -17,25 +15,32 @@ defined( 'ABSPATH' ) || die();
  */
 class Registration {
 	/**
-	 * Registration constructor
+	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
 
-		if ( get_option( 'users_can_register' ) ) {
-			add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-			add_filter( 'zerospam_settings', array( $this, 'settings' ) );
-			add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
+		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_registrations' ) && ZeroSpam\Core\Access::process() ) {
-				add_action( 'register_form', array( $this, 'register_form' ) );
-				add_action( 'register_form', array( $this, 'honeypot' ) );
-				add_filter( 'registration_errors', array( $this, 'preprocess_registration' ), 10, 3 );
-			}
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_registrations' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
+			add_action( 'register_form', array( $this, 'scripts' ) );
+			add_action( 'register_form', array( $this, 'honeypot' ) );
+			add_filter( 'registration_errors', array( $this, 'process_form' ), 10, 3 );
 		}
 	}
 
 	/**
-	 * Add to the types array
+	 * Add to the detection types array
 	 *
 	 * @param array $types Array of available detection types.
 	 */
@@ -46,9 +51,9 @@ class Registration {
 	}
 
 	/**
-	 * Fires following the ‘Email’ field in the user registration form.
+	 * Load the scripts
 	 */
-	public function register_form() {
+	public function scripts() {
 		do_action( 'zerospam_register_form' );
 	}
 
@@ -59,58 +64,71 @@ class Registration {
 	 * @param string   $sanitized_user_login User's username after it has been sanitized.
 	 * @param string   $user_email User's email.
 	 */
-	public function preprocess_registration( $errors, $sanitized_user_login, $user_email ) {
+	public function process_form( $errors, $sanitized_user_login, $user_email ) {
+		// @codingStandardsIgnoreLine
+		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
+
+		// Get the error message.
+		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
+
+		// Create the details array for logging & sharing data.
+		$details = array(
+			'user_login' => $sanitized_user_login,
+			'user_email' => $user_email,
+			'type'       => 'registration',
+		);
+
+		// Begin validation checks.
+		$validation_errors = array();
+
+		// Check Zero Spam's honeypot field.
+		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
+		// @codingStandardsIgnoreLine
+		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
+			// Failed the honeypot check.
+			$details['failed'] = 'honeypot';
+
+			$validation_errors[] = 'honeypot';
+		}
 
 		// Check blocked email domains.
-		$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
-		if ( $blocked_email_domains ) {
-			$blocked_email_domains_array = explode( "\n", $blocked_email_domains );
-			$blocked_email_domains_array = array_map( 'trim', $blocked_email_domains_array );
-			$tmp_domain                  = explode( '@', $user_email );
-			$domain                      = array_pop( $tmp_domain );
+		if (
+			! empty( $user_email ) &&
+			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $user_email )
+		) {
+			// Email domain has been blocked.
+			$validation_errors[] = 'blocked_email_domain';
+		}
 
-			if ( in_array( $domain, $blocked_email_domains_array, true ) ) {
-				// Email domain has been blocked.
-				$message = ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
-				$errors->add( 'zerospam_error', $message );
+		// Fire hook for additional validation (ex. David Walsh script).
+		$filtered_errors = apply_filters( 'zerospam_preprocess_registration_submission', array(), $post, 'registration_spam_message' );
 
-				$details = array(
-					'user_login' => $sanitized_user_login,
-					'user_email' => $user_email,
-					'failed'     => 'blocked_email_domain',
-				);
+		if ( ! empty( $filtered_errors ) ) {
+			foreach ( $filtered_errors as $key => $message ) {
+				$validation_errors[] = str_replace( 'zerospam_', '', $key );
+			}
+		}
 
-				if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
-					ZeroSpam\Includes\DB::log( 'registration', $details );
+		if ( ! empty( $validation_errors ) ) {
+			// Failed validations, log & send details if enabled.
+			foreach ( $validation_errors as $key => $fail ) {
+				$details['failed'] = $fail;
+
+				// Log the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
+					\ZeroSpam\Includes\DB::log( 'registration', $details );
 				}
 
-				return apply_filters( 'zerospam_registration_errors', $errors, $sanitized_user_login, $user_email );
+				// Share the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+					do_action( 'zerospam_share_detection', $details );
+				}
 			}
+
+			$errors->add( 'zerospam_error', $error_message );
 		}
 
-		// Check honeypot.
-		// @codingStandardsIgnoreLine
-		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
-			$message = ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
-			$errors->add( 'zerospam_error', $message );
-
-			$details = array(
-				'user_login' => $sanitized_user_login,
-				'user_email' => $user_email,
-				'failed'     => 'honeypot',
-			);
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
-				ZeroSpam\Includes\DB::log( 'registration', $details );
-			}
-
-			// Share the detection if enabled.
-			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
-				$details['type'] = 'registration';
-				do_action( 'zerospam_share_detection', $details );
-			}
-		}
-
-		return apply_filters( 'zerospam_registration_errors', $errors, $sanitized_user_login, $user_email );
+		return $errors;
 	}
 
 	/**
@@ -118,13 +136,13 @@ class Registration {
 	 */
 	public function honeypot() {
 		// @codingStandardsIgnoreLine
-		echo ZeroSpam\Core\Utilities::honeypot_field();
+		echo \ZeroSpam\Core\Utilities::honeypot_field();
 	}
 
 	/**
-	 * Registration sections
+	 * Admin setting sections
 	 *
-	 * @param array $sections Array of available setting sections.
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['registration'] = array(
@@ -135,13 +153,12 @@ class Registration {
 	}
 
 	/**
-	 * Registration settings
+	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['verify_registrations'] = array(
 			'title'       => __( 'Protect Registrations', 'zerospam' ),
 			'section'     => 'registration',
@@ -153,7 +170,7 @@ class Registration {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
 
 		$settings['registration_spam_message'] = array(
 			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),

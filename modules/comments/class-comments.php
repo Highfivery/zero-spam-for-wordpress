@@ -7,7 +7,6 @@
 
 namespace ZeroSpam\Modules\Comments;
 
-use ZeroSpam;
 use WP_Error;
 
 // Security Note: Blocks direct access to the plugin PHP files.
@@ -18,22 +17,32 @@ defined( 'ABSPATH' ) || die();
  */
 class Comments {
 	/**
-	 * Comments constructor
+	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) && ZeroSpam\Core\Access::process() ) {
-			add_action( 'comment_form_before', array( $this, 'comment_form_before' ) );
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
+			add_action( 'comment_form_before', array( $this, 'scripts' ) );
 			add_filter( 'comment_form_defaults', array( $this, 'honeypot' ) );
 			add_action( 'preprocess_comment', array( $this, 'preprocess_comments' ) );
 		}
 	}
 
 	/**
-	 * Add to the types array
+	 * Add to the detection types array
 	 *
 	 * @param array $types Array of available detection types.
 	 */
@@ -44,10 +53,10 @@ class Comments {
 	}
 
 	/**
-	 * Fires before the comment form.
+	 * Load the scripts
 	 */
-	public function comment_form_before() {
-		do_action( 'zerospam_comment_form_before' );
+	public function scripts() {
+		do_action( 'zerospam_comment_scripts' );
 	}
 
 	/**
@@ -56,30 +65,47 @@ class Comments {
 	 * @param array $commentdata Comment data array.
 	 */
 	public function preprocess_comments( $commentdata ) {
-		$block_user = false;
-		$block_type = false;
-
-		// Check honeypot.
 		// @codingStandardsIgnoreLine
-		if ( ! empty( $_REQUEST[ ZeroSpam\Core\Utilities::get_honeypot() ] ) ) {
-			$block_user = true;
-			$block_type = 'honeypot';
+		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
+
+		// Get the error message.
+		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
+
+		// Create the details array for logging & sharing data.
+		$details = $commentdata;
+
+		$details['type'] = 'comment';
+
+		// Begin validation checks.
+		$validation_errors = array();
+
+		// Check Zero Spam's honeypot field.
+		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
+		// @codingStandardsIgnoreLine
+		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
+			// Failed the honeypot check.
+			$details['failed'] = 'honeypot';
+
+			$validation_errors[] = 'honeypot';
 		}
 
 		// Check blocked email domains.
-		if ( ! empty( $commentdata['comment_author_email'] ) ) {
-			$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
-			if ( $blocked_email_domains ) {
-				$blocked_email_domains_array = explode( "\n", $blocked_email_domains );
-				$blocked_email_domains_array = array_map( 'trim', $blocked_email_domains_array );
-				$tmp_domain                  = explode( '@', $commentdata['comment_author_email'] );
-				$domain                      = array_pop( $tmp_domain );
+		if (
+			! empty( $commentdata['comment_author_email'] ) &&
+			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $commentdata['comment_author_email'] )
+		) {
+			// Email domain has been blocked.
+			$validation_errors[] = 'blocked_email_domain';
+		}
 
-				if ( in_array( $domain, $blocked_email_domains_array, true ) ) {
-					// Email domain has been blocked.
-					$block_user = true;
-					$block_type = 'blocked_email_domain';
-				}
+		// Fire hook for additional validation (ex. David Walsh script).
+		$post['comment_author_email'] = $commentdata['comment_author_email'];
+
+		$filtered_errors = apply_filters( 'zerospam_preprocess_comment_submission', array(), $post, 'comment_spam_message' );
+
+		if ( ! empty( $filtered_errors ) ) {
+			foreach ( $filtered_errors as $key => $message ) {
+				$validation_errors[] = str_replace( 'zerospam_', '', $key );
 			}
 		}
 
@@ -101,37 +127,28 @@ class Comments {
 			$disallowed_check['ip'],
 			$disallowed_check['agent'],
 		) ) {
-			$block_user = true;
-			$block_type = 'disallowed_list';
+			$validation_errors[] = 'disallowed_list';
 		}
 
-		// If blocked, log and send the details.
-		if ( $block_user && $block_type ) {
-			$details = array(
-				'failed' => $block_type,
-			);
-			$details = array_merge( $details, $commentdata );
+		if ( ! empty( $validation_errors ) ) {
+			// Failed validations, log & send details if enabled.
+			foreach ( $validation_errors as $key => $fail ) {
+				$details['failed'] = $fail;
 
-			// Log if enabled.
-			if ( 'enabled' === ZeroSpam\Core\Settings::get_settings( 'log_blocked_comments' ) ) {
-				ZeroSpam\Includes\DB::log( 'comment', $details );
+				// Log the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_comments' ) ) {
+					\ZeroSpam\Includes\DB::log( 'comment', $details );
+				}
+
+				// Share the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+					do_action( 'zerospam_share_detection', $details );
+				}
 			}
-
-			// Share the detection if enabled.
-			if (
-				'enabled' === ZeroSpam\Core\Settings::get_settings( 'share_data' ) &&
-				'blocked_email_domain' !== $block_type &&
-				'disallowed_list' !== $block_type
-			) {
-				$details['type'] = 'comment';
-				do_action( 'zerospam_share_detection', $details );
-			}
-
-			$message = ZeroSpam\Core\Utilities::detection_message( 'comment_spam_message' );
 
 			wp_die(
 				wp_kses(
-					$message,
+					$error_message,
 					array(
 						'a'      => array(
 							'target' => array(),
@@ -141,14 +158,14 @@ class Comments {
 						'strong' => array(),
 					)
 				),
-				esc_html( ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ) ),
+				esc_html( \ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ) ),
 				array(
 					'response' => 403,
 				)
 			);
 		}
 
-		return apply_filters( 'zerospam_preprocess_comment', $commentdata );
+		return $commentdata;
 	}
 
 	/**
@@ -157,15 +174,15 @@ class Comments {
 	 * @param array $defaults The default comment form arguments.
 	 */
 	public function honeypot( $defaults ) {
-		$defaults['fields']['wpzerospam_hp'] = ZeroSpam\Core\Utilities::honeypot_field();
+		$defaults['fields']['wpzerospam_hp'] = \ZeroSpam\Core\Utilities::honeypot_field();
 
 		return $defaults;
 	}
 
 	/**
-	 * Comment sections
+	 * Admin setting sections
 	 *
-	 * @param array $sections Array of available setting sections.
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['comments'] = array(
@@ -176,13 +193,12 @@ class Comments {
 	}
 
 	/**
-	 * Comment settings
+	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['verify_comments'] = array(
 			'title'       => __( 'Protect Comments', 'zerospam' ),
 			'section'     => 'comments',
@@ -194,7 +210,7 @@ class Comments {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'You have been flagged as spam/malicious by WordPress Zero Spam.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
 
 		$settings['comment_spam_message'] = array(
 			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),

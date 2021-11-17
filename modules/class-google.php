@@ -19,14 +19,11 @@ defined( 'ABSPATH' ) || die();
  */
 class Google {
 	/**
-	 * Google maps constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Constructor
 	 */
 	public function __construct() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 
 		$settings = ZeroSpam\Core\Settings::get_settings();
 		if ( ! empty( $settings['google_api']['value'] ) ) {
@@ -35,10 +32,7 @@ class Google {
 	}
 
 	/**
-	 * Embeds a map;
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Embeds a map
 	 */
 	public function map( $coordinates ) {
 		$settings = ZeroSpam\Core\Settings::get_settings();
@@ -80,14 +74,12 @@ class Google {
 	}
 
 	/**
-	 * Botscout settings.
+	 * Botscout settings
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['google_api'] = array(
 			'title'       => __( 'Google API Key', 'zerospam' ),
 			'section'     => 'google',

@@ -398,7 +398,7 @@ class Settings {
 			'value'       => ! empty( $options['debug_ip'] ) ? $options['debug_ip'] : false,
 		);
 
-		$settings = apply_filters( 'zerospam_settings', self::$settings );
+		$settings = apply_filters( 'zerospam_settings', self::$settings, $options );
 
 		if ( $key ) {
 			if ( ! empty( $settings[ $key ]['value'] ) ) {

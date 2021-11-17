@@ -97,6 +97,44 @@ class Utilities {
 	}
 
 	/**
+	 * Determines if an email has been blocked by it's domain.
+	 *
+	 * @param string $email Email address.
+	 */
+	public static function is_email_domain_blocked( $email ) {
+		$blocked_domains = self::get_blocked_email_domains();
+		$domain          = explode( '@', $email );
+		$domain          = trim( array_pop( $domain ) );
+
+		if ( in_array( $domain, $blocked_domains, true ) ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Returns the saved blocked email domains.
+	 */
+	public static function get_blocked_email_domains() {
+		$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
+		if ( ! $blocked_email_domains ) {
+			return false;
+		}
+
+		$domains = explode( "\n", $blocked_email_domains );
+		$domains = array_map( 'trim', $domains );
+		$domains = self::sanitize_array( $domains );
+		$domains = array_filter( $domains );
+
+		if ( empty( $domains ) ) {
+			return false;
+		}
+
+		return $domains;
+	}
+
+	/**
 	 * Returns list of recommended blocked email domains.
 	 */
 	public static function blocked_email_domains() {
@@ -591,7 +629,11 @@ class Utilities {
 	 * Returns a cache key
 	 */
 	public static function cache_key( $args, $table = false ) {
-		return sanitize_title( $table . '_' . implode( '_', $args ) );
+		if ( is_array( $args ) ) {
+			$args = implode( '_', $args );
+		}
+
+		return sanitize_title( $table . '_' . $args );
 	}
 
 	/**

@@ -17,6 +17,7 @@ $tables = array(
 );
 
 if ( is_multisite() ) {
+	// @codingStandardsIgnoreLine
 	$blogs = $wpdb->get_results( "SELECT blog_id FROM {$wpdb->blogs}", ARRAY_A );
 
 	if ( $blogs ) {
@@ -30,6 +31,7 @@ if ( is_multisite() ) {
 			delete_option( 'zerospam_davidwalsh' );
 
 			foreach ( $tables as $key => $table ) {
+				// @codingStandardsIgnoreLine
 				$wpdb->query( "DROP TABLE IF EXISTS " . $wpdb->prefix . $table );
 			}
 		}
@@ -43,6 +45,7 @@ if ( is_multisite() ) {
 	delete_option( 'zerospam_davidwalsh' );
 
 	foreach ( $tables as $key => $table ) {
+		// @codingStandardsIgnoreLine
 		$wpdb->query( "DROP TABLE IF EXISTS " . $wpdb->prefix . $table );
 	}
 }

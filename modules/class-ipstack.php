@@ -1,51 +1,60 @@
 <?php
 /**
- * ipstack class.
+ * Ipstack class
  *
  * @package ZeroSpam
  */
 
 namespace ZeroSpam\Modules;
 
-use ZeroSpam;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
 /**
- * ipstack
+ * Ipstack
  */
 class ipstack {
 	/**
 	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_log_record', array( $this, 'log_record' ) );
 	}
 
 	/**
-	 * Sections
+	 * Admin setting sections
+	 *
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['ipstack'] = array(
-			'title' => __( 'ipstack Geolocation Integration', 'zerospam' ),
+			'title' => __( 'ipstack Integration (geolocation)', 'zerospam' ),
 		);
 
 		return $sections;
 	}
 
 	/**
-	 * Settings
+	 * Admin settings
+	 *
+	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['ipstack_api'] = array(
-			'title'       => __( 'ipstack API Key', 'zerospam' ),
+			'title'       => __( 'API Key', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(
+					/* translators: %1$s: Replaced with the ipstack URL, %2$s: Replaced with the ipstack product URL */
 					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">ipstack API key</a> to enable geolocation features. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zerospam' ),
 					array(
 						'strong' => array(),
@@ -67,25 +76,25 @@ class ipstack {
 		);
 
 		$settings['ipstack_timeout'] = array(
-			'title'       => __( 'ipstack API Timeout', 'zerospam' ),
+			'title'       => __( 'API Timeout', 'zerospam' ),
 			'section'     => 'ipstack',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'seconds', 'zerospam' ),
 			'placeholder' => __( '5', 'zerospam' ),
-			'desc'        => __( 'Recommended setting is 5 seconds. Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond; recommended 5 seconds.', 'zerospam' ),
 			'value'       => ! empty( $options['ipstack_timeout'] ) ? $options['ipstack_timeout'] : 5,
 			'recommended' => 5,
 		);
 
 		$settings['ipstack_cache'] = array(
-			'title'       => __( 'ipstack Cache Expiration', 'zerospam' ),
+			'title'       => __( 'Cache Expiration', 'zerospam' ),
 			'section'     => 'ipstack',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zerospam' ),
 			'placeholder' => __( '14', 'zerospam' ),
-			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zerospam' ),
 			'value'       => ! empty( $options['ipstack_cache'] ) ? $options['ipstack_cache'] : 14,
 			'recommended' => 14,
 		);
@@ -139,15 +148,17 @@ class ipstack {
 
 	/**
 	 * Get geolocation
+	 *
+	 * @param string $ip IP address.
 	 */
 	public static function get_geolocation( $ip ) {
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings();
 
 		if ( empty( $settings['ipstack_api']['value'] ) ) {
 			return false;
 		}
 
-		$cache_key = ZeroSpam\Core\Utilities::cache_key(
+		$cache_key = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'ipstack',
 				$ip,
@@ -156,7 +167,7 @@ class ipstack {
 
 		$result = wp_cache_get( $cache_key );
 		if ( false === $result ) {
-			$endpoint = 'http://api.ipstack.com/';
+			$endpoint  = 'http://api.ipstack.com/';
 			$endpoint .= $ip . '?access_key=' . $settings['ipstack_api']['value'];
 
 			$timeout = 5;
@@ -164,7 +175,7 @@ class ipstack {
 				$timeout = intval( $settings['ipstack_timeout']['value'] );
 			}
 
-			$response = ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
+			$response = \ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
 			if ( $response ) {
 				$result = json_decode( $response, true );
 

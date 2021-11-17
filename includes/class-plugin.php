@@ -23,10 +23,11 @@ class Plugin {
 	public static $instance = null;
 
 	/**
-	 * Plugin constructor
+	 * Constructor
 	 */
 	private function __construct() {
 		$this->register_autoloader();
+		$this->init_modules();
 
 		add_action( 'init', array( $this, 'init' ), 0 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
@@ -47,46 +48,26 @@ class Plugin {
 	public static function instance() {
 		if ( is_null( self::$instance ) ) {
 			self::$instance = new self();
-
-			// Fires when WordPress Zero Spam was fully loaded and instantiated.
-			do_action( 'zerospam_loaded' );
 		}
 
 		return self::$instance;
 	}
 
 	/**
-	 * Init
+	 * Initializes modules
 	 */
-	public function init() {
-		$this->init_components();
-
-		/**
-		 * Fires on WordPress Zero Spam init, after WordPress Zero Spam has finished
-		 * loading but before any headers are sent.
-		 */
-		do_action( 'zerospam_init' );
-	}
-
-	/**
-	 * Init components
-	 *
-	 * Initialize WordPress Zero Spam components. Register actions, initialize all
-	 * the components that run WordPress Zero Spam, and if in admin page
-	 * initialize admin components.
-	 */
-	private function init_components() {
+	private function init_modules() {
 		// Database functionality.
 		new \ZeroSpam\Includes\DB();
+
+		// Zero Spam module.
+		new \ZeroSpam\Modules\Zero_Spam();
 
 		// Stop Forum Spam module.
 		new \ZeroSpam\Modules\StopForumSpam();
 
 		// Project Honeypot module.
 		new \ZeroSpam\Modules\ProjectHoneypot();
-
-		// Zero Spam module.
-		new \ZeroSpam\Modules\Zero_Spam();
 
 		// ipstack module.
 		new \ZeroSpam\Modules\ipstack();
@@ -97,11 +78,11 @@ class Plugin {
 		// David Walsh module.
 		new \ZeroSpam\Modules\DavidWalsh\DavidWalsh();
 
-		// WordPress registration module.
-		new \ZeroSpam\Modules\Registration\Registration();
-
 		// WordPress comments module.
 		new \ZeroSpam\Modules\Comments\Comments();
+
+		// WordPress registration module.
+		new \ZeroSpam\Modules\Registration\Registration();
 
 		// WordPress login module.
 		new \ZeroSpam\Modules\Login\Login();
@@ -146,7 +127,12 @@ class Plugin {
 		if ( is_plugin_active( 'mailchimp-for-wp/mailchimp-for-wp.php' ) ) {
 			new \ZeroSpam\Modules\MailchimpForWP\MailchimpForWP();
 		}
+	}
 
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		// Preform the firewall access check.
 		if ( ! is_admin() && is_main_query() ) {
 			new \ZeroSpam\Core\Access();

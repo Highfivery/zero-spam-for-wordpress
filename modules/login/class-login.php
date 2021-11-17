@@ -15,14 +15,24 @@ defined( 'ABSPATH' ) || die();
  */
 class Login {
 	/**
-	 * Add-on constructor
+	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_login' ) && \ZeroSpam\Core\Access::process() ) {
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_login' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
 			// Adds Zero Spam's honeypot field.
 			add_action( 'login_form', array( $this, 'add_honeypot' ), 10 );
 
@@ -38,7 +48,7 @@ class Login {
 	}
 
 	/**
-	 * Load the add-on scripts.
+	 * Load the scripts
 	 */
 	public function scripts() {
 		do_action( 'zerospam_login_scripts' );
@@ -59,6 +69,9 @@ class Login {
 	 * @param string           $password Password to check against the user.
 	 */
 	public function process_form( $user, $password ) {
+		// @codingStandardsIgnoreLine
+		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
+
 		// Check Zero Spam's honeypot field.
 		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
 
@@ -75,14 +88,13 @@ class Login {
 		$validation_errors = array();
 
 		// @codingStandardsIgnoreLine
-		if ( isset( $_POST[ $honeypot_field_name ] ) && ! empty( $_POST[ $honeypot_field_name ] ) ) {
+		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
 			// Failed the honeypot check.
 			$validation_errors[] = 'honeypot';
 		}
 
 		// Fire hook for additional validation (ex. David Walsh script).
-		// @codingStandardsIgnoreLine
-		$errors = apply_filters( 'zerospam_preprocess_login_attempt', array(), $user, $password, $_POST );
+		$errors = apply_filters( 'zerospam_preprocess_login_attempt', array(), $post, 'login_spam_message' );
 
 		if ( ! empty( $errors ) ) {
 			foreach ( $errors as $key => $message ) {
@@ -113,7 +125,7 @@ class Login {
 	}
 
 	/**
-	 * Add to the types array
+	 * Add to the detection types array
 	 *
 	 * @param array $types Array of available detection types.
 	 */
@@ -124,9 +136,9 @@ class Login {
 	}
 
 	/**
-	 * Admin section
+	 * Admin setting sections
 	 *
-	 * @param array $sections Array of available setting sections.
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['login'] = array(
@@ -140,10 +152,9 @@ class Login {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['verify_login'] = array(
 			'title'       => __( 'Protect Login Attempts', 'zerospam' ),
 			'section'     => 'login',

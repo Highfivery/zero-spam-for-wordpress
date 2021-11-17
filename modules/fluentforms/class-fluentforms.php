@@ -15,14 +15,24 @@ defined( 'ABSPATH' ) || die();
  */
 class FluentForms {
 	/**
-	 * Fluent Forms constructor
+	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_fluentforms' ) && \ZeroSpam\Core\Access::process() ) {
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_fluentforms' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
 			// Load scripts.
 			add_action( 'fluentform_load_form_assets', array( $this, 'scripts' ), 10 );
 
@@ -118,7 +128,7 @@ class FluentForms {
 		}
 
 		// Fire hook for additional validation (ex. David Walsh script).
-		$errors = apply_filters( 'zerospam_preprocess_fluentform_submission', array(), $insert_data, $data, $form );
+		$errors = apply_filters( 'zerospam_preprocess_fluentform_submission', array(), $data, 'fluentforms_spam_message' );
 
 		if ( ! empty( $errors ) ) {
 			$errors_array = array();
@@ -160,22 +170,18 @@ class FluentForms {
 	 * @param object $form      The $form Object.
 	 */
 	public function validate_email( $error, $field, $form_data, $fields, $form ) {
-		$error_message         = \ZeroSpam\Core\Utilities::detection_message( 'fluentforms_spam_message' );
-		$blocked_email_domains = \ZeroSpam\Core\Utilities::blocked_email_domains();
-
-		if ( ! $blocked_email_domains ) {
-			return $error;
-		}
-
 		$field_name = $field['name'];
 		if ( empty( $form_data[ $field_name ] ) ) {
 			return $error;
 		}
 
-		$email_address = explode( '@', $form_data[ $field_name ] );
-		$email_domain  = array_pop( $email_address );
+		// Check blocked email domains.
+		if (
+			! empty( $form_data[ $field_name ] ) &&
+			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $form_data[ $field_name ] )
+		) {
+			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'fluentforms_spam_message' );
 
-		if ( in_array( $email_domain, $blocked_email_domains, true ) ) {
 			return array( $error_message );
 		}
 
@@ -208,13 +214,12 @@ class FluentForms {
 	}
 
 	/**
-	 * Fluent Forms settings
+	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['verify_fluentforms'] = array(
 			'title'       => __( 'Protect Fluent Form Submissions', 'zerospam' ),
 			'section'     => 'fluentforms',

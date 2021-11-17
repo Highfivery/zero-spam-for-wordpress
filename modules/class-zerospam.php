@@ -26,15 +26,24 @@ class Zero_Spam {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 
 		// Fires when a user submission has been detected as spam.
 		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
 	}
 
 	/**
-	 * Sections
+	 * Admin setting sections
+	 *
+	 * @param array $sections Array of admin setting sections.
 	 */
 	public function sections( $sections ) {
 		$sections['zerospam'] = array(
@@ -45,13 +54,14 @@ class Zero_Spam {
 	}
 
 	/**
-	 * Settings
+	 * Admin settings
+	 *
+	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['zerospam'] = array(
-			'title'       => __( 'Zero Spam', 'zerospam' ),
+			'title'       => __( 'Status', 'zerospam' ),
 			'section'     => 'zerospam',
 			'type'        => 'checkbox',
 			'options'     => array(
@@ -59,7 +69,8 @@ class Zero_Spam {
 			),
 			'desc'        => sprintf(
 				wp_kses(
-					__( 'Checks user IPs & submissions against <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam</a>\'s blacklist.', 'zerospam' ),
+					/* translators: %s: Replaced with the Zero Spam URL */
+					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam</a>.', 'zerospam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -76,9 +87,10 @@ class Zero_Spam {
 		);
 
 		$settings['zerospam_license'] = array(
-			'title'       => __( 'Zero Spam License Key', 'zerospam' ),
+			'title'       => __( 'License Key', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(
+					/* translators: %1$s: Replaced with the Zero Spam URL, %2$s: Replaced with the Zero Spam subscription URL */
 					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam license key</a> to enable enhanced premium protection. Don\'t have an license key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one now!</strong></a>', 'zerospam' ),
 					array(
 						'strong' => array(),
@@ -100,33 +112,33 @@ class Zero_Spam {
 		);
 
 		$settings['zerospam_timeout'] = array(
-			'title'       => __( 'Zero Spam API Timeout', 'zerospam' ),
+			'title'       => __( 'API Timeout', 'zerospam' ),
 			'section'     => 'zerospam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'seconds', 'zerospam' ),
 			'placeholder' => __( '5', 'zerospam' ),
 			'min'         => 0,
-			'desc'        => __( 'Recommended setting is 5 seconds. Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond; recommended 5 seconds.', 'zerospam' ),
 			'value'       => ! empty( $options['zerospam_timeout'] ) ? $options['zerospam_timeout'] : 5,
 			'recommended' => 5,
 		);
 
 		$settings['zerospam_cache'] = array(
-			'title'       => __( 'Zero Spam Cache Expiration', 'zerospam' ),
+			'title'       => __( 'Cache Expiration', 'zerospam' ),
 			'section'     => 'zerospam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zerospam' ),
-			'placeholder' => __( WEEK_IN_SECONDS, 'zerospam' ),
+			'placeholder' => WEEK_IN_SECONDS,
 			'min'         => 0,
-			'desc'        => __( 'Recommended setting is 14 days. Setting to high could result in outdated information, too low could cause a decrease in performance.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zerospam' ),
 			'value'       => ! empty( $options['zerospam_cache'] ) ? $options['zerospam_cache'] : 14,
 			'recommended' => 14,
 		);
 
 		$settings['zerospam_confidence_min'] = array(
-			'title'       => __( 'Zero Spam Confidence Minimum', 'zerospam' ),
+			'title'       => __( 'Confidence Minimum', 'zerospam' ),
 			'section'     => 'zerospam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
@@ -135,9 +147,10 @@ class Zero_Spam {
 			'min'         => 0,
 			'max'         => 100,
 			'step'        => 0.1,
-			'desc'      => sprintf(
+			'desc'        => sprintf(
 				wp_kses(
-					__( 'Recommended setting is 20%%. Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be.', 'zerospam' ),
+					/* translators: %s: Replaced with the Zero Spam API URL */
+					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 20%%.', 'zerospam' ),
 					array(
 						'a' => array(
 							'target' => array(),

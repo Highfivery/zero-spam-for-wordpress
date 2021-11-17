@@ -18,8 +18,15 @@ class MailchimpForWP {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_action( 'init', array( $this, 'init' ) );
+	}
+
+	/**
+	 * Fires after WordPress has finished loading but before any headers are sent.
+	 */
+	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -102,22 +109,17 @@ class MailchimpForWP {
 		}
 
 		// Check blocked email domains.
-		$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
-		if ( $blocked_email_domains && ! empty( $post['EMAIL'] ) ) {
-			$blocked_email_domains_array = explode( "\n", $blocked_email_domains );
-			$blocked_email_domains_array = array_map( 'trim', $blocked_email_domains_array );
-			$tmp_domain                  = explode( '@', $post['EMAIL'] );
-			$domain                      = trim( array_pop( $tmp_domain ) );
-
-			if ( in_array( $domain, $blocked_email_domains_array, true ) ) {
-				// Email domain has been blocked.
-				$validation_errors[] = 'blocked_email_domain';
-			}
+		if (
+			! empty( $post['EMAIL'] ) &&
+			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $post['EMAIL'] )
+		) {
+			// Email domain has been blocked.
+			$validation_errors[] = 'blocked_email_domain';
 		}
 
 		// Fire hook for additional validation (ex. David Walsh script).
 		// @codingStandardsIgnoreLine
-		$filtered_errors = apply_filters( 'zerospam_preprocess_mailchimp4wp', array(), $post );
+		$filtered_errors = apply_filters( 'zerospam_preprocess_mailchimp4wp', array(), $post, 'mailchimp4wp_spam_message' );
 
 		if ( ! empty( $filtered_errors ) ) {
 			foreach ( $filtered_errors as $key => $message ) {
@@ -175,10 +177,9 @@ class MailchimpForWP {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
+	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings ) {
-		$options = get_option( 'wpzerospam' );
-
+	public function settings( $settings, $options ) {
 		$settings['verify_mailchimp4wp'] = array(
 			'title'       => __( 'Protect Forms', 'zerospam' ),
 			'section'     => 'mailchimp4wp',
