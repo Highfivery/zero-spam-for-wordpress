@@ -66,7 +66,7 @@ class Give {
 		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
 
 		// Get the error message.
-		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'login_spam_message' );
+		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'givewp_spam_message' );
 
 		// Create the details array for logging & sharing data.
 		$details = array(
@@ -155,7 +155,7 @@ class Give {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
+		$message = __( 'We\'re sorry, but we\'re unable to process the transaction. Your IP has been flagged as possible spam.', 'zerospam' );
 
 		$settings['givewp_spam_message'] = array(
 			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
