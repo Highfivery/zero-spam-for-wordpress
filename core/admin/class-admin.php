@@ -147,7 +147,7 @@ class Admin {
 
 		// Check if the plugin has been auto-configured.
 		$configured = get_option( 'zerospam_configured' );
-		if ( $configured ) {
+		if ( ! $configured ) {
 			$messages['configuration'] = array(
 				'type'        => 'info',
 				'dismissible' => true,
