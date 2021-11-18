@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.8.2
 Requires PHP: 7.3
-Stable tag: 5.2.6
+Stable tag: 5.2.7
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -34,7 +34,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 = WordPress Zero Spam also protects =
 
 * WordPress core comments, user registrations &amp; login attempts
-* [GiveWP](https://wordpress.org/plugins/give/) donation submissions
+* [GiveWP](https://givewp.com/ref/1118/) donation submissions
 * [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
 * [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
 * [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
@@ -107,6 +107,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = v5.2.7 =
 
 * perf(settings): performance improvement to settings being loaded
+* style(admin): added check for zero spam license key when enabled
 
 = v5.2.6 =
 

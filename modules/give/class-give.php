@@ -145,7 +145,21 @@ class Give {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['verify_givewp'] = array(
-			'title'       => __( 'Protect GiveWP Submissions', 'zerospam' ),
+			'title'       => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( 'Protect <a href="%s" target="_blank" rel="noreferrer noopener">GiveWP</a> Submissions', 'zerospam' ),
+					array(
+						'a'    => array(
+							'href'   => array(),
+							'class'  => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				),
+				esc_url( 'https://givewp.com/ref/1118/' )
+			),
 			'section'     => 'givewp',
 			'type'        => 'checkbox',
 			'options'     => array(

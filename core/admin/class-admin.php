@@ -33,12 +33,7 @@ class Admin {
 		add_filter( 'admin_footer_text', array( $this, 'admin_footer_text' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
 		add_action( 'wp_dashboard_setup', array( $this, 'register_dashboard_widget' ) );
-
-		// Check first-time config.
-		$configured = get_option( 'zerospam_configured' );
-		if ( ! $configured ) {
-			add_action( 'admin_notices', array( $this, 'not_configured_notice' ) );
-		}
+		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
 	}
 
 	/**
@@ -119,26 +114,78 @@ class Admin {
 	/**
 	 * Display not configured notice
 	 */
-	public function not_configured_notice() {
-		$message = sprintf(
-			wp_kses(
-				/* translators: %s: url */
-				__( 'Thanks for installing WordPress Zero Spam! Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>. For enhanced protection, get a <a href="%3$s" target="_blank">Zero Spam premium license</a>.', 'zerospam' ),
-				array(
-					'strong' => array(),
-					'a'      => array(
-						'href'   => array(),
-						'target' => array(),
-					),
-				)
-			),
-			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-			esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=auto-configure' ) ),
-			esc_url( ZEROSPAM_URL . 'product/premium/' )
-		);
+	public function admin_notices() {
+		$messages = array();
 
-		$class = 'notice notice-success';
-		printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), $message );
+		// Check Zero Spam license key.
+		$zerospam_protection = \ZeroSpam\Core\Settings::get_settings( 'zerospam' );
+		if ( 'enabled' === $zerospam_protection ) {
+			$zerospam_license_key = \ZeroSpam\Core\Settings::get_settings( 'zerospam_license' );
+			if ( ! $zerospam_license_key ) {
+				$messages['license'] = array(
+					'type'        => 'error',
+					'dismissible' => false,
+					'content'     => sprintf(
+						wp_kses(
+							/* translators: %1$s: Replaced with the Zero Spam settings page URL */
+							__( 'Zero Spam Enhanced Protection is currenlty enabled, but <strong>missing a valid license key</strong>. <a href="%1$s">Add your license key</a> to enable enhanced site protection.', 'zerospam' ),
+							array(
+								'strong' => array(),
+								'a'      => array(
+									'href'   => array(),
+									'target' => array(),
+								),
+							)
+						),
+						esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
+						esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=auto-configure' ) ),
+						esc_url( ZEROSPAM_URL . 'product/premium/' )
+					),
+				);
+			}
+		}
+
+		// Check if the plugin has been auto-configured.
+		$configured = get_option( 'zerospam_configured' );
+		if ( $configured ) {
+			$messages['configuration'] = array(
+				'type'        => 'info',
+				'dismissible' => true,
+				'content'     => sprintf(
+					wp_kses(
+						/* translators: %1$s: Replaced with the Zero Spam settings page URL */
+						__( '<strong>Thanks for installing WordPress Zero Spam!</strong> Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>. For enhanced protection, get a <a href="%3$s" target="_blank">Zero Spam premium license</a>.', 'zerospam' ),
+						array(
+							'strong' => array(),
+							'a'      => array(
+								'href'   => array(),
+								'target' => array(),
+							),
+						)
+					),
+					esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
+					esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=auto-configure' ) ),
+					esc_url( ZEROSPAM_URL . 'product/premium/' )
+				),
+			);
+		}
+
+		if ( $messages ) {
+			$classes = array( 'notice' );
+			foreach ( $messages as $key => $message ) {
+				$classes[] = 'notice-' . $message['type'];
+				if ( $message['dismissible'] ) {
+					$classes[] = 'is-dismissible';
+				}
+
+				printf(
+					'<div class="%1$s"><p>%2$s</p></div>',
+					esc_attr( implode( ' ', $classes ) ),
+					// @codingStandardsIgnoreLine
+					$message['content']
+				);
+			}
+		}
 	}
 
 	/**
