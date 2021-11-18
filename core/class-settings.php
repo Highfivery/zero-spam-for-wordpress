@@ -289,7 +289,6 @@ class Settings {
 			'value'       => ! empty( $options['ip_whitelist'] ) ? $options['ip_whitelist'] : false,
 		);
 
-		$recommended_blocked_email_domains       = \ZeroSpam\Core\Utilities::blocked_email_domains();
 		self::$settings['blocked_email_domains'] = array(
 			'title'       => __( 'Blocked Email Domains', 'zerospam' ),
 			'desc'        => __( 'Enter a list of email domains that should be blocked, one per line.', 'zerospam' ),
@@ -298,7 +297,6 @@ class Settings {
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
 			'value'       => ! empty( $options['blocked_email_domains'] ) ? $options['blocked_email_domains'] : false,
-			'recommended' => $recommended_blocked_email_domains ? implode( "\n", $recommended_blocked_email_domains ) : '',
 		);
 
 		self::$settings['update_blocked_email_domains'] = array(

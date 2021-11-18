@@ -104,6 +104,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 == Changelog ==
 
+= v5.2.7 =
+
+* perf(settings): performance improvement to settings being loaded
+
 = v5.2.6 =
 
 * fix(undefined method): fix for undefined types method
