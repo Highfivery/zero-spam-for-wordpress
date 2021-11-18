@@ -28,8 +28,6 @@ class Access {
 	 * Fires after WordPress has finished loading but before any headers are sent.
 	 */
 	public function init() {
-		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
-
 		if ( ! is_admin() && is_main_query() && self::process() ) {
 			add_action( 'template_redirect', array( $this, 'access_check' ), 0 );
 			add_filter( 'zerospam_access_checks', array( $this, 'check_blocked' ), 0, 3 );
