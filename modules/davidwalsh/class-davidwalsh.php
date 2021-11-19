@@ -29,6 +29,7 @@ class DavidWalsh {
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_failed_types', array( $this, 'failed_types' ), 10, 1 );
 
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) &&
@@ -90,6 +91,17 @@ class DavidWalsh {
 		}
 
 		return $errors;
+	}
+
+	/**
+	 * Add to failed types
+	 *
+	 * @param array $types Array of failed types.
+	 */
+	public function failed_types( $types ) {
+		$types['david_walsh'] = __( 'David Walsh', 'zerospam' );
+
+		return $types;
 	}
 
 	/**

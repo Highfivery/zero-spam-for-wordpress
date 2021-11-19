@@ -1,15 +1,22 @@
 <?php
 /**
- * Modal details.
+ * Detection details modal
  *
  * @package ZeroSpam
- * @since 5.0.0
  */
 
+$submission_data = ! empty( $item['submission_data'] ) ? json_decode( $item['submission_data'], true ) : false;
+if ( $submission_data ) :
+	$submission_data = \ZeroSpam\Core\Utilities::sanitize_array( $submission_data );
+	// Remove type, pulled from the log_type column.
+	if ( ! empty( $submission_data['type'] ) ) :
+		unset( $submission_data['type'] );
+	endif;
+endif;
 ?>
 <div class="zerospam-modal-details">
 	<div class="zerospam-modal-title">
-		<h3>ID #<?php echo esc_html( $item['log_id'] ); ?></h3>
+		<h3><?php echo esc_html_e( 'Detection ID', 'zerospam' ); ?> #<?php echo esc_html( $item['log_id'] ); ?></h3>
 	</div>
 	<div class="zerospam-modal-subtitle">
 		<?php
@@ -27,28 +34,68 @@
 			<strong><?php esc_html_e( 'IP Address', 'zerospam' ); ?></strong>
 			<span>
 				<?php
+				$lookup_url  = ZEROSPAM_URL . 'ip-lookup/';
+				$lookup_url .= rawurlencode( $item['user_ip'] ) . '/';
+				$lookup_url .= '?utm_source=' . site_url() . '&';
+				$lookup_url .= '?utm_medium=wpzerospam_ip_lookup&';
+				$lookup_url .= '?utm_campaign=wpzerospam';
+
 				echo sprintf(
 					wp_kses(
-						/* translators: %1s: IP URL lookup, %2$2 IP address, %2s: IP address */
-						__( '<a href="%1$s" target="_blank" rel="noreferrer noopener">%2$s</a>', 'zerospam' ),
+						/* translators: %1s: Replaced with the IP address, %2$s Replaced with the IP lookup URL */
+						__( '%1$s &mdash; <a href="%2$s" target="_blank" rel="noreferrer noopener" class="zerospam-new-window-link">IP Lookup</a>', 'zerospam' ),
 						array(
 							'a' => array(
 								'target' => array(),
 								'href'   => array(),
 								'rel'    => array(),
+								'class'  => array(),
 							),
 						)
 					),
-					esc_url( ZEROSPAM_URL . 'ip-lookup/' . rawurlencode( esc_html( $item['user_ip'] ) ) ),
-					esc_html( $item['user_ip'] )
+					esc_html( $item['user_ip'] ),
+					esc_url( $lookup_url )
 				);
 				?>
 			</span>
 		</li>
 		<li>
 			<strong><?php esc_html_e( 'Type', 'zerospam' ); ?></strong>
-			<span><?php echo esc_html( $item['log_type'] ); ?></span>
+			<span>
+				<?php
+				$detection_types = apply_filters( 'zerospam_types', array() );
+				if ( ! empty( $detection_types[ $item['log_type'] ] ) ) :
+					echo wp_kses(
+						$detection_types[ $item['log_type'] ] . ' &mdash; <code>' . $item['log_type'] . '</code>',
+						array( 'code' => array() )
+					);
+				else :
+					echo wp_kses( $item['log_type'], array( 'code' => array() ) );
+				endif;
+				?>
+			</span>
 		</li>
+		<?php if ( $submission_data && ! empty( $submission_data['failed'] ) ) : ?>
+			<li>
+				<strong><?php esc_html_e( 'Failed', 'zerospam' ); ?></strong>
+				<span>
+					<?php
+					$failed_types = apply_filters( 'zerospam_failed_types', array() );
+					if ( ! empty( $failed_types[ $submission_data['failed'] ] ) ) :
+						echo wp_kses(
+							$failed_types[ $submission_data['failed'] ] . ' &mdash; <code>' . $submission_data['failed'] . '</code>',
+							array( 'code' => array() )
+						);
+					else :
+						echo wp_kses( $submission_data['failed'], array( 'code' => array() ) );
+					endif;
+					?>
+				</span>
+			</li>
+			<?php
+			unset( $submission_data['failed'] );
+		endif;
+		?>
 	</ul>
 
 	<button class="button action zerospam-block-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>">
@@ -140,10 +187,7 @@
 	<h4 class="zerospam-modal-headline"><?php echo esc_html_e( 'Additional Details', 'zerospam' ); ?></h4>
 	<?php
 
-	if ( ! empty( $item['submission_data'] ) ) :
-		// Sanatize the array.
-		$submission_data = json_decode( $item['submission_data'], true );
-		$submission_data = \ZeroSpam\Core\Utilities::sanitize_array( $submission_data, 'esc_html' );
+	if ( $submission_data ) :
 		echo '<ul class="zerospam-modal-list">';
 		foreach ( $submission_data as $key => $value ) :
 			?>

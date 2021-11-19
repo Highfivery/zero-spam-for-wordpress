@@ -91,7 +91,6 @@ Some hosts have issues with they way they access files. If you're seeing a `ftp_
 
 `define('FS_METHOD', 'direct');`
 
-
 If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs/plugins-known-issues#define-fs_method) for more information and what to do to resolve it with their `$_ENV['PANTHEON_ENVIRONMENT']` variable check.
 
 == Screenshots ==
@@ -108,6 +107,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 * perf(settings): performance improvement to settings being loaded
 * style(admin): added check for zero spam license key when enabled
+* style(admin): misc. admin interface improvements
 
 = v5.2.6 =
 

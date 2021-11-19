@@ -30,6 +30,7 @@ class Plugin {
 		$this->init_modules();
 
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
+		add_filter( 'zerospam_failed_types', array( $this, 'failed_types' ), 10, 1 );
 	}
 
 	/**
@@ -50,6 +51,19 @@ class Plugin {
 		}
 
 		return self::$instance;
+	}
+
+	/**
+	 * Add to failed types
+	 *
+	 * @param array $types Array of failed types.
+	 */
+	public function failed_types( $types ) {
+		$types['honeypot']             = __( 'Honeypot', 'zerospam' );
+		$types['blocked_email_domain'] = __( 'Blocked Email Domain', 'zerospam' );
+		$types['blocked']              = __( 'Blocked IP', 'zerospam' );
+
+		return $types;
 	}
 
 	/**

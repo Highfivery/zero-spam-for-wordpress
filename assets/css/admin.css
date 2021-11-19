@@ -2,6 +2,19 @@
 	--zerospam-primary: #840012;
 }
 
+.zerospam-new-window-link::after {
+	background-image: url('../img/icon-new-window.svg');
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: contain;
+	content: '';
+	display: inline-block;
+	height: 11px;
+	margin-left: 3px;
+	vertical-align: middle;
+	width: 11px;
+}
+
 .zerospam-flag {
 	display: inline-block;
 	margin-right: 8px;
@@ -307,13 +320,7 @@
 	}
 
 	.zerospam-callout-col {
-		flex-grow: 1;
 		padding: 30px;
-	}
-
-	.zerospam-callout-col:last-child {
-		flex-shrink: 0;
-		max-width: 600px;
 		width: 100%;
 	}
 }
