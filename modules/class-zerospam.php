@@ -7,8 +7,6 @@
 
 namespace ZeroSpam\Modules;
 
-use ZeroSpam;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -234,7 +232,7 @@ class Zero_Spam {
 		}
 
 		// Attempt to get the geolocation information.
-		$api_data['location'] = ZeroSpam\Modules\ipstack::get_geolocation( $ip );
+		$api_data['location'] = \ZeroSpam\Modules\ipstack::get_geolocation( $ip );
 
 		$global_data = self::global_api_data();
 		$api_data    = array_merge( $api_data, $global_data );
@@ -245,5 +243,82 @@ class Zero_Spam {
 		);
 
 		wp_remote_post( $endpoint, $args );
+	}
+
+	/**
+	 * Query the Zero Spam Blacklist API
+	 *
+	 * @param array $params Array of query parameters.
+	 */
+	public static function query( $params ) {
+		if (
+			empty( $params['ip'] ) &&
+			empty( $params['username'] ) &&
+			empty( $params['email'] )
+		) {
+			return false;
+		}
+
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+
+		if ( empty( $settings['zerospam_license']['value'] ) ) {
+			return false;
+		}
+
+		$cache_array = array( 'zero_spam' );
+		$cache_array = array_merge( $cache_array, $params );
+		$cache_key   = \ZeroSpam\Core\Utilities::cache_key( $cache_array );
+
+		$response = wp_cache_get( $cache_key );
+		if ( false === $response ) {
+			$endpoint = 'https://www.zerospam.org/wp-json/v1/query';
+
+			$args = array(
+				'body' => array(
+					'license_key' => $settings['zerospam_license']['value'],
+				),
+			);
+
+			if ( ! empty( $params['ip'] ) ) {
+				$args['body']['ip'] = $params['ip'];
+			}
+
+			$args['timeout'] = 5;
+			if ( ! empty( $settings['zerospam_timeout'] ) ) {
+				$args['timeout'] = intval( $settings['zerospam_timeout']['value'] );
+			}
+
+			$response = \ZeroSpam\Core\Utilities::remote_post( $endpoint, $args );
+			if ( $response ) {
+				// Response should be a JSON string.
+				$response = json_decode( $response, true );
+
+				if (
+					! is_array( $response ) ||
+					empty( $response['status'] ) ||
+					'success' !== $response['status'] ||
+					empty( $response['result'] )
+				) {
+					if ( ! empty( $response['result'] ) ) {
+						\ZeroSpam\Core\Utilities::log( $response['result'] );
+					} else {
+						\ZeroSpam\Core\Utilities::log( __( 'There was a problem querying the Zero Spam Blacklist API.', 'zerospam' ) );
+					}
+
+					return false;
+				}
+
+				$response = $response['result'];
+
+				$expiration = 14 * DAY_IN_SECONDS;
+				if ( ! empty( $settings['zerospam_confidence_min']['value'] ) ) {
+					$expiration = $settings['zerospam_confidence_min']['value'] * DAY_IN_SECONDS;
+				}
+
+				wp_cache_set( $cache_key, $response, 'zerospam', $expiration );
+			}
+		}
+
+		return $response;
 	}
 }

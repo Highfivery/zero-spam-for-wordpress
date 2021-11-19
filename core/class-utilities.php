@@ -239,8 +239,6 @@ class Utilities {
 	/**
 	 * Write an entry to a log file in the uploads directory.
 	 *
-	 * @since 5.1.0
-	 *
 	 * @param mixed  $entry String or array of the information to write to the log.
 	 * @param string $mode Optional. The type of write. See 'mode' at https://www.php.net/manual/en/function.fopen.php.
 	 * @param string $file Optional. The file basename for the .log file.
@@ -637,12 +635,34 @@ class Utilities {
 	}
 
 	/**
-	 * Remote get
+	 * Performs an HTTP request using the GET method and returns its response.
+	 *
+	 * @param string $endpoint URL to retrieve.
+	 * @param array  $args     Request arguments.
 	 */
 	public static function remote_get( $endpoint, $args = array() ) {
 		$response = wp_remote_get( $endpoint, $args );
 		if ( is_array( $response ) && ! is_wp_error( $response ) ) {
 			return wp_remote_retrieve_body( $response );
+		} elseif ( is_wp_error( $response ) ) {
+			self::log( $response->get_error_message() );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Performs an HTTP request using the POST method and returns its response.
+	 *
+	 * @param string $endpoint URL to retrieve.
+	 * @param array  $args     Request arguments.
+	 */
+	public static function remote_post( $endpoint, $args = array() ) {
+		$response = wp_remote_post( $endpoint, $args );
+		if ( is_array( $response ) && ! is_wp_error( $response ) ) {
+			return wp_remote_retrieve_body( $response );
+		} elseif ( is_wp_error( $response ) ) {
+			self::log( $response->get_error_message() );
 		}
 
 		return false;
