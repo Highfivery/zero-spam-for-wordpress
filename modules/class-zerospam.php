@@ -60,6 +60,30 @@ class Zero_Spam {
 	 * @param array $options  Array of saved database options.
 	 */
 	public function settings( $settings, $options ) {
+		$settings['zerospam_info'] = array(
+			'section' => 'zerospam',
+			'type'    => 'html',
+			'html'    => sprintf(
+				wp_kses(
+					/* translators: %1s: Replaced with the Zero Spam URL, %2$s: Replaced with the DDoD attack wiki URL */
+					__( '<h3 style="margin-top: 0">Enabling enhanced protection is highly recommended.</h3><p>Enhanced protection adds additional checks using one of the largest, most comprehensive, constantly-growing global malicious IP, email, and username databases available, the  <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam Blacklist</a>. Once enabled, all visitors will be checked against this blacklist that includes protected forms containing email and username fields &mdash; giving you the peace of mind that submissions are coming from legitimate. It can also help prevent <a href="%2$s" target="_blank" rel="noopener noreferrer">DDoS attacks</a> &amp; fraudsters looking to test stolen credit card numbers.</p>', 'zerospam' ),
+					array(
+						'h3'     => array(
+							'style' => array(),
+						),
+						'p'      => array(),
+						'a'      => array(
+							'href'  => array(),
+							'class' => array(),
+						),
+						'strong' => array(),
+					)
+				),
+				esc_url( ZEROSPAM_URL . '?utm_source=' . site_url() . '&utm_medium=admin_zerospam_info&utm_campaign=wpzerospam' ),
+				esc_url( 'https://en.wikipedia.org/wiki/Denial-of-service_attack' )
+			),
+		);
+
 		$settings['zerospam'] = array(
 			'title'       => __( 'Status', 'zerospam' ),
 			'section'     => 'zerospam',
@@ -91,7 +115,7 @@ class Zero_Spam {
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the Zero Spam URL, %2$s: Replaced with the Zero Spam subscription URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam license key</a> to enable enhanced premium protection. Don\'t have an license key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one now!</strong></a>', 'zerospam' ),
+					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> license key for enhanced protection. Don\'t have an license key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one now!</strong></a>', 'zerospam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -159,7 +183,7 @@ class Zero_Spam {
 						),
 					)
 				),
-				esc_url( ZEROSPAM_URL . 'spam-blacklist-api/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
+				esc_url( ZEROSPAM_URL . 'spam-blacklist-api/?utm_source=' . site_url() . '&utm_medium=admin_confidence_score&utm_campaign=wpzerospam' )
 			),
 			'value'       => ! empty( $options['zerospam_confidence_min'] ) ? $options['zerospam_confidence_min'] : 30,
 			'recommended' => 30,

@@ -34,7 +34,7 @@ $settings = \ZeroSpam\Core\Settings::get_settings();
 			echo sprintf(
 				wp_kses(
 					/* translators: %s: Zero Spam API link */
-					__( '<p><strong>Is some spam still getting through?</strong> Enable enhanced protection with a <strong>Zero Spam API license</strong> &mdash; one of the largest, most comprehensive, constantly-growing global malicious IP databases available.</p><p><a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> is comprised of a global detection network of over 30,000+ apps and sites that monitor traffic and usage in real-time to detect malicious activity. <a href="%1$s" target="_blank" rel="noopener noreferrer"><strong>Subscribe today</strong></a> for enhanced protection.</p>', 'zerospam' ),
+					__( '<p>Enable enhanced protection with a <strong>Zero Spam API license</strong> &mdash; one of the largest, most comprehensive, constantly-growing global malicious IP, email, and username databases available.</p><p><a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> is comprised of a global detection network of over 30,000+ apps and sites that monitor traffic and usage in real-time to detect malicious activity. <a href="%1$s" target="_blank" rel="noopener noreferrer"><strong>Subscribe today</strong></a> for enhanced protection.</p>', 'zerospam' ),
 					array(
 						'a'      => array(
 							'target' => array(),
@@ -93,7 +93,7 @@ $settings = \ZeroSpam\Core\Settings::get_settings();
 		<?php endif; ?>
 	</div>
 	<div class="zerospam-callout-col zerospam-callout-actions">
-		<ul>
+		<ul style="margin-top: 0">
 			<?php if ( 'enabled' !== $settings['zerospam']['value'] || empty( $settings['zerospam_license']['value'] ) ) : ?>
 				<li style="margin-bottom: 20px;">
 					<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>subscribe/?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=license" target="_blank">

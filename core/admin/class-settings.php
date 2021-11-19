@@ -231,7 +231,7 @@ class Settings {
 
 			add_settings_field(
 				$key,
-				$setting['title'],
+				! empty( $setting['title'] ) ? $setting['title'] : false,
 				array( $this, 'settings_field' ),
 				'wpzerospam',
 				'zerospam_' . $setting['section'],
