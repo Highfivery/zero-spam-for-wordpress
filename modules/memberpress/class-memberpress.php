@@ -18,7 +18,7 @@ class MemberPress {
 	 * Constructor
 	 */
 	public function __construct() {
-		add_action( 'init', array( $this, 'init' ) );
+		add_action( 'init', array( $this, 'init' ), 0 );
 	}
 
 	/**
@@ -37,7 +37,7 @@ class MemberPress {
 			add_action( 'mepr-checkout-before-submit', array( $this, 'add_honeypot' ) );
 
 			// Preprocess registration form submissions.
-			add_filter( 'mepr-validate-signup', array( $this, 'process_form' ) );
+			add_filter( 'mepr-validate-signup', array( $this, 'process_form' ), 10, 1 );
 
 			// Add scripts.
 			add_filter( 'mepr-signup-scripts', array( $this, 'scripts' ), 10, 1 );

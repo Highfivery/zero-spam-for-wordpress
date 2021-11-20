@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.8.2
 Requires PHP: 7.3
-Stable tag: 5.2.7
+Stable tag: 5.2.8
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -102,6 +102,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.2.8 =
+
+* fix(memberpress): updated memberpress sign-up hook priority to ensure it runs
 
 = v5.2.7 =
 
