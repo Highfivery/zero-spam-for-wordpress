@@ -154,7 +154,7 @@ class LogTable extends WP_List_Table {
 		// @codingStandardsIgnoreLine
 		$order = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['order'] ) ) : 'desc';
 		// @codingStandardsIgnoreLine
-		$orderby = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['orderby'] ) ) : 'date_added';
+		$orderby = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['orderby'] ) ) : 'date_recorded';
 
 		// @codingStandardsIgnoreLine
 		$log_type   = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['type'] ) ) : false;

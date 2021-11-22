@@ -105,6 +105,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.2.8 =
 
+* feat(memberpress): resolves #286, added support for the memberpress login page
 * fix(memberpress): updated memberpress sign-up hook priority to ensure it runs
 
 = v5.2.7 =

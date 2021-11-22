@@ -20,7 +20,7 @@ class DavidWalsh {
 	 * Constructor
 	 */
 	public function __construct() {
-		add_action( 'init', array( $this, 'init' ) );
+		add_action( 'init', array( $this, 'init' ), 0 );
 	}
 
 	/**
@@ -46,8 +46,9 @@ class DavidWalsh {
 			add_action( 'zerospam_fluentforms_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_login_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_mailchimp4wp_scripts', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_memberpress_login_scripts', array( $this, 'enqueue_script' ) );
 			add_filter(
-				'zerospam_memberpress_scripts',
+				'zerospam_memberpress_registration_scripts',
 				function( $scripts ) {
 					$scripts[] = 'zerospam-davidwalsh';
 
@@ -64,6 +65,7 @@ class DavidWalsh {
 			add_filter( 'zerospam_preprocess_fluentform_submission', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_login_attempt', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_memberpress_registration', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_memberpress_login', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_mailchimp4wp', array( $this, 'validate_post' ), 10, 3 );
 		}
 	}

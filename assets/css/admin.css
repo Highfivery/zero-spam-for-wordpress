@@ -256,6 +256,7 @@
 .zerospam-type-contactform7::before,
 .zerospam-type-givewp::before,
 .zerospam-type-memberpress_registration::before,
+.zerospam-type-memberpress_login::before,
 .zerospam-type-mailchimp4wp::before {
 	background-position: center;
 	background-repeat: no-repeat;
@@ -299,8 +300,9 @@
 	background-image: url('../img/icon-cf7.png');
 }
 
-/* Type: memberpress_registration */
-.zerospam-type-memberpress_registration::before {
+/* Type: memberpress_registration, memberpress_login */
+.zerospam-type-memberpress_registration::before,
+.zerospam-type-memberpress_login::before {
 	background-image: url('../img/icon-memberpress.svg');
 }
 
