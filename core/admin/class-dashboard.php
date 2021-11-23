@@ -20,10 +20,7 @@ defined( 'ABSPATH' ) || die();
 class Dashboard {
 
 	/**
-	 * Dashboard constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Dashboard constructor
 	 */
 	public function __construct() {
 		add_action( 'admin_init', array( $this, 'admin_init' ) );

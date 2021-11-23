@@ -46,11 +46,6 @@ class Settings {
 		$message  = false;
 
 		switch ( $action ) {
-			case 'auto-configure':
-				$redirect = '&tab=settings';
-				$message  = __( 'WordPress Zero Spam has successfully been auto-configured with the recommended settings.', 'zerospam' );
-				\ZeroSpam\Core\Settings::auto_configure();
-				break;
 			case 'regenerate-honeypot':
 				$redirect = '&tab=settings';
 				$message  = __( 'WordPress Zero Spam\'s honeypot ID has been successfully reset.', 'zerospam' );
@@ -132,9 +127,26 @@ class Settings {
 	}
 
 	/**
+	 * Processes nonce actions
+	 */
+	public function process_nonce_actions() {
+		if ( ! empty( $_REQUEST['zerospam-action'] ) && check_admin_referer( 'autoconfigure', 'zerospam' ) ) {
+			\ZeroSpam\Core\Settings::auto_configure();
+
+			$message      = __( 'WordPress Zero Spam has successfully been auto-configured with the recommended settings.', 'zerospam' );
+			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-msg=' . $message;
+
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+	}
+
+	/**
 	 * Admin menu
 	 */
 	public function admin_menu() {
+		$this->process_nonce_actions();
+
 		add_submenu_page(
 			'options-general.php',
 			__( 'Zero Spam Settings', 'zerospam' ),

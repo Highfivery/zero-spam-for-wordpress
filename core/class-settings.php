@@ -120,15 +120,15 @@ class Settings {
 			'html'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( '<a href="%s" class="button button-primary">Override &amp; Update Settings</a>', 'zerospam' ),
+					__( '<a href="%s" class="button">Override &amp; Update Settings</a>', 'zerospam' ),
 					array(
-						'a'    => array(
+						'a' => array(
 							'href'  => array(),
 							'class' => array(),
 						),
 					)
 				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=auto-configure' ) )
+				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=1' ), 'autoconfigure', 'zerospam' )
 			),
 		);
 
