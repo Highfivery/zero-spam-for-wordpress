@@ -142,7 +142,7 @@ class Settings {
 						/* translators: %s: url */
 						__( 'Join <a href="%1$s" target="_blank" rel="noreferrer noopener">Zero Spam\'s global community</a> &amp; report detections by opting in to share non-sensitive data. <a href="%2$s" target="_blank" rel="noreferrer noopener">Learn more</a>.', 'zerospam' ),
 						array(
-							'a'    => array(
+							'a' => array(
 								'target' => array(),
 								'href'   => array(),
 								'rel'    => array(),
@@ -207,11 +207,11 @@ class Settings {
 			'title'       => __( 'IP Block Method', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %s: url */
-					__( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version or adding <a href="%s" target="_blank" rel="noreferrer noopener">more than 8190 characters</a> could cause the website to crash</strong> and require a manual fix to the .htaccess file. If this happens &amp; you\'re unsure how to fix, contact <a href="%s" target="_blank" rel="noreferrer noopener">Highfivery</a> for a rapid response and resolution.', 'zerospam' ),
+					/* translators: %1$s: Replaced with the apache docs URL, %2$s: Replaced with Highfivery's website URL */
+					__( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version or adding <a href="%1$s" target="_blank" rel="noreferrer noopener">more than 8190 characters</a> could cause the website to crash</strong> and require a manual fix to the .htaccess file. If this happens &amp; you\'re unsure how to fix, contact <a href="%2$s" target="_blank" rel="noreferrer noopener">Highfivery</a> for a rapid response and resolution.', 'zerospam' ),
 					array(
 						'strong' => array(),
-						'a'    => array(
+						'a'      => array(
 							'target' => array(),
 							'href'   => array(),
 							'rel'    => array(),
@@ -316,7 +316,7 @@ class Settings {
 					/* translators: %s: url */
 					__( '<a href="%s" class="button">Override &amp; Update Blocked Email Domains</a>', 'zerospam' ),
 					array(
-						'a'    => array(
+						'a' => array(
 							'href'  => array(),
 							'class' => array(),
 						),
@@ -365,7 +365,7 @@ class Settings {
 					/* translators: %s: url */
 					__( '<a href="%s" class="button">Override &amp; Update Core Disallowed Words</a>', 'zerospam' ),
 					array(
-						'a'    => array(
+						'a' => array(
 							'href'  => array(),
 							'class' => array(),
 						),

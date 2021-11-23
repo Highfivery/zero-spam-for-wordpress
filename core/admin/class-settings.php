@@ -165,6 +165,8 @@ class Settings {
 
 	/**
 	 * Validates plugin settings before save
+	 *
+	 * @param array $input Input array.
 	 */
 	public function settings_validation( $input ) {
 		update_option( 'zerospam_configured', 1 );
@@ -268,11 +270,43 @@ class Settings {
 
 	/**
 	 * Settings field
+	 *
+	 * @param array $args Field arguments.
 	 */
 	public function settings_field( $args ) {
 		switch ( $args['type'] ) {
 			case 'html':
-				echo $args['html'];
+				echo wp_kses(
+					$args['html'],
+					array(
+						'strong' => array(),
+						'a'      => array(
+							'target' => array(),
+							'class'  => array(),
+							'rel'    => array(),
+						),
+						'em'     => array(),
+						'code'   => array(),
+						'h1'     => array(
+							'style' => array(),
+						),
+						'h2'     => array(
+							'style' => array(),
+						),
+						'h3'     => array(
+							'style' => array(),
+						),
+						'h4'     => array(
+							'style' => array(),
+						),
+						'h5'     => array(
+							'style' => array(),
+						),
+						'h6'     => array(
+							'style' => array(),
+						),
+					)
+				);
 				break;
 			case 'textarea':
 				?>
@@ -286,7 +320,11 @@ class Settings {
 					<?php if ( ! empty( $args['placeholder'] ) ) : ?>
 						placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
 					<?php endif; ?>
-				><?php if( ! empty( $args['value'] ) ) : ?><?php echo esc_attr( $args['value'] ); ?><?php endif; ?></textarea>
+				>
+					<?php if ( ! empty( $args['value'] ) ) : ?>
+						<?php echo esc_attr( $args['value'] ); ?>
+					<?php endif; ?>
+				</textarea>
 				<?php
 				break;
 			case 'url':
@@ -299,7 +337,7 @@ class Settings {
 					id="<?php echo esc_attr( $args['label_for'] ); ?>"
 					name="wpzerospam[<?php echo esc_attr( $args['label_for'] ); ?>]"
 					type="<?php echo esc_attr( $args['type'] ); ?>"
-					<?php if( ! empty( $args['value'] ) ) : ?>
+					<?php if ( ! empty( $args['value'] ) ) : ?>
 						value="<?php echo esc_attr( $args['value'] ); ?>"
 					<?php endif; ?>
 					<?php if ( ! empty( $args['field_class'] ) ) : ?>
@@ -308,13 +346,13 @@ class Settings {
 					<?php if ( ! empty( $args['placeholder'] ) ) : ?>
 						placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
 					<?php endif; ?>
-					<?php if( ! empty( $args['min'] ) ) : ?>
+					<?php if ( ! empty( $args['min'] ) ) : ?>
 						min="<?php echo esc_attr( $args['min'] ); ?>"
 					<?php endif; ?>
-					<?php if( ! empty( $args['max'] ) ) : ?>
+					<?php if ( ! empty( $args['max'] ) ) : ?>
 						max="<?php echo esc_attr( $args['max'] ); ?>"
 					<?php endif; ?>
-					<?php if( ! empty( $args['step'] ) ) : ?>
+					<?php if ( ! empty( $args['step'] ) ) : ?>
 						step="<?php echo esc_attr( $args['step'] ); ?>"
 					<?php endif; ?>
 				/>
@@ -359,7 +397,7 @@ class Settings {
 									selected="selected"
 								<?php endif; ?>
 							>
-								<?php esc_html_e( $label ); ?>
+								<?php echo esc_html( $label ); ?>
 							</option>
 						<?php endforeach; ?>
 				</select>
