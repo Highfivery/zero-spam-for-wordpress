@@ -13,4 +13,9 @@ if ( ! $log ) {
 ?>
 
 <textarea readonly class="large-text code" rows="30"><?php echo esc_html( $log ); ?></textarea>
-<a href="<?php echo esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&amp;tab=error&amp;zerospam-action=delete-error-log' ) ); ?>" class="button button-primary"><?php esc_html_e( 'Clear Error Log' ); ?></a>
+<a
+	href="<?php echo esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=delete-error-log' ), 'delete-error-log', 'zerospam' ) ); ?>"
+	class="button button-primary"
+>
+	<?php esc_html_e( 'Clear Error Log', 'zerospam' ); ?>
+</a>

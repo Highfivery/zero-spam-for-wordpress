@@ -107,7 +107,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 * feat(memberpress): resolves #286, added support for the memberpress login page
 * fix(memberpress): updated memberpress sign-up hook priority to ensure it runs
-* fix(admin): now using nonces to process zero spam admin actions
+* refactor(admin): now using nonces to process zero spam admin actions
 
 = v5.2.7 =
 

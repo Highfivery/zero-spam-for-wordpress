@@ -138,7 +138,7 @@ class Admin {
 							)
 						),
 						esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-						esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=auto-configure' ) ),
+						wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zerospam' ),
 						esc_url( ZEROSPAM_URL . 'product/premium/' )
 					),
 				);

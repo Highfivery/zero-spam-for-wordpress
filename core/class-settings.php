@@ -128,7 +128,7 @@ class Settings {
 						),
 					)
 				),
-				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=1' ), 'autoconfigure', 'zerospam' )
+				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zerospam' )
 			),
 		);
 
@@ -314,7 +314,7 @@ class Settings {
 			'html'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( '<a href="%s" class="button button-primary">Override &amp; Update Blocked Email Domains</a>', 'zerospam' ),
+					__( '<a href="%s" class="button">Override &amp; Update Blocked Email Domains</a>', 'zerospam' ),
 					array(
 						'a'    => array(
 							'href'  => array(),
@@ -322,7 +322,7 @@ class Settings {
 						),
 					)
 				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-email-domains' ) )
+				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-emails' ), 'update-blocked-emails', 'zerospam' )
 			),
 		);
 
@@ -343,15 +343,15 @@ class Settings {
 			'html'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( '<a href="%s" class="button button-primary">Regenerate Honeypot ID</a>', 'zerospam' ),
+					__( '<a href="%s" class="button">Regenerate Honeypot ID</a>', 'zerospam' ),
 					array(
-						'a'    => array(
+						'a' => array(
 							'href'  => array(),
 							'class' => array(),
 						),
 					)
 				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=regenerate-honeypot' ) )
+				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=regenerate-honeypot' ), 'regenerate-honeypot', 'zerospam' )
 			),
 		);
 
@@ -363,7 +363,7 @@ class Settings {
 			'html'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( '<a href="%s" class="button button-primary">Override &amp; Update Core Disallowed Words</a>', 'zerospam' ),
+					__( '<a href="%s" class="button">Override &amp; Update Core Disallowed Words</a>', 'zerospam' ),
 					array(
 						'a'    => array(
 							'href'  => array(),
@@ -371,7 +371,7 @@ class Settings {
 						),
 					)
 				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ) )
+				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ), 'update-disallowed-words', 'zerospam' )
 			),
 		);
 
