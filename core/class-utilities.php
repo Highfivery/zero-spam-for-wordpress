@@ -106,7 +106,7 @@ class Utilities {
 		$domain          = explode( '@', $email );
 		$domain          = trim( array_pop( $domain ) );
 
-		if ( in_array( $domain, $blocked_domains, true ) ) {
+		if ( $blocked_domains && in_array( $domain, $blocked_domains, true ) ) {
 			return true;
 		}
 
