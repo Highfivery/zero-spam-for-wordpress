@@ -281,6 +281,7 @@ class Settings {
 					array(
 						'strong' => array(),
 						'a'      => array(
+							'href'   => array(),
 							'target' => array(),
 							'class'  => array(),
 							'rel'    => array(),
