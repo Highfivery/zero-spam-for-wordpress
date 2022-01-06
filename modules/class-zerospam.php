@@ -113,7 +113,7 @@ class Zero_Spam {
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the Zero Spam URL, %2$s: Replaced with the Zero Spam subscription URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> license key for enhanced protection. Don\'t have an license key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one now!</strong></a>', 'zerospam' ),
+					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> license key or define it in <code>wp-config.php</code>, using the constant <code>ZEROSPAM_LICENSE_KEY</code> to enable enhanced protection. Don\'t have an license key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one now!</strong></a>', 'zerospam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -121,6 +121,7 @@ class Zero_Spam {
 							'href'   => array(),
 							'rel'    => array(),
 						),
+						'code'   => array(),
 					)
 				),
 				esc_url( ZEROSPAM_URL ),
@@ -132,6 +133,10 @@ class Zero_Spam {
 			'placeholder' => __( 'Enter your Zero Spam license key.', 'zerospam' ),
 			'value'       => ! empty( $options['zerospam_license'] ) ? $options['zerospam_license'] : false,
 		);
+
+		if ( defined( 'ZEROSPAM_LICENSE_KEY' ) && ! $settings['zerospam_license']['value'] ) {
+			$settings['zerospam_license']['value'] = ZEROSPAM_LICENSE_KEY;
+		}
 
 		$settings['zerospam_timeout'] = array(
 			'title'       => __( 'API Timeout', 'zerospam' ),

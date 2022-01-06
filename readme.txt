@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.8.2
 Requires PHP: 7.3
-Stable tag: 5.2.8
+Stable tag: 5.2.9
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -102,6 +102,12 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v5.2.9 =
+
+* feat(zero spam): you can now define your zero spam license key in wp-config.php using the constant ZEROSPAM_LICENSE_KEY, resolves #298
+* fix(admin): fix for setting action buttons not doing anything, resolves #295
+* fix(admin): fixes php notice for in_array in class-utilities, resolves #299
 
 = v5.2.8 =
 
