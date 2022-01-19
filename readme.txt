@@ -105,7 +105,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.2.10 =
 
-* fix(security): fixes the missing parameter sanitization in the admin dashboard
+* fix(security): fixes the missing parameter sanitization in the admin dashboard, resolves #301
 
 = v5.2.9 =
 

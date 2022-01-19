@@ -139,7 +139,7 @@ class BlockedLocations extends WP_List_Table {
 		$current_page = $this->get_pagenum();
 		$offset       = $per_page * ( $current_page - 1 );
 		$order        = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( $_REQUEST['order'] ) : 'desc';
-		$orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( $_REQUEST['orderby'] ) : 'date_added';
+		$orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_sql_orderby( $_REQUEST['orderby'] ) : 'date_added';
 
 		$log_type   = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
 		$user_ip    = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
