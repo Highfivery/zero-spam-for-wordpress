@@ -130,7 +130,7 @@ class BlockedTable extends WP_List_Table {
 		$per_page     = 50;
 		$current_page = $this->get_pagenum();
 		$offset       = $per_page * ( $current_page - 1 );
-		$order        = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( $_REQUEST['order'] ) : 'desc';
+		$order        = ! empty( $_REQUEST['order'] ) ? sanitize_key( $_REQUEST['order'] ) : 'desc';
 		$orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_sql_orderby( $_REQUEST['orderby'] ) : 'date_added';
 
 		$log_type   = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;

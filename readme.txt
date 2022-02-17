@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 5.8.3
+Tested up to: 5.9
 Requires PHP: 7.3
-Stable tag: 5.2.10
+Stable tag: 5.2.11
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -102,6 +102,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. WordPress Zero Spam settings
 
 == Changelog ==
+
+= v.5.2.11
+
+* fix(security): fixes the missing orderby parameter sanitization in the admin dashboard
 
 = v5.2.10 =
 

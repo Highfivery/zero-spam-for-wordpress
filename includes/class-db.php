@@ -282,11 +282,12 @@ class DB {
 		}
 
 		if ( ! empty( $args['orderby'] ) ) {
-			$sql .= ' ORDER BY ' . $args['orderby'];
-		}
+			$orderby = $args['orderby'];
+			if ( ! empty( $args['order'] ) ) {
+				$orderby = ' ' . $args['order'];
+			}
 
-		if ( ! empty( $args['order'] ) ) {
-			$sql .= ' ' . $args['order'];
+			$sql .= ' ORDER BY ' . sanitize_sql_orderby( $orderby );
 		}
 
 		if ( ! empty( $args['limit'] ) ) {

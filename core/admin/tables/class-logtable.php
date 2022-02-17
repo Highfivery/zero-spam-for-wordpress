@@ -152,9 +152,9 @@ class LogTable extends WP_List_Table {
 		$current_page = $this->get_pagenum();
 		$offset       = 1 === $current_page ? false : $per_page * $current_page;
 		// @codingStandardsIgnoreLine
-		$order = ! empty( $_REQUEST['order'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['order'] ) ) : 'desc';
+		$order = ! empty( $_REQUEST['order'] ) ? sanitize_key( wp_unslash( $_REQUEST['order'] ) ) : 'desc';
 		// @codingStandardsIgnoreLine
-		$orderby = ! empty( $_REQUEST['orderby'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['orderby'] ) ) : 'date_recorded';
+		$orderby = ! empty( $_REQUEST['orderby'] ) ? sanitize_sql_orderby( wp_unslash( $_REQUEST['orderby'] ) ) : 'date_recorded';
 
 		// @codingStandardsIgnoreLine
 		$log_type   = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['type'] ) ) : false;

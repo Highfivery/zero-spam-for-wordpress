@@ -112,7 +112,7 @@ class Zero_Spam {
 			'title'       => __( 'License Key', 'zerospam' ),
 			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %1$s: Replaced with the Zero Spam URL, %2$s: Replaced with the Zero Spam subscription URL */
+					/* translators: 1: the zerospam.org URL 2: the zerospam.org premium product URL */
 					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> license key or define it in <code>wp-config.php</code>, using the constant <code>ZEROSPAM_LICENSE_KEY</code> to enable enhanced protection. Don\'t have an license key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one now!</strong></a>', 'zerospam' ),
 					array(
 						'strong' => array(),

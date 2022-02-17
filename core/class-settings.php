@@ -342,7 +342,7 @@ class Settings {
 			'type'    => 'html',
 			'html'    => sprintf(
 				wp_kses(
-					/* translators: %s: url */
+					/* translators: %s: admin URL to regenerate the Zero Spam honeypot ID */
 					__( '<a href="%s" class="button">Regenerate Honeypot ID</a>', 'zerospam' ),
 					array(
 						'a' => array(
