@@ -107,6 +107,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 * fix(security): fixes the missing orderby parameter sanitization in the admin dashboard
 * fix(admin settings): fixed whitespace issue in textarea setting fields, resolves #303
+* fix(admin log): updated date column to use the local setting date & time format, resolves #305
 
 = v5.2.10 =
 
