@@ -286,7 +286,7 @@ class Settings {
 			'type'        => 'textarea',
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
-			'value'       => ! empty( $options['ip_whitelist'] ) ? $options['ip_whitelist'] : false,
+			'value'       => ! empty( $options['ip_whitelist'] ) ? trim( $options['ip_whitelist'] ) : false,
 		);
 
 		self::$settings['blocked_email_domains'] = array(
@@ -296,7 +296,7 @@ class Settings {
 			'type'        => 'textarea',
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
-			'value'       => ! empty( $options['blocked_email_domains'] ) ? $options['blocked_email_domains'] : false,
+			'value'       => ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false,
 		);
 
 		self::$settings['update_blocked_email_domains'] = array(

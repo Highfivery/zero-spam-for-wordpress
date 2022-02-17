@@ -321,11 +321,7 @@ class Settings {
 					<?php if ( ! empty( $args['placeholder'] ) ) : ?>
 						placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
 					<?php endif; ?>
-				>
-					<?php if ( ! empty( $args['value'] ) ) : ?>
-						<?php echo esc_attr( $args['value'] ); ?>
-					<?php endif; ?>
-				</textarea>
+				><?php if ( ! empty( $args['value'] ) ) : ?><?php echo trim( esc_attr( $args['value'] ) ); ?><?php endif; ?></textarea>
 				<?php
 				break;
 			case 'url':

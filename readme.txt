@@ -103,9 +103,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 == Changelog ==
 
-= v.5.2.11
+= v5.2.11
 
 * fix(security): fixes the missing orderby parameter sanitization in the admin dashboard
+* fix(admin settings): fixed whitespace issue in textarea setting fields, resolves #303
 
 = v5.2.10 =
 
