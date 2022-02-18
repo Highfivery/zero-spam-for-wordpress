@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.9
 Requires PHP: 7.3
-Stable tag: 5.2.12
+Stable tag: 5.2.13
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -41,6 +41,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * [Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
 * [MemberPress](https://memberpress.com/) registrations
 * [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) submissions
+* [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations
 * and can be easily integrated into any existing theme or plugin
 
 Zero Spam for WordPress is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
@@ -102,6 +103,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Zero Spam for WordPress settings
 
 == Changelog ==
+
+= v5.2.13 =
+
+* feat(woocommerce): added support for woocommerce registrations
 
 = v5.2.12 =
 

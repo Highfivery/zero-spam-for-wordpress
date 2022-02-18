@@ -47,6 +47,7 @@ class DavidWalsh {
 			add_action( 'zerospam_login_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_mailchimp4wp_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_memberpress_login_scripts', array( $this, 'enqueue_script' ) );
+			add_action( 'zerospam_woocommerce_registration_scripts', array( $this, 'enqueue_script' ) );
 			add_filter(
 				'zerospam_memberpress_registration_scripts',
 				function( $scripts ) {
@@ -67,6 +68,7 @@ class DavidWalsh {
 			add_filter( 'zerospam_preprocess_memberpress_registration', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_memberpress_login', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_mailchimp4wp', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_process_woocommerce_registration', array( $this, 'validate_post' ), 10, 3 );
 		}
 	}
 

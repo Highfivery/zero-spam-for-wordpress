@@ -154,6 +154,11 @@ class Plugin {
 			new \ZeroSpam\Modules\MailchimpForWP\MailchimpForWP();
 		}
 
+		// Zero Spam WooCommerce module.
+		if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
+			new \ZeroSpam\Modules\WooCommerce\WooCommerce();
+		}
+
 		// Debug module.
 		new \ZeroSpam\Modules\Debug();
 	}

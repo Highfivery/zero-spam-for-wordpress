@@ -26,16 +26,20 @@
       // Hidden input isn't present, add it.
       $(
         '<input type="hidden" name="zerospam_david_walsh_key" value="' +
-        ZeroSpamDavidWalsh.key +
+          ZeroSpamDavidWalsh.key +
           '" />'
       ).appendTo(this);
     }
   };
 
-  $(function() {
-    var selectors = '#commentform, #registerform, .wpforms-form, .wpcf7-form, .frm-fluent-form, #loginform, .woocommerce-form-login, .mepr-signup-form, .mc4wp-form, #mepr_loginform';
-    if (typeof ZeroSpamDavidWalsh.selectors != "undefined" && ZeroSpamDavidWalsh.selectors ) {
-      selectors += ',' + ZeroSpamDavidWalsh.selectors
+  $(function () {
+    var selectors =
+      "#commentform, #registerform, .wpforms-form, .wpcf7-form, .frm-fluent-form, #loginform, .mepr-signup-form, .mc4wp-form, #mepr_loginform, .woocommerce-form-register";
+    if (
+      typeof ZeroSpamDavidWalsh.selectors != "undefined" &&
+      ZeroSpamDavidWalsh.selectors
+    ) {
+      selectors += "," + ZeroSpamDavidWalsh.selectors;
     }
 
     jQuery(selectors).ZeroSpamDavidWalsh();
