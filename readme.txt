@@ -106,7 +106,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.2.13 =
 
-* feat(woocommerce): added support for woocommerce registrations
+* feat(woocommerce): added support for woocommerce registrations, resolves #306
 
 = v5.2.12 =
 
