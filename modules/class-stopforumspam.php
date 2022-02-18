@@ -45,7 +45,7 @@ class StopForumSpam {
 	 */
 	public function sections( $sections ) {
 		$sections['stop_forum_spam'] = array(
-			'title' => __( 'Stop Forum Spam Integration', 'zerospam' ),
+			'title' => __( 'Stop Forum Spam Integration', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -59,16 +59,16 @@ class StopForumSpam {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['stop_forum_spam'] = array(
-			'title'       => __( 'Status', 'zerospam' ),
+			'title'       => __( 'Status', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: Replaced with the Stop Forum Spam URL */
-					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Stop Forum Spam</a>.', 'zerospam' ),
+					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Stop Forum Spam</a>.', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -85,45 +85,45 @@ class StopForumSpam {
 		);
 
 		$settings['stop_forum_spam_timeout'] = array(
-			'title'       => __( 'API Timeout', 'zerospam' ),
+			'title'       => __( 'API Timeout', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
-			'suffix'      => __( 'seconds', 'zerospam' ),
-			'placeholder' => __( '5', 'zerospam' ),
+			'suffix'      => __( 'seconds', 'zero-spam' ),
+			'placeholder' => __( '5', 'zero-spam' ),
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond; recommended 5 seconds.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond; recommended 5 seconds.', 'zero-spam' ),
 			'value'       => ! empty( $options['stop_forum_spam_timeout'] ) ? $options['stop_forum_spam_timeout'] : 5,
 			'recommended' => 5,
 		);
 
 		$settings['stop_forum_spam_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zerospam' ),
+			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
-			'suffix'      => __( 'day(s)', 'zerospam' ),
+			'suffix'      => __( 'day(s)', 'zero-spam' ),
 			'placeholder' => WEEK_IN_SECONDS,
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zero-spam' ),
 			'value'       => ! empty( $options['stop_forum_spam_cache'] ) ? $options['stop_forum_spam_cache'] : 14,
 			'recommended' => 14,
 		);
 
 		$settings['stop_forum_spam_confidence_min'] = array(
-			'title'       => __( 'Confidence Minimum', 'zerospam' ),
+			'title'       => __( 'Confidence Minimum', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
-			'suffix'      => __( '%', 'zerospam' ),
-			'placeholder' => __( '50', 'zerospam' ),
+			'suffix'      => __( '%', 'zero-spam' ),
+			'placeholder' => __( '50', 'zero-spam' ),
 			'min'         => 0,
 			'max'         => 100,
 			'step'        => 0.1,
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: Replaced with the Stop Forum Spam URL */
-					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 50%%', 'zerospam' ),
+					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 50%%', 'zero-spam' ),
 					array(
 						'a' => array(
 							'target' => array(),

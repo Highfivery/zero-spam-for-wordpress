@@ -101,7 +101,7 @@ class DavidWalsh {
 	 * @param array $types Array of failed types.
 	 */
 	public function failed_types( $types ) {
-		$types['david_walsh'] = __( 'David Walsh', 'zerospam' );
+		$types['david_walsh'] = __( 'David Walsh', 'zero-spam' );
 
 		return $types;
 	}
@@ -113,7 +113,7 @@ class DavidWalsh {
 	 */
 	public function sections( $sections ) {
 		$sections['davidwalsh'] = array(
-			'title' => __( 'David Walsh Detection Settings', 'zerospam' ),
+			'title' => __( 'David Walsh Detection Settings', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -127,11 +127,11 @@ class DavidWalsh {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['davidwalsh'] = array(
-			'title'       => __( 'David Walsh Technique', 'zerospam' ),
+			'title'       => __( 'David Walsh Technique', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( 'Enables the <a href="%s" target="_blank" rel="noreferrer noopener">David Walsh technique</a>. <strong>Requires JavaScript be enabled.</strong>', 'zerospam' ),
+					__( 'Enables the <a href="%s" target="_blank" rel="noreferrer noopener">David Walsh technique</a>. <strong>Requires JavaScript be enabled.</strong>', 'zero-spam' ),
 					array(
 						'a' => array(
 							'target' => array(),
@@ -146,18 +146,18 @@ class DavidWalsh {
 			'section'     => 'davidwalsh',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['davidwalsh'] ) ? $options['davidwalsh'] : false,
 			'recommended' => 'enabled',
 		);
 
 		$settings['davidwalsh_form_selectors'] = array(
-			'title'       => __( 'Custom Form Selectors', 'zerospam' ),
+			'title'       => __( 'Custom Form Selectors', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( 'Comma-seperated list of custom form selectors that should use the <a href="%s" target="_blank" rel="noreferrer noopener">David Walsh technique</a>.', 'zerospam' ),
+					__( 'Comma-seperated list of custom form selectors that should use the <a href="%s" target="_blank" rel="noreferrer noopener">David Walsh technique</a>.', 'zero-spam' ),
 					array(
 						'a' => array(
 							'target' => array(),

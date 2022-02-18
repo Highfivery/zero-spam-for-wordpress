@@ -25,8 +25,8 @@ class LogTable extends WP_List_Table {
 		global $status, $page;
 
 		$args = array(
-			'singular' => __( 'WordPress Zero Spam Log', 'zerospam' ),
-			'plural'   => __( 'WordPress Zero Spam Logs', 'zerospam' ),
+			'singular' => __( 'WordPress Zero Spam Log', 'zero-spam' ),
+			'plural'   => __( 'WordPress Zero Spam Logs', 'zero-spam' ),
 		);
 		parent::__construct( $args );
 	}
@@ -64,9 +64,9 @@ class LogTable extends WP_List_Table {
 			case 'actions':
 				ob_start();
 				?>
-				<button class="button zerospam-details-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>"><?php esc_html_e( 'Details', 'zerospam' ); ?></button>
+				<button class="button zerospam-details-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>"><?php esc_html_e( 'Details', 'zero-spam' ); ?></button>
 				<div class="zerospam-modal" id="zerospam-details-<?php echo esc_attr( $item['log_id'] ); ?>">
-					<button class="zerospam-close-modal" aria-label="<?php echo esc_attr( __( 'Close Modal', 'zerospam' ) ); ?>"></button>
+					<button class="zerospam-close-modal" aria-label="<?php echo esc_attr( __( 'Close Modal', 'zero-spam' ) ); ?>"></button>
 					<?php require ZEROSPAM_PATH . 'includes/templates/admin-modal-details.php'; ?>
 				</div>
 				<?php
@@ -81,12 +81,12 @@ class LogTable extends WP_List_Table {
 						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $blocked['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $blocked['end_block'] ) ) ); ?>"
 						data-type="<?php echo esc_attr( $blocked['blocked_type'] ); ?>"
 					>
-						<?php esc_html_e( 'Update Block', 'zerospam' ); ?>
+						<?php esc_html_e( 'Update Block', 'zero-spam' ); ?>
 					</button>
 					<?php
 				else :
 					?>
-					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"><?php esc_html_e( 'Block IP', 'zerospam' ); ?></button>
+					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"><?php esc_html_e( 'Block IP', 'zero-spam' ); ?></button>
 					<?php
 				endif;
 
@@ -122,8 +122,8 @@ class LogTable extends WP_List_Table {
 	 */
 	public function get_bulk_actions() {
 		$actions = array(
-			'delete'     => __( 'Delete Selected', 'zerospam' ),
-			'delete_all' => __( 'Delete All Logs', 'zerospam' ),
+			'delete'     => __( 'Delete Selected', 'zero-spam' ),
+			'delete_all' => __( 'Delete All Logs', 'zero-spam' ),
 		);
 
 		return $actions;
@@ -285,29 +285,29 @@ class LogTable extends WP_List_Table {
 		?>
 		<div class="alignleft actions">
 			<?php
-			echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type', 'zerospam' ) . '</label>';
+			echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type', 'zero-spam' ) . '</label>';
 			$options      = apply_filters( 'zerospam_types', array() );
 			$current_type = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
 			?>
 			<select name="type" id="filter-by-type">
-				<option value=""><?php _e( 'All types', 'zerospam' ); ?></option>
+				<option value=""><?php _e( 'All types', 'zero-spam' ); ?></option>
 				<?php foreach ( $options as $key => $value ) : ?>
-					<option<?php if ( $current_type === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo $value; ?></option>
+					<option<?php if ( $current_type === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $value ); ?></option>
 				<?php endforeach; ?>
 			</select>
 
 			<?php
-			echo '<label class="screen-reader-text" for="filter-by-country">' . __( 'Filter by country', 'zerospam' ) . '</label>';
+			echo '<label class="screen-reader-text" for="filter-by-country">' . __( 'Filter by country', 'zero-spam' ) . '</label>';
 			$current_country = ! empty( $_REQUEST['country'] ) ? sanitize_text_field( $_REQUEST['country'] ) : false;
 			?>
 			<select name="country" id="filter-by-country">
-				<option value=""><?php _e( 'All countries', 'zerospam' ); ?></option>
+				<option value=""><?php _e( 'All countries', 'zero-spam' ); ?></option>
 				<?php foreach ( ZeroSpam\Core\Utilities::countries() as $key => $value ) : ?>
-					<option<?php if ( $current_country === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo $value; ?></option>
+					<option<?php if ( $current_country === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $value ); ?></option>
 				<?php endforeach; ?>
 			</select>
 			<?php
-			submit_button( __( 'Filter', 'zerospam' ), '', 'filter_action', false );
+			submit_button( __( 'Filter', 'zero-spam' ), '', 'filter_action', false );
 			?>
 		</div>
 		<?php
@@ -319,12 +319,12 @@ class LogTable extends WP_List_Table {
 	public function get_columns() {
 		$columns = array(
 			'cb'            => '<input type="checkbox" />',
-			'date_recorded' => __( 'Date', 'zerospam' ),
-			'log_type'      => __( 'Type', 'zerospam' ),
-			'user_ip'       => __( 'IP Address', 'zerospam' ),
-			'country'       => __( 'Country', 'zerospam' ),
-			'region'        => __( 'Region', 'zerospam' ),
-			'actions'       => __( 'Actions', 'zerospam' ),
+			'date_recorded' => __( 'Date', 'zero-spam' ),
+			'log_type'      => __( 'Type', 'zero-spam' ),
+			'user_ip'       => __( 'IP Address', 'zero-spam' ),
+			'country'       => __( 'Country', 'zero-spam' ),
+			'region'        => __( 'Region', 'zero-spam' ),
+			'actions'       => __( 'Actions', 'zero-spam' ),
 		);
 
 		return $columns;

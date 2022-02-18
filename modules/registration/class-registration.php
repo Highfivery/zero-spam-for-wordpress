@@ -45,7 +45,7 @@ class Registration {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['registration'] = __( 'Registration', 'zerospam' );
+		$types['registration'] = __( 'Registration', 'zero-spam' );
 
 		return $types;
 	}
@@ -146,7 +146,7 @@ class Registration {
 	 */
 	public function sections( $sections ) {
 		$sections['registration'] = array(
-			'title' => __( 'Registration Integration', 'zerospam' ),
+			'title' => __( 'Registration Integration', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -160,21 +160,21 @@ class Registration {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['verify_registrations'] = array(
-			'title'       => __( 'Protect Registrations', 'zerospam' ),
+			'title'       => __( 'Protect Registrations', 'zero-spam' ),
 			'section'     => 'registration',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor registrations for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor registrations for malicious or automated spambots.', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['verify_registrations'] ) ? $options['verify_registrations'] : false,
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['registration_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
-			'desc'        => __( 'When registration protection is enabled, the message displayed to the user when a registration has been detected as spam/malicious.', 'zerospam' ),
+			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
+			'desc'        => __( 'When registration protection is enabled, the message displayed to the user when a registration has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'registration',
 			'type'        => 'text',
 			'field_class' => 'large-text',
@@ -184,15 +184,15 @@ class Registration {
 		);
 
 		$settings['log_blocked_registrations'] = array(
-			'title'       => __( 'Log Blocked Registrations', 'zerospam' ),
+			'title'       => __( 'Log Blocked Registrations', 'zero-spam' ),
 			'section'     => 'registration',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked registrations. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				__( 'Enables logging blocked registrations. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_registrations'] ) ? $options['log_blocked_registrations'] : false,
 			'recommended' => 'enabled',

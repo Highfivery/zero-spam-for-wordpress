@@ -10,7 +10,7 @@ class ZeroSpamCLI {
 	 */
 	public function autoconfigure() {
 		\ZeroSpam\Core\Settings::auto_configure();
-		WP_CLI::success( __( 'Zero Spam has been successfully auto-configured using the recommended defaults.', 'zerospam' ) );
+		WP_CLI::success( __( 'Zero Spam has been successfully auto-configured using the recommended defaults.', 'zero-spam' ) );
 	}
 
 	/**
@@ -53,7 +53,7 @@ class ZeroSpamCLI {
 				}
 			}
 		} else {
-			WP_CLI::error( __( 'Opps! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zerospam' ) );
+			WP_CLI::error( __( 'Opps! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zero-spam' ) );
 		}
 	}
 }

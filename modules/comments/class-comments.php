@@ -47,7 +47,7 @@ class Comments {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['comment'] = __( 'Comment', 'zerospam' );
+		$types['comment'] = __( 'Comment', 'zero-spam' );
 
 		return $types;
 	}
@@ -186,7 +186,7 @@ class Comments {
 	 */
 	public function sections( $sections ) {
 		$sections['comments'] = array(
-			'title' => __( 'Comments Integration', 'zerospam' ),
+			'title' => __( 'Comments Integration', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -200,21 +200,21 @@ class Comments {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['verify_comments'] = array(
-			'title'       => __( 'Protect Comments', 'zerospam' ),
+			'title'       => __( 'Protect Comments', 'zero-spam' ),
 			'section'     => 'comments',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor comments for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor comments for malicious or automated spambots.', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['verify_comments'] ) ? $options['verify_comments'] : false,
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['comment_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
-			'desc'        => __( 'When comment protection is enabled, the message displayed to the user when a comment has been detected as spam/malicious.', 'zerospam' ),
+			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
+			'desc'        => __( 'When comment protection is enabled, the message displayed to the user when a comment has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'comments',
 			'type'        => 'text',
 			'field_class' => 'large-text',
@@ -224,15 +224,15 @@ class Comments {
 		);
 
 		$settings['log_blocked_comments'] = array(
-			'title'       => __( 'Log Blocked Comments', 'zerospam' ),
+			'title'       => __( 'Log Blocked Comments', 'zero-spam' ),
 			'section'     => 'comments',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked comments. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				__( 'Enables logging blocked comments. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_comments'] ) ? $options['log_blocked_comments'] : false,
 			'recommended' => 'enabled',

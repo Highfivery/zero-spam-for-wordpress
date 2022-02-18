@@ -69,7 +69,7 @@ class Google {
 	 */
 	public function sections( $sections ) {
 		$sections['google'] = array(
-			'title' => __( 'Google API Integration (geolocation)', 'zerospam' ),
+			'title' => __( 'Google API Integration (geolocation)', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -83,15 +83,15 @@ class Google {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['google_api'] = array(
-			'title'       => __( 'Google API Key', 'zerospam' ),
+			'title'       => __( 'Google API Key', 'zero-spam' ),
 			'section'     => 'google',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
-			'placeholder' => __( 'Enter your Google API key.', 'zerospam' ),
+			'placeholder' => __( 'Enter your Google API key.', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the Google API key URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Google API key</a> for Google Maps integration.', 'zerospam' ),
+					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Google API key</a> for Google Maps integration.', 'zero-spam' ),
 					array(
 						'a'      => array(
 							'target' => array(),

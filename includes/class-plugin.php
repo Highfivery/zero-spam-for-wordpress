@@ -59,9 +59,9 @@ class Plugin {
 	 * @param array $types Array of failed types.
 	 */
 	public function failed_types( $types ) {
-		$types['honeypot']             = __( 'Honeypot', 'zerospam' );
-		$types['blocked_email_domain'] = __( 'Blocked Email Domain', 'zerospam' );
-		$types['blocked']              = __( 'Blocked IP', 'zerospam' );
+		$types['honeypot']             = __( 'Honeypot', 'zero-spam' );
+		$types['blocked_email_domain'] = __( 'Blocked Email Domain', 'zero-spam' );
+		$types['blocked']              = __( 'Blocked IP', 'zero-spam' );
 
 		return $types;
 	}
@@ -164,7 +164,7 @@ class Plugin {
 	 * @param array $types Types of detections.
 	 */
 	public function types( $types ) {
-		$types['blocked'] = __( 'Blocked', 'zerospam' );
+		$types['blocked'] = __( 'Blocked', 'zero-spam' );
 
 		return $types;
 	}

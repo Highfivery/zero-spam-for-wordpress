@@ -130,7 +130,7 @@ class Login {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['login'] = __( 'Login Attempt', 'zerospam' );
+		$types['login'] = __( 'Login Attempt', 'zero-spam' );
 
 		return $types;
 	}
@@ -142,7 +142,7 @@ class Login {
 	 */
 	public function sections( $sections ) {
 		$sections['login'] = array(
-			'title' => __( 'User Login Integration', 'zerospam' ),
+			'title' => __( 'User Login Integration', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -156,21 +156,21 @@ class Login {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['verify_login'] = array(
-			'title'       => __( 'Protect Login Attempts', 'zerospam' ),
+			'title'       => __( 'Protect Login Attempts', 'zero-spam' ),
 			'section'     => 'login',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor login attempts for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor login attempts for malicious or automated spambots.', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['verify_login'] ) ? $options['verify_login'] : false,
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['login_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
-			'desc'        => __( 'When login protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
+			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
+			'desc'        => __( 'When login protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'login',
 			'type'        => 'text',
 			'field_class' => 'large-text',
@@ -180,15 +180,15 @@ class Login {
 		);
 
 		$settings['log_blocked_logins'] = array(
-			'title'       => __( 'Log Blocked Login Attempts', 'zerospam' ),
+			'title'       => __( 'Log Blocked Login Attempts', 'zero-spam' ),
 			'section'     => 'login',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked login attempts. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				__( 'Enables logging blocked login attempts. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_logins'] ) ? $options['log_blocked_logins'] : false,
 			'recommended' => 'enabled',

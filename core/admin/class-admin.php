@@ -48,7 +48,7 @@ class Admin {
 			if ( ! empty( array_intersect( $roles, $selected_user_roles ) ) ) {
 				wp_add_dashboard_widget(
 					'zerospam_dashboard_widget',
-					__( 'WordPress Zero Spam', 'zerospam' ),
+					__( 'WordPress Zero Spam', 'zero-spam' ),
 					array( $this, 'dashboard_widget' )
 				);
 			}
@@ -70,7 +70,7 @@ class Admin {
 					echo sprintf(
 						wp_kses(
 							/* translators: %s: Zero Spam API link */
-							__( '<strong>Super-charge WordPress Zero Spam with a <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam API License</a>.</strong>', 'zerospam' ),
+							__( '<strong>Super-charge WordPress Zero Spam with a <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam API License</a>.</strong>', 'zero-spam' ),
 							array(
 								'a'      => array(
 									'target' => array(),
@@ -88,7 +88,7 @@ class Admin {
 				echo sprintf(
 					wp_kses(
 						/* translators: %s: Zero Spam API link */
-						__( '<p><strong>Enable enhanced protection</strong> and super-charge your site with the power of a global detection network that monitors traffic and usage in real-time to detect malicious activity.</p>', 'zerospam' ),
+						__( '<p><strong>Enable enhanced protection</strong> and super-charge your site with the power of a global detection network that monitors traffic and usage in real-time to detect malicious activity.</p>', 'zero-spam' ),
 						array(
 							'a'      => array(
 								'target' => array(),
@@ -102,8 +102,8 @@ class Admin {
 					)
 				);
 				?>
-				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>subscribe/?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php esc_html_e( 'Get a Zero Spam License', 'zerospam' ); ?></a>
-				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-secondary"><?php esc_html_e( 'Learn More', 'zerospam' ); ?></a>
+				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>subscribe/?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php esc_html_e( 'Get a Zero Spam License', 'zero-spam' ); ?></a>
+				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-secondary"><?php esc_html_e( 'Learn More', 'zero-spam' ); ?></a>
 			</div>
 			<?php
 		}
@@ -118,7 +118,7 @@ class Admin {
 		$messages = array();
 
 		// Check Zero Spam license key.
-		$zerospam_protection = \ZeroSpam\Core\Settings::get_settings( 'zerospam' );
+		$zerospam_protection = \ZeroSpam\Core\Settings::get_settings( 'zero-spam' );
 		if ( 'enabled' === $zerospam_protection ) {
 			$zerospam_license_key = \ZeroSpam\Core\Settings::get_settings( 'zerospam_license' );
 			if ( ! $zerospam_license_key ) {
@@ -128,7 +128,7 @@ class Admin {
 					'content'     => sprintf(
 						wp_kses(
 							/* translators: %1$s: Replaced with the Zero Spam settings page URL */
-							__( 'Zero Spam Enhanced Protection is currenlty enabled, but <strong>missing a valid license key</strong>. <a href="%1$s">Add your license key</a> to enable enhanced site protection.', 'zerospam' ),
+							__( 'Zero Spam Enhanced Protection is currenlty enabled, but <strong>missing a valid license key</strong>. <a href="%1$s">Add your license key</a> to enable enhanced site protection.', 'zero-spam' ),
 							array(
 								'strong' => array(),
 								'a'      => array(
@@ -138,7 +138,7 @@ class Admin {
 							)
 						),
 						esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-						wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zerospam' ),
+						wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' ),
 						esc_url( ZEROSPAM_URL . 'product/premium/' )
 					),
 				);
@@ -154,7 +154,7 @@ class Admin {
 				'content'     => sprintf(
 					wp_kses(
 						/* translators: %1$s: Replaced with the Zero Spam settings page URL */
-						__( '<strong>Thanks for installing WordPress Zero Spam!</strong> Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>. For enhanced protection, get a <a href="%3$s" target="_blank">Zero Spam premium license</a>.', 'zerospam' ),
+						__( '<strong>Thanks for installing WordPress Zero Spam!</strong> Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>. For enhanced protection, get a <a href="%3$s" target="_blank">Zero Spam premium license</a>.', 'zero-spam' ),
 						array(
 							'strong' => array(),
 							'a'      => array(
@@ -223,7 +223,7 @@ class Admin {
 	 * @param array $links An array of plugin action links.
 	 */
 	public function plugin_action_links( $links ) {
-		$settings_link = sprintf( '<a href="%1$s">%2$s</a>', admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ), __( 'Settings', 'zerospam' ) );
+		$settings_link = sprintf( '<a href="%1$s">%2$s</a>', admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ), __( 'Settings', 'zero-spam' ) );
 
 		array_unshift( $links, $settings_link );
 
@@ -245,7 +245,7 @@ class Admin {
 	public function plugin_row_meta( $plugin_meta, $plugin_file ) {
 		if ( ZEROSPAM_PLUGIN_BASE === $plugin_file ) {
 			$row_meta = array(
-				'docs' => '<a href="https://github.com/bmarshall511/wordpress-zero-spam/wiki" aria-label="' . esc_attr( __( 'View WordPress Zero Spam Documentation', 'zerospam' ) ) . '" target="_blank">' . __( 'Docs & FAQs', 'zerospam' ) . '</a>',
+				'docs' => '<a href="https://github.com/bmarshall511/wordpress-zero-spam/wiki" aria-label="' . esc_attr( __( 'View WordPress Zero Spam Documentation', 'zero-spam' ) ) . '" target="_blank">' . __( 'Docs & FAQs', 'zero-spam' ) . '</a>',
 			);
 
 			$plugin_meta = array_merge( $plugin_meta, $row_meta );
@@ -270,8 +270,8 @@ class Admin {
 		if ( $is_zerospam_screen ) {
 			$footer_text = sprintf(
 				/* translators: 1: Elementor, 2: Link to plugin review */
-				__( 'Enjoyed %1$s? Please leave us a %2$s rating. We really appreciate your support!', 'zerospam' ),
-				'<strong>' . __( 'WordPress Zero Spam', 'zerospam' ) . '</strong>',
+				__( 'Enjoyed %1$s? Please leave us a %2$s rating. We really appreciate your support!', 'zero-spam' ),
+				'<strong>' . __( 'WordPress Zero Spam', 'zero-spam' ) . '</strong>',
 				'<a href="https://wordpress.org/plugins/zero-spam/#reviews" target="_blank">&#9733;&#9733;&#9733;&#9733;&#9733;</a>'
 			);
 		}

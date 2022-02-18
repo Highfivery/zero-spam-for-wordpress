@@ -16,7 +16,7 @@ endif;
 ?>
 <div class="zerospam-modal-details">
 	<div class="zerospam-modal-title">
-		<h3><?php echo esc_html_e( 'Detection ID', 'zerospam' ); ?> #<?php echo esc_html( $item['log_id'] ); ?></h3>
+		<h3><?php echo esc_html_e( 'Detection ID', 'zero-spam' ); ?> #<?php echo esc_html( $item['log_id'] ); ?></h3>
 	</div>
 	<div class="zerospam-modal-subtitle">
 		<?php
@@ -31,7 +31,7 @@ endif;
 
 	<ul class="zerospam-modal-list">
 		<li>
-			<strong><?php esc_html_e( 'IP Address', 'zerospam' ); ?></strong>
+			<strong><?php esc_html_e( 'IP Address', 'zero-spam' ); ?></strong>
 			<span>
 				<?php
 				$lookup_url  = ZEROSPAM_URL . 'ip-lookup/';
@@ -43,7 +43,7 @@ endif;
 				echo sprintf(
 					wp_kses(
 						/* translators: %1s: Replaced with the IP address, %2$s Replaced with the IP lookup URL */
-						__( '%1$s &mdash; <a href="%2$s" target="_blank" rel="noreferrer noopener" class="zerospam-new-window-link">IP Lookup</a>', 'zerospam' ),
+						__( '%1$s &mdash; <a href="%2$s" target="_blank" rel="noreferrer noopener" class="zerospam-new-window-link">IP Lookup</a>', 'zero-spam' ),
 						array(
 							'a' => array(
 								'target' => array(),
@@ -60,7 +60,7 @@ endif;
 			</span>
 		</li>
 		<li>
-			<strong><?php esc_html_e( 'Type', 'zerospam' ); ?></strong>
+			<strong><?php esc_html_e( 'Type', 'zero-spam' ); ?></strong>
 			<span>
 				<?php
 				$detection_types = apply_filters( 'zerospam_types', array() );
@@ -77,7 +77,7 @@ endif;
 		</li>
 		<?php if ( $submission_data && ! empty( $submission_data['failed'] ) ) : ?>
 			<li>
-				<strong><?php esc_html_e( 'Failed', 'zerospam' ); ?></strong>
+				<strong><?php esc_html_e( 'Failed', 'zero-spam' ); ?></strong>
 				<span>
 					<?php
 					$failed_types = apply_filters( 'zerospam_failed_types', array() );
@@ -99,11 +99,11 @@ endif;
 	</ul>
 
 	<button class="button action zerospam-block-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>">
-		<?php esc_html_e( 'Block IP', 'zerospam' ); ?>
+		<?php esc_html_e( 'Block IP', 'zero-spam' ); ?>
 	</button>
 
 	<?php if ( ! empty( $item['latitude'] ) && ! empty( $item['longitude'] ) ) : ?>
-		<h4 class="zerospam-modal-headline"><?php esc_html_e( 'Location', 'zerospam' ); ?></h4>
+		<h4 class="zerospam-modal-headline"><?php esc_html_e( 'Location', 'zero-spam' ); ?></h4>
 		<?php
 		$coordinates = $item['latitude'] . ',' . $item['longitude'];
 		do_action( 'zerospam_google_map', $coordinates );
@@ -111,7 +111,7 @@ endif;
 		<ul class="zerospam-modal-list">
 			<?php if ( ! empty( $item['country'] ) ) : ?>
 				<li>
-					<strong><?php esc_html_e( 'Country', 'zerospam' ); ?></strong>
+					<strong><?php esc_html_e( 'Country', 'zero-spam' ); ?></strong>
 					<span>
 						<?php
 						$country_name = ! empty( $item['country_name'] ) ? $item['country_name'] : false;
@@ -141,7 +141,7 @@ endif;
 			<?php endif; ?>
 			<?php if ( ! empty( $item['region'] ) || ! empty( $item['region_name'] ) ) : ?>
 				<li>
-					<strong><?php esc_html_e( 'Region', 'zerospam' ); ?></strong>
+					<strong><?php esc_html_e( 'Region', 'zero-spam' ); ?></strong>
 					<span>
 						<?php if ( ! empty( $item['region_name'] ) ) : ?>
 							<?php echo esc_html( $item['region_name'] ); ?>
@@ -154,21 +154,21 @@ endif;
 			<?php endif; ?>
 			<?php if ( ! empty( $item['city'] ) ) : ?>
 				<li>
-					<strong><?php echo esc_html_e( 'City', 'zerospam' ); ?></strong>
+					<strong><?php echo esc_html_e( 'City', 'zero-spam' ); ?></strong>
 					<span><?php echo esc_html( $item['city'] ); ?>
 					</span>
 				</li>
 			<?php endif; ?>
 			<?php if ( ! empty( $item['zip'] ) ) : ?>
 				<li>
-					<strong><?php echo esc_html_e( 'Zip/Postal Code', 'zerospam' ); ?></strong>
+					<strong><?php echo esc_html_e( 'Zip/Postal Code', 'zero-spam' ); ?></strong>
 					<span><?php echo esc_html( $item['zip'] ); ?>
 					</span>
 				</li>
 			<?php endif; ?>
 			<?php if ( ! empty( $item['latitude'] ) || ! empty( $item['region_name'] ) ) : ?>
 				<li>
-					<strong><?php echo esc_html_e( 'Coordinates', 'zerospam' ); ?></strong>
+					<strong><?php echo esc_html_e( 'Coordinates', 'zero-spam' ); ?></strong>
 					<span>
 						<?php if ( ! empty( $item['latitude'] ) ) : ?>
 							<?php echo esc_html( $item['latitude'] ); ?>&deg;,
@@ -184,7 +184,7 @@ endif;
 	endif;
 	?>
 
-	<h4 class="zerospam-modal-headline"><?php echo esc_html_e( 'Additional Details', 'zerospam' ); ?></h4>
+	<h4 class="zerospam-modal-headline"><?php echo esc_html_e( 'Additional Details', 'zero-spam' ); ?></h4>
 	<?php
 
 	if ( $submission_data ) :

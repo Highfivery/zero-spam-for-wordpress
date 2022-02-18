@@ -1,11 +1,11 @@
-=== WordPress Zero Spam ===
+=== Zero Spam for WordPress ===
 Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.9
 Requires PHP: 7.3
-Stable tag: 5.2.11
+Stable tag: 5.2.12
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -13,13 +13,13 @@ No captcha needed, behind the scenes protection against spam & malicious attacks
 
 == Description ==
 
-Quit forcing people to answer questions or confusing captchas to prove they're not spam. Stop malicious users before they ever have a chance to infiltrate your site &mdash; **introducing WordPress Zero Spam**.
+Quit forcing people to answer questions or confusing captchas to prove they're not spam. Stop malicious users before they ever have a chance to infiltrate your site &mdash; **introducing Zero Spam for WordPress**.
 
-[WordPress Zero Spam](https://www.highfivery.com/projects/zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and databases of known malicious IPs from around the world to detect and block unwanted visitors.
+[Zero Spam for WordPress](https://www.highfivery.com/projects/zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and databases of known malicious IPs from around the world to detect and block unwanted visitors.
 
 **Just install, activate, configure, and enjoy a spam-free site!**
 
-= WordPress Zero Spam features =
+= Zero Spam for WordPress features =
 
 * No captcha, spam isn't a users' problem
 * No moderation queues, spam isn't a administrators' problem
@@ -31,7 +31,7 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * Block known disposable &amp; malicious email domains using [disposable](https://github.com/disposable)
 * Multiple detection techniques including [David Walsh's solution](https://davidwalsh.name/wordpress-comment-spam)
 
-= WordPress Zero Spam also protects =
+= Zero Spam for WordPress also protects =
 
 * WordPress core comments, user registrations &amp; login attempts
 * [GiveWP](https://givewp.com/ref/1118/) donation submissions
@@ -43,11 +43,11 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) submissions
 * and can be easily integrated into any existing theme or plugin
 
-WordPress Zero Spam is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
+Zero Spam for WordPress is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
 
-= WordPress Zero Spam needs your support =
+= Zero Spam for WordPress needs your support =
 
-**WordPress Zero Spam is free & always will be.** Please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) to help encourage plugin's continued development.
+**Zero Spam for WordPress is free & always will be.** Please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) to help encourage plugin's continued development.
 
 * Like our [Facebook Page](https://www.facebook.com/zerospamorg/)
 * Follow us on [Twitter](https://www.facebook.com/zerospamorg)
@@ -63,23 +63,23 @@ For more information & developer documentation, see the [plugin’s website](htt
 
 == Frequently Asked Questions ==
 
-= Does WordPress Zero Spam block user IPs? =
+= Does Zero Spam for WordPress block user IPs? =
 
-*Not by itself.* WordPress Zero Spam does not block IP addresses by itself. Visitors that are getting blocked have either been manually blocked by the site admin or appear in one of the IP blacklist like [Stop Forum Spam](https://www.stopforumspam.com/), [Project Honeypot](https://www.projecthoneypot.org/), or the [Zero Spam IP database](https://www.zerospam.org).
+*Not by itself.* Zero Spam for WordPress does not block IP addresses by itself. Visitors that are getting blocked have either been manually blocked by the site admin or appear in one of the IP blacklist like [Stop Forum Spam](https://www.stopforumspam.com/), [Project Honeypot](https://www.projecthoneypot.org/), or the [Zero Spam IP database](https://www.zerospam.org).
 
 If a legitimate user is getting blocked, check the Log (Admin > Dashboard > Zero Spam > Log) to get further details why they were blocked. You can adjust how strict the 3rd-party blacklist checks are or disable those if you find that your users are prone to being flagged as spam/malicious.
 
-= Does WordPress Zero Spam check Jetpack comments? =
+= Does Zero Spam for WordPress check Jetpack comments? =
 
-**No.** WordPress Zero Spam is unable to integrate Jetpack. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
+**No.** Zero Spam for WordPress is unable to integrate Jetpack. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
 
-= How do I boost performance of WordPress Zero Spam? =
+= How do I boost performance of Zero Spam for WordPress? =
 
 **Enabled caching.** Caching is highly recommended and will prevent repeated calls to third-party API and access checks on each page visit.
 
 You can also adjust the cache and API timeout settings in admin depending on your server and specific needs.
 
-= What WordPress Zero Spam WP-CLI commands are available? =
+= What Zero Spam for WordPress WP-CLI commands are available? =
 
 * `wp zerospam autoconfigure` &mdash; Auto-configures with recommended settings.
 * `wp zerospam settings` &mdash; Displays all plugin settings.
@@ -95,13 +95,17 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 == Screenshots ==
 
-1. WordPress Zero Spam dashboard
-2. WordPress Zero Spam detections log
-3. WordPress Zero Spam blocked IPs
-4. WordPress Zero Spam blacklisted IPs
-5. WordPress Zero Spam settings
+1. Zero Spam for WordPress dashboard
+2. Zero Spam for WordPress detections log
+3. Zero Spam for WordPress blocked IPs
+4. Zero Spam for WordPress blacklisted IPs
+5. Zero Spam for WordPress settings
 
 == Changelog ==
+
+= v5.2.12 =
+
+* refactor(wordpress coding standards): misc updates to conform to wordpress coding standards
 
 = v5.2.11
 
@@ -238,7 +242,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.0.12 =
 
-* Fixed issue with WPForms AJAX forms not getting validated by WordPress Zero Spam [#238](https://github.com/bmarshall511/wordpress-zero-spam/issues/238)
+* Fixed issue with WPForms AJAX forms not getting validated by Zero Spam for WordPress [#238](https://github.com/bmarshall511/wordpress-zero-spam/issues/238)
 * David Walsh detection technique applied to WPForms & CF7
 * Miscellaneous admin UI improvements
 * Added ability to disable syncing WP's Disallowed Comment Keys

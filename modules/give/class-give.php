@@ -119,7 +119,7 @@ class Give {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['givewp'] = __( 'GiveWP', 'zerospam' );
+		$types['givewp'] = __( 'GiveWP', 'zero-spam' );
 
 		return $types;
 	}
@@ -131,7 +131,7 @@ class Give {
 	 */
 	public function sections( $sections ) {
 		$sections['givewp'] = array(
-			'title' => __( 'GiveWP Integration', 'zerospam' ),
+			'title' => __( 'GiveWP Integration', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -148,7 +148,7 @@ class Give {
 			'title'       => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( 'Protect <a href="%s" target="_blank" rel="noreferrer noopener">GiveWP</a> Submissions', 'zerospam' ),
+					__( 'Protect <a href="%s" target="_blank" rel="noreferrer noopener">GiveWP</a> Submissions', 'zero-spam' ),
 					array(
 						'a'    => array(
 							'href'   => array(),
@@ -163,17 +163,17 @@ class Give {
 			'section'     => 'givewp',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor GiveWP submissions for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor GiveWP submissions for malicious or automated spambots.', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['verify_givewp'] ) ? $options['verify_givewp'] : false,
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'We\'re sorry, but we\'re unable to process the transaction. Your IP has been flagged as possible spam.', 'zerospam' );
+		$message = __( 'We\'re sorry, but we\'re unable to process the transaction. Your IP has been flagged as possible spam.', 'zero-spam' );
 
 		$settings['givewp_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zerospam' ),
-			'desc'        => __( 'When GiveWP protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
+			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
+			'desc'        => __( 'When GiveWP protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'givewp',
 			'type'        => 'text',
 			'field_class' => 'large-text',
@@ -183,15 +183,15 @@ class Give {
 		);
 
 		$settings['log_blocked_givewp'] = array(
-			'title'       => __( 'Log Blocked GiveWP Submissions', 'zerospam' ),
+			'title'       => __( 'Log Blocked GiveWP Submissions', 'zero-spam' ),
 			'section'     => 'givewp',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked GiveWP submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				__( 'Enables logging blocked GiveWP submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_givewp'] ) ? $options['log_blocked_givewp'] : false,
 			'recommended' => 'enabled',

@@ -222,8 +222,8 @@ class MemberPress {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['memberpress_registration'] = __( 'MemberPress Registration', 'zerospam' );
-		$types['memberpress_login']        = __( 'MemberPress Login', 'zerospam' );
+		$types['memberpress_registration'] = __( 'MemberPress Registration', 'zero-spam' );
+		$types['memberpress_login']        = __( 'MemberPress Login', 'zero-spam' );
 
 		return $types;
 	}
@@ -235,7 +235,7 @@ class MemberPress {
 	 */
 	public function sections( $sections ) {
 		$sections['memberpress'] = array(
-			'title' => __( 'MemberPress Integration', 'zerospam' ),
+			'title' => __( 'MemberPress Integration', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -248,7 +248,7 @@ class MemberPress {
 	 * @param array $options  Array of saved database options.
 	 */
 	public function settings( $settings, $options ) {
-		$default_spam_message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
+		$default_spam_message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		// Registration protection.
 		$settings['memberpress_registration_info'] = array(
@@ -256,7 +256,7 @@ class MemberPress {
 			'type'    => 'html',
 			'html'    => sprintf(
 				wp_kses(
-					__( '<h3 style="margin: 0">Registration Protection</h3>', 'zerospam' ),
+					__( '<h3 style="margin: 0">Registration Protection</h3>', 'zero-spam' ),
 					array(
 						'h3' => array(
 							'style' => array(),
@@ -267,19 +267,19 @@ class MemberPress {
 		);
 
 		$settings['verify_memberpress_registration'] = array(
-			'title'       => __( 'Protect Registration Forms', 'zerospam' ),
+			'title'       => __( 'Protect Registration Forms', 'zero-spam' ),
 			'section'     => 'memberpress',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor MemberPress registrations for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor MemberPress registrations for malicious or automated spambots.', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['verify_memberpress_registration'] ) ? $options['verify_memberpress_registration'] : false,
 			'recommended' => 'enabled',
 		);
 
 		$settings['memberpress_regsitration_spam_message'] = array(
-			'title'       => __( 'Registration Spam/Malicious Message', 'zerospam' ),
-			'desc'        => __( 'When registration protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
+			'title'       => __( 'Registration Spam/Malicious Message', 'zero-spam' ),
+			'desc'        => __( 'When registration protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'memberpress',
 			'type'        => 'text',
 			'field_class' => 'large-text',
@@ -289,15 +289,15 @@ class MemberPress {
 		);
 
 		$settings['log_blocked_memberpress_registrations'] = array(
-			'title'       => __( 'Log Blocked Registrations', 'zerospam' ),
+			'title'       => __( 'Log Blocked Registrations', 'zero-spam' ),
 			'section'     => 'memberpress',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked registration attempts. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				__( 'Enables logging blocked registration attempts. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_memberpress_registrations'] ) ? $options['log_blocked_memberpress_registrations'] : false,
 			'recommended' => 'enabled',
@@ -309,7 +309,7 @@ class MemberPress {
 			'type'    => 'html',
 			'html'    => sprintf(
 				wp_kses(
-					__( '<h3 style="margin-bottom: 0">User Login Protection</h3>', 'zerospam' ),
+					__( '<h3 style="margin-bottom: 0">User Login Protection</h3>', 'zero-spam' ),
 					array(
 						'h3' => array(
 							'style' => array(),
@@ -320,19 +320,19 @@ class MemberPress {
 		);
 
 		$settings['verify_memberpress_login'] = array(
-			'title'       => __( 'Protect Login Forms', 'zerospam' ),
+			'title'       => __( 'Protect Login Forms', 'zero-spam' ),
 			'section'     => 'memberpress',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor MemberPress logins for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor MemberPress logins for malicious or automated spambots.', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['verify_memberpress_login'] ) ? $options['verify_memberpress_login'] : false,
 			'recommended' => 'enabled',
 		);
 
 		$settings['memberpress_login_spam_message'] = array(
-			'title'       => __( 'Login Spam/Malicious Message', 'zerospam' ),
-			'desc'        => __( 'When login protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
+			'title'       => __( 'Login Spam/Malicious Message', 'zero-spam' ),
+			'desc'        => __( 'When login protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'memberpress',
 			'type'        => 'text',
 			'field_class' => 'large-text',
@@ -342,15 +342,15 @@ class MemberPress {
 		);
 
 		$settings['log_blocked_memberpress_logins'] = array(
-			'title'       => __( 'Log Blocked Logins', 'zerospam' ),
+			'title'       => __( 'Log Blocked Logins', 'zero-spam' ),
 			'section'     => 'memberpress',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked login attempts. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				__( 'Enables logging blocked login attempts. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_memberpress_logins'] ) ? $options['log_blocked_memberpress_logins'] : false,
 			'recommended' => 'enabled',

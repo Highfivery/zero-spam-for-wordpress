@@ -79,13 +79,13 @@ class Access {
 						header( 'Pragma: no-cache' );
 						header( 'Expires: 0' );
 
-						$message = __( 'Your IP address has been blocked due to detected spam/malicious activity.', 'zerospam' );
+						$message = __( 'Your IP address has been blocked due to detected spam/malicious activity.', 'zero-spam' );
 						if ( ! empty( $settings['blocked_message']['value'] ) ) {
 							$message = $settings['blocked_message']['value'];
 						}
 						wp_die(
 							$message,
-							__( 'Blocked', 'zerospam' ),
+							__( 'Blocked', 'zero-spam' ),
 							array(
 								'response' => 403,
 							)

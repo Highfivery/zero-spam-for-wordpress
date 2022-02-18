@@ -1,24 +1,24 @@
 <?php
 /**
- * WordPress Zero Spam Plugin
+ * Zero Spam for WordPress Plugin
  *
- * @package    WordPressZeroSpam
+ * @package    ZeroSpam
  * @subpackage WordPress
  * @since      5.0.0
  * @author     Highfivery LLC
- * @copyright  2021 Highfivery LLC
+ * @copyright  2022 Highfivery LLC
  * @license    GPL-2.0-or-later
  *
  * @wordpress-plugin
- * Plugin Name:       WordPress Zero Spam
+ * Plugin Name:       Zero Spam for WordPress
  * Plugin URI:        https://www.highfivery.com/projects/zero-spam/
- * Description:       Tired of all the worthless and bloated WordPress anti-spam & security plugins? WordPress Zero Spam makes blocking spam &amp; malicious activity a cinch. <strong>Just install, activate, configure, and say goodbye to spam.</strong>
- * Version:           5.2.11
+ * Description:       Tired of all the ineffective WordPress anti-spam & security plugins? Zero Spam for WordPress makes blocking spam &amp; malicious activity a cinch. <strong>Just activate, configure, and say goodbye to spam.</strong>
+ * Version:           5.2.12
  * Requires at least: 5.2
  * Requires PHP:      7.3
  * Author:            Highfivery LLC
  * Author URI:        https://www.highfivery.com/
- * Text Domain:       zerospam
+ * Text Domain:       zero-spam
  * Domain Path:       /languages
  * License:           GPL v2 or later
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
@@ -31,7 +31,7 @@ defined( 'ABSPATH' ) || die();
 define( 'ZEROSPAM', __FILE__ );
 define( 'ZEROSPAM_PATH', plugin_dir_path( ZEROSPAM ) );
 define( 'ZEROSPAM_PLUGIN_BASE', plugin_basename( ZEROSPAM ) );
-define( 'ZEROSPAM_VERSION', '5.2.11' );
+define( 'ZEROSPAM_VERSION', '5.2.12' );
 
 if ( defined( 'ZEROSPAM_DEVELOPMENT_URL' ) ) {
 	define( 'ZEROSPAM_URL', ZEROSPAM_DEVELOPMENT_URL );
@@ -53,7 +53,7 @@ if ( ! version_compare( PHP_VERSION, '7.3', '>=' ) ) {
  * Load plugin textdomain
  */
 function zerospam_load_plugin_textdomain() {
-	load_plugin_textdomain( 'zerospam' );
+	load_plugin_textdomain( 'zero-spam' );
 }
 
 /**
@@ -63,8 +63,8 @@ function zerospam_fail_php_version() {
 	$message = sprintf(
 		/* translators: %s: replaced with the PHP version number */
 		esc_html__(
-			'WordPress Zero Spam requires PHP version %s+, plugin is currently NOT RUNNING.',
-			'zerospam'
+			'Zero Spam for WordPress requires PHP version %s+, plugin is currently NOT RUNNING.',
+			'zero-spam'
 		),
 		'7.3'
 	);
@@ -83,7 +83,7 @@ function zerospam_fail_wp_version() {
 	$message = sprintf(
 		/* translators: %s: replaced with the WordPress version number */
 		esc_html__(
-			'WordPress Zero Spam requires WordPress version %s+. Because you are using an earlier version, the plugin is currently NOT RUNNING.',
+			'Zero Spam for WordPress requires WordPress version %s+. Because you are using an earlier version, the plugin is currently NOT RUNNING.',
 			'zerospam'
 		),
 		'5'

@@ -302,7 +302,7 @@ class Utilities {
 	 * @param string $setting_msg_key Optional. Setting message key.
 	 */
 	public static function detection_title( $setting_msg_key = false ) {
-		$title = __( 'Blocked for Suspected Malicious IP/Spam', 'zerospam' );
+		$title = __( 'Blocked for Suspected Malicious IP/Spam', 'zero-spam' );
 
 		return apply_filters( 'zerospam_detection_title', $title, $setting_msg_key );
 	}
@@ -313,7 +313,7 @@ class Utilities {
 	 * @param string $setting_msg_key Optional. Setting message key.
 	 */
 	public static function detection_message( $setting_msg_key = false ) {
-		$message = __( 'You have been flagged as spam/malicious user.', 'zerospam' );
+		$message = __( 'You have been flagged as spam/malicious user.', 'zero-spam' );
 
 		if ( $setting_msg_key && ! empty( ZeroSpam\Core\Settings::get_settings( $setting_msg_key ) ) ) {
 			$message = ZeroSpam\Core\Settings::get_settings( $setting_msg_key );

@@ -168,7 +168,7 @@ class ProjectHoneypot {
 	 */
 	public function sections( $sections ) {
 		$sections['project_honeypot'] = array(
-			'title' => __( 'Project Honeypot Integration', 'zerospam' ),
+			'title' => __( 'Project Honeypot Integration', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -182,16 +182,16 @@ class ProjectHoneypot {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['project_honeypot'] = array(
-			'title'       => __( 'Status', 'zerospam' ),
+			'title'       => __( 'Status', 'zero-spam' ),
 			'section'     => 'project_honeypot',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: Replaced with the Project Honeypot URL */
-					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Project Honeypot</a>.', 'zerospam' ),
+					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Project Honeypot</a>.', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -208,11 +208,11 @@ class ProjectHoneypot {
 		);
 
 		$settings['project_honeypot_access_key'] = array(
-			'title'       => __( 'Access Key', 'zerospam' ),
+			'title'       => __( 'Access Key', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1s: Replaced with the Project Honeypot URL, %2s: Replaced with the Project Honeypot account creation URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Project Honeypot</a> access key. Don\'t have an access key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zerospam' ),
+					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Project Honeypot</a> access key. Don\'t have an access key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -228,36 +228,36 @@ class ProjectHoneypot {
 			'section'     => 'project_honeypot',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
-			'placeholder' => __( 'Enter your Project Honeypot access key.', 'zerospam' ),
+			'placeholder' => __( 'Enter your Project Honeypot access key.', 'zero-spam' ),
 			'value'       => ! empty( $options['project_honeypot_access_key'] ) ? $options['project_honeypot_access_key'] : false,
 		);
 
 		$settings['project_honeypot_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zerospam' ),
+			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'project_honeypot',
 			'type'        => 'number',
 			'field_class' => 'small-text',
-			'suffix'      => __( 'day(s)', 'zerospam' ),
+			'suffix'      => __( 'day(s)', 'zero-spam' ),
 			'placeholder' => WEEK_IN_SECONDS,
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zerospam' ),
+			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zero-spam' ),
 			'value'       => ! empty( $options['project_honeypot_cache'] ) ? $options['project_honeypot_cache'] : 14,
 			'recommended' => 14,
 		);
 
 		$settings['project_honeypot_score_min'] = array(
-			'title'       => __( 'Threat Score Minimum', 'zerospam' ),
+			'title'       => __( 'Threat Score Minimum', 'zero-spam' ),
 			'section'     => 'project_honeypot',
 			'type'        => 'number',
 			'field_class' => 'small-text',
-			'placeholder' => __( '50', 'zerospam' ),
+			'placeholder' => __( '50', 'zero-spam' ),
 			'min'         => 0,
 			'max'         => 255,
 			'step'        => 1,
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: Replaced with the Project Honeypot threat page URL */
-					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">threat score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 50.', 'zerospam' ),
+					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">threat score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 50.', 'zero-spam' ),
 					array(
 						'a' => array(
 							'target' => array(),

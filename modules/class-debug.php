@@ -55,7 +55,7 @@ class Debug {
 	 */
 	public function sections( $sections ) {
 		$sections['debug'] = array(
-			'title' => __( 'Debug', 'zerospam' ),
+			'title' => __( 'Debug', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -69,21 +69,21 @@ class Debug {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['debug'] = array(
-			'title'   => __( 'Debug', 'zerospam' ),
-			'desc'    => __( 'For troubleshooting site issues.', 'zerospam' ),
+			'title'   => __( 'Debug', 'zero-spam' ),
+			'desc'    => __( 'For troubleshooting site issues.', 'zero-spam' ),
 			'section' => 'debug',
 			'type'    => 'checkbox',
 			'options' => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'value'   => ! empty( $options['debug'] ) ? $options['debug'] : false,
 		);
 
 		$settings['debug_ip'] = array(
-			'title'       => __( 'Debug IP', 'zerospam' ),
+			'title'       => __( 'Debug IP', 'zero-spam' ),
 			'desc'        => wp_kses(
 				/* translators: %s: url */
-				__( 'Mock a IP address for debugging. <strong>WARNING: This overrides all visitor IP addresses and while enabled could block legit visitors from accessing the site.</strong>', 'zerospam' ),
+				__( 'Mock a IP address for debugging. <strong>WARNING: This overrides all visitor IP addresses and while enabled could block legit visitors from accessing the site.</strong>', 'zero-spam' ),
 				array(
 					'strong' => array(),
 				)

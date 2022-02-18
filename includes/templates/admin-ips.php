@@ -8,7 +8,7 @@
 if ( empty( $entries ) ) {
 	echo sprintf(
 		wp_kses(
-			__( 'Nothing to report.', 'zerospam' ),
+			__( 'Nothing to report.', 'zero-spam' ),
 			array(
 				'strong' => array(),
 			)
@@ -56,14 +56,14 @@ if ( $ips ) {
 					/>
 				<?php endif; ?>
 				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>ip-lookup/<?php echo urlencode( $ip ); ?>" target="_blank" rel="noopener noreferrer">
-					<?php echo $ip; ?>
+					<?php echo esc_html( $ip ); ?>
 				</a>
 			</span>
 			<span>
 				<?php if ( ! empty( $data['country'] ) ) : ?>
 					<?php echo ZeroSpam\Core\Utilities::countries( $data['country'] ); ?>
 				<?php else: ?>
-					<?php esc_html_e( 'Unknown', 'zerospam' ); ?>
+					<?php esc_html_e( 'Unknown', 'zero-spam' ); ?>
 				<?php endif; ?>
 				</span>
 			<span><?php echo number_format( $data['count'], 0 ); ?></span>
@@ -80,12 +80,12 @@ if ( $ips ) {
 						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $blocked['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $blocked['end_block'] ) ) ); ?>"
 						data-type="<?php echo esc_attr( $blocked['blocked_type'] ); ?>"
 					>
-						<?php _e( 'Update Block', 'zerospam' ); ?>
+						<?php esc_html_e( 'Update Block', 'zero-spam' ); ?>
 					</button>
 					<?php
 				else :
 					?>
-					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $ip ); ?>"><?php _e( 'Block IP', 'zerospam' ); ?></button>
+					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $ip ); ?>"><?php esc_html_e( 'Block IP', 'zero-spam' ); ?></button>
 					<?php
 				endif;
 				?>

@@ -39,7 +39,7 @@ class IPinfoModule {
 	 */
 	public function sections( $sections ) {
 		$sections['ipinfo'] = array(
-			'title' => __( 'IPinfo Integration (geolocation)', 'zerospam' ),
+			'title' => __( 'IPinfo Integration (geolocation)', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -53,11 +53,11 @@ class IPinfoModule {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['ipinfo_access_token'] = array(
-			'title'       => __( 'Access Token', 'zerospam' ),
+			'title'       => __( 'Access Token', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the IPInfo URL, %2$s: Replaced with the IPinfo signup URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">IPinfo access token</a> to enable geolocation features. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zerospam' ),
+					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">IPinfo access token</a> to enable geolocation features. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -73,18 +73,18 @@ class IPinfoModule {
 			'section'     => 'ipinfo',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
-			'placeholder' => __( 'Enter your IPinfo access token.', 'zerospam' ),
+			'placeholder' => __( 'Enter your IPinfo access token.', 'zero-spam' ),
 			'value'       => ! empty( $options['ipinfo_access_token'] ) ? $options['ipinfo_access_token'] : false,
 		);
 
 		$settings['ipinfo_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zerospam' ),
+			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'ipinfo',
 			'type'        => 'number',
 			'field_class' => 'small-text',
-			'suffix'      => __( 'day(s)', 'zerospam' ),
-			'placeholder' => __( '14', 'zerospam' ),
-			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zerospam' ),
+			'suffix'      => __( 'day(s)', 'zero-spam' ),
+			'placeholder' => __( '14', 'zero-spam' ),
+			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zero-spam' ),
 			'value'       => ! empty( $options['ipinfo_cache'] ) ? $options['ipinfo_cache'] : 14,
 			'recommended' => 14,
 		);

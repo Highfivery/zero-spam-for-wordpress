@@ -121,7 +121,7 @@ class WPForms {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['wpforms'] = __( 'WPForms', 'zerospam' );
+		$types['wpforms'] = __( 'WPForms', 'zero-spam' );
 
 		return $types;
 	}
@@ -140,7 +140,7 @@ class WPForms {
 	 */
 	public function sections( $sections ) {
 		$sections['wpforms'] = array(
-			'title' => __( 'WPForms Integration', 'zerospam' ),
+			'title' => __( 'WPForms Integration', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -154,21 +154,21 @@ class WPForms {
 	 */
 	public function settings( $settings, $options ) {
 		$settings['verify_wpforms'] = array(
-			'title'       => __( 'Protect WPForms Submissions', 'zerospam' ),
+			'title'       => __( 'Protect WPForms Submissions', 'zero-spam' ),
 			'section'     => 'wpforms',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor WPForms submissions for malicious or automated spambots.', 'zerospam' ),
+				'enabled' => __( 'Monitor WPForms submissions for malicious or automated spambots.', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['verify_wpforms'] ) ? $options['verify_wpforms'] : false,
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'Your IP has been flagged as spam/malicious.', 'zerospam' );
+		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['wpforms_spam_message'] = array(
-			'title'       => __( 'WPForms Spam/Malicious Message', 'zerospam' ),
-			'desc'        => __( 'When WPForms protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zerospam' ),
+			'title'       => __( 'WPForms Spam/Malicious Message', 'zero-spam' ),
+			'desc'        => __( 'When WPForms protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'wpforms',
 			'type'        => 'text',
 			'field_class' => 'large-text',
@@ -178,15 +178,15 @@ class WPForms {
 		);
 
 		$settings['log_blocked_wpforms'] = array(
-			'title'       => __( 'Log Blocked WPForms Submissions', 'zerospam' ),
+			'title'       => __( 'Log Blocked WPForms Submissions', 'zero-spam' ),
 			'section'     => 'wpforms',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked WPForms submissions. <strong>Recommended for enhanced protection.</strong>', 'zerospam' ),
+				__( 'Enables logging blocked WPForms submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zerospam' ),
+				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['log_blocked_wpforms'] ) ? $options['log_blocked_wpforms'] : false,
 			'recommended' => 'enabled',

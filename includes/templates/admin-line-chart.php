@@ -8,7 +8,7 @@
 if ( empty( $entries ) ) {
 	echo sprintf(
 		wp_kses(
-			__( 'Nothing to report.', 'zerospam' ),
+			__( 'Nothing to report.', 'zero-spam' ),
 			array(
 				'strong' => array(),
 			)
@@ -63,7 +63,7 @@ foreach ( $data as $date => $count ) {
 			data: {
 				labels: <?php echo wp_json_encode( $labels ); ?>,
 				datasets: [{
-					label: '<?php esc_html_e( 'Number of Detections', 'zerospam' ); ?>',
+					label: '<?php esc_html_e( 'Number of Detections', 'zero-spam' ); ?>',
 					data: <?php echo wp_json_encode( $chart_data ); ?>,
 					backgroundColor: 'rgba(88, 0, 15, 0.5)',
 					borderColor: '#63000D',

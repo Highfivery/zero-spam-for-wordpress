@@ -14,7 +14,7 @@
 
 <?php if ( empty( $location_form ) ) : ?>
 	<label for="blocked-ip">
-		<?php _e( 'IP Address', 'zerospam' ); ?>
+		<?php _e( 'IP Address', 'zero-spam' ); ?>
 		<input
 			type="text"
 			name="blocked_ip"
@@ -24,17 +24,17 @@
 	</label>
 <?php else: ?>
 	<label for="location-type">
-		<?php _e( 'Location Type', 'zerospam' ); ?>
+		<?php esc_html_e( 'Location Type', 'zero-spam' ); ?>
 		<select id="location-type" name="key_type">
-			<option value="country_code"><?php _e( 'Country Code', 'zerospam' ); ?></option>
-			<option value="region_code"><?php _e( 'Region Code', 'zerospam' ); ?></option>
-			<option value="city"><?php _e( 'City Name', 'zerospam' ); ?></option>
-			<option value="zip"><?php _e( 'Zip/Postal Code', 'zerospam' ); ?></option>
+			<option value="country_code"><?php esc_html_e( 'Country Code', 'zero-spam' ); ?></option>
+			<option value="region_code"><?php esc_html_e( 'Region Code', 'zero-spam' ); ?></option>
+			<option value="city"><?php esc_html_e( 'City Name', 'zero-spam' ); ?></option>
+			<option value="zip"><?php esc_html_e( 'Zip/Postal Code', 'zero-spam' ); ?></option>
 		</select>
 	</label>
 
 	<label for="location-key">
-		<?php _e( 'Location Key', 'zerospam' ); ?>
+		<?php esc_html_e( 'Location Key', 'zero-spam' ); ?>
 		<input
 			id="location-key"
 			type="text"
@@ -45,34 +45,34 @@
 	</label>
 <?php endif; ?>
 
-<label for="blocked-type"><?php _e( 'Type', 'zerospam' ); ?>
+<label for="blocked-type"><?php esc_html_e( 'Type', 'zero-spam' ); ?>
 	<select id="blocked-type" name="blocked_type">
-		<option value="temporary"><?php _e( 'Temporary', 'zerospam' ); ?></option>
-		<option value="permanent"><?php _e( 'Permanent', 'zerospam' ); ?></option>
+		<option value="temporary"><?php esc_html_e( 'Temporary', 'zero-spam' ); ?></option>
+		<option value="permanent"><?php esc_html_e( 'Permanent', 'zero-spam' ); ?></option>
 	</select>
 </label>
 
 <label for="blocked-reason">
-	<?php _e( 'Reason', 'zerospam' ); ?>
-	<input type="text" id="blocked-reason" name="blocked_reason" value="" placeholder="<?php _e( 'e.g. Spammed form', 'zerospam' ); ?>" />
+	<?php esc_html_e( 'Reason', 'zero-spam' ); ?>
+	<input type="text" id="blocked-reason" name="blocked_reason" value="" placeholder="<?php esc_attr_e( 'e.g. Spammed form', 'zero-spam' ); ?>" />
 </label>
 
 <label for="blocked-start-date">
-	<?php esc_html_e( 'Start Date', 'zerospam' ); ?>
+	<?php esc_html_e( 'Start Date', 'zero-spam' ); ?>
 	<input
 		type="datetime-local"
 		id="blocked-start-date"
 		name="blocked_start_date"
 		value=""
-		placeholder="<?php echo esc_attr( __( 'Optional', 'zerospam' ) ); ?>"
+		placeholder="<?php echo esc_attr( __( 'Optional', 'zero-spam' ) ); ?>"
 	/>
 </label>
 
 <label for="blocked-end-date">
-	<?php _e( 'End Date', 'zerospam' ); ?>
-	<input type="datetime-local" id="blocked-end-date" name="blocked_end_date" value="" placeholder="<?php _e( 'Optional', 'zerospam' ); ?>" />
+	<?php esc_html_e( 'End Date', 'zero-spam' ); ?>
+	<input type="datetime-local" id="blocked-end-date" name="blocked_end_date" value="" placeholder="<?php esc_attr_e( 'Optional', 'zero-spam' ); ?>" />
 </label>
 
-<input type="submit" class="button button-primary" value="<?php _e( 'Add/Update Blocked IP', 'zerospam' ); ?>" />
+<input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Add/Update Blocked IP', 'zero-spam' ); ?>" />
 
 </form>

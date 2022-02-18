@@ -19,26 +19,20 @@ defined( 'ABSPATH' ) || die();
 class BlockedLocations extends WP_List_Table {
 
 	/**
-	 * Log table constructor.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Log table constructor
 	 */
 	public function __construct() {
 		global $status, $page;
 
 		$args = array(
-			'singular' => __( 'WordPress Zero Spam Blocked Location', 'zerospam' ),
-			'plural'   => __( 'WordPress Zero Spam Blocked Locations', 'zerospam' ),
+			'singular' => __( 'WordPress Zero Spam Blocked Location', 'zero-spam' ),
+			'plural'   => __( 'WordPress Zero Spam Blocked Locations', 'zero-spam' ),
 		);
 		parent::__construct( $args );
 	}
 
 	/**
-	 * Column values.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Column values
 	 */
 	public function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
@@ -83,7 +77,7 @@ class BlockedLocations extends WP_List_Table {
 						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $item['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $item['end_block'] ) ) ); ?>"
 						data-type="<?php echo esc_attr( $item['blocked_type'] ); ?>"
 					>
-						<?php _e( 'Update Block', 'zerospam' ); ?>
+						<?php esc_html_e( 'Update Block', 'zero-spam' ); ?>
 					</button>
 					<?php
 				return ob_get_clean();
@@ -98,35 +92,26 @@ class BlockedLocations extends WP_List_Table {
 	}
 
 	/**
-	 * Bulk actions.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Bulk actions
 	 */
 	public function get_bulk_actions() {
 		$actions = array(
-			'delete'     => __( 'Delete Selected', 'zerospam' ),
-			//'delete_all' => __( 'Delete All Locations', 'zerospam' ),
+			'delete'     => __( 'Delete Selected', 'zero-spam' ),
+			//'delete_all' => __( 'Delete All Locations', 'zero-spam' ),
 		);
 
 		return $actions;
 	}
 
 	/**
-	 * Hidable columns.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Hidable columns
 	 */
 	public function get_hidden_columns() {
 		return array();
 	}
 
 	/**
-	 * Prepare log items.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Prepare log items
 	 */
 	public function prepare_items( $args = array() ) {
 		$this->process_bulk_action();
@@ -205,10 +190,7 @@ class BlockedLocations extends WP_List_Table {
 	}
 
 	/**
-	 * Add more filters.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Add more filters
 	 */
 	public function extra_tablenav( $which ) {
 		if ( 'top' !== $which ) {
@@ -218,51 +200,45 @@ class BlockedLocations extends WP_List_Table {
 		<div class="alignleft actions">
 			<?php
 			/*
-			echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type', 'zerospam' ) . '</label>';
+			echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type', 'zero-spam' ) . '</label>';
 			$options      = apply_filters( 'zerospam_types', array() );
 			$current_type = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
 			?>
 			<select name="type" id="filter-by-type">
-				<option value=""><?php _e( 'All types', 'zerospam' ); ?></option>
+				<option value=""><?php _e( 'All types', 'zero-spam' ); ?></option>
 				<?php foreach ( $options as $key => $value ) : ?>
 					<option<?php if ( $current_type === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo $value; ?></option>
 				<?php endforeach; ?>
 			</select>
 			<?php
-			submit_button( __( 'Filter', 'zerospam' ), '', 'filter_action', false );
+			submit_button( __( 'Filter', 'zero-spam' ), '', 'filter_action', false );
 			*/
 			?>
-			<button class="button zerospam-block-location-trigger"><?php echo __( 'Add Blocked Location', 'zerospam' ); ?></button>
+			<button class="button zerospam-block-location-trigger"><?php echo __( 'Add Blocked Location', 'zero-spam' ); ?></button>
 		</div>
 		<?php
 	 }
 
 	/**
-	 * Define table columns.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Define table columns
 	 */
 	public function get_columns() {
 		$columns = array(
 			'cb'           => '<input type="checkbox" />',
-			'date_added'   => __( 'Date', 'zerospam' ),
-			'location'     => __( 'Location', 'zerospam' ),
-			'blocked_type' => __( 'Type', 'zerospam' ),
-			'start_block'  => __( 'Starts', 'zerospam' ),
-			'end_block'    => __( 'Ends', 'zerospam' ),
-			'reason'       => __( 'Reason', 'zerospam' ),
-			'actions'      => __( 'Actions', 'zerospam' ),
+			'date_added'   => __( 'Date', 'zero-spam' ),
+			'location'     => __( 'Location', 'zero-spam' ),
+			'blocked_type' => __( 'Type', 'zero-spam' ),
+			'start_block'  => __( 'Starts', 'zero-spam' ),
+			'end_block'    => __( 'Ends', 'zero-spam' ),
+			'reason'       => __( 'Reason', 'zero-spam' ),
+			'actions'      => __( 'Actions', 'zero-spam' ),
 		);
 
 		return $columns;
 	}
 
 	/**
-	 * Sortable columns.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Sortable columns
 	 */
 	public function get_sortable_columns() {
 		$sortable_columns = array(
@@ -277,10 +253,7 @@ class BlockedLocations extends WP_List_Table {
 	}
 
 	/**
-	 * Column contact.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Column contact
 	 */
 	public function column_cb( $item ) {
 		return sprintf(
@@ -291,19 +264,16 @@ class BlockedLocations extends WP_List_Table {
 	}
 
 	/**
-	 * Process bulk actions.
-	 *
-	 * @since 5.0.0
-	 * @access public
+	 * Process bulk actions
 	 */
 	public function process_bulk_action() {
 		global $wpdb;
 
-		$ids = ( isset( $_REQUEST['ids'] ) ) ? $_REQUEST['ids'] : '';
+		$ids = ( isset( $_REQUEST['ids'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['ids'] ) ) : '';
 
 		switch( $this->current_action() ) {
 			case 'delete':
-				$nonce = ( isset( $_REQUEST['zerospam_nonce'] ) ) ? sanitize_text_field( $_REQUEST['zerospam_nonce'] ) : '';
+				$nonce = ( isset( $_REQUEST['zerospam_nonce'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['zerospam_nonce'] ) ) : '';
 				if ( ! wp_verify_nonce( $nonce, 'zerospam_nonce' ) ) {
 					return false;
 				}

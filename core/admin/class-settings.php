@@ -87,11 +87,11 @@ class Settings {
 		if (
 			! empty( $_REQUEST['zerospam-action'] ) &&
 			'autoconfigure' === $_REQUEST['zerospam-action'] &&
-			check_admin_referer( 'autoconfigure', 'zerospam' )
+			check_admin_referer( 'autoconfigure', 'zero-spam' )
 		) {
 			\ZeroSpam\Core\Settings::auto_configure();
 
-			$message      = __( 'WordPress Zero Spam has successfully been auto-configured with the recommended settings.', 'zerospam' );
+			$message      = __( 'WordPress Zero Spam has successfully been auto-configured with the recommended settings.', 'zero-spam' );
 			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-msg=' . $message;
 
 			wp_safe_redirect( $redirect_url );
@@ -99,11 +99,11 @@ class Settings {
 		} elseif (
 			! empty( $_REQUEST['zerospam-action'] ) &&
 			'update-blocked-emails' === $_REQUEST['zerospam-action'] &&
-			check_admin_referer( 'update-blocked-emails', 'zerospam' )
+			check_admin_referer( 'update-blocked-emails', 'zero-spam' )
 		) {
 			\ZeroSpam\Core\Settings::update_blocked_email_domains();
 
-			$message      = __( 'WordPress Zero Spam\'s blocked email domains have been successfully updated to the recommended.', 'zerospam' );
+			$message      = __( 'WordPress Zero Spam\'s blocked email domains have been successfully updated to the recommended.', 'zero-spam' );
 			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-msg=' . $message;
 
 			wp_safe_redirect( $redirect_url );
@@ -111,11 +111,11 @@ class Settings {
 		} elseif (
 			! empty( $_REQUEST['zerospam-action'] ) &&
 			'regenerate-honeypot' === $_REQUEST['zerospam-action'] &&
-			check_admin_referer( 'regenerate-honeypot', 'zerospam' )
+			check_admin_referer( 'regenerate-honeypot', 'zero-spam' )
 		) {
 			self::regenerate_honeypot();
 
-			$message      = __( 'WordPress Zero Spam\'s honeypot ID has been successfully reset.', 'zerospam' );
+			$message      = __( 'WordPress Zero Spam\'s honeypot ID has been successfully reset.', 'zero-spam' );
 			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-msg=' . $message;
 
 			wp_safe_redirect( $redirect_url );
@@ -123,11 +123,11 @@ class Settings {
 		} elseif (
 			! empty( $_REQUEST['zerospam-action'] ) &&
 			'update-disallowed-words' === $_REQUEST['zerospam-action'] &&
-			check_admin_referer( 'update-disallowed-words', 'zerospam' )
+			check_admin_referer( 'update-disallowed-words', 'zero-spam' )
 		) {
 			\ZeroSpam\Core\Settings::update_disallowed_words();
 
-			$message      = __( 'WordPress\'s disallowed words list has been successfully updated to the recommended.', 'zerospam' );
+			$message      = __( 'WordPress\'s disallowed words list has been successfully updated to the recommended.', 'zero-spam' );
 			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-msg=' . $message;
 
 			wp_safe_redirect( $redirect_url );
@@ -135,11 +135,11 @@ class Settings {
 		} elseif (
 			! empty( $_REQUEST['zerospam-action'] ) &&
 			'delete-error-log' === $_REQUEST['zerospam-action'] &&
-			check_admin_referer( 'delete-error-log', 'zerospam' )
+			check_admin_referer( 'delete-error-log', 'zero-spam' )
 		) {
 			\ZeroSpam\Core\Utilities::delete_error_log();
 
-			$message      = __( 'WordPress Zero Spam\'s error log has been successfully deleted.', 'zerospam' );
+			$message      = __( 'WordPress Zero Spam\'s error log has been successfully deleted.', 'zero-spam' );
 			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=error&zerospam-msg=' . $message;
 
 			wp_safe_redirect( $redirect_url );
@@ -155,8 +155,8 @@ class Settings {
 
 		add_submenu_page(
 			'options-general.php',
-			__( 'Zero Spam Settings', 'zerospam' ),
-			__( 'Zero Spam', 'zerospam' ),
+			__( 'Zero Spam Settings', 'zero-spam' ),
+			__( 'Zero Spam', 'zero-spam' ),
 			'manage_options',
 			'wordpress-zero-spam-settings',
 			array( $this, 'settings_page' )
@@ -498,18 +498,18 @@ class Settings {
 
 		$base_admin_link = 'options-general.php?page=wordpress-zero-spam-settings';
 		// @codingStandardsIgnoreLine
-		$current_tab = ! empty( $_REQUEST['tab'] ) ? esc_html( $_REQUEST['tab'] ) : 'settings';
+		$current_tab = ! empty( $_REQUEST['tab'] ) ? sanitize_text_field( $_REQUEST['tab'] ) : 'settings';
 		$admin_tabs  = array(
 			'settings' => array(
-				'title'    => __( 'Settings', 'zerospam' ),
+				'title'    => __( 'Settings', 'zero-spam' ),
 				'template' => 'settings',
 			),
 			'export'   => array(
-				'title'    => __( 'Export/Import Settings', 'zerospam' ),
+				'title'    => __( 'Export/Import Settings', 'zero-spam' ),
 				'template' => 'export',
 			),
 			'error'    => array(
-				'title'    => __( 'Error Log', 'zerospam' ),
+				'title'    => __( 'Error Log', 'zero-spam' ),
 				'template' => 'errors',
 			),
 		);

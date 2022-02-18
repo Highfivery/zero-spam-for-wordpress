@@ -8,7 +8,7 @@
 if ( empty( $entries ) ) {
 	echo sprintf(
 		wp_kses(
-			__( '<strong>Good news!</strong> There haven\'t been any detections of malicious or spammy IPs yet.', 'zerospam' ),
+			__( '<strong>Good news!</strong> There haven\'t been any detections of malicious or spammy IPs yet.', 'zero-spam' ),
 			array(
 				'strong' => array(),
 			)
@@ -62,7 +62,7 @@ if ( empty( $locations ) ) :
 	echo sprintf(
 		wp_kses(
 			/* translators: %s: url */
-			__( 'Current detections have no geolocation information available. Enable ipstack and/or IPinfo on the <a href="%1$s">settings page</a>.', 'zerospam' ),
+			__( 'Current detections have no geolocation information available. Enable ipstack and/or IPinfo on the <a href="%1$s">settings page</a>.', 'zero-spam' ),
 			array(
 				'a' => array( 'href' => array() ),
 			)
