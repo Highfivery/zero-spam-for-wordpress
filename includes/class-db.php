@@ -284,7 +284,7 @@ class DB {
 		if ( ! empty( $args['orderby'] ) ) {
 			$orderby = $args['orderby'];
 			if ( ! empty( $args['order'] ) ) {
-				$orderby = ' ' . $args['order'];
+				$orderby .= ' ' . $args['order'];
 			}
 
 			$sql .= ' ORDER BY ' . sanitize_sql_orderby( $orderby );

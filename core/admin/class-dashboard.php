@@ -55,7 +55,7 @@ class Dashboard {
 
 		$url = $url['scheme'] . '://' . $url['host'] . ( ! empty( $url['port'] ) ? ':' . $url['port'] : '' ) . $url['path'] . '?' . $url['query'];
 
-		if ( ! isset( $_POST['zerospam'] ) || ! wp_verify_nonce( $_POST['zerospam'], 'zero-spam' ) ) {
+		if ( ! isset( $_POST['zerospam'] ) || ! wp_verify_nonce( $_POST['zerospam'], 'zerospam' ) ) {
 			wp_redirect( $url . '&zerospam-error=1' );
 			exit;
 		}
@@ -87,6 +87,7 @@ class Dashboard {
 		$record['reason']       = sanitize_text_field( $_POST['blocked_reason'] );
 		$record['start_block']  = sanitize_text_field( $_POST['blocked_start_date'] );
 		$record['end_block']    = sanitize_text_field( $_POST['blocked_end_date'] );
+
 
 		if ( ! empty( $record['user_ip'] ) && ! rest_is_ip_address( $record['user_ip'] ) ) {
 			wp_safe_redirect( $url . '&zerospam-error=1' );
