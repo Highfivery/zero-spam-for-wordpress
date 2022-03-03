@@ -33,8 +33,8 @@ class Registration {
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_registrations' ) &&
 			\ZeroSpam\Core\Access::process()
 		) {
-			add_action( 'register_form', array( $this, 'scripts' ) );
-			add_action( 'register_form', array( $this, 'honeypot' ) );
+			add_action( 'register_form', array( $this, 'add_scripts' ) );
+			add_action( 'register_form', array( $this, 'add_honeypot_field' ) );
 			add_filter( 'registration_errors', array( $this, 'process_form' ), 10, 3 );
 		}
 	}
@@ -53,8 +53,12 @@ class Registration {
 	/**
 	 * Load the scripts
 	 */
-	public function scripts() {
-		do_action( 'zerospam_register_form' );
+	public function add_scripts() {
+		// Only add scripts to the appropriate pages.
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			wp_enqueue_script( 'zerospam-davidwalsh' );
+			wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery("#registerform").ZeroSpamDavidWalsh();' );
+		}
 	}
 
 	/**
@@ -134,7 +138,7 @@ class Registration {
 	/**
 	 * Add a 'honeypot' field to the registration form
 	 */
-	public function honeypot() {
+	public function add_honeypot_field() {
 		// @codingStandardsIgnoreLine
 		echo \ZeroSpam\Core\Utilities::honeypot_field();
 	}

@@ -40,18 +40,19 @@ class Login {
 			add_filter( 'wp_authenticate_user', array( $this, 'process_form' ), 10, 2 );
 
 			// Load scripts.
-			add_action( 'login_enqueue_scripts', array( $this, 'scripts' ), 10 );
-
-			// Add script to WooCommerce login.
-			add_action( 'woocommerce_login_form_start', array( $this, 'scripts' ), 10 );
+			add_action( 'login_enqueue_scripts', array( $this, 'add_scripts' ), 10 );
 		}
 	}
 
 	/**
 	 * Load the scripts
 	 */
-	public function scripts() {
-		do_action( 'zerospam_login_scripts' );
+	public function add_scripts() {
+		// Only add scripts to the appropriate pages.
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			wp_enqueue_script( 'zerospam-davidwalsh' );
+			wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery("#loginform").ZeroSpamDavidWalsh();' );
+		}
 	}
 
 	/**
