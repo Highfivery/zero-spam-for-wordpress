@@ -40,18 +40,19 @@ class Login {
 			add_filter( 'wp_authenticate_user', array( $this, 'process_form' ), 10, 2 );
 
 			// Load scripts.
-			add_action( 'login_enqueue_scripts', array( $this, 'scripts' ), 10 );
-
-			// Add script to WooCommerce login.
-			add_action( 'woocommerce_login_form_start', array( $this, 'scripts' ), 10 );
+			add_action( 'login_enqueue_scripts', array( $this, 'add_scripts' ), 10 );
 		}
 	}
 
 	/**
 	 * Load the scripts
 	 */
-	public function scripts() {
-		do_action( 'zerospam_login_scripts' );
+	public function add_scripts() {
+		// Only add scripts to the appropriate pages.
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			wp_enqueue_script( 'zerospam-davidwalsh' );
+			wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery("#loginform").ZeroSpamDavidWalsh();' );
+		}
 	}
 
 	/**
@@ -71,6 +72,21 @@ class Login {
 	public function process_form( $user, $password ) {
 		// @codingStandardsIgnoreLine
 		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
+
+		/**
+		 * Fix for https://github.com/Highfivery/wordpress-zero-spam/issues/310
+		 *
+		 * Don't process WooCommerce login forms, this module is only for core login
+		 * forms. Would be nice if there was a hook specific to core logins that
+		 * wasn't fired for other 3rd-party login forms. A bit of a hacky solution,
+		 * but checking if the woocommerce nonce was submitted, if so, ignore
+		 * processing. WooCommerce login forms will eventually be processed by a
+		 * WooCommerce login hook in the WooCommerce Zero Spam module.
+		 */
+		if ( ! empty( $post['woocommerce-login-nonce'] ) ) {
+			// Submitted via a WooCommerce login form, ignore processing.
+			return $user;
+		}
 
 		// Check Zero Spam's honeypot field.
 		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();

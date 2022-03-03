@@ -106,8 +106,8 @@ class WooCommerce {
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_woocommerce_registrations' ) &&
 			\ZeroSpam\Core\Access::process()
 		) {
-			add_action( 'woocommerce_register_form', array( $this, 'honeypot' ) );
-			add_action( 'woocommerce_register_form', array( $this, 'scripts' ) );
+			add_action( 'woocommerce_register_form', array( $this, 'add_honeypot_field' ) );
+			add_action( 'woocommerce_register_form', array( $this, 'add_scripts' ) );
 			add_action( 'woocommerce_register_post', array( $this, 'process_registration' ), 10, 3 );
 		}
 	}
@@ -115,7 +115,7 @@ class WooCommerce {
 	/**
 	 * Adds the 'honeypot' field to the WooCommerce registration form
 	 */
-	public function honeypot() {
+	public function add_honeypot_field() {
 		woocommerce_form_field(
 			\ZeroSpam\Core\Utilities::get_honeypot(),
 			array(
@@ -128,8 +128,12 @@ class WooCommerce {
 	/**
 	 * Load the scripts
 	 */
-	public function scripts() {
-		do_action( 'zerospam_woocommerce_registration_scripts' );
+	public function add_scripts() {
+		// Only add scripts to the appropriate pages.
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			wp_enqueue_script( 'zerospam-davidwalsh' );
+			wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".woocommerce-form-register").ZeroSpamDavidWalsh();' );
+		}
 	}
 
 	/**

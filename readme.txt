@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 5.9
+Tested up to: 5.9.1
 Requires PHP: 7.3
-Stable tag: 5.2.13
+Stable tag: 5.2.14
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -103,6 +103,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Zero Spam for WordPress settings
 
 == Changelog ==
+
+= v5.2.14 =
+
+* fix(woocommerce): fixes issues with woocommerce login not working, resolves #310
 
 = v5.2.13 =
 
