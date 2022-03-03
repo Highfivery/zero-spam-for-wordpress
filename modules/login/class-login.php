@@ -73,6 +73,21 @@ class Login {
 		// @codingStandardsIgnoreLine
 		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
 
+		/**
+		 * Fix for https://github.com/Highfivery/wordpress-zero-spam/issues/310
+		 *
+		 * Don't process WooCommerce login forms, this module is only for core login
+		 * forms. Would be nice if there was a hook specific to core logins that
+		 * wasn't fired for other 3rd-party login forms. A bit of a hacky solution,
+		 * but checking if the woocommerce nonce was submitted, if so, ignore
+		 * processing. WooCommerce login forms will eventually be processed by a
+		 * WooCommerce login hook in the WooCommerce Zero Spam module.
+		 */
+		if ( ! empty( $post['woocommerce-login-nonce'] ) ) {
+			// Submitted via a WooCommerce login form, ignore processing.
+			return $user;
+		}
+
 		// Check Zero Spam's honeypot field.
 		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
 
