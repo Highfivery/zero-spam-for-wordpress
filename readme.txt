@@ -5,13 +5,15 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.9.1
 Requires PHP: 7.3
-Stable tag: 5.2.14
+Stable tag: 5.2.15
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
 No captcha needed, behind the scenes protection against spam & malicious attacks using proven techniques & up-to-date blacklists.
 
 == Description ==
+
+**We stand with the Ukrainian people.** We at Zero Spam support those fighting to preserve freedom, democracy, and sovereignty in Ukraine. Because of this unlawful invasion by Russia, supported by Belarus, we will no longer provide protection for .ru, .su, and .by domains that have the plugin installed and will display a Ukrainian support banner on those sites.
 
 Quit forcing people to answer questions or confusing captchas to prove they're not spam. Stop malicious users before they ever have a chance to infiltrate your site &mdash; **introducing Zero Spam for WordPress**.
 
@@ -103,6 +105,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Zero Spam for WordPress settings
 
 == Changelog ==
+
+= v5.2.15 =
+
+* feat(ukraine): we'll no longer provide protection for .ru, .su, and .by domains & will display a banner of support for the ukrainian people on those sites - united with ukraine
 
 = v5.2.14 =
 
