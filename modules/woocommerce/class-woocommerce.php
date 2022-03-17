@@ -109,6 +109,9 @@ class WooCommerce {
 			add_action( 'woocommerce_register_form', array( $this, 'add_honeypot_field' ) );
 			add_action( 'woocommerce_register_form', array( $this, 'add_scripts' ) );
 			add_action( 'woocommerce_register_post', array( $this, 'process_registration' ), 10, 3 );
+
+			add_action( 'woocommerce_before_checkout_form', array( $this, 'add_scripts' ) );
+			add_action( 'woocommerce_after_order_notes', array( $this, 'add_honeypot_field' ), 10 );
 		}
 	}
 
@@ -132,7 +135,7 @@ class WooCommerce {
 		// Only add scripts to the appropriate pages.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".woocommerce-form-register").ZeroSpamDavidWalsh();' );
+			wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".woocommerce-form-register, .woocommerce-checkout").ZeroSpamDavidWalsh();' );
 		}
 	}
 
