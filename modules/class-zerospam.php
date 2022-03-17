@@ -227,7 +227,7 @@ class Zero_Spam {
 
 			$minutes_diff = $last_api_report_submitted->diff( $current_time );
 			if ( $minutes_diff->i < 5 ) {
-				//return false;
+				return false;
 			}
 		}
 
