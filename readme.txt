@@ -108,7 +108,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.2.16 =
 
-* fix(woocommerce): fix for spam getting triggered during woo checkout with create account checked
+* fix(woocommerce): fix for spam getting triggered during woo checkout with create account checked, resolves #313
 
 = v5.2.15 =
 
