@@ -29,6 +29,7 @@ if ( is_multisite() ) {
 			delete_option( 'zerospam_db_version' );
 			delete_option( 'zerospam_configured' );
 			delete_option( 'zerospam_davidwalsh' );
+			delete_option( 'zero_spam_last_api_report' );
 
 			foreach ( $tables as $key => $table ) {
 				// @codingStandardsIgnoreLine
@@ -43,6 +44,7 @@ if ( is_multisite() ) {
 	delete_option( 'zerospam_db_version' );
 	delete_option( 'zerospam_configured' );
 	delete_option( 'zerospam_davidwalsh' );
+	delete_option( 'zero_spam_last_api_report' );
 
 	foreach ( $tables as $key => $table ) {
 		// @codingStandardsIgnoreLine

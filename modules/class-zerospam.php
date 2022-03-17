@@ -18,7 +18,7 @@ class Zero_Spam {
 	/**
 	 * The zerospam.org API endpoint
 	 */
-	const API_ENDPOINT = ZEROSPAM_URL . 'wp-json/zerospam/v2/';
+	const API_ENDPOINT = ZEROSPAM_URL . 'wp-json/zero-spam-store/v1/';
 
 	/**
 	 * Constructor
@@ -199,14 +199,15 @@ class Zero_Spam {
 	 * Global API data.
 	 */
 	public function global_api_data() {
-		$api_data                   = array();
-		$api_data['site_url']       = site_url();
-		$api_data['admin_email']    = get_bloginfo( 'admin_email' );
-		$api_data['wp_version']     = get_bloginfo( 'version' );
-		$api_data['site_name']      = get_bloginfo( 'name' );
-		$api_data['site_desc']      = get_bloginfo( 'description' );
-		$api_data['site_language']  = get_bloginfo( 'language' );
-		$api_data['plugin_version'] = ZEROSPAM_VERSION;
+		$api_data                         = array();
+		$api_data['reporter_email']       = sanitize_email( get_bloginfo( 'admin_email' ) );
+		$api_data['domain']               = esc_url( site_url() );
+		$api_data['wp_version']           = sanitize_text_field( get_bloginfo( 'version' ) );
+		$api_data['wp_admin_email']       = sanitize_email( get_bloginfo( 'admin_email' ) );
+		$api_data['wp_zero_spam_version'] = sanitize_text_field( ZEROSPAM_VERSION );
+		$api_data['wp_language']          = sanitize_text_field( strtolower( get_bloginfo( 'language' ) ) );
+		$api_data['wp_site_name']         = sanitize_text_field( get_bloginfo( 'name' ) );
+		$api_data['wp_site_tagline']      = sanitize_text_field( get_bloginfo( 'description' ) );
 
 		return $api_data;
 	}
@@ -217,7 +218,20 @@ class Zero_Spam {
 	 * @param array $data Contains all detection details.
 	 */
 	public function share_detection( $data ) {
-		$endpoint = self::API_ENDPOINT . 'add-detection/';
+		// Check to make sure a report hasn't been submitted recently.
+		$last_api_report_submitted = get_site_option( 'zero_spam_last_api_request' );
+
+		if ( $last_api_report_submitted ) {
+			$last_api_report_submitted = new \DateTime( $last_api_report_submitted );
+			$current_time              = new \DateTime();
+
+			$minutes_diff = $last_api_report_submitted->diff( $current_time );
+			if ( $minutes_diff->i < 5 ) {
+				//return false;
+			}
+		}
+
+		$endpoint = self::API_ENDPOINT . 'submit-report/';
 
 		$ip = \ZeroSpam\Core\User::get_ip();
 
@@ -225,29 +239,43 @@ class Zero_Spam {
 			return false;
 		}
 
-		$api_data = array(
-			'user_ip' => $ip,
-			'type'    => trim( sanitize_text_field( $data['type'] ) ),
-			'data'    => array(),
-		);
-
-		// Loop through & clean the data.
-		foreach ( $data as $key => $value ) {
-			$api_data['data'][ $key ] = trim( sanitize_text_field( $value ) );
+		// Define the data to send to the report API.
+		$compliant = sanitize_text_field( $data['type'] );
+		if ( ! empty( $data['failed'] ) ) {
+			$compliant .= ' - ' . sanitize_text_field( $data['failed'] );
 		}
 
-		// Attempt to get the geolocation information.
-		$api_data['location'] = \ZeroSpam\Modules\ipstack::get_geolocation( $ip );
+		$api_data = array(
+			'report_type' => 'ip_address',
+			'ip_address'  => sanitize_text_field( $ip ),
+			'compliant'   => sanitize_text_field( $compliant ),
+		);
 
+		// Add specially defined data to the API report.
+		if ( ! empty( $data['comment_author_email'] ) ) {
+			$api_data['email_address'] = sanitize_email( $data['comment_author_email'] );
+
+			if ( ! empty( $data['comment_author'] ) ) {
+				$api_data['email_name'] = sanitize_text_field( $data['comment_author'] );
+			}
+		}
+
+		// Add data that should be included in every API report.
 		$global_data = self::global_api_data();
 		$api_data    = array_merge( $api_data, $global_data );
 
 		// Send the data to zerospam.org.
 		$args = array(
-			'body' => $api_data,
+			'body' => array( 'data' => $api_data ),
 		);
 
-		wp_remote_post( $endpoint, $args );
+		$response = wp_remote_post( $endpoint, $args );
+
+		if ( is_wp_error( $response ) ) {
+			//echo $response->get_error_message();
+		}
+
+		update_site_option( 'zero_spam_last_api_request', current_time( 'mysql' ) );
 	}
 
 	/**

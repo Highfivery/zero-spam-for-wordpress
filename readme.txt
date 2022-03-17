@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.9.2
 Requires PHP: 7.3
-Stable tag: 5.2.16
+Stable tag: 5.3.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -106,9 +106,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 == Changelog ==
 
-= v5.2.16 =
+= v5.3.0 =
 
 * fix(woocommerce): fix for spam getting triggered during woo checkout with create account checked, resolves #313
+* refactor(zero spam api): performance improvements when sharing detections
 
 = v5.2.15 =
 
