@@ -252,11 +252,42 @@ class Zero_Spam {
 		);
 
 		// Add specially defined data to the API report.
-		if ( ! empty( $data['comment_author_email'] ) ) {
+
+		// From comments.
+		if ( ! empty( $data['comment_author_email'] ) && is_email( $data['comment_author_email'] ) ) {
 			$api_data['email_address'] = sanitize_email( $data['comment_author_email'] );
 
 			if ( ! empty( $data['comment_author'] ) ) {
 				$api_data['email_name'] = sanitize_text_field( $data['comment_author'] );
+			}
+		}
+
+		// From registration.
+		if ( ! empty( $data['user_email'] ) && is_email( $data['user_email'] ) ) {
+			$api_data['email_address'] = sanitize_email( $data['user_email'] );
+		}
+
+		// From WooCommerce registration.
+		if ( ! empty( $data['email'] ) && is_email( $data['email'] ) ) {
+			$api_data['email_address'] = sanitize_email( $data['email'] );
+		}
+
+		if ( ! empty( $data['post'] ) ) {
+			// From MemberPress.
+			if ( ! empty( $data['post']['user_email'] ) && is_email( $data['post']['user_email'] ) ) {
+				$api_data['email_address'] = sanitize_email( $data['post']['user_email'] );
+			}
+
+			// From Mailchimp for WordPress.
+			if ( ! empty( $data['post']['EMAIL'] ) && is_email( $data['post']['EMAIL'] ) ) {
+				$api_data['email_address'] = sanitize_email( $data['post']['EMAIL'] );
+			}
+		}
+
+		if ( ! empty( $data['data'] ) ) {
+			// From GiveWP.
+			if ( ! empty( $data['data']['give_email'] ) && is_email( $data['data']['give_email'] ) ) {
+				$api_data['email_address'] = sanitize_email( $data['post']['give_email'] );
 			}
 		}
 
