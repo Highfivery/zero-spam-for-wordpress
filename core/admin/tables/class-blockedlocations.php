@@ -51,7 +51,8 @@ class BlockedLocations extends WP_List_Table {
 					return 'N/A';
 				}
 
-				return gmdate( 'M j, Y g:ia' , strtotime( $item[ $column_name ] ) );
+				$date_time_format = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
+				return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', strtotime( $item[ $column_name ] ) ), $date_time_format );
 				break;
 			case 'location':
 				if ( empty( $item['blocked_key'] ) ) {

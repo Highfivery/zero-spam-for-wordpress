@@ -61,7 +61,8 @@ class BlockedTable extends WP_List_Table {
 				if ( empty( $item[ $column_name ] ) || '0000-00-00 00:00:00' === $item[ $column_name ] ) {
 					return 'N/A';
 				} else {
-					return gmdate( 'M j, Y g:ia' , strtotime( $item[ $column_name ] ) );
+					$date_time_format = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
+					return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', strtotime( $item[ $column_name ] ) ), $date_time_format );
 				}
 				break;
 			case 'actions':

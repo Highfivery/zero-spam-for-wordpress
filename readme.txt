@@ -109,6 +109,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = v5.3.3 =
 
 * feat(zero spam settings): displays dismissible notices for enhanced protection and invalid license keys
+* feat(dates): updated the admin tables to display dates based on the site settings, resolves #305
 
 = v5.3.2 =
 
