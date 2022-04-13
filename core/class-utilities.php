@@ -18,6 +18,21 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Returns the time since two dates.
+	 *
+	 * @param string $date1 First date.
+	 * @param string $date2 Second date.
+	 * @param string $period Period to return (d = days, y = years, m = months, h = hours, i = minutes, s = seconds, f = microseconds).
+	 */
+	public static function time_since( $date1, $date2, $period = 'd' ) {
+		$first_date  = new \DateTime( $date1 );
+		$second_date = new \DateTime( $date2 );
+		$diff        = $first_date->diff( $second_date );
+
+		return $diff->$period;
+	}
+
+	/**
 	 * Recursive sanitation for an array.
 	 *
 	 * @param array  $array Array to sanitize.

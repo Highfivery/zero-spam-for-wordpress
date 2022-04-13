@@ -34,6 +34,10 @@ class Zero_Spam {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 
+		// Displays any available admin notices.
+		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+		add_action( 'admin_init', array( $this, 'check_notice_dismissal' ) );
+
 		// Fires when a user submission has been detected as spam.
 		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
 	}
@@ -307,6 +311,133 @@ class Zero_Spam {
 		}
 
 		update_site_option( 'zero_spam_last_api_request', current_time( 'mysql' ) );
+	}
+
+	/**
+	 * Returns license key data from the API
+	 *
+	 * @param string $license The license key.
+	 */
+	public static function get_license( $license ) {
+		$cache_key    = sanitize_title( 'license_' . $license );
+		$license_data = wp_cache_get( $cache_key );
+		if ( false === $license_data ) {
+			$endpoint = ZEROSPAM_URL . 'wp-json/v1/get-license';
+			$args     = array(
+				'body' => array( 'license_key' => $license ),
+			);
+
+			$license_data = \ZeroSpam\Core\Utilities::remote_post( $endpoint, $args );
+
+			if ( $license_data ) {
+				$license_data = json_decode( $license_data, true );
+
+				if ( ! empty( $license_data['license_key'] ) ) {
+					$expiration = 1 * MONTH_IN_SECONDS;
+					wp_cache_set( $cache_key, $license_data, 'zero_spam_store', $expiration );
+				}
+			}
+		}
+
+		return $license_data;
+	}
+
+	/**
+	 * Checks if a notice should be dismissed.
+	 */
+	public function check_notice_dismissal() {
+		// @codingStandardsIgnoreLine
+		if ( isset( $_GET['zero-spam-dismiss-notice-enhanced-protection'] ) ) {
+			$user_id = get_current_user_id();
+			add_user_meta( $user_id, 'zero_spam_dismiss_notice_enhanced_protection', current_time( 'mysql' ), true );
+			// @codingStandardsIgnoreLine
+		} elseif ( isset( $_GET['zero-spam-dismiss-notice-license'] ) ) {
+			add_user_meta( $user_id, 'zero_spam_dismiss_notice_missing_license', current_time( 'mysql' ), true );
+		}
+	}
+
+	/**
+	 * Outputs any available admin notices.
+	 */
+	public function admin_notices() {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$user_id  = get_current_user_id();
+
+		$is_zerospam_enabled = 'enabled' === $settings['zerospam']['value'] ? true : false;
+
+		$classes = array();
+
+		if ( $is_zerospam_enabled ) {
+			$license = ! empty( $settings['zerospam_license']['value'] ) ? $settings['zerospam_license']['value'] : false;
+			if ( ! $license ) {
+				$message_dismissed = get_user_meta( $user_id, 'zero_spam_dismiss_notice_missing_license', true );
+				if ( $message_dismissed ) {
+					$days_since_last_dismissed = \ZeroSpam\Core\Utilities::time_since( $message_dismissed, current_time( 'mysql' ), 'd' );
+
+					if ( $days_since_last_dismissed <= 7 ) {
+						return;
+					}
+				}
+			} else {
+				// Check license.
+				$license_data = self::get_license( $license );
+				if ( ! empty( $license_data['license_key'] ) ) {
+					return;
+				}
+			}
+
+			$classes[] = 'notice-error';
+
+			$content = '<p>' . sprintf(
+				wp_kses(
+					/* translators: %1$s: Zero Spam settings URL, %2$s: dismiss message URL */
+					__( '<strong>Your site is vulnerable to attacks.</strong> Please enter a valid <a href="%1$s" target="_blank" rel="noreferrer noopener"><strong>Zero Spam license key</strong></a> under <a href="%2$s">Zero Spam Enhanced Protection</a>. <a href="%3$s">Dismiss</a>', 'zero-spam' ),
+					array(
+						'strong' => array(),
+						'a'      => array(
+							'href' => array(),
+						),
+					)
+				),
+				esc_url( esc_url( ZEROSPAM_URL . 'subscribe/' ), ),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zero-spam-dismiss-notice-license' ) ),
+			) . '</p>';
+		} else {
+			$message_dismissed = get_user_meta( $user_id, 'zero_spam_dismiss_notice_enhanced_protection', true );
+			if ( $message_dismissed ) {
+				$days_since_last_dismissed = \ZeroSpam\Core\Utilities::time_since( $message_dismissed, current_time( 'mysql' ), 'd' );
+
+				if ( $days_since_last_dismissed <= 7 ) {
+					return false;
+				}
+			}
+
+			$classes[] = 'notice-warning';
+
+			$content = '<p>' . sprintf(
+				wp_kses(
+					/* translators: %1$s: Zero Spam settings URL, %2$s: dismiss message URL */
+					__( '<strong>Your site is vulnerable to attacks.</strong> For enhanced protection, please enable <a href="%1$s"><strong>Zero Spam Enhanced Protection</strong></a>. <a href="%2$s">Dismiss</a>', 'zero-spam' ),
+					array(
+						'strong' => array(),
+						'a'      => array(
+							'href' => array(),
+						),
+					)
+				),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
+				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zero-spam-dismiss-notice-enhanced-protection' ) ),
+			) . '</p>';
+		}
+		?>
+		<div class="notice is-dismissible <?php echo implode( ' ', $classes ); ?>">
+			<?php
+			// @codingStandardsIgnoreLine
+			echo $content;
+			?>
+		</div>
+		<?php
 	}
 
 	/**
