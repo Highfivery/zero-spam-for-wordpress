@@ -13,8 +13,6 @@ No captcha needed, behind the scenes protection against spam & malicious attacks
 
 == Description ==
 
-**We stand with the Ukrainian people.** We at Zero Spam support those fighting to preserve freedom, democracy, and sovereignty in Ukraine. Because of this unlawful invasion by Russia, supported by Belarus, we will no longer provide protection for .ru, .su, and .by domains that have the plugin installed and will display a Ukrainian support banner on those sites.
-
 Quit forcing people to answer questions or confusing captchas to prove they're not spam. Stop malicious users before they ever have a chance to infiltrate your site &mdash; **introducing Zero Spam for WordPress**.
 
 [Zero Spam for WordPress](https://www.highfivery.com/projects/zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and databases of known malicious IPs from around the world to detect and block unwanted visitors.
@@ -110,6 +108,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 * feat(zero spam settings): displays dismissible notices for enhanced protection and invalid license keys
 * feat(dates): updated the admin tables to display dates based on the site settings, resolves #305
+* fix(ukraine): removed the ukraine banner
 
 = v5.3.2 =
 

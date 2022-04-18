@@ -70,13 +70,6 @@ class Plugin {
 	 * Initializes modules
 	 */
 	private function init_modules() {
-		// We support the Ukrainians!
-		$ukraine = new \ZeroSpam\Modules\Ukraine();
-
-		if ( $ukraine->supports_putin() ) {
-			return false;
-		}
-
 		if ( is_admin() ) {
 			// Plugin admin module.
 			new \ZeroSpam\Core\Admin\Admin();
