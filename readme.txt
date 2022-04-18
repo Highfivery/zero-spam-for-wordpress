@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.9.3
 Requires PHP: 7.3
-Stable tag: 5.3.3
+Stable tag: 5.3.4
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -103,6 +103,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Zero Spam for WordPress settings
 
 == Changelog ==
+
+= v5.3.4 =
+
+* fix(notice): removed dismiss button on intial install to ensure plugin settings are configured before use
 
 = v5.3.3 =
 

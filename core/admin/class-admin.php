@@ -150,7 +150,7 @@ class Admin {
 		if ( ! $configured ) {
 			$messages['configuration'] = array(
 				'type'        => 'info',
-				'dismissible' => true,
+				'dismissible' => false,
 				'content'     => sprintf(
 					wp_kses(
 						/* translators: %1$s: Replaced with the Zero Spam settings page URL */
