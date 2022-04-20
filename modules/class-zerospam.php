@@ -346,9 +346,10 @@ class Zero_Spam {
 	 * Checks if a notice should be dismissed.
 	 */
 	public function check_notice_dismissal() {
+		$user_id = get_current_user_id();
+
 		// @codingStandardsIgnoreLine
 		if ( isset( $_GET['zero-spam-dismiss-notice-enhanced-protection'] ) ) {
-			$user_id = get_current_user_id();
 			add_user_meta( $user_id, 'zero_spam_dismiss_notice_enhanced_protection', current_time( 'mysql' ), true );
 			// @codingStandardsIgnoreLine
 		} elseif ( isset( $_GET['zero-spam-dismiss-notice-license'] ) ) {
@@ -370,7 +371,9 @@ class Zero_Spam {
 		if ( $is_zerospam_enabled ) {
 			$license = ! empty( $settings['zerospam_license']['value'] ) ? $settings['zerospam_license']['value'] : false;
 			if ( ! $license ) {
+
 				$message_dismissed = get_user_meta( $user_id, 'zero_spam_dismiss_notice_missing_license', true );
+
 				if ( $message_dismissed ) {
 					$days_since_last_dismissed = \ZeroSpam\Core\Utilities::time_since( $message_dismissed, current_time( 'mysql' ), 'd' );
 
@@ -391,7 +394,7 @@ class Zero_Spam {
 			$content = '<p>' . sprintf(
 				wp_kses(
 					/* translators: %1$s: Zero Spam settings URL, %2$s: dismiss message URL */
-					__( '<strong>Your site is vulnerable to attacks.</strong> Please enter a valid <a href="%1$s" target="_blank" rel="noreferrer noopener"><strong>Zero Spam license key</strong></a> under <a href="%2$s">Zero Spam Enhanced Protection</a>. <a href="%3$s">Dismiss</a>', 'zero-spam' ),
+					__( '<strong>Your site is vulnerable to attacks.</strong> Please enter a valid <a href="%1$s" target="_blank" rel="noreferrer noopener"><strong>Zero Spam license key</strong></a> under <a href="%2$s">Zero Spam Enhanced Protection</a> or disable the Zero Spam Enhanced Protection option to dismiss this message.', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -405,6 +408,7 @@ class Zero_Spam {
 			) . '</p>';
 		} else {
 			$message_dismissed = get_user_meta( $user_id, 'zero_spam_dismiss_notice_enhanced_protection', true );
+
 			if ( $message_dismissed ) {
 				$days_since_last_dismissed = \ZeroSpam\Core\Utilities::time_since( $message_dismissed, current_time( 'mysql' ), 'd' );
 
