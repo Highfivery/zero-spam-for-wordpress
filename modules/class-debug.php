@@ -1,6 +1,6 @@
 <?php
 /**
- * Debug class.
+ * Debug class
  *
  * @package ZeroSpam
  */
@@ -11,7 +11,7 @@ namespace ZeroSpam\Modules;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Debug
+ * Debug admin module
  */
 class Debug {
 	/**

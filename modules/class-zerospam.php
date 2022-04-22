@@ -350,10 +350,10 @@ class Zero_Spam {
 
 		// @codingStandardsIgnoreLine
 		if ( isset( $_GET['zero-spam-dismiss-notice-enhanced-protection'] ) ) {
-			add_user_meta( $user_id, 'zero_spam_dismiss_notice_enhanced_protection', current_time( 'mysql' ), true );
+			update_user_meta( $user_id, 'zero_spam_dismiss_notice_enhanced_protection', current_time( 'mysql' ) );
 			// @codingStandardsIgnoreLine
 		} elseif ( isset( $_GET['zero-spam-dismiss-notice-license'] ) ) {
-			add_user_meta( $user_id, 'zero_spam_dismiss_notice_missing_license', current_time( 'mysql' ), true );
+			update_user_meta( $user_id, 'zero_spam_dismiss_notice_missing_license', current_time( 'mysql' ) );
 		}
 	}
 
@@ -435,7 +435,7 @@ class Zero_Spam {
 			) . '</p>';
 		}
 		?>
-		<div class="notice is-dismissible <?php echo implode( ' ', $classes ); ?>">
+		<div class="notice <?php echo implode( ' ', $classes ); ?>">
 			<?php
 			// @codingStandardsIgnoreLine
 			echo $content;
