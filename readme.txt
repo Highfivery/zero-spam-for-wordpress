@@ -5,21 +5,21 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.9.3
 Requires PHP: 7.3
-Stable tag: 5.3.6
+Stable tag: 5.3.7
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
-No captcha needed, behind the scenes protection against spam & malicious attacks using proven techniques & up-to-date blacklists.
+Protection against spam & malicious users using cutting-edge AI. Firewall, real-time monitoring & more.
 
 == Description ==
 
-Quit forcing people to answer questions or confusing captchas to prove they're not spam. Stop malicious users before they ever have a chance to infiltrate your site &mdash; **introducing Zero Spam for WordPress**.
+Protection against spam & malicious users using cutting-edge AI. Features a highly-configurable firewall, real-time monitoring, integrates with popular blacklists & plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/) & more.
 
 [Zero Spam for WordPress](https://www.highfivery.com/projects/zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and databases of known malicious IPs from around the world to detect and block unwanted visitors.
 
-**Just install, activate, configure, and enjoy a spam-free site!**
+**Install, activate, configure, then put your mind at ease!**
 
-= Zero Spam for WordPress features =
+= Worry-free, Powerful Protection =
 
 * No captcha, spam isn't a users' problem
 * No moderation queues, spam isn't a administrators' problem
@@ -31,49 +31,40 @@ Quit forcing people to answer questions or confusing captchas to prove they're n
 * Block known disposable &amp; malicious email domains using [disposable](https://github.com/disposable)
 * Multiple detection techniques including [David Walsh's solution](https://davidwalsh.name/wordpress-comment-spam)
 
-= Zero Spam for WordPress also protects =
+= But wait, there's more! =
 
-* WordPress core comments, user registrations &amp; login attempts
-* [GiveWP](https://givewp.com/ref/1118/) donation submissions
-* [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) submissions
-* [WPForms](https://wordpress.org/plugins/wpforms-lite/) submissions
-* [Formidable Form Builder](https://wordpress.org/plugins/formidable/) submissions
-* [Fluent Forms](https://wordpress.org/plugins/fluentform/) submissions
-* [MemberPress](https://memberpress.com/) registrations
-* [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) submissions
-* [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations
-* and can be easily integrated into any existing theme or plugin
+* Protects comments, user registration &amp; login forms
+* Protects [GiveWP](https://givewp.com/ref/1118/) forms & helps prevent testing stolen credit cards
+* Protects [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) form submissions
+* Protects [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/) & [Fluent Forms](https://wordpress.org/plugins/fluentform/) forms
+* Protects [MemberPress](https://memberpress.com/) & [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations
+* Protects [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) sign-ups
+* and **can be integrated into any existing theme or plugin**
 
-Zero Spam for WordPress is great at blocking spam &mdash; as a site owner there's more you can do to [stop WordPress spam](https://www.benmarshall.me/stop-wordpress-spam/) in its tracks.
+= Expert Support =
 
-= Optional 3rd-party Service Integration =
+We have a highly-experienced team of developers to provide incredible support. Ask your questions in the support forum, post a bug or feature request on [Github](https://github.com/Highfivery/zero-spam-for-wordpress/issues), or [contact us directly](https://www.zerospam.org/contact).
 
-Zero Spam allows you to connect to third-party applications that improve its ability to detect spam and malicious users as well as enhancements for site admins. These services are optional and are not required for Zero Spam to work. Before opting in to any of these services, please review their Terms of Use and/or Privacy Policies
+= Optional 3rd-party Integrations =
 
-* **Zero Spam** - Sends the visitor's IP & when available, their email address to check if they've been reported ([privacy policy](https://www.zerospam.org/privacy/), [terms of use](https://www.zerospam.org/terms/))
-* **Stop Forum Spam** - Sends the visitor's IP to check if they've been reported ([privacy policy](https://www.stopforumspam.com/privacy), [terms of use](https://www.stopforumspam.com/legal))
-* **Project Honeypot** - Sends the visitor's IP to check if they've been reported ([privacy policy](https://www.projecthoneypot.org/privacy_policy.php), [terms of use](https://www.projecthoneypot.org/terms_of_use.php))
-* **ipinfo.io** - Sends the visitor's IP to gather detailed geolocation information ([privacy policy](https://ipinfo.io/privacy-policy), [terms of use](https://ipinfo.io/terms-of-service))
+Zero Spam allows you to integrate with other services to improve the ability to detect spam and malicious users. These services are optional and not required for Zero Spam to work. Before opting into any of these services, please review their terms of use and/or privacy policies.
+
+* **[Zero Spam](https://www.zerospam.org/)** - Sends the visitor's IP &amp; when available email to check the spam score. Review their [Privacy Policy](https://www.zerospam.org/privacy/) &amp; [Terms of Use](https://www.zerospam.org/terms/).
+* **[Stop Forum Spam](https://www.stopforumspam.com/)** - Sends the visitor's IP to check if they've been reported. Review their [Privacy Policy](https://www.stopforumspam.com/privacy) & [Terms of Use](https://www.stopforumspam.com/legal).
+* **[Project Honeypot](https://www.projecthoneypot.org/)** - Sends the visitor's IP to check if they've been reported. Review their [Privacy Policy](https://www.projecthoneypot.org/privacy_policy.php) & [Terms of Use](https://www.projecthoneypot.org/terms_of_use.php).
+* **[ipinfo.io](https://ipinfo.io/)** - Sends the visitor's IP to gather detailed geolocation information. Review their [Privacy Policy](https://ipinfo.io/privacy-policy) & [Terms of Use](https://ipinfo.io/terms-of-service).
 * **ipstack** - Sends the visitor's IP to gather detailed geolocation information ([privacy policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement), [terms of use](https://ipstack.com/terms))
-* **Google APIs** - Enables the Google Map API to plot attack locations based on the IP address geolocation information ([privacy policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement), [terms of use](https://developers.google.com/terms/site-terms))
+* **[Google Maps](https://developers.google.com/maps)** - Enables the ability to plot attack locations. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://developers.google.com/terms/site-terms).
 
-Optionally, you can also help improve Zero Spam but enabling sharing of detection information. For more information on what is shared, see our [FAQ](https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ)
-
-= Zero Spam for WordPress needs your support =
-
-**Zero Spam for WordPress is free & always will be.** Please consider making a [donation](https://www.benmarshall.me/donate/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) to help encourage plugin's continued development.
-
-* Like our [Facebook Page](https://www.facebook.com/zerospamorg/)
-* Follow us on [Twitter](https://www.facebook.com/zerospamorg)
-* Rate us on [WordPress](https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5/#new-post)
+Optionally, you can also help improve Zero Spam by enabling sharing detection information. For more info on what's shared, see our [FAQ](https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ)
 
 == Installation ==
 
-1. Upload the entire wordpress-zero-spam folder to the */wp-content/plugins/* directory.
+1. Upload the entire *zero-spam* folder to the */wp-content/plugins/* directory.
 2. Activate the plugin through the Plugins screen (*Plugins > Installed Plugins*).
 3. Visit the plugin setting to configure as needed (*Settings > Zero Spam*).
 
-For more information & developer documentation, see the [plugin’s website](https://www.benmarshall.me/wordpress-zero-spam).
+For more information & developer documentation, see the [wiki](https://github.com/Highfivery/zero-spam-for-wordpress/wiki).
 
 == Frequently Asked Questions ==
 
@@ -93,7 +84,7 @@ If a legitimate user is getting blocked, check the Log (Admin > Dashboard > Zero
 
 You can also adjust the cache and API timeout settings in admin depending on your server and specific needs.
 
-= What Zero Spam for WordPress WP-CLI commands are available? =
+= Does Zero Spam support WP-CLI commands? =
 
 * `wp zerospam autoconfigure` &mdash; Auto-configures with recommended settings.
 * `wp zerospam settings` &mdash; Displays all plugin settings.
@@ -116,6 +107,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Zero Spam for WordPress settings
 
 == Changelog ==
+
+= v5.3.7 =
+
+* chore(readme): documentation updates
 
 = v5.3.6 =
 
