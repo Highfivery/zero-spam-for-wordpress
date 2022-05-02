@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.9.3
 Requires PHP: 7.3
-Stable tag: 5.3.7
+Stable tag: 5.3.8
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -14,8 +14,6 @@ Protection against spam & malicious users using cutting-edge AI. Firewall, real-
 == Description ==
 
 Protection against spam & malicious users using cutting-edge AI. Features a highly-configurable firewall, real-time monitoring, integrates with popular blacklists & plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/) & more.
-
-[Zero Spam for WordPress](https://www.highfivery.com/projects/zero-spam/?utm_source=wordpress.org&utm_medium=plugin&utm_campaign=wordpress_zero_spam) uses AI in combination with proven spam detection techniques and databases of known malicious IPs from around the world to detect and block unwanted visitors.
 
 **Install, activate, configure, then put your mind at ease!**
 
@@ -53,7 +51,7 @@ Zero Spam allows you to integrate with other services to improve the ability to 
 * **[Stop Forum Spam](https://www.stopforumspam.com/)** - Sends the visitor's IP to check if they've been reported. Review their [Privacy Policy](https://www.stopforumspam.com/privacy) & [Terms of Use](https://www.stopforumspam.com/legal).
 * **[Project Honeypot](https://www.projecthoneypot.org/)** - Sends the visitor's IP to check if they've been reported. Review their [Privacy Policy](https://www.projecthoneypot.org/privacy_policy.php) & [Terms of Use](https://www.projecthoneypot.org/terms_of_use.php).
 * **[ipinfo.io](https://ipinfo.io/)** - Sends the visitor's IP to gather detailed geolocation information. Review their [Privacy Policy](https://ipinfo.io/privacy-policy) & [Terms of Use](https://ipinfo.io/terms-of-service).
-* **ipstack** - Sends the visitor's IP to gather detailed geolocation information ([privacy policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement), [terms of use](https://ipstack.com/terms))
+* **[ipstack](https://ipstack.com/)** - Sends the visitor's IP to gather detailed geolocation information. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://ipstack.com/terms).
 * **[Google Maps](https://developers.google.com/maps)** - Enables the ability to plot attack locations. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://developers.google.com/terms/site-terms).
 
 Optionally, you can also help improve Zero Spam by enabling sharing detection information. For more info on what's shared, see our [FAQ](https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ)
@@ -107,6 +105,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Zero Spam for WordPress settings
 
 == Changelog ==
+
+= v5.3.8 =
+
+* chore(zero spam api): updated the zero spam api to v2
 
 = v5.3.7 =
 

@@ -40,6 +40,51 @@ class Zero_Spam {
 
 		// Fires when a user submission has been detected as spam.
 		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
+
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'zerospam' ) &&
+			\ZeroSpam\Core\Access::process()
+		) {
+			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 2 );
+		}
+	}
+
+	/**
+	 * Site access check
+	 *
+	 * Determines if a visitor should be blocked from accessing the site based off
+	 * the results of the zerospam.org API query.
+	 *
+	 * @param array  $access_checks Access check results from previous checks.
+	 * @param string $user_ip       The visitor's IP address.
+	 */
+	public function access_check( $access_checks, $user_ip ) {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+
+		// Create the access check result for Zero Spam.
+		$access_checks['zero_spam'] = array(
+			'blocked' => false,
+		);
+
+		// Query the Zero Spam API for the visitor's IP address.
+		$response = self::query( array( 'ip' => $user_ip ) );
+		if ( $response && ! empty( $response['ip_addresses'][ $user_ip ] ) ) {
+			$ip_data              = $response['ip_addresses'][ $user_ip ];
+			$min_confidence_score = floatval( $settings['zerospam_confidence_min']['value'] );
+
+			if ( ! empty( $ip_data['confidence'] ) ) {
+				$confidence_score = floatval( $ip_data['confidence'] ) * 100;
+
+				if ( $confidence_score >= $min_confidence_score ) {
+					$access_checks['zero_spam']['blocked'] = true;
+					$access_checks['zero_spam']['type']    = 'blocked';
+					$access_checks['zero_spam']['details'] = $ip_data;
+				}
+			}
+		}
+
+		// Return the updated access checks array.
+		return $access_checks;
 	}
 
 	/**
@@ -96,7 +141,7 @@ class Zero_Spam {
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: Replaced with the Zero Spam URL */
-					__( 'Blocks visitor IPs, email addresses &amp; usernames that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam</a>.', 'zero-spam' ),
+					__( 'Blocks visitor IPs &amp; supported submitted forms with an email address that meets the <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam</a> <em>Confidence Minimum</em> score.', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -104,9 +149,10 @@ class Zero_Spam {
 							'href'   => array(),
 							'rel'    => array(),
 						),
+						'em'     => array(),
 					)
 				),
-				esc_url( ZEROSPAM_URL . '?utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
+				esc_url( ZEROSPAM_URL )
 			),
 			'value'       => ! empty( $options['zerospam'] ) ? $options['zerospam'] : false,
 			'recommended' => 'enabled',
@@ -452,7 +498,6 @@ class Zero_Spam {
 	public static function query( $params ) {
 		if (
 			empty( $params['ip'] ) &&
-			empty( $params['username'] ) &&
 			empty( $params['email'] )
 		) {
 			return false;
@@ -470,7 +515,24 @@ class Zero_Spam {
 
 		$response = wp_cache_get( $cache_key );
 		if ( false === $response ) {
-			$endpoint = 'https://www.zerospam.org/wp-json/v1/query';
+			// Limit the number of requests.
+			$last_query_option = get_site_option( 'zero_spam_last_api_query', false );
+			if ( $last_query_option ) {
+				list( $first_query_date, $num_queries) = explode( '*', $last_query_option );
+
+				if ( gmdate( 'Y-m-d', strtotime( $first_query_date ) ) !== gmdate( 'Y-m-d' ) ) {
+					// New day.
+					update_site_option( 'zero_spam_last_api_query', current_time( 'mysql' ) . '*1' );
+				} elseif ( $num_queries > 5 ) {
+					return false;
+				} else {
+					update_site_option( 'zero_spam_last_api_query', $first_query_date . '*' . ( $num_queries+1 ) );
+				}
+			} else {
+				update_site_option( 'zero_spam_last_api_query', $first_query_date . '*' . ( $num_queries+1 ) );
+			}
+
+			$endpoint = 'https://www.zerospam.org/wp-json/v2/query';
 
 			$args = array(
 				'body' => array(
@@ -480,6 +542,10 @@ class Zero_Spam {
 
 			if ( ! empty( $params['ip'] ) ) {
 				$args['body']['ip'] = $params['ip'];
+			}
+
+			if ( ! empty( $params['email'] ) ) {
+				$args['body']['email'] = $params['email'];
 			}
 
 			$args['timeout'] = 5;
@@ -495,11 +561,11 @@ class Zero_Spam {
 				if (
 					! is_array( $response ) ||
 					empty( $response['status'] ) ||
-					'success' !== $response['status'] ||
-					empty( $response['result'] )
+					200 !== $response['status'] ||
+					empty( $response['body_response'] )
 				) {
-					if ( ! empty( $response['result'] ) ) {
-						\ZeroSpam\Core\Utilities::log( $response['result'] );
+					if ( ! empty( $response['response'] ) ) {
+						\ZeroSpam\Core\Utilities::log( $response['response'] );
 					} else {
 						\ZeroSpam\Core\Utilities::log( __( 'There was a problem querying the Zero Spam Blacklist API.', 'zero-spam' ) );
 					}
@@ -507,7 +573,7 @@ class Zero_Spam {
 					return false;
 				}
 
-				$response = $response['result'];
+				$response = $response['body_response'];
 
 				$expiration = 14 * DAY_IN_SECONDS;
 				if ( ! empty( $settings['zerospam_confidence_min']['value'] ) ) {
