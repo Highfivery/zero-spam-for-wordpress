@@ -407,6 +407,11 @@ class Zero_Spam {
 	 * Outputs any available admin notices.
 	 */
 	public function admin_notices() {
+		// Only display notices for administrators.
+		if ( ! current_user_can( 'administrator' ) ) {
+			return;
+		}
+
 		$settings = \ZeroSpam\Core\Settings::get_settings();
 		$user_id  = get_current_user_id();
 
@@ -458,7 +463,7 @@ class Zero_Spam {
 			if ( $message_dismissed ) {
 				$days_since_last_dismissed = \ZeroSpam\Core\Utilities::time_since( $message_dismissed, current_time( 'mysql' ), 'd' );
 
-				if ( $days_since_last_dismissed <= 7 ) {
+				if ( $days_since_last_dismissed <= 365 ) {
 					return false;
 				}
 			}
@@ -468,7 +473,7 @@ class Zero_Spam {
 			$content = '<p>' . sprintf(
 				wp_kses(
 					/* translators: %1$s: Zero Spam settings URL, %2$s: dismiss message URL */
-					__( '<strong>Your site is vulnerable to attacks.</strong> For enhanced protection, please enable <a href="%1$s"><strong>Zero Spam Enhanced Protection</strong></a>. <a href="%2$s">Dismiss</a>', 'zero-spam' ),
+					__( '<strong>Your site isn\'t taking full advantage of Zero Spam protection.</strong> For enhanced protection, please enable <a href="%1$s"><strong>Zero Spam Enhanced Protection</strong></a>. <a href="%2$s">Dismiss</a>', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -477,7 +482,7 @@ class Zero_Spam {
 					)
 				),
 				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zero-spam-dismiss-notice-enhanced-protection' ) ),
+				esc_url( \ZeroSpam\Core\Utilities::current_url( array( 'zero-spam-dismiss-notice-enhanced-protection' ) ) ),
 			) . '</p>';
 		}
 		?>

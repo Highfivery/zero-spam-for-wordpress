@@ -684,13 +684,26 @@ class Utilities {
 	}
 
 	/**
-	 * Returns the current URL.
+	 * Returns the current URL
 	 *
-	 * @since 5.0.0
-	 * @access public
+	 * @param array $params Array of URL parameters to append to the URL.
 	 */
-	public static function current_url() {
-		$url = ( isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] === 'on' ? "https" : "http" ) . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+	public static function current_url( $params = array() ) {
+		$request_uri = ! empty( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : false;
+
+		$url  = ( isset( $_SERVER['HTTPS'] ) && 'on' === $_SERVER['HTTPS'] ? 'https' : 'http' ) . '://';
+		$url .= ! empty( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '';
+		$url .= $request_uri ? $request_uri : '';
+
+		if ( $request_uri && $params ) {
+
+
+			if ( strpos( $request_uri, '?' ) ) {
+				$url .= '&' . implode( '&', $params );
+			} else {
+				$url .= '?' . implode( '&', $params );
+			}
+		}
 
 		return $url;
 	}
