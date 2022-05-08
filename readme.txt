@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 5.9.3
 Requires PHP: 7.3
-Stable tag: 5.3.8
+Stable tag: 5.3.9
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -105,6 +105,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Zero Spam for WordPress settings
 
 == Changelog ==
+
+= v5.3.9 =
+
+* fix(admin): fix issue with admin notice not dismissing properly, resolves #319
 
 = v5.3.8 =
 

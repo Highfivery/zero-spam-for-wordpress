@@ -115,6 +115,11 @@ class Admin {
 	 * Display not configured notice
 	 */
 	public function admin_notices() {
+		// Only display notices for administrators.
+		if ( ! current_user_can( 'administrator' ) ) {
+			return;
+		}
+
 		$messages = array();
 
 		// Check Zero Spam license key.
