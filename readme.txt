@@ -78,7 +78,7 @@ If a legitimate user is getting blocked, check the Log (Admin > Dashboard > Zero
 
 = How do I boost performance of Zero Spam for WordPress? =
 
-**Enabled caching.** Caching is highly recommended and will prevent repeated calls to third-party API and access checks on each page visit.
+**Enable caching.** Caching is highly recommended and will prevent repeated calls to third-party API and access checks on each page visit.
 
 You can also adjust the cache and API timeout settings in admin depending on your server and specific needs.
 
