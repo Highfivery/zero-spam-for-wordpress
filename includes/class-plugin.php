@@ -159,6 +159,11 @@ class Plugin {
 			new \ZeroSpam\Modules\WooCommerce\WooCommerce();
 		}
 
+		// Zero Spam Gravity Forms module.
+		if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
+			new \ZeroSpam\Modules\GravityForms\GravityForms();
+		}
+
 		// Debug module.
 		new \ZeroSpam\Modules\Debug();
 	}
