@@ -66,6 +66,7 @@ class DavidWalsh {
 			add_filter( 'zerospam_preprocess_memberpress_login', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_mailchimp4wp', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_process_woocommerce_registration', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_process_givewp_submission', array( $this, 'validate_post' ), 10, 3 );
 		}
 	}
 

@@ -159,7 +159,7 @@ class Admin {
 				'content'     => sprintf(
 					wp_kses(
 						/* translators: %1$s: Replaced with the Zero Spam settings page URL */
-						__( '<strong>Thanks for installing WordPress Zero Spam!</strong> Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>.', 'zero-spam' ),
+						__( '<strong>Thanks for installing Zero Spam for WordPress!</strong> Visit the <a href="%1$s">setting page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>.', 'zero-spam' ),
 						array(
 							'strong' => array(),
 							'a'      => array(

@@ -109,6 +109,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = v5.4.0 =
 
 * chore(admin): updated the after-activation message
+* feat(givewp): enhanced security using the david walsh method on legacy forms
 
 = v5.3.9 =
 
