@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 5.9.3
+Tested up to: 6.0.1
 Requires PHP: 7.3
-Stable tag: 5.3.9
+Stable tag: 5.4.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -105,6 +105,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Zero Spam for WordPress settings
 
 == Changelog ==
+
+= v5.4.0 =
+
+* chore(admin): updated the after-activation message
 
 = v5.3.9 =
 
