@@ -623,7 +623,6 @@ class Utilities {
 	/**
 	 * Returns the generated key for checking submissions.
 	 *
-	 * @since 5.0.0
 	 * @access public
 	 *
 	 * @return string A unique key used for the 'honeypot' field.

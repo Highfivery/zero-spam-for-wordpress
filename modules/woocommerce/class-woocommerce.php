@@ -39,7 +39,7 @@ class WooCommerce {
 	 */
 	public function sections( $sections ) {
 		$sections['woocommerce'] = array(
-			'title' => __( 'WooCommerce Integration', 'zero-spam' ),
+			'title' => __( 'WooCommerce', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -49,9 +49,10 @@ class WooCommerce {
 	 * Register the Zero Spam admin settings for this module
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-woocommerce' );
+
 		$settings['verify_woocommerce_registrations'] = array(
 			'title'       => __( 'Protect Registrations', 'zero-spam' ),
 			'section'     => 'woocommerce',

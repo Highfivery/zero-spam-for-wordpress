@@ -26,7 +26,7 @@ class Login {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -158,7 +158,7 @@ class Login {
 	 */
 	public function sections( $sections ) {
 		$sections['login'] = array(
-			'title' => __( 'User Login Integration', 'zero-spam' ),
+			'title' => __( 'User Login', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -168,12 +168,14 @@ class Login {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-login' );
+
 		$settings['verify_login'] = array(
 			'title'       => __( 'Protect Login Attempts', 'zero-spam' ),
 			'section'     => 'login',
+			'module'      => 'login',
 			'type'        => 'checkbox',
 			'options'     => array(
 				'enabled' => __( 'Monitor login attempts for malicious or automated spambots.', 'zero-spam' ),
@@ -188,6 +190,7 @@ class Login {
 			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
 			'desc'        => __( 'When login protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'login',
+			'module'      => 'login',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -198,6 +201,7 @@ class Login {
 		$settings['log_blocked_logins'] = array(
 			'title'       => __( 'Log Blocked Login Attempts', 'zero-spam' ),
 			'section'     => 'login',
+			'module'      => 'login',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
 				__( 'Enables logging blocked login attempts. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),

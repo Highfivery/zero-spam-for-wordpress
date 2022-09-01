@@ -28,7 +28,7 @@ class DavidWalsh {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_failed_types', array( $this, 'failed_types' ), 10, 1 );
 
 		if (
@@ -113,7 +113,7 @@ class DavidWalsh {
 	 */
 	public function sections( $sections ) {
 		$sections['davidwalsh'] = array(
-			'title' => __( 'David Walsh Detection Settings', 'zero-spam' ),
+			'title' => __( 'David Walsh Technique', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -123,9 +123,10 @@ class DavidWalsh {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-davidwalsh' );
+
 		$settings['davidwalsh'] = array(
 			'title'       => __( 'David Walsh Technique', 'zero-spam' ),
 			'desc'        => sprintf(
@@ -144,6 +145,7 @@ class DavidWalsh {
 				esc_url( 'https://davidwalsh.name/wordpress-comment-spam#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
 			),
 			'section'     => 'davidwalsh',
+			'module'      => 'davidwalsh',
 			'type'        => 'checkbox',
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
@@ -169,6 +171,7 @@ class DavidWalsh {
 				esc_url( 'https://davidwalsh.name/wordpress-comment-spam#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
 			),
 			'section'     => 'davidwalsh',
+			'module'      => 'davidwalsh',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => '.custom-form',

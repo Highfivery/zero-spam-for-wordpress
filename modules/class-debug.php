@@ -26,7 +26,7 @@ class Debug {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_get_ip', array( $this, 'debug_ip' ), 10, 1 );
 	}
 
@@ -65,13 +65,15 @@ class Debug {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-debug' );
+
 		$settings['debug'] = array(
 			'title'   => __( 'Debug', 'zero-spam' ),
 			'desc'    => __( 'For troubleshooting site issues.', 'zero-spam' ),
 			'section' => 'debug',
+			'module'  => 'debug',
 			'type'    => 'checkbox',
 			'options' => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
@@ -89,6 +91,7 @@ class Debug {
 				)
 			),
 			'section'     => 'debug',
+			'module'  => 'debug',
 			'type'        => 'text',
 			'placeholder' => '127.0.0.1',
 			'value'       => ! empty( $options['debug_ip'] ) ? $options['debug_ip'] : false,

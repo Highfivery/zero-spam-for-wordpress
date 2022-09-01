@@ -26,7 +26,7 @@ class MailchimpForWP {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -167,7 +167,7 @@ class MailchimpForWP {
 	 */
 	public function sections( $sections ) {
 		$sections['mailchimp4wp'] = array(
-			'title' => __( 'Mailchimp for WordPress Integration', 'zero-spam' ),
+			'title' => __( 'Mailchimp for WordPress', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -177,9 +177,10 @@ class MailchimpForWP {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-mailchimp4wp' );
+
 		$settings['verify_mailchimp4wp'] = array(
 			'title'       => __( 'Protect Forms', 'zero-spam' ),
 			'section'     => 'mailchimp4wp',

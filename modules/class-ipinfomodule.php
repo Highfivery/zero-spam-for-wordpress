@@ -28,7 +28,7 @@ class IPinfoModule {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_log_record', array( $this, 'log_record' ) );
 	}
 
@@ -39,7 +39,7 @@ class IPinfoModule {
 	 */
 	public function sections( $sections ) {
 		$sections['ipinfo'] = array(
-			'title' => __( 'IPinfo Integration (geolocation)', 'zero-spam' ),
+			'title' => __( 'IPinfo (geolocation)', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -49,9 +49,10 @@ class IPinfoModule {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-ipinfo' );
+
 		$settings['ipinfo_access_token'] = array(
 			'title'       => __( 'Access Token', 'zero-spam' ),
 			'desc'        => sprintf(
@@ -71,6 +72,7 @@ class IPinfoModule {
 				esc_url( 'https://ipinfo.io/signup/' )
 			),
 			'section'     => 'ipinfo',
+			'module'      => 'ipinfo',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
 			'placeholder' => __( 'Enter your IPinfo access token.', 'zero-spam' ),
@@ -80,6 +82,7 @@ class IPinfoModule {
 		$settings['ipinfo_cache'] = array(
 			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'ipinfo',
+			'module'      => 'ipinfo',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zero-spam' ),

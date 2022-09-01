@@ -26,7 +26,7 @@ class WPForms {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -140,7 +140,7 @@ class WPForms {
 	 */
 	public function sections( $sections ) {
 		$sections['wpforms'] = array(
-			'title' => __( 'WPForms Integration', 'zero-spam' ),
+			'title' => __( 'WPForms', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -150,9 +150,10 @@ class WPForms {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-wpforms' );
+
 		$settings['verify_wpforms'] = array(
 			'title'       => __( 'Protect WPForms Submissions', 'zero-spam' ),
 			'section'     => 'wpforms',

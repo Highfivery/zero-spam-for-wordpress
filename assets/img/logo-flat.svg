@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512px" height="435px" viewBox="0 0 512 435" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>zero-spam-logo</title>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="zero-spam-logo" transform="translate(256.000000, 217.500000) scale(-1, 1) translate(-256.000000, -217.500000) " fill-rule="nonzero">
+            <polygon id="box-13" fill="#FFA17C" points="176 351 176 435 0 435 0 351"></polygon>
+            <polygon id="box-12" fill="#FF2929" points="256 351 256 435 176 435 176 351"></polygon>
+            <polygon id="box-11" fill="#BE0000" points="336 351 336 435 256 435 256 351"></polygon>
+            <polygon id="box-10" fill="#63000D" points="512 351 512 435 336 435 336 351"></polygon>
+            <polygon id="box-9" fill="#FF2929" points="96 239 96 351 0 351 0 239"></polygon>
+            <polygon id="box-8" fill="#BE0000" points="256 239 256 351 96 351 96 239"></polygon>
+            <polygon id="box-7" fill="#840012" points="416 239 416 351 256 351 256 239"></polygon>
+            <polygon id="box-6" fill="#BE0000" points="512 239 512 351 416 351 416 239"></polygon>
+            <path d="M176,112 L15,112 C6.716,112 0,118.716 0,127 L0,239 L176,239 L176,112 Z" id="box-5" fill="#FF7038"></path>
+            <polygon id="box-4" fill="#FF2929" points="256 239 176 239 176 112 256 112"></polygon>
+            <polygon id="box-3" fill="#BE0000" points="336 239 256 239 256 112 336 112"></polygon>
+            <path d="M512,127 L512,239 L336,239 L336,112 L497,112 C505.28,112 512,118.72 512,127 Z" id="box-2" fill="#63000D"></path>
+            <path d="M241,0 L96,0 C87.716,0 81,5.29712676 81,11.8309859 C81,32.7599735 81,48.4567141 81,58.9212079 C81,68.0873871 81,85.8366558 81,112.169014 L256,112.169014 L256,11.8309859 C256,5.29712676 249.284,0 241,0 Z" id="box-1" fill="#BE0000"></path>
+        </g>
+    </g>
+</svg>

@@ -15,23 +15,20 @@ defined( 'ABSPATH' ) || die();
 
 /**
  * Log table.
- *
- * @since 5.0.0
  */
 class BlockedTable extends WP_List_Table {
 
 	/**
 	 * Log table constructor.
 	 *
-	 * @since 5.0.0
 	 * @access public
 	 */
 	public function __construct() {
 		global $status, $page;
 
 		$args = array(
-			'singular' => __( 'WordPress Zero Spam Blocked IP', 'zero-spam' ),
-			'plural'   => __( 'WordPress Zero Spam Blocked IPs', 'zero-spam' ),
+			'singular' => __( 'Zero Spam for WordPress Blocked IP', 'zero-spam' ),
+			'plural'   => __( 'Zero Spam for WordPress Blocked IPs', 'zero-spam' ),
 		);
 		parent::__construct( $args );
 	}
@@ -230,7 +227,7 @@ class BlockedTable extends WP_List_Table {
 			submit_button( __( 'Filter', 'zero-spam' ), '', 'filter_action', false );
 			*/
 			?>
-			<button class="button zerospam-block-trigger"><?php echo __( 'Add Blocked IP Address', 'zero-spam' ); ?></button>
+			<button class="button zerospam-block-trigger"><?php echo __( 'Add Blocked IP Address →', 'zero-spam' ); ?></button>
 			<?php
 			$settings = \ZeroSpam\Core\Settings::get_settings( 'block_method' );
 

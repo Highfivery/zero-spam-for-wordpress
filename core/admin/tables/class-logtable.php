@@ -25,8 +25,8 @@ class LogTable extends WP_List_Table {
 		global $status, $page;
 
 		$args = array(
-			'singular' => __( 'WordPress Zero Spam Log', 'zero-spam' ),
-			'plural'   => __( 'WordPress Zero Spam Logs', 'zero-spam' ),
+			'singular' => __( 'Zero Spam for WordPress Log', 'zero-spam' ),
+			'plural'   => __( 'Zero Spam for WordPress Logs', 'zero-spam' ),
 		);
 		parent::__construct( $args );
 	}
@@ -68,7 +68,14 @@ class LogTable extends WP_List_Table {
 				<button class="button zerospam-details-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>"><?php esc_html_e( 'Details', 'zero-spam' ); ?></button>
 				<div class="zerospam-modal" id="zerospam-details-<?php echo esc_attr( $item['log_id'] ); ?>">
 					<button class="zerospam-close-modal" aria-label="<?php echo esc_attr( __( 'Close Modal', 'zero-spam' ) ); ?>"></button>
-					<?php require ZEROSPAM_PATH . 'includes/templates/admin-modal-details.php'; ?>
+
+					<div class="zerospam-block zerospam-block--list">
+						<h3 class="zerospam-block__headline"><?php esc_html_e( 'Detection ID #', 'zero-spam' ); ?><?php echo esc_attr( $item['log_id'] ); ?></h3>
+						<div class="zerospam-block__content">
+							<?php require ZEROSPAM_PATH . 'includes/templates/admin-modal-details.php'; ?>
+						</div>
+					</div>
+
 				</div>
 				<?php
 				$blocked = ZeroSpam\Includes\DB::blocked( $item['user_ip'] );

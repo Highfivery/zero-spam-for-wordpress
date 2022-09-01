@@ -3,7 +3,7 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 6.0.1
+Tested up to: 6.0.2
 Requires PHP: 7.3
 Stable tag: 5.4.0
 License: GNU GPLv3
@@ -13,7 +13,7 @@ Protection against spam & malicious users using cutting-edge AI. Firewall, real-
 
 == Description ==
 
-Protection against spam & malicious users using cutting-edge AI. Features a highly-configurable firewall, real-time monitoring, integrates with popular blacklists & plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/) & more.
+Protect against spam & malicious users using an advanced, highly-configurable firewall, real-time monitoring, integration with popular blacklists & plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/), [Gravity Forms](https://www.gravityforms.com/) & more.
 
 **Install, activate, configure, then put your mind at ease!**
 
@@ -34,7 +34,7 @@ Protection against spam & malicious users using cutting-edge AI. Features a high
 * Protects comments, user registration &amp; login forms
 * Protects [GiveWP](https://givewp.com/ref/1118/) forms & helps prevent testing stolen credit cards
 * Protects [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) form submissions
-* Protects [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/) & [Fluent Forms](https://wordpress.org/plugins/fluentform/) forms
+* Protects [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/) & [Fluent Forms](https://wordpress.org/plugins/fluentform/) forms
 * Protects [MemberPress](https://memberpress.com/) & [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations
 * Protects [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) sign-ups
 * and **can be integrated into any existing theme or plugin**
@@ -110,6 +110,8 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 * chore(admin): updated the after-activation message
 * feat(givewp): enhanced security using the david walsh method on legacy forms
+* feat(admin): major ui enhancements
+* feat(gravityforms): adds support for gravity forms
 
 = v5.3.9 =
 

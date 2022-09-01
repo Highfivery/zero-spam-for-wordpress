@@ -26,7 +26,7 @@ class ContactForm7 {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -141,7 +141,7 @@ class ContactForm7 {
 	 */
 	public function sections( $sections ) {
 		$sections['contactform7'] = array(
-			'title' => __( 'Contact Form 7 Integration', 'zero-spam' ),
+			'title' => __( 'Contact Form 7', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -151,9 +151,10 @@ class ContactForm7 {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-contactform7' );
+
 		$settings['verify_contactform7'] = array(
 			'title'       => __( 'Protect CF7 Submissions', 'zero-spam' ),
 			'section'     => 'contactform7',

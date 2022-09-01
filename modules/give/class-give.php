@@ -32,7 +32,7 @@ class Give {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -171,7 +171,7 @@ class Give {
 	 */
 	public function sections( $sections ) {
 		$sections['givewp'] = array(
-			'title' => __( 'GiveWP Integration', 'zero-spam' ),
+			'title' => __( 'GiveWP', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -181,9 +181,10 @@ class Give {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-givewp' );
+
 		$settings['verify_givewp'] = array(
 			'title'       => sprintf(
 				wp_kses(
@@ -201,6 +202,7 @@ class Give {
 				esc_url( 'https://givewp.com/ref/1118/' )
 			),
 			'section'     => 'givewp',
+			'module'      => 'givewp',
 			'type'        => 'checkbox',
 			'options'     => array(
 				'enabled' => __( 'Monitor GiveWP submissions for malicious or automated spambots.', 'zero-spam' ),
@@ -215,6 +217,7 @@ class Give {
 			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
 			'desc'        => __( 'When GiveWP protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'givewp',
+			'module'      => 'givewp',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -225,6 +228,7 @@ class Give {
 		$settings['log_blocked_givewp'] = array(
 			'title'       => __( 'Log Blocked GiveWP Submissions', 'zero-spam' ),
 			'section'     => 'givewp',
+			'module'      => 'givewp',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
 				__( 'Enables logging blocked GiveWP submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),

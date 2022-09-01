@@ -276,7 +276,7 @@ class Admin {
 			$footer_text = sprintf(
 				/* translators: 1: Elementor, 2: Link to plugin review */
 				__( 'Enjoyed %1$s? Please leave us a %2$s rating. We really appreciate your support!', 'zero-spam' ),
-				'<strong>' . __( 'WordPress Zero Spam', 'zero-spam' ) . '</strong>',
+				'<strong>' . __( 'Zero Spam for WordPress', 'zero-spam' ) . '</strong>',
 				'<a href="https://wordpress.org/plugins/zero-spam/#reviews" target="_blank">&#9733;&#9733;&#9733;&#9733;&#9733;</a>'
 			);
 		}

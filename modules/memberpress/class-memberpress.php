@@ -28,7 +28,7 @@ class MemberPress {
 		global $wp_query;
 
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if ( \ZeroSpam\Core\Access::process() ) {
@@ -235,7 +235,7 @@ class MemberPress {
 	 */
 	public function sections( $sections ) {
 		$sections['memberpress'] = array(
-			'title' => __( 'MemberPress Integration', 'zero-spam' ),
+			'title' => __( 'MemberPress', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -245,9 +245,10 @@ class MemberPress {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-memberpress' );
+
 		$default_spam_message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		// Registration protection.

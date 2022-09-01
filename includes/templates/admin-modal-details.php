@@ -15,21 +15,20 @@ if ( $submission_data ) :
 endif;
 ?>
 <div class="zerospam-modal-details">
-	<div class="zerospam-modal-title">
-		<h3><?php echo esc_html_e( 'Detection ID', 'zero-spam' ); ?> #<?php echo esc_html( $item['log_id'] ); ?></h3>
-	</div>
-	<div class="zerospam-modal-subtitle">
-		<?php
-		echo esc_html(
-			gmdate(
-				'M j, Y g:ia',
-				strtotime( $item['date_recorded'] )
-			)
-		);
-		?>
-	</div>
-
 	<ul class="zerospam-modal-list">
+		<li>
+			<strong><?php esc_html_e( 'Date', 'zero-spam' ); ?></strong>
+			<span>
+				<?php
+				echo esc_html(
+					gmdate(
+						'M j, Y g:ia',
+						strtotime( $item['date_recorded'] )
+					)
+				);
+				?>
+			</span>
+		</li>
 		<li>
 			<strong><?php esc_html_e( 'IP Address', 'zero-spam' ); ?></strong>
 			<span>
@@ -98,9 +97,7 @@ endif;
 		?>
 	</ul>
 
-	<button class="button action zerospam-block-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>">
-		<?php esc_html_e( 'Block IP', 'zero-spam' ); ?>
-	</button>
+	<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"><?php esc_html_e( 'Block IP', 'zero-spam' ); ?></button>
 
 	<?php if ( ! empty( $item['latitude'] ) && ! empty( $item['longitude'] ) ) : ?>
 		<h4 class="zerospam-modal-headline"><?php esc_html_e( 'Location', 'zero-spam' ); ?></h4>

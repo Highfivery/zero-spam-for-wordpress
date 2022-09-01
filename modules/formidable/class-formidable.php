@@ -26,7 +26,7 @@ class Formidable {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -56,7 +56,7 @@ class Formidable {
 	 */
 	public function sections( $sections ) {
 		$sections['formidable'] = array(
-			'title' => __( 'Formidable Integration', 'zero-spam' ),
+			'title' => __( 'Formidable', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -66,9 +66,10 @@ class Formidable {
 	 * Formidable settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-formidable' );
+
 		$settings['verify_formidable'] = array(
 			'title'       => __( 'Protect Formidable Submissions', 'zero-spam' ),
 			'section'     => 'formidable',

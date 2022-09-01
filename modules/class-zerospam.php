@@ -32,11 +32,7 @@ class Zero_Spam {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
-
-		// Displays any available admin notices.
-		add_action( 'admin_notices', array( $this, 'admin_notices' ) );
-		add_action( 'admin_init', array( $this, 'check_notice_dismissal' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 
 		// Fires when a user submission has been detected as spam.
 		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
@@ -94,7 +90,7 @@ class Zero_Spam {
 	 */
 	public function sections( $sections ) {
 		$sections['zerospam'] = array(
-			'title' => __( 'Zero Spam Enhanced Protection', 'zero-spam' ),
+			'title' => __( 'Enhanced Protection', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -104,11 +100,13 @@ class Zero_Spam {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-zerospam' );
+
 		$settings['zerospam_info'] = array(
 			'section' => 'zerospam',
+			'module'  => 'zerospam',
 			'type'    => 'html',
 			'html'    => sprintf(
 				wp_kses(
@@ -134,6 +132,7 @@ class Zero_Spam {
 		$settings['zerospam'] = array(
 			'title'       => __( 'Status', 'zero-spam' ),
 			'section'     => 'zerospam',
+			'module'  => 'zerospam',
 			'type'        => 'checkbox',
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
@@ -178,6 +177,7 @@ class Zero_Spam {
 				esc_url( ZEROSPAM_URL . 'product/premium/' )
 			),
 			'section'     => 'zerospam',
+			'module'  => 'zerospam',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
 			'placeholder' => __( 'Enter your Zero Spam license key.', 'zero-spam' ),
@@ -191,6 +191,7 @@ class Zero_Spam {
 		$settings['zerospam_timeout'] = array(
 			'title'       => __( 'API Timeout', 'zero-spam' ),
 			'section'     => 'zerospam',
+			'module'  => 'zerospam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'seconds', 'zero-spam' ),
@@ -204,6 +205,7 @@ class Zero_Spam {
 		$settings['zerospam_cache'] = array(
 			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'zerospam',
+			'module'  => 'zerospam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
@@ -217,6 +219,7 @@ class Zero_Spam {
 		$settings['zerospam_confidence_min'] = array(
 			'title'       => __( 'Confidence Minimum', 'zero-spam' ),
 			'section'     => 'zerospam',
+			'module'  => 'zerospam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( '%', 'zero-spam' ),
@@ -386,113 +389,6 @@ class Zero_Spam {
 		}
 
 		return $license_data;
-	}
-
-	/**
-	 * Checks if a notice should be dismissed.
-	 */
-	public function check_notice_dismissal() {
-		$user_id = get_current_user_id();
-
-		// @codingStandardsIgnoreLine
-		if ( isset( $_GET['zero-spam-dismiss-notice-enhanced-protection'] ) ) {
-			update_user_meta( $user_id, 'zero_spam_dismiss_notice_enhanced_protection', current_time( 'mysql' ) );
-			// @codingStandardsIgnoreLine
-		} elseif ( isset( $_GET['zero-spam-dismiss-notice-license'] ) ) {
-			update_user_meta( $user_id, 'zero_spam_dismiss_notice_missing_license', current_time( 'mysql' ) );
-		}
-	}
-
-	/**
-	 * Outputs any available admin notices.
-	 */
-	public function admin_notices() {
-		// Only display notices for administrators.
-		if ( ! current_user_can( 'administrator' ) ) {
-			return;
-		}
-
-		$settings = \ZeroSpam\Core\Settings::get_settings();
-		$user_id  = get_current_user_id();
-
-		$is_zerospam_enabled = 'enabled' === $settings['zerospam']['value'] ? true : false;
-
-		$classes = array();
-
-		if ( $is_zerospam_enabled ) {
-			$license = ! empty( $settings['zerospam_license']['value'] ) ? $settings['zerospam_license']['value'] : false;
-			if ( ! $license ) {
-
-				$message_dismissed = get_user_meta( $user_id, 'zero_spam_dismiss_notice_missing_license', true );
-
-				if ( $message_dismissed ) {
-					$days_since_last_dismissed = \ZeroSpam\Core\Utilities::time_since( $message_dismissed, current_time( 'mysql' ), 'd' );
-
-					if ( $days_since_last_dismissed <= 7 ) {
-						return;
-					}
-				}
-			} else {
-				// Check license.
-				$license_data = self::get_license( $license );
-				if ( ! empty( $license_data['license_key'] ) ) {
-					return;
-				}
-			}
-
-			$classes[] = 'notice-error';
-
-			$content = '<p>' . sprintf(
-				wp_kses(
-					/* translators: %1$s: Zero Spam settings URL, %2$s: dismiss message URL */
-					__( '<strong>Your site is vulnerable to attacks.</strong> Please enter a valid <a href="%1$s" target="_blank" rel="noreferrer noopener"><strong>Zero Spam license key</strong></a> under <a href="%2$s">Zero Spam Enhanced Protection</a> or disable the Zero Spam Enhanced Protection option to dismiss this message.', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'href' => array(),
-						),
-					)
-				),
-				esc_url( esc_url( ZEROSPAM_URL . 'subscribe/' ), ),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zero-spam-dismiss-notice-license' ) ),
-			) . '</p>';
-		} else {
-			$message_dismissed = get_user_meta( $user_id, 'zero_spam_dismiss_notice_enhanced_protection', true );
-
-			if ( $message_dismissed ) {
-				$days_since_last_dismissed = \ZeroSpam\Core\Utilities::time_since( $message_dismissed, current_time( 'mysql' ), 'd' );
-
-				if ( $days_since_last_dismissed <= 365 ) {
-					return false;
-				}
-			}
-
-			$classes[] = 'notice-warning';
-
-			$content = '<p>' . sprintf(
-				wp_kses(
-					/* translators: %1$s: Zero Spam settings URL, %2$s: dismiss message URL */
-					__( '<strong>Your site isn\'t taking full advantage of Zero Spam protection.</strong> For enhanced protection, please enable <a href="%1$s"><strong>Zero Spam Enhanced Protection</strong></a>. <a href="%2$s">Dismiss</a>', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'href' => array(),
-						),
-					)
-				),
-				esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-				esc_url( \ZeroSpam\Core\Utilities::current_url( array( 'zero-spam-dismiss-notice-enhanced-protection' ) ) ),
-			) . '</p>';
-		}
-		?>
-		<div class="notice <?php echo implode( ' ', $classes ); ?>">
-			<?php
-			// @codingStandardsIgnoreLine
-			echo $content;
-			?>
-		</div>
-		<?php
 	}
 
 	/**
