@@ -103,6 +103,11 @@ class Comments {
 			$validation_errors[] = 'honeypot';
 		}
 
+		// Check email.
+		if ( ! empty( $commentdata['comment_author_email'] ) && ! \ZeroSpam\Core\Utilities::is_email( $commentdata['comment_author_email'] ) ) {
+			$validation_errors[] = 'invalid_email';
+		}
+
 		// Check blocked email domains.
 		if (
 			! empty( $commentdata['comment_author_email'] ) &&

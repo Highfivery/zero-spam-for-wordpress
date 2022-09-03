@@ -117,6 +117,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 * feat(reports): improved error logs
 * feat(wpdiscuz): resolves #327, added support for wpdiscuz
 * feat(wpforms): now supports checking blocked email addresses
+* feat(email): enhanced email security checks
 * fix(double requests): issue with double checks being performed per page visit
 * fix(blocks): fix for blocked ips not getting properly blocked
 * fix(locations): fix for blocked locations not getting added/updated

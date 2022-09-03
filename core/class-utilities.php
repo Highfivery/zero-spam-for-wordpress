@@ -112,6 +112,29 @@ class Utilities {
 	}
 
 	/**
+	 * Determines if an email is valid.
+	 *
+	 * @param string $email Email address.
+	 */
+	public static function is_email( $email ) {
+		if ( ! is_email( $email ) ) {
+			return false;
+		}
+
+		// Check the email domain.
+		if ( function_exists( 'checkdnsrr' ) ) {
+			$email_domain = substr( $email, strpos( $email, '@' ) + 1 );
+			if ( ! checkdnsrr( $email_domain, "MX" ) ) {
+				if ( ! ( checkdnsrr( $email_domain, "A" ) ) || ! ( checkdnsrr( $email_domain, "AAAA" ) ) ) {
+					return false;
+				}
+			}
+		}
+
+		return true;;
+	}
+
+	/**
 	 * Determines if an email has been blocked by it's domain.
 	 *
 	 * @param string $email Email address.
