@@ -200,8 +200,9 @@ class Comments {
 	 */
 	public function sections( $sections ) {
 		$sections['comments'] = array(
-			'title' => __( 'Comments', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-wordpress.svg'
+			'title'    => __( 'Comments', 'zero-spam' ),
+			'icon'     => 'assets/img/icon-wordpress.svg',
+			'supports' => array( 'honeypot', 'email', 'davidwalsh', 'words' ),
 		);
 
 		return $sections;

@@ -126,7 +126,7 @@ class Settings {
 			\ZeroSpam\Core\Settings::update_disallowed_words();
 
 			$message      = __( 'WordPress\'s disallowed words list has been successfully updated to the recommended.', 'zero-spam' );
-			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-msg=' . $message;
+			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-type=success&zerospam-msg=' . $message;
 
 			wp_safe_redirect( $redirect_url );
 			exit;
@@ -551,6 +551,39 @@ class Settings {
 							</div>
 						</div>
 					<?php endif; ?>
+
+					<?php
+					foreach ( $sections as $key => $section ) :
+						if ( $key === $subview && ! empty( $section['supports'] ) ) :
+							?>
+							<div class="zerospam-block">
+								<div class="zerospam-block__content zerospam-block__content--supports">
+									<strong><?php _e( 'Detection Support', 'zero-spam' ); ?>:</strong>
+									<?php
+									foreach ( $section['supports'] as $k => $s ) :
+										switch ( $s ) :
+											case 'honeypot':
+												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-honeypot.svg" alt="' . esc_attr( __( 'Honeypot', 'zero-spam' ) ) . '" />';
+												break;
+											case 'email':
+												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-email.svg" alt="' . esc_attr( __( 'Email', 'zero-spam' ) ) . '" />';
+												break;
+											case 'davidwalsh':
+												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'modules/davidwalsh/icon-david-walsh.png" alt="' . esc_attr( __( 'David Walsh', 'zero-spam' ) ) . '" />';
+												break;
+											case 'words':
+												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-words.svg" alt="' . esc_attr( __( 'Disallowed Words', 'zero-spam' ) ) . '" />';
+												break;
+										endswitch;
+
+									endforeach;
+									?>
+								</div>
+							</div>
+							<?php
+						endif;
+					 endforeach;
+					 ?>
 
 					<?php if ( ! in_array( $subview, array(  'export', 'errors' ) ) ) : ?>
 						<?php

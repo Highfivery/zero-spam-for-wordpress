@@ -171,8 +171,9 @@ class Give {
 	 */
 	public function sections( $sections ) {
 		$sections['givewp'] = array(
-			'title' => __( 'GiveWP', 'zero-spam' ),
-			'icon'  => 'modules/give/icon-givewp.png'
+			'title'    => __( 'GiveWP', 'zero-spam' ),
+			'icon'     => 'modules/give/icon-givewp.png',
+			'supports' => array( 'honeypot', 'email', 'davidwalsh' ),
 		);
 
 		return $sections;

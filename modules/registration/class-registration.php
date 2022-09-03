@@ -156,8 +156,9 @@ class Registration {
 	 */
 	public function sections( $sections ) {
 		$sections['registration'] = array(
-			'title' => __( 'Registration', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-wordpress.svg'
+			'title'    => __( 'Registration', 'zero-spam' ),
+			'icon'     => 'assets/img/icon-wordpress.svg',
+			'supports' => array( 'honeypot', 'email', 'davidwalsh' ),
 		);
 
 		return $sections;

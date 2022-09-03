@@ -45,8 +45,9 @@ class WooCommerce {
 	 */
 	public function sections( $sections ) {
 		$sections['woocommerce'] = array(
-			'title' => __( 'WooCommerce', 'zero-spam' ),
-			'icon'  => 'modules/woocommerce/icon-woocommerce.svg'
+			'title'    => __( 'WooCommerce', 'zero-spam' ),
+			'icon'     => 'modules/woocommerce/icon-woocommerce.svg',
+			'supports' => array( 'honeypot', 'email', 'davidwalsh' ),
 		);
 
 		return $sections;

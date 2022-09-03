@@ -60,8 +60,9 @@ class Formidable {
 	 */
 	public function sections( $sections ) {
 		$sections['formidable'] = array(
-			'title' => __( 'Formidable', 'zero-spam' ),
-			'icon'  => 'modules/formidable/icon-formidable.png'
+			'title'    => __( 'Formidable', 'zero-spam' ),
+			'icon'     => 'modules/formidable/icon-formidable.png',
+			'supports' => array( 'honeypot' ),
 		);
 
 		return $sections;

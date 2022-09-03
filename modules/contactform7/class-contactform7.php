@@ -151,8 +151,9 @@ class ContactForm7 {
 	 */
 	public function sections( $sections ) {
 		$sections['contactform7'] = array(
-			'title' => __( 'Contact Form 7', 'zero-spam' ),
-			'icon'  => 'modules/contactform7/icon-cf7.png'
+			'title'    => __( 'Contact Form 7', 'zero-spam' ),
+			'icon'     => 'modules/contactform7/icon-cf7.png',
+			'supports' => array( 'honeypot', 'davidwalsh' ),
 		);
 
 		return $sections;

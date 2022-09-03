@@ -158,8 +158,9 @@ class GravityForms {
 	 */
 	public function sections( $sections ) {
 		$sections['gravityforms'] = array(
-			'title' => __( 'Gravity Forms', 'zero-spam' ),
-			'icon'  => 'modules/gravityforms/icon-gravity-forms.svg'
+			'title'    => __( 'Gravity Forms', 'zero-spam' ),
+			'icon'     => 'modules/gravityforms/icon-gravity-forms.svg',
+			'supports' => array( 'honeypot', 'email' ),
 		);
 
 		return $sections;

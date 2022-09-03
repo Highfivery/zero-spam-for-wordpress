@@ -69,6 +69,12 @@
   margin-left: 12px;
 }
 
+.zerospam-small-icon {
+  height: 18px;
+  vertical-align: sub;
+  width: auto;
+}
+
 .zerospam-header {
   background-color: var(--zerospam-secondary);
   background-image: url("../img/logo-flat.svg");
@@ -150,6 +156,12 @@ a.zerospam-dashboard__menu-link--active {
 }
 .zerospam-block__content code, .zerospam-form td code {
   font-size: 0.85em;
+}
+.zerospam-block__content--supports {
+  align-items: center;
+  column-gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
 }
 .zerospam-block__headline, .zerospam-form th {
   box-sizing: border-box;

@@ -103,6 +103,12 @@ $breakpoints: (
   margin-left: 12px;
 }
 
+.zerospam-small-icon {
+  height: 18px;
+  vertical-align: sub;
+  width: auto;
+}
+
 .zerospam-header {
   background-color: var(--zerospam-secondary);
   background-image: url("../img/logo-flat.svg");
@@ -193,6 +199,13 @@ a.zerospam-dashboard__menu-link {
 
     code {
       font-size: 0.85em;
+    }
+
+    &--supports {
+      align-items: center;
+      column-gap: 8px;
+      display: flex;
+      flex-wrap: wrap;
     }
   }
 

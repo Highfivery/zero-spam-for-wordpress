@@ -81,6 +81,35 @@ class WPForms {
 		// Begin validation checks.
 		$validation_errors = array();
 
+		// Check individual fields.
+		if ( ! empty( $post['wpforms'] ) && ! empty( $post['wpforms']['fields'] ) ) {
+			foreach ( $post['wpforms']['fields'] as $key => $field ) {
+				if ( is_array( $field ) ) {
+					foreach ( $field as $k => $value ) {
+						if ( is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
+							// Email address found & is blocked.
+							$validation_errors[] = 'blocked_email_domain';
+						} else {
+							// Check against disallowed list.
+							if ( \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
+								$validation_errors[] = 'disallowed_list';
+							}
+						}
+					}
+				} else {
+					if ( is_email( $field ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $field ) ) {
+						// Email address found & is blocked.
+						$validation_errors[] = 'blocked_email_domain';
+					} else {
+						// Check against disallowed list.
+						if ( \ZeroSpam\Core\Utilities::is_disallowed( $field ) ) {
+							$validation_errors[] = 'disallowed_list';
+						}
+					}
+				}
+			}
+		}
+
 		// Check Zero Spam's honeypot field.
 		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
 		// @codingStandardsIgnoreLine
@@ -151,8 +180,9 @@ class WPForms {
 	 */
 	public function sections( $sections ) {
 		$sections['wpforms'] = array(
-			'title' => __( 'WPForms', 'zero-spam' ),
-			'icon'  => 'modules/wpforms/icon-wpforms.svg'
+			'title'    => __( 'WPForms', 'zero-spam' ),
+			'icon'     => 'modules/wpforms/icon-wpforms.svg',
+			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
 		return $sections;
