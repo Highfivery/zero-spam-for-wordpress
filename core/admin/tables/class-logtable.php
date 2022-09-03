@@ -59,13 +59,13 @@ class LogTable extends WP_List_Table {
 				return '<a href="' . ZEROSPAM_URL . 'ip-lookup/' . urlencode( $item[ $column_name ] ) .'" target="_blank" rel="noopener noreferrer">' . $item[ $column_name ] . '</a>';
 				break;
 			case 'date_recorded':
-				$date_time_format = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
+				$date_time_format = 'm/d/Y g:ia';
 				return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', strtotime( $item[ $column_name ] ) ), $date_time_format );
 				break;
 			case 'actions':
 				ob_start();
 				?>
-				<button class="button zerospam-details-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>"><?php esc_html_e( 'Details', 'zero-spam' ); ?></button>
+				<button class="button zerospam-details-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>" aria-label="<?php esc_html_e( 'Details', 'zero-spam' ); ?>"><img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-info.svg" width="13" /></button>
 				<div class="zerospam-modal" id="zerospam-details-<?php echo esc_attr( $item['log_id'] ); ?>">
 					<button class="zerospam-close-modal" aria-label="<?php echo esc_attr( __( 'Close Modal', 'zero-spam' ) ); ?>"></button>
 
@@ -88,13 +88,14 @@ class LogTable extends WP_List_Table {
 						data-start="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $blocked['start_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $blocked['start_block'] ) ) ); ?>"
 						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $blocked['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $blocked['end_block'] ) ) ); ?>"
 						data-type="<?php echo esc_attr( $blocked['blocked_type'] ); ?>"
+						aria-label="<?php esc_html_e( 'Update Block', 'zero-spam' ); ?>"
 					>
-						<?php esc_html_e( 'Update Block', 'zero-spam' ); ?>
+						<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-edit.svg" width="13" />
 					</button>
 					<?php
 				else :
 					?>
-					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"><?php esc_html_e( 'Block IP', 'zero-spam' ); ?></button>
+					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>" aria-label="<?php esc_html_e( 'Block IP', 'zero-spam' ); ?>"><img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-blocked.svg" width="13" /></button>
 					<?php
 				endif;
 

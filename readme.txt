@@ -32,6 +32,7 @@ Protect against spam & malicious users using an advanced, highly-configurable fi
 = But wait, there's more! =
 
 * Protects comments, user registration &amp; login forms
+* Protects [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/) comment forms
 * Protects [GiveWP](https://givewp.com/ref/1118/) forms & helps prevent testing stolen credit cards
 * Protects [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) form submissions
 * Protects [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/) & [Fluent Forms](https://wordpress.org/plugins/fluentform/) forms
@@ -109,9 +110,20 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = v5.4.0 =
 
 * chore(admin): updated the after-activation message
+* chore(spam): updated splorp's wordpress comment blacklist
 * feat(givewp): enhanced security using the david walsh method on legacy forms
 * feat(admin): major ui enhancements
 * feat(gravityforms): adds support for gravity forms
+* feat(reports): improved error logs
+* feat(wpdiscuz): resolves #327, added support for wpdiscuz
+* fix(double requests): issue with double checks being performed per page visit
+* fix(blocks): fix for blocked ips not getting properly blocked
+* fix(locations): fix for blocked locations not getting added/updated
+* fix(comments): fix for valid comment submissions being flagged
+* fix(admin): missing country flag in ip details modal
+* fix(woocommerce): fix for loggin woocommerce registrations fixed
+* fix(david walsh): fix for flagged submissions when using the david walsh technique
+* perf(misc): misc performance improvements related to 3rd-party api queries
 
 = v5.3.9 =
 

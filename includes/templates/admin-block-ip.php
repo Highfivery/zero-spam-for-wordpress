@@ -9,7 +9,6 @@
 <form method="post" class="zerospam-table-form<?php if ( ! empty( $location_form ) ) : ?> zerospam-block-location-form<?php endif; ?>" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 <?php wp_nonce_field( 'zerospam', 'zerospam' ); ?>
 <input type="hidden" name="action" value="add_blocked_ip" />
-<input type="hidden" name="redirect" value="<?php echo esc_url( ZeroSpam\Core\Utilities::current_url() ); ?>" />
 
 <div class="zerospam-form-fields">
 	<?php if ( empty( $location_form ) ) : ?>
@@ -24,18 +23,18 @@
 			/>
 		</div>
 	<?php else: ?>
-		<label for="location-type">
-			<?php esc_html_e( 'Location Type', 'zero-spam' ); ?>
+		<div class="zerospam-form-field zerospam-form-field--half">
+			<label for="location-type"><?php esc_html_e( 'Location Type', 'zero-spam' ); ?></label>
 			<select id="location-type" name="key_type">
 				<option value="country_code"><?php esc_html_e( 'Country Code', 'zero-spam' ); ?></option>
 				<option value="region_code"><?php esc_html_e( 'Region Code', 'zero-spam' ); ?></option>
 				<option value="city"><?php esc_html_e( 'City Name', 'zero-spam' ); ?></option>
 				<option value="zip"><?php esc_html_e( 'Zip/Postal Code', 'zero-spam' ); ?></option>
 			</select>
-		</label>
+		</div>
 
-		<label for="location-key">
-			<?php esc_html_e( 'Location Key', 'zero-spam' ); ?>
+		<div class="zerospam-form-field zerospam-form-field--half">
+			<label for="location-key"><?php esc_html_e( 'Location Key', 'zero-spam' ); ?></label>
 			<input
 				id="location-key"
 				type="text"
@@ -43,7 +42,7 @@
 				value=""
 				placeholder="ex. US"
 			/>
-		</label>
+		</div>
 	<?php endif; ?>
 
 	<div class="zerospam-form-field zerospam-form-field--half">
@@ -76,5 +75,9 @@
 	</div>
 </div>
 
-<input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Add/Update Blocked IP →', 'zero-spam' ); ?>" />
+<?php if ( empty( $location_form ) ) : ?>
+	<input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Add/Update Blocked IP →', 'zero-spam' ); ?>" />
+<?php else: ?>
+	<input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Add/Update Blocked Location →', 'zero-spam' ); ?>" />
+<?php endif; ?>
 </form>

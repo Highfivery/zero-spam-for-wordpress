@@ -184,6 +184,7 @@ class MailchimpForWP {
 		$settings['verify_mailchimp4wp'] = array(
 			'title'       => __( 'Protect Forms', 'zero-spam' ),
 			'section'     => 'mailchimp4wp',
+			'module'      => 'mailchimp4wp',
 			'type'        => 'checkbox',
 			'options'     => array(
 				'enabled' => __( 'Monitor Mailchimp form submissions for malicious or automated spambots.', 'zero-spam' ),
@@ -198,6 +199,7 @@ class MailchimpForWP {
 			'title'       => __( 'Mailchimp Spam/Malicious Message', 'zero-spam' ),
 			'desc'        => __( 'When Mailchimp form protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
 			'section'     => 'mailchimp4wp',
+			'module'      => 'mailchimp4wp',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -208,6 +210,7 @@ class MailchimpForWP {
 		$settings['log_blocked_mailchimp4wp'] = array(
 			'title'       => __( 'Log Blocked Registrations', 'zero-spam' ),
 			'section'     => 'mailchimp4wp',
+			'module'      => 'mailchimp4wp',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
 				__( 'Enables logging blocked Mailchimp form submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),

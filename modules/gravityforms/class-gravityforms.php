@@ -6,7 +6,6 @@
  *
  * 1. Zero Spam honeypot field
  * 2. Checks blocked email domains
- * 3. Uses the David Walsh technique (legacy forms only)
  *
  * @package ZeroSpam
  */
@@ -159,7 +158,8 @@ class GravityForms {
 	 */
 	public function sections( $sections ) {
 		$sections['gravityforms'] = array(
-			'title' => __( 'Gravity Forms (>= v2.7)', 'zero-spam' ),
+			'title' => __( 'Gravity Forms', 'zero-spam' ),
+			'icon'  => 'modules/gravityforms/icon-gravity-forms.svg'
 		);
 
 		return $sections;
@@ -189,7 +189,7 @@ class GravityForms {
 				),
 				esc_url( 'https://www.gravityforms.com/' )
 			),
-			'desc'        => __( 'Monitor Gravity Form submissions for malicious or automated spambots.', 'zero-spam' ),
+			'desc'        => __( 'Protects & monitors Gravity Form submissions (requires >=v2.7 to enable).', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
 			'type'        => 'checkbox',
@@ -203,8 +203,8 @@ class GravityForms {
 		$message = __( 'We were unable to process your submission: IP address has been flagged as possible spam.', 'zero-spam' );
 
 		$settings['gravityforms_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged as spam or malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
 			'type'        => 'text',

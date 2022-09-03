@@ -58,7 +58,7 @@ class BlockedTable extends WP_List_Table {
 				if ( empty( $item[ $column_name ] ) || '0000-00-00 00:00:00' === $item[ $column_name ] ) {
 					return 'N/A';
 				} else {
-					$date_time_format = get_option( 'date_format' ) . ' ' . get_option( 'time_format' );
+					$date_time_format = 'm/d/Y';
 					return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', strtotime( $item[ $column_name ] ) ), $date_time_format );
 				}
 				break;
@@ -72,9 +72,18 @@ class BlockedTable extends WP_List_Table {
 						data-start="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $item['start_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $item['start_block'] ) ) ); ?>"
 						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $item['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $item['end_block'] ) ) ); ?>"
 						data-type="<?php echo esc_attr( $item['blocked_type'] ); ?>"
+						aria-label="<?php echo esc_attr( __( 'Update Block', 'zero-spam' ) ); ?>"
 					>
-						<?php esc_html_e( 'Update Block', 'zero-spam' ); ?>
+						<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-edit.svg" width="13" />
 					</button>
+
+					<a
+						class="button"
+						aria-label="<?php echo esc_attr( __( 'Delete block', 'zero-spam' ) ); ?>"
+						href="<?php echo wp_nonce_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&zerospam-action=delete-ip-block&zerospam-id=' . $item['blocked_id'] ), 'delete-ip-block', 'zero-spam' ) ?>"
+					>
+						<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-trash.svg" width="13" />
+					</a>
 					<?php
 				return ob_get_clean();
 				break;

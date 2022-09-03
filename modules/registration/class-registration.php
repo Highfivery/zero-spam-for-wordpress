@@ -1,6 +1,12 @@
 <?php
 /**
- * Registration class
+ * Registration integration module
+ *
+ * Malicious user detection techniques available:
+ *
+ * 1. Zero Spam honeypot field
+ * 2. Checks blocked email domains
+ * 3. Uses the David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -151,6 +157,7 @@ class Registration {
 	public function sections( $sections ) {
 		$sections['registration'] = array(
 			'title' => __( 'Registration', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-wordpress.svg'
 		);
 
 		return $sections;
@@ -166,11 +173,12 @@ class Registration {
 
 		$settings['verify_registrations'] = array(
 			'title'       => __( 'Protect Registrations', 'zero-spam' ),
+			'desc'        => __( 'Protects & monitors registration submissions.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor registrations for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_registrations'] ) ? $options['verify_registrations'] : false,
 			'recommended' => 'enabled',
@@ -179,8 +187,8 @@ class Registration {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['registration_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When registration protection is enabled, the message displayed to the user when a registration has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'text',
@@ -196,11 +204,11 @@ class Registration {
 			'module'      => 'registration',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked registrations. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked registration submissions in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_registrations'] ) ? $options['log_blocked_registrations'] : false,
 			'recommended' => 'enabled',

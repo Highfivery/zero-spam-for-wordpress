@@ -123,7 +123,7 @@ class Admin {
 		$messages = array();
 
 		// Check Zero Spam license key.
-		$zerospam_protection = \ZeroSpam\Core\Settings::get_settings( 'zero-spam' );
+		$zerospam_protection = \ZeroSpam\Core\Settings::get_settings( 'zero-spam-zerospam' );
 		if ( 'enabled' === $zerospam_protection ) {
 			$zerospam_license_key = \ZeroSpam\Core\Settings::get_settings( 'zerospam_license' );
 			if ( ! $zerospam_license_key ) {
@@ -169,7 +169,7 @@ class Admin {
 						)
 					),
 					esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-					esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=auto-configure' ) ),
+					wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' ),
 					esc_url( ZEROSPAM_URL . 'product/premium/' )
 				),
 			);

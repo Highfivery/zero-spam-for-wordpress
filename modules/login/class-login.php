@@ -1,6 +1,11 @@
 <?php
 /**
- * Login class
+ * Login integration module
+ *
+ * Malicious user detection techniques available:
+ *
+ * 1. Zero Spam honeypot field
+ * 2. Uses the David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -159,6 +164,7 @@ class Login {
 	public function sections( $sections ) {
 		$sections['login'] = array(
 			'title' => __( 'User Login', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-wordpress.svg'
 		);
 
 		return $sections;
@@ -174,11 +180,12 @@ class Login {
 
 		$settings['verify_login'] = array(
 			'title'       => __( 'Protect Login Attempts', 'zero-spam' ),
+			'desc'        => __( 'Protects & monitors login attempts.', 'zero-spam' ),
 			'section'     => 'login',
 			'module'      => 'login',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor login attempts for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_login'] ) ? $options['verify_login'] : false,
 			'recommended' => 'enabled',
@@ -187,8 +194,8 @@ class Login {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['login_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When login protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'login',
 			'module'      => 'login',
 			'type'        => 'text',
@@ -204,11 +211,11 @@ class Login {
 			'module'      => 'login',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked login attempts. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked login attempts in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_logins'] ) ? $options['log_blocked_logins'] : false,
 			'recommended' => 'enabled',

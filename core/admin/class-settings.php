@@ -28,17 +28,6 @@ class Settings {
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 		add_action( 'admin_action_import_settings', array( $this, 'import_settings' ) );
-
-		// @codingStandardsIgnoreLine
-		if ( ! empty( $_REQUEST['zerospam-msg'] ) ) {
-			add_action(
-				'admin_notices',
-				function() {
-					// @codingStandardsIgnoreLine
-					add_settings_error( 'zerospam-notices', 'zerospam-msg', sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ), 'success' );
-				}
-			);
-		}
 	}
 
 	/**
@@ -91,6 +80,8 @@ class Settings {
 	 * Processes nonce actions
 	 */
 	public function process_nonce_actions() {
+		$base_admin_link = self::$base_admin_link;
+
 		if (
 			! empty( $_REQUEST['zerospam-action'] ) &&
 			'autoconfigure' === $_REQUEST['zerospam-action'] &&
@@ -98,8 +89,8 @@ class Settings {
 		) {
 			\ZeroSpam\Core\Settings::auto_configure();
 
-			$message      = __( 'WordPress Zero Spam has successfully been auto-configured with the recommended settings.', 'zero-spam' );
-			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-msg=' . $message;
+			$message      = __( 'Zero Spam for WordPress has successfully been auto-configured with the recommended settings.', 'zero-spam' );
+			$redirect_url = "$base_admin_link&subview=settings&zerospam-msg=$message&zerospam-type=success";
 
 			wp_safe_redirect( $redirect_url );
 			exit;
@@ -110,8 +101,8 @@ class Settings {
 		) {
 			\ZeroSpam\Core\Settings::update_blocked_email_domains();
 
-			$message      = __( 'WordPress Zero Spam\'s blocked email domains have been successfully updated to the recommended.', 'zero-spam' );
-			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-msg=' . $message;
+			$message      = __( 'Zero Spam for WordPress blocked email domains have been successfully updated.', 'zero-spam' );
+			$redirect_url = "$base_admin_link&subview=settings&zerospam-msg=$message&zerospam-type=success";
 
 			wp_safe_redirect( $redirect_url );
 			exit;
@@ -122,8 +113,8 @@ class Settings {
 		) {
 			self::regenerate_honeypot();
 
-			$message      = __( 'WordPress Zero Spam\'s honeypot ID has been successfully reset.', 'zero-spam' );
-			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=settings&zerospam-msg=' . $message;
+			$message      = __( 'Zero Spam for WordPress honeypot ID has been successfully reset.', 'zero-spam' );
+			$redirect_url = "$base_admin_link&subview=settings&zerospam-msg=$message&zerospam-type=success";
 
 			wp_safe_redirect( $redirect_url );
 			exit;
@@ -146,11 +137,35 @@ class Settings {
 		) {
 			\ZeroSpam\Core\Utilities::delete_error_log();
 
-			$message      = __( 'WordPress Zero Spam\'s error log has been successfully deleted.', 'zero-spam' );
-			$redirect_url = 'options-general.php?page=wordpress-zero-spam-settings&tab=error&zerospam-msg=' . $message;
+			$message      = __( 'Zero Spam for WordPress error log has been successfully deleted.', 'zero-spam' );
+			$redirect_url = "$base_admin_link&subview=errors&zerospam-msg=$message";
 
 			wp_safe_redirect( $redirect_url );
 			exit;
+		} elseif (
+			! empty( $_REQUEST['zerospam-action'] ) &&
+			'delete-location-block' === $_REQUEST['zerospam-action'] &&
+			check_admin_referer( 'delete-location-block', 'zero-spam' )
+		) {
+			$block_id = sanitize_text_field( $_REQUEST['zerospam-id'] );
+			\ZeroSpam\Includes\DB::delete( 'blocked', 'blocked_id', $block_id );
+
+			$message      = __( 'The record has been successfully deleted.', 'zero-spam' );
+			$redirect_url = "index.php?page=wordpress-zero-spam-dashboard&subview=blocked-locations&zerospam-msg=$message&zerospam-type=success";
+
+			wp_safe_redirect( $redirect_url );
+		} elseif (
+			! empty( $_REQUEST['zerospam-action'] ) &&
+			'delete-ip-block' === $_REQUEST['zerospam-action'] &&
+			check_admin_referer( 'delete-ip-block', 'zero-spam' )
+		) {
+			$block_id = sanitize_text_field( $_REQUEST['zerospam-id'] );
+			\ZeroSpam\Includes\DB::delete( 'blocked', 'blocked_id', $block_id );
+
+			$message      = __( 'The record has been successfully deleted.', 'zero-spam' );
+			$redirect_url = "index.php?page=wordpress-zero-spam-dashboard&subview=blocked-ips&zerospam-msg=$message&zerospam-type=success";
+
+			wp_safe_redirect( $redirect_url );
 		}
 	}
 
@@ -176,6 +191,27 @@ class Settings {
 	 * @param array $input Input array.
 	 */
 	public function settings_validation( $input ) {
+		// If the Zero Spam license has been submitted, verify it.
+		if ( ! empty( $input['zerospam_license'] ) ) {
+			$license = \ZeroSpam\Modules\Zero_Spam::get_license( $input['zerospam_license'] );
+			if ( empty( $license['license_key'] ) ) {
+				\ZeroSpam\Core\Utilities::log( 'Zero Spam: invalid license key entered.');
+				$input['zerospam_license'] = __( 'Invalid license entered.', 'zero-spam' );
+				$input['zerospam']         = false;
+			}
+		}
+
+		// Check if the correct version of Gravity Forms is installed.
+		if ( ! empty( $input['verify_gravityforms'] ) && 'enabled' == $input['verify_gravityforms'] ) {
+			$data = get_plugin_data( ABSPATH . 'wp-content/plugins/gravityforms/gravityforms.php' );
+			if ( ! empty( $data['Version'] ) ) {
+				if ( ! version_compare( $data['Version'], '2.7', '>=' ) ) {
+					\ZeroSpam\Core\Utilities::log( 'Gravity Forms: requires at least v2.7');
+					$input['verify_gravityforms'] = false;
+				}
+			}
+		}
+
 		update_option( 'zerospam_configured', 1 );
 
 		return $input;
@@ -187,7 +223,7 @@ class Settings {
 	public function register_settings() {
 		foreach ( \ZeroSpam\Core\Settings::get_sections() as $key => $section ) {
 			register_setting(
-				"zero-spam", // Group
+				"zero-spam-$key", // Group
 				"zero-spam-$key", // Name
 				array(
 					'sanitize_callback' => array( $this, 'settings_validation' ),
@@ -255,6 +291,7 @@ class Settings {
 			) . '</p>';
 		}
 
+		echo '<div class="zerospam-form-field-container">';
 		switch ( $args['type'] ) {
 			case 'html':
 				echo wp_kses(
@@ -386,6 +423,7 @@ class Settings {
 					return;
 				}
 
+				echo '<div class="zerospam-form-field-group">';
 				foreach ( $args['options'] as $key => $label ) {
 					$selected = false;
 					if ( count( $args['options'] ) > 1 && 'checkbox' === $args['type'] ) {
@@ -430,6 +468,7 @@ class Settings {
 						<br />
 				<?php
 				}
+				echo '</div>';
 				break;
 		}
 
@@ -449,6 +488,8 @@ class Settings {
 				)
 			);
 		}
+
+		echo '</div>';
 	}
 
 	/**
@@ -471,20 +512,102 @@ class Settings {
 			<div class="zerospam-dashboard">
 				<div class="zerospam-dashboard__col">
 					<ul class="zerospam-dashboard__sections">
-						<li><a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=settings" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'settings' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>"><?php esc_html_e( 'Settings', 'zero-spam' ); ?></a></li>
+						<li>
+							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=settings" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'settings' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>">
+
+								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-settings.svg" class="zerospam-dashboard__menu-icon" />
+								<?php esc_html_e( 'Settings', 'zero-spam' ); ?>
+							</a>
+						</li>
 						<?php foreach ( $sections as $key => $section ) : ?>
-							<li><a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=$key" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( $key === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>"><?php echo $section['title']; ?></a></li>
+							<li>
+								<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=$key" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( $key === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>">
+									<?php if ( ! empty( $section['icon'] ) ) : ?>
+										<img src="<?php echo plugin_dir_url( ZEROSPAM ) . $section['icon']; ?>" class="zerospam-dashboard__menu-icon" />
+									<?php endif; ?>
+									<?php echo $section['title']; ?>
+								</a>
+							</li>
 						<?php endforeach; ?>
-						<li><a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=export" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'export' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>"><?php esc_html_e( 'Import/Export Settings', 'zero-spam' ); ?></a></li>
-						<li><a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=errors" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'errors' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>"><?php esc_html_e( 'Error Log', 'zero-spam' ); ?></a></li>
+						<li>
+							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=export" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'export' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>">
+								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-export.svg" class="zerospam-dashboard__menu-icon" />
+								<?php esc_html_e( 'Import/Export Settings', 'zero-spam' ); ?>
+							</a>
+						</li>
+						<li>
+							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=errors" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'errors' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>">
+								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-error.svg" class="zerospam-dashboard__menu-icon" />
+								<?php esc_html_e( 'Error Log', 'zero-spam' ); ?>
+							</a>
+						</li>
 					</ul>
 				</div>
 				<div class="zerospam-dashboard__col">
+					<?php if ( ! empty( $_REQUEST['zerospam-msg'] ) ) : ?>
+						<div class="zerospam-block zerospam-block--notice zerospam-block--<?php echo ! empty( $_REQUEST['zerospam-type'] ) ? esc_attr( $_REQUEST['zerospam-type'] ) : 'default' ?>">
+							<div class="zerospam-block__content">
+								<?php echo sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ); ?>
+							</div>
+						</div>
+					<?php endif; ?>
+
 					<?php if ( ! in_array( $subview, array(  'export', 'errors' ) ) ) : ?>
+						<?php
+						switch ( $subview ) :
+							case 'zerospam':
+
+								$license_key         = \ZeroSpam\Core\Settings::get_settings( 'zerospam_license' );
+								$license_key_enabled = \ZeroSpam\Core\Settings::get_settings( 'zerospam' );
+								if ( ! $license_key || "enabled" !== $license_key_enabled ) :
+									?>
+									<div class="zerospam-block zerospam-block--callout">
+										<div class="zerospam-block__content">
+											<div class="zerospam-block__grid">
+												<div class="zerospam-block__grid-column">
+													<?php echo sprintf(
+														wp_kses(
+															/* translators: %1s: Replaced with the Zero Spam URL, %2$s: Replaced with the DDoD attack wiki URL */
+															__( '<h3>Super-charge your protection with a <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam license</a>!</h3><p>Enable enhanced protection with a Zero Spam API license — one of the largest, most comprehensive, constantly-growing global malicious IP and email databases available. Once enabled, all visitors will be checked against Zero Spam\'s blacklist and can help prevent <a href="%2$s" target="_blank" rel="noopener noreferrer">DDoS attacks</a> &amp; fraudsters looking to test stolen credit card numbers.</p><p>Zero Spam is comprised of a global detection network of over 30,000+ apps and sites that monitor traffic and usage in real-time to detect malicious activity. <a href="%2$s" target="_blank" rel="noopener noreferrer">Subscribe today</a> for enhanced protection.</p>', 'zero-spam' ),
+															array(
+																'h3'     => array(),
+																'p'      => array(),
+																'a'      => array(
+																	'href'  => array(),
+																	'class' => array(),
+																	'rel'   => array(),
+																),
+																'strong' => array(),
+															)
+														),
+														esc_url( ZEROSPAM_URL . 'subscribe/' ),
+														esc_url( ZEROSPAM_URL . 'subscribe/' )
+													); ?>
+													<p><a href="https://www.zerospam.org/subscribe/" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php _e( 'Get a License', 'zero-spam' ); ?> →</a>
+													<a href="https://www.zerospam.org/" target="_blank" rel="noreferrer noopener" class="button"><?php _e( 'Learn More', 'zero-spam' ); ?> →</a></p>
+												</div>
+												<div class="zerospam-block__grid-column">
+													<ul class="zerospam-list zerospam-list--checks">
+														<li><?php _e( 'Real-time malicious IP monitoring', 'zero-spam' ); ?></li>
+														<li><?php _e( 'Block reported spammy email addresses', 'zero-spam' ); ?></li>
+														<li><?php _e( 'Helps prevent DDoS attacks', 'zero-spam' ); ?></li>
+														<li><?php _e( 'Detailed IP & email address reports', 'zero-spam' ); ?></li>
+														<li><?php _e( 'Helps prevents stolen credit card testing', 'zero-spam' ); ?></li>
+													</ul>
+												</div>
+											</div>
+										</div>
+									</div>
+								<?php
+								endif;
+							break;
+						endswitch;
+						?>
+
 						<form action="options.php" method="post" class="zerospam-form">
 						<?php
 						// Output security fields for the registered setting "zero-spam".
-						settings_fields( "zero-spam" );
+						settings_fields( "zero-spam-$subview" );
 
 						// Output setting sections and their fields.
 						do_settings_sections( "zero-spam-$subview" );
@@ -544,16 +667,24 @@ class Settings {
 						elseif( $subview === 'errors' ) :
 						$log = \ZeroSpam\Core\Utilities::get_error_log();
 						if ( ! $log ) :
-							esc_html_e( 'Yay! No errors have been reported.', 'zero-spam' );
+							?>
+							<div class="zerospam-block">
+								<div class="zerospam-block__content">
+									<?php _e( 'No errors have been reported.', 'zero-spam' ); ?>
+								</div>
+							</div>
+							<?php
 						else:
 							?>
-							<textarea readonly class="large-text code" rows="30"><?php echo esc_html( $log ); ?></textarea>
-							<a
-								href="<?php echo esc_url( wp_nonce_url( admin_url( "$base_admin_link&zerospam-action=delete-error-log" ), 'delete-error-log', 'zero-spam' ) ); ?>"
-								class="button button-primary"
-							>
-								<?php esc_html_e( 'Clear Error Log', 'zero-spam' ); ?>
-							</a>
+							<div class="zerospam-form">
+								<textarea readonly class="large-text code" rows="30"><?php echo esc_html( $log ); ?></textarea>
+								<a
+									href="<?php echo esc_url( wp_nonce_url( admin_url( "$base_admin_link&zerospam-action=delete-error-log" ), 'delete-error-log', 'zero-spam' ) ); ?>"
+									class="button button-primary"
+								>
+									<?php esc_html_e( 'Clear Error Log →', 'zero-spam' ); ?>
+								</a>
+							</div>
 						<?php endif; ?>
 
 					<?php endif; ?>

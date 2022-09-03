@@ -37,11 +37,6 @@ class DavidWalsh {
 		) {
 			add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ), 0 );
 			add_action( 'login_enqueue_scripts', array( $this, 'scripts' ) );
-
-			add_action( 'zerospam_comment_scripts', array( $this, 'enqueue_script' ) );
-			// See https://contactform7.com/loading-javascript-and-stylesheet-only-when-it-is-necessary/.
-			add_action( 'zerospam_wpcf7_scripts', array( $this, 'enqueue_script' ) );
-			add_action( 'zerospam_wpforms_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_fluentforms_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_mailchimp4wp_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_memberpress_login_scripts', array( $this, 'enqueue_script' ) );
@@ -113,7 +108,8 @@ class DavidWalsh {
 	 */
 	public function sections( $sections ) {
 		$sections['davidwalsh'] = array(
-			'title' => __( 'David Walsh Technique', 'zero-spam' ),
+			'title' => __( 'David Walsh', 'zero-spam' ),
+			'icon'  => 'modules/davidwalsh/icon-david-walsh.png'
 		);
 
 		return $sections;

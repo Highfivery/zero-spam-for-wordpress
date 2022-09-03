@@ -40,6 +40,7 @@ class IPinfoModule {
 	public function sections( $sections ) {
 		$sections['ipinfo'] = array(
 			'title' => __( 'IPinfo (geolocation)', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-ipinfo.svg'
 		);
 
 		return $sections;
@@ -161,9 +162,9 @@ class IPinfoModule {
 				$client = new IPinfo( $settings['ipinfo_access_token']['value'] );
 				$result = $client->getDetails( $ip );
 			} catch ( \ipinfo\ipinfo\IPinfoException $e ) {
-				\ZeroSpam\Core\Utilities::log( $e->__toString() );
+				\ZeroSpam\Core\Utilities::log( 'ipinfo: ' . $e->__toString() );
 			} catch ( Exception $e ) {
-				\ZeroSpam\Core\Utilities::log( $e->__toString() );
+				\ZeroSpam\Core\Utilities::log( 'ipinfo: ' . $e->__toString() );
 			}
 
 			if ( $result ) {

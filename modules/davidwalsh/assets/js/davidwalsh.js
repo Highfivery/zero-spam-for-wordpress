@@ -34,7 +34,7 @@
 
   $(function () {
     var selectors =
-      "#commentform, .wpforms-form, .wpcf7-form, .frm-fluent-form, .mepr-signup-form, .mc4wp-form, #mepr_loginform";
+      ".frm-fluent-form, .mepr-signup-form, .mc4wp-form, #mepr_loginform";
     if (
       typeof ZeroSpamDavidWalsh.selectors != "undefined" &&
       ZeroSpamDavidWalsh.selectors

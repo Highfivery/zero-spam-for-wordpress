@@ -91,11 +91,6 @@ class ProjectHoneypot {
 
 		$response = wp_cache_get( $cache_key );
 		if ( false === $response ) {
-			$timeout = 5;
-			if ( ! empty( $settings['project_honeypot_timeout']['value'] ) ) {
-				$timeout = intval( $settings['project_honeypot_timeout']['value'] );
-			}
-
 			$octets = explode( '.', $ip );
 			krsort( $octets );
 
@@ -105,11 +100,13 @@ class ProjectHoneypot {
 			$dns_array = dns_get_record( $endpoint, DNS_A );
 
 			if ( ! isset( $dns_array[0]['ip'] ) ) {
+				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Error: could not query the IP' );
 				return false;
 			}
 
 			$results = explode( '.', $dns_array[0]['ip'] );
 			if ( '127' !== $results[0] ) {
+				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Error: query error' );
 				return false;
 			}
 
@@ -169,6 +166,7 @@ class ProjectHoneypot {
 	public function sections( $sections ) {
 		$sections['project_honeypot'] = array(
 			'title' => __( 'Project Honeypot', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-honeypot.svg'
 		);
 
 		return $sections;

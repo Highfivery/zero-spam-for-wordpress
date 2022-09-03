@@ -81,6 +81,9 @@ class Plugin {
 		// Database functionality.
 		new \ZeroSpam\Includes\DB();
 
+		// Updates functionality.
+		new \ZeroSpam\Includes\Updates();
+
 		// Zero Spam module.
 		new \ZeroSpam\Modules\Zero_Spam();
 

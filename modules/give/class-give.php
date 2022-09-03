@@ -172,6 +172,7 @@ class Give {
 	public function sections( $sections ) {
 		$sections['givewp'] = array(
 			'title' => __( 'GiveWP', 'zero-spam' ),
+			'icon'  => 'modules/give/icon-givewp.png'
 		);
 
 		return $sections;
@@ -201,11 +202,12 @@ class Give {
 				),
 				esc_url( 'https://givewp.com/ref/1118/' )
 			),
+			'desc'        => __( 'Protects & monitors donation forms.', 'zero-spam' ),
 			'section'     => 'givewp',
 			'module'      => 'givewp',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor GiveWP submissions for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_givewp'] ) ? $options['verify_givewp'] : false,
 			'recommended' => 'enabled',
@@ -214,8 +216,8 @@ class Give {
 		$message = __( 'We\'re sorry, but we\'re unable to process the transaction. Your IP has been flagged as possible spam.', 'zero-spam' );
 
 		$settings['givewp_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When GiveWP protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'givewp',
 			'module'      => 'givewp',
 			'type'        => 'text',
@@ -231,11 +233,11 @@ class Give {
 			'module'      => 'givewp',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked GiveWP submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked donation submissions in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_givewp'] ) ? $options['log_blocked_givewp'] : false,
 			'recommended' => 'enabled',

@@ -56,6 +56,7 @@ class Debug {
 	public function sections( $sections ) {
 		$sections['debug'] = array(
 			'title' => __( 'Debug', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-bug.svg'
 		);
 
 		return $sections;
@@ -71,12 +72,12 @@ class Debug {
 
 		$settings['debug'] = array(
 			'title'   => __( 'Debug', 'zero-spam' ),
-			'desc'    => __( 'For troubleshooting site issues.', 'zero-spam' ),
+			'desc'    => __( 'When enabled, provides verbose logging & allows the site admin to test an IP address access.', 'zero-spam' ),
 			'section' => 'debug',
 			'module'  => 'debug',
 			'type'    => 'checkbox',
 			'options' => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'   => ! empty( $options['debug'] ) ? $options['debug'] : false,
 		);
@@ -85,7 +86,7 @@ class Debug {
 			'title'       => __( 'Debug IP', 'zero-spam' ),
 			'desc'        => wp_kses(
 				/* translators: %s: url */
-				__( 'Mock a IP address for debugging. <strong>WARNING: This overrides all visitor IP addresses and while enabled could block legit visitors from accessing the site.</strong>', 'zero-spam' ),
+				__( 'Mock an IP address for debugging. This overrides all visitor IP addresses and <strong>while enabled could block legit visitors from accessing the site</strong>.', 'zero-spam' ),
 				array(
 					'strong' => array(),
 				)

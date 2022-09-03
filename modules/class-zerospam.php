@@ -91,6 +91,7 @@ class Zero_Spam {
 	public function sections( $sections ) {
 		$sections['zerospam'] = array(
 			'title' => __( 'Enhanced Protection', 'zero-spam' ),
+			'icon'  => 'assets/img/icon.svg'
 		);
 
 		return $sections;
@@ -103,31 +104,6 @@ class Zero_Spam {
 	 */
 	public function settings( $settings ) {
 		$options = get_option( 'zero-spam-zerospam' );
-
-		$settings['zerospam_info'] = array(
-			'section' => 'zerospam',
-			'module'  => 'zerospam',
-			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %1s: Replaced with the Zero Spam URL, %2$s: Replaced with the DDoD attack wiki URL */
-					__( '<h3 style="margin-top: 0">Enabling enhanced protection is highly recommended.</h3><p>Enhanced protection adds additional checks using one of the largest, most comprehensive, constantly-growing global malicious IP, email, and username databases available, the  <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam Blacklist</a>. Once enabled, all visitors will be checked against this blacklist that includes protected forms containing email and username fields &mdash; giving you the peace of mind that submissions are coming from legitimate. It can also help prevent <a href="%2$s" target="_blank" rel="noopener noreferrer">DDoS attacks</a> &amp; fraudsters looking to test stolen credit card numbers.</p>', 'zero-spam' ),
-					array(
-						'h3'     => array(
-							'style' => array(),
-						),
-						'p'      => array(),
-						'a'      => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-						'strong' => array(),
-					)
-				),
-				esc_url( ZEROSPAM_URL . '?utm_source=' . site_url() . '&utm_medium=admin_zerospam_info&utm_campaign=wpzerospam' ),
-				esc_url( 'https://en.wikipedia.org/wiki/Denial-of-service_attack' )
-			),
-		);
 
 		$settings['zerospam'] = array(
 			'title'       => __( 'Status', 'zero-spam' ),
@@ -368,6 +344,10 @@ class Zero_Spam {
 	 * @param string $license The license key.
 	 */
 	public static function get_license( $license ) {
+		if ( strpos( $license, 'invalid' ) !== false ) {
+			return false;
+		}
+
 		$cache_key    = sanitize_title( 'license_' . $license );
 		$license_data = wp_cache_get( $cache_key );
 		if ( false === $license_data ) {
@@ -380,6 +360,10 @@ class Zero_Spam {
 
 			if ( $license_data ) {
 				$license_data = json_decode( $license_data, true );
+
+				if ( empty( $license_data['license_key'] ) ) {
+					\ZeroSpam\Core\Utilities::log( 'Zero Spam License Check: ' . $license_data['response'] );
+				}
 
 				if ( ! empty( $license_data['license_key'] ) ) {
 					$expiration = 1 * MONTH_IN_SECONDS;
@@ -418,13 +402,14 @@ class Zero_Spam {
 		if ( false === $response ) {
 			// Limit the number of requests.
 			$last_query_option = get_site_option( 'zero_spam_last_api_query', false );
+
 			if ( $last_query_option ) {
 				list( $first_query_date, $num_queries) = explode( '*', $last_query_option );
 
 				if ( gmdate( 'Y-m-d', strtotime( $first_query_date ) ) !== gmdate( 'Y-m-d' ) ) {
 					// New day.
 					update_site_option( 'zero_spam_last_api_query', current_time( 'mysql' ) . '*1' );
-				} elseif ( $num_queries > 5 ) {
+				} elseif ( $num_queries > 30 ) {
 					return false;
 				} else {
 					update_site_option( 'zero_spam_last_api_query', $first_query_date . '*' . ( $num_queries+1 ) );

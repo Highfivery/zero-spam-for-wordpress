@@ -38,6 +38,7 @@ class ipstack {
 	public function sections( $sections ) {
 		$sections['ipstack'] = array(
 			'title' => __( 'ipstack (geolocation)', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-ipstack.svg'
 		);
 
 		return $sections;
@@ -182,6 +183,12 @@ class ipstack {
 			$response = \ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
 			if ( $response ) {
 				$result = json_decode( $response, true );
+
+				if ( ! empty( $result ) && ! empty( $result['error'] ) ) {
+					\ZeroSpam\Core\Utilities::log( 'ipstack: ' . json_encode( $result['error'] ));
+
+					return false;
+				}
 
 				$expiration = 14 * DAY_IN_SECONDS;
 				if ( ! empty( $settings['ipstack_cache']['value'] ) ) {

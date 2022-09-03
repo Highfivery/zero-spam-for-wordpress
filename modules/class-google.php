@@ -69,7 +69,8 @@ class Google {
 	 */
 	public function sections( $sections ) {
 		$sections['google'] = array(
-			'title' => __( 'Google API (geolocation)', 'zero-spam' ),
+			'title' => __( 'Google Map', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-google.svg'
 		);
 
 		return $sections;
