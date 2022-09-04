@@ -283,7 +283,7 @@ class Zero_Spam {
 		// Add specially defined data to the API report.
 
 		// From comments.
-		if ( ! empty( $data['comment_author_email'] ) && is_email( $data['comment_author_email'] ) ) {
+		if ( ! empty( $data['comment_author_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['comment_author_email'] ) ) {
 			$api_data['email_address'] = sanitize_email( $data['comment_author_email'] );
 
 			if ( ! empty( $data['comment_author'] ) ) {
@@ -292,30 +292,30 @@ class Zero_Spam {
 		}
 
 		// From registration.
-		if ( ! empty( $data['user_email'] ) && is_email( $data['user_email'] ) ) {
+		if ( ! empty( $data['user_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['user_email'] ) ) {
 			$api_data['email_address'] = sanitize_email( $data['user_email'] );
 		}
 
 		// From WooCommerce registration.
-		if ( ! empty( $data['email'] ) && is_email( $data['email'] ) ) {
+		if ( ! empty( $data['email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['email'] ) ) {
 			$api_data['email_address'] = sanitize_email( $data['email'] );
 		}
 
 		if ( ! empty( $data['post'] ) ) {
 			// From MemberPress.
-			if ( ! empty( $data['post']['user_email'] ) && is_email( $data['post']['user_email'] ) ) {
+			if ( ! empty( $data['post']['user_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['post']['user_email'] ) ) {
 				$api_data['email_address'] = sanitize_email( $data['post']['user_email'] );
 			}
 
 			// From Mailchimp for WordPress.
-			if ( ! empty( $data['post']['EMAIL'] ) && is_email( $data['post']['EMAIL'] ) ) {
+			if ( ! empty( $data['post']['EMAIL'] ) && \ZeroSpam\Core\Utilities::is_email( $data['post']['EMAIL'] ) ) {
 				$api_data['email_address'] = sanitize_email( $data['post']['EMAIL'] );
 			}
 		}
 
 		if ( ! empty( $data['data'] ) ) {
 			// From GiveWP.
-			if ( ! empty( $data['data']['give_email'] ) && is_email( $data['data']['give_email'] ) ) {
+			if ( ! empty( $data['data']['give_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['data']['give_email'] ) ) {
 				$api_data['email_address'] = sanitize_email( $data['post']['give_email'] );
 			}
 		}
@@ -409,7 +409,7 @@ class Zero_Spam {
 				if ( gmdate( 'Y-m-d', strtotime( $first_query_date ) ) !== gmdate( 'Y-m-d' ) ) {
 					// New day.
 					update_site_option( 'zero_spam_last_api_query', current_time( 'mysql' ) . '*1' );
-				} elseif ( $num_queries > 30 ) {
+				} elseif ( $num_queries > 100 ) {
 					return false;
 				} else {
 					update_site_option( 'zero_spam_last_api_query', $first_query_date . '*' . ( $num_queries+1 ) );

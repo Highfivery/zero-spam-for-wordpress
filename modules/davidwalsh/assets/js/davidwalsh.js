@@ -1,5 +1,5 @@
 /**
- * WordPress Zero Spam David Walsh jQuery plugin.
+ * Zero Spam for WordPress David Walsh jQuery plugin.
  *
  * Handles adding the required functionality for spam detections.
  */

@@ -86,7 +86,7 @@ class WPForms {
 			foreach ( $post['wpforms']['fields'] as $key => $field ) {
 				if ( is_array( $field ) ) {
 					foreach ( $field as $k => $value ) {
-						if ( is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
+						if ( \ZeroSpam\Core\Utilities::is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
 							// Email address found & is blocked.
 							$validation_errors[] = 'blocked_email_domain';
 						} else {
@@ -97,7 +97,7 @@ class WPForms {
 						}
 					}
 				} else {
-					if ( is_email( $field ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $field ) ) {
+					if ( \ZeroSpam\Core\Utilities::is_email( $field ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $field ) ) {
 						// Email address found & is blocked.
 						$validation_errors[] = 'blocked_email_domain';
 					} else {

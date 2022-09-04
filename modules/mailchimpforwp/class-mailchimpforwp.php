@@ -108,6 +108,11 @@ class MailchimpForWP {
 			$validation_errors[] = 'honeypot';
 		}
 
+		// Check email.
+		if ( ! empty( $post['EMAIL'] ) && ! \ZeroSpam\Core\Utilities::is_email( $post['EMAIL'] ) ) {
+			$validation_errors[] = 'invalid_email';
+		}
+
 		// Check blocked email domains.
 		if (
 			! empty( $post['EMAIL'] ) &&

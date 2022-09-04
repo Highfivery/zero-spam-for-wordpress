@@ -178,7 +178,8 @@ class FluentForms {
 		// Check blocked email domains.
 		if (
 			! empty( $form_data[ $field_name ] ) &&
-			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $form_data[ $field_name ] )
+			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $form_data[ $field_name ] ) &&
+			! \ZeroSpam\Core\Utilities::is_email( $form_data[ $field_name ] )
 		) {
 			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'fluentforms_spam_message' );
 

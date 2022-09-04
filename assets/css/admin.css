@@ -37,7 +37,7 @@
   background-color: var(--zerospam-accent);
   box-shadow: 0 4px 6px rgba(28, 31, 63, 0.08);
   border-color: var(--zerospam-accent);
-  color: var(--zerospam-trinary);
+  color: #fff;
 }
 .zerospam-table-form .button:hover,
 .zerospam-form .button:hover, .zerospam-block .button:hover {
@@ -82,6 +82,24 @@
   background-repeat: no-repeat;
   background-size: 100px;
   padding: 1.5rem 1.5rem 1.5rem 8rem;
+}
+@media (min-width: 782px) {
+  .zerospam-header {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+  }
+}
+.zerospam-header a {
+  color: var(--zerospam-accent);
+}
+.zerospam-header__status {
+  align-items: center;
+  background-color: #fff;
+  border-radius: 3px;
+  column-gap: 8px;
+  display: flex;
+  padding: 10px 15px;
 }
 
 @media (min-width: 782px) {
@@ -247,10 +265,28 @@ a.zerospam-dashboard__menu-link--active {
 .zerospam-blocks .zerospam-block, .zerospam-blocks .zerospam-form tr, .zerospam-form .zerospam-blocks tr {
   margin: calc(var(--zerospam-block-gap) / 2);
 }
+.zerospam-blocks .zerospam-block--facebook, .zerospam-blocks .zerospam-block--twitter {
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+}
+@media (min-width: 782px) {
+  .zerospam-blocks .zerospam-block--facebook {
+    width: 340px;
+  }
+}
+@media (min-width: 782px) {
+  .zerospam-blocks .zerospam-block--twitter {
+    width: calc(100% - var(--zerospam-block-gap) * 2 - 340px);
+  }
+}
 
 .zerospam-table-form .column-actions {
   column-gap: 5px;
   display: flex;
+}
+.zerospam-table-form .tablenav-pages .current-page {
+  width: auto;
 }
 .zerospam-table-form .tablenav {
   align-items: center;
@@ -483,6 +519,7 @@ a.zerospam-dashboard__menu-link--active {
   position: relative;
 }
 .zerospam-modal {
+  box-shadow: 0 0 4rem 100vw rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
   left: 50%;
   max-width: 600px;

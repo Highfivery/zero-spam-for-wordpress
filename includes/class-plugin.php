@@ -84,6 +84,9 @@ class Plugin {
 		// Updates functionality.
 		new \ZeroSpam\Includes\Updates();
 
+		// Site security
+		new \ZeroSpam\Modules\Security();
+
 		// Zero Spam module.
 		new \ZeroSpam\Modules\Zero_Spam();
 

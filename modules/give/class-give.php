@@ -112,6 +112,11 @@ class Give {
 			$validation_errors[] = 'honeypot';
 		}
 
+		// Check email.
+		if ( ! empty( $post_data['give_email'] ) && ! \ZeroSpam\Core\Utilities::is_email( $post_data['give_email'] ) ) {
+			$validation_errors[] = 'invalid_email';
+		}
+
 		// Check blocked email domains.
 		if (
 			! empty( $post_data['give_email'] ) &&

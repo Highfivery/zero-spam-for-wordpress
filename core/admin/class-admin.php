@@ -48,7 +48,7 @@ class Admin {
 			if ( ! empty( array_intersect( $roles, $selected_user_roles ) ) ) {
 				wp_add_dashboard_widget(
 					'zerospam_dashboard_widget',
-					__( 'WordPress Zero Spam', 'zero-spam' ),
+					__( 'Zero Spam for WordPress', 'zero-spam' ),
 					array( $this, 'dashboard_widget' )
 				);
 			}
@@ -250,7 +250,7 @@ class Admin {
 	public function plugin_row_meta( $plugin_meta, $plugin_file ) {
 		if ( ZEROSPAM_PLUGIN_BASE === $plugin_file ) {
 			$row_meta = array(
-				'docs' => '<a href="https://github.com/bmarshall511/wordpress-zero-spam/wiki" aria-label="' . esc_attr( __( 'View WordPress Zero Spam Documentation', 'zero-spam' ) ) . '" target="_blank">' . __( 'Docs & FAQs', 'zero-spam' ) . '</a>',
+				'docs' => '<a href="https://github.com/bmarshall511/wordpress-zero-spam/wiki" aria-label="' . esc_attr( __( 'View Documentation', 'zero-spam' ) ) . '" target="_blank">' . __( 'Docs & FAQs', 'zero-spam' ) . '</a>',
 			);
 
 			$plugin_meta = array_merge( $plugin_meta, $row_meta );

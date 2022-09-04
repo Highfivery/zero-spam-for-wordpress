@@ -100,7 +100,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 == Screenshots ==
 
 1. Zero Spam for WordPress dashboard
-2. Zero Spam for WordPress detections log
+2. Settings Page
 3. Zero Spam for WordPress blocked IPs
 4. Zero Spam for WordPress blacklisted IPs
 5. Zero Spam for WordPress settings

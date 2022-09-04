@@ -101,6 +101,11 @@ class Registration {
 			$validation_errors[] = 'honeypot';
 		}
 
+		// Check email.
+		if ( ! empty( $user_email ) && ! \ZeroSpam\Core\Utilities::is_email( $user_email ) ) {
+			$validation_errors[] = 'invalid_email';
+		}
+
 		// Check blocked email domains.
 		if (
 			! empty( $user_email ) &&

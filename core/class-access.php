@@ -35,7 +35,7 @@ class Access {
 	}
 
 	/**
-	 * Returns true if WordPress Zero Spam should process a submission.
+	 * Determines is security checks need to be triggers.
 	 *
 	 * @param boolean $ignore_ajax True if AJAX shouldn't be checked.
 	 */

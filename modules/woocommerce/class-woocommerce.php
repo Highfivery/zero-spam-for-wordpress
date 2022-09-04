@@ -187,6 +187,11 @@ class WooCommerce {
 			$validation_errors[] = 'honeypot';
 		}
 
+		// Check email.
+		if ( ! empty( $email ) && ! \ZeroSpam\Core\Utilities::is_email( $email ) ) {
+			$validation_errors[] = 'invalid_email';
+		}
+
 		// Check blocked email domains.
 		if ( \ZeroSpam\Core\Utilities::is_email_domain_blocked( $email ) ) {
 			// Email domain has been blocked.

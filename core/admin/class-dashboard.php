@@ -156,11 +156,11 @@ class Dashboard {
 		<div class="wrap">
 			<div class="zerospam-dashboard">
 				<div class="zerospam-dashboard__col">
-				<ul class="zerospam-dashboard__sections">
+					<ul class="zerospam-dashboard__sections">
 						<li>
 							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=reports" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'reports' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>">
 								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-reports.svg" class="zerospam-dashboard__menu-icon" />
-								<?php esc_html_e( 'Reports', 'zero-spam' ); ?>
+								<?php esc_html_e( 'Dashboard', 'zero-spam' ); ?>
 							</a>
 						</li>
 						<li>
@@ -182,6 +182,28 @@ class Dashboard {
 							</a>
 						</li>
 					</ul>
+
+					<div class="zerospam-block" style="margin-top: 40px;">
+						<div class="zerospam-block__content">
+							<?php
+							echo sprintf(
+								wp_kses(
+									/* translators: %s: url */
+									__( '<p><strong>We want to hear from you!</strong> <a href="%1$s" target="_blank" rel="noreferrer noopener">Submit your review</a> for 10&#37; off a Zero Spam license.</p>', 'zero-spam' ),
+									array(
+										'strong' => array(),
+										'a'    => array(
+											'target' => array(),
+											'href'   => array(),
+											'rel'    => array(),
+										),
+									)
+								),
+								'https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5'
+							);
+							?>
+						</div>
+					</div>
 				</div>
 				<div class="zerospam-dashboard__col">
 					<?php if ( ! empty( $_REQUEST['zerospam-msg'] ) ) : ?>
@@ -198,6 +220,14 @@ class Dashboard {
 						case 'reports':
 							?>
 							<div class="zerospam-blocks">
+								<div class="zerospam-block zerospam-block--twitter">
+									<a class="twitter-timeline" data-height="350" href="https://twitter.com/ZeroSpamOrg?ref_src=twsrc%5Etfw">Tweets by ZeroSpamOrg</a> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+								</div>
+
+								<div class="zerospam-block zerospam-block--facebook">
+									<iframe src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fzerospamorg&tabs=timeline&width=340&height=354&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true&appId=2704301689814493" width="340" height="354" style="border:none;overflow:hidden" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+								</div>
+
 								<div class="zerospam-block zerospam-block--map">
 									<h3 class="zerospam-block__headline"><?php esc_html_e( 'Detections World Map', 'zero-spam' ); ?></h3>
 									<div class="zerospam-block__content">

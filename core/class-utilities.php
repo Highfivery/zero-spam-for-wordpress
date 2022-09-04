@@ -234,7 +234,7 @@ class Utilities {
 				return false;
 			}
 
-			if ( insert_with_markers( $htaccess_file, 'WordPress Zero Spam', $lines ) ) {
+			if ( insert_with_markers( $htaccess_file, 'Zero Spam for WordPress', $lines ) ) {
 				return true;
 			} else {
 				self::log( 'Unable to update the .htacess file, unknown error.' );

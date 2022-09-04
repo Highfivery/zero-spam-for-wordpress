@@ -70,7 +70,7 @@ $breakpoints: (
     background-color: var(--zerospam-accent);
     box-shadow: 0 4px 6px rgb(28 31 63 / 8%);
     border-color: var(--zerospam-accent);
-    color: var(--zerospam-trinary);
+    color: #fff;
   }
 
   &:hover {
@@ -116,6 +116,25 @@ $breakpoints: (
   background-repeat: no-repeat;
   background-size: 100px;
   padding: 1.5rem 1.5rem 1.5rem 8rem;
+
+  @include breakpoint(medium) {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  a {
+    color: var(--zerospam-accent);
+  }
+
+  &__status {
+    align-items: center;
+    background-color: #fff;
+    border-radius: 3px;
+    column-gap: 8px;
+    display: flex;
+    padding: 10px 15px;
+  }
 }
 
 .zerospam-dashboard {
@@ -320,6 +339,25 @@ a.zerospam-dashboard__menu-link {
 
   .zerospam-block {
     margin: calc(var(--zerospam-block-gap) / 2);
+
+    &--facebook,
+    &--twitter {
+      background-color: transparent;
+      border: 0;
+      box-shadow: none;
+    }
+
+    &--facebook {
+      @include breakpoint(medium) {
+        width: 340px;
+      }
+    }
+
+    &--twitter {
+      @include breakpoint(medium) {
+        width: calc(100% - (var(--zerospam-block-gap) * 2) - 340px);
+      }
+    }
   }
 }
 
@@ -330,6 +368,12 @@ a.zerospam-dashboard__menu-link {
 
     .button {
       @extend %button-small;
+    }
+  }
+
+  .tablenav-pages {
+    .current-page {
+      width: auto;
     }
   }
 
@@ -561,6 +605,7 @@ a.zerospam-dashboard__menu-link {
 }
 
 .zerospam-modal {
+  box-shadow: 0 0 4rem 100vw rgb(0 0 0 / 50%);
   box-sizing: border-box;
   left: 50%;
   max-width: 600px;

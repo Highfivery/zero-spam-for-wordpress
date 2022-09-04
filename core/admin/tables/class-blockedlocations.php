@@ -25,8 +25,8 @@ class BlockedLocations extends WP_List_Table {
 		global $status, $page;
 
 		$args = array(
-			'singular' => __( 'WordPress Zero Spam Blocked Location', 'zero-spam' ),
-			'plural'   => __( 'WordPress Zero Spam Blocked Locations', 'zero-spam' ),
+			'singular' => __( 'Zero Spam for WordPress Blocked Location', 'zero-spam' ),
+			'plural'   => __( 'Zero Spam for WordPress Blocked Locations', 'zero-spam' ),
 		);
 		parent::__construct( $args );
 	}

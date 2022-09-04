@@ -138,7 +138,7 @@ class Settings {
 			\ZeroSpam\Core\Utilities::delete_error_log();
 
 			$message      = __( 'Zero Spam for WordPress error log has been successfully deleted.', 'zero-spam' );
-			$redirect_url = "$base_admin_link&subview=errors&zerospam-msg=$message";
+			$redirect_url = "$base_admin_link&subview=errors&zerospam-type=success&zerospam-msg=$message";
 
 			wp_safe_redirect( $redirect_url );
 			exit;
