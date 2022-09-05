@@ -1,6 +1,11 @@
 <?php
 /**
- * Contact Form 7 class
+ * Contact Form 7 integration module
+ *
+ * Malicious user detection techniques available:
+ *
+ * 1. Zero Spam honeypot field
+ * 2. Uses the David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -26,7 +31,7 @@ class ContactForm7 {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -34,7 +39,7 @@ class ContactForm7 {
 			\ZeroSpam\Core\Access::process()
 		) {
 			// Load scripts.
-			add_action( 'wpcf7_enqueue_scripts', array( $this, 'scripts' ), 10 );
+			add_action( 'wpcf7_enqueue_scripts', array( $this, 'add_scripts' ), 10 );
 
 			// Adds Zero Spam's honeypot field.
 			add_filter( 'wpcf7_form_elements', array( $this, 'add_honeypot' ), 10, 1 );
@@ -47,8 +52,13 @@ class ContactForm7 {
 	/**
 	 * Load the scripts
 	 */
-	public function scripts() {
-		do_action( 'zerospam_wpcf7_scripts' );
+	public function add_scripts() {
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7' ) ) {
+			wp_enqueue_script( 'zerospam-davidwalsh' );
+			add_action( 'wp_footer', function() {
+				echo '<script type="text/javascript">jQuery(".wpcf7-form").ZeroSpamDavidWalsh();</script>';
+			}, 999 );
+		}
 	}
 
 	/**
@@ -141,7 +151,9 @@ class ContactForm7 {
 	 */
 	public function sections( $sections ) {
 		$sections['contactform7'] = array(
-			'title' => __( 'Contact Form 7 Integration', 'zero-spam' ),
+			'title'    => __( 'Contact Form 7', 'zero-spam' ),
+			'icon'     => 'modules/contactform7/icon-cf7.png',
+			'supports' => array( 'honeypot', 'davidwalsh' ),
 		);
 
 		return $sections;
@@ -151,15 +163,18 @@ class ContactForm7 {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-contactform7' );
+
 		$settings['verify_contactform7'] = array(
 			'title'       => __( 'Protect CF7 Submissions', 'zero-spam' ),
+			'desc'        => __( 'Protects & monitors Contact Form 7 submissions.', 'zero-spam' ),
+			'module'      => 'contactform7',
 			'section'     => 'contactform7',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor CF7 submissions for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_contactform7'] ) ? $options['verify_contactform7'] : false,
 			'recommended' => 'enabled',
@@ -168,8 +183,9 @@ class ContactForm7 {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['contactform7_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When CF7 protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'module'      => 'contactform7',
 			'section'     => 'contactform7',
 			'type'        => 'text',
 			'field_class' => 'large-text',
@@ -180,14 +196,15 @@ class ContactForm7 {
 
 		$settings['log_blocked_contactform7'] = array(
 			'title'       => __( 'Log Blocked CF7 Submissions', 'zero-spam' ),
+			'module'      => 'contactform7',
 			'section'     => 'contactform7',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked CF7 submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked Contact Form 7 submissions in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_contactform7'] ) ? $options['log_blocked_contactform7'] : false,
 			'recommended' => 'enabled',

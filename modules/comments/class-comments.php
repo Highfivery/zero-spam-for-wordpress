@@ -1,6 +1,13 @@
 <?php
 /**
- * Comments class
+ * Comments integration module
+ *
+ * Malicious user detection techniques available:
+ *
+ * 1. Zero Spam honeypot field
+ * 2. Checks blocked email domains (author email)
+ * 3. Uses the David Walsh technique
+ * 4. Checks against the disallowed words list
  *
  * @package ZeroSpam
  */
@@ -28,14 +35,14 @@ class Comments {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) &&
 			\ZeroSpam\Core\Access::process()
 		) {
-			add_action( 'comment_form_before', array( $this, 'scripts' ) );
+			add_action( 'comment_form_before', array( $this, 'add_scripts' ) );
 			add_filter( 'comment_form_defaults', array( $this, 'honeypot' ) );
 			add_action( 'preprocess_comment', array( $this, 'preprocess_comments' ) );
 		}
@@ -55,8 +62,15 @@ class Comments {
 	/**
 	 * Load the scripts
 	 */
-	public function scripts() {
-		do_action( 'zerospam_comment_scripts' );
+	public function add_scripts() {
+		// Only add scripts to the appropriate pages.
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) ) {
+			wp_enqueue_script( 'zerospam-davidwalsh' );
+			add_action( 'wp_footer', function() {
+				// .wpd_comm_form for the wpDiscuz plugin
+				echo '<script type="text/javascript">jQuery(".comment-form, #commentform, .wpd_comm_form").ZeroSpamDavidWalsh();</script>';
+			}, 999 );
+		}
 	}
 
 	/**
@@ -87,6 +101,11 @@ class Comments {
 			$details['failed'] = 'honeypot';
 
 			$validation_errors[] = 'honeypot';
+		}
+
+		// Check email.
+		if ( ! empty( $commentdata['comment_author_email'] ) && ! \ZeroSpam\Core\Utilities::is_email( $commentdata['comment_author_email'] ) ) {
+			$validation_errors[] = 'invalid_email';
 		}
 
 		// Check blocked email domains.
@@ -186,7 +205,9 @@ class Comments {
 	 */
 	public function sections( $sections ) {
 		$sections['comments'] = array(
-			'title' => __( 'Comments Integration', 'zero-spam' ),
+			'title'    => __( 'Comments', 'zero-spam' ),
+			'icon'     => 'assets/img/icon-wordpress.svg',
+			'supports' => array( 'honeypot', 'email', 'davidwalsh', 'words' ),
 		);
 
 		return $sections;
@@ -196,15 +217,18 @@ class Comments {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-comments' );
+
 		$settings['verify_comments'] = array(
 			'title'       => __( 'Protect Comments', 'zero-spam' ),
+			'desc'        => __( 'Protects & monitors comment submissions.', 'zero-spam' ),
 			'section'     => 'comments',
+			'module'      => 'comments',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor comments for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false
 			),
 			'value'       => ! empty( $options['verify_comments'] ) ? $options['verify_comments'] : false,
 			'recommended' => 'enabled',
@@ -213,9 +237,10 @@ class Comments {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['comment_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When comment protection is enabled, the message displayed to the user when a comment has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'comments',
+			'module'      => 'comments',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -226,13 +251,14 @@ class Comments {
 		$settings['log_blocked_comments'] = array(
 			'title'       => __( 'Log Blocked Comments', 'zero-spam' ),
 			'section'     => 'comments',
+			'module'      => 'comments',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked comments. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked comment submissions in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_comments'] ) ? $options['log_blocked_comments'] : false,
 			'recommended' => 'enabled',

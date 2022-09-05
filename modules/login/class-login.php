@@ -1,6 +1,11 @@
 <?php
 /**
- * Login class
+ * Login integration module
+ *
+ * Malicious user detection techniques available:
+ *
+ * 1. Zero Spam honeypot field
+ * 2. Uses the David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -26,7 +31,7 @@ class Login {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -158,7 +163,9 @@ class Login {
 	 */
 	public function sections( $sections ) {
 		$sections['login'] = array(
-			'title' => __( 'User Login Integration', 'zero-spam' ),
+			'title'    => __( 'User Login', 'zero-spam' ),
+			'icon'     => 'assets/img/icon-wordpress.svg',
+			'supports' => array( 'honeypot', 'davidwalsh' ),
 		);
 
 		return $sections;
@@ -168,15 +175,18 @@ class Login {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-login' );
+
 		$settings['verify_login'] = array(
 			'title'       => __( 'Protect Login Attempts', 'zero-spam' ),
+			'desc'        => __( 'Protects & monitors login attempts.', 'zero-spam' ),
 			'section'     => 'login',
+			'module'      => 'login',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor login attempts for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_login'] ) ? $options['verify_login'] : false,
 			'recommended' => 'enabled',
@@ -185,9 +195,10 @@ class Login {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['login_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When login protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'login',
+			'module'      => 'login',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -198,13 +209,14 @@ class Login {
 		$settings['log_blocked_logins'] = array(
 			'title'       => __( 'Log Blocked Login Attempts', 'zero-spam' ),
 			'section'     => 'login',
+			'module'      => 'login',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked login attempts. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked login attempts in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_logins'] ) ? $options['log_blocked_logins'] : false,
 			'recommended' => 'enabled',

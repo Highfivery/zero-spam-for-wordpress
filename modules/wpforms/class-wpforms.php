@@ -1,6 +1,11 @@
 <?php
 /**
- * WPForms class
+ * WPForms integration module
+ *
+ * Malicious user detection techniques available:
+ *
+ * 1. Zero Spam honeypot field
+ * 2. Uses the David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -26,7 +31,7 @@ class WPForms {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -37,7 +42,7 @@ class WPForms {
 			add_action( 'wpforms_frontend_output', array( $this, 'honeypot' ), 10, 1 );
 
 			// Load scripts.
-			add_action( 'wpforms_frontend_output', array( $this, 'scripts' ) );
+			add_action( 'wpforms_frontend_output', array( $this, 'add_scripts' ) );
 
 			// Processes the form.
 			add_action( 'wpforms_process', array( $this, 'preprocess_submission' ), 10, 3 );
@@ -75,6 +80,35 @@ class WPForms {
 
 		// Begin validation checks.
 		$validation_errors = array();
+
+		// Check individual fields.
+		if ( ! empty( $post['wpforms'] ) && ! empty( $post['wpforms']['fields'] ) ) {
+			foreach ( $post['wpforms']['fields'] as $key => $field ) {
+				if ( is_array( $field ) ) {
+					foreach ( $field as $k => $value ) {
+						if ( \ZeroSpam\Core\Utilities::is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
+							// Email address found & is blocked.
+							$validation_errors[] = 'blocked_email_domain';
+						} else {
+							// Check against disallowed list.
+							if ( \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
+								$validation_errors[] = 'disallowed_list';
+							}
+						}
+					}
+				} else {
+					if ( \ZeroSpam\Core\Utilities::is_email( $field ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $field ) ) {
+						// Email address found & is blocked.
+						$validation_errors[] = 'blocked_email_domain';
+					} else {
+						// Check against disallowed list.
+						if ( \ZeroSpam\Core\Utilities::is_disallowed( $field ) ) {
+							$validation_errors[] = 'disallowed_list';
+						}
+					}
+				}
+			}
+		}
 
 		// Check Zero Spam's honeypot field.
 		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
@@ -129,8 +163,14 @@ class WPForms {
 	/**
 	 * Load the scripts
 	 */
-	public function scripts() {
-		do_action( 'zerospam_wpforms_scripts' );
+	public function add_scripts() {
+		// Only add scripts to the appropriate pages.
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_wpforms' ) ) {
+			wp_enqueue_script( 'zerospam-davidwalsh' );
+			add_action( 'wp_footer', function() {
+				echo '<script type="text/javascript">jQuery(".wpforms-form").ZeroSpamDavidWalsh();</script>';
+			}, 999 );
+		}
 	}
 
 	/**
@@ -140,7 +180,9 @@ class WPForms {
 	 */
 	public function sections( $sections ) {
 		$sections['wpforms'] = array(
-			'title' => __( 'WPForms Integration', 'zero-spam' ),
+			'title'    => __( 'WPForms', 'zero-spam' ),
+			'icon'     => 'modules/wpforms/icon-wpforms.svg',
+			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
 		return $sections;
@@ -150,15 +192,18 @@ class WPForms {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-wpforms' );
+
 		$settings['verify_wpforms'] = array(
 			'title'       => __( 'Protect WPForms Submissions', 'zero-spam' ),
+			'desc'        => __( 'Protects & monitors WPForms submissions.', 'zero-spam' ),
 			'section'     => 'wpforms',
+			'module'      => 'wpforms',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor WPForms submissions for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_wpforms'] ) ? $options['verify_wpforms'] : false,
 			'recommended' => 'enabled',
@@ -167,9 +212,10 @@ class WPForms {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['wpforms_spam_message'] = array(
-			'title'       => __( 'WPForms Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When WPForms protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'wpforms',
+			'module'      => 'wpforms',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -180,13 +226,14 @@ class WPForms {
 		$settings['log_blocked_wpforms'] = array(
 			'title'       => __( 'Log Blocked WPForms Submissions', 'zero-spam' ),
 			'section'     => 'wpforms',
+			'module'      => 'wpforms',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked WPForms submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked WPForms submissions in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_wpforms'] ) ? $options['log_blocked_wpforms'] : false,
 			'recommended' => 'enabled',

@@ -26,7 +26,7 @@ class ipstack {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_log_record', array( $this, 'log_record' ) );
 	}
 
@@ -37,7 +37,8 @@ class ipstack {
 	 */
 	public function sections( $sections ) {
 		$sections['ipstack'] = array(
-			'title' => __( 'ipstack Integration (geolocation)', 'zero-spam' ),
+			'title' => __( 'ipstack (geolocation)', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-ipstack.svg'
 		);
 
 		return $sections;
@@ -47,9 +48,10 @@ class ipstack {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-ipstack' );
+
 		$settings['ipstack_api'] = array(
 			'title'       => __( 'API Key', 'zero-spam' ),
 			'desc'        => sprintf(
@@ -69,6 +71,7 @@ class ipstack {
 				esc_url( 'https://ipstack.com/product?fpr=zerospam' )
 			),
 			'section'     => 'ipstack',
+			'module'      => 'ipstack',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
 			'placeholder' => __( 'Enter your ipstack API key.', 'zero-spam' ),
@@ -78,6 +81,7 @@ class ipstack {
 		$settings['ipstack_timeout'] = array(
 			'title'       => __( 'API Timeout', 'zero-spam' ),
 			'section'     => 'ipstack',
+			'module'      => 'ipstack',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'seconds', 'zero-spam' ),
@@ -90,6 +94,7 @@ class ipstack {
 		$settings['ipstack_cache'] = array(
 			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'ipstack',
+			'module'      => 'ipstack',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
@@ -178,6 +183,12 @@ class ipstack {
 			$response = \ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
 			if ( $response ) {
 				$result = json_decode( $response, true );
+
+				if ( ! empty( $result ) && ! empty( $result['error'] ) ) {
+					\ZeroSpam\Core\Utilities::log( 'ipstack: ' . json_encode( $result['error'] ));
+
+					return false;
+				}
 
 				$expiration = 14 * DAY_IN_SECONDS;
 				if ( ! empty( $settings['ipstack_cache']['value'] ) ) {

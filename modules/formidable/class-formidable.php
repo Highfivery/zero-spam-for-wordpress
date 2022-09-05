@@ -1,6 +1,10 @@
 <?php
 /**
- * Formidable class
+ * Formidable integration module
+ *
+ * Malicious user detection techniques available:
+ *
+ * 1. Zero Spam honeypot field
  *
  * @package ZeroSpam
  */
@@ -26,7 +30,7 @@ class Formidable {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -56,7 +60,9 @@ class Formidable {
 	 */
 	public function sections( $sections ) {
 		$sections['formidable'] = array(
-			'title' => __( 'Formidable Integration', 'zero-spam' ),
+			'title'    => __( 'Formidable', 'zero-spam' ),
+			'icon'     => 'modules/formidable/icon-formidable.png',
+			'supports' => array( 'honeypot' ),
 		);
 
 		return $sections;
@@ -66,15 +72,18 @@ class Formidable {
 	 * Formidable settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-formidable' );
+
 		$settings['verify_formidable'] = array(
 			'title'       => __( 'Protect Formidable Submissions', 'zero-spam' ),
+			'desc'        => __( 'Protects & monitors Formidable submissions.', 'zero-spam' ),
 			'section'     => 'formidable',
+			'module'      => 'formidable',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor Formidable submissions for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_formidable'] ) ? $options['verify_formidable'] : false,
 			'recommended' => 'enabled',
@@ -83,9 +92,10 @@ class Formidable {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['formidable_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When Formidable protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'formidable',
+			'module'      => 'formidable',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -96,13 +106,14 @@ class Formidable {
 		$settings['log_blocked_formidable'] = array(
 			'title'       => __( 'Log Blocked Formidable Submissions', 'zero-spam' ),
 			'section'     => 'formidable',
+			'module'      => 'formidable',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked Formidable submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked Formidable submissions in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_formidable'] ) ? $options['log_blocked_formidable'] : false,
 			'recommended' => 'enabled',

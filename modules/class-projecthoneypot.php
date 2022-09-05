@@ -26,7 +26,7 @@ class ProjectHoneypot {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 
 		if ( \ZeroSpam\Core\Access::process() ) {
 			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 2 );
@@ -91,11 +91,6 @@ class ProjectHoneypot {
 
 		$response = wp_cache_get( $cache_key );
 		if ( false === $response ) {
-			$timeout = 5;
-			if ( ! empty( $settings['project_honeypot_timeout']['value'] ) ) {
-				$timeout = intval( $settings['project_honeypot_timeout']['value'] );
-			}
-
 			$octets = explode( '.', $ip );
 			krsort( $octets );
 
@@ -105,11 +100,13 @@ class ProjectHoneypot {
 			$dns_array = dns_get_record( $endpoint, DNS_A );
 
 			if ( ! isset( $dns_array[0]['ip'] ) ) {
+				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Error: could not query the IP' );
 				return false;
 			}
 
 			$results = explode( '.', $dns_array[0]['ip'] );
 			if ( '127' !== $results[0] ) {
+				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Error: query error' );
 				return false;
 			}
 
@@ -168,7 +165,8 @@ class ProjectHoneypot {
 	 */
 	public function sections( $sections ) {
 		$sections['project_honeypot'] = array(
-			'title' => __( 'Project Honeypot Integration', 'zero-spam' ),
+			'title' => __( 'Project Honeypot', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-honeypot.svg'
 		);
 
 		return $sections;
@@ -178,12 +176,14 @@ class ProjectHoneypot {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-project_honeypot' );
+
 		$settings['project_honeypot'] = array(
 			'title'       => __( 'Status', 'zero-spam' ),
 			'section'     => 'project_honeypot',
+			'module'      => 'project_honeypot',
 			'type'        => 'checkbox',
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
@@ -226,6 +226,7 @@ class ProjectHoneypot {
 				esc_url( 'https://www.projecthoneypot.org/create_account.php' )
 			),
 			'section'     => 'project_honeypot',
+			'module'      => 'project_honeypot',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
 			'placeholder' => __( 'Enter your Project Honeypot access key.', 'zero-spam' ),
@@ -235,6 +236,7 @@ class ProjectHoneypot {
 		$settings['project_honeypot_cache'] = array(
 			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'project_honeypot',
+			'module'      => 'project_honeypot',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
@@ -248,6 +250,7 @@ class ProjectHoneypot {
 		$settings['project_honeypot_score_min'] = array(
 			'title'       => __( 'Threat Score Minimum', 'zero-spam' ),
 			'section'     => 'project_honeypot',
+			'module'      => 'project_honeypot',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'placeholder' => __( '50', 'zero-spam' ),

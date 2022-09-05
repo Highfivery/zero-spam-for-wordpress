@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="162px" height="173px" viewBox="0 0 162 173" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>icon-trash</title>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="icon-trash" transform="translate(0.744000, 0.000000)" fill="#FFFFFF" fill-rule="nonzero">
+            <path d="M161.054,25.078 L147.381,25.078 L117.41,25.078 L117.41,0 L43.644,0 L43.644,25.078 L13.673,25.078 L0,25.078 L0,40.078 L14.806,40.078 L24.806,172.541 L136.249,172.541 L146.249,40.078 L161.054,40.078 L161.054,25.078 L161.054,25.078 Z M58.644,15 L102.41,15 L102.41,25.078 L58.644,25.078 L58.644,15 Z M122.339,157.541 L38.716,157.541 L29.848,40.078 L43.644,40.078 L117.41,40.078 L131.206,40.078 L122.339,157.541 Z" id="Shape"></path>
+            <rect id="Rectangle" x="74.527" y="65.693" width="12" height="66.232"></rect>
+            <rect id="Rectangle" x="51.527" y="65.693" width="12" height="66.232"></rect>
+            <rect id="Rectangle" x="97.527" y="65.693" width="12" height="66.232"></rect>
+        </g>
+    </g>
+</svg>

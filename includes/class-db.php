@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '0.8';
+	const DB_VERSION = '0.9';
 
 	/**
 	 * DB tables
@@ -67,7 +67,7 @@ class DB {
 				blocked_type ENUM('permanent','temporary') NOT NULL DEFAULT 'temporary',
 				user_ip VARCHAR(39) NOT NULL,
 				blocked_key VARCHAR(255) NULL,
-				key_type ENUM('ip','email','username','country_code','region_code','zip') NOT NULL DEFAULT 'ip',
+				key_type ENUM('ip','email','username','country_code','region_code','zip', 'city') NOT NULL DEFAULT 'ip',
 				date_added DATETIME NOT NULL,
 				start_block DATETIME NULL DEFAULT NULL,
 				end_block DATETIME NULL DEFAULT NULL,

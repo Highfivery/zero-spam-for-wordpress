@@ -112,6 +112,29 @@ class Utilities {
 	}
 
 	/**
+	 * Determines if an email is valid.
+	 *
+	 * @param string $email Email address.
+	 */
+	public static function is_email( $email ) {
+		if ( ! is_email( $email ) ) {
+			return false;
+		}
+
+		// Check the email domain.
+		if ( function_exists( 'checkdnsrr' ) ) {
+			$email_domain = substr( $email, strpos( $email, '@' ) + 1 );
+			if ( ! checkdnsrr( $email_domain, "MX" ) ) {
+				if ( ! ( checkdnsrr( $email_domain, "A" ) ) || ! ( checkdnsrr( $email_domain, "AAAA" ) ) ) {
+					return false;
+				}
+			}
+		}
+
+		return true;;
+	}
+
+	/**
 	 * Determines if an email has been blocked by it's domain.
 	 *
 	 * @param string $email Email address.
@@ -211,7 +234,7 @@ class Utilities {
 				return false;
 			}
 
-			if ( insert_with_markers( $htaccess_file, 'WordPress Zero Spam', $lines ) ) {
+			if ( insert_with_markers( $htaccess_file, 'Zero Spam for WordPress', $lines ) ) {
 				return true;
 			} else {
 				self::log( 'Unable to update the .htacess file, unknown error.' );
@@ -270,9 +293,9 @@ class Utilities {
 		}
 
 		// Write the log file.
-		$file  = $upload_dir . '/' . $file . '.log';
-		$file  = fopen( $file, $mode );
-		$bytes = fwrite( $file, current_time( 'mysql' ) . "::" . $entry . "\n" );
+		$file_path  = $upload_dir . '/' . $file . '.log';
+		$file       = fopen( $file_path, $mode );
+		$bytes      = fwrite( $file, current_time( 'mysql' ) . "::" . $entry . "\n" );
 		fclose( $file );
 
 		return $bytes;
@@ -623,7 +646,6 @@ class Utilities {
 	/**
 	 * Returns the generated key for checking submissions.
 	 *
-	 * @since 5.0.0
 	 * @access public
 	 *
 	 * @return string A unique key used for the 'honeypot' field.
@@ -736,8 +758,6 @@ class Utilities {
 	/**
 	 * Get an IP address geolocation information.
 	 *
-	 * @since 5.1.1
-	 *
 	 * @param string $ip IP address to lookup.
 	 * @return boolean|array False if geolocation is unavailable or array of location information.
 	 */
@@ -771,7 +791,7 @@ class Utilities {
 
 		// 2. Query the ipstack API.
 		$ipstack_location = \ZeroSpam\Modules\ipstack::get_geolocation( $ip );
-		if ( $ipstack_location ) {
+		if ( ! empty( $ipstack_location ) ) {
 			// ipstack API key provided, process the response.
 			if ( ! empty( $ipstack_location['error'] ) ) {
 				// ipstack returned an error, log it for future reference.
@@ -826,7 +846,7 @@ class Utilities {
 
 		// 3. Query the IPinfo API.
 		$ipinfo_location = ZeroSpam\Modules\IPinfoModule::get_geolocation( $ip );
-		if ( $ipinfo_location ) {
+		if ( ! empty( $ipinfo_location ) ) {
 			// IPinfo token provided, process the response.
 			// Add available location info to the standarized array.
 			if ( ! empty( $ipinfo_location['hostname'] ) ) {

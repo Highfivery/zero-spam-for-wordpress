@@ -16,6 +16,8 @@ $tables = array(
 	'blacklist' => 'wpzerospam_blacklist',
 );
 
+$modules = \ZeroSpam\Core\Settings::get_settings_by_module();
+
 if ( is_multisite() ) {
 	// @codingStandardsIgnoreLine
 	$blogs = $wpdb->get_results( "SELECT blog_id FROM {$wpdb->blogs}", ARRAY_A );
@@ -30,6 +32,11 @@ if ( is_multisite() ) {
 			delete_option( 'zerospam_configured' );
 			delete_option( 'zerospam_davidwalsh' );
 			delete_option( 'zero_spam_last_api_report' );
+			delete_option( 'zero-spam-last-update' );
+
+			foreach ( $modules as $module => $settings ) {
+				delete_option( "zero-spam-$module" );
+			}
 
 			foreach ( $tables as $key => $table ) {
 				// @codingStandardsIgnoreLine
@@ -45,6 +52,11 @@ if ( is_multisite() ) {
 	delete_option( 'zerospam_configured' );
 	delete_option( 'zerospam_davidwalsh' );
 	delete_option( 'zero_spam_last_api_report' );
+	delete_option( 'zero-spam-last-update' );
+
+	foreach ( $modules as $module => $settings ) {
+		delete_option( "zero-spam-$module" );
+	}
 
 	foreach ( $tables as $key => $table ) {
 		// @codingStandardsIgnoreLine

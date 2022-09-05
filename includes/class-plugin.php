@@ -81,6 +81,12 @@ class Plugin {
 		// Database functionality.
 		new \ZeroSpam\Includes\DB();
 
+		// Updates functionality.
+		new \ZeroSpam\Includes\Updates();
+
+		// Site security
+		new \ZeroSpam\Modules\Security();
+
 		// Zero Spam module.
 		new \ZeroSpam\Modules\Zero_Spam();
 
@@ -157,6 +163,11 @@ class Plugin {
 		// Zero Spam WooCommerce module.
 		if ( is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
 			new \ZeroSpam\Modules\WooCommerce\WooCommerce();
+		}
+
+		// Zero Spam Gravity Forms module.
+		if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
+			new \ZeroSpam\Modules\GravityForms\GravityForms();
 		}
 
 		// Debug module.

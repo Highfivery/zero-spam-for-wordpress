@@ -35,11 +35,16 @@ class Access {
 	}
 
 	/**
-	 * Returns true if WordPress Zero Spam should process a submission.
+	 * Determines is security checks need to be triggers.
 	 *
 	 * @param boolean $ignore_ajax True if AJAX shouldn't be checked.
 	 */
 	public static function process( $ignore_ajax = false ) {
+		// Fix for .favicon requests.
+		if ( strpos( $_SERVER['REQUEST_URI'], '.ico' ) !== false ) {
+			return false;
+		}
+
 		if ( $ignore_ajax && is_admin() || is_user_logged_in() ) {
 			return false;
 		} elseif ( ! $ignore_ajax && ( is_admin() && ! wp_doing_ajax() ) || is_user_logged_in() ) {
@@ -163,9 +168,7 @@ class Access {
 	 * @param array  $settings The plugin settings.
 	 */
 	public function check_blocked( $access_checks, $user_ip, $settings ) {
-		$access_checks['blocked'] = array(
-			'blocked' => false,
-		);
+		$access_checks['blocked'] = false;
 
 		// Check if geolocation information is available, if so, check if blocked.
 		$geolocation_information = \ZeroSpam\Core\Utilities::geolocation( $user_ip );

@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 5.9.3
+Tested up to: 6.0.2
 Requires PHP: 7.3
-Stable tag: 5.3.9
+Stable tag: 5.4.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -13,7 +13,7 @@ Protection against spam & malicious users using cutting-edge AI. Firewall, real-
 
 == Description ==
 
-Protection against spam & malicious users using cutting-edge AI. Features a highly-configurable firewall, real-time monitoring, integrates with popular blacklists & plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/) & more.
+Protect against spam & malicious users using an advanced, highly-configurable firewall, real-time monitoring, integration with popular blacklists & plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/), [Gravity Forms](https://www.gravityforms.com/) & more.
 
 **Install, activate, configure, then put your mind at ease!**
 
@@ -32,9 +32,10 @@ Protection against spam & malicious users using cutting-edge AI. Features a high
 = But wait, there's more! =
 
 * Protects comments, user registration &amp; login forms
+* Protects [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/) comment forms
 * Protects [GiveWP](https://givewp.com/ref/1118/) forms & helps prevent testing stolen credit cards
 * Protects [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) form submissions
-* Protects [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/) & [Fluent Forms](https://wordpress.org/plugins/fluentform/) forms
+* Protects [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/) & [Fluent Forms](https://wordpress.org/plugins/fluentform/) forms
 * Protects [MemberPress](https://memberpress.com/) & [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations
 * Protects [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) sign-ups
 * and **can be integrated into any existing theme or plugin**
@@ -98,13 +99,33 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 == Screenshots ==
 
-1. Zero Spam for WordPress dashboard
-2. Zero Spam for WordPress detections log
-3. Zero Spam for WordPress blocked IPs
-4. Zero Spam for WordPress blacklisted IPs
-5. Zero Spam for WordPress settings
+1. Dashboard
+2. Log
+3. Settings
+4. Add blocked IP address
+5. Add blocked location
 
 == Changelog ==
+
+= v5.4.0 =
+
+* chore(admin): updated the after-activation message
+* chore(spam): updated splorp's wordpress comment blacklist
+* feat(givewp): enhanced security using the david walsh method on legacy forms
+* feat(admin): major ui enhancements
+* feat(gravityforms): adds support for gravity forms
+* feat(reports): improved error logs
+* feat(wpdiscuz): resolves #327, added support for wpdiscuz
+* feat(wpforms): now supports checking blocked email addresses
+* feat(email): enhanced email security checks
+* fix(double requests): issue with double checks being performed per page visit
+* fix(blocks): fix for blocked ips not getting properly blocked
+* fix(locations): fix for blocked locations not getting added/updated
+* fix(comments): fix for valid comment submissions being flagged
+* fix(admin): missing country flag in ip details modal
+* fix(woocommerce): fix for login woocommerce registrations fixed
+* fix(david walsh): fix for flagged submissions when using the david walsh technique
+* perf(misc): misc performance improvements related to 3rd-party api queries
 
 = v5.3.9 =
 

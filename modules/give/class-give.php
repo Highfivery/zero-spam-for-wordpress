@@ -1,6 +1,12 @@
 <?php
 /**
- * Give class
+ * GiveWP plugin integration module
+ *
+ * Malicious user detection techniques available:
+ *
+ * 1. Zero Spam honeypot field
+ * 2. Checks blocked email domains
+ * 3. Uses the David Walsh technique (legacy forms only)
  *
  * @package ZeroSpam
  */
@@ -26,7 +32,7 @@ class Give {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -40,7 +46,29 @@ class Give {
 			add_action( 'give_checkout_error_checks', array( $this, 'process_form' ), 10, 1 );
 
 			// Load scripts.
-			// @todo - integrate the david walsh technique.
+			add_action( 'wp_print_scripts', array( $this, 'add_scripts' ), 999 );
+		}
+	}
+
+	/**
+	 * Load the scripts
+	 *
+	 * @see https://givewp.com/documentation/developers/conditionally-load-give-styles-and-scripts/
+	 */
+	public function add_scripts() {
+		global $post;
+
+		// Only add scripts to the appropriate pages.
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_givewp' ) ) {
+			if (
+				// Register and enqueue scripts on single GiveWP Form pages
+				is_singular('give_forms') ||
+				// Now check for whether the shortcode 'give_form' exists
+				( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'give_form' ) )
+			) {
+				wp_enqueue_script( 'zerospam-davidwalsh' );
+				wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".give-form").ZeroSpamDavidWalsh();' );
+			}
 		}
 	}
 
@@ -84,6 +112,11 @@ class Give {
 			$validation_errors[] = 'honeypot';
 		}
 
+		// Check email.
+		if ( ! empty( $post_data['give_email'] ) && ! \ZeroSpam\Core\Utilities::is_email( $post_data['give_email'] ) ) {
+			$validation_errors[] = 'invalid_email';
+		}
+
 		// Check blocked email domains.
 		if (
 			! empty( $post_data['give_email'] ) &&
@@ -91,6 +124,18 @@ class Give {
 		) {
 			// Email domain has been blocked.
 			$validation_errors[] = 'blocked_email_domain';
+		}
+
+		// Fire hook for additional validation (ex. David Walsh script). Only works for legacy forms.
+		$form_post_meta = get_post_meta( $post_data['give-form-id'] );
+		if ( in_array( 'legacy', $form_post_meta['_give_form_template'] ) ) {
+			$filtered_errors = apply_filters( 'zerospam_process_givewp_submission', array(), $post_data, 'givewp_spam_message' );
+
+			if ( ! empty( $filtered_errors ) ) {
+				foreach ( $filtered_errors as $key => $message ) {
+					$validation_errors[] = str_replace( 'zerospam_', '', $key );
+				}
+			}
 		}
 
 		if ( ! empty( $validation_errors ) ) {
@@ -131,7 +176,9 @@ class Give {
 	 */
 	public function sections( $sections ) {
 		$sections['givewp'] = array(
-			'title' => __( 'GiveWP Integration', 'zero-spam' ),
+			'title'    => __( 'GiveWP', 'zero-spam' ),
+			'icon'     => 'modules/give/icon-givewp.png',
+			'supports' => array( 'honeypot', 'email', 'davidwalsh' ),
 		);
 
 		return $sections;
@@ -141,9 +188,10 @@ class Give {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-givewp' );
+
 		$settings['verify_givewp'] = array(
 			'title'       => sprintf(
 				wp_kses(
@@ -160,10 +208,12 @@ class Give {
 				),
 				esc_url( 'https://givewp.com/ref/1118/' )
 			),
+			'desc'        => __( 'Protects & monitors donation forms.', 'zero-spam' ),
 			'section'     => 'givewp',
+			'module'      => 'givewp',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor GiveWP submissions for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_givewp'] ) ? $options['verify_givewp'] : false,
 			'recommended' => 'enabled',
@@ -172,9 +222,10 @@ class Give {
 		$message = __( 'We\'re sorry, but we\'re unable to process the transaction. Your IP has been flagged as possible spam.', 'zero-spam' );
 
 		$settings['givewp_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When GiveWP protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'givewp',
+			'module'      => 'givewp',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -185,13 +236,14 @@ class Give {
 		$settings['log_blocked_givewp'] = array(
 			'title'       => __( 'Log Blocked GiveWP Submissions', 'zero-spam' ),
 			'section'     => 'givewp',
+			'module'      => 'givewp',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked GiveWP submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked donation submissions in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_givewp'] ) ? $options['log_blocked_givewp'] : false,
 			'recommended' => 'enabled',

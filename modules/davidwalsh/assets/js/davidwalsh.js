@@ -1,5 +1,5 @@
 /**
- * WordPress Zero Spam David Walsh jQuery plugin.
+ * Zero Spam for WordPress David Walsh jQuery plugin.
  *
  * Handles adding the required functionality for spam detections.
  */
@@ -34,7 +34,7 @@
 
   $(function () {
     var selectors =
-      "#commentform, .wpforms-form, .wpcf7-form, .frm-fluent-form, .mepr-signup-form, .mc4wp-form, #mepr_loginform";
+      ".frm-fluent-form, .mepr-signup-form, .mc4wp-form, #mepr_loginform";
     if (
       typeof ZeroSpamDavidWalsh.selectors != "undefined" &&
       ZeroSpamDavidWalsh.selectors

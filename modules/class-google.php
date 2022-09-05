@@ -26,7 +26,7 @@ class Google {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 
 		$api_key = \ZeroSpam\Core\Settings::get_settings( 'google_api' );
 		if ( ! empty( $api_key ) ) {
@@ -69,7 +69,8 @@ class Google {
 	 */
 	public function sections( $sections ) {
 		$sections['google'] = array(
-			'title' => __( 'Google API Integration (geolocation)', 'zero-spam' ),
+			'title' => __( 'Google Map', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-google.svg'
 		);
 
 		return $sections;
@@ -79,12 +80,14 @@ class Google {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-google' );
+
 		$settings['google_api'] = array(
 			'title'       => __( 'Google API Key', 'zero-spam' ),
 			'section'     => 'google',
+			'module'      => 'google',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
 			'placeholder' => __( 'Enter your Google API key.', 'zero-spam' ),

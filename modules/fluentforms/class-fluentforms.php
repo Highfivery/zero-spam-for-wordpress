@@ -26,7 +26,7 @@ class FluentForms {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -178,7 +178,8 @@ class FluentForms {
 		// Check blocked email domains.
 		if (
 			! empty( $form_data[ $field_name ] ) &&
-			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $form_data[ $field_name ] )
+			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $form_data[ $field_name ] ) &&
+			! \ZeroSpam\Core\Utilities::is_email( $form_data[ $field_name ] )
 		) {
 			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'fluentforms_spam_message' );
 
@@ -206,8 +207,9 @@ class FluentForms {
 	 * @param array $sections Array of available setting sections.
 	 */
 	public function sections( $sections ) {
-		$sections['fluentforms'] = array(
-			'title' => __( 'Fluent Forms Integration', 'zero-spam' ),
+		$sections['fluent_form'] = array(
+			'title' => __( 'Fluent Forms', 'zero-spam' ),
+			'icon'  => 'modules/fluentforms/icon-fluent-forms.svg'
 		);
 
 		return $sections;
@@ -217,15 +219,18 @@ class FluentForms {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-fluent_form' );
+
 		$settings['verify_fluentforms'] = array(
 			'title'       => __( 'Protect Fluent Form Submissions', 'zero-spam' ),
-			'section'     => 'fluentforms',
+			'desc'        => __( 'Protects & monitors Fluent Form submissions.', 'zero-spam' ),
+			'section'     => 'fluent_form',
+			'module'      => 'fluent_form',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor Fluent Form submissions for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_fluentforms'] ) ? $options['verify_fluentforms'] : false,
 			'recommended' => 'enabled',
@@ -234,9 +239,10 @@ class FluentForms {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['fluentforms_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When Fluent Form protection is enabled, the message displayed to the user when a submission has been detected as spam/malicious.', 'zero-spam' ),
-			'section'     => 'fluentforms',
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'section'     => 'fluent_form',
+			'module'      => 'fluent_form',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -246,14 +252,15 @@ class FluentForms {
 
 		$settings['log_blocked_fluentforms'] = array(
 			'title'       => __( 'Log Blocked Fluent Form Submissions', 'zero-spam' ),
-			'section'     => 'fluentforms',
+			'section'     => 'fluent_form',
+			'module'      => 'fluent_form',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked Fluent Form submissions. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked Fluent Form submissions in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_fluentforms'] ) ? $options['log_blocked_fluentforms'] : false,
 			'recommended' => 'enabled',

@@ -15,24 +15,23 @@ if ( $submission_data ) :
 endif;
 ?>
 <div class="zerospam-modal-details">
-	<div class="zerospam-modal-title">
-		<h3><?php echo esc_html_e( 'Detection ID', 'zero-spam' ); ?> #<?php echo esc_html( $item['log_id'] ); ?></h3>
-	</div>
-	<div class="zerospam-modal-subtitle">
-		<?php
-		echo esc_html(
-			gmdate(
-				'M j, Y g:ia',
-				strtotime( $item['date_recorded'] )
-			)
-		);
-		?>
-	</div>
-
-	<ul class="zerospam-modal-list">
+	<ul class="zerospam-list zerospam-list--data">
 		<li>
-			<strong><?php esc_html_e( 'IP Address', 'zero-spam' ); ?></strong>
-			<span>
+			<span class="zerospam-list__label"><?php esc_html_e( 'Date', 'zero-spam' ); ?></span>
+			<span class="zerospam-list__value">
+				<?php
+				echo esc_html(
+					gmdate(
+						'M j, Y g:ia',
+						strtotime( $item['date_recorded'] )
+					)
+				);
+				?>
+			</span>
+		</li>
+		<li>
+			<span class="zerospam-list__label"><?php esc_html_e( 'IP Address', 'zero-spam' ); ?></span>
+			<span class="zerospam-list__value">
 				<?php
 				$lookup_url  = ZEROSPAM_URL . 'ip-lookup/';
 				$lookup_url .= rawurlencode( $item['user_ip'] ) . '/';
@@ -60,8 +59,8 @@ endif;
 			</span>
 		</li>
 		<li>
-			<strong><?php esc_html_e( 'Type', 'zero-spam' ); ?></strong>
-			<span>
+			<span class="zerospam-list__label"><?php esc_html_e( 'Type', 'zero-spam' ); ?></span>
+			<span class="zerospam-list__value">
 				<?php
 				$detection_types = apply_filters( 'zerospam_types', array() );
 				if ( ! empty( $detection_types[ $item['log_type'] ] ) ) :
@@ -77,8 +76,8 @@ endif;
 		</li>
 		<?php if ( $submission_data && ! empty( $submission_data['failed'] ) ) : ?>
 			<li>
-				<strong><?php esc_html_e( 'Failed', 'zero-spam' ); ?></strong>
-				<span>
+				<span class="zerospam-list__label"><?php esc_html_e( 'Failed', 'zero-spam' ); ?></span>
+				<span class="zerospam-list__value">
 					<?php
 					$failed_types = apply_filters( 'zerospam_failed_types', array() );
 					if ( ! empty( $failed_types[ $submission_data['failed'] ] ) ) :
@@ -98,9 +97,7 @@ endif;
 		?>
 	</ul>
 
-	<button class="button action zerospam-block-trigger" data-id="<?php echo esc_attr( $item['log_id'] ); ?>">
-		<?php esc_html_e( 'Block IP', 'zero-spam' ); ?>
-	</button>
+	<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"><?php esc_html_e( 'Block IP', 'zero-spam' ); ?></button>
 
 	<?php if ( ! empty( $item['latitude'] ) && ! empty( $item['longitude'] ) ) : ?>
 		<h4 class="zerospam-modal-headline"><?php esc_html_e( 'Location', 'zero-spam' ); ?></h4>
@@ -108,16 +105,16 @@ endif;
 		$coordinates = $item['latitude'] . ',' . $item['longitude'];
 		do_action( 'zerospam_google_map', $coordinates );
 		?>
-		<ul class="zerospam-modal-list">
+		<ul class="zerospam-list zerospam-list--data">
 			<?php if ( ! empty( $item['country'] ) ) : ?>
 				<li>
-					<strong><?php esc_html_e( 'Country', 'zero-spam' ); ?></strong>
-					<span>
+					<span class="zerospam-list__label"><?php esc_html_e( 'Country', 'zero-spam' ); ?></span>
+					<span class="zerospam-list__value">
 						<?php
 						$country_name = ! empty( $item['country_name'] ) ? $item['country_name'] : false;
-						$flag         = ZeroSpam\Core\Utilities::country_flag_url( $item['country'] );
+						$flag         = \ZeroSpam\Core\Utilities::country_flag_url( $item['country'] );
 
-						$country = '<img src="' . esc_url( $flag ) . '" width="16" height="16" alt="' . esc_attr( $country_name . ' (' . $item['country'] . ')' ) . '" class="zerospam-flag" />';
+						$country = '<img src="' . $flag . '" width="16" height="16" alt="' . esc_attr( $country_name . ' (' . $item['country'] . ')' ) . '" class="zerospam-flag" />';
 						if ( $country_name ) {
 							$country .= esc_html( $country_name . ' (' . $item['country'] . ')' );
 						} else {
@@ -128,6 +125,7 @@ endif;
 							$country,
 							array(
 								'img' => array(
+									'src'    => array(),
 									'width'  => array(),
 									'height' => array(),
 									'alt'    => array(),
@@ -141,8 +139,8 @@ endif;
 			<?php endif; ?>
 			<?php if ( ! empty( $item['region'] ) || ! empty( $item['region_name'] ) ) : ?>
 				<li>
-					<strong><?php esc_html_e( 'Region', 'zero-spam' ); ?></strong>
-					<span>
+					<span class="zerospam-list__label"><?php esc_html_e( 'Region', 'zero-spam' ); ?></span>
+					<span class="zerospam-list__value">
 						<?php if ( ! empty( $item['region_name'] ) ) : ?>
 							<?php echo esc_html( $item['region_name'] ); ?>
 						<?php endif; ?>
@@ -154,22 +152,22 @@ endif;
 			<?php endif; ?>
 			<?php if ( ! empty( $item['city'] ) ) : ?>
 				<li>
-					<strong><?php echo esc_html_e( 'City', 'zero-spam' ); ?></strong>
-					<span><?php echo esc_html( $item['city'] ); ?>
+					<span class="zerospam-list__label"><?php echo esc_html_e( 'City', 'zero-spam' ); ?></span>
+					<span class="zerospam-list__value"><?php echo esc_html( $item['city'] ); ?>
 					</span>
 				</li>
 			<?php endif; ?>
 			<?php if ( ! empty( $item['zip'] ) ) : ?>
 				<li>
-					<strong><?php echo esc_html_e( 'Zip/Postal Code', 'zero-spam' ); ?></strong>
-					<span><?php echo esc_html( $item['zip'] ); ?>
+					<span class="zerospam-list__label"><?php echo esc_html_e( 'Zip/Postal Code', 'zero-spam' ); ?></span>
+					<span class="zerospam-list__value"><?php echo esc_html( $item['zip'] ); ?>
 					</span>
 				</li>
 			<?php endif; ?>
 			<?php if ( ! empty( $item['latitude'] ) || ! empty( $item['region_name'] ) ) : ?>
 				<li>
-					<strong><?php echo esc_html_e( 'Coordinates', 'zero-spam' ); ?></strong>
-					<span>
+					<span class="zerospam-list__label"><?php echo esc_html_e( 'Coordinates', 'zero-spam' ); ?></span>
+					<span class="zerospam-list__value">
 						<?php if ( ! empty( $item['latitude'] ) ) : ?>
 							<?php echo esc_html( $item['latitude'] ); ?>&deg;,
 						<?php endif; ?>
@@ -188,12 +186,12 @@ endif;
 	<?php
 
 	if ( $submission_data ) :
-		echo '<ul class="zerospam-modal-list">';
+		echo '<ul class="zerospam-list zerospam-list--data">';
 		foreach ( $submission_data as $key => $value ) :
 			?>
 			<li>
-				<strong><?php echo esc_html( $key ); ?></strong>
-				<span>
+				<span class="zerospam-list__label"><?php echo esc_html( $key ); ?></span>
+				<span class="zerospam-list__value">
 					<?php
 					if ( is_array( $value ) ) :
 						// Sanatize the array.

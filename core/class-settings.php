@@ -33,8 +33,14 @@ class Settings {
 	 * Returns the plugin setting sections
 	 */
 	public static function get_sections() {
+		// DEPRECATED
 		self::$sections['general'] = array(
 			'title' => __( 'General Settings', 'zero-spam' ),
+		);
+
+		// v5.4
+		self::$sections['settings'] = array(
+			'title' => __( 'Settings', 'zero-spam' ),
 		);
 
 		return apply_filters( 'zerospam_setting_sections', self::$sections );
@@ -60,11 +66,11 @@ class Settings {
 	 * Updates blocked email domains with recommended settings.
 	 */
 	public static function update_blocked_email_domains() {
-		$settings                          = self::get_settings();
+		$modules  = self::get_settings_by_module();
 		$recommended_blocked_email_domains = \ZeroSpam\Core\Utilities::blocked_email_domains();
 
 		$new_settings = array();
-		foreach ( $settings as $key => $setting ) {
+		foreach ( $modules['settings'] as $key => $setting ) {
 			if ( 'blocked_email_domains' === $key ) {
 				$new_settings[ $key ] = implode( "\n", $recommended_blocked_email_domains );
 			} else {
@@ -73,7 +79,7 @@ class Settings {
 		}
 
 		if ( $new_settings ) {
-			update_option( 'wpzerospam', $new_settings );
+			update_option( 'zero-spam-settings', $new_settings );
 		}
 	}
 
@@ -82,19 +88,41 @@ class Settings {
 	 */
 	public static function auto_configure() {
 		$settings = self::get_settings();
+		$modules  = self::get_settings_by_module();
 
-		$recommended_settings = array();
+		foreach ( $modules as $module => $setting ) {
+			$recommended_settings = array();
+			foreach ( $setting as $key => $args ) {
+				$recommended_settings[ $key ] = isset( $args['value'] ) ? $args['value'] : false;
+				if ( isset( $args['recommended'] ) ) {
+					$recommended_settings[ $key ] = $args['recommended'];
+				}
+			}
+
+			update_option( "zero-spam-$module", $recommended_settings );
+		}
+
+		update_option( 'zerospam_configured', 1 );
+	}
+
+	/**
+	 * Returns settings by modules.
+	 */
+	public static function get_settings_by_module() {
+		$settings = self::get_settings();
+		$modules  = array();
+
 		foreach ( $settings as $key => $setting ) {
-			$recommended_settings[ $key ] = isset( $setting['value'] ) ? $setting['value'] : false;
-			if ( isset( $setting['recommended'] ) ) {
-				$recommended_settings[ $key ] = $setting['recommended'];
+			if ( ! array_key_exists( $setting['module'], $modules ) ) {
+				$modules[ $setting['module'] ] = array(
+					$key => $setting
+				);
+			} else {
+				$modules[ $setting['module'] ][ $key ] = $setting;
 			}
 		}
 
-		if ( $recommended_settings ) {
-			update_option( 'wpzerospam', $recommended_settings );
-			update_option( 'zerospam_configured', 1 );
-		}
+		return $modules;
 	}
 
 	/**
@@ -103,18 +131,27 @@ class Settings {
 	 * @param string $key Setting key to retrieve.
 	 */
 	public static function get_settings( $key = false ) {
-		$options = get_option( 'wpzerospam' );
+		$options = get_option( 'zero-spam-settings' );
 
 		self::$settings['use_recommended_settings'] = array(
 			'title'   => __( 'Use Recommended Settings', 'zero-spam' ),
 			'desc'    => sprintf(
 				wp_kses(
-					__( '<strong>WARNING:</strong> This will override all existing settings.', 'zero-spam' ),
+					/* translators: %s: url */
+					__( 'Get maximum protection fast with our one-click configuration setup. Please enter any <a href="%1$s" target="_blank" rel="noreferrer noopener">supported plugins</a> are installed & activated first.  <strong>Performing this action will override all existing settings.', 'zero-spam' ),
 					array(
+						'rel'    => array(),
 						'strong' => array(),
+						'a'      => array(
+							'href'   => array(),
+							'class'  => array(),
+							'target' => array()
+						),
 					)
-				)
+				),
+				"https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ#what-plugins-are-supported-by-zero-spam-for-wordpress"
 			),
+			'module'  => 'settings',
 			'section' => 'general',
 			'type'    => 'html',
 			'html'    => sprintf(
@@ -134,24 +171,27 @@ class Settings {
 
 		self::$settings['share_data'] = array(
 			'title'       => __( 'Usage Data Sharing', 'zero-spam' ),
+			'desc'    => sprintf(
+				wp_kses(
+					/* translators: %s: url */
+					__( 'Help us provide better protection & contribute to our <a href="%1$s" target="_blank" rel="noreferrer noopener">real-time global detection network</a> by opting into sharing non-sensitive data (<strong>we will never share or sell any personal identifiable information, <a href="%2$s" target="_blank" rel="noreferrer noopener">learn more</a></strong>).', 'zero-spam' ),
+					array(
+						'strong' => array(),
+						'a'      => array(
+							'target' => array(),
+							'href'   => array(),
+							'rel'    => array(),
+						),
+					)
+				),
+				esc_url( ZEROSPAM_URL . '?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=data_sharing' ),
+				esc_url( 'https://github.com/bmarshall511/wordpress-zero-spam/wiki/FAQ#what-data-is-shared-when-usage-data-sharing-is-enabled' )
+			),
+			'module'      => 'settings',
 			'section'     => 'general',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => sprintf(
-					wp_kses(
-						/* translators: %s: url */
-						__( 'Join <a href="%1$s" target="_blank" rel="noreferrer noopener">Zero Spam\'s global community</a> &amp; report detections by opting in to share non-sensitive data. <a href="%2$s" target="_blank" rel="noreferrer noopener">Learn more</a>.', 'zero-spam' ),
-						array(
-							'a' => array(
-								'target' => array(),
-								'href'   => array(),
-								'rel'    => array(),
-							),
-						)
-					),
-					esc_url( ZEROSPAM_URL . '?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=data_sharing' ),
-					esc_url( 'https://github.com/bmarshall511/wordpress-zero-spam/wiki/FAQ#what-data-is-shared-when-usage-data-sharing-is-enabled' )
-				),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['share_data'] ) ? $options['share_data'] : false,
 			'recommended' => 'enabled',
@@ -168,6 +208,7 @@ class Settings {
 		self::$settings['widget_visibility'] = array(
 			'title'       => __( 'Dashboard Widget Visibility', 'zero-spam' ),
 			'section'     => 'general',
+			'module'      => 'settings',
 			'type'        => 'select',
 			'desc'        => __( 'Select which user roles have access to the admin dashboard widget. You may control-click (Windows) or command-click (Mac) to select more than one.', 'zero-spam' ),
 			'options'     => $roles_array,
@@ -180,6 +221,7 @@ class Settings {
 			'title'       => __( 'IP Block Handler', 'zero-spam' ),
 			'desc'        => __( 'Determines how blocked IPs are handled when they attempt to access the site.', 'zero-spam' ),
 			'section'     => 'general',
+			'module'      => 'settings',
 			'type'        => 'radio',
 			'options'     => array(
 				'redirect' => __( 'Redirect user', 'zero-spam' ),
@@ -222,6 +264,7 @@ class Settings {
 				esc_url( 'https://www.highfivery.com/?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_htaccess&utm_campaign=zerospam_plugin' )
 			),
 			'section'     => 'general',
+			'module'      => 'settings',
 			'type'        => 'radio',
 			'options'     => array(
 				'htaccess_legacy' => __( '.htaccess (Apache servers < 2.4)', 'zero-spam' ),
@@ -238,6 +281,7 @@ class Settings {
 			'title'       => __( 'Blocked Message', 'zero-spam' ),
 			'desc'        => __( 'The message displayed to blocked users when \'Display a 403 Forbidden error\' is selected.', 'zero-spam' ),
 			'section'     => 'general',
+			'module'      => 'settings',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -249,6 +293,7 @@ class Settings {
 			'title'       => __( 'Blocked Users Redirect', 'zero-spam' ),
 			'desc'        => __( 'The URL blocked users are redirected to when \'Redirect user\' is selected.', 'zero-spam' ),
 			'section'     => 'general',
+			'module'      => 'settings',
 			'type'        => 'url',
 			'field_class' => 'regular-text',
 			'placeholder' => 'https://wordpress.org/plugins/zero-spam/',
@@ -259,10 +304,11 @@ class Settings {
 		self::$settings['log_blocked_ips'] = array(
 			'title'       => __( 'Log Blocked IPs', 'zero-spam' ),
 			'section'     => 'general',
+			'module'      => 'settings',
 			'type'        => 'checkbox',
-			'desc'        => __( 'Enables logging IPs that are blocked from accessing the site.', 'zero-spam' ),
+			'desc'        => __( 'When enabled, logs all IPs that are blocked from accessing the site. Not recommended for high-traffic websites.', 'zero-spam' ),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false
 			),
 			'value'       => ! empty( $options['log_blocked_ips'] ) ? $options['log_blocked_ips'] : false,
 			'recommended' => 'enabled',
@@ -272,6 +318,7 @@ class Settings {
 			'title'       => __( 'Maximum Log Entries', 'zero-spam' ),
 			'desc'        => __( 'The maximum number of log entries when logging is enabled. When the maximum is reached, the oldest entries will be deleted.', 'zero-spam' ),
 			'section'     => 'general',
+			'module'      => 'settings',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'placeholder' => 10000,
@@ -283,6 +330,7 @@ class Settings {
 			'title'       => __( 'IP Whitelist', 'zero-spam' ),
 			'desc'        => __( 'Enter IPs that should be whitelisted (IPs that should never be blocked), one per line.', 'zero-spam' ),
 			'section'     => 'general',
+			'module'      => 'settings',
 			'type'        => 'textarea',
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
@@ -293,6 +341,7 @@ class Settings {
 			'title'       => __( 'Blocked Email Domains', 'zero-spam' ),
 			'desc'        => __( 'Enter a list of email domains that should be blocked, one per line.', 'zero-spam' ),
 			'section'     => 'general',
+			'module'      => 'settings',
 			'type'        => 'textarea',
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
@@ -310,6 +359,7 @@ class Settings {
 				)
 			),
 			'section' => 'general',
+			'module'  => 'settings',
 			'type'    => 'html',
 			'html'    => sprintf(
 				wp_kses(
@@ -339,6 +389,7 @@ class Settings {
 				\ZeroSpam\Core\Utilities::get_honeypot()
 			),
 			'section' => 'general',
+			'module'  => 'settings',
 			'type'    => 'html',
 			'html'    => sprintf(
 				wp_kses(
@@ -359,6 +410,7 @@ class Settings {
 			'title'   => __( 'Override &amp; Update Core Disallowed Words', 'zero-spam' ),
 			'desc'    => __( 'Update WP core\'s disallowed words option with <a href="https://github.com/splorp/wordpress-comment-blacklist/" target="_blank" rel="noreferrer noopener">splorp\'s Comment Blacklist for WordPress</a>. <strong>WARNING:</strong> This will override any existing words.', 'zero-spam' ),
 			'section' => 'general',
+			'module'  => 'settings',
 			'type'    => 'html',
 			'html'    => sprintf(
 				wp_kses(
@@ -375,7 +427,7 @@ class Settings {
 			),
 		);
 
-		$settings = apply_filters( 'zerospam_settings', self::$settings, $options );
+		$settings = apply_filters( 'zerospam_settings', self::$settings );
 
 		if ( $key ) {
 			if ( ! empty( $settings[ $key ]['value'] ) ) {

@@ -1,6 +1,12 @@
 <?php
 /**
- * Zero Spam for WordPress WooCommerce Module
+ * WooCommerce integration module
+ *
+ * Malicious user detection techniques available:
+ *
+ * 1. Zero Spam honeypot field
+ * 2. Blocked email domains
+ * 3. David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -39,7 +45,9 @@ class WooCommerce {
 	 */
 	public function sections( $sections ) {
 		$sections['woocommerce'] = array(
-			'title' => __( 'WooCommerce Integration', 'zero-spam' ),
+			'title'    => __( 'WooCommerce', 'zero-spam' ),
+			'icon'     => 'modules/woocommerce/icon-woocommerce.svg',
+			'supports' => array( 'honeypot', 'email', 'davidwalsh' ),
 		);
 
 		return $sections;
@@ -49,15 +57,18 @@ class WooCommerce {
 	 * Register the Zero Spam admin settings for this module
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-woocommerce' );
+
 		$settings['verify_woocommerce_registrations'] = array(
 			'title'       => __( 'Protect Registrations', 'zero-spam' ),
+			'desc'        => __( 'Protects & monitors WooCommerce registrations.', 'zero-spam' ),
 			'section'     => 'woocommerce',
+			'module'      => 'woocommerce',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => __( 'Monitor WooCommerce registrations for malicious or automated spambots.', 'zero-spam' ),
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_woocommerce_registrations'] ) ? 'enabled' : false,
 			'recommended' => 'enabled',
@@ -66,9 +77,10 @@ class WooCommerce {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['woocommerce_registration_spam_message'] = array(
-			'title'       => __( 'Spam/Malicious Message', 'zero-spam' ),
-			'desc'        => __( 'When WooCommerce registration protection is enabled, the message displayed to the user when a registration has been detected as spam/malicious.', 'zero-spam' ),
+			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
 			'section'     => 'woocommerce',
+			'module'      => 'woocommerce',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
@@ -79,15 +91,16 @@ class WooCommerce {
 		$settings['log_blocked_woocommerce_registrations'] = array(
 			'title'       => __( 'Log Blocked Registrations', 'zero-spam' ),
 			'section'     => 'woocommerce',
+			'module'      => 'woocommerce',
 			'type'        => 'checkbox',
 			'desc'        => wp_kses(
-				__( 'Enables logging blocked WooCommerce registrations. <strong>Recommended for enhanced protection.</strong>', 'zero-spam' ),
+				__( 'When enabled, stores blocked WooCommerce registrations in the database.', 'zero-spam' ),
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => __( 'Enabled', 'zero-spam' ),
+				'enabled' => false,
 			),
-			'value'       => ! empty( $options['log_blocked_registrations'] ) ? 'enabled' : false,
+			'value'       => ! empty( $options['log_blocked_woocommerce_registrations'] ) ? 'enabled' : false,
 			'recommended' => 'enabled',
 		);
 
@@ -135,7 +148,9 @@ class WooCommerce {
 		// Only add scripts to the appropriate pages.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".woocommerce-form-register, .woocommerce-checkout").ZeroSpamDavidWalsh();' );
+			add_action( 'wp_footer', function() {
+				echo '<script type="text/javascript">jQuery(".woocommerce-form-register, .woocommerce-checkout").ZeroSpamDavidWalsh();</script>';
+			}, 999 );
 		}
 	}
 
@@ -170,6 +185,11 @@ class WooCommerce {
 		if ( isset( $data[ $honeypot_field_name ] ) && ! empty( $data[ $honeypot_field_name ] ) ) {
 			// Failed the honeypot check.
 			$validation_errors[] = 'honeypot';
+		}
+
+		// Check email.
+		if ( ! empty( $email ) && ! \ZeroSpam\Core\Utilities::is_email( $email ) ) {
+			$validation_errors[] = 'invalid_email';
 		}
 
 		// Check blocked email domains.

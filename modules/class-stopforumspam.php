@@ -26,7 +26,7 @@ class StopForumSpam {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'stop_forum_spam' ) &&
@@ -45,7 +45,8 @@ class StopForumSpam {
 	 */
 	public function sections( $sections ) {
 		$sections['stop_forum_spam'] = array(
-			'title' => __( 'Stop Forum Spam Integration', 'zero-spam' ),
+			'title' => __( 'Stop Forum Spam', 'zero-spam' ),
+			'icon'  => 'assets/img/icon-stop-forum-spam.png'
 		);
 
 		return $sections;
@@ -55,12 +56,14 @@ class StopForumSpam {
 	 * Admin settings
 	 *
 	 * @param array $settings Array of available settings.
-	 * @param array $options  Array of saved database options.
 	 */
-	public function settings( $settings, $options ) {
+	public function settings( $settings ) {
+		$options = get_option( 'zero-spam-stop_forum_spam' );
+
 		$settings['stop_forum_spam'] = array(
 			'title'       => __( 'Status', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
+			'module'      => 'stop_forum_spam',
 			'type'        => 'checkbox',
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
@@ -87,6 +90,7 @@ class StopForumSpam {
 		$settings['stop_forum_spam_timeout'] = array(
 			'title'       => __( 'API Timeout', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
+			'module'      => 'stop_forum_spam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'seconds', 'zero-spam' ),
@@ -100,6 +104,7 @@ class StopForumSpam {
 		$settings['stop_forum_spam_cache'] = array(
 			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
+			'module'      => 'stop_forum_spam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
@@ -113,6 +118,7 @@ class StopForumSpam {
 		$settings['stop_forum_spam_confidence_min'] = array(
 			'title'       => __( 'Confidence Minimum', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
+			'module'      => 'stop_forum_spam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( '%', 'zero-spam' ),
