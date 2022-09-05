@@ -123,7 +123,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 * fix(locations): fix for blocked locations not getting added/updated
 * fix(comments): fix for valid comment submissions being flagged
 * fix(admin): missing country flag in ip details modal
-* fix(woocommerce): fix for loggin woocommerce registrations fixed
+* fix(woocommerce): fix for login woocommerce registrations fixed
 * fix(david walsh): fix for flagged submissions when using the david walsh technique
 * perf(misc): misc performance improvements related to 3rd-party api queries
 
