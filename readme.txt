@@ -99,11 +99,11 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 == Screenshots ==
 
-1. Zero Spam for WordPress dashboard
-2. Settings Page
-3. Zero Spam for WordPress blocked IPs
-4. Zero Spam for WordPress blacklisted IPs
-5. Zero Spam for WordPress settings
+1. Dashboard
+2. Log
+3. Settings
+4. Add blocked IP address
+5. Add blocked location
 
 == Changelog ==
 
