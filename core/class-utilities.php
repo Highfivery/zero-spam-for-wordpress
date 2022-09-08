@@ -18,6 +18,17 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Returns a clean domain name
+	 *
+	 * @param string $domain Domain name.
+	 */
+	public static function clean_domain( $domain ) {
+		$domain_url = esc_url( $domain );
+
+		return str_ireplace( 'www.', '', wp_parse_url( $domain_url, PHP_URL_HOST ) );
+	}
+
+	/**
 	 * Returns the time since two dates.
 	 *
 	 * @param string $date1 First date.

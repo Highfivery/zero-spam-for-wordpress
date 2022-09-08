@@ -14,12 +14,6 @@ defined( 'ABSPATH' ) || die();
  * Zero Spam
  */
 class Zero_Spam {
-
-	/**
-	 * The zerospam.org API endpoint
-	 */
-	const API_ENDPOINT = ZEROSPAM_URL . 'wp-json/zero-spam-store/v1/';
-
 	/**
 	 * Constructor
 	 */
@@ -228,15 +222,18 @@ class Zero_Spam {
 	 * Global API data.
 	 */
 	public function global_api_data() {
-		$api_data                         = array();
-		$api_data['reporter_email']       = sanitize_email( get_bloginfo( 'admin_email' ) );
-		$api_data['domain']               = esc_url( site_url() );
-		$api_data['wp_version']           = sanitize_text_field( get_bloginfo( 'version' ) );
-		$api_data['wp_admin_email']       = sanitize_email( get_bloginfo( 'admin_email' ) );
-		$api_data['wp_zero_spam_version'] = sanitize_text_field( ZEROSPAM_VERSION );
-		$api_data['wp_language']          = sanitize_text_field( strtolower( get_bloginfo( 'language' ) ) );
-		$api_data['wp_site_name']         = sanitize_text_field( get_bloginfo( 'name' ) );
-		$api_data['wp_site_tagline']      = sanitize_text_field( get_bloginfo( 'description' ) );
+		$api_data                   = array();
+		$api_data['reporter_email'] = sanitize_email( get_bloginfo( 'admin_email' ) );
+		$api_data['app_key']        = \ZeroSpam\Core\Utilities::clean_domain( esc_url( site_url() ) );
+		$api_data['app_type']       = 'wordpress';
+		$api_data['app_details']    = array(
+			'app_version'      => sanitize_text_field( get_bloginfo( 'version' ) ),
+			'app_type_version' => sanitize_text_field( ZEROSPAM_VERSION ),
+			'app_language'     => sanitize_text_field( strtolower( get_bloginfo( 'language' ) ) ),
+			'app_email'        => sanitize_email( get_bloginfo( 'admin_email' ) ),
+			'app_name'         => sanitize_text_field( get_bloginfo( 'name' ) ),
+			'app_desc'         => sanitize_text_field( get_bloginfo( 'description' ) ),
+		);
 
 		return $api_data;
 	}
@@ -260,7 +257,7 @@ class Zero_Spam {
 			}
 		}
 
-		$endpoint = self::API_ENDPOINT . 'submit-report/';
+		$endpoint = ZEROSPAM_URL . 'wp-json/v5.4/report/';
 
 		$ip = \ZeroSpam\Core\User::get_ip();
 
@@ -275,16 +272,20 @@ class Zero_Spam {
 		}
 
 		$api_data = array(
-			'report_type' => 'ip_address',
-			'ip_address'  => sanitize_text_field( $ip ),
-			'compliant'   => sanitize_text_field( $compliant ),
+			'report_type'   => 'ip_address',
+			'report_module' => sanitize_text_field( $data['type'] ),
+			'report_key'    => sanitize_text_field( $ip ),
 		);
+
+		if ( ! empty( $data['failed'] ) ) {
+			$api_data['report_failed'] = sanitize_text_field( $data['failed'] );
+		}
 
 		// Add specially defined data to the API report.
 
 		// From comments.
-		if ( ! empty( $data['comment_author_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['comment_author_email'] ) ) {
-			$api_data['email_address'] = sanitize_email( $data['comment_author_email'] );
+		/*if ( ! empty( $data['comment_author_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['comment_author_email'] ) ) {
+			$api_data['report_email'] = sanitize_email( $data['comment_author_email'] );
 
 			if ( ! empty( $data['comment_author'] ) ) {
 				$api_data['email_name'] = sanitize_text_field( $data['comment_author'] );
@@ -318,7 +319,7 @@ class Zero_Spam {
 			if ( ! empty( $data['data']['give_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['data']['give_email'] ) ) {
 				$api_data['email_address'] = sanitize_email( $data['post']['give_email'] );
 			}
-		}
+		}*/
 
 		// Add data that should be included in every API report.
 		$global_data = self::global_api_data();

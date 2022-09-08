@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 6.0.2
 Requires PHP: 7.3
-Stable tag: 5.4.0
+Stable tag: 5.4.1
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -32,10 +32,8 @@ Protect against spam & malicious users using an advanced, highly-configurable fi
 = But wait, there's more! =
 
 * Protects comments, user registration &amp; login forms
-* Protects [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/) comment forms
 * Protects [GiveWP](https://givewp.com/ref/1118/) forms & helps prevent testing stolen credit cards
-* Protects [Contact Form 7](https://wordpress.org/plugins/contact-form-7/) form submissions
-* Protects [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/) & [Fluent Forms](https://wordpress.org/plugins/fluentform/) forms
+* Protects [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/), [Fluent Forms](https://wordpress.org/plugins/fluentform/) & [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/) forms
 * Protects [MemberPress](https://memberpress.com/) & [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations
 * Protects [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) sign-ups
 * and **can be integrated into any existing theme or plugin**
@@ -106,6 +104,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Add blocked location
 
 == Changelog ==
+
+= v5.4.1 =
+
+* perf(sharing): performance improvements when sharing data
 
 = v5.4.0 =
 
