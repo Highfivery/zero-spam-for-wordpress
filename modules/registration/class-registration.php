@@ -51,7 +51,10 @@ class Registration {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['registration'] = __( 'Registration', 'zero-spam' );
+		$types['registration'] = array(
+			'label' => __( 'Registration', 'zero-spam' ),
+			'color' => '#3858e9',
+		);
 
 		return $types;
 	}

@@ -39,17 +39,6 @@ class DavidWalsh {
 			add_action( 'login_enqueue_scripts', array( $this, 'scripts' ) );
 			add_action( 'zerospam_fluentforms_scripts', array( $this, 'enqueue_script' ) );
 			add_action( 'zerospam_mailchimp4wp_scripts', array( $this, 'enqueue_script' ) );
-			add_action( 'zerospam_memberpress_login_scripts', array( $this, 'enqueue_script' ) );
-			add_filter(
-				'zerospam_memberpress_registration_scripts',
-				function( $scripts ) {
-					$scripts[] = 'zerospam-davidwalsh';
-
-					return $scripts;
-				},
-				10,
-				1
-			);
 
 			add_filter( 'zerospam_preprocess_comment_submission', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_registration_submission', array( $this, 'validate_post' ), 10, 3 );
@@ -57,8 +46,6 @@ class DavidWalsh {
 			add_filter( 'zerospam_preprocess_wpforms_submission', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_fluentform_submission', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_login_attempt', array( $this, 'validate_post' ), 10, 3 );
-			add_filter( 'zerospam_preprocess_memberpress_registration', array( $this, 'validate_post' ), 10, 3 );
-			add_filter( 'zerospam_preprocess_memberpress_login', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_mailchimp4wp', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_process_woocommerce_registration', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_process_givewp_submission', array( $this, 'validate_post' ), 10, 3 );

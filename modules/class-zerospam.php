@@ -265,61 +265,12 @@ class Zero_Spam {
 			return false;
 		}
 
-		// Define the data to send to the report API.
-		$compliant = sanitize_text_field( $data['type'] );
-		if ( ! empty( $data['failed'] ) ) {
-			$compliant .= ' - ' . sanitize_text_field( $data['failed'] );
-		}
-
 		$api_data = array(
 			'report_type'   => 'ip_address',
 			'report_module' => sanitize_text_field( $data['type'] ),
 			'report_key'    => sanitize_text_field( $ip ),
+			'report_failed' => sanitize_text_field( $data['failed'] ),
 		);
-
-		if ( ! empty( $data['failed'] ) ) {
-			$api_data['report_failed'] = sanitize_text_field( $data['failed'] );
-		}
-
-		// Add specially defined data to the API report.
-
-		// From comments.
-		/*if ( ! empty( $data['comment_author_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['comment_author_email'] ) ) {
-			$api_data['report_email'] = sanitize_email( $data['comment_author_email'] );
-
-			if ( ! empty( $data['comment_author'] ) ) {
-				$api_data['email_name'] = sanitize_text_field( $data['comment_author'] );
-			}
-		}
-
-		// From registration.
-		if ( ! empty( $data['user_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['user_email'] ) ) {
-			$api_data['email_address'] = sanitize_email( $data['user_email'] );
-		}
-
-		// From WooCommerce registration.
-		if ( ! empty( $data['email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['email'] ) ) {
-			$api_data['email_address'] = sanitize_email( $data['email'] );
-		}
-
-		if ( ! empty( $data['post'] ) ) {
-			// From MemberPress.
-			if ( ! empty( $data['post']['user_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['post']['user_email'] ) ) {
-				$api_data['email_address'] = sanitize_email( $data['post']['user_email'] );
-			}
-
-			// From Mailchimp for WordPress.
-			if ( ! empty( $data['post']['EMAIL'] ) && \ZeroSpam\Core\Utilities::is_email( $data['post']['EMAIL'] ) ) {
-				$api_data['email_address'] = sanitize_email( $data['post']['EMAIL'] );
-			}
-		}
-
-		if ( ! empty( $data['data'] ) ) {
-			// From GiveWP.
-			if ( ! empty( $data['data']['give_email'] ) && \ZeroSpam\Core\Utilities::is_email( $data['data']['give_email'] ) ) {
-				$api_data['email_address'] = sanitize_email( $data['post']['give_email'] );
-			}
-		}*/
 
 		// Add data that should be included in every API report.
 		$global_data = self::global_api_data();
@@ -330,10 +281,89 @@ class Zero_Spam {
 			'body' => array( 'data' => $api_data ),
 		);
 
+		// Send IP report
 		$response = wp_remote_post( $endpoint, $args );
-
 		if ( is_wp_error( $response ) ) {
 			//echo $response->get_error_message();
+		}
+
+		// Send email report if needed.
+		$valid_email_fields = array(
+			'comment_author_email', // Comments
+			'user_email', // Registration
+			'email', // WooCommerce Registration
+			'post' => array( // Mailchimp
+				'EMAIL'
+			),
+			'data' => array( // Give
+				'give_email'
+			)
+		);
+
+		$valid_name_fields = array(
+			'comment_author', // Comment
+			'user_login', // Register
+			'username', // WooCommerce Registration
+			'data' => array( // Give
+				'give_first',
+				'give_last',
+			)
+		);
+
+		$report_details = array(
+			'report_type'   => 'email_address',
+			'report_module' => sanitize_text_field( $data['type'] ),
+			'report_failed' => sanitize_text_field( $data['failed'] ),
+			'email_details' => array(
+				'names'     => array(),
+				'companies' => array(),
+				'titles'    => array(),
+				'phones'    => array(),
+				'locations' => array(),
+			)
+		);
+		foreach ( $valid_email_fields as $key => $field ) {
+			if ( is_array( $field ) ) {
+				foreach( $field as $k => $f ) {
+					if ( ! empty( $data[ $key ][ $f ] ) && \ZeroSpam\Core\Utilities::is_email( $data[ $key ][ $f ] ) ) {
+						$report_details['report_key'] = sanitize_email( $data[ $key ][ $f ] );
+						break;
+					}
+				}
+			} elseif ( ! empty( $data[ $field ] ) && \ZeroSpam\Core\Utilities::is_email( $data[ $field ] ) ) {
+				$report_details['report_key'] = sanitize_email( $data[ $field ] );
+			}
+
+			if ( ! empty( $report_details['report_key'] ) ) {
+				foreach ( $valid_name_fields as $k => $f ) {
+					if ( is_array( $f ) ) {
+						$name = '';
+						foreach( $f as $k1 => $f1 ) {
+							if ( ! empty( $data[ $k ][ $f1 ] ) ) {
+								if ( $name ) { $name .= " "; }
+								$name .= $data[ $k ][ $f1 ];
+							}
+						}
+
+						$report_details['email_details']['names'][] = sanitize_text_field( $name );
+					} elseif ( ! empty( $data[ $f ] ) ) {
+						$report_details['email_details']['names'][] = sanitize_text_field( $data[ $f ] );
+					}
+				}
+
+				$args = array(
+					'body' => array(
+						'data' => array_merge( $report_details, $global_data )
+					)
+				);
+
+				$response = wp_remote_post( $endpoint, $args );
+				print_r($response);
+				die();
+
+				// Only send one email report per detection
+				break;
+			}
 		}
 
 		update_site_option( 'zero_spam_last_api_request', current_time( 'mysql' ) );

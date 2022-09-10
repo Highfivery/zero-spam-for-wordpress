@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin line chart
+ * Admin bar chart
  *
  * @package ZeroSpam
  */
@@ -47,39 +47,16 @@ $datasets['detections'] = array(
 	'fill'            => false,
 );
 
-// Create the log types
-$all_types = apply_filters( 'zerospam_types', array() );
-$types = array();
-foreach ( $entries as $key => $entry ) {
-	if ( ! in_array( $entry['log_type'], $types ) ) {
-		$types[] = $entry['log_type'];
-	}
-}
-
-foreach ( $types as $type ) {
-	$datasets[ $type ] = array(
-		'label'           => ! empty( $all_types[ $type ]['label'] ) ? $all_types[ $type ]['label'] : $type,
-		'data'            => array(),
-		'borderColor'     => ! empty( $all_types[ $type ]['color'] ) ? $all_types[ $type ]['color'] : '#3F0008',
-		'backgroundColor' => ! empty( $all_types[ $type ]['color'] ) ? $all_types[ $type ]['color'] : '#3F0008',
-		'fill'            => false,
-	);
-}
-
-for ( $x = 0; $x < 14; $x++ ) {
-	$time     = strtotime('-' . $x . ' days');
-	$date_key = gmdate( 'M. d', $time );
+for ( $x = 0; $x < 24; $x++ ) {
+	$time     = strtotime('-' . $x . ' hour');
+	$date_key = gmdate( 'ga', $time );
 
 	$labels[] = $date_key;
 
 	$datasets['detections']['data'][ $date_key ] = 0;
 
-	foreach ( $types as $type ) {
-		$datasets[ $type ]['data'][ $date_key ] = 0;
-	}
-
 	foreach ( $entries as $key => $entry ) {
-		$entry_date_key = gmdate( 'M. d', strtotime( $entry['date_recorded'] ) );
+		$entry_date_key = gmdate( 'ga', strtotime( $entry['date_recorded'] ) );
 
 		if ( $date_key === $entry_date_key ) {
 			// Detections
@@ -88,36 +65,21 @@ for ( $x = 0; $x < 14; $x++ ) {
 			} else {
 				$datasets['detections']['data'][ $date_key ]++;
 			}
-
-			// Types
-			foreach ( $types as $type ) {
-				if ( $type === $entry['log_type'] ) {
-					if ( ! $datasets[ $type ]['data'][ $date_key ] ) {
-						$datasets[ $type ]['data'][ $date_key ] = 1;
-					} else {
-						$datasets[ $type ]['data'][ $date_key ]++;
-					}
-				}
-			}
 		}
 	}
 }
 
 $labels = array_reverse( $labels );
 ksort( $datasets['detections']['data'] );
-
-foreach ( $types as $type ) {
-	ksort( $datasets[ $type ]['data'] );
-}
 ?>
 
-<canvas id="zerospam-line-chart"></canvas>
+<canvas id="zerospam-bar-chart"></canvas>
 <script>
 (function($) {
 	$(function() {
-		var lineChart = document.getElementById('zerospam-line-chart');
+		var lineChart = document.getElementById('zerospam-bar-chart');
 		var lineChartAnalytics= new Chart(lineChart, {
-			type: 'line',
+			type: 'bar',
 			data: {
 				labels: <?php echo wp_json_encode( $labels ); ?>,
 				datasets:[
@@ -129,12 +91,7 @@ foreach ( $types as $type ) {
 			options: {
 				plugins: {
 					legend: {
-						position: 'bottom',
-						labels: {
-							boxWidth: 10,
-							boxHeight: 10,
-							padding: 15,
-						}
+						display: false
 					}
 				}
 			}

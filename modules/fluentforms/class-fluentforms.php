@@ -196,7 +196,10 @@ class FluentForms {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['fluent_form'] = __( 'Fluent Form', 'zero-spam' );
+		$types['fluent_form'] = array(
+			'label' => __( 'Fluent Form', 'zero-spam' ),
+			'color' => '#0171ff',
+		);
 
 		return $types;
 	}

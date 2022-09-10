@@ -20,12 +20,11 @@ if ( empty( $entries ) ) {
 
 $regions_data = array();
 $coords       = array();
+$coords_data  = array();
 $locations    = array();
 
 foreach ( $entries as $key => $entry ) {
 	if ( ! empty( $entry['latitude'] ) && ! empty( $entry['longitude'] ) ) {
-		$coords[] = array( $entry['latitude'], $entry['longitude'] );
-
 		$name = '';
 		if ( ! empty( $entry['city'] ) ) {
 			$name .= $entry['city'];
@@ -45,7 +44,27 @@ foreach ( $entries as $key => $entry ) {
 			$name .= $entry['country'];
 		}
 
-		$locations[] = $name;
+		if ( ! $name ) {
+			$name = __( 'Unknown', 'zero-spam' );
+		}
+
+		$coord_key = $entry['latitude'] . $entry['longitude'];
+		if ( empty( $coords[ $coord_key ] ) ) {
+			$coords_data[ $coord_key ] = 1;
+			$coords[ $coord_key ] = array(
+				'latLng' => array(
+					$entry['latitude'],
+					$entry['longitude']
+				)
+			);
+			$locations[ $coord_key ] = array(
+				'name'  => $name,
+				'count' => 0,
+			);
+		} else {
+			$coords_data[ $coord_key ]++;
+			$locations[ $coord_key ]['count']++;
+		}
 	}
 
 	if ( ! empty( $entry['country'] ) ) {
@@ -58,19 +77,10 @@ foreach ( $entries as $key => $entry ) {
 	}
 }
 
-if ( empty( $locations ) ) :
-	echo sprintf(
-		wp_kses(
-			/* translators: %s: url */
-			__( 'Current detections have no geolocation information available. Enable ipstack and/or IPinfo on the <a href="%1$s">settings page</a>.', 'zero-spam' ),
-			array(
-				'a' => array( 'href' => array() ),
-			)
-		),
-		esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-	);
-	return;
-endif;
+$locations_data = array();
+foreach ( $locations as $key => $loc ) {
+	$locations_data[ $key ] = $loc['name'] . ': ' . $loc['count'];
+}
 
 wp_enqueue_script(
 	'zerospam-jvectormap',
@@ -82,7 +92,7 @@ wp_enqueue_script(
 
 wp_enqueue_script(
 	'zerospam-jvectormap-world',
-	plugins_url( 'assets/js/jquery-jvectormap-world-mill.js', ZEROSPAM ),
+	plugins_url( 'assets/js/jquery-jvectormap-world-merc.js', ZEROSPAM ),
 	array( 'zerospam-jvectormap' ),
 	'2.0.5',
 	false
@@ -101,45 +111,54 @@ wp_enqueue_style(
 (function($) {
 	var regionsData = <?php echo wp_json_encode( $regions_data ); ?>;
 	var coords      = <?php echo wp_json_encode( $coords ); ?>;
-	var names       = <?php echo wp_json_encode( $locations ); ?>;
+	var names       = <?php echo wp_json_encode( $locations_data ); ?>;
 
 	$(function() {
 		$('#world-map').vectorMap({
-			map: 'world_mill',
+			map: 'world_merc',
 			backgroundColor: 'transparent',
 			markers: coords,
 			markerStyle: {
 				initial: {
-					fill: '#BE0000',
-					stroke: '#000000',
+					fill: '#be0000',
+					stroke: '#fff',
 					"fill-opacity": 1,
-					"stroke-width": 1,
-					"stroke-opacity": 0.5,
-					r: 3
+					"stroke-width": 2,
+					"stroke-opacity": 1,
+					r: 2
 				},
 			},
 			regionStyle: {
 				initial: {
-					fill: '#f1f1f1',
+					fill: '#e7e7e7',
 					"fill-opacity": 1,
-					stroke: '#ccd0d4',
+					stroke: '#fff',
 					"stroke-width": 1,
-					"stroke-opacity": 0.5
+					"stroke-opacity": 1
 				},
 			},
 			series: {
+				markers: [{
+					attribute: 'r',
+					scale: [5, 15],
+					values: <?php echo wp_json_encode( $coords_data ); ?>
+				}],
 				regions: [{
 					values: regionsData,
-					scale: ['#FFA17C','#63000D'],
+					scale: ['#ffe2e2','#ff2929'],
 					normalizeFunction: 'polynomial'
 				}]
 			},
-			onMarkerTipShow: function(event, label, index){
-				label.html( names[index] );
+			onRegionTipShow: function(e, el, code) {
+				if ( regionsData[code] ) {
+					el.html( el.html() + ': ' + regionsData[code] );
+				} else {
+					el.html( el.html() );
+				}
 			},
-			onRegionTipShow: function(e, el, code){
-				el.html( el.html() + ' (<?php _e( 'Detections', 'zero-spam' ); ?>: ' + regionsData[code] + ')' );
-			}
+			onMarkerTipShow: function(e, tip, code) {
+				tip.html( names[code] );
+			},
 		});
 	});
 })(jQuery);

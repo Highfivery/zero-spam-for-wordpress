@@ -155,7 +155,10 @@ class WPForms {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['wpforms'] = __( 'WPForms', 'zero-spam' );
+		$types['wpforms'] = array(
+			'label' => __( 'WPForms', 'zero-spam' ),
+			'color' => '#e27730',
+		);
 
 		return $types;
 	}

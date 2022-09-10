@@ -139,7 +139,10 @@ class ContactForm7 {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['contactform7'] = __( 'Contact Form 7', 'zero-spam' );
+		$types['contactform7'] = array(
+			'label' => __( 'Contact Form 7', 'zero-spam' ),
+			'color' => '#1c457e',
+		);
 
 		return $types;
 	}

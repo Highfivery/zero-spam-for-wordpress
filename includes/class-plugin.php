@@ -150,11 +150,6 @@ class Plugin {
 			new \ZeroSpam\Modules\FluentForms\FluentForms();
 		}
 
-		// MemberPress plugin module.
-		if ( is_plugin_active( 'memberpress/memberpress.php' ) ) {
-			new \ZeroSpam\Modules\MemberPress\MemberPress();
-		}
-
 		// Mailchimp for WordPress plugin module.
 		if ( is_plugin_active( 'mailchimp-for-wp/mailchimp-for-wp.php' ) ) {
 			new \ZeroSpam\Modules\MailchimpForWP\MailchimpForWP();
@@ -180,7 +175,9 @@ class Plugin {
 	 * @param array $types Types of detections.
 	 */
 	public function types( $types ) {
-		$types['blocked'] = __( 'Blocked', 'zero-spam' );
+		$types['blocked'] = array(
+			'label' => __( 'Blocked', 'zero-spam' ),
+		);
 
 		return $types;
 	}

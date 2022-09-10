@@ -48,7 +48,10 @@ class Formidable {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['formidable'] = __( 'Formidable', 'zero-spam' );
+		$types['formidable'] = array(
+			'label' => __( 'Formidable', 'zero-spam' ),
+			'color' => '#f04d21',
+		);
 
 		return $types;
 	}

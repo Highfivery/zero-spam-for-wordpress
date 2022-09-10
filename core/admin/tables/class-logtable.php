@@ -46,7 +46,7 @@ class LogTable extends WP_List_Table {
 
 				$types = apply_filters( 'zerospam_types', array() );
 				if ( ! empty( $types[ $value ] ) ) {
-					$type .= $types[ $value ];
+					$type .= $types[ $value ]['label'];
 				} else {
 					$type .= $value;
 				}
@@ -301,7 +301,7 @@ class LogTable extends WP_List_Table {
 			<select name="type" id="filter-by-type">
 				<option value=""><?php _e( 'All types', 'zero-spam' ); ?></option>
 				<?php foreach ( $options as $key => $value ) : ?>
-					<option<?php if ( $current_type === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $value ); ?></option>
+					<option<?php if ( $current_type === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $value['label'] ); ?></option>
 				<?php endforeach; ?>
 			</select>
 

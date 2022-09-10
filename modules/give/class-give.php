@@ -164,7 +164,10 @@ class Give {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['givewp'] = __( 'GiveWP', 'zero-spam' );
+		$types['givewp'] = array(
+			'label' => __( 'GiveWP', 'zero-spam' ),
+			'color' => '#66b25b',
+		);
 
 		return $types;
 	}

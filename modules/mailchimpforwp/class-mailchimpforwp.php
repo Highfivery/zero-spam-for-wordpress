@@ -160,7 +160,10 @@ class MailchimpForWP {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['mailchimp4wp'] = __( 'Mailchimp for WordPress', 'zero-spam' );
+		$types['mailchimp4wp'] = array(
+			'label' => __( 'Mailchimp for WordPress', 'zero-spam' ),
+			'color' => '#c44',
+		);
 
 		return $types;
 	}

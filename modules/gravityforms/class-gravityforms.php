@@ -146,7 +146,10 @@ class GravityForms {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['gravityforms'] = __( 'Gravity Forms', 'zero-spam' );
+		$types['gravityforms'] = array(
+			'label' => __( 'Gravity Forms', 'zero-spam' ),
+			'color' => '#f15a29',
+		);
 
 		return $types;
 	}

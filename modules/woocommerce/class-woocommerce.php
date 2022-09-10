@@ -33,7 +33,10 @@ class WooCommerce {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['woocommerce_registration'] = __( 'WooCommerce Registration', 'zero-spam' );
+		$types['woocommerce_registration'] = array(
+			'label' => __( 'Woo Registration', 'zero-spam' ),
+			'color' => '#7f54b3',
+		);
 
 		return $types;
 	}

@@ -34,7 +34,7 @@ Protect against spam & malicious users using an advanced, highly-configurable fi
 * Protects comments, user registration &amp; login forms
 * Protects [GiveWP](https://givewp.com/ref/1118/) forms & helps prevent testing stolen credit cards
 * Protects [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/), [Fluent Forms](https://wordpress.org/plugins/fluentform/) & [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/) forms
-* Protects [MemberPress](https://memberpress.com/) & [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations
+* Protects [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations
 * Protects [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) sign-ups
 * and **can be integrated into any existing theme or plugin**
 
@@ -108,6 +108,8 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = v5.4.1 =
 
 * perf(sharing): performance improvements when sharing data
+* fix(memberpress): removed memberpress support, they made fundamental changes to their plugin that's ganna require a rework
+* chore(charts): updated chart.js tp 3.9.1
 
 = v5.4.0 =
 

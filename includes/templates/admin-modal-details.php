@@ -65,7 +65,7 @@ endif;
 				$detection_types = apply_filters( 'zerospam_types', array() );
 				if ( ! empty( $detection_types[ $item['log_type'] ] ) ) :
 					echo wp_kses(
-						$detection_types[ $item['log_type'] ] . ' &mdash; <code>' . $item['log_type'] . '</code>',
+						$detection_types[ $item['log_type'] ]['label'] . ' &mdash; <code>' . $item['log_type'] . '</code>',
 						array( 'code' => array() )
 					);
 				else :

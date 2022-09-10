@@ -151,7 +151,10 @@ class Login {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['login'] = __( 'Login Attempt', 'zero-spam' );
+		$types['login'] = array(
+			'label' => __( 'Login', 'zero-spam' ),
+			'color' => '#7b90ff',
+		);
 
 		return $types;
 	}

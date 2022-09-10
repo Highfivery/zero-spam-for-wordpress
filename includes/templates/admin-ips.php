@@ -18,58 +18,68 @@ if ( empty( $entries ) ) {
 	return;
 }
 
-$ips = array();
-foreach ( $entries as $key => $entry ) {
-	if ( empty( $ips[ $entry['user_ip'] ] ) ) {
-		$ips[ $entry['user_ip'] ] = array(
-			'count'   => 1,
-			'country' => ! empty( $entry['country'] ) ? $entry['country'] : false,
-		);
-	} else {
-		$ips[ $entry['user_ip'] ]['count']++;
+$data = array();
+for ( $x = 0; $x < 30; $x++ ) {
+	$time     = strtotime('-' . $x . ' days');
+	$date_key = gmdate( 'M. j', $time );
+
+	foreach ( $entries as $key => $entry ) {
+		$entry_date_key = gmdate( 'M. j', strtotime( $entry['date_recorded'] ) );
+
+		if ( $date_key === $entry_date_key ) {
+			if ( empty( $data[ $entry['user_ip'] ] ) ) {
+				$data[ $entry['user_ip'] ] = array(
+					'count' => 1,
+				);
+			} else {
+				$data[ $entry['user_ip'] ]['count']++;
+			}
+
+			if ( ! empty( $entry['country'] ) ) {
+				$data[ $entry['user_ip'] ]['country'] = $entry['country'];
+			}
+		}
 	}
 }
 
-if ( $ips ) {
-	arsort( $ips );
-}
+uasort($data, function($a, $b){
+	return $b['count'] <=> $a['count'];
+});
+
+array_splice( $data, 12 );
 ?>
-<ul class="zerospam-list zerospam-list--data-actions">
+<ul class="zerospam-list zerospam-list--top">
 	<?php
 	$limit = 12;
 	$cnt   = 0;
-	foreach ( $ips as $ip => $data ) :
+	foreach ( $data as $ip => $info ) :
 		$cnt++;
 		if ( $cnt > $limit ) {
 			break;
 		}
+
+		$blocked = ZeroSpam\Includes\DB::blocked( $ip );
 		?>
-		<li>
-			<span class="zerospam-list__value">
-				<?php if ( ! empty( $data['country'] ) ) : ?>
+		<li class="zerospam-list__item<?php if ( $blocked ) : ?> zerospam-list__item--blocked<?php endif; ?>">
+			<span class="zerospam-list__value zerospam-list__value--label">
+			<?php if ( $blocked ) : ?><span class="zerospam-tag"><?php _e( 'Blocked', 'zero-spam' ); ?></span><?php endif; ?>
+				<?php if ( ! empty( $info['country'] ) ) : ?>
 					<img
-						src="<?php echo esc_url( ZeroSpam\Core\Utilities::country_flag_url( $data['country'] ) ); ?>"
-						alt="<?php echo esc_attr( $data['country'] ); ?>"
+						src="<?php echo esc_url( ZeroSpam\Core\Utilities::country_flag_url( $info['country'] ) ); ?>"
+						alt="<?php echo esc_attr( $info['country'] ); ?>"
 						class="zerospam-flag"
 						width="14"
 						height="14"
+						title="<?php echo esc_attr( \ZeroSpam\Core\Utilities::countries( $info['country'] ) ); ?>"
 					/>
 				<?php endif; ?>
 				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>ip-lookup/<?php echo urlencode( $ip ); ?>" target="_blank" rel="noopener noreferrer">
 					<?php echo esc_html( $ip ); ?>
 				</a>
 			</span>
-			<span class="zerospam-list__value">
-				<?php if ( ! empty( $data['country'] ) ) : ?>
-					<?php echo ZeroSpam\Core\Utilities::countries( $data['country'] ); ?>
-				<?php else: ?>
-					<?php esc_html_e( 'Unknown', 'zero-spam' ); ?>
-				<?php endif; ?>
-				</span>
-			<span class="zerospam-list__value"><?php echo number_format( $data['count'], 0 ); ?></span>
-			<span class="zerospam-list__value">
+			<span class="zerospam-list__value zerospam-list__value--count"><?php echo number_format( $info['count'], 0 ); ?></span>
+			<span class="zerospam-list__value zerospam-list__value--actions">
 				<?php
-				$blocked = ZeroSpam\Includes\DB::blocked( $ip );
 				if ( $blocked ) :
 					?>
 					<button
@@ -81,12 +91,12 @@ if ( $ips ) {
 						data-type="<?php echo esc_attr( $blocked['blocked_type'] ); ?>"
 						aria-label="<?php esc_html_e( 'Update Block', 'zero-spam' ); ?>"
 					>
-						<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-edit.svg" width="13" />
+						<?php _e( 'Edit Block', 'zero-spam' ); ?>
 					</button>
 					<?php
 				else :
 					?>
-					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $ip ); ?>" aria-label="<?php esc_html_e( 'Block IP', 'zero-spam' ); ?>"><img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-blocked.svg" width="13" /></button>
+					<button class="button zerospam-block-trigger" data-ip="<?php echo esc_attr( $ip ); ?>"><?php _e( 'Block', 'zero-spam' ); ?></button>
 					<?php
 				endif;
 				?>

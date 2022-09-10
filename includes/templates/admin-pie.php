@@ -33,35 +33,40 @@ $predefined_colors = array(
 	'#ffe5e9',
 );
 
-$countries = array();
-foreach ( $entries as $key => $entry ) :
+$data   = array();
+$labels = array();
+for ( $x = 0; $x < 14; $x++ ) {
+	$time     = strtotime('-' . $x . ' days');
+	$date_key = gmdate( 'M. j', $time );
 
-	if ( empty( $entry['country'] ) ) :
-		continue;
-	endif;
+	foreach ( $entries as $key => $entry ) {
+		$entry_date_key = gmdate( 'M. j', strtotime( $entry['date_recorded'] ) );
 
-	$k = ZeroSpam\Core\Utilities::countries( $entry['country'] );
+		if ( $date_key === $entry_date_key ) {
+			if ( ! empty( $entry['country_name'] ) ) {
+				if ( ! in_array( $entry['country_name'], $labels ) ) {
+					$labels[] = $entry['country_name'];
+				}
 
-	if ( empty( $countries[ $k ] ) ) :
-		$countries[ $k ] = 1;
-	else :
-		$countries[ $k ]++;
-	endif;
-endforeach;
+				if ( empty( $data[ $entry['country_name'] ] ) ) {
+					$data[ $entry['country_name'] ] = 1;
+				} else {
+					$data[ $entry['country_name'] ]++;
+				}
+			} else {
+				if ( ! in_array( __( 'Unknown', 'zero-spam' ), $labels ) ) {
+					$labels[] = __( 'Unknown', 'zero-spam' );
+				}
 
-if ( empty( $countries ) ) :
-	echo sprintf(
-		wp_kses(
-			/* translators: %s: url */
-			__( 'No geolocation information available, enable ipstack and/or IPinfo on the <a href="%1$s">settings page</a>.', 'zero-spam' ),
-			array(
-				'a' => array( 'href' => array() ),
-			)
-		),
-		esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-	);
-	return;
-endif;
+				if ( empty( $data['unknown'] ) ) {
+					$data['unknown'] = 1;
+				} else {
+					$data['unknown']++;
+				}
+			}
+		}
+	}
+}
 
 wp_enqueue_script(
 	'zerospam-chart',
@@ -77,25 +82,6 @@ wp_enqueue_style(
 	array(),
 	'2.9.4'
 );
-
-if ( $countries ) :
-	arsort( $countries );
-endif;
-
-$labels = array();
-$data   = array();
-$colors = array();
-$count  = 0;
-foreach ( $countries as $key => $value ) :
-	if ( $count >= $limit ) :
-		break;
-	endif;
-
-	$labels[] = $key;
-	$data[]   = $value;
-	$colors[] = $predefined_colors[ $count ];
-	$count++;
-endforeach;
 ?>
 
 <canvas id="zerospam-pie-countries"></canvas>
@@ -108,16 +94,19 @@ endforeach;
 			data: {
 				labels: <?php echo wp_json_encode( $labels ); ?>,
 				datasets: [{
-					data: <?php echo wp_json_encode( $data ); ?>,
-					backgroundColor: <?php echo wp_json_encode( $colors ); ?>,
-					borderWidth: 0,
-					borderColor: '#f1f1f1'
+					data: <?php echo wp_json_encode( array_values( $data ) ); ?>,
+					backgroundColor: <?php echo wp_json_encode( $predefined_colors ); ?>,
 				}],
 			},
 			options: {
-				legend: {
-					position: 'right',
-					fullWidth: false
+				plugins: {
+					legend: {
+						position: 'right',
+						labels: {
+							boxWidth: 15,
+							boxHeight: 15,
+						}
+					}
 				}
 			}
 		});

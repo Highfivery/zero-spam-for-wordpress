@@ -141,12 +141,16 @@ $breakpoints: (
   @include breakpoint(medium) {
     column-gap: 3rem;
     display: grid;
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 300px minmax(0, 1fr);
     grid-template-rows: auto;
   }
 
   a {
     color: var(--zerospam-accent);
+  }
+
+  &__sections {
+    margin-bottom: 40px;
   }
 }
 
@@ -318,13 +322,47 @@ a.zerospam-dashboard__menu-link {
 
   &--map {
     @include breakpoint(medium) {
-      width: calc(60% - var(--zerospam-block-gap));
+      width: calc(65% - var(--zerospam-block-gap));
     }
   }
 
   &--list {
     @include breakpoint(medium) {
-      width: calc(40% - var(--zerospam-block-gap));
+      width: calc(35% - var(--zerospam-block-gap));
+    }
+  }
+
+  &--line-chart {
+    @include breakpoint(medium) {
+      width: calc(65% - var(--zerospam-block-gap));
+    }
+  }
+
+  &--pie-chart {
+    @include breakpoint(medium) {
+      width: calc(35% - var(--zerospam-block-gap));
+    }
+  }
+
+  &--review {
+    .zerospam-block__content {
+      @include breakpoint(medium) {
+        column-gap: 40px;
+        display: flex;
+      }
+    }
+
+    .zerospam-block__content-col {
+      &:first-child {
+        flex-grow: 1;
+      }
+
+      &:last-child {
+        @include breakpoint(medium) {
+          flex-shrink: 0;
+          width: 32%;
+        }
+      }
     }
   }
 }
@@ -339,25 +377,6 @@ a.zerospam-dashboard__menu-link {
 
   .zerospam-block {
     margin: calc(var(--zerospam-block-gap) / 2);
-
-    &--facebook,
-    &--twitter {
-      background-color: transparent;
-      border: 0;
-      box-shadow: none;
-    }
-
-    &--facebook {
-      @include breakpoint(medium) {
-        width: 340px;
-      }
-    }
-
-    &--twitter {
-      @include breakpoint(medium) {
-        width: calc(100% - (var(--zerospam-block-gap) * 2) - 340px);
-      }
-    }
   }
 }
 
@@ -668,8 +687,6 @@ a.zerospam-dashboard__menu-link {
   &wpforms,
   &contactform7,
   &givewp,
-  &memberpress_registration,
-  &memberpress_login,
   &mailchimp4wp,
   &woocommerce_registration,
   &gravityforms,
@@ -727,13 +744,6 @@ a.zerospam-dashboard__menu-link {
     }
   }
 
-  &memberpress_registration,
-  &memberpress_login {
-    &::before {
-      background-image: url("../img/icon-memberpress.svg");
-    }
-  }
-
   &givewp {
     &::before {
       background-image: url("../../modules/give/icon-givewp.png");
@@ -759,10 +769,103 @@ a.zerospam-dashboard__menu-link {
   }
 }
 
+@for $i from 1 through 10 {
+  @keyframes row#{$i} {
+    0% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: #{(($i * 5) + 45%)} 0%;
+    }
+    100% {
+      background-position: 0% 0%;
+    }
+  }
+}
+
+.zerospam-tag {
+  background-color: var(--zerospam-accent);
+  border-radius: 2px;
+  color: #fff;
+  display: inline-block;
+  padding: 3px;
+  font-size: 10px;
+  line-height: 1;
+  margin: 3px;
+  vertical-align: middle;
+}
+
+.zerospam-list__item--blocked {
+  background: rgba(255, 41, 41, 0.25) !important;
+}
+
 .zerospam-list {
   list-style: none;
   margin: 0;
   padding: 0;
+
+  &--top {
+    font-size: 12px;
+    line-height: 1;
+
+    li {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      align-items: center;
+      display: flex;
+      margin: 0;
+      padding: 6px;
+
+      @for $i from 1 through 10 {
+        &:nth-child(#{$i}) {
+          animation: row#{$i} 5s ease infinite;
+          animation-delay: #{$i * 0.1}s;
+          background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 1) 0%,
+            #fff #{(($i * 5) + 30%)},
+            rgba(255, 41, 41, calc(0.6 / #{$i})) 100%
+          );
+          background-size: 200%;
+        }
+      }
+    }
+
+    .button {
+      @extend %button-small;
+    }
+
+    .zerospam-list__value {
+      &--label {
+        flex-grow: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      &--count {
+        font-size: 0.95em;
+        font-weight: bold;
+        margin: 0 20px;
+        text-align: right;
+        width: 35px;
+      }
+
+      &--actions,
+      &--count {
+        flex-grow: 0;
+        flex-shrink: 0;
+      }
+
+      &--actions {
+        text-align: right;
+        width: 85px;
+      }
+
+      img {
+        vertical-align: sub;
+      }
+    }
+  }
 
   &--data-actions,
   &--data {

@@ -54,7 +54,10 @@ class Comments {
 	 * @param array $types Array of available detection types.
 	 */
 	public function types( $types ) {
-		$types['comment'] = __( 'Comment', 'zero-spam' );
+		$types['comment'] = array(
+			'label' => __( 'Comment', 'zero-spam' ),
+			'color' => '#0073aa',
+		);
 
 		return $types;
 	}
