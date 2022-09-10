@@ -183,9 +183,9 @@ class Dashboard {
 						</li>
 					</ul>
 
-					<iframe src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fzerospamorg&tabs=timeline&width=300&height=500&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true&appId=2704301689814493" width="300" height="500" style="border:none;overflow:hidden;margin-bottom:40px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
+					<iframe src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fzerospamorg&tabs=timeline&width=300&height=635&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true&appId=2704301689814493" width="300" height="635" style="border:none;overflow:hidden;margin-bottom:40px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
 
-					<a class="twitter-timeline" data-height="350" href="https://twitter.com/ZeroSpamOrg?ref_src=twsrc%5Etfw">Tweets by ZeroSpamOrg</a> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+					<a class="twitter-timeline" data-height="604" href="https://twitter.com/ZeroSpamOrg?ref_src=twsrc%5Etfw">Tweets by ZeroSpamOrg</a> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 				</div>
 				<div class="zerospam-dashboard__col">
 					<?php if ( ! empty( $_REQUEST['zerospam-msg'] ) ) : ?>
@@ -203,18 +203,19 @@ class Dashboard {
 							?>
 							<div class="zerospam-blocks">
 								<div class="zerospam-block zerospam-block--review">
-									<h3 class="zerospam-block__headline"><?php esc_html_e( 'Detections the Last 24 Hours', 'zero-spam' ); ?></h3>
+									<h3 class="zerospam-block__headline"><?php esc_html_e( 'Detections by the Hour', 'zero-spam' ); ?></h3>
 									<div class="zerospam-block__content">
 										<div class="zerospam-block__content-col">
 											<?php require ZEROSPAM_PATH . 'includes/templates/admin-bar-chart.php'; ?>
 										</div>
 										<div class="zerospam-block__content-col">
-											<h3>
+											<?php require ZEROSPAM_PATH . 'includes/templates/admin-hours-list.php'; ?>
+											<p style="margin-top: 20px">
 												<?php
 												printf(
 													wp_kses(
 														/* translators: %s: Replaced with the Zero Spam URL */
-														__( 'We need you... <a href="%1$s" target="_blank" rel="noreferrer noopener">and your review!</a>', 'zero-spam' ),
+														__( '<strong>We need you!</strong> Help support development and new features by reviewing us on WordPress.org &mdash; once reviewed, contact us to get a <strong>10&#37; off coupon</strong> on any <a href="%1$s" target="_blank" rel="noreferrer noopener">Zero Spam license</a>.', 'zero-spam' ),
 														array(
 															'strong' => array(),
 															'a'      => array(
@@ -226,30 +227,11 @@ class Dashboard {
 															'br'     => array(),
 														)
 													),
-													'https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5',
+													'https://www.zerospam.org/subscribe/'
 												);
 												?>
-											</h3>
-											<?php
-											printf(
-												wp_kses(
-													/* translators: %s: Replaced with the Zero Spam URL */
-													__( 'Help support continued development, improvements and new feature releases by submitting a review on WordPress.org. Users who submit a review can contact us for a 10&#37; off coupon on any <a href="%1$s" target="_blank" rel="noreferrer noopener">Zero Spam enhanced protection license</a>.', 'zero-spam' ),
-													array(
-														'strong' => array(),
-														'a'      => array(
-															'target' => array(),
-															'href'   => array(),
-															'rel'    => array(),
-														),
-														'em'     => array(),
-														'br'     => array(),
-													)
-												),
-												'https://www.zerospam.org/subscribe/'
-											);
-											?>
-											<p><a href="https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5" target="_blank" rel="noreferrer noopener" class="button"><?php _e( 'Submit Review', 'zero-spam' ); ?> &#8594;</a></p>
+											</p>
+											<p><a href="https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php _e( 'Submit Review', 'zero-spam' ); ?> &#8594;</a></p>
 										</div>
 									</div>
 								</div>
@@ -271,7 +253,7 @@ class Dashboard {
 											printf(
 												wp_kses(
 													/* translators: %s: Replaced with the Zero Spam URL */
-													__( 'We use the latest techniques available, but <em>nothing is 100&#37;</em>.<br /><a href="%1$s" target="_blank" rel="noreferrer noopener">Contact us</a> if seeing a large amount a malicious activity for help.', 'zero-spam' ),
+													__( 'We use the latest techniques available, but <em>nothing is 100&#37;</em>. <a href="%1$s" target="_blank" rel="noreferrer noopener">Contact us</a> if seeing a large amount a malicious activity for help.', 'zero-spam' ),
 													array(
 														'strong' => array(),
 														'a'      => array(

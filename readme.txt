@@ -107,6 +107,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.4.1 =
 
+* feat(dashboard): dashboard ui enhancements
 * perf(sharing): performance improvements when sharing data
 * fix(memberpress): removed memberpress support, they made fundamental changes to their plugin that's ganna require a rework
 * chore(charts): updated chart.js tp 3.9.1

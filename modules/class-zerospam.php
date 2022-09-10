@@ -440,7 +440,7 @@ class Zero_Spam {
 				if ( gmdate( 'Y-m-d', strtotime( $first_query_date ) ) !== gmdate( 'Y-m-d' ) ) {
 					// New day.
 					update_site_option( 'zero_spam_last_api_query', current_time( 'mysql' ) . '*1' );
-				} elseif ( $num_queries > 100 ) {
+				} elseif ( $num_queries > 200 ) {
 					return false;
 				} else {
 					update_site_option( 'zero_spam_last_api_query', $first_query_date . '*' . ( $num_queries+1 ) );
