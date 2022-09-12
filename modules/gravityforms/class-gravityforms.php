@@ -52,6 +52,35 @@ class GravityForms {
 	}
 
 	/**
+	 * Add to the types array
+	 *
+	 * @param array $types Array of available detection types.
+	 */
+	public function types( $types ) {
+		$types['gravityforms'] = array(
+			'label' => __( 'Gravity Forms', 'zero-spam' ),
+			'color' => '#f15a29',
+		);
+
+		return $types;
+	}
+
+	/**
+	 * Admin section
+	 *
+	 * @param array $sections Array of available setting sections.
+	 */
+	public function sections( $sections ) {
+		$sections['gravityforms'] = array(
+			'title'    => __( 'Gravity Forms', 'zero-spam' ),
+			'icon'     => 'modules/gravityforms/icon-gravity-forms.svg',
+			'supports' => array( 'honeypot', 'email' ),
+		);
+
+		return $sections;
+	}
+
+	/**
 	 * Load the scripts
 	 *
 	 * @see https://givewp.com/documentation/developers/conditionally-load-give-styles-and-scripts/
@@ -119,6 +148,7 @@ class GravityForms {
 		}
 
 		if ( ! empty( $validation_errors ) ) {
+			do_action( 'zero_spam_detection', $details, $validation_errors );
 			$do_abort = true;
 
 			// Failed validations, log & send details if enabled.
@@ -138,35 +168,6 @@ class GravityForms {
 		}
 
 		return $do_abort;
-	}
-
-	/**
-	 * Add to the types array
-	 *
-	 * @param array $types Array of available detection types.
-	 */
-	public function types( $types ) {
-		$types['gravityforms'] = array(
-			'label' => __( 'Gravity Forms', 'zero-spam' ),
-			'color' => '#f15a29',
-		);
-
-		return $types;
-	}
-
-	/**
-	 * Admin section
-	 *
-	 * @param array $sections Array of available setting sections.
-	 */
-	public function sections( $sections ) {
-		$sections['gravityforms'] = array(
-			'title'    => __( 'Gravity Forms', 'zero-spam' ),
-			'icon'     => 'modules/gravityforms/icon-gravity-forms.svg',
-			'supports' => array( 'honeypot', 'email' ),
-		);
-
-		return $sections;
 	}
 
 	/**

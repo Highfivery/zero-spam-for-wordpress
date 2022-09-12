@@ -32,6 +32,49 @@ class LogTable extends WP_List_Table {
 	}
 
 	/**
+	 * Define table columns
+	 */
+	public function get_columns() {
+		$columns = array(
+			'cb'            => '<input type="checkbox" />',
+			'date_recorded' => __( 'Date', 'zero-spam' ),
+			'log_type'      => __( 'Type', 'zero-spam' ),
+			'user_ip'       => __( 'IP Address', 'zero-spam' ),
+			'country'       => __( 'Country', 'zero-spam' ),
+			'region'        => __( 'Region', 'zero-spam' ),
+			'actions'       => __( 'Actions', 'zero-spam' ),
+		);
+
+		return $columns;
+	}
+
+	/**
+	 * Sortable columns
+	 */
+	public function get_sortable_columns() {
+		$sortable_columns = array(
+			'date_recorded' => array( 'date_recorded', false ),
+			'log_type'      => array( 'log_type', false ),
+			'user_ip'       => array( 'user_ip', false ),
+			'country'       => array( 'country', false ),
+			'region'        => array( 'region', false ),
+		);
+
+		return $sortable_columns;
+	}
+
+	/**
+	 * Checkbox column
+	 */
+	public function column_cb( $item ) {
+		return sprintf(
+			'<input type="checkbox" name="%1$s[]" value="%2$s" />',
+			/*$1%s*/ 'ids',
+			/*$2%s*/ $item['log_id']
+		);
+	}
+
+	/**
 	 * Column values
 	 */
 	public function column_default( $item, $column_name ) {
@@ -323,71 +366,28 @@ class LogTable extends WP_List_Table {
 	 }
 
 	/**
-	 * Define table columns
-	 */
-	public function get_columns() {
-		$columns = array(
-			'cb'            => '<input type="checkbox" />',
-			'date_recorded' => __( 'Date', 'zero-spam' ),
-			'log_type'      => __( 'Type', 'zero-spam' ),
-			'user_ip'       => __( 'IP Address', 'zero-spam' ),
-			'country'       => __( 'Country', 'zero-spam' ),
-			'region'        => __( 'Region', 'zero-spam' ),
-			'actions'       => __( 'Actions', 'zero-spam' ),
-		);
-
-		return $columns;
-	}
-
-	/**
-	 * Sortable columns
-	 */
-	public function get_sortable_columns() {
-		$sortable_columns = array(
-			'date_recorded' => array( 'date_recorded', false ),
-			'log_type'      => array( 'log_type', false ),
-			'user_ip'       => array( 'user_ip', false ),
-			'country'       => array( 'country', false ),
-			'region'        => array( 'region', false ),
-		);
-
-		return $sortable_columns;
-	}
-
-	/**
-	 * Column contact
-	 */
-	public function column_cb( $item ) {
-		return sprintf(
-			'<input type="checkbox" name="%1$s[]" value="%2$s" />',
-			/*$1%s*/ 'ids',
-			/*$2%s*/ $item['log_id']
-		);
-	}
-
-	/**
 	 * Process bulk actions
 	 */
 	public function process_bulk_action() {
 		global $wpdb;
 
-		$ids = ( isset( $_REQUEST['ids'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['ids'] ) ) : '';
+		$nonce = ( isset( $_REQUEST['zerospam_nonce'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['zerospam_nonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'zerospam_nonce' ) || empty( $_REQUEST['ids'] ) ) {
+			return false;
+		}
+
+		$ids = array_map( 'sanitize_text_field',  $_REQUEST['ids'] );
 
 		switch ( $this->current_action() ) {
 			case 'delete':
-				$nonce = ( isset( $_REQUEST['zerospam_nonce'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['zerospam_nonce'] ) ) : '';
-				if ( ! wp_verify_nonce( $nonce, 'zerospam_nonce' ) ) {
-					return false;
-				}
-
 				if ( ! empty ( $ids ) && is_array( $ids ) ) {
 					foreach ( $ids as $k => $log_id ) {
-						ZeroSpam\Includes\DB::delete( 'log', 'log_id', $log_id );
+						\ZeroSpam\Includes\DB::delete( 'log', 'log_id', $log_id );
 					}
 				}
 				break;
 			case 'delete_all':
-				ZeroSpam\Includes\DB::delete_all( 'log' );
+				\ZeroSpam\Includes\DB::delete_all( 'log' );
 				break;
 		}
 	}

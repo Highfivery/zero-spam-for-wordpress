@@ -477,6 +477,10 @@ a.zerospam-dashboard__menu-link {
     }
   }
 
+  select {
+    padding-right: 33px;
+  }
+
   .button {
     @extend %button;
   }
@@ -547,6 +551,12 @@ a.zerospam-dashboard__menu-link {
         }
       }
     }
+  }
+}
+
+.check-column {
+  input[type="checkbox"] {
+    display: block;
   }
 }
 

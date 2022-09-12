@@ -401,6 +401,10 @@ a.zerospam-dashboard__menu-link--active {
   border: 1px solid var(--zerospam-trinary);
   box-shadow: none;
 }
+.zerospam-table-form select,
+.zerospam-form select {
+  padding-right: 33px;
+}
 .zerospam-table-form input[type=radio],
 .zerospam-table-form input[type=checkbox],
 .zerospam-form input[type=radio],
@@ -478,6 +482,10 @@ a.zerospam-dashboard__menu-link--active {
   background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI3IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0yLjY2NjcgNC4zOTA1TDYuODYxOS4xOTUzYS42NjY3LjY2NjcgMCAwMS45NDI4Ljk0MjhsLTUuMTM4IDUuMTM4TC4xOTUzIDMuODA0N2EuNjY2Ny42NjY3IDAgMDEuOTQyOC0uOTQyOGwxLjUyODYgMS41Mjg2eiIgZmlsbD0iIzNFN0RBNiIvPjwvc3ZnPg==);
   background-size: 0.5rem;
   left: 1.7rem;
+}
+
+.check-column input[type=checkbox] {
+  display: block;
 }
 
 .zerospam-form-field-container {
