@@ -96,11 +96,14 @@ class Plugin {
 		// Project Honeypot module.
 		new \ZeroSpam\Modules\ProjectHoneypot();
 
-		// ipstack module.
-		new \ZeroSpam\Modules\ipstack();
+		// ipbase module
+		new \ZeroSpam\Modules\ipbase\ipbase();
 
 		// IPinfo module.
 		new \ZeroSpam\Modules\IPinfoModule();
+
+		// ipstack module.
+		new \ZeroSpam\Modules\ipstack();
 
 		if ( is_admin() ) {
 			// Google API module.

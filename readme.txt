@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 6.0.2
 Requires PHP: 7.3
-Stable tag: 5.4.1
+Stable tag: 5.4.2
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -13,7 +13,7 @@ Protection against spam & malicious users using cutting-edge AI. Firewall, real-
 
 == Description ==
 
-Protect against spam & malicious users using an advanced, highly-configurable firewall, real-time monitoring, integration with popular blacklists & plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/), [Gravity Forms](https://www.gravityforms.com/) & more.
+Protect against spam & malicious users using an advanced, highly-configurable firewall, real-time monitoring, integration with popular blacklists, plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/), [Gravity Forms](https://www.gravityforms.com/) & more.
 
 **Install, activate, configure, then put your mind at ease!**
 
@@ -104,6 +104,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Add blocked location
 
 == Changelog ==
+
+= v5.4.2 =
+
+* feat(ipbase): added support for ipbase.com
 
 = v5.4.1 =
 
