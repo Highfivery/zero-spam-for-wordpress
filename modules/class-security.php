@@ -37,7 +37,5 @@ class Security {
 	 * @param array $validation_errors Array of validation errors.
 	 */
 	public function handle_detection( $details, $validation_errors ) {
-		print_r($details);
-		print_r($validation_errors);die();
 	}
 }
