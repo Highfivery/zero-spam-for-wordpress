@@ -264,23 +264,18 @@ class Utilities {
 	 * @param string $value Setting value.
 	 */
 	public static function update_setting( $key, $value ) {
-		$settings     = \ZeroSpam\Core\Settings::get_settings();
-		$new_settings = array();
-
-		if ( ! isset( $settings[ $key ] ) ) {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+		if ( empty( $settings[ $key ] ) ) {
 			self::log( $key . ' is not a valid setting key.' );
 			return false;
 		}
 
-		foreach ( $settings as $k => $array ) {
-			if ( $key === $k ) {
-				$new_settings[ $k ] = $value;
-			} else {
-				$new_settings[ $k ] = isset( $array['value'] ) ? $array['value'] : false;
-			}
-		}
+		$module          = $settings[ $key ]['module'];
+		$module_settings = get_option( "zero-spam-$module" );
 
-		update_option( 'wpzerospam', $new_settings, true );
+		$module_settings[ $key ] = $value;
+
+		update_option( "zero-spam-$module", $module_settings, true );
 
 		return true;
 	}

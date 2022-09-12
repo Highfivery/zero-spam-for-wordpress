@@ -17,17 +17,20 @@ class ZeroSpamCLI {
 	 * Outputs settings
 	 */
 	public function settings() {
-		$zerospam_settings = \ZeroSpam\Core\Settings::get_settings();
-		$settings          = array();
+		$modules  = \ZeroSpam\Core\Settings::get_settings_by_module();
+		$settings = array();
 
-		foreach ( $zerospam_settings as $key => $setting ) {
-			$settings[] = array(
-				'setting' => $key,
-				'value'   => isset( $setting['value'] ) ? $setting['value'] : false,
-			);
+		foreach ( $modules as $module => $module_settings ) {
+			foreach ( $module_settings as $key => $setting ) {
+				$settings[] = array(
+					'module'  => $module,
+					'setting' => $key,
+					'value'   => isset( $setting['value'] ) ? $setting['value'] : false,
+				);
+			}
 		}
 
-		$fields = array( 'setting', 'value' );
+		$fields = array( 'module', 'setting', 'value' );
 		WP_CLI\Utils\format_items( 'table', $settings, $fields );
 	}
 
