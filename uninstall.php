@@ -16,7 +16,28 @@ $tables = array(
 	'blacklist' => 'wpzerospam_blacklist',
 );
 
-$modules = \ZeroSpam\Core\Settings::get_settings_by_module();
+$modules = array(
+	'comments',
+	'contactform7',
+	'davidwalsh',
+	'fluentforms',
+	'formidable',
+	'givewp',
+	'gravityforms',
+	'login',
+	'mailchimp4wp',
+	'registration',
+	'woocommerce',
+	'wpforms',
+	'debug',
+	'google',
+	'ipinfo',
+	'ipstack',
+	'project_honeypot',
+	'security',
+	'stop_forum_spam',
+	'zerospam',
+);
 
 if ( is_multisite() ) {
 	// @codingStandardsIgnoreLine
@@ -34,7 +55,7 @@ if ( is_multisite() ) {
 			delete_option( 'zero_spam_last_api_report' );
 			delete_option( 'zero-spam-last-update' );
 
-			foreach ( $modules as $module => $settings ) {
+			foreach ( $modules as $key => $module ) {
 				delete_option( "zero-spam-$module" );
 			}
 
