@@ -31,6 +31,7 @@ class Plugin {
 
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 		add_filter( 'zerospam_failed_types', array( $this, 'failed_types' ), 10, 1 );
+		add_action( 'zero_spam_flagged_attempt', array( $this, 'flagged_attempt' ), 10, 3 );
 	}
 
 	/**
@@ -85,7 +86,7 @@ class Plugin {
 		new \ZeroSpam\Includes\Updates();
 
 		// Site security
-		new \ZeroSpam\Modules\Security();
+		new \ZeroSpam\Modules\Security\Security();
 
 		// Zero Spam module.
 		new \ZeroSpam\Modules\Zero_Spam();
@@ -124,6 +125,11 @@ class Plugin {
 
 		// Used to check if a plugin is installed & active.
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
+
+		// Elementor plugin module.
+		/*if ( is_plugin_active( 'elementor-pro/elementor-pro.php' ) ) {
+			new \ZeroSpam\Modules\Elementor\Elementor();
+		}*/
 
 		// GiveWP plugin module.
 		if ( is_plugin_active( 'give/give.php' ) ) {
@@ -183,6 +189,29 @@ class Plugin {
 		);
 
 		return $types;
+	}
+
+	/**
+	 * Action taken for flagged attempts
+	 *
+	 * @param string $module The associated module.
+	 * @param string $signal The associated signal.
+	 * @param array  $data   Additional attempt data.
+	 */
+	public function flagged_attempt( $module, $signal, $data ) {
+		$details = array(
+			'type'   => $module,
+			'failed' => $signal,
+			'data'   => $data,
+		);
+
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( $module . '_log_flagged_attempts' ) ) {
+			\ZeroSpam\Includes\DB::log( $module, $details );
+		}
+
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+			do_action( 'zerospam_share_detection', $details );
+		}
 	}
 }
 

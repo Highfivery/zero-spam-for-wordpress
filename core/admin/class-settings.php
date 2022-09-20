@@ -558,7 +558,7 @@ class Settings {
 							?>
 							<div class="zerospam-block">
 								<div class="zerospam-block__content zerospam-block__content--supports">
-									<strong><?php _e( 'Detection Support', 'zero-spam' ); ?>:</strong>
+									<strong><?php _e( 'Supported Signals', 'zero-spam' ); ?>:</strong>
 									<?php
 									foreach ( $section['supports'] as $k => $s ) :
 										switch ( $s ) :
@@ -566,13 +566,13 @@ class Settings {
 												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-honeypot.svg" alt="' . esc_attr( __( 'Honeypot', 'zero-spam' ) ) . '" />';
 												break;
 											case 'email':
-												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-email.svg" alt="' . esc_attr( __( 'Email', 'zero-spam' ) ) . '" />';
+												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-email.svg" alt="' . esc_attr( __( 'Email Protection', 'zero-spam' ) ) . '" title="' . esc_attr( __( 'Email Protection', 'zero-spam' ) ) . '" />';
 												break;
 											case 'davidwalsh':
 												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'modules/davidwalsh/icon-david-walsh.png" alt="' . esc_attr( __( 'David Walsh', 'zero-spam' ) ) . '" />';
 												break;
 											case 'words':
-												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-words.svg" alt="' . esc_attr( __( 'Disallowed Words', 'zero-spam' ) ) . '" />';
+												echo '<img class="zerospam-small-icon" src="' . plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-words.svg" alt="' . esc_attr( __( 'Disallowed Words', 'zero-spam' ) ) . '" title="' . esc_attr( __( 'Disallowed Words', 'zero-spam' ) ) . '" />';
 												break;
 										endswitch;
 
@@ -582,8 +582,8 @@ class Settings {
 							</div>
 							<?php
 						endif;
-					 endforeach;
-					 ?>
+					endforeach;
+					?>
 
 					<?php if ( ! in_array( $subview, array(  'export', 'errors' ) ) ) : ?>
 						<?php

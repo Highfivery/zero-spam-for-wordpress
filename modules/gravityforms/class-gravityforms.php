@@ -5,7 +5,6 @@
  * Malicious user detection techniques available:
  *
  * 1. Zero Spam honeypot field
- * 2. Checks blocked email domains
  *
  * @package ZeroSpam
  */
@@ -74,7 +73,7 @@ class GravityForms {
 		$sections['gravityforms'] = array(
 			'title'    => __( 'Gravity Forms', 'zero-spam' ),
 			'icon'     => 'modules/gravityforms/icon-gravity-forms.svg',
-			'supports' => array( 'honeypot', 'email' ),
+			'supports' => array( 'honeypot' ),
 		);
 
 		return $sections;
@@ -205,8 +204,7 @@ class GravityForms {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'We were unable to process your submission: IP address has been flagged as possible spam.', 'zero-spam' );
-
+		$message = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
 		$settings['gravityforms_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
 			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),

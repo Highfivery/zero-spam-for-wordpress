@@ -9,11 +9,11 @@ Stable tag: 5.4.2
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
-Protection against spam & malicious users using cutting-edge AI. Firewall, real-time monitoring & more.
+Protection against spam, malicious users & common attacks using an advanced behavior detection engine. Integrates with other 3rd-party plugins.
 
 == Description ==
 
-Protect against spam & malicious users using an advanced, highly-configurable firewall, real-time monitoring, integration with popular blacklists, plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/), [Gravity Forms](https://www.gravityforms.com/) & more.
+Protect against spam, malicious users, attacks like web & port scans, brute force, and others. Zero Spam uses multiple methods to detect & stop threats including an advanced behavior detection engine that integrates with [Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/) &amp; [Project Honeypot](https://www.projecthoneypot.org/). Integration with popular plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/), [Gravity Forms](https://www.gravityforms.com/) & more help provides an extra level of protection.
 
 **Install, activate, configure, then put your mind at ease!**
 
@@ -21,9 +21,10 @@ Protect against spam & malicious users using an advanced, highly-configurable fi
 
 * No captcha, spam isn't a users' problem
 * No moderation queues, spam isn't a administrators' problem
-* [Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/) &amp; [Project Honeypot](https://www.projecthoneypot.org/) integration
-* Automatically & manually block IPs temporarily or permanently
-* Geolocate IP addresses to see where offenders are coming from
+* Advanced behavior detection engine able to dynamically block threats
+* Integrates with global IP reputation providers
+* Allows admins to block IPs temporarily or permanently
+* Geolocation integration to track where threats are coming from
 * Block entire countries, regions, zip/postal codes & cities
 * Optional disallowed list using [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist)
 * Block known disposable &amp; malicious email domains using [disposable](https://github.com/disposable)
@@ -108,6 +109,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = v5.4.2 =
 
 * feat(ipbase): added support for ipbase.com
+* feat(security): added additional advanced security protections
 
 = v5.4.1 =
 
@@ -116,7 +118,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 * fix(memberpress): removed memberpress support, they made fundamental changes to their plugin that's ganna require a rework
 * fix(uninstall): fix issue where the plugin couldn't be deleted
 * fix(cli): resolves #33
-* chore(charts): updated chart.js tp 3.9.1
+* chore(charts): updated chart.js to 3.9.1
 
 = v5.4.0 =
 

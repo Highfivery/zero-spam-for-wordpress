@@ -16,7 +16,6 @@ defined( 'ABSPATH' ) || die();
  * Access
  */
 class Access {
-
 	/**
 	 * Constructor
 	 */
