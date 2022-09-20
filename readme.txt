@@ -51,6 +51,7 @@ Zero Spam allows you to integrate with other services to improve the ability to 
 * **[Stop Forum Spam](https://www.stopforumspam.com/)** - Sends the visitor's IP to check if they've been reported. Review their [Privacy Policy](https://www.stopforumspam.com/privacy) & [Terms of Use](https://www.stopforumspam.com/legal).
 * **[Project Honeypot](https://www.projecthoneypot.org/)** - Sends the visitor's IP to check if they've been reported. Review their [Privacy Policy](https://www.projecthoneypot.org/privacy_policy.php) & [Terms of Use](https://www.projecthoneypot.org/terms_of_use.php).
 * **[ipinfo.io](https://ipinfo.io/)** - Sends the visitor's IP to gather detailed geolocation information. Review their [Privacy Policy](https://ipinfo.io/privacy-policy) & [Terms of Use](https://ipinfo.io/terms-of-service).
+* **[ipbase.com](https://ipbase.com/)** - Sends the visitor's IP to gather detailed geolocation information. Review their [Privacy Policy](https://ipbase.com/privacy-policy/) & [Terms of Use](https://www.iubenda.com/terms-and-conditions/41661719).
 * **[ipstack](https://ipstack.com/)** - Sends the visitor's IP to gather detailed geolocation information. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://ipstack.com/terms).
 * **[Google Maps](https://developers.google.com/maps)** - Enables the ability to plot attack locations. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://developers.google.com/terms/site-terms).
 
