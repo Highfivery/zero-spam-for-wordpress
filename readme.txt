@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 6.0.2
 Requires PHP: 7.3
-Stable tag: 5.4.2
+Stable tag: 5.4.3
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -21,7 +21,7 @@ Protect against spam, malicious users, attacks like web & port scans, brute forc
 
 * No captcha, spam isn't a users' problem
 * No moderation queues, spam isn't a administrators' problem
-* Advanced behavior detection engine able to dynamically block threats
+* Behavior detection engine able to dynamically block threats
 * Integrates with global IP reputation providers
 * Allows admins to block IPs temporarily or permanently
 * Geolocation integration to track where threats are coming from
@@ -106,6 +106,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Add blocked location
 
 == Changelog ==
+
+= v5.4.3 =
+
+* fix(emojis): fix for fatal error when emojis are disabled
 
 = v5.4.2 =
 
