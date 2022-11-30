@@ -358,8 +358,6 @@ class Zero_Spam {
 				);
 
 				$response = wp_remote_post( $endpoint, $args );
-				print_r($response);
-				die();
 
 				// Only send one email report per detection
 				break;
