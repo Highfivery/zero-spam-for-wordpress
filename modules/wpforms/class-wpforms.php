@@ -170,9 +170,9 @@ class WPForms {
 		// Only add scripts to the appropriate pages.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_wpforms' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			add_action( 'wp_footer', function() {
-				echo '<script type="text/javascript">jQuery(".wpforms-form").ZeroSpamDavidWalsh();</script>';
-			}, 999 );
+			add_action( 'wp_enqueue_scripts', function() {
+				wp_add_inline_script('zerospam-davidwalsh', '(function($) {$(function() { $(".wpforms-form").ZeroSpamDavidWalsh(); })})(jQuery)' );
+			} );
 		}
 	}
 

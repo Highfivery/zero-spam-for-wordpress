@@ -109,6 +109,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.4.4 =
 
+* fix(wpforms): resolves #343, fix for jquery dependency
 * fix(registration): resolves #342, fix for failed registration output
 * fix(php8): resolves #341, fix for php8+ compatibility issue
 
