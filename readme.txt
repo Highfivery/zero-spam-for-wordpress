@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 6.0.2
-Requires PHP: 7.3
-Stable tag: 5.4.3
+Tested up to: 6.1.1
+Requires PHP: 7.4
+Stable tag: 5.4.4
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -106,6 +106,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Add blocked location
 
 == Changelog ==
+
+= v5.4.4 =
+
+* fix(php8): resolves #341, fix for php8+ compatibility issue
 
 = v5.4.3 =
 

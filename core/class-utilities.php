@@ -232,11 +232,11 @@ class Utilities {
 				$lines = array();
 
 				if ( 'htaccess_legacy' === $settings ) {
-					$lines[] = 'Deny from ' . implode( $denied_ips, ' ' );
+					$lines[] = 'Deny from ' . implode( ' ', $denied_ips );
 				} elseif ( 'htaccess_modern' === $settings ) {
 					$lines[] = '<RequireAll>';
 					$lines[] = 'Require all granted';
-					$lines[] = 'Require not ip ' . implode( $denied_ips, ' ' );
+					$lines[] = 'Require not ip ' . implode( ' ', $denied_ips );
 					$lines[] = '</RequireAll>';
 				}
 			}
