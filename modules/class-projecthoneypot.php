@@ -95,12 +95,16 @@ class ProjectHoneypot {
 			krsort( $octets );
 
 			$reversed_ip = implode( '.', $octets );
+			if ( strlen( $reversed_ip ) > 16) {
+				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Warning: IPv6 ip addresses not supported: ' . $ip );
+				return false;
+			}
 
 			$endpoint  = $settings['project_honeypot_access_key']['value'] . '.' . $reversed_ip . '.dnsbl.httpbl.org';
 			$dns_array = dns_get_record( $endpoint, DNS_A );
 
 			if ( ! isset( $dns_array[0]['ip'] ) ) {
-				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Error: could not query the IP' );
+				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Error: could not get DNS information for ' . $endpoint . ': ' . wp_json_encode( $dns_array ) );
 				return false;
 			}
 

@@ -36,6 +36,8 @@ class User {
 				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
 			} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED'] ) ) {
 				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED'] ) );
+			}  elseif ( isset( $_SERVER['HTTP_X_CLUSTER_CLIENT_IP'] ) ) {
+				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_XHTTP_X_CLUSTER_CLIENT_IP_FORWARDED'] ) );
 			} elseif ( ! empty( $_SERVER['HTTP_FORWARDED_FOR'] ) ) {
 				$ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_FORWARDED_FOR'] ) );
 			} elseif ( ! empty( $_SERVER['HTTP_FORWARDED'] ) ) {
