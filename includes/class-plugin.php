@@ -126,11 +126,6 @@ class Plugin {
 		// Used to check if a plugin is installed & active.
 		include_once ABSPATH . 'wp-admin/includes/plugin.php';
 
-		// Elementor plugin module.
-		/*if ( is_plugin_active( 'elementor-pro/elementor-pro.php' ) ) {
-			new \ZeroSpam\Modules\Elementor\Elementor();
-		}*/
-
 		// GiveWP plugin module.
 		if ( is_plugin_active( 'give/give.php' ) ) {
 			new \ZeroSpam\Modules\Give\Give();
