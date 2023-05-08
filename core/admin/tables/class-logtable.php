@@ -208,52 +208,57 @@ class LogTable extends WP_List_Table {
 		// @codingStandardsIgnoreLine
 		$orderby = ! empty( $_REQUEST['orderby'] ) ? sanitize_sql_orderby( wp_unslash( $_REQUEST['orderby'] ) ) : 'date_recorded';
 
-		// @codingStandardsIgnoreLine
-		$log_type   = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['type'] ) ) : false;
-		// @codingStandardsIgnoreLine
-		$country    = ! empty( $_REQUEST['country'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['country'] ) ) : false;
-		// @codingStandardsIgnoreLine
-		$user_ip    = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : false;
+		$log_type = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['type'] ) ) : false;
+		$country  = ! empty( $_REQUEST['country'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['country'] ) ) : false;
+		$user_ip  = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : false;
 
 		// Define the database table.
 		$database_table = $wpdb->prefix . \ZeroSpam\Includes\DB::$tables['log'];
 
-		// Prepare the select statements.
-		$select_array = array( '*' );
-
 		// Order & add extra select statements.
+		$order_statement = '';
 		switch ( $orderby ) {
 			case 'user_ip':
-				$order_statement = "ORDER BY user_ip $order";
+				$order_statement = " ORDER BY user_ip $order";
 				break;
 			case 'country':
-				$order_statement = "ORDER BY country $order";
+				$order_statement = " ORDER BY country $order";
 				break;
 			case 'region':
-				$order_statement = "ORDER BY country $order";
+				$order_statement = " ORDER BY country $order";
 				break;
 			case 'date_recorded':
-				$order_statement = "ORDER BY date_recorded $order";
+				$order_statement = " ORDER BY date_recorded $order";
 				break;
 			case 'log_type':
-				$order_statement = "ORDER BY log_type $order";
+				$order_statement = " ORDER BY log_type $order";
 				break;
 		}
 
 		// Where.
-		$where_array = array();
+		$where_array     = array();
+		$where_statement = '';
 
 		if ( $log_type ) {
-			$where_array[] = "log_type = '$log_type'";
+			$where_array[] = "`log_type` = %s";
+			$database_query_arguments[] = $log_type;
 		}
 
 		if ( $country ) {
-			$where_array[] = "country = '$country'";
+			$where_array[] = "`country` = %s";
+			$database_query_arguments[] = $country;
 		}
 
 		if ( $user_ip ) {
-			$where_array[] = "user_ip = '$user_ip'";
+			$where_array[] = "`user_ip` = %s";
+			$database_query_arguments[] = $user_ip;
 		}
+
+		if ( $where_array ) {
+			$where_statement .= 'WHERE ';
+			$where_statement .= implode( ' AND ', $where_array );
+		}
+
 
 		// Limit.
 		$limit_statement = "LIMIT $per_page";
@@ -261,26 +266,11 @@ class LogTable extends WP_List_Table {
 			$limit_statement .= ", $offset";
 		}
 
-		// Create the query.
-		$database_query = 'SELECT ';
+		$database_query = $wpdb->prepare(
+			"SELECT * FROM `$database_table`$where_statement$order_statement $limit_statement",
+			$database_query_arguments
+		);
 
-		$select_statement = implode( ', ', $select_array );
-		$database_query  .= $select_statement . ' ';
-
-		$database_query .= "FROM $database_table ";
-
-		if ( $where_array ) {
-			$database_query .= 'WHERE ';
-			$database_query .= implode( ' AND ', $where_array );
-		}
-
-		if ( ! empty( $order_statement ) ) {
-			$database_query .= $order_statement . ' ';
-		}
-
-		$database_query .= $limit_statement;
-
-		// @codingStandardsIgnoreLine
 		$data = $wpdb->get_results( $database_query, ARRAY_A );
 
 		if ( ! $data ) {
@@ -290,12 +280,6 @@ class LogTable extends WP_List_Table {
 		// Get total number of rows.
 		$count_query = "SELECT COUNT(*) FROM $database_table ";
 
-		if ( $where_array ) {
-			$count_query .= 'WHERE ';
-			$count_query .= implode( ' AND ', $where_array );
-		}
-
-		// @codingStandardsIgnoreLine
 		$total_items = $wpdb->get_var( $count_query );
 
 		$this->set_pagination_args(

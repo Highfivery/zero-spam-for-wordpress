@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 6.1.1
+Tested up to: 6.2.0
 Requires PHP: 7.4
-Stable tag: 5.4.4
+Stable tag: 5.4.5
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -106,6 +106,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Add blocked location
 
 == Changelog ==
+
+= v5.4.5 =
+
+* fix(security): fixed sql injection vulnerability in the zero spam admin log table query
 
 = v5.4.4 =
 
