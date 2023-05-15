@@ -18,7 +18,7 @@ class Debug {
 	 * Constructor
 	 */
 	public function __construct() {
-		add_action( 'init', array( $this, 'init' ) );
+		add_action( 'init', array( $this, 'init' ), -1 );
 	}
 
 	/**
@@ -37,6 +37,7 @@ class Debug {
 	 */
 	public function debug_ip( $ip ) {
 		$debug_ip = \ZeroSpam\Core\Settings::get_settings( 'debug_ip' );
+
 
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'debug' ) &&

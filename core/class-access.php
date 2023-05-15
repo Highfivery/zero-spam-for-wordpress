@@ -39,12 +39,14 @@ class Access {
 	 * @param boolean $ignore_ajax True if AJAX shouldn't be checked.
 	 */
 	public static function process( $ignore_ajax = false ) {
+		$user_ip  = \ZeroSpam\Core\User::get_ip();
+
 		// Fix for .favicon requests.
 		if ( strpos( $_SERVER['REQUEST_URI'], '.ico' ) !== false ) {
 			return false;
 		}
-
-		if ( $ignore_ajax && is_admin() || is_user_logged_in() ) {
+		
+		if ( $ignore_ajax && is_admin() || is_user_logged_in() || \ZeroSpam\Core\Utilities::is_whitelisted( $user_ip ) ) {
 			return false;
 		} elseif ( ! $ignore_ajax && ( is_admin() && ! wp_doing_ajax() ) || is_user_logged_in() ) {
 			return false;

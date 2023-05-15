@@ -71,6 +71,9 @@ class Plugin {
 	 * Initializes modules
 	 */
 	private function init_modules() {
+		// Debug module
+		new \ZeroSpam\Modules\Debug();
+
 		if ( is_admin() ) {
 			// Plugin admin module.
 			new \ZeroSpam\Core\Admin\Admin();
@@ -168,9 +171,6 @@ class Plugin {
 		if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
 			new \ZeroSpam\Modules\GravityForms\GravityForms();
 		}
-
-		// Debug module.
-		new \ZeroSpam\Modules\Debug();
 	}
 
 	/**
