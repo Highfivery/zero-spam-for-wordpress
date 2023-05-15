@@ -212,6 +212,9 @@ class LogTable extends WP_List_Table {
 		$country  = ! empty( $_REQUEST['country'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['country'] ) ) : false;
 		$user_ip  = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : false;
 
+
+		$database_query_arguments = [];
+		
 		// Define the database table.
 		$database_table = $wpdb->prefix . \ZeroSpam\Includes\DB::$tables['log'];
 
