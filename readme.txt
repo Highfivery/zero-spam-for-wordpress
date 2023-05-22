@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 6.2.0
+Tested up to: 6.2.2
 Requires PHP: 7.4
-Stable tag: 5.4.6
+Stable tag: 5.4.7
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -106,6 +106,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Add blocked location
 
 == Changelog ==
+
+= v5.4.7 =
+
+* fix(david walsh): fix for missing david walsh dependency, resolves #345
 
 = v5.4.6 =
 
