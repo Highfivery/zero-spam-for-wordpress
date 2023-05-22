@@ -53,7 +53,10 @@ class ContactForm7 {
 	 * Load the scripts
 	 */
 	public function add_scripts() {
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7' ) ) {
+		if ( 
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7' ) &&
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
+		) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
 			add_action( 'wp_footer', function() {
 				echo '<script type="text/javascript">jQuery(".wpcf7-form").ZeroSpamDavidWalsh();</script>';
