@@ -67,7 +67,10 @@ class Comments {
 	 */
 	public function add_scripts() {
 		// Only add scripts to the appropriate pages.
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) ) {
+		if ( 
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) &&
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
+		) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
 			add_action( 'wp_footer', function() {
 				// .wpd_comm_form for the wpDiscuz plugin

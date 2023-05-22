@@ -59,7 +59,10 @@ class Give {
 		global $post;
 
 		// Only add scripts to the appropriate pages.
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_givewp' ) ) {
+		if ( 
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_givewp' ) &&
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
+		) {
 			if (
 				// Register and enqueue scripts on single GiveWP Form pages
 				is_singular('give_forms') ||
