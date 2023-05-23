@@ -589,7 +589,7 @@ a.zerospam-dashboard__menu-link--active {
   transform: rotate(-45deg);
 }
 
-.zerospam-type-blocked::before, .zerospam-type-login::before, .zerospam-type-registration::before, .zerospam-type-comment::before, .zerospam-type-fluent_form::before, .zerospam-type-wpforms::before, .zerospam-type-contactform7::before, .zerospam-type-givewp::before, .zerospam-type-mailchimp4wp::before, .zerospam-type-woocommerce_registration::before, .zerospam-type-gravityforms::before, .zerospam-type-formidable::before {
+.zerospam-type-blocked::before, .zerospam-type-login::before, .zerospam-type-registration::before, .zerospam-type-comment::before, .zerospam-type-fluent_form::before, .zerospam-type-wpforms::before, .zerospam-type-contactform7::before, .zerospam-type-givewp::before, .zerospam-type-mailchimp4wp::before, .zerospam-type-woocommerce_registration::before, .zerospam-type-gravityforms::before, .zerospam-type-formidable::before, .zerospam-type-wp_user_avatar::before {
   background-position: center;
   background-repeat: no-repeat;
   background-size: contain;
@@ -608,6 +608,9 @@ a.zerospam-dashboard__menu-link--active {
 }
 .zerospam-type-login::before, .zerospam-type-registration::before, .zerospam-type-comment::before {
   background-image: url("../img/icon-wordpress.svg");
+}
+.zerospam-type-wp_user_avatar::before {
+  background-image: url("../../modules/wpuseravatar/icon-profilepress.png");
 }
 .zerospam-type-fluent_form::before {
   background-image: url("../img/icon-fluent-forms.svg");

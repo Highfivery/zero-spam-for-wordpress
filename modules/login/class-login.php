@@ -93,6 +93,17 @@ class Login {
 			return $user;
 		}
 
+		/**
+		 * Fix for https://github.com/Highfivery/zero-spam-for-wordpress/issues/357
+		 *
+		 * Don't process ProfilePress login forms, this module is only for core login
+		 * forms... same as above.
+		 */
+		if ( ! empty( $post['pp_current_url'] ) ) {
+			// Submitted via a ProfilePress login form, ignore processing.
+			return $user;
+		}
+
 		// Check Zero Spam's honeypot field.
 		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
 

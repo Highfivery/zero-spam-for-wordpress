@@ -700,7 +700,8 @@ a.zerospam-dashboard__menu-link {
   &mailchimp4wp,
   &woocommerce_registration,
   &gravityforms,
-  &formidable {
+  &formidable,
+  &wp_user_avatar {
     &::before {
       background-position: center;
       background-repeat: no-repeat;
@@ -727,6 +728,12 @@ a.zerospam-dashboard__menu-link {
   &comment {
     &::before {
       background-image: url("../img/icon-wordpress.svg");
+    }
+  }
+
+  &wp_user_avatar {
+    &::before {
+      background-image: url("../../modules/wpuseravatar/icon-profilepress.png");
     }
   }
 

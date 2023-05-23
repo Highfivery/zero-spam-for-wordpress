@@ -171,6 +171,11 @@ class Plugin {
 		if ( is_plugin_active( 'gravityforms/gravityforms.php' ) ) {
 			new \ZeroSpam\Modules\GravityForms\GravityForms();
 		}
+
+		// Zero Spam Gravity Forms module.
+		if ( is_plugin_active( 'wp-user-avatar/wp-user-avatar.php' ) ) {
+			new \ZeroSpam\Modules\WPUserAvatar\WPUserAvatar();
+		}
 	}
 
 	/**
