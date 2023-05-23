@@ -171,7 +171,7 @@ class WPUserAvatar {
 		$sections['wp-user-avatar'] = array(
 			'title'    => __( 'ProfilePress', 'zero-spam' ),
 			'icon'     => 'modules/wpuseravatar/icon-profilepress.png',
-			'supports' => array( 'honeypot', 'email', 'davidwalsh' ),
+			'supports' => array( 'honeypot', 'email' ),
 		);
 
 		return $sections;
