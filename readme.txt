@@ -9,53 +9,64 @@ Stable tag: 5.5.0
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
-Protection against spam, malicious users & common attacks using an advanced behavior detection engine. Integrates with other 3rd-party plugins.
+Shield your site from spam, malicious users, and attacks with our advanced detection engine. Integrate seamlessly with other plugins for added protection.
 
 == Description ==
 
-Protect against spam, malicious users, attacks like web & port scans, brute force, and others. Zero Spam uses multiple methods to detect & stop threats including an advanced behavior detection engine that integrates with [Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/) &amp; [Project Honeypot](https://www.projecthoneypot.org/). Integration with popular plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/), [Gravity Forms](https://www.gravityforms.com/) & more help provides an extra level of protection.
+🛡️ Safeguard your WordPress website effortlessly with Zero Spam for WordPress! Say goodbye to spam, malicious users, and a variety of sneaky attacks that can disrupt your online presence. Our plugin, powered by an advanced behavior detection engine, integrates seamlessly with [Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/), and [Project Honeypot](https://www.projecthoneypot.org/) to provide you with a robust defense system.
 
-**Install, activate, configure, then put your mind at ease!**
+🔍 Rest easy knowing that our plugin utilizes multiple detection methods to swiftly identify and halt potential threats. Whether it's pesky spam, devious trolls, or cunning hackers, Zero Spam for WordPress is here to protect your digital kingdom.
 
-= Worry-free, Powerful Protection =
+💪 Take your website's security to the next level with our seamless integration with popular plugins like [WooCommerce](https://wordpress.org/plugins/woocommerce/), [GiveWP](https://givewp.com/ref/1118/), [Gravity Forms](https://www.gravityforms.com/), and many more. By joining forces, we ensure comprehensive protection for your valuable online assets.
 
-* No captcha, spam isn't a users' problem
-* No moderation queues, spam isn't a administrators' problem
-* Behavior detection engine able to dynamically block threats
-* Integrates with global IP reputation providers
-* Allows admins to block IPs temporarily or permanently
-* Geolocation integration to track where threats are coming from
-* Block entire countries, regions, zip/postal codes & cities
-* Optional disallowed list using [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist)
-* Block known disposable &amp; malicious email domains using [disposable](https://github.com/disposable)
-* Multiple detection techniques including [David Walsh's solution](https://davidwalsh.name/wordpress-comment-spam)
+💫 Don't let spam and malicious users run amok on your WordPress website. Choose Zero Spam for WordPress and enjoy a safer, more enjoyable online experience. It's time to take control and keep your virtual doorstep spam-free and secure!
 
-= But wait, there's more! =
+= Worry-free, Powerful Protection at Your Fingertips =
 
-* Protects comments, user registration &amp; login forms
-* Protects [GiveWP](https://givewp.com/ref/1118/) forms & helps prevent testing stolen credit cards
-* Protects [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/), [Fluent Forms](https://wordpress.org/plugins/fluentform/) & [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/) forms
-* Protects [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations
-* Protects [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) sign-ups
-* and **can be integrated into any existing theme or plugin**
+* Say goodbye to captchas and moderation queues—spam is no longer a user or administrator's problem.
+* Our intelligent behavior detection engine dynamically blocks threats, keeping your site safe.
+* Benefit from seamless integration with global IP reputation providers for enhanced security.
+* Take control with the ability to block IPs temporarily or permanently, ensuring unwanted visitors stay out.
+* Geolocation integration allows you to track the origins of threats, providing valuable insights.
+* Safeguard your site by blocking entire countries, regions, zip/postal codes, and cities.
+* Utilize the optional disallowed list using [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist) to further enhance your protection.
+* Block known disposable and malicious email domains effortlessly using [disposable](https://github.com/disposable).
+* Our plugin employs multiple detection techniques, including the renowned solution by [David Walsh](https://davidwalsh.name/wordpress-comment-spam).
 
-= Expert Support =
+= But wait, there's more! Enhanced Protection for Various Forms =
 
-We have a highly-experienced team of developers to provide incredible support. Ask your questions in the support forum, post a bug or feature request on [Github](https://github.com/Highfivery/zero-spam-for-wordpress/issues), or [contact us directly](https://www.zerospam.org/contact).
+* Protect your valuable comments, user registrations, and login forms from unwanted intrusions.
+* Safeguard your [GiveWP](https://givewp.com/ref/1118/) forms, preventing attempts to test stolen credit cards.
+* Enjoy seamless integration with popular form plugins such as [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/), [Fluent Forms](https://wordpress.org/plugins/fluentform/), and [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/).
+* Ensure secure registrations for your [WooCommerce](https://wordpress.org/plugins/woocommerce/) store.
+* Protect your [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) sign-ups from potential abuse.
+* Keep your [ProfilePress](https://wordpress.org/plugins/wp-user-avatar/) registrations safe and secure.
+* Plus, our plugin seamlessly integrates into any existing theme or plugin, providing ultimate flexibility.
 
-= Optional 3rd-party Integrations =
+Experience the peace of mind that comes with Zero Spam for WordPress—your reliable shield against spam and malicious threats.
 
-Zero Spam allows you to integrate with other services to improve the ability to detect spam and malicious users. These services are optional and not required for Zero Spam to work. Before opting into any of these services, please review their terms of use and/or privacy policies.
+= Expert Support at Your Service =
 
-* **[Zero Spam](https://www.zerospam.org/)** - Sends the visitor's IP &amp; when available email to check the spam score. Review their [Privacy Policy](https://www.zerospam.org/privacy/) &amp; [Terms of Use](https://www.zerospam.org/terms/).
-* **[ipbase.com](https://ipbase.com/)** - Sends the visitor's IP to gather detailed geolocation information. Review their [Privacy Policy](https://ipbase.com/privacy-policy/) & [Terms of Use](https://www.iubenda.com/terms-and-conditions/41661719).
-* **[ipinfo.io](https://ipinfo.io/)** - Sends the visitor's IP to gather detailed geolocation information. Review their [Privacy Policy](https://ipinfo.io/privacy-policy) & [Terms of Use](https://ipinfo.io/terms-of-service).
-* **[ipstack](https://ipstack.com/)** - Sends the visitor's IP to gather detailed geolocation information. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://ipstack.com/terms).
-* **[Stop Forum Spam](https://www.stopforumspam.com/)** - Sends the visitor's IP to check if they've been reported. Review their [Privacy Policy](https://www.stopforumspam.com/privacy) & [Terms of Use](https://www.stopforumspam.com/legal).
-* **[Project Honeypot](https://www.projecthoneypot.org/)** - Sends the visitor's IP to check if they've been reported. Review their [Privacy Policy](https://www.projecthoneypot.org/privacy_policy.php) & [Terms of Use](https://www.projecthoneypot.org/terms_of_use.php).
-* **[Google Maps](https://developers.google.com/maps)** - Enables the ability to plot attack locations. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://developers.google.com/terms/site-terms).
+* Our dedicated team of highly-experienced developers is here to provide you with unparalleled support.
+* Have questions or need assistance? Join the vibrant support forum and tap into a wealth of knowledge.
+* Share your feedback, report bugs, or suggest new features on [Github](https://github.com/Highfivery/zero-spam-for-wordpress/issues) to help us continuously improve.
+* For direct inquiries or personalized assistance, feel free to [contact us directly](https://www.zerospam.org/contact).
 
-Optionally, you can also help improve Zero Spam by enabling sharing detection information. For more info on what's shared, see our [FAQ](https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ)
+With Zero Spam for WordPress, you not only get exceptional protection but also a reliable support system that ensures your peace of mind.
+
+= Enhance Detection with Optional 3rd-Party Integrations =
+
+Zero Spam for WordPress offers the flexibility to integrate with additional services, bolstering its ability to detect spam and malicious users. While these integrations are entirely optional and not mandatory for Zero Spam to function, they can provide valuable insights. Prior to opting into any of these services, we recommend reviewing their respective terms of use and privacy policies.
+
+* **[Zero Spam](https://www.zerospam.org/)** - Utilize their advanced spam score analysis by sharing visitor IP and, when available, email. Take a look at their [Privacy Policy](https://www.zerospam.org/privacy/) and [Terms of Use](https://www.zerospam.org/terms/) for more details.
+* **[ipbase.com](https://ipbase.com/)** - Access detailed geolocation information by sharing visitor IP. Familiarize yourself with their [Privacy Policy](https://ipbase.com/privacy-policy/) and [Terms of Use](https://www.iubenda.com/terms-and-conditions/41661719).
+* **[ipinfo.io](https://ipinfo.io/)** - Gather comprehensive geolocation details by sharing visitor IP. Refer to their [Privacy Policy](https://ipinfo.io/privacy-policy) and [Terms of Use](https://ipinfo.io/terms-of-service) for further information.
+* **[ipstack](https://ipstack.com/)** - Obtain extensive geolocation insights by sharing visitor IP. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) and [Terms of Use](https://ipstack.com/terms) to learn more.
+* **[Stop Forum Spam](https://www.stopforumspam.com/)** - Verify if visitors' IPs have been reported for spam-related activities. Explore their [Privacy Policy](https://www.stopforumspam.com/privacy) and [Terms of Use](https://www.stopforumspam.com/legal) for additional details.
+* **[Project Honeypot](https://www.projecthoneypot.org/)** - Check if visitors' IPs have been flagged for suspicious behavior. Refer to their [Privacy Policy](https://www.projecthoneypot.org/privacy_policy.php) and [Terms of Use](https://www.projecthoneypot.org/terms_of_use.php) for more information.
+* **[Google Maps](https://developers.google.com/maps)** - Enable plotting of attack locations on Google Maps. Please review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) and [Terms of Use](https://developers.google.com/terms/site-terms) for complete details.
+
+Additionally, you have the option to contribute to Zero Spam's improvement by enabling the sharing of detection information. For further information on the shared data, kindly refer to our [FAQ](https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ).
 
 == Installation ==
 
@@ -69,19 +80,19 @@ For more information & developer documentation, see the [wiki](https://github.co
 
 = Does Zero Spam for WordPress block user IPs? =
 
-*Not by itself.* Zero Spam for WordPress does not block IP addresses by itself. Visitors that are getting blocked have either been manually blocked by the site admin or appear in one of the IP blacklist like [Stop Forum Spam](https://www.stopforumspam.com/), [Project Honeypot](https://www.projecthoneypot.org/), or the [Zero Spam IP database](https://www.zerospam.org).
+*Not on its own.* Zero Spam for WordPress does not automatically block IP addresses. If a visitor is blocked, it could be due to manual blocking by the site admin or their presence in IP blacklists such as [Stop Forum Spam](https://www.stopforumspam.com/), [Project Honeypot](https://www.projecthoneypot.org/), or the [Zero Spam](https://www.zerospam.org).
 
-If a legitimate user is getting blocked, check the Log (Admin > Dashboard > Zero Spam > Log) to get further details why they were blocked. You can adjust how strict the 3rd-party blacklist checks are or disable those if you find that your users are prone to being flagged as spam/malicious.
+In the event that a legitimate user is blocked, refer to the Log (Admin > Dashboard > Zero Spam > Log) for further details on the reason behind the block. You have the flexibility to adjust the strictness of the 3rd-party blacklist checks or disable them if your users are prone to being flagged as spam or malicious.
 
 = Does Zero Spam for WordPress check Jetpack comments? =
 
-**No.** Zero Spam for WordPress is unable to integrate Jetpack. For more information, see [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments).
+**No, it doesn't.** Zero Spam for WordPress does not have integration with Jetpack. If you have any inquiries regarding this, please refer to [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments) for more details.
 
 = How do I boost performance of Zero Spam for WordPress? =
 
-**Enable caching.** Caching is highly recommended and will prevent repeated calls to third-party API and access checks on each page visit.
+**Enable caching for optimal performance.** Enabling caching is highly recommended as it helps prevent repetitive calls to third-party APIs and access checks during each page visit.
 
-You can also adjust the cache and API timeout settings in admin depending on your server and specific needs.
+To further optimize performance, you can adjust the cache and API timeout settings in the admin panel based on your server specifications and specific requirements.
 
 = Does Zero Spam support WP-CLI commands? =
 
