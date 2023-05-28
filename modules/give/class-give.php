@@ -70,7 +70,7 @@ class Give {
 				( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'give_form' ) )
 			) {
 				wp_enqueue_script( 'zerospam-davidwalsh' );
-				wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".give-form").ZeroSpamDavidWalsh();' );
+				wp_add_inline_script( 'zerospam-davidwalsh', 'document.addEventListener("DOMContentLoaded", function() { jQuery(".give-form").ZeroSpamDavidWalsh(); });' );
 			}
 		}
 	}

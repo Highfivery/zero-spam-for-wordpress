@@ -66,7 +66,7 @@ class Registration {
 		// Only add scripts to the appropriate pages.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery("#registerform").ZeroSpamDavidWalsh();' );
+			wp_add_inline_script( 'zerospam-davidwalsh', 'document.addEventListener("DOMContentLoaded", function() { jQuery("#registerform").ZeroSpamDavidWalsh(); });' );
 		}
 	}
 

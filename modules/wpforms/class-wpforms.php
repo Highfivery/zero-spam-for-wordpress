@@ -168,13 +168,11 @@ class WPForms {
 	 */
 	public function add_scripts() {
 		// Only add scripts to the appropriate pages.
-		if ( 
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_wpforms' ) &&
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
-		) {
+		if (  'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
+
 			add_action( 'wp_enqueue_scripts', function() {
-				wp_add_inline_script('zerospam-davidwalsh', '(function($) {$(function() { $(".wpforms-form").ZeroSpamDavidWalsh(); })})(jQuery)' );
+				wp_add_inline_script( 'zerospam-davidwalsh', 'document.addEventListener("DOMContentLoaded", function() { jQuery(".wpforms-form").ZeroSpamDavidWalsh(); });' );
 			} );
 		}
 	}
