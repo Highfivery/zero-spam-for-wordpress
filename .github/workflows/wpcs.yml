@@ -1,4 +1,4 @@
-name: WPCS check
+name: WPCS Check
 
 on: pull_request
 
@@ -8,7 +8,7 @@ jobs:
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v2
-        - name: WPCS check
+        - name: WPCS Check
           uses: 10up/wpcs-action@stable
           with:
             standard: 'WordPress'
