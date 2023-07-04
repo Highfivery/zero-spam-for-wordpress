@@ -10,7 +10,7 @@ Protect your WordPress website seamlessly with Zero Spam for WordPress! Eliminat
 
 Rest easy knowing that we utilize multiple detection methods to swiftly identify and halt potential threats. Whether it's pesky spam, devious trolls, or cunning hackers, Zero Spam is here to protect your website.
 
-= Worry-free, Powerful Protection at Your Fingertips =
+### Worry-free, Powerful Protection at Your Fingertips
 
 * No captchas or moderation queues — no longer a admin’s problem.
 * Our system dynamically blocks threats, keeping your site safe.
@@ -22,7 +22,7 @@ Rest easy knowing that we utilize multiple detection methods to swiftly identify
 * Block disposable & malicious email effortlessly with [disposable](https://github.com/disposable).
 * Multiple techniques, including the renowned solution by [David Walsh](https://davidwalsh.name/wordpress-comment-spam).
 
-= Seamlessly integrates with popular plugins including: =
+### Seamlessly integrates with popular plugins including:
 
 * [WooCommerce](https://wordpress.org/plugins/woocommerce/) — Secure customer registrations.
 * [GiveWP](https://givewp.com/ref/1118/) — Prevents attempts to test stolen credit cards.
@@ -32,7 +32,7 @@ Rest easy knowing that we utilize multiple detection methods to swiftly identify
 
 With Zero Spam for WordPress, you not only get exceptional protection but also a reliable support that ensures your peace of mind.
 
-= Enhance Detection with Optional 3rd-Party Integrations =
+### Enhance Detection with Optional 3rd-Party Integrations
 
 Zero Spam for WordPress can integrate optional services for enhanced spam detection. Before using these, we recommend reviewing their terms and privacy policies.
 
