@@ -148,7 +148,7 @@ class ipbase {
 		$queried_cache_key = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'ipinfo',
-				$ip,
+				$ip_address,
 			)
 		);
 
@@ -158,10 +158,10 @@ class ipbase {
 
 			$response_timeout = 5;
 			if ( ! empty( $settings['ipbase_api_timeout'] ) ) {
-				$timeout = intval( $settings['ipbase_api_timeout']['value'] );
+				$response_timeout = intval( $settings['ipbase_api_timeout']['value'] );
 			}
 
-			$response = \ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
+			$response = \ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $response_timeout ) );
 			if ( $response ) {
 				$result = json_decode( $response, true );
 
