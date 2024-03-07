@@ -24,7 +24,12 @@ class Access {
 	}
 
 	/**
-	 * Fires after WordPress has finished loading but before any headers are sent.
+	 * Initializes the class by setting up hooks and actions.
+	 *
+	 * This method is called during the WordPress initialization process. It
+	 * registers the 'template_redirect' action to perform access checks and
+	 * adds a filter for 'zerospam_access_checks' to determine if the current
+	 * request should be blocked.
 	 */
 	public function init() {
 		if ( ! is_admin() && is_main_query() && self::process() ) {
@@ -48,7 +53,7 @@ class Access {
 	 * @param int    $code    Optional. The HTTP status code to be sent in the header.
 	 *                        Defaults to 403 to indicate a Forbidden error.
 	 */
-	public static function die( $title, $message, $code = 403 ) {
+	public static function terminate_execution( $title, $message, $code = 403 ) {
 		header( 'Cache-Control: no-store, no-cache, must-revalidate, max-age=0' );
 		header( 'Cache-Control: post-check=0, pre-check=0', false );
 		header( 'Pragma: no-cache' );
@@ -118,19 +123,12 @@ class Access {
 			if ( ! empty( $settings['block_handler']['value'] ) ) {
 				switch ( $settings['block_handler']['value'] ) {
 					case 403:
-						add_action( 'send_headers', [ $this, 'prevent_cache_on_error_condition' ] );
-
 						$message = __( 'Your IP address has been blocked due to detected spam/malicious activity.', 'zero-spam' );
 						if ( ! empty( $settings['blocked_message']['value'] ) ) {
 							$message = $settings['blocked_message']['value'];
 						}
-						wp_die(
-							$message,
-							__( 'Blocked', 'zero-spam' ),
-							array(
-								'response' => 403,
-							)
-						);
+
+						self::terminate_execution( __( 'Blocked', 'zero-spam' ), $message );
 						break;
 					case 'redirect':
 						$url = 'https://wordpress.org/plugins/zero-spam/';

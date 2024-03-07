@@ -171,7 +171,7 @@ class Comments {
 				}
 			}
 
-			\ZeroSpam\Core\Access::die(
+			\ZeroSpam\Core\Access::terminate_execution(
 				\ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ),
 				$error_message
 			);
