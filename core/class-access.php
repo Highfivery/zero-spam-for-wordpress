@@ -41,11 +41,12 @@ class Access {
 	public static function process( $ignore_ajax = false ) {
 		$user_ip  = \ZeroSpam\Core\User::get_ip();
 
-		// Fix for .favicon requests.
-		if ( strpos( $_SERVER['REQUEST_URI'], '.ico' ) !== false ) {
+		// Check for .ico requests.
+		$path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+		if ( substr( $path, -4 ) === '.ico' ) {
 			return false;
 		}
-		
+
 		if ( $ignore_ajax && is_admin() || is_user_logged_in() || \ZeroSpam\Core\Utilities::is_whitelisted( $user_ip ) ) {
 			return false;
 		} elseif ( ! $ignore_ajax && ( is_admin() && ! wp_doing_ajax() ) || is_user_logged_in() ) {
