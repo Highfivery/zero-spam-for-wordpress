@@ -142,7 +142,7 @@ class DavidWalsh {
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( 'Comma-seperated list of custom form selectors that should use the <a href="%s" target="_blank" rel="noreferrer noopener">David Walsh technique</a>.', 'zero-spam' ),
+					__( 'Comma-separated list of custom form selectors that should use the <a href="%s" target="_blank" rel="noreferrer noopener">David Walsh technique</a>.', 'zero-spam' ),
 					array(
 						'a' => array(
 							'target' => array(),

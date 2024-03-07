@@ -165,7 +165,7 @@ class Access {
 	/**
 	 * Checks if an IP has been blocked
 	 *
-	 * @param array  $access_checks Array of exisiting access checks.
+	 * @param array  $access_checks Array of existing access checks.
 	 * @param string $user_ip The user's IP address.
 	 * @param array  $settings The plugin settings.
 	 */
