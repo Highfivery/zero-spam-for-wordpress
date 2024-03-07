@@ -63,9 +63,9 @@ class Give {
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
 		) {
 			if (
-				// Register and enqueue scripts on single GiveWP Form pages
+				// Register and enqueue scripts on single GiveWP Form pages.
 				is_singular( 'give_forms' ) ||
-				// Now check for whether the shortcode 'give_form' exists
+				// Now check for whether the shortcode 'give_form' exists.
 				( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'give_form' ) )
 			) {
 				wp_enqueue_script( 'zerospam-davidwalsh' );
