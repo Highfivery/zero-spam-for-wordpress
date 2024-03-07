@@ -42,14 +42,14 @@ class BlockedTable extends WP_List_Table {
 	public function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'user_ip':
-				return '<a href="' . ZEROSPAM_URL . 'ip-lookup/' . urlencode( $item[ $column_name ] ) .'" target="_blank" rel="noopener noreferrer">' . $item[ $column_name ] . '</a>';
+				return '<a href="' . ZEROSPAM_URL . 'ip-lookup/' . urlencode( $item[ $column_name ] ) . '" target="_blank" rel="noopener noreferrer">' . $item[ $column_name ] . '</a>';
 				break;
 			case 'date_added':
 			case 'start_block':
 			case 'end_block':
 				if (
 					! empty( $item['blocked_type'] ) &&
-					'permanent' ===  $item['blocked_type'] &&
+					'permanent' === $item['blocked_type'] &&
 					'end_block' === $column_name
 				) {
 					return 'N/A';
@@ -64,7 +64,7 @@ class BlockedTable extends WP_List_Table {
 				break;
 			case 'actions':
 				ob_start();
-					?>
+				?>
 					<button
 						class="button zerospam-block-trigger"
 						data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"
@@ -80,7 +80,7 @@ class BlockedTable extends WP_List_Table {
 					<a
 						class="button"
 						aria-label="<?php echo esc_attr( __( 'Delete block', 'zero-spam' ) ); ?>"
-						href="<?php echo wp_nonce_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&zerospam-action=delete-ip-block&zerospam-id=' . $item['blocked_id'] ), 'delete-ip-block', 'zero-spam' ) ?>"
+						href="<?php echo wp_nonce_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&zerospam-action=delete-ip-block&zerospam-id=' . $item['blocked_id'] ), 'delete-ip-block', 'zero-spam' ); ?>"
 					>
 						<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-trash.svg" width="13" />
 					</a>
@@ -104,8 +104,8 @@ class BlockedTable extends WP_List_Table {
 	 */
 	public function get_bulk_actions() {
 		$actions = array(
-			'delete'     => __( 'Delete Selected', 'zero-spam' ),
-			//'delete_all' => __( 'Delete All IPs', 'zero-spam' ),
+			'delete' => __( 'Delete Selected', 'zero-spam' ),
+			// 'delete_all' => __( 'Delete All IPs', 'zero-spam' ),
 		);
 
 		return $actions;
@@ -140,8 +140,8 @@ class BlockedTable extends WP_List_Table {
 		$order        = ! empty( $_REQUEST['order'] ) ? sanitize_key( $_REQUEST['order'] ) : 'desc';
 		$orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_sql_orderby( $_REQUEST['orderby'] ) : 'date_added';
 
-		$log_type   = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
-		$user_ip    = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
+		$log_type = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
+		$user_ip  = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
 
 		$query_args = array(
 			'limit'   => $per_page,
@@ -176,16 +176,16 @@ class BlockedTable extends WP_List_Table {
 
 		unset( $query_args['limit'] );
 		unset( $query_args['offset'] );
-		$data = ZeroSpam\Includes\DB::query( 'blocked', $query_args );
+		$data        = ZeroSpam\Includes\DB::query( 'blocked', $query_args );
 		$total_items = count( $data );
 
 		$this->set_pagination_args(
 			array(
 				'total_items' => $total_items,
 				'per_page'    => $per_page,
-				'total_pages'	=> ceil( $total_items / $per_page ),
-				'orderby'	    => $orderby,
-				'order'		    => $order,
+				'total_pages' => ceil( $total_items / $per_page ),
+				'orderby'     => $orderby,
+				'order'       => $order,
 			)
 		);
 
@@ -194,7 +194,7 @@ class BlockedTable extends WP_List_Table {
 		$paging_options = array();
 		if ( ! empty( $query_args['where'] ) ) {
 			foreach ( $query_args['where'] as $key => $value ) {
-				switch( $key ) {
+				switch ( $key ) {
 					case 'blocked_type':
 						$paging_options['type'] = $value['value'];
 						break;
@@ -246,7 +246,7 @@ class BlockedTable extends WP_List_Table {
 			<?php endif; ?>
 		</div>
 		<?php
-	 }
+	}
 
 	/**
 	 * Define table columns.
@@ -256,7 +256,7 @@ class BlockedTable extends WP_List_Table {
 	 */
 	public function get_columns() {
 		$columns = array(
-			'cb'            => '<input type="checkbox" />',
+			'cb'           => '<input type="checkbox" />',
 			'date_added'   => __( 'Date', 'zero-spam' ),
 			'blocked_type' => __( 'Type', 'zero-spam' ),
 			'user_ip'      => __( 'IP Address', 'zero-spam' ),
@@ -312,21 +312,21 @@ class BlockedTable extends WP_List_Table {
 
 		$ids = ( isset( $_REQUEST['ids'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['ids'] ) ) : '';
 
-		switch( $this->current_action() ) {
+		switch ( $this->current_action() ) {
 			case 'delete':
 				$nonce = ( isset( $_REQUEST['zerospam_nonce'] ) ) ? sanitize_text_field( $_REQUEST['zerospam_nonce'] ) : '';
 				if ( ! wp_verify_nonce( $nonce, 'zerospam_nonce' ) ) {
 					return false;
 				}
 
-				if ( ! empty ( $ids ) && is_array( $ids ) ) {
+				if ( ! empty( $ids ) && is_array( $ids ) ) {
 					foreach ( $ids as $k => $blocked_id ) {
 						ZeroSpam\Includes\DB::delete( 'blocked', 'blocked_id', $blocked_id );
 					}
 				}
 				break;
 			case 'delete_all':
-				//ZeroSpam\Includes\DB::delete_all( 'blocked' );
+				// ZeroSpam\Includes\DB::delete_all( 'blocked' );
 				break;
 		}
 	}

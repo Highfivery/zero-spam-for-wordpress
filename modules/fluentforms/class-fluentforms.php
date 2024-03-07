@@ -212,7 +212,7 @@ class FluentForms {
 	public function sections( $sections ) {
 		$sections['fluent_form'] = array(
 			'title' => __( 'Fluent Forms', 'zero-spam' ),
-			'icon'  => 'modules/fluentforms/icon-fluent-forms.svg'
+			'icon'  => 'modules/fluentforms/icon-fluent-forms.svg',
 		);
 
 		return $sections;

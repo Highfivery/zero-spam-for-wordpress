@@ -39,7 +39,7 @@ endif;
 				$lookup_url .= '?utm_medium=wpzerospam_ip_lookup&';
 				$lookup_url .= '?utm_campaign=wpzerospam';
 
-				echo sprintf(
+				printf(
 					wp_kses(
 						/* translators: %1s: Replaced with the IP address, %2$s Replaced with the IP lookup URL */
 						__( '%1$s &mdash; <a href="%2$s" target="_blank" rel="noreferrer noopener" class="zerospam-new-window-link">IP Lookup</a>', 'zero-spam' ),

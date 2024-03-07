@@ -135,14 +135,14 @@ class Utilities {
 		// Check the email domain.
 		if ( function_exists( 'checkdnsrr' ) ) {
 			$email_domain = substr( $email, strpos( $email, '@' ) + 1 );
-			if ( ! checkdnsrr( $email_domain, "MX" ) ) {
-				if ( ! ( checkdnsrr( $email_domain, "A" ) ) || ! ( checkdnsrr( $email_domain, "AAAA" ) ) ) {
+			if ( ! checkdnsrr( $email_domain, 'MX' ) ) {
+				if ( ! ( checkdnsrr( $email_domain, 'A' ) ) || ! ( checkdnsrr( $email_domain, 'AAAA' ) ) ) {
 					return false;
 				}
 			}
 		}
 
-		return true;;
+		return true;
 	}
 
 	/**
@@ -299,9 +299,9 @@ class Utilities {
 		}
 
 		// Write the log file.
-		$file_path  = $upload_dir . '/' . $file . '.log';
-		$file       = fopen( $file_path, $mode );
-		$bytes      = fwrite( $file, current_time( 'mysql' ) . "::" . $entry . "\n" );
+		$file_path = $upload_dir . '/' . $file . '.log';
+		$file      = fopen( $file_path, $mode );
+		$bytes     = fwrite( $file, current_time( 'mysql' ) . '::' . $entry . "\n" );
 		fclose( $file );
 
 		return $bytes;
@@ -724,7 +724,6 @@ class Utilities {
 		$url .= $request_uri ? $request_uri : '';
 
 		if ( $request_uri && $params ) {
-
 
 			if ( strpos( $request_uri, '?' ) ) {
 				$url .= '&' . implode( '&', $params );

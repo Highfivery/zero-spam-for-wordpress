@@ -93,6 +93,11 @@ Some hosts have issues with they way they access files. If you're seeing a `ftp_
 
 If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs/plugins-known-issues#define-fs_method) for more information and what to do to resolve it with their `$_ENV['PANTHEON_ENVIRONMENT']` variable check.
 
+= Where do I report security bugs found in this plugin? =
+
+Please report security bugs found in the source code of the WordPress Zero Spam plugin through the [Patchstack
+Vulnerability Disclosure Program](YOUR_MVDP_URL_HERE). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
+
 == Screenshots ==
 
 1. Dashboard
@@ -102,6 +107,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Add blocked location
 
 == Changelog ==
+
+= v5.x.x =
+
+* feat(patchstack): integrating patchstack faqs
 
 = v5.5.2 =
 

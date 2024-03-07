@@ -6,7 +6,7 @@
  */
 
 if ( empty( $entries ) ) {
-	echo sprintf(
+	printf(
 		wp_kses(
 			__( 'Nothing to report yet.', 'zero-spam' ),
 			array(
@@ -36,7 +36,7 @@ $predefined_colors = array(
 $data   = array();
 $labels = array();
 for ( $x = 0; $x < 14; $x++ ) {
-	$time     = strtotime('-' . $x . ' days');
+	$time     = strtotime( '-' . $x . ' days' );
 	$date_key = gmdate( 'M. j', $time );
 
 	foreach ( $entries as $key => $entry ) {
@@ -51,7 +51,7 @@ for ( $x = 0; $x < 14; $x++ ) {
 				if ( empty( $data[ $entry['country_name'] ] ) ) {
 					$data[ $entry['country_name'] ] = 1;
 				} else {
-					$data[ $entry['country_name'] ]++;
+					++$data[ $entry['country_name'] ];
 				}
 			} else {
 				if ( ! in_array( __( 'Unknown', 'zero-spam' ), $labels ) ) {
@@ -61,7 +61,7 @@ for ( $x = 0; $x < 14; $x++ ) {
 				if ( empty( $data['unknown'] ) ) {
 					$data['unknown'] = 1;
 				} else {
-					$data['unknown']++;
+					++$data['unknown'];
 				}
 			}
 		}

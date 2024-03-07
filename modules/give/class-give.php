@@ -59,13 +59,12 @@ class Give {
 		global $post;
 
 		// Only add scripts to the appropriate pages.
-		if ( 
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_givewp' ) &&
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_givewp' ) &&
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
 		) {
 			if (
 				// Register and enqueue scripts on single GiveWP Form pages
-				is_singular('give_forms') ||
+				is_singular( 'give_forms' ) ||
 				// Now check for whether the shortcode 'give_form' exists
 				( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'give_form' ) )
 			) {
@@ -204,7 +203,7 @@ class Give {
 					/* translators: %s: url */
 					__( 'Protect <a href="%s" target="_blank" rel="noreferrer noopener">GiveWP</a> Submissions', 'zero-spam' ),
 					array(
-						'a'    => array(
+						'a' => array(
 							'href'   => array(),
 							'class'  => array(),
 							'target' => array(),

@@ -154,7 +154,7 @@ class ipbase {
 
 		$result = wp_cache_get( $queried_cache_key );
 		if ( false === $result ) {
-			$endpoint  = esc_url( "https://api.ipbase.com/json/$ip_address?apikey=" . $plugin_settings['ipbase_api_key']['value'] );
+			$endpoint = esc_url( "https://api.ipbase.com/json/$ip_address?apikey=" . $plugin_settings['ipbase_api_key']['value'] );
 
 			$response_timeout = 5;
 			if ( ! empty( $settings['ipbase_api_timeout'] ) ) {

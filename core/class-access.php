@@ -39,7 +39,7 @@ class Access {
 	 * @param boolean $ignore_ajax True if AJAX shouldn't be checked.
 	 */
 	public static function process( $ignore_ajax = false ) {
-		$user_ip  = \ZeroSpam\Core\User::get_ip();
+		$user_ip = \ZeroSpam\Core\User::get_ip();
 
 		// Check for .ico requests.
 		$path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
@@ -153,7 +153,7 @@ class Access {
 		}
 
 		if ( $blocked ) {
-			$access_check['blocked']            = true;
+			$access_check['blocked']           = true;
 			$access_check['type']              = 'blocked';
 			$access_check['details']           = $blocked_record;
 			$access_check['details']['failed'] = $failed;

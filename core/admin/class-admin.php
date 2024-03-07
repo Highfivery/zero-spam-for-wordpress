@@ -67,7 +67,7 @@ class Admin {
 			<div style="background-color: #f6f7f7; padding: 25px; margin-bottom: 20px; border-left: 4px solid #72aee6;">
 				<h3>
 					<?php
-					echo sprintf(
+					printf(
 						wp_kses(
 							/* translators: %s: Zero Spam API link */
 							__( '<strong>Super-charge WordPress Zero Spam with a <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam API License</a>.</strong>', 'zero-spam' ),
@@ -85,7 +85,7 @@ class Admin {
 					?>
 				</h3>
 				<?php
-				echo sprintf(
+				printf(
 					wp_kses(
 						/* translators: %s: Zero Spam API link */
 						__( '<p><strong>Enable enhanced protection</strong> and super-charge your site with the power of a global detection network that monitors traffic and usage in real-time to detect malicious activity.</p>', 'zero-spam' ),

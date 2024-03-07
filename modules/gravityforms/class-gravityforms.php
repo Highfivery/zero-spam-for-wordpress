@@ -85,8 +85,8 @@ class GravityForms {
 	 * @see https://givewp.com/documentation/developers/conditionally-load-give-styles-and-scripts/
 	 */
 	public function add_scripts() {
-		//wp_enqueue_script( 'zerospam-davidwalsh' );
-		//wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".give-form").ZeroSpamDavidWalsh();' );
+		// wp_enqueue_script( 'zerospam-davidwalsh' );
+		// wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".give-form").ZeroSpamDavidWalsh();' );
 	}
 
 
@@ -96,9 +96,9 @@ class GravityForms {
 	 * @see https://docs.gravityforms.com/gform_form_tag/#h-add-hidden-input
 	 *
 	 * @param string $form_tag The string containing the <form> tag
-	 * @param array $form The current form object to be filtered.
+	 * @param array  $form The current form object to be filtered.
 	 */
-	public function add_honeypot( $form_tag,  $form ) {
+	public function add_honeypot( $form_tag, $form ) {
 		$form_tag .= \ZeroSpam\Core\Utilities::honeypot_field();
 
 		return $form_tag;
@@ -117,7 +117,7 @@ class GravityForms {
 	/**
 	 * Processes a donation submission.
 	 *
-	 * @param boolean $do_abort Indicates if the submission should abort without saving the entry. Default is false. Will be true if the anti-spam honeypot is enabled and the honeypot identified the submission as spam.
+	 * @param boolean    $do_abort Indicates if the submission should abort without saving the entry. Default is false. Will be true if the anti-spam honeypot is enabled and the honeypot identified the submission as spam.
 	 * @param FormObject $form The form currently being processed.
 	 */
 	public function process_form( $do_abort, $form ) {
@@ -183,7 +183,7 @@ class GravityForms {
 					/* translators: %s: url */
 					__( 'Protect <a href="%s" target="_blank" rel="noreferrer noopener">Gravity Form</a> Submissions', 'zero-spam' ),
 					array(
-						'a'    => array(
+						'a' => array(
 							'href'   => array(),
 							'class'  => array(),
 							'target' => array(),
@@ -204,7 +204,7 @@ class GravityForms {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
+		$message                               = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
 		$settings['gravityforms_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
 			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
@@ -227,7 +227,7 @@ class GravityForms {
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => false
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_gravityforms'] ) ? $options['log_blocked_gravityforms'] : false,
 			'recommended' => 'enabled',
