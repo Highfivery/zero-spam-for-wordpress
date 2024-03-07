@@ -54,7 +54,7 @@ class ZeroSpamCLI {
 				}
 			}
 		} else {
-			WP_CLI::error( __( 'Opps! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zero-spam' ) );
+			WP_CLI::error( __( 'Oops! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zero-spam' ) );
 		}
 	}
 }

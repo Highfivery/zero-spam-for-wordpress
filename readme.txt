@@ -205,7 +205,7 @@ Vulnerability Disclosure Program](YOUR_MVDP_URL_HERE). The Patchstack team will 
 
 = v5.3.4 =
 
-* fix(notice): removed dismiss button on intial install to ensure plugin settings are configured before use
+* fix(notice): removed dismiss button on initial install to ensure plugin settings are configured before use
 
 = v5.3.3 =
 
@@ -330,7 +330,7 @@ Vulnerability Disclosure Program](YOUR_MVDP_URL_HERE). The Patchstack team will 
 * feat(email domains): resolves #246, ability to block disposable and malicious email domains
 * perf(sharing): sharing detections optimized
 * perf(disallowed list): removed the unused cron to sync disallowed words
-* chore(disallowed list): updated to the lastest splorp's disallowed list
+* chore(disallowed list): updated to the latest splorp's disallowed list
 * docs(htaccess): added a notice & recommended max number of blocked ips when using .htaccess
 * fix(ipinfo): fix for uncaught ipinfo exception
 
