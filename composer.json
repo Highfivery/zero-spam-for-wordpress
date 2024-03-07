@@ -1,37 +1,36 @@
 {
-	"name": "bmarshall511/wordpress_zero_spam",
-	"description": "WordPress Zero Spam makes blocking spam & malicious visitors a cinch. Just install, activate and enjoy a spam-free site.",
-	"keywords": ["wordpress-plugin"],
+	"name": "highfivery/zero-spam-for-wordpress",
+	"description": "No spam, no scams, just seamless experiences with Zero Spam for WordPress - the shield your site deserves.",
 	"type": "wordpress-plugin",
-	"homepage": "https://www.zerospam.org/",
+	"keywords": ["wordpress", "plugin", "zerospam", "spam"],
+	"license": "GPL-2.0-only",
+	"minimum-stability": "dev",
+	"prefer-stable": true,
 	"authors": [
 		{
-			"name": "Ben Marshall (bmarshall)",
-			"homepage": "https://www.benmarshall.me",
-			"role": "Maintainer"
+			"name": "Ben Marshall",
+			"email": "me@benmarshall.me",
+			"homepage": "https://www.benmarshall.me"
+		},
+		{
+			"name": "Highfivery",
+			"email": "info@highfivery.com",
+			"homepage": "https://highfivery.com"
 		}
 	],
-	"support": {
-		"issues": "https://github.com/bmarshall511/wordpress-zero-spam/issues"
-	},
-	"license": "GPL-2.0-or-later",
-	"minimum-stability": "stable",
 	"repositories": [
 		{
-			"type": "package",
-			"package": {
-				"name": "bmarshall511/wordpress-zero-spam",
-				"version": "master",
-				"source": {
-					"url": "git://github.com/bmarshall511/wordpress-zero-spam.git",
-					"type": "git",
-					"reference": "master"
-				}
-			}
+		  "type":"composer",
+		  "url":"https://wpackagist.org"
 		}
 	],
 	"require": {
 		"php" : ">=7.2",
 		"ipinfo/ipinfo": "^2.3"
+	},
+	"extra": {
+		"installer-paths": {
+			"vendor/{$name}/": ["type:wordpress-plugin"]
+		}
 	}
 }
