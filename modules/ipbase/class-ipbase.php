@@ -28,6 +28,54 @@ class ipbase {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zero_spam_ip_address_details', array( $this, 'ip_address_details' ), 10, 2 );
+		add_filter( 'zerospam_log_record', array( $this, 'log_record' ) );
+	}
+
+	/**
+	 * Log record filter.
+	 *
+	 * @param array $record DB record entry.
+	 */
+	public function log_record( $record ) {
+		$location = self::ip_address_details( $record['user_ip'] );
+		if ( $location ) {
+
+			$location = json_decode( wp_json_encode( $location ), true );
+
+			if ( ! empty( $location['country_code'] ) ) {
+				$record['country'] = $location['country_code'];
+			}
+
+			if ( ! empty( $location['country_name'] ) ) {
+				$record['country_name'] = $location['country_name'];
+			}
+
+			if ( ! empty( $location['region_code'] ) ) {
+				$record['region'] = $location['region_code'];
+			}
+
+			if ( ! empty( $location['region_name'] ) ) {
+				$record['region_name'] = $location['region_name'];
+			}
+
+			if ( ! empty( $location['city'] ) ) {
+				$record['city'] = $location['city'];
+			}
+
+			if ( ! empty( $location['latitude'] ) ) {
+				$record['latitude'] = $location['latitude'];
+			}
+
+			if ( ! empty( $location['longitude'] ) ) {
+				$record['longitude'] = $location['longitude'];
+			}
+
+			if ( ! empty( $location['postal'] ) ) {
+				$record['zip'] = $location['postal'];
+			}
+		}
+
+		return $record;
 	}
 
 	/**
@@ -108,7 +156,7 @@ class ipbase {
 	 *
 	 * @param string $ip_address_details IP address details.
 	 */
-	public function ip_address_details( $ip_address, $ip_address_details ) {
+	public function ip_address_details( $ip_address, $ip_address_details = [] ) {
 		$response_mapping = array(
 			'country_code' => 'country_code',
 			'country_name' => 'country_name',
@@ -154,7 +202,7 @@ class ipbase {
 
 		$result = wp_cache_get( $queried_cache_key );
 		if ( false === $result ) {
-			$endpoint  = esc_url( "https://api.ipbase.com/json/$ip_address?apikey=" . $plugin_settings['ipbase_api_key']['value'] );
+			$endpoint = esc_url( "https://api.ipbase.com/json/$ip_address?apikey=" . $plugin_settings['ipbase_api_key']['value'] );
 
 			$response_timeout = 5;
 			if ( ! empty( $settings['ipbase_api_timeout'] ) ) {
