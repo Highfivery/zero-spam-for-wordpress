@@ -103,6 +103,10 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 == Changelog ==
 
+= v5.5.2 =
+
+* fix(vulnerability): fix for bypass using .ico in url or adjusting the x-forwarded-for header
+
 = v5.5.1 =
 
 * fix(david walsh): fix for jquery not defined error, related to the zerospamdavidwalsh method, resolves #359
