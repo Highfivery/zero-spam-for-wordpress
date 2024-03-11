@@ -38,7 +38,7 @@ class ipstack {
 	public function sections( $sections ) {
 		$sections['ipstack'] = array(
 			'title' => __( 'ipstack (geolocation)', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-ipstack.svg'
+			'icon'  => 'assets/img/icon-ipstack.svg',
 		);
 
 		return $sections;
@@ -185,7 +185,7 @@ class ipstack {
 				$result = json_decode( $response, true );
 
 				if ( ! empty( $result ) && ! empty( $result['error'] ) ) {
-					\ZeroSpam\Core\Utilities::log( 'ipstack: ' . json_encode( $result['error'] ));
+					\ZeroSpam\Core\Utilities::log( 'ipstack: ' . wp_json_encode( $result['error'] ) );
 
 					return false;
 				}

@@ -46,7 +46,7 @@ class StopForumSpam {
 	public function sections( $sections ) {
 		$sections['stop_forum_spam'] = array(
 			'title' => __( 'Stop Forum Spam', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-stop-forum-spam.png'
+			'icon'  => 'assets/img/icon-stop-forum-spam.png',
 		);
 
 		return $sections;

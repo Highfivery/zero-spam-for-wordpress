@@ -6,7 +6,7 @@
  */
 
 if ( empty( $entries ) ) {
-	echo sprintf(
+	printf(
 		wp_kses(
 			__( '<strong>Good news!</strong> There haven\'t been any detections of malicious or spammy IPs yet.', 'zero-spam' ),
 			array(
@@ -51,26 +51,26 @@ foreach ( $entries as $key => $entry ) {
 		$coord_key = $entry['latitude'] . $entry['longitude'];
 		if ( empty( $coords[ $coord_key ] ) ) {
 			$coords_data[ $coord_key ] = 1;
-			$coords[ $coord_key ] = array(
+			$coords[ $coord_key ]      = array(
 				'latLng' => array(
 					$entry['latitude'],
-					$entry['longitude']
-				)
+					$entry['longitude'],
+				),
 			);
-			$locations[ $coord_key ] = array(
+			$locations[ $coord_key ]   = array(
 				'name'  => $name,
 				'count' => 0,
 			);
 		} else {
-			$coords_data[ $coord_key ]++;
-			$locations[ $coord_key ]['count']++;
+			++$coords_data[ $coord_key ];
+			++$locations[ $coord_key ]['count'];
 		}
 	}
 
 	if ( ! empty( $entry['country'] ) ) {
 
 		if ( array_key_exists( $entry['country'], $regions_data ) ) {
-			$regions_data[ $entry['country'] ]++;
+			++$regions_data[ $entry['country'] ];
 		} else {
 			$regions_data[ $entry['country'] ] = 1;
 		}

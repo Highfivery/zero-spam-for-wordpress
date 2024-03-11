@@ -81,7 +81,6 @@ class Dashboard {
 		$record['start_block']  = sanitize_text_field( $_POST['blocked_start_date'] );
 		$record['end_block']    = sanitize_text_field( $_POST['blocked_end_date'] );
 
-
 		if ( ! empty( $record['user_ip'] ) && ! rest_is_ip_address( $record['user_ip'] ) ) {
 			wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=Invalid IP address.' );
 			exit;
@@ -107,7 +106,7 @@ class Dashboard {
 			$record['end_block'] = gmdate( 'Y-m-d G:i:s', strtotime( $record['end_block'] ) );
 		}
 
-		if ( 'temporary' === $record['blocked_type'] && ! $record['end_block']  ) {
+		if ( 'temporary' === $record['blocked_type'] && ! $record['end_block'] ) {
 			wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=Missing block end date.' );
 			exit;
 		}
@@ -121,7 +120,7 @@ class Dashboard {
 		\ZeroSpam\Core\Utilities::refresh_htaccess();
 
 		wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=success&zerospam-msg=Record has been successfully added/updated.' );
-  	exit;
+		exit;
 	}
 
 	/**
@@ -158,25 +157,49 @@ class Dashboard {
 				<div class="zerospam-dashboard__col">
 					<ul class="zerospam-dashboard__sections">
 						<li>
-							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=reports" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'reports' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>">
+							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=reports" ) ); ?>" class="zerospam-dashboard__menu-link
+												<?php
+												if ( 'reports' === $subview ) :
+													echo 'zerospam-dashboard__menu-link--active';
+endif;
+												?>
+							">
 								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-reports.svg" class="zerospam-dashboard__menu-icon" />
 								<?php esc_html_e( 'Dashboard', 'zero-spam' ); ?>
 							</a>
 						</li>
 						<li>
-							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=log" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'log' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>">
+							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=log" ) ); ?>" class="zerospam-dashboard__menu-link
+												<?php
+												if ( 'log' === $subview ) :
+													echo 'zerospam-dashboard__menu-link--active';
+endif;
+												?>
+							">
 								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-log.svg" class="zerospam-dashboard__menu-icon" />
 								<?php esc_html_e( 'Log', 'zero-spam' ); ?>
 							</a>
 						</li>
 						<li>
-							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=blocked-ips" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'blocked-ips' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>">
+							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=blocked-ips" ) ); ?>" class="zerospam-dashboard__menu-link
+												<?php
+												if ( 'blocked-ips' === $subview ) :
+													echo 'zerospam-dashboard__menu-link--active';
+endif;
+												?>
+							">
 								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-blocked.svg" class="zerospam-dashboard__menu-icon" />
 								<?php esc_html_e( 'Blocked IPs', 'zero-spam' ); ?>
 							</a>
 						</li>
 						<li>
-							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=blocked-locations" ) ); ?>" class="zerospam-dashboard__menu-link <?php if ( 'blocked-locations' === $subview ) : echo 'zerospam-dashboard__menu-link--active'; endif; ?>">
+							<a href="<?php echo esc_url( admin_url( "$base_admin_link&subview=blocked-locations" ) ); ?>" class="zerospam-dashboard__menu-link
+												<?php
+												if ( 'blocked-locations' === $subview ) :
+													echo 'zerospam-dashboard__menu-link--active';
+endif;
+												?>
+							">
 								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-location.svg" class="zerospam-dashboard__menu-icon" />
 							<?php esc_html_e( 'Blocked Locations', 'zero-spam' ); ?>
 							</a>
@@ -189,7 +212,7 @@ class Dashboard {
 				</div>
 				<div class="zerospam-dashboard__col">
 					<?php if ( ! empty( $_REQUEST['zerospam-msg'] ) ) : ?>
-						<div class="zerospam-block zerospam-block--notice zerospam-block--<?php echo ! empty( $_REQUEST['zerospam-type'] ) ? esc_attr( $_REQUEST['zerospam-type'] ) : 'default' ?>">
+						<div class="zerospam-block zerospam-block--notice zerospam-block--<?php echo ! empty( $_REQUEST['zerospam-type'] ) ? esc_attr( $_REQUEST['zerospam-type'] ) : 'default'; ?>">
 							<div class="zerospam-block__content">
 								<?php echo sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ); ?>
 							</div>
@@ -303,13 +326,13 @@ class Dashboard {
 						case 'blocked-ips':
 							$block_method = \ZeroSpam\Core\Settings::get_settings( 'block_method' );
 							if ( ! empty( $block_method ) && 'php' !== $block_method ) :
-								echo sprintf(
+								printf(
 									wp_kses(
 										/* translators: %s: url */
 										__( '<p>When using .htaccess &amp; due to <a href="%s" target="_blank" rel="noreferrer noopener">character limit restrictions</a>, <strong>no more than 170 blocked IP addresses recommended</strong>.</p>', 'zero-spam' ),
 										array(
 											'strong' => array(),
-											'a'    => array(
+											'a'      => array(
 												'target' => array(),
 												'href'   => array(),
 												'rel'    => array(),
@@ -331,15 +354,15 @@ class Dashboard {
 							</form>
 							<?php
 							break;
-							case 'blocked-locations':
-								if (
-									! \ZeroSpam\Core\Settings::get_settings( 'ipstack_api' ) &&
-									! \ZeroSpam\Core\Settings::get_settings( 'ipinfo_access_token' )
-								) :
-									?>
+						case 'blocked-locations':
+							if (
+								! \ZeroSpam\Core\Settings::get_settings( 'ipstack_api' ) &&
+								! \ZeroSpam\Core\Settings::get_settings( 'ipinfo_access_token' )
+							) :
+								?>
 									<div class="zerospam-block zerospam-block--error">
 										<div class="zerospam-block__content">
-											<?php _e( '<strong>Blocking locations is currently disabled.</strong> A valid ipstack API key or IPinfo access token is required.', 'zero-spam' ); ?>
+										<?php _e( '<strong>Blocking locations is currently disabled.</strong> A valid ipstack API key or IPinfo access token is required.', 'zero-spam' ); ?>
 										</div>
 									</div>
 								<?php endif; ?>
@@ -348,10 +371,10 @@ class Dashboard {
 								$table_data->prepare_items();
 								?>
 								<form class="zerospam-table-form" method="post">
-									<?php wp_nonce_field( 'zerospam_nonce', 'zerospam_nonce' ); ?>
+								<?php wp_nonce_field( 'zerospam_nonce', 'zerospam_nonce' ); ?>
 									<input type="hidden" name="paged" value="1" />
-									<?php $table_data->search_box( __( 'Search IPs', 'zero-spam' ), 'search-ip' ); ?>
-									<?php $table_data->display(); ?>
+								<?php $table_data->search_box( __( 'Search IPs', 'zero-spam' ), 'search-ip' ); ?>
+								<?php $table_data->display(); ?>
 								</form>
 								<?php
 							break;

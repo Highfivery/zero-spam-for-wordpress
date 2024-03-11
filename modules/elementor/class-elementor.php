@@ -75,7 +75,7 @@ class Elementor {
 			'title'       => wp_kses(
 				__( 'Protect Form Submissions', 'zero-spam' ),
 				array(
-					'a'    => array(
+					'a' => array(
 						'href'   => array(),
 						'class'  => array(),
 						'target' => array(),
@@ -93,7 +93,7 @@ class Elementor {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
+		$message                           = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
 		$settings['elementor_flagged_msg'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
 			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
@@ -114,7 +114,7 @@ class Elementor {
 				array( 'strong' => array() )
 			),
 			'options'     => array(
-				'enabled' => false
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['elementor_log_flagged_attempts'] ) ? $options['elementor_log_flagged_attempts'] : false,
 			'recommended' => 'enabled',
@@ -129,14 +129,13 @@ class Elementor {
 	 * @param \ElementorPro\Modules\Forms\Registrars\Form_Fields_Registrar $form_fields_registrar
 	 */
 	public function register_fields( $form_fields_registrar ) {
-		//require_once ZEROSPAM_PATH . 'modules/elementor/fields/class-honeypot.php';
+		// require_once ZEROSPAM_PATH . 'modules/elementor/fields/class-honeypot.php';
 	}
 
 	/**
 	 * Validates form on submission
 	 */
 	public function validate_form( $record, $ajax_handler ) {
-
 	}
 
 	/**

@@ -38,7 +38,6 @@ class Debug {
 	public function debug_ip( $ip ) {
 		$debug_ip = \ZeroSpam\Core\Settings::get_settings( 'debug_ip' );
 
-
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'debug' ) &&
 			! empty( $debug_ip )
@@ -57,7 +56,7 @@ class Debug {
 	public function sections( $sections ) {
 		$sections['debug'] = array(
 			'title' => __( 'Debug', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-bug.svg'
+			'icon'  => 'assets/img/icon-bug.svg',
 		);
 
 		return $sections;
@@ -93,7 +92,7 @@ class Debug {
 				)
 			),
 			'section'     => 'debug',
-			'module'  => 'debug',
+			'module'      => 'debug',
 			'type'        => 'text',
 			'placeholder' => '127.0.0.1',
 			'value'       => ! empty( $options['debug_ip'] ) ? $options['debug_ip'] : false,

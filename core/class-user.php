@@ -29,7 +29,7 @@ class User {
 			'HTTP_X_CLUSTER_CLIENT_IP',
 			'HTTP_FORWARDED_FOR',
 			'HTTP_FORWARDED',
-			'REMOTE_ADDR'
+			'REMOTE_ADDR',
 		];
 
 		foreach ( $ip_sources as $source ) {

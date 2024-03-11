@@ -151,9 +151,13 @@ class WooCommerce {
 		// Only add scripts to the appropriate pages.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			add_action( 'wp_footer', function() {
-				echo '<script type="text/javascript">jQuery(".woocommerce-form-register, .woocommerce-checkout").ZeroSpamDavidWalsh();</script>';
-			}, 999 );
+			add_action(
+				'wp_footer',
+				function () {
+					echo '<script type="text/javascript">jQuery(".woocommerce-form-register, .woocommerce-checkout").ZeroSpamDavidWalsh();</script>';
+				},
+				999
+			);
 		}
 	}
 

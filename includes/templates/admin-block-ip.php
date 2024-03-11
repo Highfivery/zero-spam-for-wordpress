@@ -6,7 +6,11 @@
  */
 ?>
 
-<form method="post" class="zerospam-table-form<?php if ( ! empty( $location_form ) ) : ?> zerospam-block-location-form<?php endif; ?>" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
+<form method="post" class="zerospam-table-form
+<?php
+if ( ! empty( $location_form ) ) :
+	?>
+	zerospam-block-location-form<?php endif; ?>" action="<?php echo esc_url( admin_url( 'admin.php' ) ); ?>">
 <?php wp_nonce_field( 'zerospam', 'zerospam' ); ?>
 <input type="hidden" name="action" value="add_blocked_ip" />
 
@@ -18,11 +22,17 @@
 				d="blocked-ip"
 				type="text"
 				name="blocked_ip"
-				value="<?php if( ! empty( $_REQUEST['ip'] ) ) : echo esc_attr( $_REQUEST['ip'] ); endif; ?>"
+				value="
+				<?php
+				if ( ! empty( $_REQUEST['ip'] ) ) :
+					echo esc_attr( $_REQUEST['ip'] );
+endif;
+				?>
+				"
 				placeholder="e.g. xxx.xxx.x.x"
 			/>
 		</div>
-	<?php else: ?>
+	<?php else : ?>
 		<div class="zerospam-form-field zerospam-form-field--half">
 			<label for="location-type"><?php esc_html_e( 'Location Type', 'zero-spam' ); ?></label>
 			<select id="location-type" name="key_type">
@@ -77,7 +87,7 @@
 
 <?php if ( empty( $location_form ) ) : ?>
 	<input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Add/Update Blocked IP →', 'zero-spam' ); ?>" />
-<?php else: ?>
+<?php else : ?>
 	<input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Add/Update Blocked Location →', 'zero-spam' ); ?>" />
 <?php endif; ?>
 </form>

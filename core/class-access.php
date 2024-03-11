@@ -24,7 +24,12 @@ class Access {
 	}
 
 	/**
-	 * Fires after WordPress has finished loading but before any headers are sent.
+	 * Initializes the class by setting up hooks and actions.
+	 *
+	 * This method is called during the WordPress initialization process. It
+	 * registers the 'template_redirect' action to perform access checks and
+	 * adds a filter for 'zerospam_access_checks' to determine if the current
+	 * request should be blocked.
 	 */
 	public function init() {
 		if ( ! is_admin() && is_main_query() && self::process() ) {
@@ -34,22 +39,58 @@ class Access {
 	}
 
 	/**
+	 * Terminates execution with a custom error message and HTTP status code.
+	 *
+	 * Registers an action to prevent caching on error conditions by setting
+	 * appropriate HTTP headers before leveraging WordPress's wp_die() function
+	 * to produce an error page with a specified message, title, and HTTP status
+	 * code.
+	 *
+	 * @param string $title   The text to be used as the page title for the error message.
+	 *                        This content will be sanitized to remove unwanted HTML.
+	 * @param string $message The error message to display. This content will be escaped
+	 *                        to ensure only safe HTML is included.
+	 * @param int    $code    Optional. The HTTP status code to be sent in the header.
+	 *                        Defaults to 403 to indicate a Forbidden error.
+	 */
+	public static function terminate_execution( $title, $message, $code = 403 ) {
+		header( 'Cache-Control: no-store, no-cache, must-revalidate, max-age=0' );
+		header( 'Cache-Control: post-check=0, pre-check=0', false );
+		header( 'Pragma: no-cache' );
+
+		wp_die(
+			wp_kses_post( $message ),
+			esc_html( $title ),
+			[
+				'response' => esc_html( $code ),
+			]
+		);
+	}
+
+	/**
 	 * Determines is security checks need to be triggers.
 	 *
 	 * @param boolean $ignore_ajax True if AJAX shouldn't be checked.
 	 */
 	public static function process( $ignore_ajax = false ) {
-		$user_ip  = \ZeroSpam\Core\User::get_ip();
+		if ( empty( $_SERVER['REQUEST_URI'] ) ) {
+			return false;
+		}
+
+		$user_ip = \ZeroSpam\Core\User::get_ip();
+
+		// Sanitize the REQUEST_URI before further processing.
+		$request_uri = esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) );
 
 		// Check for .ico requests.
-		$path = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+		$path = wp_parse_url( $request_uri, PHP_URL_PATH );
 		if ( substr( $path, -4 ) === '.ico' ) {
 			return false;
 		}
 
-		if ( $ignore_ajax && is_admin() || is_user_logged_in() || \ZeroSpam\Core\Utilities::is_whitelisted( $user_ip ) ) {
+		if ( ( $ignore_ajax && is_admin() ) || is_user_logged_in() || \ZeroSpam\Core\Utilities::is_whitelisted( $user_ip ) ) {
 			return false;
-		} elseif ( ! $ignore_ajax && ( is_admin() && ! wp_doing_ajax() ) || is_user_logged_in() ) {
+		} elseif ( ! $ignore_ajax && ( ( is_admin() && ! wp_doing_ajax() ) || is_user_logged_in() ) ) {
 			return false;
 		}
 
@@ -82,21 +123,12 @@ class Access {
 			if ( ! empty( $settings['block_handler']['value'] ) ) {
 				switch ( $settings['block_handler']['value'] ) {
 					case 403:
-						header( 'Cache-Control: no-cache, no-store, must-revalidate' );
-						header( 'Pragma: no-cache' );
-						header( 'Expires: 0' );
-
 						$message = __( 'Your IP address has been blocked due to detected spam/malicious activity.', 'zero-spam' );
 						if ( ! empty( $settings['blocked_message']['value'] ) ) {
 							$message = $settings['blocked_message']['value'];
 						}
-						wp_die(
-							$message,
-							__( 'Blocked', 'zero-spam' ),
-							array(
-								'response' => 403,
-							)
-						);
+
+						self::terminate_execution( __( 'Blocked', 'zero-spam' ), $message );
 						break;
 					case 'redirect':
 						$url = 'https://wordpress.org/plugins/zero-spam/';
@@ -153,7 +185,7 @@ class Access {
 		}
 
 		if ( $blocked ) {
-			$access_check['blocked']            = true;
+			$access_check['blocked']           = true;
 			$access_check['type']              = 'blocked';
 			$access_check['details']           = $blocked_record;
 			$access_check['details']['failed'] = $failed;
@@ -165,7 +197,7 @@ class Access {
 	/**
 	 * Checks if an IP has been blocked
 	 *
-	 * @param array  $access_checks Array of exisiting access checks.
+	 * @param array  $access_checks Array of existing access checks.
 	 * @param string $user_ip The user's IP address.
 	 * @param array  $settings The plugin settings.
 	 */
