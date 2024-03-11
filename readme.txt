@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 6.2.2
+Tested up to: 6.4.3
 Requires PHP: 7.4
-Stable tag: 5.5.1
+Stable tag: 5.5.3
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -107,9 +107,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= v5.x.x =
+= v5.5.3 =
 
 * feat(patchstack): integrating patchstack faqs
+* fix(coding standards): updates to better comply with wp coding standards
 
 = v5.5.2 =
 
