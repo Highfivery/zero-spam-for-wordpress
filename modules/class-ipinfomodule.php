@@ -7,7 +7,7 @@
 
 namespace ZeroSpam\Modules;
 
-use \ipinfo\ipinfo\IPinfo;
+use ipinfo\ipinfo\IPinfo;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -40,7 +40,7 @@ class IPinfoModule {
 	public function sections( $sections ) {
 		$sections['ipinfo'] = array(
 			'title' => __( 'IPinfo (geolocation)', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-ipinfo.svg'
+			'icon'  => 'assets/img/icon-ipinfo.svg',
 		);
 
 		return $sections;

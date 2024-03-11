@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 6.2.2
+Tested up to: 6.4.3
 Requires PHP: 7.4
-Stable tag: 5.5.2
+Stable tag: 5.5.3
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -93,6 +93,10 @@ Some hosts have issues with they way they access files. If you're seeing a `ftp_
 
 If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs/plugins-known-issues#define-fs_method) for more information and what to do to resolve it with their `$_ENV['PANTHEON_ENVIRONMENT']` variable check.
 
+= Where do I report security bugs found in this plugin? =
+
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/zero-spam)
+
 == Screenshots ==
 
 1. Dashboard
@@ -102,6 +106,11 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 5. Add blocked location
 
 == Changelog ==
+
+= v5.5.3 =
+
+* feat(patchstack): integrating patchstack faqs
+* fix(coding standards): updates to better comply with wp coding standards
 
 = v5.5.2 =
 
@@ -196,7 +205,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = v5.3.4 =
 
-* fix(notice): removed dismiss button on intial install to ensure plugin settings are configured before use
+* fix(notice): removed dismiss button on initial install to ensure plugin settings are configured before use
 
 = v5.3.3 =
 
@@ -321,7 +330,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 * feat(email domains): resolves #246, ability to block disposable and malicious email domains
 * perf(sharing): sharing detections optimized
 * perf(disallowed list): removed the unused cron to sync disallowed words
-* chore(disallowed list): updated to the lastest splorp's disallowed list
+* chore(disallowed list): updated to the latest splorp's disallowed list
 * docs(htaccess): added a notice & recommended max number of blocked ips when using .htaccess
 * fix(ipinfo): fix for uncaught ipinfo exception
 

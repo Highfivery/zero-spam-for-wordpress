@@ -47,16 +47,14 @@ class ZeroSpamCLI {
 			foreach ( $assoc_args as $key => $value ) {
 				if ( ! isset( $settings[ $key ] ) ) {
 					WP_CLI::error( $key . ' is not a valid setting.' );
-				} else {
-					if ( \ZeroSpam\Core\Utilities::update_setting( $key, $value ) ) {
+				} elseif ( \ZeroSpam\Core\Utilities::update_setting( $key, $value ) ) {
 						WP_CLI::success( '\'' . $key . '\' has been successfully updated to \'' . $value . '\'.' );
-					} else {
-						WP_CLI::error( 'There was a problem updating ' . $key . ' See the zerospam.log for more details.' );
-					}
+				} else {
+					WP_CLI::error( 'There was a problem updating ' . $key . ' See the zerospam.log for more details.' );
 				}
 			}
 		} else {
-			WP_CLI::error( __( 'Opps! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zero-spam' ) );
+			WP_CLI::error( __( 'Oops! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zero-spam' ) );
 		}
 	}
 }

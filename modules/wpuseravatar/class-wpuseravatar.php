@@ -40,7 +40,7 @@ class WPUserAvatar {
 			\ZeroSpam\Core\Access::process()
 		) {
 			// Can't currently support the David Walsh method due to how the plugin has been built, see https://wordpress.org/support/topic/zero-spam-support/#post-16762404
-			//add_filter( 'ppress_registration_form', array( $this, 'add_scripts' ), 10, 1 );
+			// add_filter( 'ppress_registration_form', array( $this, 'add_scripts' ), 10, 1 );
 			add_filter( 'ppress_form_field_structure', array( $this, 'add_honeypot_field' ), 10, 2 );
 			add_filter( 'ppress_registration_validation', array( $this, 'process_registration_form' ), 10, 3 );
 		}
@@ -63,7 +63,8 @@ class WPUserAvatar {
 	/**
 	 * Load the scripts
 	 */
-	/*public function add_scripts( $structure ) {
+	/*
+	public function add_scripts( $structure ) {
 		// Only add scripts to the appropriate pages.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
@@ -76,7 +77,7 @@ class WPUserAvatar {
 	/**
 	 * Preprocess registrations
 	 */
-	public function process_registration_form($reg_errors, $form_id, $user_data) {
+	public function process_registration_form( $reg_errors, $form_id, $user_data ) {
 		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
 
 		// Get the error message.

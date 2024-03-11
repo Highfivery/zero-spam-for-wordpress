@@ -135,14 +135,14 @@ class Utilities {
 		// Check the email domain.
 		if ( function_exists( 'checkdnsrr' ) ) {
 			$email_domain = substr( $email, strpos( $email, '@' ) + 1 );
-			if ( ! checkdnsrr( $email_domain, "MX" ) ) {
-				if ( ! ( checkdnsrr( $email_domain, "A" ) ) || ! ( checkdnsrr( $email_domain, "AAAA" ) ) ) {
+			if ( ! checkdnsrr( $email_domain, 'MX' ) ) {
+				if ( ! ( checkdnsrr( $email_domain, 'A' ) ) || ! ( checkdnsrr( $email_domain, 'AAAA' ) ) ) {
 					return false;
 				}
 			}
 		}
 
-		return true;;
+		return true;
 	}
 
 	/**
@@ -299,16 +299,16 @@ class Utilities {
 		}
 
 		// Write the log file.
-		$file_path  = $upload_dir . '/' . $file . '.log';
-		$file       = fopen( $file_path, $mode );
-		$bytes      = fwrite( $file, current_time( 'mysql' ) . "::" . $entry . "\n" );
+		$file_path = $upload_dir . '/' . $file . '.log';
+		$file      = fopen( $file_path, $mode );
+		$bytes     = fwrite( $file, current_time( 'mysql' ) . '::' . $entry . "\n" );
 		fclose( $file );
 
 		return $bytes;
 	}
 
 	/**
-	 * Validates submitted data agaisnt the WP core disallowed list.
+	 * Validates submitted data against the WP core disallowed list.
 	 */
 	public static function is_disallowed( $content ) {
 		$disallowed_keys = trim( get_option( 'disallowed_keys' ) );
@@ -725,7 +725,6 @@ class Utilities {
 
 		if ( $request_uri && $params ) {
 
-
 			if ( strpos( $request_uri, '?' ) ) {
 				$url .= '&' . implode( '&', $params );
 			} else {
@@ -768,7 +767,7 @@ class Utilities {
 	 * @return boolean|array False if geolocation is unavailable or array of location information.
 	 */
 	public static function geolocation( $ip ) {
-		// The standarized location array that will be returned.
+		// The standardized location array that will be returned.
 		$location_details = array(
 			'type'           => false,
 			'hostname'       => false,
@@ -803,7 +802,7 @@ class Utilities {
 				// ipstack returned an error, log it for future reference.
 				self::log( wp_json_encode( $ipstack_location['error'] ) );
 			} else {
-				// Add available location info to the standarized array.
+				// Add available location info to the standardized array.
 				if ( ! empty( $ipstack_location['type'] ) ) {
 					$location_details['type'] = $ipstack_location['type'];
 				}
@@ -856,7 +855,7 @@ class Utilities {
 		$ipinfo_location = ZeroSpam\Modules\IPinfoModule::get_geolocation( $ip );
 		if ( ! empty( $ipinfo_location ) ) {
 			// IPinfo token provided, process the response.
-			// Add available location info to the standarized array.
+			// Add available location info to the standardized array.
 			if ( ! empty( $ipinfo_location['hostname'] ) ) {
 				$location_details['hostname'] = $ipinfo_location['hostname'];
 			}

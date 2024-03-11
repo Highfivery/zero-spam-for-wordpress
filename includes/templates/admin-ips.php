@@ -6,7 +6,7 @@
  */
 
 if ( empty( $entries ) ) {
-	echo sprintf(
+	printf(
 		wp_kses(
 			__( 'Nothing to report.', 'zero-spam' ),
 			array(
@@ -20,7 +20,7 @@ if ( empty( $entries ) ) {
 
 $data = array();
 for ( $x = 0; $x < 30; $x++ ) {
-	$time     = strtotime('-' . $x . ' days');
+	$time     = strtotime( '-' . $x . ' days' );
 	$date_key = gmdate( 'M. j', $time );
 
 	foreach ( $entries as $key => $entry ) {
@@ -32,7 +32,7 @@ for ( $x = 0; $x < 30; $x++ ) {
 					'count' => 1,
 				);
 			} else {
-				$data[ $entry['user_ip'] ]['count']++;
+				++$data[ $entry['user_ip'] ]['count'];
 			}
 
 			if ( ! empty( $entry['country'] ) ) {
@@ -42,9 +42,12 @@ for ( $x = 0; $x < 30; $x++ ) {
 	}
 }
 
-uasort($data, function($a, $b){
-	return $b['count'] <=> $a['count'];
-});
+uasort(
+	$data,
+	function ( $a, $b ) {
+		return $b['count'] <=> $a['count'];
+	}
+);
 
 array_splice( $data, 12 );
 ?>
@@ -53,16 +56,23 @@ array_splice( $data, 12 );
 	$limit = 12;
 	$cnt   = 0;
 	foreach ( $data as $ip => $info ) :
-		$cnt++;
+		++$cnt;
 		if ( $cnt > $limit ) {
 			break;
 		}
 
 		$blocked = ZeroSpam\Includes\DB::blocked( $ip );
 		?>
-		<li class="zerospam-list__item<?php if ( $blocked ) : ?> zerospam-list__item--blocked<?php endif; ?>">
+		<li class="zerospam-list__item
+		<?php
+		if ( $blocked ) :
+			?>
+			zerospam-list__item--blocked<?php endif; ?>">
 			<span class="zerospam-list__value zerospam-list__value--label">
-			<?php if ( $blocked ) : ?><span class="zerospam-tag"><?php _e( 'Blocked', 'zero-spam' ); ?></span><?php endif; ?>
+			<?php
+			if ( $blocked ) :
+				?>
+				<span class="zerospam-tag"><?php _e( 'Blocked', 'zero-spam' ); ?></span><?php endif; ?>
 				<?php if ( ! empty( $info['country'] ) ) : ?>
 					<img
 						src="<?php echo esc_url( ZeroSpam\Core\Utilities::country_flag_url( $info['country'] ) ); ?>"

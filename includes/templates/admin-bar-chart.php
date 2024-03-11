@@ -6,7 +6,7 @@
  */
 
 if ( empty( $entries ) ) {
-	echo sprintf(
+	printf(
 		wp_kses(
 			__( 'Nothing to report.', 'zero-spam' ),
 			array(
@@ -48,7 +48,7 @@ $datasets['detections'] = array(
 );
 
 for ( $x = 0; $x < 24; $x++ ) {
-	$time     = strtotime('-' . $x . ' hour');
+	$time     = strtotime( '-' . $x . ' hour' );
 	$date_key = gmdate( 'ga', $time );
 
 	$labels[] = $date_key;
@@ -63,7 +63,7 @@ for ( $x = 0; $x < 24; $x++ ) {
 			if ( empty( $datasets['detections']['data'][ $date_key ] ) ) {
 				$datasets['detections']['data'][ $date_key ] = 1;
 			} else {
-				$datasets['detections']['data'][ $date_key ]++;
+				++$datasets['detections']['data'][ $date_key ];
 			}
 		}
 	}

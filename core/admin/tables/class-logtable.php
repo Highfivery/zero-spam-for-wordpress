@@ -99,7 +99,7 @@ class LogTable extends WP_List_Table {
 				return $type;
 				break;
 			case 'user_ip':
-				return '<a href="' . ZEROSPAM_URL . 'ip-lookup/' . urlencode( $item[ $column_name ] ) .'" target="_blank" rel="noopener noreferrer">' . $item[ $column_name ] . '</a>';
+				return '<a href="' . ZEROSPAM_URL . 'ip-lookup/' . urlencode( $item[ $column_name ] ) . '" target="_blank" rel="noopener noreferrer">' . $item[ $column_name ] . '</a>';
 				break;
 			case 'date_recorded':
 				$date_time_format = 'm/d/Y g:ia';
@@ -149,7 +149,7 @@ class LogTable extends WP_List_Table {
 					$country_name = ! empty( $item['country_name'] ) ? $item['country_name'] : false;
 					$flag         = ZeroSpam\Core\Utilities::country_flag_url( $item[ $column_name ] );
 
-					$return = '<img src="' . $flag. '" width="16" height="16" alt="' . esc_attr( $country_name . ' (' . $item[ $column_name ] . ')' ) . '" class="zerospam-flag" />';
+					$return = '<img src="' . $flag . '" width="16" height="16" alt="' . esc_attr( $country_name . ' (' . $item[ $column_name ] . ')' ) . '" class="zerospam-flag" />';
 					if ( $country_name ) {
 						$return .= $country_name . ' (' . $item[ $column_name ] . ')';
 					} else {
@@ -212,9 +212,8 @@ class LogTable extends WP_List_Table {
 		$country  = ! empty( $_REQUEST['country'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['country'] ) ) : false;
 		$user_ip  = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : false;
 
-
 		$database_query_arguments = [];
-		
+
 		// Define the database table.
 		$database_table = $wpdb->prefix . \ZeroSpam\Includes\DB::$tables['log'];
 
@@ -243,17 +242,17 @@ class LogTable extends WP_List_Table {
 		$where_statement = '';
 
 		if ( $log_type ) {
-			$where_array[] = "`log_type` = %s";
+			$where_array[]              = '`log_type` = %s';
 			$database_query_arguments[] = $log_type;
 		}
 
 		if ( $country ) {
-			$where_array[] = "`country` = %s";
+			$where_array[]              = '`country` = %s';
 			$database_query_arguments[] = $country;
 		}
 
 		if ( $user_ip ) {
-			$where_array[] = "`user_ip` = %s";
+			$where_array[]              = '`user_ip` = %s';
 			$database_query_arguments[] = $user_ip;
 		}
 
@@ -261,7 +260,6 @@ class LogTable extends WP_List_Table {
 			$where_statement .= 'WHERE ';
 			$where_statement .= implode( ' AND ', $where_array );
 		}
-
 
 		// Limit.
 		$limit_statement = "LIMIT $per_page";
@@ -331,7 +329,11 @@ class LogTable extends WP_List_Table {
 			<select name="type" id="filter-by-type">
 				<option value=""><?php _e( 'All types', 'zero-spam' ); ?></option>
 				<?php foreach ( $options as $key => $value ) : ?>
-					<option<?php if ( $current_type === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $value['label'] ); ?></option>
+					<option
+					<?php
+					if ( $current_type === $key ) :
+						?>
+						selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $value['label'] ); ?></option>
 				<?php endforeach; ?>
 			</select>
 
@@ -342,7 +344,11 @@ class LogTable extends WP_List_Table {
 			<select name="country" id="filter-by-country">
 				<option value=""><?php _e( 'All countries', 'zero-spam' ); ?></option>
 				<?php foreach ( ZeroSpam\Core\Utilities::countries() as $key => $value ) : ?>
-					<option<?php if ( $current_country === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $value ); ?></option>
+					<option
+					<?php
+					if ( $current_country === $key ) :
+						?>
+						selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $value ); ?></option>
 				<?php endforeach; ?>
 			</select>
 			<?php
@@ -350,7 +356,7 @@ class LogTable extends WP_List_Table {
 			?>
 		</div>
 		<?php
-	 }
+	}
 
 	/**
 	 * Process bulk actions
@@ -363,11 +369,11 @@ class LogTable extends WP_List_Table {
 			return false;
 		}
 
-		$ids = array_map( 'sanitize_text_field',  $_REQUEST['ids'] );
+		$ids = array_map( 'sanitize_text_field', $_REQUEST['ids'] );
 
 		switch ( $this->current_action() ) {
 			case 'delete':
-				if ( ! empty ( $ids ) && is_array( $ids ) ) {
+				if ( ! empty( $ids ) && is_array( $ids ) ) {
 					foreach ( $ids as $k => $log_id ) {
 						\ZeroSpam\Includes\DB::delete( 'log', 'log_id', $log_id );
 					}

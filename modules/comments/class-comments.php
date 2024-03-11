@@ -67,7 +67,7 @@ class Comments {
 	 */
 	public function add_scripts() {
 		// Only add scripts to the appropriate pages.
-		if ( 
+		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_comments' ) &&
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
 		) {
@@ -171,22 +171,9 @@ class Comments {
 				}
 			}
 
-			wp_die(
-				wp_kses(
-					$error_message,
-					array(
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-						'strong' => array(),
-					)
-				),
-				esc_html( \ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ) ),
-				array(
-					'response' => 403,
-				)
+			\ZeroSpam\Core\Access::terminate_execution(
+				\ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ),
+				$error_message
 			);
 		}
 

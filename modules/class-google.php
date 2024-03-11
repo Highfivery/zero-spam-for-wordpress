@@ -46,7 +46,7 @@ class Google {
 				'key' => $settings['google_api']['value'],
 				'q'   => $coordinates,
 			);
-			$url .= http_build_query( $url_params );
+			$url       .= http_build_query( $url_params );
 
 			$api_key
 			?>
@@ -70,7 +70,7 @@ class Google {
 	public function sections( $sections ) {
 		$sections['google'] = array(
 			'title' => __( 'Google Map', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-google.svg'
+			'icon'  => 'assets/img/icon-google.svg',
 		);
 
 		return $sections;
@@ -96,7 +96,7 @@ class Google {
 					/* translators: %1$s: Replaced with the Google API key URL */
 					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Google API key</a> for Google Maps integration.', 'zero-spam' ),
 					array(
-						'a'      => array(
+						'a' => array(
 							'target' => array(),
 							'href'   => array(),
 							'rel'    => array(),

@@ -96,7 +96,7 @@ class DavidWalsh {
 	public function sections( $sections ) {
 		$sections['davidwalsh'] = array(
 			'title' => __( 'David Walsh', 'zero-spam' ),
-			'icon'  => 'modules/davidwalsh/icon-david-walsh.png'
+			'icon'  => 'modules/davidwalsh/icon-david-walsh.png',
 		);
 
 		return $sections;
@@ -142,7 +142,7 @@ class DavidWalsh {
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( 'Comma-seperated list of custom form selectors that should use the <a href="%s" target="_blank" rel="noreferrer noopener">David Walsh technique</a>.', 'zero-spam' ),
+					__( 'Comma-separated list of custom form selectors that should use the <a href="%s" target="_blank" rel="noreferrer noopener">David Walsh technique</a>.', 'zero-spam' ),
 					array(
 						'a' => array(
 							'target' => array(),
@@ -188,7 +188,16 @@ class DavidWalsh {
 	}
 
 	/**
-	 * Returns the generated DavidWalsh key for checking submissions.
+	 * Retrieves or generates a new 'davidwalsh' key.
+	 *
+	 * This function attempts to retrieve the 'zerospam_davidwalsh' option from
+	 * the WordPress database. If the option does not exist or if the
+	 * `$regenerate` parameter is true, a new 5-character password is generated
+	 * without any special characters or digits and updated in the database as
+	 * the new 'zerospam_davidwalsh' option value.
+	 *
+	 * @param bool $regenerate Optional. Whether to regenerate the 'davidwalsh' key even if it already exists. Default false.
+	 * @return string The 'davidwalsh' key value.
 	 */
 	public static function get_davidwalsh( $regenerate = false ) {
 		$key = get_option( 'zerospam_davidwalsh' );
