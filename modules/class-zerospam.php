@@ -1,69 +1,72 @@
-<?php
+<?php // phpcs:ignore
 /**
- * Zero Spam class
+ * Zero Spam class for enhanced site protection.
+ *
+ * Handles the core functionality of interacting with the Zero Spam API,
+ * managing site settings for spam prevention, and reporting detections.
  *
  * @package ZeroSpam
  */
 
 namespace ZeroSpam\Modules;
 
-// Security Note: Blocks direct access to the plugin PHP files.
-defined( 'ABSPATH' ) || die();
+defined( 'ABSPATH' ) || exit; // Prevent direct access.
 
 /**
- * Zero Spam
+ * Core class for Zero Spam functionality.
  */
 class Zero_Spam {
 	/**
-	 * Constructor
+	 * Class constructor.
+	 *
+	 * Adds necessary hooks for initialization.
 	 */
 	public function __construct() {
-		add_action( 'init', array( $this, 'init' ) );
+		add_action( 'init', [ $this, 'init' ] );
 	}
 
 	/**
+	 * Initialization.
+	 *
 	 * Fires after WordPress has finished loading but before any headers are sent.
+	 * Registers plugin filters and actions.
 	 */
 	public function init() {
-		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
-
-		// Fires when a user submission has been detected as spam.
-		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
+		add_filter( 'zerospam_setting_sections', [ $this, 'sections' ] );
+		add_filter( 'zerospam_settings', [ $this, 'settings' ], 10, 1 );
+		add_action( 'zerospam_share_detection', [ $this, 'share_detection' ], 10, 1 );
 
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'zerospam' ) &&
 			\ZeroSpam\Core\Access::process()
 		) {
-			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 2 );
+			add_filter( 'zerospam_access_checks', [ $this, 'access_check' ], 10, 2 );
 		}
 	}
 
 	/**
-	 * Site access check
+	 * Site access check.
 	 *
-	 * Determines if a visitor should be blocked from accessing the site based off
-	 * the results of the zerospam.org API query.
+	 * Determines if a visitor should be blocked based on the zerospam.org API query results.
 	 *
-	 * @param array  $access_checks Access check results from previous checks.
-	 * @param string $user_ip       The visitor's IP address.
+	 * @param array  $access_checks Existing access check results.
+	 * @param string $user_ip       Visitor's IP address.
+	 * @return array Updated access checks with Zero Spam results.
 	 */
 	public function access_check( $access_checks, $user_ip ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
 
-		// Create the access check result for Zero Spam.
-		$access_checks['zero_spam'] = array(
+		$access_checks['zero_spam'] = [
 			'blocked' => false,
-		);
+		];
 
-		// Query the Zero Spam API for the visitor's IP address.
-		$response = self::query( array( 'ip' => $user_ip ) );
+		$response = self::query( [ 'ip' => $user_ip ] );
 		if ( $response && ! empty( $response['ip_addresses'][ $user_ip ] ) ) {
 			$ip_data              = $response['ip_addresses'][ $user_ip ];
-			$min_confidence_score = floatval( $settings['zerospam_confidence_min']['value'] );
+			$min_confidence_score = (float) $settings['zerospam_confidence_min']['value'];
 
 			if ( ! empty( $ip_data['confidence'] ) ) {
-				$confidence_score = floatval( $ip_data['confidence'] ) * 100;
+				$confidence_score = (float) $ip_data['confidence'] * 100;
 
 				if ( $confidence_score >= $min_confidence_score ) {
 					$access_checks['zero_spam']['blocked'] = true;
@@ -73,7 +76,6 @@ class Zero_Spam {
 			}
 		}
 
-		// Return the updated access checks array.
 		return $access_checks;
 	}
 
@@ -85,7 +87,7 @@ class Zero_Spam {
 	public function sections( $sections ) {
 		$sections['zerospam'] = array(
 			'title' => __( 'Enhanced Protection', 'zero-spam' ),
-			'icon'  => 'assets/img/icon.svg'
+			'icon'  => 'assets/img/icon.svg',
 		);
 
 		return $sections;
@@ -102,7 +104,7 @@ class Zero_Spam {
 		$settings['zerospam'] = array(
 			'title'       => __( 'Status', 'zero-spam' ),
 			'section'     => 'zerospam',
-			'module'  => 'zerospam',
+			'module'      => 'zerospam',
 			'type'        => 'checkbox',
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
@@ -147,7 +149,7 @@ class Zero_Spam {
 				esc_url( ZEROSPAM_URL . 'product/premium/' )
 			),
 			'section'     => 'zerospam',
-			'module'  => 'zerospam',
+			'module'      => 'zerospam',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
 			'placeholder' => __( 'Enter your Zero Spam license key.', 'zero-spam' ),
@@ -161,7 +163,7 @@ class Zero_Spam {
 		$settings['zerospam_timeout'] = array(
 			'title'       => __( 'API Timeout', 'zero-spam' ),
 			'section'     => 'zerospam',
-			'module'  => 'zerospam',
+			'module'      => 'zerospam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'seconds', 'zero-spam' ),
@@ -175,7 +177,7 @@ class Zero_Spam {
 		$settings['zerospam_cache'] = array(
 			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'zerospam',
-			'module'  => 'zerospam',
+			'module'      => 'zerospam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
@@ -189,7 +191,7 @@ class Zero_Spam {
 		$settings['zerospam_confidence_min'] = array(
 			'title'       => __( 'Confidence Minimum', 'zero-spam' ),
 			'section'     => 'zerospam',
-			'module'  => 'zerospam',
+			'module'      => 'zerospam',
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( '%', 'zero-spam' ),
@@ -225,7 +227,7 @@ class Zero_Spam {
 		$api_data                   = array();
 		$api_data['reporter_email'] = sanitize_email( get_bloginfo( 'admin_email' ) );
 		$api_data['app_key']        = \ZeroSpam\Core\Utilities::clean_domain( esc_url( site_url() ) );
-		$api_data['app_type']       = 'wordpress';
+		$api_data['app_type']       = 'WordPress';
 		$api_data['app_details']    = array(
 			'app_version'      => sanitize_text_field( get_bloginfo( 'version' ) ),
 			'app_type_version' => sanitize_text_field( ZEROSPAM_VERSION ),
@@ -239,132 +241,126 @@ class Zero_Spam {
 	}
 
 	/**
-	 * Share detection details with zerospam.org
+	 * Shares detection details with zerospam.org.
 	 *
-	 * @param array $data Contains all detection details.
+	 * @param array $data Contains all detection details. Must include 'type' and may include 'failed'.
+	 * @return true|WP_Error True on success, WP_Error on failure.
 	 */
 	public function share_detection( $data ) {
-		// Check to make sure a report hasn't been submitted recently.
-		$last_api_report_submitted = get_site_option( 'zero_spam_last_api_request' );
+		if ( ! is_array( $data ) || empty( $data['type'] ) ) {
+			return new WP_Error( 'invalid_data', __( 'Invalid or incomplete detection data provided.', 'zero-spam' ) );
+		}
 
+		$last_api_report_submitted = get_site_option( 'zero_spam_last_api_request' );
 		if ( $last_api_report_submitted ) {
 			$last_api_report_submitted = new \DateTime( $last_api_report_submitted );
 			$current_time              = new \DateTime();
-
-			$minutes_diff = $last_api_report_submitted->diff( $current_time );
-			if ( $minutes_diff->i < 5 ) {
-				return false;
+			if ( $last_api_report_submitted->diff( $current_time )->i < 30 ) {
+				return new WP_Error( 'too_frequent', __( 'API requests are throttled to every 30 minutes.', 'zero-spam' ) );
 			}
 		}
 
 		$endpoint = ZEROSPAM_URL . 'wp-json/v5.4/report/';
-
-		$ip = \ZeroSpam\Core\User::get_ip();
-
-		if ( ! $ip || ! $data || ! is_array( $data ) || empty( $data['type'] ) ) {
-			return false;
+		$ip       = \ZeroSpam\Core\User::get_ip();
+		if ( ! $ip ) {
+			return new WP_Error( 'ip_retrieval_failed', __( 'IP address retrieval failed.', 'zero-spam' ) );
 		}
 
-		$api_data = array(
+		$api_data = [
 			'report_type'   => 'ip_address',
 			'report_module' => sanitize_text_field( $data['type'] ),
 			'report_key'    => sanitize_text_field( $ip ),
-			'report_failed' => sanitize_text_field( $data['failed'] ),
-		);
+			'report_failed' => isset( $data['failed'] ) ? sanitize_text_field( $data['failed'] ) : '',
+		];
 
-		// Add data that should be included in every API report.
 		$global_data = self::global_api_data();
 		$api_data    = array_merge( $api_data, $global_data );
 
-		// Send the data to zerospam.org.
-		$args = array(
-			'body' => array( 'data' => $api_data ),
-		);
-
-		// Send IP report
-		$response = wp_remote_post( $endpoint, $args );
+		$response = wp_remote_post( $endpoint, [ 'body' => [ 'data' => $api_data ] ] );
 		if ( is_wp_error( $response ) ) {
-			//echo $response->get_error_message();
+			return new WP_Error( 'api_request_failed', __( 'API request failed.', 'zero-spam' ), [ 'details' => $response->get_error_message() ] );
 		}
 
-		// Send email report if needed.
-		$valid_email_fields = array(
-			'comment_author_email', // Comments
-			'user_email', // Registration
-			'email', // WooCommerce Registration
-			'post' => array( // Mailchimp
-				'EMAIL'
-			),
-			'data' => array( // Give
-				'give_email'
-			)
-		);
+		// Process email fields.
+		$valid_email_fields = [
+			'comment_author_email', // Comments.
+			'user_email',           // Registration.
+			'email',                // WooCommerce Registration.
+			'post' => [             // Mailchimp.
+				'EMAIL',
+			],
+			'data' => [             // Give.
+				'give_email',
+			],
+		];
 
-		$valid_name_fields = array(
-			'comment_author', // Comment
-			'user_login', // Register
-			'username', // WooCommerce Registration
-			'data' => array( // Give
+		$valid_name_fields = [
+			'comment_author', // Comment.
+			'user_login',     // Register.
+			'username',       // WooCommerce Registration.
+			'data' => [       // Give.
 				'give_first',
 				'give_last',
-			)
-		);
+			],
+		];
 
-		$report_details = array(
-			'report_type'   => 'email_address',
-			'report_module' => sanitize_text_field( $data['type'] ),
-			'report_failed' => sanitize_text_field( $data['failed'] ),
-			'email_details' => array(
-				'names'     => array(),
-				'companies' => array(),
-				'titles'    => array(),
-				'phones'    => array(),
-				'locations' => array(),
-			)
-		);
 		foreach ( $valid_email_fields as $key => $field ) {
 			if ( is_array( $field ) ) {
-				foreach( $field as $k => $f ) {
+				foreach ( $field as $f ) {
 					if ( ! empty( $data[ $key ][ $f ] ) && \ZeroSpam\Core\Utilities::is_email( $data[ $key ][ $f ] ) ) {
-						$report_details['report_key'] = sanitize_email( $data[ $key ][ $f ] );
-						break;
+						$email = sanitize_email( $data[ $key ][ $f ] );
+						break 2; // Exit both loops.
 					}
 				}
 			} elseif ( ! empty( $data[ $field ] ) && \ZeroSpam\Core\Utilities::is_email( $data[ $field ] ) ) {
-				$report_details['report_key'] = sanitize_email( $data[ $field ] );
-			}
-
-			if ( ! empty( $report_details['report_key'] ) ) {
-				foreach ( $valid_name_fields as $k => $f ) {
-					if ( is_array( $f ) ) {
-						$name = '';
-						foreach( $f as $k1 => $f1 ) {
-							if ( ! empty( $data[ $k ][ $f1 ] ) ) {
-								if ( $name ) { $name .= " "; }
-								$name .= $data[ $k ][ $f1 ];
-							}
-						}
-
-						$report_details['email_details']['names'][] = sanitize_text_field( $name );
-					} elseif ( ! empty( $data[ $f ] ) ) {
-						$report_details['email_details']['names'][] = sanitize_text_field( $data[ $f ] );
-					}
-				}
-
-				$args = array(
-					'body' => array(
-						'data' => array_merge( $report_details, $global_data )
-					)
-				);
-
-				$response = wp_remote_post( $endpoint, $args );
-
-				// Only send one email report per detection
-				break;
+				$email = sanitize_email( $data[ $field ] );
+				break; // Exit the loop.
 			}
 		}
 
+		if ( ! empty( $email ) ) {
+			$report_details = [
+				'report_type'   => 'email_address',
+				'report_module' => sanitize_text_field( $data['type'] ),
+				'report_key'    => $email,
+				'report_failed' => isset( $data['failed'] ) ? sanitize_text_field( $data['failed'] ) : '',
+				'email_details' => [
+					'names'     => [],
+					'companies' => [],
+					'titles'    => [],
+					'phones'    => [],
+					'locations' => [],
+				],
+			];
+
+			foreach ( $valid_name_fields as $key => $field ) {
+				if ( is_array( $field ) ) {
+					$names = array_map(
+						function ( $f ) use ( $data, $key ) {
+							return ! empty( $data[ $key ][ $f ] ) ? sanitize_text_field( $data[ $key ][ $f ] ) : '';
+						},
+						$field
+					);
+					$names = array_filter( $names ); // Remove empty values.
+					if ( $names ) {
+						$report_details['email_details']['names'][] = implode( ' ', $names );
+					}
+				} elseif ( ! empty( $data[ $field ] ) ) {
+					$report_details['email_details']['names'][] = sanitize_text_field( $data[ $field ] );
+				}
+			}
+
+			// Append global data and submit the email report.
+			$response = wp_remote_post( $endpoint, [ 'body' => [ 'data' => array_merge( $report_details, $global_data ) ] ] );
+			if ( is_wp_error( $response ) ) {
+				return new WP_Error( 'email_report_failed', __( 'Email report submission failed.', 'zero-spam' ), [ 'details' => $response->get_error_message() ] );
+			}
+		}
+
+		// Successfully updated the last API request time.
 		update_site_option( 'zero_spam_last_api_request', current_time( 'mysql' ) );
+
+		return true;
 	}
 
 	/**
@@ -441,10 +437,10 @@ class Zero_Spam {
 				} elseif ( $num_queries > 200 ) {
 					return false;
 				} else {
-					update_site_option( 'zero_spam_last_api_query', $first_query_date . '*' . ( $num_queries+1 ) );
+					update_site_option( 'zero_spam_last_api_query', $first_query_date . '*' . ( $num_queries + 1 ) );
 				}
 			} else {
-				update_site_option( 'zero_spam_last_api_query', $first_query_date . '*' . ( $num_queries+1 ) );
+				update_site_option( 'zero_spam_last_api_query', $first_query_date . '*' . ( $num_queries + 1 ) );
 			}
 
 			$endpoint = 'https://www.zerospam.org/wp-json/v2/query';

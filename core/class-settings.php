@@ -66,7 +66,7 @@ class Settings {
 	 * Updates blocked email domains with recommended settings.
 	 */
 	public static function update_blocked_email_domains() {
-		$modules  = self::get_settings_by_module();
+		$modules                           = self::get_settings_by_module();
 		$recommended_blocked_email_domains = \ZeroSpam\Core\Utilities::blocked_email_domains();
 
 		$new_settings = array();
@@ -115,7 +115,7 @@ class Settings {
 		foreach ( $settings as $key => $setting ) {
 			if ( ! array_key_exists( $setting['module'], $modules ) ) {
 				$modules[ $setting['module'] ] = array(
-					$key => $setting
+					$key => $setting,
 				);
 			} else {
 				$modules[ $setting['module'] ][ $key ] = $setting;
@@ -145,11 +145,11 @@ class Settings {
 						'a'      => array(
 							'href'   => array(),
 							'class'  => array(),
-							'target' => array()
+							'target' => array(),
 						),
 					)
 				),
-				"https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ#what-plugins-are-supported-by-zero-spam-for-wordpress"
+				'https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ#what-plugins-are-supported-by-zero-spam-for-wordpress'
 			),
 			'module'  => 'settings',
 			'section' => 'general',
@@ -171,7 +171,7 @@ class Settings {
 
 		self::$settings['share_data'] = array(
 			'title'       => __( 'Usage Data Sharing', 'zero-spam' ),
-			'desc'    => sprintf(
+			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %s: url */
 					__( 'Help us provide better protection & contribute to our <a href="%1$s" target="_blank" rel="noreferrer noopener">real-time global detection network</a> by opting into sharing non-sensitive data (<strong>we will never share or sell any personal identifiable information, <a href="%2$s" target="_blank" rel="noreferrer noopener">learn more</a></strong>).', 'zero-spam' ),
@@ -308,7 +308,7 @@ class Settings {
 			'type'        => 'checkbox',
 			'desc'        => __( 'When enabled, logs all IPs that are blocked from accessing the site. Not recommended for high-traffic websites.', 'zero-spam' ),
 			'options'     => array(
-				'enabled' => false
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['log_blocked_ips'] ) ? $options['log_blocked_ips'] : false,
 			'recommended' => 'enabled',

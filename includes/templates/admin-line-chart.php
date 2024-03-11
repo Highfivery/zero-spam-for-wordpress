@@ -6,7 +6,7 @@
  */
 
 if ( empty( $entries ) ) {
-	echo sprintf(
+	printf(
 		wp_kses(
 			__( 'Nothing to report.', 'zero-spam' ),
 			array(
@@ -49,7 +49,7 @@ $datasets['detections'] = array(
 
 // Create the log types
 $all_types = apply_filters( 'zerospam_types', array() );
-$types = array();
+$types     = array();
 foreach ( $entries as $key => $entry ) {
 	if ( ! in_array( $entry['log_type'], $types ) ) {
 		$types[] = $entry['log_type'];
@@ -67,7 +67,7 @@ foreach ( $types as $type ) {
 }
 
 for ( $x = 0; $x < 14; $x++ ) {
-	$time     = strtotime('-' . $x . ' days');
+	$time     = strtotime( '-' . $x . ' days' );
 	$date_key = gmdate( 'M. d', $time );
 
 	$labels[] = $date_key;
@@ -86,7 +86,7 @@ for ( $x = 0; $x < 14; $x++ ) {
 			if ( empty( $datasets['detections']['data'][ $date_key ] ) ) {
 				$datasets['detections']['data'][ $date_key ] = 1;
 			} else {
-				$datasets['detections']['data'][ $date_key ]++;
+				++$datasets['detections']['data'][ $date_key ];
 			}
 
 			// Types
@@ -95,7 +95,7 @@ for ( $x = 0; $x < 14; $x++ ) {
 					if ( ! $datasets[ $type ]['data'][ $date_key ] ) {
 						$datasets[ $type ]['data'][ $date_key ] = 1;
 					} else {
-						$datasets[ $type ]['data'][ $date_key ]++;
+						++$datasets[ $type ]['data'][ $date_key ];
 					}
 				}
 			}

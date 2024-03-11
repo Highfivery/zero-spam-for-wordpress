@@ -62,7 +62,7 @@ class Access {
 			wp_kses_post( $message ),
 			esc_html( $title ),
 			[
-				'response' => $code,
+				'response' => esc_html( $code ),
 			]
 		);
 	}

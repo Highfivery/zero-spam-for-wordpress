@@ -95,7 +95,7 @@ class ProjectHoneypot {
 			krsort( $octets );
 
 			$reversed_ip = implode( '.', $octets );
-			if ( strlen( $reversed_ip ) > 16) {
+			if ( strlen( $reversed_ip ) > 16 ) {
 				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Warning: IPv6 ip addresses not supported: ' . $ip );
 				return false;
 			}
@@ -170,7 +170,7 @@ class ProjectHoneypot {
 	public function sections( $sections ) {
 		$sections['project_honeypot'] = array(
 			'title' => __( 'Project Honeypot', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-honeypot.svg'
+			'icon'  => 'assets/img/icon-honeypot.svg',
 		);
 
 		return $sections;

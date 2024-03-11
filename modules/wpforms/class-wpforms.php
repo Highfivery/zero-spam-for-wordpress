@@ -96,15 +96,13 @@ class WPForms {
 							}
 						}
 					}
-				} else {
-					if ( \ZeroSpam\Core\Utilities::is_email( $field ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $field ) ) {
+				} elseif ( \ZeroSpam\Core\Utilities::is_email( $field ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $field ) ) {
 						// Email address found & is blocked.
 						$validation_errors[] = 'blocked_email_domain';
-					} else {
-						// Check against disallowed list.
-						if ( \ZeroSpam\Core\Utilities::is_disallowed( $field ) ) {
-							$validation_errors[] = 'disallowed_list';
-						}
+				} else {
+					// Check against disallowed list.
+					if ( \ZeroSpam\Core\Utilities::is_disallowed( $field ) ) {
+						$validation_errors[] = 'disallowed_list';
 					}
 				}
 			}
@@ -168,12 +166,15 @@ class WPForms {
 	 */
 	public function add_scripts() {
 		// Only add scripts to the appropriate pages.
-		if (  'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
 
-			add_action( 'wp_enqueue_scripts', function() {
-				wp_add_inline_script( 'zerospam-davidwalsh', 'document.addEventListener("DOMContentLoaded", function() { jQuery(".wpforms-form").ZeroSpamDavidWalsh(); });' );
-			} );
+			add_action(
+				'wp_enqueue_scripts',
+				function () {
+					wp_add_inline_script( 'zerospam-davidwalsh', 'document.addEventListener("DOMContentLoaded", function() { jQuery(".wpforms-form").ZeroSpamDavidWalsh(); });' );
+				}
+			);
 		}
 	}
 

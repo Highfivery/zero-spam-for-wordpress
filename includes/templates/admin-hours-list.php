@@ -33,7 +33,7 @@ $data = array(
 );
 foreach ( $entries as $key => $entry ) {
 	$entry_date_key = gmdate( 'ga', strtotime( $entry['date_recorded'] ) );
-	$data[ $entry_date_key ]++;
+	++$data[ $entry_date_key ];
 }
 
 arsort( $data );
