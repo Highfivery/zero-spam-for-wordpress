@@ -95,8 +95,7 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 = Where do I report security bugs found in this plugin? =
 
-Please report security bugs found in the source code of the WordPress Zero Spam plugin through the [Patchstack
-Vulnerability Disclosure Program](YOUR_MVDP_URL_HERE). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
+You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/zero-spam)
 
 == Screenshots ==
 
