@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 6.4.3
 Requires PHP: 7.4
-Stable tag: 5.5.3
+Stable tag: 5.5.4
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -106,6 +106,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Add blocked location
 
 == Changelog ==
+
+= v5.5.4 =
+
+* fix(zero spam): fox for error in the zero spam api
 
 = v5.5.3 =
 
