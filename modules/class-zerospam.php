@@ -248,7 +248,7 @@ class Zero_Spam {
 	 */
 	public function share_detection( $data ) {
 		if ( ! is_array( $data ) || empty( $data['type'] ) ) {
-			return new WP_Error( 'invalid_data', __( 'Invalid or incomplete detection data provided.', 'zero-spam' ) );
+			\ZeroSpam\Core\Utilities::log( __( 'Invalid or incomplete detection data provided.', 'zero-spam' ) );
 		}
 
 		$last_api_report_submitted = get_site_option( 'zero_spam_last_api_request' );
@@ -256,14 +256,14 @@ class Zero_Spam {
 			$last_api_report_submitted = new \DateTime( $last_api_report_submitted );
 			$current_time              = new \DateTime();
 			if ( $last_api_report_submitted->diff( $current_time )->i < 30 ) {
-				return new WP_Error( 'too_frequent', __( 'API requests are throttled to every 30 minutes.', 'zero-spam' ) );
+				\ZeroSpam\Core\Utilities::log( __( 'API requests are throttled to every 30 minutes.', 'zero-spam' ) );
 			}
 		}
 
 		$endpoint = ZEROSPAM_URL . 'wp-json/v5.4/report/';
 		$ip       = \ZeroSpam\Core\User::get_ip();
 		if ( ! $ip ) {
-			return new WP_Error( 'ip_retrieval_failed', __( 'IP address retrieval failed.', 'zero-spam' ) );
+			\ZeroSpam\Core\Utilities::log( __( 'IP address retrieval failed.', 'zero-spam' ) );
 		}
 
 		$api_data = [
@@ -278,7 +278,7 @@ class Zero_Spam {
 
 		$response = wp_remote_post( $endpoint, [ 'body' => [ 'data' => $api_data ] ] );
 		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'api_request_failed', __( 'API request failed.', 'zero-spam' ), [ 'details' => $response->get_error_message() ] );
+			\ZeroSpam\Core\Utilities::log( __( 'API request failed.', 'zero-spam' ) );
 		}
 
 		// Process email fields.
@@ -353,7 +353,7 @@ class Zero_Spam {
 			// Append global data and submit the email report.
 			$response = wp_remote_post( $endpoint, [ 'body' => [ 'data' => array_merge( $report_details, $global_data ) ] ] );
 			if ( is_wp_error( $response ) ) {
-				return new WP_Error( 'email_report_failed', __( 'Email report submission failed.', 'zero-spam' ), [ 'details' => $response->get_error_message() ] );
+				\ZeroSpam\Core\Utilities::log( __( 'Email report submission failed.', 'zero-spam' ) );
 			}
 		}
 
