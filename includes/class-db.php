@@ -40,7 +40,7 @@ class DB {
 	 * Installs & updates the DB tables
 	 */
 	public function update() {
-		if ( self::DB_VERSION !== get_site_option( 'zerospam_db_version' ) ) {
+		if ( self::DB_VERSION !== get_option( 'zerospam_db_version' ) ) {
 			global $wpdb;
 
 			$charset_collate = $wpdb->get_charset_collate();
@@ -77,7 +77,7 @@ class DB {
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			dbDelta( $sql );
 
-			update_site_option( 'zerospam_db_version', self::DB_VERSION );
+			update_option( 'zerospam_db_version', self::DB_VERSION );
 		}
 	}
 

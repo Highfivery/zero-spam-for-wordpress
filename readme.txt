@@ -3,7 +3,7 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
-Tested up to: 6.5
+Tested up to: 6.5.2
 Requires PHP: 7.4
 Stable tag: 5.5.5
 License: GNU GPLv3
@@ -106,6 +106,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Add blocked location
 
 == Changelog ==
+
+= v5.5.6 =
+
+* fix(missing tables): fix for missing tables error on multisites, #377
 
 = v5.5.5 =
 
