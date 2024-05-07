@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 5.2
 Tested up to: 6.5.2
 Requires PHP: 7.4
-Stable tag: 5.5.6
+Stable tag: 5.5.7
 License: GNU GPLv3
 License URI: https://choosealicense.com/licenses/gpl-3.0/
 
@@ -106,6 +106,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Add blocked location
 
 == Changelog ==
+
+= v5.5.7 =
+
+* fix(bypass vulnerability): see https://patchstack.com/database/database/vulnerability/zero-spam/wordpress-zero-spam-for-wordpress-plugin-5-5-5-bypass-spam-protection-vulnerability
 
 = v5.5.6 =
 
