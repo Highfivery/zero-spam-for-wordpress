@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '0.9';
+	const DB_VERSION = '1.0';
 
 	/**
 	 * DB tables
