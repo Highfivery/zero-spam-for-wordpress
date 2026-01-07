@@ -113,6 +113,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 * fix(david walsh): improved js reliability for comment forms to prevent false positives (closes #378)
 * fix(david walsh): resolved conflict where wpforms submissions were blocked when david walsh protection was enabled (closes #364)
 * fix(ipinfo): corrected issue where location data was reported as "unknown" in the dashboard widget (closes #360)
+* fix(install): resolved database errors on fresh installations due to strict dbdelta requirements (closes #332)
 * chore(requirements): updated php and wp version requirements
 * chore(standards): fixed issues with strict types
 * docs(project): updated project documentation files
