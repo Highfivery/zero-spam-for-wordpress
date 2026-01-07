@@ -109,6 +109,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = v5.5.8 =
 
+* fix(caching): prevented caching of 403 forbidden pages to resolve compatibility with litespeed cache (closes #383)
 * chore(requirements): updated php and wp version requirements
 * chore(standards): fixed issues with strict types
 * docs(project): updated project documentation files
