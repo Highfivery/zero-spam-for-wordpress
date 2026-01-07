@@ -111,6 +111,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 * fix(caching): prevented caching of 403 forbidden pages to resolve compatibility with litespeed cache (closes #383)
 * fix(david walsh): improved js reliability for comment forms to prevent false positives (closes #378)
+* fix(david walsh): resolved conflict where wpforms submissions were blocked when david walsh protection was enabled (closes #364)
 * chore(requirements): updated php and wp version requirements
 * chore(standards): fixed issues with strict types
 * docs(project): updated project documentation files
