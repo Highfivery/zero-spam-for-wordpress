@@ -108,6 +108,11 @@ class IPinfoModule {
 
 			if ( ! empty( $location['country'] ) ) {
 				$record['country'] = $location['country'];
+
+				$countries = \ZeroSpam\Core\Utilities::countries();
+				if ( ! empty( $countries[ $record['country'] ] ) ) {
+					$record['country_name'] = $countries[ $record['country'] ];
+				}
 			}
 
 			if ( ! empty( $location['region'] ) ) {
