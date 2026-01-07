@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '0.9';
+	const DB_VERSION = '1.0';
 
 	/**
 	 * DB tables
@@ -45,34 +45,38 @@ class DB {
 
 			$charset_collate = $wpdb->get_charset_collate();
 
-			$sql = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['log'] . " (
-				log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-				log_type VARCHAR(255) NOT NULL,
-				user_ip VARCHAR(39) NOT NULL,
-				date_recorded DATETIME NOT NULL,
-				page_url VARCHAR(255) NULL DEFAULT NULL,
-				submission_data LONGTEXT NULL DEFAULT NULL,
-				country VARCHAR(2) NULL DEFAULT NULL,
-				country_name VARCHAR(255) NULL DEFAULT NULL,
-				region VARCHAR(255) NULL DEFAULT NULL,
-				region_name VARCHAR(255) NULL DEFAULT NULL,
-				city VARCHAR(255) NULL DEFAULT NULL,
-				zip VARCHAR(10) NULL DEFAULT NULL,
-				latitude VARCHAR(255) NULL DEFAULT NULL,
-				longitude VARCHAR(255) NULL DEFAULT NULL,
-				PRIMARY KEY (log_id)) $charset_collate;";
+			$sql = array();
 
-			$sql .= 'CREATE TABLE ' . $wpdb->prefix . self::$tables['blocked'] . " (
-				blocked_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-				blocked_type ENUM('permanent','temporary') NOT NULL DEFAULT 'temporary',
-				user_ip VARCHAR(39) NOT NULL,
-				blocked_key VARCHAR(255) NULL,
-				key_type ENUM('ip','email','username','country_code','region_code','zip', 'city') NOT NULL DEFAULT 'ip',
-				date_added DATETIME NOT NULL,
-				start_block DATETIME NULL DEFAULT NULL,
-				end_block DATETIME NULL DEFAULT NULL,
-				reason VARCHAR(255) NULL DEFAULT NULL,
-				PRIMARY KEY (blocked_id)) $charset_collate;";
+			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['log'] . " (
+				log_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				log_type varchar(255) NOT NULL,
+				user_ip varchar(39) NOT NULL,
+				date_recorded datetime NOT NULL,
+				page_url varchar(255) DEFAULT NULL,
+				submission_data longtext DEFAULT NULL,
+				country varchar(2) DEFAULT NULL,
+				country_name varchar(255) DEFAULT NULL,
+				region varchar(255) DEFAULT NULL,
+				region_name varchar(255) DEFAULT NULL,
+				city varchar(255) DEFAULT NULL,
+				zip varchar(10) DEFAULT NULL,
+				latitude varchar(255) DEFAULT NULL,
+				longitude varchar(255) DEFAULT NULL,
+				PRIMARY KEY  (log_id)
+			) $charset_collate;";
+
+			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['blocked'] . " (
+				blocked_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				blocked_type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
+				user_ip varchar(39) NOT NULL,
+				blocked_key varchar(255) DEFAULT NULL,
+				key_type enum('ip','email','username','country_code','region_code','zip', 'city') NOT NULL DEFAULT 'ip',
+				date_added datetime NOT NULL,
+				start_block datetime DEFAULT NULL,
+				end_block datetime DEFAULT NULL,
+				reason varchar(255) DEFAULT NULL,
+				PRIMARY KEY  (blocked_id)
+			) $charset_collate;";
 
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			dbDelta( $sql );

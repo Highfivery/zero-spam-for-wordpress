@@ -6,29 +6,29 @@ The following versions of this project are currently being supported with securi
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 5.5.1   | :white_check_mark: |
-| <5.5.5  | :x:                |
+| Latest stable release   | :white_check_mark: |
+| Old versions  | :x:                |
 
 ## Reporting a Vulnerability
 
-To report a security issue please email details to info@highfivery.com with a descriptive subject line.  This account is monitored by a small team within Highfivery.  In addition, please include the following information along with your report:
+To report a security issue please email details to studio@highfivery.com with a descriptive subject line.  This account is monitored by a small team within Highfivery Studio.  In addition, please include the following information along with your report:
 
 - Your name and affiliation (if any).
 - A description of the technical details of the vulnerability.  It is very important to let us know how we can reproduce your findings.
 - An explanation who can exploit this vulnerability, and what they gain when doing so -- write an attack scenario.  This will help us evaluate your report quickly, especially if the issue is complex.
 - Whether this vulnerability is public or known to third parties.  If it is, please provide details.
 
-If you believe that an existing (public) issue is security-related, please send an email to info@highfivery.com.  The email should include the issue ID and a short description of why it should be handled according to this security policy.
+If you believe that an existing (public) issue is security-related, please send an email to studio@highfivery.com.  The email should include the issue ID and a short description of why it should be handled according to this security policy.
 
 ## Responding to Vulnerability Reports
 
-Highfivery takes security bugs seriously.  We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.
+Highfivery Studio takes security bugs seriously.  We appreciate your efforts to responsibly disclose your findings, and will make every effort to acknowledge your contributions.
 
-Your email will be acknowledged within ONE business day, and you will receive a more detailed response to your email within SEVEN days indicating the next steps in handling your report.  After the initial reply to your report, Highfivery will keep you informed of the progress being made towards a fix and announcement.  If your vulnerability report is accepted, then we will work with you on a fix and follow the process noted below on [disclosing vulnerabilities](#disclosing-a-vulnerability).  If your vulnerability report is declined, then we will provide you with a reasoning as to why we came to that conclusion.
+Your email will be acknowledged within ONE business day, and you will receive a more detailed response to your email within SEVEN days indicating the next steps in handling your report.  After the initial reply to your report, Highfivery Studio will keep you informed of the progress being made towards a fix and announcement.  If your vulnerability report is accepted, then we will work with you on a fix and follow the process noted below on [disclosing vulnerabilities](#disclosing-a-vulnerability).  If your vulnerability report is declined, then we will provide you with a reasoning as to why we came to that conclusion.
 
 ## Disclosing a Vulnerability
 
-Once an issue is reported, Highfivery uses the following disclosure process:
+Once an issue is reported, Highfivery Studio uses the following disclosure process:
 
 - When a report is received, we confirm the issue and determine its severity.
 - If we know of specific third-party services or software that require mitigation before publication, those projects will be notified.

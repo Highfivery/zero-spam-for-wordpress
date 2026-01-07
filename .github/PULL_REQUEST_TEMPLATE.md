@@ -38,7 +38,7 @@ Props @username, @username2, ...
 ### Checklist:
 <!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
 <!--- If you are unsure about any of these, please ask for clarification.  We are here to help! -->
-- [ ] I agree to follow this project's [**Code of Conduct**](https://github.com/Highfivery/.github/blob/trunk/CODE_OF_CONDUCT.md).
+- [ ] I agree to follow this project's [**Code of Conduct**](./CODE_OF_CONDUCT.md).
 - [ ] I have updated the documentation accordingly.
 - [ ] I have added tests to cover my change.
 - [ ] All new and existing tests pass.

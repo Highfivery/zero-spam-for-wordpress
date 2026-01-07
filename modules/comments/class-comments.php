@@ -72,16 +72,10 @@ class Comments {
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
 		) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			add_action(
-				'wp_footer',
-				function (): void {
-					// .wpd_comm_form for the wpDiscuz plugin
-					echo '<script type="text/javascript">document.addEventListener("DOMContentLoaded", function() { jQuery(".comment-form, #commentform, .wpd_comm_form").ZeroSpamDavidWalsh(); });</script>';
-				},
-				999
-			);
 		}
 	}
+
+
 
 	/**
 	 * Preprocess comments

@@ -54,9 +54,10 @@ class Access {
 	 *                        Defaults to 403 to indicate a Forbidden error.
 	 */
 	public static function terminate_execution( $title, $message, $code = 403 ) {
-		header( 'Cache-Control: no-store, no-cache, must-revalidate, max-age=0' );
-		header( 'Cache-Control: post-check=0, pre-check=0', false );
-		header( 'Pragma: no-cache' );
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		nocache_headers();
 
 		wp_die(
 			wp_kses_post( $message ),

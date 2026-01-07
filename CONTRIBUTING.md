@@ -20,16 +20,16 @@ New features and enhancements are also managed via [issues](/issues).
 
 Pull requests represent a proposed solution to a specified problem.  They should always reference an issue that describes the problem and contains discussion about the problem itself.  Discussion on pull requests should be limited to the pull request itself, i.e. code review.
 
-For more on how Highfivery writes and manages code, check out our [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/).
+For more on how Highfivery Studio writes and manages code, check out our [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/).
 
 ## Workflow
 
-The `develop` branch is the development branch which means it contains the next version to be released.  `stable` contains the current latest release and `trunk` contains the corresponding stable development version.  Always work on the `develop` branch and open up PRs against `develop`.
+The `develop` branch is the development branch which means it contains the next version to be released. `stable` contains the current latest release and `trunk` contains the corresponding stable development version. Always work on the `develop` branch and open up PRs against `develop`.
 
 ## Release instructions
 
 1. Branch: Starting from `develop`, cut a release branch named `release/X.Y.Z` for your changes.
-2. Version bump: Bump the version number in `plugin.php`, `readme.txt`, and any other relevant files if it does not already reflect the version being released.
+2. Version bump: Bump the version number in `wordpress-zero-spam.php`, `readme.txt`, and any other relevant files if it does not already reflect the version being released.
 3. Changelog: Add/update the changelog in `CHANGELOG.md` and `readme.txt`.
 4. Props: update `CREDITS.md` file with any new contributors, and confirm maintainers are accurate.
 5. New files: Check to be sure any new files/paths that are unnecessary in the production version are included in `.gitattributes` or `.distignore`.
@@ -40,7 +40,7 @@ The `develop` branch is the development branch which means it contains the next 
 10. Test the pre-release ZIP locally by downloading it from the **Build release zip** action artifact and installing it locally. Ensure this zip has all the files we expect, that it installs and activates correctly and that all basic functionality is working.
 11. Release: Create a [new release](/releases/new), naming the tag and the release with the new version number, and targeting the `trunk` branch. Paste the changelog from `CHANGELOG.md` into the body of the release and include a link to the closed issues on the [X.Y.Z milestone](/milestone/#?closed=1).
 12. SVN: Wait for the [GitHub Action](/actions) to finish deploying to the WordPress.org repository. If all goes well, users with SVN commit access for that plugin will receive an emailed diff of changes.
-13. Check WordPress.org: Ensure that the changes are live on https://wordpress.org/plugins/plugin-name/. This may take a few minutes.
+13. Check WordPress.org: Ensure that the changes are live on https://wordpress.org/plugins/zero-spam/. This may take a few minutes.
 14. Close milestone: Edit the [X.Y.Z milestone](/milestone/#) with release date (in the `Due date (optional)` field) and link to GitHub release (in the `Description` field), then close the milestone.
 15. Punt incomplete items: If any open issues or PRs which were milestoned for `X.Y.Z` do not make it into the release, update their milestone to `X.Y.Z+1`, `X.Y+1.0`, `X+1.0.0` or `Future Release`.
 

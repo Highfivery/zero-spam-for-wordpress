@@ -200,6 +200,7 @@ class Utilities {
 
 		$emails_array = explode( "\n", $text );
 		$emails_array = array_map( 'trim', $emails_array );
+		$emails_array = array_filter( $emails_array ); // Remove empty lines.
 
 		return $emails_array;
 	}

@@ -2,7 +2,7 @@
 
 > No spam, no scams, just seamless experiences with Zero Spam for WordPress - the shield your site deserves.
 
-[![Support Level](https://img.shields.io/badge/support-active-green.svg)](#support-level) [![MIT License](https://img.shields.io/github/license/Highfivery/.github.svg)](https://github.com/Highfivery/.github/blob/trunk/LICENSE.md)
+[![Support Level](https://img.shields.io/badge/support-active-green.svg)](#support-level) [![GPLv2+ License](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](http://www.gnu.org/licenses/gpl-2.0.txt)
 
 ## Overview
 
@@ -48,8 +48,8 @@ Additionally, you have the option to contribute to Zero Spam's improvement by en
 
 ## Support Level
 
-**Active:** Highfivery is actively working on this, and we expect to continue work for the foreseeable future including keeping tested up to the most recent version of WordPress.  Bug reports, feature requests, questions, and pull requests are welcome.
+**Active:** Highfivery Studio is actively working on this, and we expect to continue work for the foreseeable future including keeping tested up to the most recent version of WordPress.  Bug reports, feature requests, questions, and pull requests are welcome.
 
 ## Like what you see?
 
-<a href="https://highfivery.com"><img src="https://dashboard.highfivery.com/wp-content/uploads/2023/07/open-source-banner.png" width="850" alt="Learn more about Highfivery"></a>
+<a href="https://studio.highfivery.com/"><img src="https://studio.highfivery.com/wp-content/uploads/2026/01/open-source-banner.png" width="850" alt="Learn more about Highfivery Studio"></a>

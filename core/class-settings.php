@@ -58,7 +58,13 @@ class Settings {
 		$text = $wp_filesystem->get_contents( ZEROSPAM_PATH . 'assets/blacklist.txt' );
 
 		if ( $text ) {
-			update_option( 'disallowed_keys', $text );
+			if ( update_option( 'disallowed_keys', $text ) ) {
+				// Prevent autoloading large options.
+				// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
+				wp_cache_delete( 'disallowed_keys', 'options' );
+				global $wpdb;
+				$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s", 'no', 'disallowed_keys' ) );
+			}
 		}
 	}
 
@@ -72,7 +78,14 @@ class Settings {
 		$new_settings = array();
 		foreach ( $modules['settings'] as $key => $setting ) {
 			if ( 'blocked_email_domains' === $key ) {
-				$new_settings[ $key ] = implode( "\n", $recommended_blocked_email_domains );
+				$domains = trim( implode( "\n", $recommended_blocked_email_domains ) );
+				if ( update_option( 'zerospam_blocked_email_domains', $domains ) ) {
+					// Prevent autoloading large options.
+					// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
+					wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
+					global $wpdb;
+					$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s", 'no', 'zerospam_blocked_email_domains' ) );
+				}
 			} else {
 				$new_settings[ $key ] = isset( $setting['value'] ) ? $setting['value'] : false;
 			}
@@ -249,8 +262,8 @@ class Settings {
 			'title'       => __( 'IP Block Method', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %1$s: Replaced with the apache docs URL, %2$s: Replaced with Highfivery's website URL */
-					__( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version or adding <a href="%1$s" target="_blank" rel="noreferrer noopener">more than 8190 characters</a> could cause the website to crash</strong> and require a manual fix to the .htaccess file. If this happens &amp; you\'re unsure how to fix, contact <a href="%2$s" target="_blank" rel="noreferrer noopener">Highfivery</a> for a rapid response and resolution.', 'zero-spam' ),
+					/* translators: %1$s: Replaced with the apache docs URL, %2$s: Replaced with Highfivery Studio's website URL */
+					__( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version or adding <a href="%1$s" target="_blank" rel="noreferrer noopener">more than 8190 characters</a> could cause the website to crash</strong> and require a manual fix to the .htaccess file. If this happens &amp; you\'re unsure how to fix, contact <a href="%2$s" target="_blank" rel="noreferrer noopener">Highfivery Studio</a> for a rapid response and resolution.', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -261,7 +274,7 @@ class Settings {
 					)
 				),
 				esc_url( 'https://httpd.apache.org/docs/current/en/configuring.html' ),
-				esc_url( 'https://www.highfivery.com/?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_htaccess&utm_campaign=zerospam_plugin' )
+				esc_url( 'https://studio.highfivery.com/?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_htaccess&utm_campaign=zerospam_plugin' )
 			),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -345,7 +358,7 @@ class Settings {
 			'type'        => 'textarea',
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
-			'value'       => ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false,
+			'value'       => get_option( 'zerospam_blocked_email_domains', ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false ),
 		);
 
 		self::$settings['update_blocked_email_domains'] = array(
