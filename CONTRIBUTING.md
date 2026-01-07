@@ -20,7 +20,7 @@ New features and enhancements are also managed via [issues](/issues).
 
 Pull requests represent a proposed solution to a specified problem.  They should always reference an issue that describes the problem and contains discussion about the problem itself.  Discussion on pull requests should be limited to the pull request itself, i.e. code review.
 
-For more on how Highfivery writes and manages code, check out our [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/).
+For more on how Highfivery Studio writes and manages code, check out our [WordPress Coding Standards](https://developer.wordpress.org/coding-standards/wordpress-coding-standards/).
 
 ## Workflow
 

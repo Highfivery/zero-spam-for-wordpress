@@ -262,8 +262,8 @@ class Settings {
 			'title'       => __( 'IP Block Method', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %1$s: Replaced with the apache docs URL, %2$s: Replaced with Highfivery's website URL */
-					__( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version or adding <a href="%1$s" target="_blank" rel="noreferrer noopener">more than 8190 characters</a> could cause the website to crash</strong> and require a manual fix to the .htaccess file. If this happens &amp; you\'re unsure how to fix, contact <a href="%2$s" target="_blank" rel="noreferrer noopener">Highfivery</a> for a rapid response and resolution.', 'zero-spam' ),
+					/* translators: %1$s: Replaced with the apache docs URL, %2$s: Replaced with Highfivery Studio's website URL */
+					__( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version or adding <a href="%1$s" target="_blank" rel="noreferrer noopener">more than 8190 characters</a> could cause the website to crash</strong> and require a manual fix to the .htaccess file. If this happens &amp; you\'re unsure how to fix, contact <a href="%2$s" target="_blank" rel="noreferrer noopener">Highfivery Studio</a> for a rapid response and resolution.', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(

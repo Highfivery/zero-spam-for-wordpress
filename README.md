@@ -48,8 +48,8 @@ Additionally, you have the option to contribute to Zero Spam's improvement by en
 
 ## Support Level
 
-**Active:** Highfivery is actively working on this, and we expect to continue work for the foreseeable future including keeping tested up to the most recent version of WordPress.  Bug reports, feature requests, questions, and pull requests are welcome.
+**Active:** Highfivery Studio is actively working on this, and we expect to continue work for the foreseeable future including keeping tested up to the most recent version of WordPress.  Bug reports, feature requests, questions, and pull requests are welcome.
 
 ## Like what you see?
 
-<a href="https://studio.highfivery.com/"><img src="https://studio.highfivery.com/wp-content/uploads/2026/01/open-source-banner.png" width="850" alt="Learn more about Highfivery"></a>
+<a href="https://studio.highfivery.com/"><img src="https://studio.highfivery.com/wp-content/uploads/2026/01/open-source-banner.png" width="850" alt="Learn more about Highfivery Studio"></a>

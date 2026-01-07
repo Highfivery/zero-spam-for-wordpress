@@ -8,7 +8,7 @@ declare( strict_types=1 );
  * @subpackage WordPress
  * @since      5.0.0
  * @author     Highfivery Studio <studio@highfivery.com>
- * @copyright  2026 Highfivery LLC
+ * @copyright  2026 Highfivery Studio, a division of Highfivery LLC
  * @license    GPL-2.0-or-later
  *
  * @wordpress-plugin
