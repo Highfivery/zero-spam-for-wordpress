@@ -212,6 +212,18 @@ class Settings {
 			}
 		}
 
+		// Handle blocked email domains separate option to prevent autoloading.
+		if ( isset( $input['blocked_email_domains'] ) ) {
+			if ( update_option( 'zerospam_blocked_email_domains', $input['blocked_email_domains'] ) ) {
+				// Prevent autoloading large options.
+				// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
+				wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
+				global $wpdb;
+				$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s", 'no', 'zerospam_blocked_email_domains' ) );
+			}
+			unset( $input['blocked_email_domains'] );
+		}
+
 		update_option( 'zerospam_configured', 1 );
 
 		return $input;
@@ -339,12 +351,11 @@ class Settings {
 					<?php if ( ! empty( $args['placeholder'] ) ) : ?>
 						placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
 					<?php endif; ?>
-				>
-				<?php
+				><?php
 				if ( ! empty( $args['value'] ) ) :
-					?>
-					<?php echo trim( esc_attr( $args['value'] ) ); ?><?php endif; ?></textarea>
-				<?php
+					echo trim( esc_attr( $args['value'] ) );
+				endif;
+				?></textarea><?php
 				break;
 			case 'url':
 			case 'text':

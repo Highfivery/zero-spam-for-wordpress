@@ -2,12 +2,12 @@
 Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
-Requires at least: 5.2
-Tested up to: 6.5.2
-Requires PHP: 7.4
-Stable tag: 5.5.7
-License: GNU GPLv3
-License URI: https://choosealicense.com/licenses/gpl-3.0/
+Requires at least: 6.9
+Tested up to: 6.9
+Requires PHP: 8.2
+Stable tag: 5.5.8
+License: GPL v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
 No spam, no scams, just seamless experiences with Zero Spam for WordPress - the shield your site deserves.
 
@@ -106,6 +106,18 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Add blocked location
 
 == Changelog ==
+
+= v5.5.8 =
+
+* chore(requirements): updated php and wp version requirements
+* chore(standards): fixed issues with strict types
+* docs(project): updated project documentation files
+* ci(github): updated github workflows and templates
+* perf(core): optimized disallowed words option to prevent autoloading large data
+* perf(api): implemented async detection reporting to reduce server load
+* perf(api): implemented persistent response caching (transients)
+* perf(api): implemented circuit breaker pattern for api fault tolerance
+* perf(core): optimized disposable email domains storage to prevent autoloading large data
 
 = v5.5.7 =
 

@@ -3,7 +3,7 @@
 	"description": "No spam, no scams, just seamless experiences with Zero Spam for WordPress - the shield your site deserves.",
 	"type": "wordpress-plugin",
 	"keywords": ["wordpress", "plugin", "zerospam", "spam"],
-	"license": "GPL-2.0-only",
+	"license": "GPL-2.0-or-later",
 	"minimum-stability": "dev",
 	"prefer-stable": true,
 	"authors": [
@@ -25,8 +25,11 @@
 		}
 	],
 	"require": {
-		"php" : ">=7.2",
+		"php" : ">=8.2",
 		"ipinfo/ipinfo": "^2.3"
+	},
+	"require-dev": {
+		"10up/phpcs-composer": "*"
 	},
 	"extra": {
 		"installer-paths": {

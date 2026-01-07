@@ -58,7 +58,13 @@ class Settings {
 		$text = $wp_filesystem->get_contents( ZEROSPAM_PATH . 'assets/blacklist.txt' );
 
 		if ( $text ) {
-			update_option( 'disallowed_keys', $text );
+			if ( update_option( 'disallowed_keys', $text ) ) {
+				// Prevent autoloading large options.
+				// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
+				wp_cache_delete( 'disallowed_keys', 'options' );
+				global $wpdb;
+				$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s", 'no', 'disallowed_keys' ) );
+			}
 		}
 	}
 
@@ -72,7 +78,14 @@ class Settings {
 		$new_settings = array();
 		foreach ( $modules['settings'] as $key => $setting ) {
 			if ( 'blocked_email_domains' === $key ) {
-				$new_settings[ $key ] = implode( "\n", $recommended_blocked_email_domains );
+				$domains = trim( implode( "\n", $recommended_blocked_email_domains ) );
+				if ( update_option( 'zerospam_blocked_email_domains', $domains ) ) {
+					// Prevent autoloading large options.
+					// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
+					wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
+					global $wpdb;
+					$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s", 'no', 'zerospam_blocked_email_domains' ) );
+				}
 			} else {
 				$new_settings[ $key ] = isset( $setting['value'] ) ? $setting['value'] : false;
 			}
@@ -345,7 +358,7 @@ class Settings {
 			'type'        => 'textarea',
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
-			'value'       => ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false,
+			'value'       => get_option( 'zerospam_blocked_email_domains', ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false ),
 		);
 
 		self::$settings['update_blocked_email_domains'] = array(

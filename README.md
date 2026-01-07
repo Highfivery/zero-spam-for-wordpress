@@ -2,7 +2,7 @@
 
 > No spam, no scams, just seamless experiences with Zero Spam for WordPress - the shield your site deserves.
 
-[![Support Level](https://img.shields.io/badge/support-active-green.svg)](#support-level) [![MIT License](https://img.shields.io/github/license/Highfivery/.github.svg)](https://github.com/Highfivery/.github/blob/trunk/LICENSE.md)
+[![Support Level](https://img.shields.io/badge/support-active-green.svg)](#support-level) [![GPLv2+ License](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](http://www.gnu.org/licenses/gpl-2.0.txt)
 
 ## Overview
 
