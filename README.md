@@ -52,4 +52,4 @@ Additionally, you have the option to contribute to Zero Spam's improvement by en
 
 ## Like what you see?
 
-<a href="https://highfivery.com"><img src="https://dashboard.highfivery.com/wp-content/uploads/2023/07/open-source-banner.png" width="850" alt="Learn more about Highfivery"></a>
+<a href="https://studio.highfivery.com/"><img src="https://studio.highfivery.com/wp-content/uploads/2026/01/open-source-banner.png" width="850" alt="Learn more about Highfivery"></a>

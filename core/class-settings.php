@@ -274,7 +274,7 @@ class Settings {
 					)
 				),
 				esc_url( 'https://httpd.apache.org/docs/current/en/configuring.html' ),
-				esc_url( 'https://www.highfivery.com/?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_htaccess&utm_campaign=zerospam_plugin' )
+				esc_url( 'https://studio.highfivery.com/?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_htaccess&utm_campaign=zerospam_plugin' )
 			),
 			'section'     => 'general',
 			'module'      => 'settings',
