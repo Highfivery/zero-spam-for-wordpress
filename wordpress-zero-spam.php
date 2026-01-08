@@ -18,7 +18,7 @@ declare( strict_types=1 );
  * Version:           5.5.8
  * Requires at least: 6.9
  * Requires PHP:      8.2
- * Author:            Highfivery Studio <studio@highfivery.com>
+ * Author:            Highfivery Studio
  * Author URI:        https://studio.highfivery.com/
  * Text Domain:       zero-spam
  * Domain Path:       /languages
