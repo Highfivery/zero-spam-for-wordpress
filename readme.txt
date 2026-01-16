@@ -109,7 +109,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = v5.5.9 =
 
-* fix(api): corrected app_type case mismatch and app_details encoding
+* fix(api): corrected app_type case mismatch and app_details/email_details encoding
 
 = v5.5.8 =
 

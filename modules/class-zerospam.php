@@ -358,6 +358,9 @@ class Zero_Spam {
 				}
 			}
 
+			// Encode email_details as JSON string (API expects JSON, not array).
+			$report_details['email_details'] = wp_json_encode( $report_details['email_details'] );
+
 			// Append global data and submit the email report.
 			self::remote_request( $endpoint, [ 'body' => [ 'data' => array_merge( $report_details, $global_data ) ] ] );
 		}
