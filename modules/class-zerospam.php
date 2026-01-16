@@ -230,14 +230,16 @@ class Zero_Spam {
 		$api_data                   = array();
 		$api_data['reporter_email'] = sanitize_email( get_bloginfo( 'admin_email' ) );
 		$api_data['app_key']        = \ZeroSpam\Core\Utilities::clean_domain( esc_url( site_url() ) );
-		$api_data['app_type']       = 'WordPress';
-		$api_data['app_details']    = array(
-			'app_version'      => sanitize_text_field( get_bloginfo( 'version' ) ),
-			'app_type_version' => sanitize_text_field( ZEROSPAM_VERSION ),
-			'app_language'     => sanitize_text_field( strtolower( get_bloginfo( 'language' ) ) ),
-			'app_email'        => sanitize_email( get_bloginfo( 'admin_email' ) ),
-			'app_name'         => sanitize_text_field( get_bloginfo( 'name' ) ),
-			'app_desc'         => sanitize_text_field( get_bloginfo( 'description' ) ),
+		$api_data['app_type']       = 'wordpress';
+		$api_data['app_details']    = wp_json_encode(
+			array(
+				'app_version'      => sanitize_text_field( get_bloginfo( 'version' ) ),
+				'app_type_version' => sanitize_text_field( ZEROSPAM_VERSION ),
+				'app_language'     => sanitize_text_field( strtolower( get_bloginfo( 'language' ) ) ),
+				'app_email'        => sanitize_email( get_bloginfo( 'admin_email' ) ),
+				'app_name'         => sanitize_text_field( get_bloginfo( 'name' ) ),
+				'app_desc'         => sanitize_text_field( get_bloginfo( 'description' ) ),
+			)
 		);
 
 		return $api_data;
