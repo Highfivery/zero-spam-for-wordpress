@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 5.5.8
+Stable tag: 5.5.9
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -106,6 +106,10 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Add blocked location
 
 == Changelog ==
+
+= v5.5.9 =
+
+* fix(api): corrected app_type case mismatch and app_details/email_details encoding
 
 = v5.5.8 =
 
