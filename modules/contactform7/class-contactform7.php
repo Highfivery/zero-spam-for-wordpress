@@ -50,7 +50,9 @@ class ContactForm7 {
 	}
 
 	/**
-	 * Load the scripts
+	 * Load the scripts.
+	 *
+	 * Uses centralized David Walsh script - selectors are managed in class-davidwalsh.php.
 	 */
 	public function add_scripts() {
 		if (
@@ -58,13 +60,6 @@ class ContactForm7 {
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
 		) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			add_action(
-				'wp_footer',
-				function () {
-					echo '<script type="text/javascript">jQuery(".wpcf7-form").ZeroSpamDavidWalsh();</script>';
-				},
-				999
-			);
 		}
 	}
 

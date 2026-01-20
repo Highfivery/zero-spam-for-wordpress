@@ -38,6 +38,11 @@ class WooCommerce {
 			'color' => '#7f54b3',
 		);
 
+		$types['woocommerce_checkout'] = array(
+			'label' => __( 'Woo Checkout', 'zero-spam' ),
+			'color' => '#96588a',
+		);
+
 		return $types;
 	}
 
@@ -126,8 +131,10 @@ class WooCommerce {
 			add_action( 'woocommerce_register_form', array( $this, 'add_scripts' ) );
 			add_action( 'woocommerce_register_post', array( $this, 'process_registration' ), 10, 3 );
 
+			// Checkout protection.
 			add_action( 'woocommerce_before_checkout_form', array( $this, 'add_scripts' ) );
 			add_action( 'woocommerce_after_order_notes', array( $this, 'add_honeypot_field' ), 10 );
+			add_action( 'woocommerce_checkout_process', array( $this, 'process_checkout' ) );
 		}
 	}
 
@@ -145,19 +152,14 @@ class WooCommerce {
 	}
 
 	/**
-	 * Load the scripts
+	 * Load the scripts.
+	 *
+	 * Uses centralized David Walsh script - selectors are managed in class-davidwalsh.php.
 	 */
 	public function add_scripts() {
-		// Only add scripts to the appropriate pages.
+		// Only add scripts if David Walsh is enabled.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			add_action(
-				'wp_footer',
-				function () {
-					echo '<script type="text/javascript">jQuery(".woocommerce-form-register, .woocommerce-checkout").ZeroSpamDavidWalsh();</script>';
-				},
-				999
-			);
 		}
 	}
 
@@ -233,6 +235,69 @@ class WooCommerce {
 
 			// Add the spam message to the WooCommerce errors object.
 			$errors->add( 'zerospam_error', $spam_message );
+		}
+	}
+
+	/**
+	 * Process checkout for spam.
+	 *
+	 * Validates checkout submissions against Zero Spam protections.
+	 */
+	public function process_checkout() {
+		// Get all posted form fields.
+		// @codingStandardsIgnoreLine
+		$data = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
+
+		// Get the WooCommerce registration spam message (reused for checkout).
+		$spam_message = \ZeroSpam\Core\Utilities::detection_message( 'woocommerce_registration_spam_message' );
+
+		// Create the details array for logging & sharing data.
+		$details = array(
+			'email' => isset( $data['billing_email'] ) ? $data['billing_email'] : '',
+			'data'  => $data,
+			'type'  => 'woocommerce_checkout',
+		);
+
+		// Create the validation errors array.
+		$validation_errors = array();
+
+		// Check Zero Spam's honeypot field.
+		$honeypot_field_name = \ZeroSpam\Core\Utilities::get_honeypot();
+		if ( isset( $data[ $honeypot_field_name ] ) && ! empty( $data[ $honeypot_field_name ] ) ) {
+			// Failed the honeypot check.
+			$validation_errors[] = 'honeypot';
+		}
+
+		// Fire hook for additional validation (ex. David Walsh script).
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			$filtered_errors = apply_filters( 'zerospam_process_woocommerce_checkout', array(), $data, 'woocommerce_registration_spam_message' );
+
+			if ( ! empty( $filtered_errors ) ) {
+				foreach ( $filtered_errors as $key => $message ) {
+					$validation_errors[] = str_replace( 'zerospam_', '', $key );
+				}
+			}
+		}
+
+		// Check for validation errors, then log & share if enabled.
+		if ( ! empty( $validation_errors ) ) {
+			// Failed validations, log & send details if enabled.
+			foreach ( $validation_errors as $key => $fail ) {
+				$details['failed'] = $fail;
+
+				// Log the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_woocommerce_registrations' ) ) {
+					\ZeroSpam\Includes\DB::log( 'woocommerce_checkout', $details );
+				}
+
+				// Share the detection if enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+					do_action( 'zerospam_share_detection', $details );
+				}
+			}
+
+			// Add WooCommerce notice for checkout.
+			wc_add_notice( $spam_message, 'error' );
 		}
 	}
 }

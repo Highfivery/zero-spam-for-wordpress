@@ -5,6 +5,7 @@
  * Malicious user detection techniques available:
  *
  * 1. Zero Spam honeypot field
+ * 2. David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -43,10 +44,11 @@ class GravityForms {
 			// Processes the form.
 			add_action( 'gform_abort_submission_with_confirmation', array( $this, 'process_form' ), 10, 2 );
 			add_filter( 'gform_confirmation', array( $this, 'confirmation_message' ), 10, 4 );
-			/*
-			// Load scripts.
-			add_action( 'wp_print_scripts', array( $this, 'add_scripts' ), 999 );
-			*/
+
+			// Load David Walsh scripts.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+				add_action( 'gform_enqueue_scripts', array( $this, 'add_scripts' ), 10 );
+			}
 		}
 	}
 
@@ -73,20 +75,20 @@ class GravityForms {
 		$sections['gravityforms'] = array(
 			'title'    => __( 'Gravity Forms', 'zero-spam' ),
 			'icon'     => 'modules/gravityforms/icon-gravity-forms.svg',
-			'supports' => array( 'honeypot' ),
+			'supports' => array( 'honeypot', 'davidwalsh' ),
 		);
 
 		return $sections;
 	}
 
 	/**
-	 * Load the scripts
+	 * Load the David Walsh scripts for Gravity Forms.
 	 *
-	 * @see https://givewp.com/documentation/developers/conditionally-load-give-styles-and-scripts/
+	 * @see https://docs.gravityforms.com/gform_enqueue_scripts/
 	 */
 	public function add_scripts() {
-		// wp_enqueue_script( 'zerospam-davidwalsh' );
-		// wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".give-form").ZeroSpamDavidWalsh();' );
+		// Trigger the custom action to enqueue the David Walsh script.
+		do_action( 'zerospam_gravityforms_scripts' );
 	}
 
 
@@ -144,6 +146,17 @@ class GravityForms {
 		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
 			// Failed the honeypot check.
 			$validation_errors[] = 'honeypot';
+		}
+
+		// Fire hook for additional validation (ex. David Walsh).
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			$filtered_errors = apply_filters( 'zerospam_preprocess_gravityforms_submission', array(), $post, 'gravityforms_spam_message' );
+
+			if ( ! empty( $filtered_errors ) ) {
+				foreach ( $filtered_errors as $key => $message ) {
+					$validation_errors[] = str_replace( 'zerospam_', '', $key );
+				}
+			}
 		}
 
 		if ( ! empty( $validation_errors ) ) {

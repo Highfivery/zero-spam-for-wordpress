@@ -6,7 +6,6 @@
  *
  * 1. Zero Spam honeypot field
  * 2. Checks blocked email domains
- * 3. Uses the David Walsh technique (legacy forms only)
  *
  * @package ZeroSpam
  */
@@ -44,35 +43,9 @@ class Give {
 
 			// Processes the form.
 			add_action( 'give_checkout_error_checks', array( $this, 'process_form' ), 10, 1 );
-
-			// Load scripts.
-			add_action( 'wp_print_scripts', array( $this, 'add_scripts' ), 999 );
 		}
 	}
 
-	/**
-	 * Load the scripts
-	 *
-	 * @see https://givewp.com/documentation/developers/conditionally-load-give-styles-and-scripts/
-	 */
-	public function add_scripts() {
-		global $post;
-
-		// Only add scripts to the appropriate pages.
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_givewp' ) &&
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
-		) {
-			if (
-				// Register and enqueue scripts on single GiveWP Form pages.
-				is_singular( 'give_forms' ) ||
-				// Now check for whether the shortcode 'give_form' exists.
-				( is_a( $post, 'WP_Post' ) && has_shortcode( $post->post_content, 'give_form' ) )
-			) {
-				wp_enqueue_script( 'zerospam-davidwalsh' );
-				wp_add_inline_script( 'zerospam-davidwalsh', 'document.addEventListener("DOMContentLoaded", function() { jQuery(".give-form").ZeroSpamDavidWalsh(); });' );
-			}
-		}
-	}
 
 	/**
 	 * Adds Zero Spam's honeypot field.
@@ -128,18 +101,6 @@ class Give {
 			$validation_errors[] = 'blocked_email_domain';
 		}
 
-		// Fire hook for additional validation (ex. David Walsh script). Only works for legacy forms.
-		$form_post_meta = get_post_meta( $post_data['give-form-id'] );
-		if ( in_array( 'legacy', $form_post_meta['_give_form_template'] ) ) {
-			$filtered_errors = apply_filters( 'zerospam_process_givewp_submission', array(), $post_data, 'givewp_spam_message' );
-
-			if ( ! empty( $filtered_errors ) ) {
-				foreach ( $filtered_errors as $key => $message ) {
-					$validation_errors[] = str_replace( 'zerospam_', '', $key );
-				}
-			}
-		}
-
 		if ( ! empty( $validation_errors ) ) {
 			// Failed validations, log & send details if enabled.
 			foreach ( $validation_errors as $key => $fail ) {
@@ -183,7 +144,7 @@ class Give {
 		$sections['givewp'] = array(
 			'title'    => __( 'GiveWP', 'zero-spam' ),
 			'icon'     => 'modules/give/icon-givewp.png',
-			'supports' => array( 'honeypot', 'email', 'davidwalsh' ),
+			'supports' => array( 'honeypot', 'email' ),
 		);
 
 		return $sections;

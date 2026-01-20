@@ -2,6 +2,12 @@
 /**
  * Adds integration for Elementor Pro forms
  *
+ * Malicious user detection techniques available:
+ *
+ * 1. David Walsh technique
+ * 2. Email domain validation
+ * 3. Disallowed words validation
+ *
  * @package ZeroSpam
  */
 
@@ -45,6 +51,12 @@ class Elementor {
 			add_action( 'elementor_pro/forms/validation/text', array( $this, 'validate_text' ), 10, 3 );
 			add_action( 'elementor_pro/forms/validation/textarea', array( $this, 'validate_text' ), 10, 3 );
 			add_action( 'elementor_pro/forms/validation/html', array( $this, 'validate_text' ), 10, 3 );
+
+			// David Walsh validation - runs on form submission.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+				add_action( 'elementor_pro/forms/validation', array( $this, 'validate_davidwalsh' ), 10, 2 );
+				add_action( 'elementor/frontend/after_enqueue_scripts', array( $this, 'add_scripts' ), 10 );
+			}
 		}
 	}
 
@@ -57,7 +69,7 @@ class Elementor {
 		$sections['elementor'] = array(
 			'title'    => __( 'Elementor', 'zero-spam' ),
 			'icon'     => 'modules/elementor/icon-elementor.svg',
-			'supports' => array( 'email', 'words' ),
+			'supports' => array( 'davidwalsh', 'email', 'words' ),
 		);
 
 		return $sections;
@@ -165,6 +177,72 @@ class Elementor {
 
 			$ajax_handler->add_error( $field['id'], \ZeroSpam\Core\Utilities::detection_message( 'elementor_flagged_msg' ) );
 			return;
+		}
+	}
+
+	/**
+	 * Add the types array.
+	 *
+	 * @param array $types Array of available detection types.
+	 * @return array Modified types array.
+	 */
+	public function types( $types ) {
+		$types['elementor'] = array(
+			'label' => __( 'Elementor', 'zero-spam' ),
+			'color' => '#92003B',
+		);
+
+		return $types;
+	}
+
+	/**
+	 * Load the David Walsh scripts for Elementor Forms.
+	 *
+	 * @see https://developers.elementor.com/docs/hooks/
+	 */
+	public function add_scripts() {
+		// Trigger the custom action to enqueue the David Walsh script.
+		do_action( 'zerospam_elementor_scripts' );
+	}
+
+	/**
+	 * Validate David Walsh on form submission.
+	 *
+	 * @param \ElementorPro\Modules\Forms\Classes\Form_Record  $record       Form record.
+	 * @param \ElementorPro\Modules\Forms\Classes\Ajax_Handler $ajax_handler Ajax handler.
+	 */
+	public function validate_davidwalsh( $record, $ajax_handler ) {
+		// @codingStandardsIgnoreLine
+		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
+
+		// Fire hook for David Walsh validation.
+		$filtered_errors = apply_filters( 'zerospam_preprocess_elementor_submission', array(), $post, 'elementor_flagged_msg' );
+
+		if ( ! empty( $filtered_errors ) ) {
+			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'elementor_flagged_msg' );
+
+			// Add form-level error.
+			$ajax_handler->add_error_message( $error_message );
+
+			// Log the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'elementor_log_flagged_attempts' ) ) {
+				$details = array(
+					'data'   => $post,
+					'type'   => 'elementor',
+					'failed' => 'david_walsh',
+				);
+				\ZeroSpam\Includes\DB::log( 'elementor', $details );
+			}
+
+			// Share the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				$details = array(
+					'data'   => $post,
+					'type'   => 'elementor',
+					'failed' => 'david_walsh',
+				);
+				do_action( 'zerospam_share_detection', $details );
+			}
 		}
 	}
 }

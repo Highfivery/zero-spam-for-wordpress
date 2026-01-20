@@ -270,23 +270,25 @@ class Zero_Spam {
 			return;
 		}
 
-		$endpoint = ZEROSPAM_URL . 'wp-json/v5.4/report/';
+		$endpoint = ZEROSPAM_URL . 'wp-json/v6/report/';
 		$ip       = \ZeroSpam\Core\User::get_ip();
 		if ( ! $ip ) {
 			return;
 		}
 
-		$api_data = [
+		$query_params = array(
 			'report_type'   => 'ip_address',
 			'report_module' => sanitize_text_field( $data['type'] ),
 			'report_key'    => sanitize_text_field( $ip ),
 			'report_failed' => isset( $data['failed'] ) ? sanitize_text_field( $data['failed'] ) : '',
-		];
+		);
 
 		$global_data = self::global_api_data();
-		$api_data    = array_merge( $api_data, $global_data );
+		$query_params = array_merge( $query_params, $global_data );
 
-		self::remote_request( $endpoint, [ 'body' => [ 'data' => $api_data ] ] );
+		// Build URL with query params - wrap in 'data' array for API format.
+		$endpoint = add_query_arg( array( 'data' => $query_params ), $endpoint );
+		self::remote_request( $endpoint );
 
 		// Process email fields.
 		$valid_email_fields = [
@@ -383,12 +385,10 @@ class Zero_Spam {
 		$license_data = get_transient( $cache_key );
 
 		if ( false === $license_data ) {
-			$endpoint = ZEROSPAM_URL . 'wp-json/v1/get-license';
-			$args     = array(
-				'body' => array( 'license_key' => $license ),
-			);
+			$endpoint = ZEROSPAM_URL . 'wp-json/v2/get-license';
+			$endpoint = add_query_arg( 'license_key', $license, $endpoint );
 
-			$response = self::remote_request( $endpoint, $args );
+			$response = self::remote_request( $endpoint );
 
 			if ( $response && ! is_wp_error( $response ) ) {
 				$license_data = json_decode( wp_remote_retrieve_body( $response ), true );
@@ -435,22 +435,23 @@ class Zero_Spam {
 		$response = get_transient( $cache_key );
 
 		if ( false === $response ) {
-			$endpoint = 'https://www.zerospam.org/wp-json/v2/query';
+			$endpoint = ZEROSPAM_URL . 'wp-json/v3/query';
 
-			$args = array(
-				'body' => array(
-					'license_key' => $settings['zerospam_license']['value'],
-				),
+			$query_params = array(
+				'license_key' => $settings['zerospam_license']['value'],
 			);
 
 			if ( ! empty( $params['ip'] ) ) {
-				$args['body']['ip'] = $params['ip'];
+				$query_params['ip'] = $params['ip'];
 			}
 
 			if ( ! empty( $params['email'] ) ) {
-				$args['body']['email'] = $params['email'];
+				$query_params['email'] = $params['email'];
 			}
 
+			$endpoint = add_query_arg( $query_params, $endpoint );
+
+			$args = array();
 			$args['timeout'] = 5;
 			if ( ! empty( $settings['zerospam_timeout'] ) ) {
 				$args['timeout'] = intval( $settings['zerospam_timeout']['value'] );
@@ -501,7 +502,7 @@ class Zero_Spam {
 	 *
 	 * @param string $endpoint The URL to request.
 	 * @param array  $args     Request arguments.
-	 * @return array|WP_Error Response array or WP_Error.
+	 * @return array|\WP_Error Response array or WP_Error.
 	 */
 	public static function remote_request( $endpoint, $args = [] ) {
 		// Circuit Breaker: Check if circuit is open.
@@ -509,7 +510,7 @@ class Zero_Spam {
 			return new \WP_Error( 'circuit_open', 'API Circuit Breaker is open due to recent failures.' );
 		}
 
-		$response = wp_remote_post( $endpoint, $args );
+		$response = wp_remote_get( $endpoint, $args );
 
 		// Analyze response for Circuit Breaker.
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {

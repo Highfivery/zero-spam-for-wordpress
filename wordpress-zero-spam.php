@@ -15,7 +15,7 @@ declare( strict_types=1 );
  * Plugin Name:       Zero Spam for WordPress
  * Plugin URI:        https://wordpress.com/plugins/zero-spam/
  * Description:       Tired of all the ineffective WordPress anti-spam & security plugins? Zero Spam for WordPress makes blocking spam &amp; malicious activity a cinch. <strong>Just activate, configure, and say goodbye to spam.</strong>
- * Version:           5.5.9
+ * Version:           5.6.0
  * Requires at least: 6.9
  * Requires PHP:      8.2
  * Author:            Highfivery Studio
@@ -33,7 +33,7 @@ defined( 'ABSPATH' ) || die();
 define( 'ZEROSPAM', __FILE__ );
 define( 'ZEROSPAM_PATH', plugin_dir_path( ZEROSPAM ) );
 define( 'ZEROSPAM_PLUGIN_BASE', plugin_basename( ZEROSPAM ) );
-define( 'ZEROSPAM_VERSION', '5.5.9' );
+define( 'ZEROSPAM_VERSION', '5.6.0' );
 
 if ( defined( 'ZEROSPAM_DEVELOPMENT_URL' ) ) {
 	define( 'ZEROSPAM_URL', ZEROSPAM_DEVELOPMENT_URL );
@@ -49,6 +49,9 @@ if ( ! version_compare( PHP_VERSION, '8.2', '>=' ) ) {
 	add_action( 'admin_notices', 'zerospam_fail_wp_version' );
 } else {
 	require_once ZEROSPAM_PATH . 'includes/class-plugin.php';
+	
+	// Set activation time for new installations.
+	register_activation_hook( ZEROSPAM, 'zerospam_plugin_activation' );
 }
 
 /**
@@ -92,6 +95,17 @@ function zerospam_fail_wp_version() {
 	);
 	$html_message = sprintf( '<div class="notice notice-error"><p>%s</p></div>', $message );
 	echo wp_kses_post( $html_message );
+}
+
+/**
+ * Plugin activation hook
+ */
+function zerospam_plugin_activation() {
+	// Set activation time for new installations.
+	// This will only be set if it doesn't already exist.
+	if ( ! get_option( 'zerospam_activation_time' ) ) {
+		update_option( 'zerospam_activation_time', time() );
+	}
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {

@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 5.5.9
+Stable tag: 5.6.0
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -106,6 +106,41 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Add blocked location
 
 == Changelog ==
+
+= v5.6.0 =
+
+* feat(api): API version increment - v2/query to v3/query, v5.4/report to v6/report, v1/get-license to v2/get-license
+* feat(api): migrated all protected endpoints from POST to GET method with query parameters
+* feat(api): master API key can bypass localhost blocking for testing purposes
+* feat(david walsh): rewritten in vanilla JavaScript, removing jQuery dependency
+* feat(david walsh): added MutationObserver for dynamically loaded forms (AJAX, React)
+* feat(david walsh): implemented daily key rotation with dual-key caching for cached pages
+* feat(david walsh): increased key length from 5 to 16 characters for enhanced security
+* feat(david walsh): added REST API endpoint for AJAX-based key refresh
+* feat(gravity forms): added David Walsh technique support
+* feat(formidable): added David Walsh technique support
+* feat(elementor): added David Walsh technique support
+* feat(woocommerce): added David Walsh validation for checkout (in addition to registration)
+* feat(admin): added conversion-optimized promotional notice for Enhanced Protection with lifetime discount offer
+* refactor(givewp): removed David Walsh support (incompatible with v3 block-based forms)
+* refactor(david walsh): centralized form selector management via filter
+* fix(david walsh): removed dead MemberPress selectors from JavaScript
+* perf(api): Apache-level validation requires license_key parameter (zero PHP overhead for invalid requests)
+* perf(api): v3/query requires ip or email parameter at Apache level
+* fix(api): corrected hardcoded api url to use ZEROSPAM_URL constant in query function
+* fix(api): wrapped report data in 'data' array for proper API format
+* fix(code): corrected remote_request return type docblock
+* fix(code): corrected Object→WP_REST_Request param types and increment_license_queries parameter
+* ui(david walsh): redesigned settings page with comprehensive how-it-works documentation
+* ui(david walsh): added security key status display with rotation countdown
+* ui(david walsh): added step-by-step testing instructions for non-technical users
+* ui(david walsh): enhanced custom form selectors field with detailed usage examples
+* ui(david walsh): added list of currently protected form selectors
+* ui(admin): promotional notice displays on dashboard and Zero Spam pages for unlicensed users
+* ui(admin): notice is dismissible and reappears after 30 days if no license is added
+* ui(admin): notice waits 3 days after plugin activation before displaying
+
+
 
 = v5.5.9 =
 

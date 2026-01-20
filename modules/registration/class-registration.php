@@ -60,13 +60,14 @@ class Registration {
 	}
 
 	/**
-	 * Load the scripts
+	 * Load the scripts.
+	 *
+	 * Uses centralized David Walsh script - selectors are managed in class-davidwalsh.php.
 	 */
 	public function add_scripts() {
-		// Only add scripts to the appropriate pages.
+		// Only add scripts if David Walsh is enabled.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			wp_add_inline_script( 'zerospam-davidwalsh', 'document.addEventListener("DOMContentLoaded", function() { jQuery("#registerform").ZeroSpamDavidWalsh(); });' );
 		}
 	}
 

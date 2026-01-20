@@ -5,6 +5,7 @@
  * Malicious user detection techniques available:
  *
  * 1. Zero Spam honeypot field
+ * 2. David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -39,6 +40,11 @@ class Formidable {
 		) {
 			add_action( 'frm_entry_form', array( $this, 'honeypot' ), 10, 1 );
 			add_filter( 'frm_validate_entry', array( $this, 'preprocess_submission' ), 10, 2 );
+
+			// Load David Walsh scripts.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+				add_action( 'frm_enqueue_form_scripts', array( $this, 'add_scripts' ), 10 );
+			}
 		}
 	}
 
@@ -65,7 +71,7 @@ class Formidable {
 		$sections['formidable'] = array(
 			'title'    => __( 'Formidable', 'zero-spam' ),
 			'icon'     => 'modules/formidable/icon-formidable.png',
-			'supports' => array( 'honeypot' ),
+			'supports' => array( 'honeypot', 'davidwalsh' ),
 		);
 
 		return $sections;
@@ -136,6 +142,16 @@ class Formidable {
 	}
 
 	/**
+	 * Load the David Walsh scripts for Formidable Forms.
+	 *
+	 * @see https://formidableforms.com/knowledgebase/frm_enqueue_form_scripts/
+	 */
+	public function add_scripts() {
+		// Trigger the custom action to enqueue the David Walsh script.
+		do_action( 'zerospam_formidable_scripts' );
+	}
+
+	/**
 	 * Preprocess submission
 	 *
 	 * @param array $errors Array of errors.
@@ -164,6 +180,17 @@ class Formidable {
 			$details['failed'] = 'honeypot';
 
 			$validation_errors[] = 'honeypot';
+		}
+
+		// Fire hook for additional validation (ex. David Walsh).
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			$filtered_errors = apply_filters( 'zerospam_preprocess_formidable_submission', array(), $post, 'formidable_spam_message' );
+
+			if ( ! empty( $filtered_errors ) ) {
+				foreach ( $filtered_errors as $key => $message ) {
+					$validation_errors[] = str_replace( 'zerospam_', '', $key );
+				}
+			}
 		}
 
 		if ( ! empty( $validation_errors ) ) {
