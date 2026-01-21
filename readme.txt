@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 5.6.0
+Stable tag: 5.6.1
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -106,6 +106,12 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Add blocked location
 
 == Changelog ==
+
+= v5.6.1 =
+
+* fix(api): corrected email report submission to use GET method with query parameters (was incorrectly using POST with body)
+* fix(api): email reports now properly include report_ip parameter
+* fix(api): fixed variable reuse bug by using separate $email_endpoint variable for email reports
 
 = v5.6.0 =
 

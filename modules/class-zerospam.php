@@ -360,11 +360,17 @@ class Zero_Spam {
 				}
 			}
 
-			// Encode email_details as JSON string (API expects JSON, not array).
-			$report_details['email_details'] = wp_json_encode( $report_details['email_details'] );
+		// Encode email_details as JSON string (API expects JSON, not array).
+		$report_details['email_details'] = wp_json_encode( $report_details['email_details'] );
 
-			// Append global data and submit the email report.
-			self::remote_request( $endpoint, [ 'body' => [ 'data' => array_merge( $report_details, $global_data ) ] ] );
+		// Add report_ip (the IP being reported for email reports).
+		$report_details['report_ip'] = $ip;
+
+		// Append global data and submit the email report.
+		$email_query_params = array_merge( $report_details, $global_data );
+		$email_endpoint = ZEROSPAM_URL . 'wp-json/v6/report/';
+		$email_endpoint = add_query_arg( array( 'data' => $email_query_params ), $email_endpoint );
+		self::remote_request( $email_endpoint );
 		}
 
 		// Successfully updated the last API request time.
