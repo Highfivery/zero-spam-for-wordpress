@@ -174,6 +174,9 @@ class Admin {
 			</div>
 			<?php
 		}
+
+		// Display API monitoring feature notice (one-time).
+		$this->display_api_monitoring_notice();
 	}
 
 	/**
@@ -746,6 +749,65 @@ class Admin {
 		do_action( 'zerospam_promo_notice_clicked', $current_user_id, $click_type );
 
 		wp_send_json_success( array( 'message' => __( 'Click tracked', 'zero-spam' ) ) );
+	}
+
+	/**
+	 * Display API monitoring feature notice (one-time)
+	 */
+	private function display_api_monitoring_notice() {
+		// Only show to admins.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		// Check if notice has been dismissed.
+		if ( get_option( 'zerospam_api_monitoring_notice_dismissed', false ) ) {
+			return;
+		}
+
+		// Check if Enhanced Protection is enabled (no point showing if they don't have a license).
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+		if ( empty( $settings['zerospam']['value'] ) || 'enabled' !== $settings['zerospam']['value'] ) {
+			return;
+		}
+
+		// Check if they have a license key.
+		$has_license = ! empty( $settings['zerospam_license']['value'] ) || defined( 'ZEROSPAM_LICENSE_KEY' );
+		if ( ! $has_license ) {
+			return;
+		}
+
+		// Only show on dashboard or Zero Spam pages.
+		$screen = get_current_screen();
+		if ( ! $screen || ( 'dashboard' !== $screen->id && false === strpos( $screen->id, 'wordpress-zero-spam' ) ) ) {
+			return;
+		}
+
+		$dismiss_url = wp_nonce_url(
+			admin_url( 'admin.php?page=wordpress-zero-spam-settings&zerospam-action=dismiss-api-monitoring-notice' ),
+			'dismiss-api-monitoring-notice',
+			'zero-spam'
+		);
+
+		$settings_url = admin_url( 'admin.php?page=wordpress-zero-spam-settings&subview=api-monitoring' );
+		?>
+		<div class="notice notice-info is-dismissible" id="zerospam-api-monitoring-notice">
+			<p><strong><?php esc_html_e( 'New Feature: API Usage Monitoring & Alerts!', 'zero-spam' ); ?></strong></p>
+			<p>
+				<?php
+				esc_html_e( 'Track your Zero Spam API usage, monitor quota consumption, and receive proactive alerts before hitting limits. Get insights into cache performance, detect anomalies, and ensure uninterrupted protection.', 'zero-spam' );
+				?>
+			</p>
+			<p>
+				<a href="<?php echo esc_url( $settings_url ); ?>" class="button button-primary">
+					<?php esc_html_e( 'Enable API Monitoring', 'zero-spam' ); ?>
+				</a>
+				<a href="<?php echo esc_url( $dismiss_url ); ?>" class="button button-secondary">
+					<?php esc_html_e( 'Dismiss', 'zero-spam' ); ?>
+				</a>
+			</p>
+		</div>
+		<?php
 	}
 
 	/**

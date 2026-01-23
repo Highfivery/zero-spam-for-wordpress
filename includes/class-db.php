@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '1.0';
+	const DB_VERSION = '1.1';
 
 	/**
 	 * DB tables
@@ -24,9 +24,10 @@ class DB {
 	 * @var array $tables List of plugin database tables.
 	 */
 	public static $tables = array(
-		'log'       => 'wpzerospam_log',
-		'blocked'   => 'wpzerospam_blocked',
-		'blacklist' => 'wpzerospam_blacklist',
+		'log'        => 'wpzerospam_log',
+		'blocked'    => 'wpzerospam_blocked',
+		'blacklist'  => 'wpzerospam_blacklist',
+		'api_usage'  => 'wpzerospam_api_usage',
 	);
 
 	/**
@@ -76,6 +77,29 @@ class DB {
 				end_block datetime DEFAULT NULL,
 				reason varchar(255) DEFAULT NULL,
 				PRIMARY KEY  (blocked_id)
+			) $charset_collate;";
+
+			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['api_usage'] . " (
+				usage_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+				event_type enum('api_call','cache_hit','cache_miss','error') NOT NULL DEFAULT 'api_call',
+				endpoint varchar(255) NOT NULL,
+				response_code int(11) DEFAULT NULL,
+				response_time_ms int(11) DEFAULT NULL,
+				queries_limit int(11) DEFAULT NULL,
+				queries_made int(11) DEFAULT NULL,
+				queries_remaining int(11) DEFAULT NULL,
+				error_message text DEFAULT NULL,
+				request_params text DEFAULT NULL,
+				date_recorded datetime NOT NULL,
+				hour_bucket datetime NOT NULL,
+				day_bucket date NOT NULL,
+				KEY site_date (site_id, date_recorded),
+				KEY site_day (site_id, day_bucket),
+				KEY site_hour (site_id, hour_bucket),
+				KEY event_type (event_type),
+				KEY response_code (response_code),
+				PRIMARY KEY  (usage_id)
 			) $charset_collate;";
 
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';

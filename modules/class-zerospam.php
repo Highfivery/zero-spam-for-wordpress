@@ -498,13 +498,21 @@ class Zero_Spam {
 				// Store persistently.
 				set_transient( $cache_key, $response, $expiration );
 			}
+		} else {
+			// Cache hit - track it if monitoring is enabled.
+			if ( class_exists( '\ZeroSpam\Includes\API_Usage_Tracker' ) ) {
+				\ZeroSpam\Includes\API_Usage_Tracker::track_cache_hit(
+					ZEROSPAM_URL . 'wp-json/v3/query',
+					$params
+				);
+			}
 		}
 
 		return $response;
 	}
 
 	/**
-	 * Remote request wrapper with Circuit Breaker pattern.
+	 * Remote request wrapper with Circuit Breaker pattern and API usage tracking.
 	 *
 	 * @param string $endpoint The URL to request.
 	 * @param array  $args     Request arguments.
@@ -516,7 +524,25 @@ class Zero_Spam {
 			return new \WP_Error( 'circuit_open', 'API Circuit Breaker is open due to recent failures.' );
 		}
 
+		// Track start time for response time measurement.
+		$start_time = microtime( true );
+
 		$response = wp_remote_get( $endpoint, $args );
+
+		// Calculate response time.
+		$response_time_ms = round( ( microtime( true ) - $start_time ) * 1000 );
+
+		// Track API call if monitoring is enabled.
+		if ( class_exists( '\ZeroSpam\Includes\API_Usage_Tracker' ) ) {
+			\ZeroSpam\Includes\API_Usage_Tracker::track_api_call(
+				$endpoint,
+				$response,
+				array(
+					'timeout' => isset( $args['timeout'] ) ? $args['timeout'] : 5,
+				),
+				$response_time_ms
+			);
+		}
 
 		// Analyze response for Circuit Breaker.
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {

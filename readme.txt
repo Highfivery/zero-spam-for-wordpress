@@ -132,6 +132,31 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 * feat(rest-api): audit trail recording all settings changes with user attribution
 * feat(rest-api): source tracking showing whether settings come from defaults, network, or site level
 * feat(rest-api): WordPress Application Password authentication for secure remote management
+* feat(docs): added comprehensive REST API documentation in-plugin
+* feat(docs): new Documentation tab in settings with beginner-friendly REST API guide
+* feat(docs): code examples for curl, JavaScript, PHP with copy-to-clipboard
+* feat(docs): multisite precedence explanation and troubleshooting guides
+* feat(api-monitoring): added comprehensive API usage monitoring and alerts system
+* feat(api-monitoring): real-time tracking of Zero Spam API calls, quota usage, and performance
+* feat(api-monitoring): cache hit/miss tracking for performance insights
+* feat(api-monitoring): proactive alerts via email, admin notices, and webhooks
+* feat(api-monitoring): configurable alert thresholds for quota, usage spikes, errors, and slow responses
+* feat(api-monitoring): alert throttling to prevent spam (max 1 email per threshold per 24 hours)
+* feat(api-monitoring): promotional upgrade messaging in quota alert emails with tier detection
+* feat(api-monitoring): admin dashboard widget with 1-hour cache and manual refresh capability
+* feat(api-monitoring): anomaly detection for usage spikes, high error rates, and slow API responses
+* feat(api-monitoring): historical trends and hourly usage data for traffic planning
+* feat(api-monitoring): multisite support with network-wide aggregation and per-site breakdown
+* feat(api-monitoring): Super Admin sees network-wide usage, Site Admin sees only their site
+* feat(api-monitoring): configurable data retention (7-365 days) with automatic cleanup
+* feat(api-monitoring): REST API endpoint at /wp-json/zero-spam/v1/api-usage for remote monitoring
+* feat(api-monitoring): WP-CLI commands for checking API usage via command line
+* feat(api-monitoring): CSV export functionality for usage data analysis
+* feat(api-monitoring): comparison view for month-over-month usage tracking
+* feat(api-monitoring): visual health indicators with color coding for quota and API status
+* feat(api-monitoring): test alert buttons for verifying email, webhook, and admin notice configurations
+* feat(api-monitoring): one-time admin notice for feature discovery (dismissible)
+* feat(api-monitoring): auto-detect quota reset date with manual override option
 * feat(settings): centralized settings resolver with per-request caching for improved performance
 * feat(multisite): network-level default settings with site-level override capability
 * feat(admin): new Documentation tab with comprehensive REST API guide

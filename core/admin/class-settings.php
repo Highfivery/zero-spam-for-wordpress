@@ -227,6 +227,89 @@ class Settings {
 			wp_safe_redirect( $redirect_url );
 			exit;
 		}
+
+		// Dismiss API monitoring notice.
+		if ( 'dismiss-api-monitoring-notice' === $action && check_admin_referer( 'dismiss-api-monitoring-notice', 'zero-spam' ) ) {
+			update_option( 'zerospam_api_monitoring_notice_dismissed', true );
+
+			$message      = __( 'API monitoring notice dismissed.', 'zero-spam' );
+			$redirect_url = add_query_arg(
+				array(
+					'zerospam-msg'  => rawurlencode( $message ),
+					'zerospam-type' => 'success',
+				),
+				admin_url( $base_admin_link )
+			);
+
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		// Test alert - Email.
+		if ( 'test-alert-email' === $action && check_admin_referer( 'test-alert-email', 'zero-spam' ) ) {
+			$result = \ZeroSpam\Includes\API_Usage_Alerts::send_test_alert( 'quota_warning', 'email' );
+
+			$message = $result ?
+				__( 'Test email alert sent successfully! Check your inbox.', 'zero-spam' ) :
+				__( 'Failed to send test email alert. Please check your email configuration.', 'zero-spam' );
+			$type = $result ? 'success' : 'error';
+
+			$redirect_url = add_query_arg(
+				array(
+					'subview'       => 'api-monitoring',
+					'zerospam-msg'  => rawurlencode( $message ),
+					'zerospam-type' => $type,
+				),
+				admin_url( $base_admin_link )
+			);
+
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		// Test alert - Admin Notice.
+		if ( 'test-alert-notice' === $action && check_admin_referer( 'test-alert-notice', 'zero-spam' ) ) {
+			$result = \ZeroSpam\Includes\API_Usage_Alerts::send_test_alert( 'quota_warning', 'admin_notice' );
+
+			$message = $result ?
+				__( 'Test admin notice created successfully! You should see it on the next page load.', 'zero-spam' ) :
+				__( 'Failed to create test admin notice.', 'zero-spam' );
+			$type = $result ? 'success' : 'error';
+
+			$redirect_url = add_query_arg(
+				array(
+					'subview'       => 'api-monitoring',
+					'zerospam-msg'  => rawurlencode( $message ),
+					'zerospam-type' => $type,
+				),
+				admin_url( $base_admin_link )
+			);
+
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
+		// Test alert - Webhook.
+		if ( 'test-alert-webhook' === $action && check_admin_referer( 'test-alert-webhook', 'zero-spam' ) ) {
+			$result = \ZeroSpam\Includes\API_Usage_Alerts::send_test_alert( 'quota_warning', 'webhook' );
+
+			$message = $result ?
+				__( 'Test webhook sent successfully! Check your webhook endpoint.', 'zero-spam' ) :
+				__( 'Failed to send test webhook. Please check your webhook URL configuration.', 'zero-spam' );
+			$type = $result ? 'success' : 'error';
+
+			$redirect_url = add_query_arg(
+				array(
+					'subview'       => 'api-monitoring',
+					'zerospam-msg'  => rawurlencode( $message ),
+					'zerospam-type' => $type,
+				),
+				admin_url( $base_admin_link )
+			);
+
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
 	}
 
 	/**

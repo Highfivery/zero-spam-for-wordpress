@@ -28,10 +28,15 @@ defined( 'ABSPATH' ) || die();
 $sections = apply_filters(
 	'zerospam_documentation_sections',
 	array(
-		'rest-api' => array(
+		'rest-api'       => array(
 			'title'    => __( 'REST API', 'zero-spam' ),
 			'template' => ZEROSPAM_PATH . 'includes/templates/docs/rest-api.php',
 			'priority' => 10,
+		),
+		'api-monitoring' => array(
+			'title'    => __( 'API Monitoring & Alerts', 'zero-spam' ),
+			'template' => ZEROSPAM_PATH . 'includes/templates/docs/api-monitoring.php',
+			'priority' => 20,
 		),
 	)
 );
@@ -61,6 +66,20 @@ uasort(
 			</div>
 		</div>
 	<?php else : ?>
+		<!-- Table of Contents -->
+		<div class="zerospam-docs-toc">
+			<h2><?php esc_html_e( 'Quick Navigation', 'zero-spam' ); ?></h2>
+			<ul class="zerospam-docs-toc-list">
+				<?php foreach ( $sections as $section_id => $section ) : ?>
+					<li>
+						<a href="#section-<?php echo esc_attr( $section_id ); ?>">
+							<?php echo esc_html( $section['title'] ); ?>
+						</a>
+					</li>
+				<?php endforeach; ?>
+			</ul>
+		</div>
+
 		<div class="zerospam-documentation-sections">
 			<?php foreach ( $sections as $section_id => $section ) : ?>
 				<?php if ( ! empty( $section['template'] ) && file_exists( $section['template'] ) ) : ?>

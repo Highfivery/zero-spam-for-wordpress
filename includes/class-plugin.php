@@ -97,6 +97,17 @@ class Plugin {
 		// Zero Spam module.
 		new \ZeroSpam\Modules\Zero_Spam();
 
+		// API Monitoring module.
+		new \ZeroSpam\Modules\API_Monitoring();
+
+		// API Usage Alerts.
+		new \ZeroSpam\Includes\API_Usage_Alerts();
+
+		// API Usage Dashboard Widget.
+		if ( is_admin() ) {
+			new \ZeroSpam\Includes\Admin\API_Usage_Dashboard_Widget();
+		}
+
 		// Stop Forum Spam module.
 		new \ZeroSpam\Modules\StopForumSpam();
 
@@ -200,6 +211,9 @@ class Plugin {
 	public function register_rest_routes() {
 		$settings_controller = new \ZeroSpam\Includes\Rest\Settings_Controller();
 		$settings_controller->register_routes();
+
+		$api_usage_controller = new \ZeroSpam\Includes\Rest\API_Usage_Controller();
+		$api_usage_controller->register_routes();
 	}
 
 	/**
