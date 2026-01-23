@@ -79,6 +79,9 @@ class Plugin {
 			new \ZeroSpam\Core\Admin\Admin();
 		}
 
+		// Register REST API routes.
+		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+
 		// Preform the firewall access check.
 		new \ZeroSpam\Core\Access();
 
@@ -189,6 +192,14 @@ class Plugin {
 		);
 
 		return $types;
+	}
+
+	/**
+	 * Register REST API routes.
+	 */
+	public function register_rest_routes() {
+		$settings_controller = new \ZeroSpam\Includes\Rest\Settings_Controller();
+		$settings_controller->register_routes();
 	}
 
 	/**

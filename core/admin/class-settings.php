@@ -690,6 +690,19 @@ class Settings {
 				<div class="zerospam-dashboard__col">
 					<ul class="zerospam-dashboard__sections">
 						<li>
+							<a href="<?php echo esc_url( admin_url( $base_admin_link . '&subview=documentation' ) ); ?>"
+								class="zerospam-dashboard__menu-link <?php echo ( 'documentation' === $subview ) ? 'zerospam-dashboard__menu-link--active' : ''; ?>">
+								<img
+									src="<?php echo esc_url( plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-docs.png' ); ?>"
+									class="zerospam-dashboard__menu-icon"
+									alt=""
+									aria-hidden="true"
+								/>
+								<?php esc_html_e( 'Documentation', 'zero-spam' ); ?>
+							</a>
+						</li>
+
+						<li>
 							<a href="<?php echo esc_url( admin_url( $base_admin_link . '&subview=settings' ) ); ?>"
 								class="zerospam-dashboard__menu-link <?php echo ( 'settings' === $subview ) ? 'zerospam-dashboard__menu-link--active' : ''; ?>">
 								<img
@@ -788,7 +801,9 @@ class Settings {
 					endforeach;
 					?>
 
-					<?php if ( ! in_array( $subview, array( 'export', 'errors' ), true ) ) : ?>
+					<?php if ( 'documentation' === $subview ) : ?>
+						<?php require ZEROSPAM_PATH . 'includes/templates/admin-documentation.php'; ?>
+					<?php elseif ( ! in_array( $subview, array( 'export', 'errors' ), true ) ) : ?>
 						<?php
 						switch ( $subview ) :
 							case 'zerospam':

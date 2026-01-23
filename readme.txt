@@ -25,6 +25,7 @@ Rest easy knowing that we utilize multiple detection methods to swiftly identify
 * Block IPs temporarily or permanently, keep unwanted visitors out.
 * Geolocation tracks origins of threats, providing valuable insights.
 * Ability to block countries, regions, zip/postal codes & cities.
+* REST API for programmatic settings management — perfect for CI/CD, staging syncs, and automation.
 * Utilize [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist) to strengthen your disallowed list.
 * Block disposable & malicious email effortlessly with [disposable](https://github.com/disposable).
 * Multiple techniques, including the renowned solution by [David Walsh](https://davidwalsh.name/wordpress-comment-spam).
@@ -85,6 +86,20 @@ To further optimize performance, you can adjust the cache and API timeout settin
 * `wp zerospam settings` &mdash; Displays all plugin settings.
 * `wp zerospam set --[SETTING_KEY]=[VALUE]` &mdash; Updates a plugin setting.
 
+= Can I manage Zero Spam settings programmatically? =
+
+**Yes!** Zero Spam provides a secure REST API for reading and updating settings remotely. This is perfect for:
+
+* Syncing settings between staging and production environments
+* Automating configuration in CI/CD pipelines
+* Managing settings across multiple WordPress sites
+* Remote administration and monitoring
+* Testing configuration changes safely with dry-run mode
+
+The API supports multisite installations with granular control over network defaults and per-site overrides. Authentication uses WordPress Application Passwords for secure, revocable access without exposing your main password.
+
+**Getting Started:** Visit the Documentation tab in Settings > Zero Spam for complete details, step-by-step setup instructions, real-world examples, and troubleshooting tips. No technical expertise required!
+
 = Are you getting a `ftp_fget` PHP warning? =
 
 Some hosts have issues with they way they access files. If you're seeing a `ftp_fget` PHP notice, setting the `FS_METHOD` constant to `direct` in `wp-config.php` above the line `/* That's all, stop editing! Happy Pressing. */` should solve the problem:
@@ -106,6 +121,23 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Add blocked location
 
 == Changelog ==
+
+= v5.6.3 =
+
+* feat(rest-api): added REST API endpoints for remote settings management
+* feat(rest-api): GET /wp-json/zero-spam/v1/settings endpoint for reading Enhanced Protection settings
+* feat(rest-api): PATCH /wp-json/zero-spam/v1/settings endpoint for updating settings remotely
+* feat(rest-api): multisite support with network defaults and per-site overrides
+* feat(rest-api): dry-run mode for validating changes without writing
+* feat(rest-api): audit trail recording all settings changes with user attribution
+* feat(rest-api): source tracking showing whether settings come from defaults, network, or site level
+* feat(rest-api): WordPress Application Password authentication for secure remote management
+* feat(settings): centralized settings resolver with per-request caching for improved performance
+* feat(multisite): network-level default settings with site-level override capability
+* feat(admin): new Documentation tab with comprehensive REST API guide
+* feat(admin): documentation framework with filter hooks for extensibility
+* feat(admin): beginner-friendly documentation with step-by-step setup instructions
+* docs(readme): added REST API feature to description and FAQ section
 
 = v5.6.2 =
 

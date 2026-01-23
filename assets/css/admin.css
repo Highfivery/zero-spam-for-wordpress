@@ -1450,3 +1450,364 @@ a.zerospam-dashboard__menu-link--active {
 	line-height: 1;
 	box-shadow: 0 1px 1px rgba(0,0,0,0.02);
 }
+
+/**
+ * Documentation Page Styles
+ */
+.zerospam-documentation {
+	max-width: 100%;
+}
+
+.zerospam-documentation-intro {
+	font-size: 16px;
+	margin-bottom: 30px;
+	color: #50575e;
+}
+
+.zerospam-documentation-sections {
+	margin-top: 30px;
+}
+
+.zerospam-documentation-section {
+	margin-bottom: 40px;
+}
+
+/* Documentation Content */
+.zerospam-docs-section h2 {
+	color: var(--zerospam-primary);
+	border-bottom: 2px solid var(--zerospam-accent);
+	padding-bottom: 10px;
+	margin-bottom: 20px;
+}
+
+.zerospam-docs-intro {
+	font-size: 15px;
+	background: #f6f7f7;
+	padding: 15px 20px;
+	border-left: 4px solid var(--zerospam-accent);
+	margin-bottom: 25px;
+	border-radius: 3px;
+}
+
+/* Accordion Styles */
+.zerospam-docs-accordion {
+	margin-bottom: 15px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #fff;
+	overflow: hidden;
+}
+
+.zerospam-docs-accordion-toggle {
+	width: 100%;
+	text-align: left;
+	padding: 15px 20px;
+	background: #f6f7f7;
+	border: none;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	font-size: 15px;
+	color: #1d2327;
+	transition: background-color 0.2s ease;
+}
+
+.zerospam-docs-accordion-toggle:hover {
+	background: #fff;
+}
+
+.zerospam-docs-accordion-toggle:focus {
+	outline: 2px solid var(--zerospam-accent);
+	outline-offset: -2px;
+}
+
+.zerospam-docs-accordion-icon {
+	display: inline-block;
+	width: 12px;
+	text-align: center;
+	color: var(--zerospam-accent);
+	transition: transform 0.2s ease;
+	font-size: 12px;
+}
+
+.zerospam-docs-accordion.active .zerospam-docs-accordion-icon {
+	transform: rotate(90deg);
+}
+
+.zerospam-docs-accordion-content {
+	display: none;
+	padding: 20px;
+	background: #fff;
+}
+
+.zerospam-docs-accordion.active .zerospam-docs-accordion-content {
+	display: block;
+}
+
+.zerospam-docs-accordion-content h3 {
+	color: var(--zerospam-primary);
+	margin-top: 25px;
+	margin-bottom: 12px;
+	font-size: 16px;
+}
+
+.zerospam-docs-accordion-content h3:first-child {
+	margin-top: 0;
+}
+
+.zerospam-docs-accordion-content h4 {
+	color: #50575e;
+	margin-top: 20px;
+	margin-bottom: 10px;
+	font-size: 14px;
+}
+
+.zerospam-docs-accordion-content p {
+	line-height: 1.6;
+	margin: 12px 0;
+}
+
+.zerospam-docs-accordion-content ul,
+.zerospam-docs-accordion-content ol {
+	margin: 12px 0 12px 20px;
+	line-height: 1.6;
+}
+
+.zerospam-docs-accordion-content li {
+	margin: 6px 0;
+}
+
+/* Code Blocks */
+.zerospam-docs-code-block {
+	position: relative;
+	background: #1e1e1e;
+	border-radius: 4px;
+	margin: 15px 0;
+	overflow: hidden;
+}
+
+.zerospam-docs-code-block pre {
+	margin: 0;
+	padding: 15px;
+	overflow-x: auto;
+	background: transparent;
+}
+
+.zerospam-docs-code-block code {
+	color: #d4d4d4;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	background: transparent;
+	padding: 0;
+}
+
+.zerospam-docs-copy-btn {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	background: var(--zerospam-accent);
+	color: #fff;
+	border: none;
+	padding: 6px 12px;
+	border-radius: 3px;
+	cursor: pointer;
+	font-size: 12px;
+	transition: background-color 0.2s ease;
+	z-index: 10;
+}
+
+.zerospam-docs-copy-btn:hover {
+	background: var(--zerospam-secondary);
+}
+
+.zerospam-docs-copy-btn:active {
+	background: var(--zerospam-primary);
+}
+
+/* Tables */
+.zerospam-docs-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 15px 0;
+	background: #fff;
+	border: 1px solid #dcdcde;
+}
+
+.zerospam-docs-table thead {
+	background: #f6f7f7;
+}
+
+.zerospam-docs-table th {
+	text-align: left;
+	padding: 12px;
+	font-weight: 600;
+	border-bottom: 2px solid #dcdcde;
+	color: #1d2327;
+}
+
+.zerospam-docs-table td {
+	padding: 12px;
+	border-bottom: 1px solid #f0f0f1;
+	vertical-align: top;
+}
+
+.zerospam-docs-table tbody tr:last-child td {
+	border-bottom: none;
+}
+
+.zerospam-docs-table code {
+	background: #f6f7f7;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-size: 12px;
+	color: var(--zerospam-primary);
+}
+
+.zerospam-docs-table ul {
+	margin: 8px 0 8px 18px;
+	padding: 0;
+}
+
+.zerospam-docs-table li {
+	margin: 4px 0;
+}
+
+/* Steps List */
+.zerospam-docs-steps {
+	counter-reset: step-counter;
+	list-style: none;
+	margin: 20px 0;
+	padding: 0;
+}
+
+.zerospam-docs-steps > li {
+	counter-increment: step-counter;
+	position: relative;
+	padding: 20px 20px 20px 60px;
+	margin-bottom: 20px;
+	background: #f6f7f7;
+	border-radius: 4px;
+	border-left: 4px solid var(--zerospam-accent);
+}
+
+.zerospam-docs-steps > li::before {
+	content: counter(step-counter);
+	position: absolute;
+	left: 15px;
+	top: 15px;
+	background: var(--zerospam-accent);
+	color: #fff;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-weight: bold;
+	font-size: 16px;
+}
+
+.zerospam-docs-steps > li strong {
+	display: block;
+	margin-bottom: 8px;
+	font-size: 15px;
+	color: var(--zerospam-primary);
+}
+
+.zerospam-docs-steps > li ul {
+	margin-left: 20px;
+}
+
+/* Notes and Warnings */
+.zerospam-docs-note {
+	background: #e7f5fe;
+	border-left: 4px solid #2271b1;
+	padding: 12px 15px;
+	margin: 15px 0;
+	border-radius: 3px;
+}
+
+.zerospam-docs-warning {
+	background: #fcf3cd;
+	border-left: 4px solid #dba617;
+	padding: 12px 15px;
+	margin: 15px 0;
+	border-radius: 3px;
+}
+
+/* Diagram */
+.zerospam-docs-diagram {
+	background: #f6f7f7;
+	padding: 15px;
+	border-radius: 4px;
+	margin: 15px 0;
+	border: 1px solid #dcdcde;
+}
+
+.zerospam-docs-diagram pre {
+	margin: 0;
+	font-family: monospace;
+	font-size: 12px;
+	line-height: 1.4;
+	color: #1d2327;
+	overflow-x: auto;
+}
+
+/* Divider */
+.zerospam-docs-divider {
+	border: none;
+	border-top: 2px solid #f0f0f1;
+	margin: 30px 0;
+}
+
+/* Glossary */
+.zerospam-docs-glossary {
+	margin: 20px 0;
+}
+
+.zerospam-docs-glossary dt {
+	font-weight: 600;
+	color: var(--zerospam-primary);
+	margin-top: 15px;
+	margin-bottom: 5px;
+}
+
+.zerospam-docs-glossary dd {
+	margin-left: 0;
+	margin-bottom: 15px;
+	padding-left: 20px;
+	border-left: 3px solid #f0f0f1;
+	color: #50575e;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+	.zerospam-docs-accordion-toggle {
+		padding: 12px 15px;
+		font-size: 14px;
+	}
+
+	.zerospam-docs-accordion-content {
+		padding: 15px;
+	}
+
+	.zerospam-docs-steps > li {
+		padding: 15px 15px 15px 50px;
+	}
+
+	.zerospam-docs-steps > li::before {
+		width: 25px;
+		height: 25px;
+		font-size: 14px;
+	}
+
+	.zerospam-docs-code-block pre {
+		font-size: 12px;
+	}
+
+	.zerospam-docs-table {
+		font-size: 13px;
+	}
+}
