@@ -117,50 +117,37 @@ class Admin {
 	 * Display admin notices
 	 */
 	public function admin_notices() {
-		error_log( '========== ZERO SPAM ADMIN_NOTICES START ==========' );
-		
 		// Clean up old transients from previous implementation (temporary cleanup code).
 		$current_user_id = get_current_user_id();
 		if ( delete_transient( 'zerospam_promo_shown_' . $current_user_id ) ) {
 			error_log( 'Cleaned up old transient: zerospam_promo_shown_' . $current_user_id );
 		}
-		
-		// Only display notices for administrators.
-		if ( ! current_user_can( 'administrator' ) ) {
-			error_log( 'EXITING: User is not administrator' );
-			error_log( '========== ZERO SPAM ADMIN_NOTICES END ==========' );
-			return;
-		}
-		
-		error_log( 'User IS administrator, continuing...' );
 
-		// Get the Enhanced Protection settings directly from the options.
-		$zerospam_settings    = get_option( 'zero-spam-zerospam', array() );
-		error_log( 'Settings from DB: ' . print_r( $zerospam_settings, true ) );
+		// Get the Enhanced Protection settings using the Settings API for consistency.
+		$settings = \ZeroSpam\Core\Settings::get_settings();
 		
-		$zerospam_enabled     = ! empty( $zerospam_settings['zerospam'] ) && 'enabled' === $zerospam_settings['zerospam'];
-		error_log( 'Enhanced Protection Enabled: ' . ( $zerospam_enabled ? 'YES' : 'NO' ) );
+		// Check if Enhanced Protection is enabled.
+		$zerospam_enabled = isset( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
 		
-		$zerospam_license_key = ! empty( $zerospam_settings['zerospam_license'] ) ? $zerospam_settings['zerospam_license'] : false;
-		error_log( 'License Key Present: ' . ( $zerospam_license_key ? 'YES' : 'NO' ) );
+		// Check for license key - include constant check like the settings definition does.
+		$zerospam_license_key = false;
+		if ( defined( 'ZEROSPAM_LICENSE_KEY' ) && ZEROSPAM_LICENSE_KEY ) {
+			$zerospam_license_key = ZEROSPAM_LICENSE_KEY;
+		} elseif ( ! empty( $settings['zerospam_license']['value'] ) ) {
+			$zerospam_license_key = $settings['zerospam_license']['value'];
+		}
 
 		// Display enhanced promo notice or error notice based on state.
 		if ( $zerospam_enabled && ! $zerospam_license_key ) {
-			error_log( 'BRANCH 1: Enhanced ON + No License = show ERROR notice' );
 			// Enhanced Protection enabled but no license key - show error.
 			$this->display_license_error_notice();
 		} elseif ( ! $zerospam_enabled && ! $zerospam_license_key ) {
-			error_log( 'BRANCH 2: Enhanced OFF + No License = show PROMO notice' );
 			// Enhanced Protection disabled and no license - show promo notice.
 			$this->display_promo_notice();
-		} else {
-			error_log( 'BRANCH 3: No notice needed (has license or other condition)' );
 		}
 
 		// Check if the plugin has been auto-configured.
 		$configured = get_option( 'zerospam_configured' );
-		error_log( 'Plugin configured: ' . ( $configured ? 'YES' : 'NO' ) );
-		error_log( '========== ZERO SPAM ADMIN_NOTICES END ==========' );
 		
 		if ( ! $configured ) {
 			?>

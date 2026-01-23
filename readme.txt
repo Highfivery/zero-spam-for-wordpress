@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 5.6.1
+Stable tag: 5.6.2
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -106,6 +106,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 5. Add blocked location
 
 == Changelog ==
+
+= v5.6.2 =
+
+* fix(admin): resolved issue where "Advanced Protection is enabled but not licensed" notice displayed incorrectly when Enhanced Protection was disabled
+* fix(admin): corrected Settings API usage in admin notices for consistency with dashboard widget
+* fix(admin): added support for ZEROSPAM_LICENSE_KEY constant check in admin notice logic
+* fix(debug): removed testing debug statements
 
 = v5.6.1 =
 
