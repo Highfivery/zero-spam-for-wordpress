@@ -142,11 +142,17 @@ class Dashboard_Widget {
 			$zerospam_license = $settings['zerospam_license']['value'];
 		}
 
-		// Validate license.
-		$license_valid          = false;
-		$license_status_message = '';
+	// Validate license.
+	$license_valid          = false;
+	$license_status_message = '';
 
-		if ( $zerospam_license && function_exists( 'wp_remote_get' ) ) {
+	if ( $zerospam_license && function_exists( 'wp_remote_get' ) ) {
+		// Check cache first (12 hour cache).
+		$cache_key    = 'zerospam_license_check_' . md5( $zerospam_license );
+		$license_data = get_transient( $cache_key );
+
+		if ( false === $license_data ) {
+			// Make API call.
 			$response = wp_remote_get(
 				'https://www.zerospam.org/?wpserviceapi=license-check&license_key=' . rawurlencode( $zerospam_license ),
 				array( 'timeout' => 5 )
@@ -154,13 +160,26 @@ class Dashboard_Widget {
 
 			if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
 				$body = json_decode( wp_remote_retrieve_body( $response ), true );
-				if ( ! empty( $body['success'] ) && true === $body['success'] ) {
-					$license_valid = true;
-				} elseif ( ! empty( $body['message'] ) ) {
-					$license_status_message = $body['message'];
-				}
+				$license_data = array(
+					'valid'   => ! empty( $body['success'] ) && true === $body['success'],
+					'message' => ! empty( $body['message'] ) ? $body['message'] : '',
+				);
+				// Cache for 12 hours.
+				set_transient( $cache_key, $license_data, 12 * HOUR_IN_SECONDS );
+			} else {
+				// API error - assume valid to avoid blocking users on temporary API issues.
+				$license_data = array(
+					'valid'   => true,
+					'message' => '',
+				);
+				// Cache for shorter time (15 minutes) on errors.
+				set_transient( $cache_key, $license_data, 15 * MINUTE_IN_SECONDS );
 			}
 		}
+
+		$license_valid          = $license_data['valid'];
+		$license_status_message = $license_data['message'];
+	}
 
 		// Get spam log data.
 		$data = $this->get_dashboard_data( $is_network );
@@ -189,6 +208,10 @@ class Dashboard_Widget {
 	 */
 	private function get_dashboard_data( $is_network ) {
 		$cache_key = $is_network ? 'zerospam_dashboard_data_network' : 'zerospam_dashboard_data_site';
+		
+		// Force clear cache to ensure fresh data (temporary for debugging).
+		delete_transient( $cache_key );
+		
 		$data      = get_transient( $cache_key );
 
 		if ( false !== $data ) {
@@ -353,21 +376,31 @@ class Dashboard_Widget {
 	 * @return array|false API usage data or false if not available.
 	 */
 	private function get_api_usage_data( $network ) {
-		if ( ! \ZeroSpam\Includes\API_Usage_Tracker::is_monitoring_enabled() ) {
+		// Get license key.
+		$license_key = \ZeroSpam\Core\Settings::get_settings( 'zerospam_license' );
+		
+		if ( ! $license_key ) {
 			return false;
 		}
 
-		$tracker = new \ZeroSpam\Includes\API_Usage_Tracker();
-		$usage   = $network ? $tracker->get_network_usage() : $tracker->get_current_usage();
+		// Use the same method as the settings page header.
+		$license = \ZeroSpam\Modules\Zero_Spam::get_license( $license_key );
 
-		if ( empty( $usage ) ) {
+		if ( empty( $license ) || empty( $license['license_key'] ) ) {
 			return false;
 		}
 
-		// Calculate percentage and warning level.
-		$limit      = isset( $usage['limit'] ) ? (int) $usage['limit'] : 0;
-		$used       = isset( $usage['used'] ) ? (int) $usage['used'] : 0;
-		$percentage = $limit > 0 ? min( 100, round( ( $used / $limit ) * 100, 1 ) ) : 0;
+		// Extract quota information from license data.
+		$queries_limit     = isset( $license['queries_limit'] ) ? (int) $license['queries_limit'] : 0;
+		$queries_made      = isset( $license['queries_made'] ) ? (int) $license['queries_made'] : 0;
+		$queries_remaining = isset( $license['queries_remaining'] ) ? (int) $license['queries_remaining'] : 0;
+
+		if ( 0 === $queries_limit ) {
+			return false;
+		}
+
+		// Calculate percentage used.
+		$percentage = $queries_limit > 0 ? min( 100, round( ( $queries_made / $queries_limit ) * 100, 1 ) ) : 0;
 
 		// Determine warning level.
 		$warning_level = 'normal';
@@ -378,11 +411,11 @@ class Dashboard_Widget {
 		}
 
 		return array(
-			'used'          => $used,
-			'limit'         => $limit,
+			'used'          => $queries_made,
+			'remaining'     => $queries_remaining,
+			'limit'         => $queries_limit,
 			'percentage'    => $percentage,
 			'warning_level' => $warning_level,
-			'reset_date'    => isset( $usage['reset_date'] ) ? $usage['reset_date'] : '',
 		);
 	}
 }

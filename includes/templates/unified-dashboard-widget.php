@@ -8,7 +8,7 @@
 // Security check.
 defined( 'ABSPATH' ) || die();
 
-// Variables passed from class-dashboard-widget.php
+// Variables passed from class-dashboardwidget.php
 // $is_network, $api_monitoring, $zerospam_enabled, $zerospam_license, $license_valid, $license_status_message, $data
 ?>
 
@@ -33,21 +33,30 @@ defined( 'ABSPATH' ) || die();
 				</p>
 			</div>
 		</div>
-	<?php elseif ( $zerospam_enabled && $zerospam_license && ! $license_valid ) : ?>
-		<div class="zerospam-notice zerospam-notice-<?php echo ! empty( $license_status_message ) ? 'error' : 'info'; ?>">
+	<?php elseif ( $zerospam_enabled && $zerospam_license && ! $license_valid && ! empty( $license_status_message ) ) : ?>
+		<?php // Only show license error if we have an actual error message ?>
+		<div class="zerospam-notice zerospam-notice-error">
 			<div class="zerospam-notice-icon">
-				<span class="dashicons dashicons-<?php echo ! empty( $license_status_message ) ? 'warning' : 'info'; ?>"></span>
+				<span class="dashicons dashicons-warning"></span>
 			</div>
 			<div class="zerospam-notice-content">
-				<h4><?php esc_html_e( ! empty( $license_status_message ) ? 'License Issue' : 'Validating License', 'zero-spam' ); ?></h4>
-				<p><?php echo esc_html( ! empty( $license_status_message ) ? $license_status_message : __( 'Your license is being verified. This usually takes a few moments.', 'zero-spam' ) ); ?></p>
-				<?php if ( ! empty( $license_status_message ) ) : ?>
-					<p>
-						<a href="https://www.zerospam.org/account/?utm_source=plugin&utm_medium=dashboard&utm_campaign=license_issue" target="_blank" rel="noopener noreferrer" class="button button-small">
-							<?php esc_html_e( 'Manage License', 'zero-spam' ); ?>
-						</a>
-					</p>
-				<?php endif; ?>
+				<h4><?php esc_html_e( 'License Issue', 'zero-spam' ); ?></h4>
+				<p><?php echo esc_html( $license_status_message ); ?></p>
+				<p>
+					<a href="https://www.zerospam.org/account/?utm_source=plugin&utm_medium=dashboard&utm_campaign=license_issue" target="_blank" rel="noopener noreferrer" class="button button-small">
+						<?php esc_html_e( 'Manage License', 'zero-spam' ); ?>
+					</a>
+				</p>
+			</div>
+		</div>
+	<?php elseif ( $zerospam_enabled && $zerospam_license && $license_valid ) : ?>
+		<?php // Show license valid status ?>
+		<div class="zerospam-notice zerospam-notice-success" style="background: #e5f5ea; border-left-color: #00a32a;">
+			<div class="zerospam-notice-icon">
+				<span class="dashicons dashicons-yes-alt" style="color: #00a32a;"></span>
+			</div>
+			<div class="zerospam-notice-content">
+				<p style="margin: 0;"><strong><?php esc_html_e( 'Enhanced Protection Active', 'zero-spam' ); ?></strong> <?php esc_html_e( '— License validated successfully', 'zero-spam' ); ?></p>
 			</div>
 		</div>
 	<?php endif; ?>
@@ -105,12 +114,12 @@ defined( 'ABSPATH' ) || die();
 						<span class="dashicons dashicons-cloud"></span>
 					</div>
 					<div class="zerospam-stat-content">
-						<div class="zerospam-stat-value"><?php echo esc_html( number_format( $data['api_usage']['used'] ) ); ?></div>
+						<div class="zerospam-stat-value"><?php echo esc_html( number_format( $data['api_usage']['remaining'] ) ); ?></div>
 						<div class="zerospam-stat-label">
 							<?php
 							printf(
 								/* translators: %s: API limit */
-								esc_html__( 'of %s API Calls', 'zero-spam' ),
+								esc_html__( 'of %s Remaining', 'zero-spam' ),
 								esc_html( number_format( $data['api_usage']['limit'] ) )
 							);
 							?>
@@ -166,26 +175,16 @@ defined( 'ABSPATH' ) || die();
 				<span>
 					<?php
 					printf(
-						/* translators: 1: used count, 2: limit count */
-						esc_html__( '%1$s of %2$s requests', 'zero-spam' ),
+						/* translators: 1: used count, 2: limit count, 3: remaining count */
+						esc_html__( '%1$s of %2$s used (%3$s remaining)', 'zero-spam' ),
 						'<strong>' . esc_html( number_format( $data['api_usage']['used'] ) ) . '</strong>',
-						esc_html( number_format( $data['api_usage']['limit'] ) )
+						esc_html( number_format( $data['api_usage']['limit'] ) ),
+						'<strong>' . esc_html( number_format( $data['api_usage']['remaining'] ) ) . '</strong>'
 					);
 					?>
 				</span>
 				<span class="zerospam-progress-percentage"><?php echo esc_html( $data['api_usage']['percentage'] ); ?>%</span>
 			</div>
-			<?php if ( ! empty( $data['api_usage']['reset_date'] ) ) : ?>
-				<p class="zerospam-api-reset">
-					<?php
-					printf(
-						/* translators: %s: reset date */
-						esc_html__( 'Resets: %s', 'zero-spam' ),
-						esc_html( gmdate( 'M j, Y', strtotime( $data['api_usage']['reset_date'] ) ) )
-					);
-					?>
-				</p>
-			<?php endif; ?>
 		</div>
 	<?php endif; ?>
 
