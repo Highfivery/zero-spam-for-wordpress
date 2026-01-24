@@ -549,6 +549,40 @@
 /* Notices */
 .notice {
 	margin: 15px 0;
+	padding: 12px !important;
+	border-left-width: 4px !important;
+	box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.notice.notice-success {
+	border-left-color: #00a32a !important;
+	background: #edfaef;
+}
+
+.notice.notice-error {
+	border-left-color: #d63638 !important;
+	background: #fcf0f1;
+}
+
+.notice p {
+	margin: 0.5em 0 !important;
+	font-size: 14px;
+	font-weight: 500;
+}
+
+/* Row flash animation on save */
+@keyframes successFlash {
+	0% {
+		background-color: #edfaef;
+	}
+	100% {
+		background-color: transparent;
+	}
+}
+
+.setting-saved-flash {
+	animation: successFlash 2s ease-out;
+	border-left: 4px solid #00a32a;
 }
 
 /* Loading States */

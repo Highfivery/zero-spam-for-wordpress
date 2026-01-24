@@ -752,8 +752,19 @@ class Network_Settings_Page {
 		}
 
 		$key    = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
-		$value  = isset( $_POST['value'] ) ? sanitize_text_field( wp_unslash( $_POST['value'] ) ) : '';
 		$locked = isset( $_POST['locked'] ) && '1' === $_POST['locked'];
+
+		// Handle value - could be string or array (for multi-selects).
+		$value = isset( $_POST['value'] ) ? wp_unslash( $_POST['value'] ) : '';
+		
+		// Sanitize based on type.
+		if ( is_array( $value ) ) {
+			// Multi-select: sanitize each value.
+			$value = array_map( 'sanitize_text_field', $value );
+		} else {
+			// Single value: sanitize as text.
+			$value = sanitize_text_field( $value );
+		}
 
 		if ( ! $key ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid setting key', 'zero-spam' ) ) );
@@ -762,7 +773,7 @@ class Network_Settings_Page {
 		$result = $this->settings_manager->set_setting( $key, $value, $locked );
 
 		if ( $result ) {
-			wp_send_json_success( array( 'message' => __( 'Setting saved', 'zero-spam' ) ) );
+			wp_send_json_success( array( 'message' => __( 'Setting saved successfully!', 'zero-spam' ) ) );
 		} else {
 			wp_send_json_error( array( 'message' => __( 'Failed to save setting', 'zero-spam' ) ) );
 		}

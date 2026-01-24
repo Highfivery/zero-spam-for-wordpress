@@ -123,12 +123,17 @@
 		console.log('Save setting clicked:', key);
 		console.log('Input found:', $input.length, 'Type:', $input.prop('type'));
 
+		// Handle different input types
 		if ($input.is(':checkbox')) {
 			value = $input.is(':checked') ? 'enabled' : 'disabled';
 		} else if ($input.is(':radio')) {
 			const $checked = $row.find('input[type="radio"]:checked');
 			value = $checked.val() || '';
 			console.log('Radio value:', value, 'Checked element:', $checked.length);
+		} else if ($input.is('select[multiple]')) {
+			// Multi-select: get array of selected values
+			value = $input.val() || [];
+			console.log('Multi-select values:', value);
 		} else {
 			value = $input.val();
 		}
@@ -148,13 +153,20 @@
 				action: 'zerospam_network_set_setting',
 				nonce: zeroSpamNetwork.nonce,
 				key: key,
-				value: value,
+				value: value, // jQuery will properly serialize arrays
 				locked: locked ? '1' : '0'
 			},
 			success: function(response) {
 				console.log('Save response:', response);
 				if (response.success) {
+					// Show success notice
 					ZeroSpamNetworkSettings.showNotice('success', response.data.message);
+					
+					// Add visual feedback to the row
+					$row.addClass('setting-saved-flash');
+					setTimeout(function() {
+						$row.removeClass('setting-saved-flash');
+					}, 2000);
 				} else {
 					ZeroSpamNetworkSettings.showNotice('error', response.data.message || 'Failed to save setting');
 				}
@@ -451,19 +463,42 @@
 			reader.readAsText(file);
 		},
 
-		/**
-		 * Show notice
-		 */
-		showNotice: function(type, message) {
-			const $notice = $('<div class="notice notice-' + type + ' is-dismissible"><p>' + message + '</p></div>');
-			$('.wrap h1').after($notice);
-
-			setTimeout(function() {
-				$notice.fadeOut(function() {
-					$(this).remove();
-				});
-			}, 5000);
-		},
+	/**
+	 * Show notice
+	 */
+	showNotice: function(type, message) {
+		// Remove any existing notices
+		$('.zerospam-ajax-notice').remove();
+		
+		// Create new notice
+		const $notice = $('<div class="notice notice-' + type + ' is-dismissible zerospam-ajax-notice"><p><strong>' + message + '</strong></p></div>');
+		
+		// Insert at the top of the page
+		if ($('.wrap > h1').length) {
+			$('.wrap > h1').after($notice);
+		} else {
+			$('.wrap').prepend($notice);
+		}
+		
+		// Scroll to notice
+		$('html, body').animate({
+			scrollTop: $notice.offset().top - 100
+		}, 300);
+		
+		// Auto-dismiss after 5 seconds
+		setTimeout(function() {
+			$notice.fadeOut(400, function() {
+				$(this).remove();
+			});
+		}, 5000);
+		
+		// Manual dismiss
+		$notice.find('.notice-dismiss').on('click', function() {
+			$notice.fadeOut(400, function() {
+				$(this).remove();
+			});
+		});
+	},
 
 		/**
 		 * Apply template to network
