@@ -55,25 +55,22 @@
 	 */
 	toggleGroup: function(e) {
 		e.preventDefault();
+		e.stopPropagation();
 		
 		const $button = $(this);
 		const groupId = $button.data('group');
 		const $content = $('#group-' + groupId);
 		const $icon = $button.find('.dashicons');
-		const $header = $button.closest('.settings-group-header');
+		const $text = $button.find('.button-text');
 		
 		if ($content.is(':visible')) {
 			$content.slideUp(300);
 			$icon.removeClass('dashicons-arrow-up-alt2').addClass('dashicons-arrow-down-alt2');
-			$button.contents().filter(function() {
-				return this.nodeType === 3;
-			}).replaceWith(' Expand');
+			$text.text('Expand');
 		} else {
 			$content.slideDown(300);
 			$icon.removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-up-alt2');
-			$button.contents().filter(function() {
-				return this.nodeType === 3;
-			}).replaceWith(' Collapse');
+			$text.text('Collapse');
 		}
 	},
 
