@@ -194,6 +194,13 @@ class Network_Settings {
 			return true;
 		}
 
+		// Check if network has a default for this setting.
+		$network_default = $this->get_network_default( $setting_key );
+		if ( null === $network_default ) {
+			// No network setting configured, so not using a "default".
+			return false;
+		}
+
 		// Check if site has override in module-specific option.
 		switch_to_blog( $site_id );
 		
@@ -203,7 +210,12 @@ class Network_Settings {
 		
 		if ( $module ) {
 			$module_settings = get_option( "zero-spam-{$module}", array() );
-			$has_override = isset( $module_settings[ $setting_key ] );
+			// Site has an override if the key exists AND the value differs from network default.
+			if ( isset( $module_settings[ $setting_key ] ) ) {
+				// Compare the values.
+				$site_value = $module_settings[ $setting_key ];
+				$has_override = ( $site_value !== $network_default );
+			}
 		}
 		
 		restore_current_blog();
