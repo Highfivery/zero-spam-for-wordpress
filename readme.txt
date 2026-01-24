@@ -132,6 +132,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 * feat(multisite): import/export functionality for network settings backup and migration
 * feat(multisite): WP-CLI commands for programmatic network settings management
 * feat(multisite): REST API endpoints for remote network configuration
+* feat(dashboard): unified dashboard widget that intelligently adapts to multisite/single-site context
+* feat(dashboard): modern, responsive design using WordPress core components with dark mode support
+* feat(dashboard): real-time API usage monitoring with visual progress bars and warning levels
+* feat(dashboard): 30-day spam trend visualization using Chart.js 4.x
+* feat(dashboard): top 10 sites by spam volume (network admin) and spam types breakdown (single site)
+* fix(dashboard): improved permission handling for multisite super admins
+* fix(dashboard): added proper hooks for both network and regular admin dashboards
 * fix(comparison): corrected override count calculation to show actual differences, not just stored values
 * fix(comparison): resolved undefined value errors and improved data validation
 * fix(comparison): auto-load comparison data when viewing tab for better UX
