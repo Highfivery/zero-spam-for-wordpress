@@ -167,19 +167,7 @@ class Settings {
 			'module'  => 'settings',
 			'section' => 'general',
 			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( '<a href="%s" class="button">Override &amp; Update Settings</a>', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-					)
-				),
-				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' )
-			),
+			'html'    => '', // Generated dynamically during render to avoid early nonce calls
 		);
 
 		self::$settings['share_data'] = array(
@@ -195,13 +183,19 @@ class Settings {
 			'recommended' => 'enabled',
 		);
 
-		global $wp_roles;
-		$roles       = $wp_roles->roles;
-		$roles_array = array();
+	global $wp_roles;
+	
+	// Ensure roles are initialized
+	if ( ! isset( $wp_roles ) || ! $wp_roles ) {
+		$wp_roles = wp_roles();
+	}
+	
+	$roles       = isset( $wp_roles->roles ) ? $wp_roles->roles : array();
+	$roles_array = array();
 
-		foreach ( $roles as $role => $data ) {
-			$roles_array[ $role ] = $data['name'];
-		}
+	foreach ( $roles as $role => $data ) {
+		$roles_array[ $role ] = $data['name'];
+	}
 
 		self::$settings['widget_visibility'] = array(
 			'title'       => __( 'Dashboard Widget Visibility', 'zero-spam' ),
@@ -317,33 +311,21 @@ class Settings {
 			'value'       => get_option( 'zerospam_blocked_email_domains', ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false ),
 		);
 
-		self::$settings['update_blocked_email_domains'] = array(
-			'title'   => __( 'Use Blocked Email Domains Recommendation', 'zero-spam' ),
-			'desc'    => sprintf(
-				wp_kses(
-					__( '<strong>WARNING:</strong> This will override all existing blocked email domains with Zero Spam\'s recommended domains.', 'zero-spam' ),
-					array(
-						'strong' => array(),
-					)
+	self::$settings['update_blocked_email_domains'] = array(
+		'title'   => __( 'Use Blocked Email Domains Recommendation', 'zero-spam' ),
+		'desc'    => sprintf(
+			wp_kses(
+				__( '<strong>WARNING:</strong> This will override all existing blocked email domains with Zero Spam\'s recommended domains.', 'zero-spam' ),
+				array(
+					'strong' => array(),
 				)
-			),
-			'section' => 'general',
-			'module'  => 'settings',
-			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( '<a href="%s" class="button">Override &amp; Update Blocked Email Domains</a>', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-					)
-				),
-				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-emails' ), 'update-blocked-emails', 'zero-spam' )
-			),
-		);
+			)
+		),
+		'section' => 'general',
+		'module'  => 'settings',
+		'type'    => 'html',
+		'html'    => '', // Generated dynamically during render to avoid early nonce calls
+	);
 
 		self::$settings['regenerate_honeypot'] = array(
 			'title'   => __( 'Regenerate Honeypot ID', 'zero-spam' ),
@@ -360,19 +342,7 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %s: admin URL to regenerate the Zero Spam honeypot ID */
-					__( '<a href="%s" class="button">Regenerate Honeypot ID</a>', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-					)
-				),
-				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=regenerate-honeypot' ), 'regenerate-honeypot', 'zero-spam' )
-			),
+			'html'    => '', // Generated dynamically during render
 		);
 
 		self::$settings['update_disallowed_words'] = array(
@@ -381,19 +351,7 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( '<a href="%s" class="button">Override &amp; Update Core Disallowed Words</a>', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-					)
-				),
-				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ), 'update-disallowed-words', 'zero-spam' )
-			),
+			'html'    => '', // Generated dynamically during render
 		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings );

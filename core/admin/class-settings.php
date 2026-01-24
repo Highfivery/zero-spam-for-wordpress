@@ -593,7 +593,40 @@ class Settings {
 
 		switch ( $args['type'] ) {
 			case 'html':
-				echo wp_kses( $args['html'], $allowed_field_html );
+				$html = $args['html'];
+				
+				// Generate button HTML dynamically at render time to avoid early nonce calls
+				if ( empty( $html ) ) {
+					$label_for = $args['label_for'];
+					
+				if ( 'use_recommended_settings' === $label_for ) {
+					$html = sprintf(
+						'<a href="%s" class="button">%s</a>',
+						esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' ) ),
+						esc_html__( 'Override & Update Settings', 'zero-spam' )
+					);
+				} elseif ( 'update_blocked_email_domains' === $label_for ) {
+					$html = sprintf(
+						'<a href="%s" class="button">%s</a>',
+						esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-emails' ), 'update-blocked-emails', 'zero-spam' ) ),
+						esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
+					);
+				} elseif ( 'regenerate_honeypot' === $label_for ) {
+					$html = sprintf(
+						'<a href="%s" class="button">%s</a>',
+						esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=regenerate-honeypot' ), 'regenerate-honeypot', 'zero-spam' ) ),
+						esc_html__( 'Regenerate Honeypot ID', 'zero-spam' )
+					);
+				} elseif ( 'update_disallowed_words' === $label_for ) {
+					$html = sprintf(
+						'<a href="%s" class="button">%s</a>',
+						esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ), 'update-disallowed-words', 'zero-spam' ) ),
+						esc_html__( 'Override & Update Core Disallowed Words', 'zero-spam' )
+					);
+					}
+				}
+				
+				echo wp_kses( $html, $allowed_field_html );
 				break;
 
 			case 'textarea':
