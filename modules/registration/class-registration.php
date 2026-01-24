@@ -183,7 +183,7 @@ class Registration {
 
 		$settings['verify_registrations'] = array(
 			'title'       => __( 'Protect Registrations', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors registration submissions.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam bots from creating fake user accounts.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'checkbox',
@@ -198,7 +198,7 @@ class Registration {
 
 		$settings['registration_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown to spam bots trying to register.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'text',
@@ -213,10 +213,7 @@ class Registration {
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked registration submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of all blocked registration attempts in the database.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

@@ -95,7 +95,7 @@ class Elementor {
 					),
 				)
 			),
-			'desc'        => __( 'Protects & monitors Elementor form submissions.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam from Elementor forms.', 'zero-spam' ),
 			'module'      => 'elementor',
 			'type'        => 'checkbox',
 			'options'     => array(
@@ -108,7 +108,7 @@ class Elementor {
 		$message                           = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
 		$settings['elementor_flagged_msg'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when Elementor forms detect spam.', 'zero-spam' ),
 			'module'      => 'elementor',
 			'type'        => 'text',
 			'field_class' => 'large-text',
@@ -121,10 +121,7 @@ class Elementor {
 			'title'       => __( 'Log Flagged Attempts', 'zero-spam' ),
 			'module'      => 'elementor',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked form submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked Elementor form submissions.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

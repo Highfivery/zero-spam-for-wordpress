@@ -184,22 +184,7 @@ class Settings {
 
 		self::$settings['share_data'] = array(
 			'title'       => __( 'Usage Data Sharing', 'zero-spam' ),
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( 'Help us provide better protection & contribute to our <a href="%1$s" target="_blank" rel="noreferrer noopener">real-time global detection network</a> by opting into sharing non-sensitive data (<strong>we will never share or sell any personal identifiable information, <a href="%2$s" target="_blank" rel="noreferrer noopener">learn more</a></strong>).', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( ZEROSPAM_URL . '?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=data_sharing' ),
-				esc_url( 'https://github.com/bmarshall511/wordpress-zero-spam/wiki/FAQ#what-data-is-shared-when-usage-data-sharing-is-enabled' )
-			),
+			'desc'        => __( 'Help us catch more spam by sharing anonymous spam data. We never share personal information.', 'zero-spam' ),
 			'module'      => 'settings',
 			'section'     => 'general',
 			'type'        => 'checkbox',
@@ -223,7 +208,7 @@ class Settings {
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'select',
-			'desc'        => __( 'Select which user roles have access to the admin dashboard widget. You may control-click (Windows) or command-click (Mac) to select more than one.', 'zero-spam' ),
+			'desc'        => __( 'Choose which admin users can see the spam statistics on the dashboard.', 'zero-spam' ),
 			'options'     => $roles_array,
 			'value'       => ! empty( $options['widget_visibility'] ) ? $options['widget_visibility'] : false,
 			'recommended' => array( 'administrator' ),
@@ -232,27 +217,13 @@ class Settings {
 
 		self::$settings['block_handler'] = array(
 			'title'       => __( 'IP Block Handler', 'zero-spam' ),
-			'desc'        => __( 'Determines how blocked IPs are handled when they attempt to access the site.', 'zero-spam' ),
+			'desc'        => __( 'What happens when we block someone from visiting your site.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'radio',
 			'options'     => array(
-				'redirect' => __( 'Redirect user', 'zero-spam' ),
-				'403'      => sprintf(
-					wp_kses(
-						/* translators: %s: url */
-						__( 'Display a <a href="%s" target="_blank" rel="noreferrer noopener"><code>403 Forbidden</code></a> error', 'zero-spam' ),
-						array(
-							'code' => array(),
-							'a'    => array(
-								'target' => array(),
-								'href'   => array(),
-								'rel'    => array(),
-							),
-						)
-					),
-					esc_url( 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403' )
-				),
+				'redirect' => __( 'Send them to another website', 'zero-spam' ),
+				'403'      => __( 'Show them an error message', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['block_handler'] ) ? $options['block_handler'] : 403,
 			'recommended' => 403,
@@ -260,29 +231,14 @@ class Settings {
 
 		self::$settings['block_method'] = array(
 			'title'       => __( 'IP Block Method', 'zero-spam' ),
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %1$s: Replaced with the apache docs URL, %2$s: Replaced with Highfivery Studio's website URL */
-					__( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version or adding <a href="%1$s" target="_blank" rel="noreferrer noopener">more than 8190 characters</a> could cause the website to crash</strong> and require a manual fix to the .htaccess file. If this happens &amp; you\'re unsure how to fix, contact <a href="%2$s" target="_blank" rel="noreferrer noopener">Highfivery Studio</a> for a rapid response and resolution.', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( 'https://httpd.apache.org/docs/current/en/configuring.html' ),
-				esc_url( 'https://studio.highfivery.com/?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_htaccess&utm_campaign=zerospam_plugin' )
-			),
+			'desc'        => __( 'How the plugin blocks bad visitors. PHP is safer and recommended.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'radio',
 			'options'     => array(
 				'htaccess_legacy' => __( '.htaccess (Apache servers < 2.4)', 'zero-spam' ),
 				'htaccess_modern' => __( '.htaccess (Apache servers >= 2.4)', 'zero-spam' ),
-				'php'             => __( 'PHP', 'zero-spam' ),
+				'php'             => __( 'PHP (Recommended)', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['block_method'] ) ? $options['block_method'] : 'php',
 			'recommended' => 'php',
@@ -292,7 +248,7 @@ class Settings {
 
 		self::$settings['blocked_message'] = array(
 			'title'       => __( 'Blocked Message', 'zero-spam' ),
-			'desc'        => __( 'The message displayed to blocked users when \'Display a 403 Forbidden error\' is selected.', 'zero-spam' ),
+			'desc'        => __( 'The message blocked visitors see if you chose "Show them an error message" above.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'text',
@@ -304,7 +260,7 @@ class Settings {
 
 		self::$settings['blocked_redirect_url'] = array(
 			'title'       => __( 'Blocked Users Redirect', 'zero-spam' ),
-			'desc'        => __( 'The URL blocked users are redirected to when \'Redirect user\' is selected.', 'zero-spam' ),
+			'desc'        => __( 'The website address to send blocked visitors to if you chose "Send them to another website" above.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'url',
@@ -319,7 +275,7 @@ class Settings {
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'checkbox',
-			'desc'        => __( 'When enabled, logs all IPs that are blocked from accessing the site. Not recommended for high-traffic websites.', 'zero-spam' ),
+			'desc'        => __( 'Keep a record of everyone we block. Turn off if you have a busy website to save database space.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),
@@ -329,7 +285,7 @@ class Settings {
 
 		self::$settings['max_logs'] = array(
 			'title'       => __( 'Maximum Log Entries', 'zero-spam' ),
-			'desc'        => __( 'The maximum number of log entries when logging is enabled. When the maximum is reached, the oldest entries will be deleted.', 'zero-spam' ),
+			'desc'        => __( 'How many blocked visitor records to keep. When this number is reached, the oldest records get deleted automatically.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'number',
@@ -341,7 +297,7 @@ class Settings {
 
 		self::$settings['ip_whitelist'] = array(
 			'title'       => __( 'IP Whitelist', 'zero-spam' ),
-			'desc'        => __( 'Enter IPs that should be whitelisted (IPs that should never be blocked), one per line.', 'zero-spam' ),
+			'desc'        => __( 'IP addresses that should never be blocked. Put one IP address per line.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'textarea',
@@ -352,7 +308,7 @@ class Settings {
 
 		self::$settings['blocked_email_domains'] = array(
 			'title'       => __( 'Blocked Email Domains', 'zero-spam' ),
-			'desc'        => __( 'Enter a list of email domains that should be blocked, one per line.', 'zero-spam' ),
+			'desc'        => __( 'Block email addresses from these domains (like "spam.com"). Put one per line.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'textarea',

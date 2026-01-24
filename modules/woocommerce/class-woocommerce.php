@@ -71,7 +71,7 @@ class WooCommerce {
 
 		$settings['verify_woocommerce_registrations'] = array(
 			'title'       => __( 'Protect Registrations', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors WooCommerce registrations.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam accounts from being created through WooCommerce.', 'zero-spam' ),
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
 			'type'        => 'checkbox',
@@ -86,7 +86,7 @@ class WooCommerce {
 
 		$settings['woocommerce_registration_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when WooCommerce detects a spam registration.', 'zero-spam' ),
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
 			'type'        => 'text',
@@ -101,10 +101,7 @@ class WooCommerce {
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked WooCommerce registrations in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked WooCommerce registration attempts.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

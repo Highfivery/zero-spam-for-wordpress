@@ -228,7 +228,7 @@ class FluentForms {
 
 		$settings['verify_fluentforms'] = array(
 			'title'       => __( 'Protect Fluent Form Submissions', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors Fluent Form submissions.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam from Fluent Forms.', 'zero-spam' ),
 			'section'     => 'fluent_form',
 			'module'      => 'fluent_form',
 			'type'        => 'checkbox',
@@ -243,7 +243,7 @@ class FluentForms {
 
 		$settings['fluentforms_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when Fluent Forms detects spam.', 'zero-spam' ),
 			'section'     => 'fluent_form',
 			'module'      => 'fluent_form',
 			'type'        => 'text',
@@ -258,10 +258,7 @@ class FluentForms {
 			'section'     => 'fluent_form',
 			'module'      => 'fluent_form',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked Fluent Form submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked Fluent Forms submissions.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

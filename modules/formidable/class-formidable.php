@@ -87,7 +87,7 @@ class Formidable {
 
 		$settings['verify_formidable'] = array(
 			'title'       => __( 'Protect Formidable Submissions', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors Formidable submissions.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam from Formidable Forms.', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
 			'type'        => 'checkbox',
@@ -102,7 +102,7 @@ class Formidable {
 
 		$settings['formidable_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when Formidable Forms detects spam.', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
 			'type'        => 'text',
@@ -117,10 +117,7 @@ class Formidable {
 			'section'     => 'formidable',
 			'module'      => 'formidable',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked Formidable submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked Formidable Forms submissions.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

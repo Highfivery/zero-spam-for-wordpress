@@ -196,7 +196,7 @@ class Login {
 
 		$settings['verify_login'] = array(
 			'title'       => __( 'Protect Login Attempts', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors login attempts.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam bots from trying to login to your website.', 'zero-spam' ),
 			'section'     => 'login',
 			'module'      => 'login',
 			'type'        => 'checkbox',
@@ -211,7 +211,7 @@ class Login {
 
 		$settings['login_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown to spam bots trying to login.', 'zero-spam' ),
 			'section'     => 'login',
 			'module'      => 'login',
 			'type'        => 'text',
@@ -226,10 +226,7 @@ class Login {
 			'section'     => 'login',
 			'module'      => 'login',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked login attempts in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of all blocked login attempts in the database.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

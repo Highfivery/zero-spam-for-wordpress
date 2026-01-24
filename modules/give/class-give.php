@@ -174,7 +174,7 @@ class Give {
 				),
 				esc_url( 'https://givewp.com/ref/1118/' )
 			),
-			'desc'        => __( 'Protects & monitors donation forms.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam from donation forms on your website.', 'zero-spam' ),
 			'section'     => 'givewp',
 			'module'      => 'givewp',
 			'type'        => 'checkbox',
@@ -189,7 +189,7 @@ class Give {
 
 		$settings['givewp_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when Give detects spam in a donation form.', 'zero-spam' ),
 			'section'     => 'givewp',
 			'module'      => 'givewp',
 			'type'        => 'text',
@@ -204,10 +204,7 @@ class Give {
 			'section'     => 'givewp',
 			'module'      => 'givewp',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked donation submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked donation form submissions.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

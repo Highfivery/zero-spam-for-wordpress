@@ -112,45 +112,14 @@ class Zero_Spam {
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %s: Replaced with the Zero Spam URL */
-					__( 'Blocks visitor IPs &amp; supported submitted forms with an email address that meets the <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam</a> <em>Confidence Minimum</em> score.', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-						'em'     => array(),
-					)
-				),
-				esc_url( ZEROSPAM_URL )
-			),
+			'desc'        => __( 'Turn on spam checking using Zero Spam\'s spam database to block bad visitors.', 'zero-spam' ),
 			'value'       => ! empty( $options['zerospam'] ) ? $options['zerospam'] : false,
 			'recommended' => 'enabled',
 		);
 
 		$settings['zerospam_license'] = array(
 			'title'       => __( 'License Key', 'zero-spam' ),
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: 1: the zerospam.org URL 2: the zerospam.org premium product URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> license key or define it in <code>wp-config.php</code>, using the constant <code>ZEROSPAM_LICENSE_KEY</code> to enable enhanced protection. Don\'t have an license key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one now!</strong></a>', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-						'code'   => array(),
-					)
-				),
-				esc_url( ZEROSPAM_URL ),
-				esc_url( ZEROSPAM_URL . 'product/premium/' )
-			),
+			'desc'        => __( 'Enter your Zero Spam license key to unlock spam protection features.', 'zero-spam' ),
 			'section'     => 'zerospam',
 			'module'      => 'zerospam',
 			'type'        => 'text',
@@ -172,7 +141,7 @@ class Zero_Spam {
 			'suffix'      => __( 'seconds', 'zero-spam' ),
 			'placeholder' => __( '5', 'zero-spam' ),
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond; recommended 5 seconds.', 'zero-spam' ),
+			'desc'        => __( 'How long to wait for a response from Zero Spam. Recommended: 5 seconds.', 'zero-spam' ),
 			'value'       => ! empty( $options['zerospam_timeout'] ) ? $options['zerospam_timeout'] : 5,
 			'recommended' => 5,
 		);
@@ -186,7 +155,7 @@ class Zero_Spam {
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
 			'placeholder' => WEEK_IN_SECONDS,
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zero-spam' ),
+			'desc'        => __( 'How long to remember spam check results. Recommended: 14 days.', 'zero-spam' ),
 			'value'       => ! empty( $options['zerospam_cache'] ) ? $options['zerospam_cache'] : 14,
 			'recommended' => 14,
 		);
@@ -202,20 +171,7 @@ class Zero_Spam {
 			'min'         => 0,
 			'max'         => 100,
 			'step'        => 0.1,
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %s: Replaced with the Zero Spam API URL */
-					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 20%%.', 'zero-spam' ),
-					array(
-						'a' => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( ZEROSPAM_URL . 'spam-blacklist-api/?utm_source=' . site_url() . '&utm_medium=admin_confidence_score&utm_campaign=wpzerospam' )
-			),
+			'desc'        => __( 'How sure we need to be that someone is a spammer before blocking them. Lower number blocks more. Recommended: 30%.', 'zero-spam' ),
 			'value'       => ! empty( $options['zerospam_confidence_min'] ) ? $options['zerospam_confidence_min'] : 30,
 			'recommended' => 30,
 		);

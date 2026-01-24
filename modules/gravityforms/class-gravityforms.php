@@ -191,22 +191,8 @@ class GravityForms {
 		$options = get_option( 'zero-spam-gravityforms' );
 
 		$settings['verify_gravityforms'] = array(
-			'title'       => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( 'Protect <a href="%s" target="_blank" rel="noreferrer noopener">Gravity Form</a> Submissions', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'   => array(),
-							'class'  => array(),
-							'target' => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( 'https://www.gravityforms.com/' )
-			),
-			'desc'        => __( 'Protects & monitors Gravity Form submissions (requires >=v2.7 to enable).', 'zero-spam' ),
+			'title'       => __( 'Protect Gravity Forms Submissions', 'zero-spam' ),
+			'desc'        => __( 'Stop spam from Gravity Forms (requires version 2.7 or newer).', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
 			'type'        => 'checkbox',
@@ -220,7 +206,7 @@ class GravityForms {
 		$message                               = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
 		$settings['gravityforms_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when Gravity Forms detects spam.', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
 			'type'        => 'text',
@@ -235,10 +221,7 @@ class GravityForms {
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked form submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked Gravity Forms submissions.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

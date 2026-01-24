@@ -335,7 +335,7 @@ class Network_Settings_Page {
 										<div class="setting-status">
 											<?php
 											if ( $locked ) {
-												echo '<span class="locked-badge">🔒</span>';
+												echo '<span class="locked-badge">🔒 Locked</span>';
 											}
 											?>
 											<div class="status-text">
