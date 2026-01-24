@@ -557,7 +557,7 @@
 		},
 
 	/**
-	 * Show notice
+	 * Show notice (non-scrolling, for Save All button)
 	 */
 	showNotice: function(type, message) {
 		// Remove any existing notices
@@ -573,10 +573,7 @@
 			$('.wrap').prepend($notice);
 		}
 		
-		// Scroll to notice
-		$('html, body').animate({
-			scrollTop: $notice.offset().top - 100
-		}, 300);
+		// DO NOT SCROLL - let the user stay where they are
 		
 		// Auto-dismiss after 5 seconds
 		setTimeout(function() {

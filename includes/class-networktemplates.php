@@ -382,22 +382,34 @@ class Network_Templates {
 		$updated_count = 0;
 		$skipped_count = 0;
 
+		// Get all plugin settings to know which module each setting belongs to.
+		$all_plugin_settings = \ZeroSpam\Core\Settings::get_settings();
+
 		foreach ( $site_ids as $site_id ) {
 			switch_to_blog( $site_id );
 
-			$site_settings = get_option( 'zero-spam-settings', array() );
-			$site_updated  = false;
+			$site_updated = false;
 
 			foreach ( $template['settings'] as $key => $value ) {
-				// Apply if forced or setting doesn't exist.
-				if ( $force || ! isset( $site_settings[ $key ] ) ) {
-					$site_settings[ $key ] = $value;
-					$site_updated = true;
+				// Get the module for this setting.
+				$module = $all_plugin_settings[ $key ]['module'] ?? null;
+				
+				if ( $module ) {
+					// Get current module settings.
+					$module_settings = get_option( "zero-spam-{$module}", array() );
+					
+					// Apply if forced or setting doesn't exist.
+					if ( $force || ! isset( $module_settings[ $key ] ) ) {
+						$module_settings[ $key ] = $value;
+						
+						// Save back to the module-specific option.
+						update_option( "zero-spam-{$module}", $module_settings );
+						$site_updated = true;
+					}
 				}
 			}
 
 			if ( $site_updated ) {
-				update_option( 'zero-spam-settings', $site_settings );
 				$updated_count++;
 			} else {
 				$skipped_count++;

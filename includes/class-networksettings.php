@@ -81,9 +81,16 @@ class Network_Settings {
 
 		// Level 2: Site Override (if exists and not locked).
 		if ( ! is_network_admin() ) {
-			$site_settings = get_option( 'zero-spam-settings', array() );
-			if ( isset( $site_settings[ $setting_key ] ) ) {
-				return $site_settings[ $setting_key ];
+			// Get all plugin settings to find the module.
+			$all_settings = \ZeroSpam\Core\Settings::get_settings();
+			$module = $all_settings[ $setting_key ]['module'] ?? null;
+			
+			if ( $module ) {
+				// Check module-specific option.
+				$module_settings = get_option( "zero-spam-{$module}", array() );
+				if ( isset( $module_settings[ $setting_key ] ) ) {
+					return $module_settings[ $setting_key ];
+				}
 			}
 		}
 
@@ -171,12 +178,21 @@ class Network_Settings {
 			return true;
 		}
 
-		// Check if site has override.
+		// Check if site has override in module-specific option.
 		switch_to_blog( $site_id );
-		$site_settings = get_option( 'zero-spam-settings', array() );
+		
+		$all_settings = \ZeroSpam\Core\Settings::get_settings();
+		$module = $all_settings[ $setting_key ]['module'] ?? null;
+		$has_override = false;
+		
+		if ( $module ) {
+			$module_settings = get_option( "zero-spam-{$module}", array() );
+			$has_override = isset( $module_settings[ $setting_key ] );
+		}
+		
 		restore_current_blog();
 
-		return ! isset( $site_settings[ $setting_key ] );
+		return ! $has_override;
 	}
 
 	/**
@@ -216,10 +232,19 @@ class Network_Settings {
 		}
 
 		switch_to_blog( $site_id );
-		$site_settings = get_option( 'zero-spam-settings', array() );
+		
+		$all_settings = \ZeroSpam\Core\Settings::get_settings();
+		$module = $all_settings[ $setting_key ]['module'] ?? null;
+		$override_value = null;
+		
+		if ( $module ) {
+			$module_settings = get_option( "zero-spam-{$module}", array() );
+			$override_value = $module_settings[ $setting_key ] ?? null;
+		}
+		
 		restore_current_blog();
 
-		return $site_settings[ $setting_key ] ?? null;
+		return $override_value;
 	}
 
 	/**
@@ -341,10 +366,17 @@ class Network_Settings {
 
 		if ( ! is_multisite() ) {
 			switch_to_blog( $site_id );
-			$site_settings = get_option( 'zero-spam-settings', array() );
+			
+			$all_settings = \ZeroSpam\Core\Settings::get_settings();
+			$module = $all_settings[ $setting_key ]['module'] ?? null;
+			$value = null;
+			
+			if ( $module ) {
+				$module_settings = get_option( "zero-spam-{$module}", array() );
+				$value = $module_settings[ $setting_key ] ?? null;
+			}
+			
 			restore_current_blog();
-
-			$value = $site_settings[ $setting_key ] ?? null;
 
 			return array(
 				'value'  => $value,

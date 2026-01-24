@@ -208,36 +208,70 @@
 	vertical-align: middle;
 }
 
-/* Compact button styles */
-.button-small {
-	height: auto;
-	padding: 6px 12px;
-	font-size: 13px;
-	line-height: 1.5;
-	min-height: 30px;
-	font-weight: 500;
+/* Lock/Unlock button - compact and professional */
+.toggle-lock {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 36px !important;
+	height: 36px !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	background: #f0f0f1 !important;
+	border: 1px solid #c3c4c7 !important;
+	border-radius: 4px !important;
+	font-size: 16px !important;
+	line-height: 1 !important;
+	cursor: pointer !important;
+	transition: all 0.2s ease !important;
+	min-width: 36px !important;
+	max-width: 36px !important;
+	box-shadow: none !important;
+	text-align: center !important;
+	vertical-align: middle !important;
 }
 
-.toggle-lock {
-	font-size: 16px;
-	min-width: 36px;
-	padding: 6px;
-	text-align: center;
+.toggle-lock:hover {
+	background: #dcdcde !important;
+	border-color: #999 !important;
+	box-shadow: none !important;
+}
+
+.toggle-lock:focus {
+	outline: 2px solid #2271b1 !important;
+	outline-offset: 2px !important;
+	box-shadow: none !important;
+}
+
+.toggle-lock:active {
+	background: #c8c8ca !important;
+	box-shadow: none !important;
+}
+
+.toggle-lock[disabled] {
+	opacity: 0.5 !important;
+	cursor: not-allowed !important;
+}
+
+/* Compact button styles */
+.button-small {
+	height: auto !important;
+	padding: 6px 12px !important;
+	font-size: 13px !important;
+	line-height: 1.5 !important;
+	min-height: 32px !important;
+	font-weight: 500 !important;
 }
 
 .save-setting {
-	min-width: 60px;
-}
-
-.view-details {
-	background: #f0f0f1;
-	border-color: #c3c4c7;
-	color: #2c3338;
-}
-
-.view-details:hover {
-	background: #dcdcde;
-	border-color: #8c8f94;
+	min-width: 70px !important;
+	padding: 6px 16px !important;
+	height: 36px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	font-size: 13px !important;
+	font-weight: 600 !important;
 }
 
 /* Settings Section */
@@ -436,23 +470,47 @@
 
 .save-setting {
 	margin-right: 5px !important;
+	min-width: 70px !important;
+	padding: 6px 16px !important;
+	height: 36px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	font-size: 13px !important;
+	font-weight: 600 !important;
 }
 
 .view-details {
 	margin: 0 !important;
-	font-size: 12px;
-	padding: 4px 10px;
-	height: auto;
-	line-height: 1.4;
+	font-size: 12px !important;
+	padding: 6px 12px !important;
+	height: 36px !important;
+	line-height: 1.4 !important;
+	background: #f0f0f1 !important;
+	border-color: #c3c4c7 !important;
+	color: #2c3338 !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
 }
 
 .view-details:hover {
-	background: #f0f0f1;
+	background: #dcdcde !important;
+	border-color: #8c8f94 !important;
 }
 
 /* Actions column */
 .zerospam-settings-table tbody td:last-child {
 	white-space: nowrap;
+	text-align: left !important;
+	vertical-align: middle !important;
+}
+
+/* Lock column alignment */
+.zerospam-settings-table tbody td:nth-child(4) {
+	text-align: center !important;
+	vertical-align: middle !important;
+	padding: 12px !important;
 }
 
 .zerospam-settings-table .button + .button {

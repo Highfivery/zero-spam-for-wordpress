@@ -226,11 +226,13 @@ class Network_Settings_Manager {
 		$skipped_count = 0;
 		$updated_sites = array();
 
+		// Get all plugin settings to know which module each setting belongs to.
+		$all_plugin_settings = \ZeroSpam\Core\Settings::get_settings();
+
 		foreach ( $site_ids as $site_id ) {
 			switch_to_blog( $site_id );
 
-			$site_settings = get_option( 'zero-spam-settings', array() );
-			$site_updated  = false;
+			$site_updated = false;
 
 			foreach ( $network_settings['settings'] as $key => $config ) {
 				$should_apply = false;
@@ -242,7 +244,12 @@ class Network_Settings_Manager {
 						break;
 
 					case 'defaults_only':
-						$should_apply = ! isset( $site_settings[ $key ] );
+						// Check if setting exists in any module option.
+						$module = $all_plugin_settings[ $key ]['module'] ?? null;
+						if ( $module ) {
+							$module_settings = get_option( "zero-spam-{$module}", array() );
+							$should_apply = ! isset( $module_settings[ $key ] );
+						}
 						break;
 
 					case 'all':
@@ -250,15 +257,26 @@ class Network_Settings_Manager {
 						break;
 				}
 
-				// Apply if forced or setting doesn't exist locally.
-				if ( $should_apply && ( $force || ! isset( $site_settings[ $key ] ) || ! empty( $config['locked'] ) ) ) {
-					$site_settings[ $key ] = $config['value'];
-					$site_updated = true;
+				// Apply if we should.
+				if ( $should_apply && ( $force || ! empty( $config['locked'] ) ) ) {
+					// Get the module for this setting.
+					$module = $all_plugin_settings[ $key ]['module'] ?? null;
+					
+					if ( $module ) {
+						// Get current module settings.
+						$module_settings = get_option( "zero-spam-{$module}", array() );
+						
+						// Update the specific setting.
+						$module_settings[ $key ] = $config['value'];
+						
+						// Save back to the module-specific option.
+						update_option( "zero-spam-{$module}", $module_settings );
+						$site_updated = true;
+					}
 				}
 			}
 
 			if ( $site_updated ) {
-				update_option( 'zero-spam-settings', $site_settings );
 				$updated_count++;
 				$updated_sites[] = $site_id;
 			} else {
@@ -305,20 +323,33 @@ class Network_Settings_Manager {
 
 		switch_to_blog( $site_id );
 
-		// Get current site settings.
-		$site_settings = get_option( 'zero-spam-settings', array() );
+		// Get all plugin settings to know all modules.
+		$all_plugin_settings = \ZeroSpam\Core\Settings::get_settings();
+		$modules = array();
+		
+		// Collect all unique modules.
+		foreach ( $all_plugin_settings as $key => $config ) {
+			if ( isset( $config['module'] ) && ! in_array( $config['module'], $modules, true ) ) {
+				$modules[] = $config['module'];
+			}
+		}
 
-		// Remove all settings (will fall back to network defaults).
-		$result = delete_option( 'zero-spam-settings' );
+		// Delete all module-specific options.
+		$deleted_count = 0;
+		foreach ( $modules as $module ) {
+			if ( delete_option( "zero-spam-{$module}" ) ) {
+				$deleted_count++;
+			}
+		}
 
 		restore_current_blog();
 
 		// Log audit.
-		if ( $result ) {
-			$this->log_audit( $site_id, 'reset', null, count( $site_settings ) . ' settings', 'network defaults' );
+		if ( $deleted_count > 0 ) {
+			$this->log_audit( $site_id, 'reset', null, $deleted_count . ' module settings deleted', 'network defaults' );
 		}
 
-		return $result;
+		return $deleted_count > 0;
 	}
 
 	/**
