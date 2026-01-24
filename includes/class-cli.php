@@ -452,4 +452,27 @@ class ZeroSpamCLI {
 	}
 }
 
+// Register network settings commands (multisite only).
+if ( is_multisite() && class_exists( '\ZeroSpam\Includes\CLI\Network_Settings_CLI' ) ) {
+	$network_settings_cli = new \ZeroSpam\Includes\CLI\Network_Settings_CLI();
+	
+	WP_CLI::add_command( 'zerospam network-settings list', array( $network_settings_cli, 'list_settings' ) );
+	WP_CLI::add_command( 'zerospam network-settings show', array( $network_settings_cli, 'show' ) );
+	WP_CLI::add_command( 'zerospam network-settings set', array( $network_settings_cli, 'set' ) );
+	WP_CLI::add_command( 'zerospam network-settings lock', array( $network_settings_cli, 'lock' ) );
+	WP_CLI::add_command( 'zerospam network-settings unlock', array( $network_settings_cli, 'unlock' ) );
+	WP_CLI::add_command( 'zerospam network-settings apply-all', array( $network_settings_cli, 'apply_all' ) );
+	WP_CLI::add_command( 'zerospam network-settings reset', array( $network_settings_cli, 'reset_site' ) );
+	WP_CLI::add_command( 'zerospam network-settings status', array( $network_settings_cli, 'status' ) );
+	WP_CLI::add_command( 'zerospam network-settings compare', array( $network_settings_cli, 'compare' ) );
+	WP_CLI::add_command( 'zerospam network-settings overrides', array( $network_settings_cli, 'overrides' ) );
+	WP_CLI::add_command( 'zerospam network-settings export', array( $network_settings_cli, 'export' ) );
+	WP_CLI::add_command( 'zerospam network-settings import', array( $network_settings_cli, 'import' ) );
+	WP_CLI::add_command( 'zerospam network-settings audit', array( $network_settings_cli, 'audit' ) );
+	WP_CLI::add_command( 'zerospam network-settings template-list', array( $network_settings_cli, 'template_list' ) );
+	WP_CLI::add_command( 'zerospam network-settings template-apply', array( $network_settings_cli, 'template_apply' ) );
+	WP_CLI::add_command( 'zerospam network-settings template-create', array( $network_settings_cli, 'template_create' ) );
+	WP_CLI::add_command( 'zerospam network-settings template-delete', array( $network_settings_cli, 'template_delete' ) );
+}
+
 WP_CLI::add_command( 'zerospam', 'ZeroSpamCLI' );

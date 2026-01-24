@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '1.2';
+	const DB_VERSION = '1.3';
 
 	/**
 	 * DB tables
@@ -24,12 +24,14 @@ class DB {
 	 * @var array $tables List of plugin database tables.
 	 */
 	public static $tables = array(
-		'log'           => 'wpzerospam_log',
-		'blocked'       => 'wpzerospam_blocked',
-		'blacklist'     => 'wpzerospam_blacklist',
-		'api_usage'     => 'wpzerospam_api_usage',
-		'stats_daily'   => 'wpzerospam_stats_daily',
-		'stats_monthly' => 'wpzerospam_stats_monthly',
+		'log'              => 'wpzerospam_log',
+		'blocked'          => 'wpzerospam_blocked',
+		'blacklist'        => 'wpzerospam_blacklist',
+		'api_usage'        => 'wpzerospam_api_usage',
+		'stats_daily'      => 'wpzerospam_stats_daily',
+		'stats_monthly'    => 'wpzerospam_stats_monthly',
+		'network_templates' => 'wpzerospam_network_templates',
+		'network_audit'    => 'wpzerospam_network_audit',
 	);
 
 	/**
@@ -120,25 +122,60 @@ class DB {
 				KEY stat_date (stat_date)
 			) $charset_collate;";
 
-			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_monthly'] . " (
-				stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-				site_id bigint(20) unsigned NOT NULL DEFAULT 1,
-				stat_year int(4) NOT NULL,
-				stat_month int(2) NOT NULL,
-				total_spam_blocked int(11) NOT NULL DEFAULT 0,
-				spam_by_type text DEFAULT NULL,
-				top_countries text DEFAULT NULL,
-				top_ips text DEFAULT NULL,
-				top_log_types text DEFAULT NULL,
-				unique_ips int(11) NOT NULL DEFAULT 0,
-				date_aggregated datetime NOT NULL,
-				PRIMARY KEY  (stat_id),
-				UNIQUE KEY site_month (site_id, stat_year, stat_month),
-				KEY stat_period (stat_year, stat_month)
-			) $charset_collate;";
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_monthly'] . " (
+			stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+			stat_year int(4) NOT NULL,
+			stat_month int(2) NOT NULL,
+			total_spam_blocked int(11) NOT NULL DEFAULT 0,
+			spam_by_type text DEFAULT NULL,
+			top_countries text DEFAULT NULL,
+			top_ips text DEFAULT NULL,
+			top_log_types text DEFAULT NULL,
+			unique_ips int(11) NOT NULL DEFAULT 0,
+			date_aggregated datetime NOT NULL,
+			PRIMARY KEY  (stat_id),
+			UNIQUE KEY site_month (site_id, stat_year, stat_month),
+			KEY stat_period (stat_year, stat_month)
+		) $charset_collate;";
 
-			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-			dbDelta( $sql );
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_templates'] . " (
+			template_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			template_name varchar(255) NOT NULL,
+			template_slug varchar(255) NOT NULL,
+			template_type enum('built_in','custom') NOT NULL DEFAULT 'custom',
+			settings longtext NOT NULL,
+			description text DEFAULT NULL,
+			created_by bigint(20) unsigned NOT NULL,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (template_id),
+			UNIQUE KEY template_slug (template_slug),
+			KEY template_type (template_type)
+		) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_audit'] . " (
+			audit_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			site_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			action_type enum('set','lock','unlock','apply','bulk','template','import','reset') NOT NULL DEFAULT 'set',
+			setting_key varchar(255) DEFAULT NULL,
+			old_value text DEFAULT NULL,
+			new_value text DEFAULT NULL,
+			affected_sites text DEFAULT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			user_login varchar(60) NOT NULL,
+			ip_address varchar(39) NOT NULL,
+			date_created datetime NOT NULL,
+			PRIMARY KEY  (audit_id),
+			KEY site_id (site_id),
+			KEY action_type (action_type),
+			KEY setting_key (setting_key),
+			KEY user_id (user_id),
+			KEY date_created (date_created)
+		) $charset_collate;";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
 
 			// Add indexes to existing log table for performance.
 			self::add_log_indexes();

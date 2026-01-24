@@ -183,15 +183,15 @@ class Network_Overview_Dashboard_Widget {
 			<?php if ( $is_network ) : ?>
 				<div class="stats-grid">
 					<div class="stat-box">
-						<div class="stat-value"><?php echo esc_html( number_format( $stats['total_spam'] ) ); ?></div>
+						<div class="stat-value"><?php echo esc_html( number_format( (float) ( $stats['total_spam'] ?? 0 ) ) ); ?></div>
 						<div class="stat-label"><?php esc_html_e( 'Spam Blocked (30d)', 'zero-spam' ); ?></div>
 					</div>
 					<div class="stat-box">
-						<div class="stat-value"><?php echo esc_html( number_format( $stats['unique_ips'] ) ); ?></div>
+						<div class="stat-value"><?php echo esc_html( number_format( (float) ( $stats['unique_ips'] ?? 0 ) ) ); ?></div>
 						<div class="stat-label"><?php esc_html_e( 'Unique IPs', 'zero-spam' ); ?></div>
 					</div>
 					<div class="stat-box">
-						<div class="stat-value"><?php echo esc_html( number_format( $stats['spam_types'] ) ); ?></div>
+						<div class="stat-value"><?php echo esc_html( number_format( (float) ( $stats['spam_types'] ?? 0 ) ) ); ?></div>
 						<div class="stat-label"><?php esc_html_e( 'Spam Types', 'zero-spam' ); ?></div>
 					</div>
 				</div>
@@ -212,13 +212,13 @@ class Network_Overview_Dashboard_Widget {
 								<?php foreach ( array_slice( $sites, 0, 5 ) as $site ) : ?>
 									<tr>
 										<td>
-											<strong><?php echo esc_html( $site['site_name'] ); ?></strong>
-											<?php if ( ! $site['has_enhanced'] ) : ?>
-												<span class="badge free"><?php esc_html_e( 'Free', 'zero-spam' ); ?></span>
-											<?php endif; ?>
-										</td>
-										<td><?php echo esc_html( number_format( $site['spam_count'] ) ); ?></td>
-										<td>
+									<strong><?php echo esc_html( $site['site_name'] ); ?></strong>
+									<?php if ( ! $site['has_enhanced'] ) : ?>
+										<span class="badge free"><?php esc_html_e( 'Free', 'zero-spam' ); ?></span>
+									<?php endif; ?>
+								</td>
+								<td><?php echo esc_html( number_format( (float) ( $site['spam_count'] ?? 0 ) ) ); ?></td>
+								<td>
 											<?php if ( 'up' === $site['trend']['direction'] ) : ?>
 												<span class="trend up">↑ <?php echo esc_html( abs( $site['trend']['percentage'] ) ); ?>%</span>
 											<?php elseif ( 'down' === $site['trend']['direction'] ) : ?>
@@ -234,16 +234,16 @@ class Network_Overview_Dashboard_Widget {
 					</div>
 				<?php endif; ?>
 			<?php else : ?>
-				<!-- Single Site Stats -->
-				<div class="stats-grid">
-					<div class="stat-box">
-						<div class="stat-value"><?php echo esc_html( number_format( $stats['total_spam'] ) ); ?></div>
-						<div class="stat-label"><?php esc_html_e( 'Spam Blocked (30d)', 'zero-spam' ); ?></div>
-					</div>
-					<div class="stat-box">
-						<div class="stat-value"><?php echo esc_html( number_format( $stats['unique_ips'] ) ); ?></div>
-						<div class="stat-label"><?php esc_html_e( 'Unique IPs', 'zero-spam' ); ?></div>
-					</div>
+			<!-- Single Site Stats -->
+			<div class="stats-grid">
+				<div class="stat-box">
+					<div class="stat-value"><?php echo esc_html( number_format( (float) ( $stats['total_spam'] ?? 0 ) ) ); ?></div>
+					<div class="stat-label"><?php esc_html_e( 'Spam Blocked (30d)', 'zero-spam' ); ?></div>
+				</div>
+				<div class="stat-box">
+					<div class="stat-value"><?php echo esc_html( number_format( (float) ( $stats['unique_ips'] ?? 0 ) ) ); ?></div>
+					<div class="stat-label"><?php esc_html_e( 'Unique IPs', 'zero-spam' ); ?></div>
+				</div>
 				</div>
 
 				<?php if ( 'neutral' !== $stats['trend']['direction'] ) : ?>
@@ -332,21 +332,21 @@ class Network_Overview_Dashboard_Widget {
 						</div>
 						<div class="quota-labels">
 							<span class="quota-used">
-								<?php
-								printf(
-									/* translators: 1: used queries, 2: total queries */
-									esc_html__( '%1$s / %2$s used', 'zero-spam' ),
-									'<strong>' . esc_html( number_format( $stats['current_made'] ) ) . '</strong>',
-									esc_html( number_format( $stats['current_limit'] ) )
-								);
-								?>
-							</span>
-							<span class="quota-remaining">
-								<?php
-								printf(
-									/* translators: %s: remaining queries */
-									esc_html__( '%s remaining', 'zero-spam' ),
-									'<strong>' . esc_html( number_format( $stats['current_remaining'] ) ) . '</strong>'
+							<?php
+							printf(
+								/* translators: 1: used queries, 2: total queries */
+								esc_html__( '%1$s / %2$s used', 'zero-spam' ),
+								'<strong>' . esc_html( number_format( (float) ( $stats['current_made'] ?? 0 ) ) ) . '</strong>',
+								esc_html( number_format( (float) ( $stats['current_limit'] ?? 0 ) ) )
+							);
+							?>
+						</span>
+						<span class="quota-remaining">
+							<?php
+							printf(
+								/* translators: %s: remaining queries */
+								esc_html__( '%s remaining', 'zero-spam' ),
+								'<strong>' . esc_html( number_format( (float) ( $stats['current_remaining'] ?? 0 ) ) ) . '</strong>'
 								);
 								?>
 							</span>
@@ -355,21 +355,21 @@ class Network_Overview_Dashboard_Widget {
 				</div>
 			<?php endif; ?>
 
-			<!-- Statistics Grid -->
-			<div class="stats-grid">
-				<div class="stat-box">
-					<div class="stat-value"><?php echo esc_html( number_format( $stats['api_calls'] ) ); ?></div>
-					<div class="stat-label"><?php esc_html_e( 'API Calls', 'zero-spam' ); ?></div>
-				</div>
-				<div class="stat-box">
-					<div class="stat-value"><?php echo esc_html( number_format( $stats['cache_hits'] ) ); ?></div>
-					<div class="stat-label"><?php esc_html_e( 'Cache Hits', 'zero-spam' ); ?></div>
-				</div>
-				<div class="stat-box <?php echo $stats['errors'] > 0 ? 'has-errors' : ''; ?>">
-					<div class="stat-value"><?php echo esc_html( number_format( $stats['errors'] ) ); ?></div>
-					<div class="stat-label"><?php esc_html_e( 'Errors', 'zero-spam' ); ?></div>
-				</div>
+		<!-- Statistics Grid -->
+		<div class="stats-grid">
+			<div class="stat-box">
+				<div class="stat-value"><?php echo esc_html( number_format( (float) ( $stats['api_calls'] ?? 0 ) ) ); ?></div>
+				<div class="stat-label"><?php esc_html_e( 'API Calls', 'zero-spam' ); ?></div>
 			</div>
+			<div class="stat-box">
+				<div class="stat-value"><?php echo esc_html( number_format( (float) ( $stats['cache_hits'] ?? 0 ) ) ); ?></div>
+				<div class="stat-label"><?php esc_html_e( 'Cache Hits', 'zero-spam' ); ?></div>
+			</div>
+			<div class="stat-box <?php echo $stats['errors'] > 0 ? 'has-errors' : ''; ?>">
+				<div class="stat-value"><?php echo esc_html( number_format( (float) ( $stats['errors'] ?? 0 ) ) ); ?></div>
+				<div class="stat-label"><?php esc_html_e( 'Errors', 'zero-spam' ); ?></div>
+			</div>
+		</div>
 
 			<!-- Performance Indicators -->
 			<div class="performance-indicators">
@@ -410,21 +410,21 @@ class Network_Overview_Dashboard_Widget {
 		<div class="combined-analysis-section">
 			<h3><?php esc_html_e( 'Weekly Summary', 'zero-spam' ); ?></h3>
 
-			<div class="combined-stats">
-				<div class="combined-stat-box spam">
-					<div class="stat-icon"><span class="dashicons dashicons-shield-alt"></span></div>
-					<div class="stat-content">
-						<div class="stat-value"><?php echo esc_html( number_format( $spam_stats['total_spam'] ) ); ?></div>
-						<div class="stat-label"><?php esc_html_e( 'Spam Blocked', 'zero-spam' ); ?></div>
-					</div>
+		<div class="combined-stats">
+			<div class="combined-stat-box spam">
+				<div class="stat-icon"><span class="dashicons dashicons-shield-alt"></span></div>
+				<div class="stat-content">
+					<div class="stat-value"><?php echo esc_html( number_format( (float) ( $spam_stats['total_spam'] ?? 0 ) ) ); ?></div>
+					<div class="stat-label"><?php esc_html_e( 'Spam Blocked', 'zero-spam' ); ?></div>
 				</div>
-				<div class="combined-stat-box api">
-					<div class="stat-icon"><span class="dashicons dashicons-cloud"></span></div>
-					<div class="stat-content">
-						<div class="stat-value"><?php echo esc_html( number_format( $api_stats['api_calls'] ) ); ?></div>
-						<div class="stat-label"><?php esc_html_e( 'API Calls Made', 'zero-spam' ); ?></div>
-					</div>
+			</div>
+			<div class="combined-stat-box api">
+				<div class="stat-icon"><span class="dashicons dashicons-cloud"></span></div>
+				<div class="stat-content">
+					<div class="stat-value"><?php echo esc_html( number_format( (float) ( $api_stats['api_calls'] ?? 0 ) ) ); ?></div>
+					<div class="stat-label"><?php esc_html_e( 'API Calls Made', 'zero-spam' ); ?></div>
 				</div>
+			</div>
 			</div>
 
 			<!-- Insights -->
@@ -434,13 +434,13 @@ class Network_Overview_Dashboard_Widget {
 					<?php if ( $spam_stats['total_spam'] > 0 ) : ?>
 						<li class="insight-item">
 							<span class="dashicons dashicons-yes-alt"></span>
-							<?php
-							printf(
-								/* translators: %s: spam count */
-								esc_html__( 'Blocked %s spam attempts this week', 'zero-spam' ),
-								'<strong>' . esc_html( number_format( $spam_stats['total_spam'] ) ) . '</strong>'
-							);
-							?>
+						<?php
+						printf(
+							/* translators: %s: spam count */
+							esc_html__( 'Blocked %s spam attempts this week', 'zero-spam' ),
+							'<strong>' . esc_html( number_format( (float) ( $spam_stats['total_spam'] ?? 0 ) ) ) . '</strong>'
+						);
+						?>
 						</li>
 					<?php endif; ?>
 					<?php if ( $api_stats['api_calls'] > 0 ) : ?>

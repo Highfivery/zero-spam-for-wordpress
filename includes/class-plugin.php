@@ -128,9 +128,25 @@ class Plugin {
 			new \ZeroSpam\Includes\Admin\Network_Stats_Page();
 		}
 
+		// Network Settings Page (multisite only).
+		if ( is_admin() && is_multisite() ) {
+			new \ZeroSpam\Includes\Admin\Network_Settings_Page();
+		}
+
+		// Site Admin Overrides (multisite only).
+		if ( is_admin() && is_multisite() && ! is_network_admin() ) {
+			new \ZeroSpam\Includes\Admin\Site_Admin_Overrides();
+		}
+
 		// Stats Aggregation (multisite only).
 		if ( is_multisite() ) {
 			new \ZeroSpam\Includes\Stats_Aggregator();
+		}
+
+		// Network Settings (multisite only).
+		if ( is_multisite() ) {
+			new \ZeroSpam\Includes\Network_Settings();
+			new \ZeroSpam\Includes\Network_Notifications();
 		}
 
 		// Stop Forum Spam module.
@@ -239,6 +255,12 @@ class Plugin {
 
 		$api_usage_controller = new \ZeroSpam\Includes\Rest\API_Usage_Controller();
 		$api_usage_controller->register_routes();
+
+		// Network Settings REST API (multisite only).
+		if ( is_multisite() ) {
+			$network_settings_controller = new \ZeroSpam\Includes\Rest\Network_Settings_Controller();
+			$network_settings_controller->register_routes();
+		}
 	}
 
 	/**
