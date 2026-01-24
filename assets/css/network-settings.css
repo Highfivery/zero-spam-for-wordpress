@@ -797,6 +797,14 @@
 	color: #1d2327;
 }
 
+.import-section h4 {
+	margin-top: 0;
+	margin-bottom: 10px;
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
 .export-section p.description,
 .import-section p.description {
 	font-size: 13px;
@@ -810,6 +818,26 @@
 	margin: 8px 0;
 	font-size: 13px;
 	color: #1d2327;
+	cursor: pointer;
+}
+
+.import-section label input[type="radio"] {
+	margin-right: 6px;
+	vertical-align: middle;
+}
+
+.import-section label strong {
+	font-weight: 600;
+}
+
+.import-section label .description {
+	display: block;
+	margin-left: 24px;
+	color: #646970;
+	font-size: 12px;
+	font-style: italic;
+	line-height: 1.4;
+	margin-top: 4px;
 }
 
 .import-section input[type="file"] {
@@ -818,6 +846,28 @@
 	border: 1px solid #c3c4c7;
 	border-radius: 4px;
 	background: #fff;
+	display: block;
+	width: 100%;
+	max-width: 400px;
+}
+
+#export-status,
+#import-status {
+	margin-top: 15px;
+}
+
+#export-status .notice,
+#import-status .notice {
+	margin: 0;
+	padding: 12px;
+}
+
+#export-status .spinner,
+#import-status .spinner {
+	visibility: visible;
+	display: inline-block;
+	vertical-align: middle;
+	margin-right: 8px;
 }
 
 /* Tab Content */

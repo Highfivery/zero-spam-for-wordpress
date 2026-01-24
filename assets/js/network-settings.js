@@ -473,7 +473,10 @@
 			e.preventDefault();
 
 			const $button = $(this);
+			const $status = $('#export-status');
+			
 			$button.prop('disabled', true).text('Exporting...');
+			$status.html('<span class="spinner is-active" style="float: none; margin: 0;"></span> Preparing export...');
 
 			$.ajax({
 				url: zeroSpamNetwork.ajaxUrl,
@@ -484,24 +487,24 @@
 				},
 				success: function(response) {
 					if (response.success) {
-						// Create download
 						const blob = new Blob([response.data.json], {type: 'application/json'});
 						const url = window.URL.createObjectURL(blob);
 						const a = document.createElement('a');
+						const timestamp = new Date().toISOString().slice(0,10);
 						a.href = url;
-						a.download = 'zerospam-network-settings-' + Date.now() + '.json';
+						a.download = 'zerospam-network-settings-' + timestamp + '.json';
 						document.body.appendChild(a);
 						a.click();
 						window.URL.revokeObjectURL(url);
 						document.body.removeChild(a);
 
-						ZeroSpamNetworkSettings.showNotice('success', 'Settings exported successfully!');
+						$status.html('<div class="notice notice-success inline"><p><strong>Settings exported successfully!</strong> The file has been downloaded to your computer.</p></div>');
 					} else {
-						ZeroSpamNetworkSettings.showNotice('error', response.data.message);
+						$status.html('<div class="notice notice-error inline"><p><strong>Export failed:</strong> ' + (response.data.message || 'Unknown error') + '</p></div>');
 					}
 				},
-				error: function() {
-					ZeroSpamNetworkSettings.showNotice('error', zeroSpamNetwork.strings.error);
+				error: function(xhr, status, error) {
+					$status.html('<div class="notice notice-error inline"><p><strong>Export failed:</strong> ' + error + '</p></div>');
 				},
 				complete: function() {
 					$button.prop('disabled', false).text('Export as JSON');
@@ -515,25 +518,49 @@
 		importSettings: function(e) {
 			e.preventDefault();
 
-			if (!confirm(zeroSpamNetwork.strings.confirm_import)) {
+			const $button = $(this);
+			const $status = $('#import-status');
+			const fileInput = $('#import-file')[0];
+			const file = fileInput.files[0];
+			const mode = $('input[name="import_mode"]:checked').val();
+
+			$status.html('');
+
+			if (!file) {
+				$status.html('<div class="notice notice-error inline"><p><strong>No file selected.</strong> Please choose a JSON file to import.</p></div>');
 				return;
 			}
 
-			const $button = $(this);
-			const file = $('#import-file')[0].files[0];
-			const mode = $('input[name="import_mode"]:checked').val();
+			if (!file.name.endsWith('.json')) {
+				$status.html('<div class="notice notice-error inline"><p><strong>Invalid file type.</strong> Please select a JSON file.</p></div>');
+				return;
+			}
 
-			if (!file) {
-				alert('Please select a file to import.');
+			if (file.size > 5 * 1024 * 1024) {
+				$status.html('<div class="notice notice-error inline"><p><strong>File too large.</strong> Maximum file size is 5MB.</p></div>');
+				return;
+			}
+
+			const modeText = mode === 'merge' ? 'merge' : (mode === 'replace' ? 'replace all' : 'add new');
+			if (!confirm('Import settings and ' + modeText + '? This will modify your network configuration.')) {
 				return;
 			}
 
 			const reader = new FileReader();
 
 			reader.onload = function(e) {
-				const json = e.target.result;
+				let json = e.target.result;
+				let data;
+
+				try {
+					data = JSON.parse(json);
+				} catch (err) {
+					$status.html('<div class="notice notice-error inline"><p><strong>Invalid JSON file:</strong> ' + err.message + '</p></div>');
+					return;
+				}
 
 				$button.prop('disabled', true).text('Importing...');
+				$status.html('<span class="spinner is-active" style="float: none; margin: 0;"></span> Importing settings...');
 
 				$.ajax({
 					url: zeroSpamNetwork.ajaxUrl,
@@ -546,20 +573,33 @@
 					},
 					success: function(response) {
 						if (response.success) {
-							const msg = response.data.imported_count + ' settings imported!';
-							ZeroSpamNetworkSettings.showNotice('success', msg);
-							location.reload();
+							const imported = response.data.imported_count || 0;
+							const skipped = response.data.skipped_count || 0;
+							let msg = '<div class="notice notice-success inline"><p><strong>Import successful!</strong> ';
+							msg += imported + ' setting' + (imported !== 1 ? 's' : '') + ' imported.';
+							if (skipped > 0) {
+								msg += ' ' + skipped + ' skipped.';
+							}
+							msg += '<br>The page will reload in 3 seconds...</p></div>';
+							$status.html(msg);
+							
+							setTimeout(function() {
+								location.reload();
+							}, 3000);
 						} else {
-							ZeroSpamNetworkSettings.showNotice('error', response.data.message);
+							$status.html('<div class="notice notice-error inline"><p><strong>Import failed:</strong> ' + (response.data.message || 'Unknown error') + '</p></div>');
+							$button.prop('disabled', false).text('Import Settings');
 						}
 					},
-					error: function() {
-						ZeroSpamNetworkSettings.showNotice('error', zeroSpamNetwork.strings.error);
-					},
-					complete: function() {
+					error: function(xhr, status, error) {
+						$status.html('<div class="notice notice-error inline"><p><strong>Import failed:</strong> ' + error + '</p></div>');
 						$button.prop('disabled', false).text('Import Settings');
 					}
 				});
+			};
+
+			reader.onerror = function() {
+				$status.html('<div class="notice notice-error inline"><p><strong>Failed to read file.</strong> Please try again.</p></div>');
 			};
 
 			reader.readAsText(file);

@@ -877,41 +877,59 @@ class Network_Settings_Page {
 			<div class="export-section">
 				<h3><?php esc_html_e( 'Export Settings', 'zero-spam' ); ?></h3>
 				<p class="description">
-					<?php esc_html_e( 'Export your network settings to a JSON file for backup or migration.', 'zero-spam' ); ?>
+					<?php esc_html_e( 'Download your network settings to a JSON file for backup or migration.', 'zero-spam' ); ?>
 				</p>
 				<button type="button" class="button button-primary" id="export-settings">
 					<?php esc_html_e( 'Export as JSON', 'zero-spam' ); ?>
 				</button>
+				<div id="export-status" style="margin-top: 10px;"></div>
 			</div>
 
-			<hr />
+			<hr style="margin: 30px 0;" />
 
 			<div class="import-section">
 				<h3><?php esc_html_e( 'Import Settings', 'zero-spam' ); ?></h3>
 				<p class="description">
-					<?php esc_html_e( 'Import network settings from a JSON file.', 'zero-spam' ); ?>
+					<?php esc_html_e( 'Upload a JSON file to restore or merge network settings.', 'zero-spam' ); ?>
 				</p>
 
-				<label>
-					<input type="radio" name="import_mode" value="merge" checked />
-					<?php esc_html_e( 'Merge (keep existing, add new)', 'zero-spam' ); ?>
-				</label><br />
-				<label>
-					<input type="radio" name="import_mode" value="replace" />
-					<?php esc_html_e( 'Replace (overwrite all)', 'zero-spam' ); ?>
-				</label><br />
-				<label>
-					<input type="radio" name="import_mode" value="add_only" />
-					<?php esc_html_e( 'Add Only (skip existing)', 'zero-spam' ); ?>
-				</label>
+				<div style="margin: 20px 0;">
+					<h4 style="margin-bottom: 10px;"><?php esc_html_e( 'Import Mode:', 'zero-spam' ); ?></h4>
+					
+					<label style="display: block; margin-bottom: 12px;">
+						<input type="radio" name="import_mode" value="merge" checked />
+						<strong><?php esc_html_e( 'Merge', 'zero-spam' ); ?></strong>
+						<span class="description" style="display: block; margin-left: 24px; color: #646970;">
+							<?php esc_html_e( 'Keep existing settings and add new ones from the file. Lock status is preserved for existing settings.', 'zero-spam' ); ?>
+						</span>
+					</label>
+
+					<label style="display: block; margin-bottom: 12px;">
+						<input type="radio" name="import_mode" value="replace" />
+						<strong><?php esc_html_e( 'Replace', 'zero-spam' ); ?></strong>
+						<span class="description" style="display: block; margin-left: 24px; color: #646970;">
+							<?php esc_html_e( 'Replace all existing settings with the ones from the file. This will overwrite everything.', 'zero-spam' ); ?>
+						</span>
+					</label>
+
+					<label style="display: block; margin-bottom: 12px;">
+						<input type="radio" name="import_mode" value="add_only" />
+						<strong><?php esc_html_e( 'Add Only', 'zero-spam' ); ?></strong>
+						<span class="description" style="display: block; margin-left: 24px; color: #646970;">
+							<?php esc_html_e( 'Only add new settings from the file. Skip any that already exist.', 'zero-spam' ); ?>
+						</span>
+					</label>
+				</div>
 
 				<p>
-					<input type="file" id="import-file" accept=".json" />
+					<input type="file" id="import-file" accept=".json,application/json" />
 				</p>
 
 				<button type="button" class="button button-primary" id="import-settings">
 					<?php esc_html_e( 'Import Settings', 'zero-spam' ); ?>
 				</button>
+				
+				<div id="import-status" style="margin-top: 10px;"></div>
 			</div>
 		</div>
 		<?php
@@ -1147,20 +1165,33 @@ class Network_Settings_Page {
 		check_ajax_referer( 'zerospam_network_settings', 'nonce' );
 
 		if ( ! current_user_can( 'manage_network_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'zero-spam' ) ) );
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to import settings.', 'zero-spam' ) ) );
 		}
 
 		$json = isset( $_POST['json'] ) ? wp_unslash( $_POST['json'] ) : '';
 		$mode = isset( $_POST['mode'] ) ? sanitize_text_field( wp_unslash( $_POST['mode'] ) ) : 'merge';
 
 		if ( ! $json ) {
-			wp_send_json_error( array( 'message' => __( 'No data provided', 'zero-spam' ) ) );
+			wp_send_json_error( array( 'message' => __( 'No data provided.', 'zero-spam' ) ) );
 		}
 
 		$data = json_decode( $json, true );
 
+		if ( null === $data ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid JSON format. Please check your file.', 'zero-spam' ) ) );
+		}
+
 		if ( ! is_array( $data ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid JSON format', 'zero-spam' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Invalid data structure. Expected an object of settings.', 'zero-spam' ) ) );
+		}
+
+		if ( empty( $data ) ) {
+			wp_send_json_error( array( 'message' => __( 'The imported file contains no settings.', 'zero-spam' ) ) );
+		}
+
+		$valid_modes = array( 'merge', 'replace', 'add_only' );
+		if ( ! in_array( $mode, $valid_modes, true ) ) {
+			$mode = 'merge';
 		}
 
 		$result = $this->settings_manager->import_settings( $data, $mode );
