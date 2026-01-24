@@ -283,18 +283,20 @@ class Network_Settings_Page {
 			</p>
 
 			<?php foreach ( $grouped_settings as $group_id => $group ) : ?>
-				<div class="settings-group">
-					<div class="settings-group-header">
+			<div class="settings-group">
+				<div class="settings-group-header" onclick="jQuery(this).find('.settings-group-toggle').click();">
+					<div style="flex: 1;">
 						<h3>
 							<span class="dashicons dashicons-<?php echo esc_attr( $group['icon'] ); ?>"></span>
 							<?php echo esc_html( $group['title'] ); ?>
 						</h3>
 						<p class="group-description"><?php echo esc_html( $group['description'] ); ?></p>
-						<button type="button" class="button settings-group-toggle" data-group="<?php echo esc_attr( $group_id ); ?>">
-							<span class="dashicons dashicons-arrow-down-alt2"></span>
-							<?php esc_html_e( 'Expand', 'zero-spam' ); ?>
-						</button>
 					</div>
+					<button type="button" class="button settings-group-toggle" data-group="<?php echo esc_attr( $group_id ); ?>" onclick="event.stopPropagation();">
+						<span class="dashicons dashicons-arrow-down-alt2"></span>
+						<?php esc_html_e( 'Expand', 'zero-spam' ); ?>
+					</button>
+				</div>
 					
 					<div class="settings-group-content" id="group-<?php echo esc_attr( $group_id ); ?>" style="display: none;">
 						<table class="wp-list-table widefat striped zerospam-settings-table">
