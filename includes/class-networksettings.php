@@ -328,7 +328,7 @@ class Network_Settings {
 		$sites         = get_sites( array( 'number' => 0 ) );
 		$total_sites   = count( $sites );
 		$using_default = count( $this->get_sites_using_default( $setting_key ) );
-		$overridden    = $total_sites - $using_default;
+		$overridden    = count( $this->get_sites_with_overrides( $setting_key ) );
 
 		return array(
 			'total_sites'   => $total_sites,
