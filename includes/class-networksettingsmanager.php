@@ -237,43 +237,52 @@ class Network_Settings_Manager {
 			foreach ( $network_settings['settings'] as $key => $config ) {
 				$should_apply = false;
 
+				// Get the module for this setting.
+				$module = $all_plugin_settings[ $key ]['module'] ?? null;
+				if ( ! $module ) {
+					continue; // Skip if we can't determine the module.
+				}
+
+				// Get current module settings.
+				$module_settings = get_option( "zero-spam-{$module}", array() );
+				$setting_exists = isset( $module_settings[ $key ] );
+
 				// Determine if we should apply this setting.
 				switch ( $mode ) {
 					case 'locked_only':
+						// Only apply if locked.
 						$should_apply = ! empty( $config['locked'] );
 						break;
 
 					case 'defaults_only':
-						// Check if setting exists in any module option.
-						$module = $all_plugin_settings[ $key ]['module'] ?? null;
-						if ( $module ) {
-							$module_settings = get_option( "zero-spam-{$module}", array() );
-							$should_apply = ! isset( $module_settings[ $key ] );
-						}
+						// Only apply if setting doesn't exist on the site.
+						$should_apply = ! $setting_exists;
 						break;
 
 					case 'all':
+					default:
+						// Apply to all sites.
 						$should_apply = true;
 						break;
 				}
 
-				// Apply if we should.
-				if ( $should_apply && ( $force || ! empty( $config['locked'] ) ) ) {
-					// Get the module for this setting.
-					$module = $all_plugin_settings[ $key ]['module'] ?? null;
-					
-					if ( $module ) {
-						// Get current module settings.
-						$module_settings = get_option( "zero-spam-{$module}", array() );
-						
-						// Update the specific setting.
-						$module_settings[ $key ] = $config['value'];
-						
-						// Save back to the module-specific option.
-						update_option( "zero-spam-{$module}", $module_settings );
-						$site_updated = true;
-					}
+				// Don't apply if:
+				// 1. We shouldn't apply based on mode
+				// 2. Setting is not locked AND not forcing AND site has an override
+				if ( ! $should_apply ) {
+					continue;
 				}
+
+				if ( empty( $config['locked'] ) && ! $force && $setting_exists ) {
+					continue; // Respect existing site override for unlocked settings.
+				}
+
+				// Apply the network setting.
+				$module_settings[ $key ] = $config['value'];
+				
+				// Save back to the module-specific option.
+				update_option( "zero-spam-{$module}", $module_settings );
+				$site_updated = true;
 			}
 
 			if ( $site_updated ) {
