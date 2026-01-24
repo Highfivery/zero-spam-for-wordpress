@@ -81,7 +81,9 @@ class Network_Settings_Page {
 	 * @param string $hook_suffix Current admin page.
 	 */
 	public function enqueue_assets( $hook_suffix ) {
-		if ( 'settings_page_zerospam-network-settings-network' !== $hook_suffix ) {
+		// Check if this is our network settings page.
+		// Network admin pages can have various hook suffix formats.
+		if ( false === strpos( $hook_suffix, 'zerospam-network-settings' ) ) {
 			return;
 		}
 
@@ -265,7 +267,7 @@ class Network_Settings_Page {
 	private function render_settings_tab() {
 		$settings          = $this->settings_manager->get_all_with_status();
 		$plugin_settings   = \ZeroSpam\Core\Settings::get_settings();
-		$registered_fields = \ZeroSpam\Core\Settings::get_settings_fields();
+		$registered_fields = \ZeroSpam\Core\Settings::get_settings_by_module();
 
 		?>
 		<div class="zerospam-settings-section">
