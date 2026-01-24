@@ -103,9 +103,9 @@ class Plugin {
 		// API Usage Alerts.
 		new \ZeroSpam\Includes\API_Usage_Alerts();
 
-		// Unified Dashboard Widget - defer to init to ensure multisite context is set up.
+		// Unified Dashboard Widget - use plugins_loaded for multisite compatibility.
 		if ( is_admin() ) {
-			add_action( 'init', array( $this, 'init_dashboard_widget' ) );
+			add_action( 'plugins_loaded', array( $this, 'init_dashboard_widget' ), 20 );
 		}
 
 		// Network Statistics Page (multisite only).
