@@ -18,23 +18,16 @@ if ( empty( $entries ) ) {
 	return;
 }
 
+// Enqueue Chart.js 4.x (modern version)
 wp_enqueue_script(
-	'zerospam-chart',
-	plugins_url( 'assets/js/Chart.bundle.min.js', ZEROSPAM ),
-	array( 'jquery' ),
-	'2.9.4',
-	false
-);
-
-wp_enqueue_style(
-	'zerospam-chart',
-	plugins_url( 'assets/css/Chart.min.css', ZEROSPAM ),
+	'zerospam-chartjs',
+	'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
 	array(),
-	'2.9.4'
+	'4.4.1',
+	true
 );
 
-
-// Create the datasets to display on the line chart
+// Create the datasets to display on the bar chart
 $labels   = array();
 $datasets = array();
 
@@ -43,8 +36,7 @@ $datasets['detections'] = array(
 	'label'           => __( 'Total', 'zero-spam' ),
 	'data'            => array(),
 	'borderColor'     => '#3F0008',
-	'backgroundColor' => '#3F0008',
-	'fill'            => false,
+	'backgroundColor' => 'rgba(63, 0, 8, 0.8)',
 );
 
 for ( $x = 0; $x < 24; $x++ ) {
@@ -73,29 +65,53 @@ $labels = array_reverse( $labels );
 ksort( $datasets['detections']['data'] );
 ?>
 
-<canvas id="zerospam-bar-chart"></canvas>
+<canvas id="zerospam-bar-chart" style="max-height: 300px;"></canvas>
 <script>
-(function($) {
-	$(function() {
-		var lineChart = document.getElementById('zerospam-bar-chart');
-		var lineChartAnalytics= new Chart(lineChart, {
+(function() {
+	const barChart = document.getElementById('zerospam-bar-chart');
+	if (barChart) {
+		new Chart(barChart, {
 			type: 'bar',
 			data: {
 				labels: <?php echo wp_json_encode( $labels ); ?>,
-				datasets:[
+				datasets: [
 					<?php foreach ( $datasets as $key => $data ) : ?>
 						<?php echo wp_json_encode( $data ); ?>,
 					<?php endforeach; ?>
 				],
 			},
 			options: {
+				responsive: true,
+				maintainAspectRatio: true,
 				plugins: {
 					legend: {
 						display: false
+					},
+					tooltip: {
+						backgroundColor: 'rgba(0, 0, 0, 0.8)',
+						padding: 12,
+						titleFont: { size: 14, weight: 'bold' },
+						bodyFont: { size: 13 }
+					}
+				},
+				scales: {
+					y: {
+						beginAtZero: true,
+						ticks: {
+							precision: 0
+						},
+						grid: {
+							color: 'rgba(0, 0, 0, 0.05)'
+						}
+					},
+					x: {
+						grid: {
+							display: false
+						}
 					}
 				}
 			}
 		});
-	});
-})(jQuery);
+	}
+})();
 </script>

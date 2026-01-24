@@ -64,53 +64,49 @@ class Admin {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
 		$entries  = \ZeroSpam\Includes\DB::query( 'log' );
 
-		if ( 'enabled' !== $settings['zerospam']['value'] || empty( $settings['zerospam_license']['value'] ) ) {
-			?>
-			<div style="background-color: #f6f7f7; padding: 25px; margin-bottom: 20px; border-left: 4px solid #72aee6;">
-				<h3>
-					<?php
-					printf(
-						wp_kses(
-							/* translators: %s: Zero Spam API link */
-							__( '<strong>Super-charge WordPress Zero Spam with a <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam API License</a>.</strong>', 'zero-spam' ),
-							array(
-								'a'      => array(
-									'target' => array(),
-									'href'   => array(),
-									'rel'    => array(),
-								),
-								'strong' => array(),
-							)
-						),
-						esc_url( ZEROSPAM_URL . 'subscribe/' )
-					);
-					?>
-				</h3>
-				<?php
-				printf(
-					wp_kses(
-						/* translators: %s: Zero Spam API link */
-						__( '<p><strong>Enable enhanced protection</strong> and super-charge your site with the power of a global detection network that monitors traffic and usage in real-time to detect malicious activity.</p>', 'zero-spam' ),
-						array(
-							'a'      => array(
-								'target' => array(),
-								'href'   => array(),
-								'rel'    => array(),
-								'style'  => array(),
-							),
-							'p'      => array(),
-							'strong' => array(),
-						)
-					)
-				);
-				?>
-				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>subscribe/?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php esc_html_e( 'Get a Zero Spam License', 'zero-spam' ); ?></a>
-				<a href="<?php echo esc_url( ZEROSPAM_URL ); ?>?utm_source=wordpress_zero_spam&utm_medium=dashboard_widget&utm_campaign=license" target="_blank" rel="noreferrer noopener" class="button button-secondary"><?php esc_html_e( 'Learn More', 'zero-spam' ); ?></a>
-			</div>
-			<?php
+		// Get license status
+		$zerospam_enabled = isset( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
+		$zerospam_license = false;
+		if ( defined( 'ZEROSPAM_LICENSE_KEY' ) && ZEROSPAM_LICENSE_KEY ) {
+			$zerospam_license = ZEROSPAM_LICENSE_KEY;
+		} elseif ( ! empty( $settings['zerospam_license']['value'] ) ) {
+			$zerospam_license = $settings['zerospam_license']['value'];
 		}
 
-		require ZEROSPAM_PATH . 'includes/templates/admin-line-chart.php';
+		// Check license validity if we have one
+		$license_valid = false;
+		$license_status_message = '';
+		if ( $zerospam_enabled && $zerospam_license ) {
+			$license_data = get_transient( 'zerospam_license_check' );
+			if ( false === $license_data ) {
+				// Check license with API
+				$response = wp_remote_get(
+					ZEROSPAM_URL . 'wp-json/licensemanager/v1/licenses/validate/' . $zerospam_license,
+					array( 'timeout' => 5 )
+				);
+
+				if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
+					$license_data = json_decode( wp_remote_retrieve_body( $response ), true );
+					set_transient( 'zerospam_license_check', $license_data, 12 * HOUR_IN_SECONDS );
+				}
+			}
+
+			if ( isset( $license_data['success'] ) && $license_data['success'] ) {
+				$license_valid = true;
+			} elseif ( isset( $license_data['message'] ) ) {
+				$license_status_message = $license_data['message'];
+			}
+		}
+
+		// Enqueue modern dashboard widget styles
+		wp_enqueue_style(
+			'zerospam-dashboard-widget',
+			plugins_url( 'assets/css/dashboard-widget.css', ZEROSPAM ),
+			array(),
+			ZEROSPAM_VERSION
+		);
+
+		require ZEROSPAM_PATH . 'includes/templates/dashboard-widget.php';
 	}
 
 	/**

@@ -18,21 +18,14 @@ if ( empty( $entries ) ) {
 	return;
 }
 
+// Enqueue Chart.js 4.x (modern version)
 wp_enqueue_script(
-	'zerospam-chart',
-	plugins_url( 'assets/js/Chart.bundle.min.js', ZEROSPAM ),
-	array( 'jquery' ),
-	'2.9.4',
-	false
-);
-
-wp_enqueue_style(
-	'zerospam-chart',
-	plugins_url( 'assets/css/Chart.min.css', ZEROSPAM ),
+	'zerospam-chartjs',
+	'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
 	array(),
-	'2.9.4'
+	'4.4.1',
+	true
 );
-
 
 // Create the datasets to display on the line chart
 $labels   = array();
@@ -43,8 +36,9 @@ $datasets['detections'] = array(
 	'label'           => __( 'Total', 'zero-spam' ),
 	'data'            => array(),
 	'borderColor'     => '#3F0008',
-	'backgroundColor' => '#3F0008',
-	'fill'            => false,
+	'backgroundColor' => 'rgba(63, 0, 8, 0.1)',
+	'fill'            => true,
+	'tension'         => 0.4,
 );
 
 // Create the log types
@@ -61,8 +55,9 @@ foreach ( $types as $type ) {
 		'label'           => ! empty( $all_types[ $type ]['label'] ) ? $all_types[ $type ]['label'] : $type,
 		'data'            => array(),
 		'borderColor'     => ! empty( $all_types[ $type ]['color'] ) ? $all_types[ $type ]['color'] : '#3F0008',
-		'backgroundColor' => ! empty( $all_types[ $type ]['color'] ) ? $all_types[ $type ]['color'] : '#3F0008',
+		'backgroundColor' => ! empty( $all_types[ $type ]['color'] ) ? $all_types[ $type ]['color'] : 'rgba(63, 0, 8, 0.2)',
 		'fill'            => false,
+		'tension'         => 0.4,
 	);
 }
 
@@ -111,22 +106,28 @@ foreach ( $types as $type ) {
 }
 ?>
 
-<canvas id="zerospam-line-chart"></canvas>
+<canvas id="zerospam-line-chart" style="max-height: 300px;"></canvas>
 <script>
-(function($) {
-	$(function() {
-		var lineChart = document.getElementById('zerospam-line-chart');
-		var lineChartAnalytics= new Chart(lineChart, {
+(function() {
+	const lineChart = document.getElementById('zerospam-line-chart');
+	if (lineChart) {
+		new Chart(lineChart, {
 			type: 'line',
 			data: {
 				labels: <?php echo wp_json_encode( $labels ); ?>,
-				datasets:[
+				datasets: [
 					<?php foreach ( $datasets as $key => $data ) : ?>
 						<?php echo wp_json_encode( $data ); ?>,
 					<?php endforeach; ?>
 				],
 			},
 			options: {
+				responsive: true,
+				maintainAspectRatio: true,
+				interaction: {
+					intersect: false,
+					mode: 'index'
+				},
 				plugins: {
 					legend: {
 						position: 'bottom',
@@ -134,11 +135,34 @@ foreach ( $types as $type ) {
 							boxWidth: 10,
 							boxHeight: 10,
 							padding: 15,
+							usePointStyle: true
+						}
+					},
+					tooltip: {
+						backgroundColor: 'rgba(0, 0, 0, 0.8)',
+						padding: 12,
+						titleFont: { size: 14, weight: 'bold' },
+						bodyFont: { size: 13 }
+					}
+				},
+				scales: {
+					y: {
+						beginAtZero: true,
+						ticks: {
+							precision: 0
+						},
+						grid: {
+							color: 'rgba(0, 0, 0, 0.05)'
+						}
+					},
+					x: {
+						grid: {
+							display: false
 						}
 					}
 				}
 			}
 		});
-	});
-})(jQuery);
+	}
+})();
 </script>

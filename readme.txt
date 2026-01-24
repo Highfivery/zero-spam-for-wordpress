@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 5.6.2
+Stable tag: 5.7.0
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -122,74 +122,26 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= v5.6.3 =
+= v5.7.0 =
 
-* feat(rest-api): added REST API endpoints for remote settings management
-* feat(rest-api): GET /wp-json/zero-spam/v1/settings endpoint for reading Enhanced Protection settings
-* feat(rest-api): PATCH /wp-json/zero-spam/v1/settings endpoint for updating settings remotely
-* feat(rest-api): multisite support with network defaults and per-site overrides
-* feat(rest-api): dry-run mode for validating changes without writing
-* feat(rest-api): audit trail recording all settings changes with user attribution
-* feat(rest-api): source tracking showing whether settings come from defaults, network, or site level
-* feat(rest-api): WordPress Application Password authentication for secure remote management
-* feat(docs): added comprehensive REST API documentation in-plugin
-* feat(docs): new Documentation tab in settings with beginner-friendly REST API guide
-* feat(docs): code examples for curl, JavaScript, PHP with copy-to-clipboard
-* feat(docs): multisite precedence explanation and troubleshooting guides
-* feat(api-monitoring): added comprehensive API usage monitoring and alerts system
-* feat(api-monitoring): real-time tracking of Zero Spam API calls, quota usage, and performance
-* feat(api-monitoring): cache hit/miss tracking for performance insights
-* feat(api-monitoring): proactive alerts via email, admin notices, and webhooks
-* feat(api-monitoring): configurable alert thresholds for quota, usage spikes, errors, and slow responses
-* feat(api-monitoring): alert throttling to prevent spam (max 1 email per threshold per 24 hours)
-* feat(api-monitoring): promotional upgrade messaging in quota alert emails with tier detection
-* feat(api-monitoring): admin dashboard widget with 1-hour cache and manual refresh capability
-* feat(api-monitoring): anomaly detection for usage spikes, high error rates, and slow API responses
-* feat(api-monitoring): historical trends and hourly usage data for traffic planning
-* feat(api-monitoring): multisite support with network-wide aggregation and per-site breakdown
-* feat(api-monitoring): Super Admin sees network-wide usage, Site Admin sees only their site
-* feat(api-monitoring): configurable data retention (7-365 days) with automatic cleanup
-* feat(api-monitoring): REST API endpoint at /wp-json/zero-spam/v1/api-usage for remote monitoring
-* feat(api-monitoring): WP-CLI commands for checking API usage via command line
-* feat(api-monitoring): CSV export functionality for usage data analysis
-* feat(api-monitoring): comparison view for month-over-month usage tracking
-* feat(api-monitoring): visual health indicators with color coding for quota and API status
-* feat(api-monitoring): test alert buttons for verifying email, webhook, and admin notice configurations
-* feat(api-monitoring): one-time admin notice for feature discovery (dismissible)
-* feat(api-monitoring): auto-detect quota reset date with manual override option
-* feat(network-stats): multisite network statistics overview dashboard for agencies
-* feat(network-stats): combined dashboard widget with 3 tabs (Spam Activity, API Usage, Combined Analysis)
-* feat(network-stats): network-wide spam statistics with total blocked, unique IPs, and spam types
-* feat(network-stats): per-site comparison table with spam count, trends, and recommendations
-* feat(network-stats): multi-site attacker detection for IPs targeting multiple sites
-* feat(network-stats): smart recommendations based on spam volume (high, medium, low, none)
-* feat(network-stats): month-over-month trend analysis with percentage changes
-* feat(network-stats): dedicated Network Statistics page for Network Admins
-* feat(network-stats): CSV export for site comparison data
-* feat(network-stats): network-wide IP blocking suggestions for repeat attackers
-* feat(network-stats): WP-CLI commands: network_stats, site_rankings, multi_site_attackers
-* feat(network-stats): WP-CLI backfill_stats command for historical data aggregation
-* feat(network-stats): daily stats aggregation system with WP-Cron (runs 2 AM daily)
-* feat(network-stats): monthly stats aggregation for long-term performance
-* feat(network-stats): smart data source selection (aggregated data first, raw logs fallback)
-* feat(network-stats): 10,000x performance improvement on large networks via pre-aggregation
-* feat(network-stats): automatic aggregation on 1st of month for previous month
-* feat(network-stats): deduplication prevents re-processing already aggregated data
-* feat(network-stats): dedicated database tables for daily and monthly aggregated statistics
-* feat(network-stats): color-coded trend indicators (up/down/neutral)
-* feat(network-stats): Protection status badges (Enhanced vs Free)
-* feat(network-stats): visual quota meters and performance indicators
-* feat(network-stats): 1-hour caching with manual refresh capability
-* feat(network-stats): comprehensive documentation with FAQs and WP-CLI examples
-* feat(network-stats): automatic show/hide logic (2+ sites required for network features)
-* feat(network-stats): tab-based interface with smooth animations
-* feat(network-stats): responsive design for mobile and desktop
-* feat(settings): centralized settings resolver with per-request caching for improved performance
-* feat(multisite): network-level default settings with site-level override capability
-* feat(admin): new Documentation tab with comprehensive REST API guide
-* feat(admin): documentation framework with filter hooks for extensibility
-* feat(admin): beginner-friendly documentation with step-by-step setup instructions
-* docs(readme): added REST API feature to description and FAQ section
+* feat(multisite): comprehensive network-wide settings management for agencies managing multiple sites
+* feat(multisite): network admin dashboard with overview statistics, site comparison, and application status
+* feat(multisite): settings hierarchy system - network defaults with site-level override capability and lock enforcement
+* feat(multisite): settings templates system for quick configuration deployment across sites
+* feat(multisite): audit trail tracking all network setting changes with user attribution
+* feat(multisite): import/export functionality for network settings backup and migration
+* feat(multisite): WP-CLI commands for programmatic network settings management
+* feat(multisite): REST API endpoints for remote network configuration
+* fix(comparison): corrected override count calculation to show actual differences, not just stored values
+* fix(comparison): resolved undefined value errors and improved data validation
+* fix(comparison): auto-load comparison data when viewing tab for better UX
+* fix(import-export): added 3-second delay before page reload so success messages are visible
+* fix(import-export): enhanced validation with file type checking, size limits, and JSON parsing
+* fix(import-export): improved error messages and inline status feedback
+* fix(ui): polished settings interface with better grouping, descriptions, and visual hierarchy
+* fix(ui): inline save feedback that doesn't scroll users away from their work
+* fix(ui): simplified setting descriptions to be non-technical and user-friendly
+* fix(php8.1): resolved deprecation warnings for number_format() with null values
 
 = v5.6.2 =
 

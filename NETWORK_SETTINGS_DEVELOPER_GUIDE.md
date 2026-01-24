@@ -315,6 +315,6 @@ wp-content/plugins/zero-spam/examples/network-settings-extensions/
 
 ---
 
-**Version:** 5.6.0+  
+**Version:** 5.7.0+  
 **Last Updated:** 2026-01-24  
 **Priority Range:** 200-500 (recommended for custom overrides)
