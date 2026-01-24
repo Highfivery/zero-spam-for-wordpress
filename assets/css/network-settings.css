@@ -76,6 +76,79 @@
 	margin-bottom: 5px;
 }
 
+/* Settings Groups */
+.settings-group {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	margin-bottom: 20px;
+	box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+}
+
+.settings-group-header {
+	padding: 20px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #c3c4c7;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 15px;
+}
+
+.settings-group-header h3 {
+	margin: 0;
+	font-size: 18px;
+	font-weight: 600;
+	color: #1d2327;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex: 1;
+}
+
+.settings-group-header h3 .dashicons {
+	font-size: 24px;
+	width: 24px;
+	height: 24px;
+	color: #2271b1;
+}
+
+.settings-group-header .group-description {
+	flex: 1 1 100%;
+	margin: 5px 0 0;
+	color: #646970;
+	font-size: 14px;
+}
+
+.settings-group-toggle {
+	white-space: nowrap;
+}
+
+.settings-group-toggle .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	margin-right: 5px;
+}
+
+.settings-group-content {
+	padding: 0;
+}
+
+.settings-group-content table {
+	margin: 0;
+	border: none;
+}
+
+/* Compact button styles */
+.button-small {
+	height: auto;
+	padding: 4px 10px;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
 /* Settings Section */
 .zerospam-settings-section {
 	padding: 20px 0;
@@ -91,8 +164,8 @@
 
 .zerospam-settings-section > p.description {
 	margin-top: 0;
-	margin-bottom: 20px;
-	font-size: 13px;
+	margin-bottom: 25px;
+	font-size: 14px;
 	color: #646970;
 	line-height: 1.5;
 }

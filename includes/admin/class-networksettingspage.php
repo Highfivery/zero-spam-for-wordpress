@@ -272,6 +272,9 @@ class Network_Settings_Page {
 		$plugin_settings   = \ZeroSpam\Core\Settings::get_settings();
 		$registered_fields = \ZeroSpam\Core\Settings::get_settings_by_module();
 
+		// Group settings into logical categories.
+		$grouped_settings = $this->group_settings( $registered_fields );
+
 		?>
 		<div class="zerospam-settings-section">
 			<h2><?php esc_html_e( 'Network Settings', 'zero-spam' ); ?></h2>
@@ -279,108 +282,101 @@ class Network_Settings_Page {
 				<?php esc_html_e( 'Configure default settings for all sites. Lock settings to prevent site admins from changing them.', 'zero-spam' ); ?>
 			</p>
 
-			<table class="wp-list-table widefat striped zerospam-settings-table">
-				<thead>
-					<tr>
-						<th><?php esc_html_e( 'Setting', 'zero-spam' ); ?></th>
-						<th><?php esc_html_e( 'Value', 'zero-spam' ); ?></th>
-						<th><?php esc_html_e( 'Status', 'zero-spam' ); ?></th>
-						<th><?php esc_html_e( 'Lock', 'zero-spam' ); ?></th>
-						<th><?php esc_html_e( 'Actions', 'zero-spam' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-				<?php
-				foreach ( $registered_fields as $section => $fields ) {
-					foreach ( $fields as $field_key => $field ) {
-						$setting_key = $field_key;
-						$config      = $settings[ $setting_key ] ?? null;
-						$current_value = $config ? $config['value'] : ( $plugin_settings[ $setting_key ]['value'] ?? '' );
-						$locked        = $config && $config['locked'];
-						$using_default = $config ? $config['using_default'] : 0;
-						$overridden    = $config ? $config['overridden'] : 0;
-						$total_sites   = $config ? $config['total_sites'] : count( get_sites( array( 'number' => 0 ) ) );
+			<?php foreach ( $grouped_settings as $group_id => $group ) : ?>
+				<div class="settings-group">
+					<div class="settings-group-header">
+						<h3>
+							<span class="dashicons dashicons-<?php echo esc_attr( $group['icon'] ); ?>"></span>
+							<?php echo esc_html( $group['title'] ); ?>
+						</h3>
+						<p class="group-description"><?php echo esc_html( $group['description'] ); ?></p>
+						<button type="button" class="button settings-group-toggle" data-group="<?php echo esc_attr( $group_id ); ?>">
+							<span class="dashicons dashicons-arrow-down-alt2"></span>
+							<?php esc_html_e( 'Expand', 'zero-spam' ); ?>
+						</button>
+					</div>
+					
+					<div class="settings-group-content" id="group-<?php echo esc_attr( $group_id ); ?>" style="display: none;">
+						<table class="wp-list-table widefat striped zerospam-settings-table">
+							<thead>
+								<tr>
+									<th style="width: 30%;"><?php esc_html_e( 'Setting', 'zero-spam' ); ?></th>
+									<th style="width: 25%;"><?php esc_html_e( 'Value', 'zero-spam' ); ?></th>
+									<th style="width: 15%;"><?php esc_html_e( 'Sites', 'zero-spam' ); ?></th>
+									<th style="width: 10%;"><?php esc_html_e( 'Lock', 'zero-spam' ); ?></th>
+									<th style="width: 20%;"><?php esc_html_e( 'Actions', 'zero-spam' ); ?></th>
+								</tr>
+							</thead>
+							<tbody>
+							<?php
+							foreach ( $group['settings'] as $field_key => $field ) {
+								$setting_key = $field_key;
+								$config      = $settings[ $setting_key ] ?? null;
+								$current_value = $config ? $config['value'] : ( $plugin_settings[ $setting_key ]['value'] ?? '' );
+								$locked        = $config && $config['locked'];
+								$using_default = $config ? $config['using_default'] : 0;
+								$overridden    = $config ? $config['overridden'] : 0;
+								$total_sites   = $config ? $config['total_sites'] : count( get_sites( array( 'number' => 0 ) ) );
 
-						// Skip HTML-only fields (buttons).
-						if ( 'html' === ( $field['type'] ?? '' ) ) {
-							continue;
-						}
+								// Get simplified description.
+								$simple_desc = $this->get_simple_description( $setting_key, $field );
 
-						// Prepare allowed HTML for descriptions.
-						$allowed_html = array(
-							'a'      => array(
-								'href'   => array(),
-								'target' => array(),
-								'rel'    => array(),
-								'class'  => array(),
-							),
-							'strong' => array(),
-							'code'   => array(),
-							'br'     => array(),
-						);
-
-						?>
-						<tr data-setting-key="<?php echo esc_attr( $setting_key ); ?>">
-							<td>
-								<strong><?php echo esc_html( $field['title'] ?? $setting_key ); ?></strong>
-								<?php if ( ! empty( $field['desc'] ) ) : ?>
-									<p class="description"><?php echo wp_kses( $field['desc'], $allowed_html ); ?></p>
-								<?php endif; ?>
-							</td>
-							<td>
-								<?php $this->render_setting_field( $setting_key, $field, $current_value ); ?>
-							</td>
-							<td>
-								<div class="setting-status">
-									<?php
-									if ( $locked ) {
-										echo '<span class="locked-badge">🔒 ' . esc_html__( 'Locked', 'zero-spam' ) . '</span>';
-									}
-									?>
-									<div class="status-text">
-										<?php
-										printf(
-											/* translators: 1: sites using default, 2: total sites, 3: sites overridden */
-											esc_html__( '%1$d/%2$d sites (%3$d overridden)', 'zero-spam' ),
-											esc_html( $using_default ),
-											esc_html( $total_sites ),
-											esc_html( $overridden )
-										);
-										?>
-									</div>
-								</div>
-							</td>
-							<td>
-								<button type="button" class="button toggle-lock" data-locked="<?php echo $locked ? '1' : '0'; ?>">
-									<?php echo $locked ? '🔓 ' . esc_html__( 'Unlock', 'zero-spam' ) : '🔒 ' . esc_html__( 'Lock', 'zero-spam' ); ?>
-								</button>
-							</td>
-							<td>
-								<button type="button" class="button button-primary save-setting">
-									<?php esc_html_e( 'Save', 'zero-spam' ); ?>
-								</button>
-								<?php if ( $overridden > 0 ) : ?>
-									<button type="button" class="button view-details" data-setting="<?php echo esc_attr( $setting_key ); ?>" title="<?php esc_attr_e( 'View which sites have custom values', 'zero-spam' ); ?>">
-										<?php echo esc_html( sprintf( __( '%d Override(s)', 'zero-spam' ), $overridden ) ); ?>
-									</button>
-								<?php endif; ?>
-							</td>
-						</tr>
-						<?php
-					}
-				}
-				?>
-				</tbody>
-			</table>
-
-			<p class="submit">
-				<button type="button" class="button button-primary" id="save-all-settings">
-					<?php esc_html_e( 'Save All Settings', 'zero-spam' ); ?>
-				</button>
-				<button type="button" class="button" id="apply-to-all-sites-settings">
-					<?php esc_html_e( 'Apply to All Sites', 'zero-spam' ); ?>
-				</button>
-			</p>
+								?>
+								<tr data-setting-key="<?php echo esc_attr( $setting_key ); ?>">
+									<td>
+										<strong><?php echo esc_html( $field['title'] ?? $setting_key ); ?></strong>
+										<?php if ( ! empty( $simple_desc ) ) : ?>
+											<p class="description"><?php echo wp_kses_post( $simple_desc ); ?></p>
+										<?php endif; ?>
+									</td>
+									<td>
+										<?php $this->render_setting_field( $setting_key, $field, $current_value ); ?>
+									</td>
+									<td>
+										<div class="setting-status">
+											<?php
+											if ( $locked ) {
+												echo '<span class="locked-badge">🔒</span>';
+											}
+											?>
+											<div class="status-text">
+												<?php
+												printf(
+													'%1$d/%2$d',
+													esc_html( $using_default ),
+													esc_html( $total_sites )
+												);
+												if ( $overridden > 0 ) {
+													echo '<br><small style="color: #d63638;">(' . esc_html( $overridden ) . ' custom)</small>';
+												}
+												?>
+											</div>
+										</div>
+									</td>
+									<td>
+										<button type="button" class="button button-small toggle-lock" data-locked="<?php echo $locked ? '1' : '0'; ?>" title="<?php echo $locked ? esc_attr__( 'Unlock to let sites customize', 'zero-spam' ) : esc_attr__( 'Lock to enforce on all sites', 'zero-spam' ); ?>">
+											<?php echo $locked ? '🔓' : '🔒'; ?>
+										</button>
+									</td>
+									<td>
+										<button type="button" class="button button-primary button-small save-setting">
+											<?php esc_html_e( 'Save', 'zero-spam' ); ?>
+										</button>
+										<?php if ( $overridden > 0 ) : ?>
+											<button type="button" class="button button-small view-details" data-setting="<?php echo esc_attr( $setting_key ); ?>" title="<?php esc_attr_e( 'View which sites have custom values', 'zero-spam' ); ?>">
+												<?php echo esc_html( $overridden ); ?>
+											</button>
+										<?php endif; ?>
+									</td>
+								</tr>
+								<?php
+							}
+							?>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			<?php endforeach; ?>
 		</div>
 		<?php
 	}
@@ -505,6 +501,116 @@ class Network_Settings_Page {
 				<?php
 				break;
 		}
+	}
+
+	/**
+	 * Group settings into logical categories
+	 *
+	 * @param array $registered_fields All registered fields.
+	 * @return array Grouped settings.
+	 */
+	private function group_settings( $registered_fields ) {
+		$groups = array(
+			'protection' => array(
+				'title'       => __( 'Spam Protection', 'zero-spam' ),
+				'description' => __( 'Control how spam is blocked', 'zero-spam' ),
+				'icon'        => 'shield-alt',
+				'settings'    => array(),
+			),
+			'blocking'   => array(
+				'title'       => __( 'IP Blocking', 'zero-spam' ),
+				'description' => __( 'How to handle blocked visitors', 'zero-spam' ),
+				'icon'        => 'dismiss',
+				'settings'    => array(),
+			),
+			'logging'    => array(
+				'title'       => __( 'Data & Logging', 'zero-spam' ),
+				'description' => __( 'What information to keep track of', 'zero-spam' ),
+				'icon'        => 'backup',
+				'settings'    => array(),
+			),
+			'advanced'   => array(
+				'title'       => __( 'Advanced Options', 'zero-spam' ),
+				'description' => __( 'Additional settings for power users', 'zero-spam' ),
+				'icon'        => 'admin-generic',
+				'settings'    => array(),
+			),
+		);
+
+		// Categorize each setting.
+		foreach ( $registered_fields as $section => $fields ) {
+			foreach ( $fields as $field_key => $field ) {
+				// Skip HTML-only fields.
+				if ( 'html' === ( $field['type'] ?? '' ) ) {
+					continue;
+				}
+
+				// Determine category.
+				$category = $this->categorize_setting( $field_key );
+				if ( isset( $groups[ $category ] ) ) {
+					$groups[ $category ]['settings'][ $field_key ] = $field;
+				}
+			}
+		}
+
+		// Remove empty groups.
+		return array_filter( $groups, function( $group ) {
+			return ! empty( $group['settings'] );
+		} );
+	}
+
+	/**
+	 * Categorize a setting
+	 *
+	 * @param string $key Setting key.
+	 * @return string Category ID.
+	 */
+	private function categorize_setting( $key ) {
+		// Protection settings.
+		if ( in_array( $key, array( 'verify_wpzerospam', 'stop_forum_spam', 'project_honeypot' ), true ) ) {
+			return 'protection';
+		}
+
+		// Blocking settings.
+		if ( in_array( $key, array( 'block_handler', 'block_method', 'blocked_message', 'blocked_redirect_url', 'ip_whitelist', 'blocked_email_domains' ), true ) ) {
+			return 'blocking';
+		}
+
+		// Logging settings.
+		if ( in_array( $key, array( 'log_blocked_ips', 'max_logs', 'share_data' ), true ) ) {
+			return 'logging';
+		}
+
+		// Advanced settings.
+		return 'advanced';
+	}
+
+	/**
+	 * Get simplified description for a setting
+	 *
+	 * @param string $key   Setting key.
+	 * @param array  $field Field config.
+	 * @return string Simple description.
+	 */
+	private function get_simple_description( $key, $field ) {
+		// Simple descriptions that a 5-year-old can understand.
+		$descriptions = array(
+			'verify_wpzerospam'        => __( 'Blocks emails and visitors that look like spam based on a trust score', 'zero-spam' ),
+			'stop_forum_spam'          => __( 'Blocks visitors that other websites have reported as spammers', 'zero-spam' ),
+			'project_honeypot'         => __( 'Blocks visitors that have been caught sending spam before', 'zero-spam' ),
+			'block_handler'            => __( 'What should happen when we block a spammer', 'zero-spam' ),
+			'block_method'             => __( 'How to technically block bad visitors', 'zero-spam' ),
+			'blocked_message'          => __( 'The message spammers see when they\'re blocked', 'zero-spam' ),
+			'blocked_redirect_url'     => __( 'Send blocked visitors to this website instead', 'zero-spam' ),
+			'ip_whitelist'             => __( 'IP addresses that should never be blocked (one per line)', 'zero-spam' ),
+			'blocked_email_domains'    => __( 'Email domains to always block (like "spam.com")', 'zero-spam' ),
+			'log_blocked_ips'          => __( 'Keep a list of everyone we block', 'zero-spam' ),
+			'max_logs'                 => __( 'Maximum number of blocked visitors to remember', 'zero-spam' ),
+			'share_data'               => __( 'Help improve spam blocking by sharing anonymous data', 'zero-spam' ),
+			'widget_visibility'        => __( 'Who can see the Zero Spam dashboard widget', 'zero-spam' ),
+		);
+
+		return $descriptions[ $key ] ?? ( $field['desc'] ?? '' );
 	}
 
 	/**

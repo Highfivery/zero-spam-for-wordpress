@@ -15,15 +15,18 @@
 			this.bindEvents();
 		},
 
-		/**
-		 * Bind events
-		 */
-		bindEvents: function() {
-			// Lock/Unlock toggle
-			$(document).on('click', '.toggle-lock', this.toggleLock);
+	/**
+	 * Bind events
+	 */
+	bindEvents: function() {
+		// Group toggle
+		$(document).on('click', '.settings-group-toggle', this.toggleGroup);
 
-			// Save individual setting
-			$(document).on('click', '.save-setting', this.saveSetting);
+		// Lock/Unlock toggle
+		$(document).on('click', '.toggle-lock', this.toggleLock);
+
+		// Save individual setting
+		$(document).on('click', '.save-setting', this.saveSetting);
 
 			// Save all settings
 			$('#save-all-settings').on('click', this.saveAllSettings);
@@ -46,6 +49,28 @@
 			$(document).on('click', '.delete-template', this.deleteTemplate);
 			$('#save-current-as-template').on('click', this.saveTemplate);
 		},
+
+	/**
+	 * Toggle settings group
+	 */
+	toggleGroup: function(e) {
+		e.preventDefault();
+		
+		const $button = $(this);
+		const groupId = $button.data('group');
+		const $content = $('#group-' + groupId);
+		const $icon = $button.find('.dashicons');
+		
+		if ($content.is(':visible')) {
+			$content.slideUp(300);
+			$icon.removeClass('dashicons-arrow-up-alt2').addClass('dashicons-arrow-down-alt2');
+			$button.find('span:not(.dashicons)').text('Expand');
+		} else {
+			$content.slideDown(300);
+			$icon.removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-up-alt2');
+			$button.find('span:not(.dashicons)').text('Collapse');
+		}
+	},
 
 	/**
 	 * Toggle lock status
