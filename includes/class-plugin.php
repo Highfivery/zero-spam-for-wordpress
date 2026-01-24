@@ -108,6 +108,21 @@ class Plugin {
 			new \ZeroSpam\Includes\Admin\API_Usage_Dashboard_Widget();
 		}
 
+		// Network Overview Dashboard Widget.
+		if ( is_admin() ) {
+			new \ZeroSpam\Includes\Admin\Network_Overview_Dashboard_Widget();
+		}
+
+		// Network Statistics Page (multisite only).
+		if ( is_admin() && is_multisite() ) {
+			new \ZeroSpam\Includes\Admin\Network_Stats_Page();
+		}
+
+		// Stats Aggregation (multisite only).
+		if ( is_multisite() ) {
+			new \ZeroSpam\Includes\Stats_Aggregator();
+		}
+
 		// Stop Forum Spam module.
 		new \ZeroSpam\Modules\StopForumSpam();
 

@@ -267,6 +267,189 @@ class ZeroSpamCLI {
 			}
 		}
 	}
+
+	/**
+	 * Display network-wide spam statistics
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--period=<period>]
+	 * : Time period for stats (today, yesterday, week, month). Default: month
+	 *
+	 * [--format=<format>]
+	 * : Output format (table, json, csv, yaml). Default: table
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp zerospam network_stats
+	 *     wp zerospam network_stats --period=week
+	 *     wp zerospam network_stats --period=month --format=json
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function network_stats( $args, $assoc_args ) {
+		if ( ! is_multisite() ) {
+			WP_CLI::error( 'This command only works on WordPress Multisite installations.' );
+		}
+
+		$period = isset( $assoc_args['period'] ) ? $assoc_args['period'] : 'month';
+		$format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+
+		$stats = \ZeroSpam\Includes\Network_Stats_Tracker::get_network_stats( $period );
+
+		if ( 'table' === $format ) {
+			WP_CLI::log( WP_CLI::colorize( '%B' . strtoupper( $period ) . ' NETWORK STATISTICS%n' ) );
+			WP_CLI::log( '' );
+			WP_CLI::log( sprintf( '  Total Spam Blocked:  %s', WP_CLI::colorize( '%G' . number_format( $stats['total_spam'] ) . '%n' ) ) );
+			WP_CLI::log( sprintf( '  Unique IP Addresses: %s', number_format( $stats['unique_ips'] ) ) );
+			WP_CLI::log( sprintf( '  Spam Types:          %s', number_format( $stats['spam_types'] ) ) );
+		} else {
+			WP_CLI\Utils\format_items( $format, array( $stats ), array( 'total_spam', 'unique_ips', 'spam_types' ) );
+		}
+	}
+
+	/**
+	 * Display site rankings by spam count
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--limit=<limit>]
+	 * : Number of sites to display. Default: 10
+	 *
+	 * [--period=<period>]
+	 * : Time period for stats (today, yesterday, week, month). Default: month
+	 *
+	 * [--format=<format>]
+	 * : Output format (table, json, csv, yaml). Default: table
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp zerospam site_rankings
+	 *     wp zerospam site_rankings --limit=20
+	 *     wp zerospam site_rankings --period=week --format=csv
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function site_rankings( $args, $assoc_args ) {
+		if ( ! is_multisite() ) {
+			WP_CLI::error( 'This command only works on WordPress Multisite installations.' );
+		}
+
+		$limit  = isset( $assoc_args['limit'] ) ? absint( $assoc_args['limit'] ) : 10;
+		$period = isset( $assoc_args['period'] ) ? $assoc_args['period'] : 'month';
+		$format = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+
+		$sites = \ZeroSpam\Includes\Network_Stats_Tracker::get_site_breakdown( $period, $limit, 'spam_count' );
+
+		if ( empty( $sites ) ) {
+			WP_CLI::warning( 'No site data available for the selected period.' );
+			return;
+		}
+
+		if ( 'table' === $format ) {
+			WP_CLI::log( WP_CLI::colorize( '%BTOP ' . $limit . ' SITES BY SPAM COUNT%n' ) );
+			WP_CLI::log( '' );
+			$table_data = array();
+			foreach ( $sites as $index => $site ) {
+				$table_data[] = array(
+					'rank'       => $index + 1,
+					'site'       => $site['site_name'],
+					'spam'       => number_format( $site['spam_count'] ),
+					'unique_ips' => number_format( $site['unique_ips'] ),
+					'protection' => $site['has_enhanced'] ? 'Enhanced' : 'Free',
+				);
+			}
+			WP_CLI\Utils\format_items( 'table', $table_data, array( 'rank', 'site', 'spam', 'unique_ips', 'protection' ) );
+		} else {
+			WP_CLI\Utils\format_items( $format, $sites, array( 'site_name', 'spam_count', 'unique_ips', 'has_enhanced' ) );
+		}
+	}
+
+	/**
+	 * Display IPs attacking multiple sites
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--min-sites=<min-sites>]
+	 * : Minimum number of sites attacked. Default: 2
+	 *
+	 * [--days=<days>]
+	 * : Days to look back. Default: 7
+	 *
+	 * [--format=<format>]
+	 * : Output format (table, json, csv, yaml). Default: table
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp zerospam multi_site_attackers
+	 *     wp zerospam multi_site_attackers --min-sites=3
+	 *     wp zerospam multi_site_attackers --days=14 --format=json
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function multi_site_attackers( $args, $assoc_args ) {
+		if ( ! is_multisite() ) {
+			WP_CLI::error( 'This command only works on WordPress Multisite installations.' );
+		}
+
+		$min_sites = isset( $assoc_args['min-sites'] ) ? absint( $assoc_args['min-sites'] ) : 2;
+		$days      = isset( $assoc_args['days'] ) ? absint( $assoc_args['days'] ) : 7;
+		$format    = isset( $assoc_args['format'] ) ? $assoc_args['format'] : 'table';
+
+		$attackers = \ZeroSpam\Includes\Network_Stats_Tracker::get_multi_site_attackers( $min_sites, $days );
+
+		if ( empty( $attackers ) ) {
+			WP_CLI::success( 'No multi-site attackers found.' );
+			return;
+		}
+
+		WP_CLI::log( WP_CLI::colorize( '%RMULTI-SITE ATTACKERS%n' ) );
+		WP_CLI::log( sprintf( 'Found %s IP(s) attacking %d+ sites in last %d days', WP_CLI::colorize( '%R' . count( $attackers ) . '%n' ), $min_sites, $days ) );
+		WP_CLI::log( '' );
+
+		WP_CLI\Utils\format_items( $format, $attackers, array( 'user_ip', 'country_name', 'attack_count' ) );
+	}
+
+	/**
+	 * Backfill daily aggregation data
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--days=<days>]
+	 * : Number of days to backfill. Default: 30
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp zerospam backfill_stats
+	 *     wp zerospam backfill_stats --days=60
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function backfill_stats( $args, $assoc_args ) {
+		if ( ! is_multisite() ) {
+			WP_CLI::error( 'This command only works on WordPress Multisite installations.' );
+		}
+
+		$days = isset( $assoc_args['days'] ) ? absint( $assoc_args['days'] ) : 30;
+
+		WP_CLI::log( WP_CLI::colorize( "%BBackfilling daily statistics for last {$days} days...%n" ) );
+
+		\ZeroSpam\Includes\Stats_Aggregator::backfill_daily( $days );
+
+		WP_CLI::success( "Daily stats backfilled for {$days} days." );
+
+		// Also backfill monthly.
+		$months = ceil( $days / 30 );
+		WP_CLI::log( WP_CLI::colorize( "%BBackfilling monthly statistics for last {$months} months...%n" ) );
+
+		\ZeroSpam\Includes\Stats_Aggregator::backfill_monthly( $months );
+
+		WP_CLI::success( "Monthly stats backfilled for {$months} months." );
+	}
 }
 
 WP_CLI::add_command( 'zerospam', 'ZeroSpamCLI' );

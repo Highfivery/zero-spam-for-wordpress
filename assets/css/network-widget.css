@@ -1,0 +1,403 @@
+/**
+ * Network Overview Widget Styles
+ *
+ * Combined dashboard widget for spam stats and API usage
+ */
+
+.zerospam-network-overview-widget {
+	max-width: 100%;
+}
+
+/* Tab Navigation */
+.zerospam-network-overview-widget .widget-tabs {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 20px;
+	border-bottom: 2px solid #ddd;
+	padding-bottom: 0;
+	align-items: center;
+}
+
+.zerospam-network-overview-widget .tab-button {
+	background: transparent;
+	border: none;
+	border-bottom: 3px solid transparent;
+	padding: 12px 16px;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	color: #50575e;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	transition: all 0.2s ease;
+}
+
+.zerospam-network-overview-widget .tab-button:hover {
+	color: #135e96;
+	background-color: #f6f7f7;
+}
+
+.zerospam-network-overview-widget .tab-button.active {
+	color: #2271b1;
+	border-bottom-color: #2271b1;
+	background-color: #f6f7f7;
+}
+
+.zerospam-network-overview-widget .tab-button .dashicons {
+	font-size: 18px;
+	width: 18px;
+	height: 18px;
+}
+
+.zerospam-network-overview-widget .refresh-overview {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.zerospam-network-overview-widget .refresh-overview .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+}
+
+/* Tab Content */
+.zerospam-network-overview-widget .tab-content {
+	display: none;
+	animation: fadeIn 0.3s ease;
+}
+
+.zerospam-network-overview-widget .tab-content.active {
+	display: block;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Statistics Grid */
+.zerospam-network-overview-widget .stats-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.zerospam-network-overview-widget .stat-box {
+	background: #f6f7f7;
+	padding: 16px;
+	border-radius: 4px;
+	text-align: center;
+}
+
+.zerospam-network-overview-widget .stat-box.has-errors {
+	background: #fcf0f1;
+	border-left: 3px solid #dc3232;
+}
+
+.zerospam-network-overview-widget .stat-value {
+	font-size: 28px;
+	font-weight: 700;
+	color: #1d2327;
+	margin-bottom: 4px;
+}
+
+.zerospam-network-overview-widget .stat-label {
+	font-size: 12px;
+	color: #646970;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+/* Quota Meter */
+.zerospam-network-overview-widget .quota-section {
+	margin-bottom: 20px;
+}
+
+.zerospam-network-overview-widget .quota-section h3 {
+	margin: 0 0 12px 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: #1d2327;
+}
+
+.zerospam-network-overview-widget .quota-meter {
+	margin-bottom: 8px;
+}
+
+.zerospam-network-overview-widget .quota-bar {
+	height: 24px;
+	background: #f0f0f1;
+	border-radius: 4px;
+	overflow: hidden;
+	margin-bottom: 8px;
+}
+
+.zerospam-network-overview-widget .quota-fill {
+	height: 100%;
+	background: linear-gradient(90deg, #00a32a 0%, #4ab866 100%);
+	transition: width 0.5s ease;
+}
+
+.zerospam-network-overview-widget .quota-meter.warning .quota-fill {
+	background: linear-gradient(90deg, #f0b849 0%, #f5c351 100%);
+}
+
+.zerospam-network-overview-widget .quota-meter.critical .quota-fill {
+	background: linear-gradient(90deg, #dc3232 0%, #e65054 100%);
+}
+
+.zerospam-network-overview-widget .quota-labels {
+	display: flex;
+	justify-content: space-between;
+	font-size: 13px;
+	color: #646970;
+}
+
+/* Performance Indicators */
+.zerospam-network-overview-widget .performance-indicators {
+	display: flex;
+	gap: 12px;
+	margin-bottom: 20px;
+	flex-wrap: wrap;
+}
+
+.zerospam-network-overview-widget .indicator {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.zerospam-network-overview-widget .indicator.good {
+	background: #ecf7ed;
+	color: #00a32a;
+}
+
+.zerospam-network-overview-widget .indicator.warning {
+	background: #fcf4e6;
+	color: #a17800;
+}
+
+.zerospam-network-overview-widget .indicator.poor,
+.zerospam-network-overview-widget .indicator.critical {
+	background: #fcf0f1;
+	color: #c40000;
+}
+
+.zerospam-network-overview-widget .indicator-label {
+	font-weight: 500;
+}
+
+.zerospam-network-overview-widget .indicator-value {
+	font-weight: 700;
+}
+
+/* Top Sites Table */
+.zerospam-network-overview-widget .top-sites-section {
+	margin-bottom: 20px;
+}
+
+.zerospam-network-overview-widget .top-sites-section h4 {
+	margin: 0 0 12px 0;
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.zerospam-network-overview-widget .sites-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.zerospam-network-overview-widget .sites-table th {
+	text-align: left;
+	padding: 8px;
+	background: #f6f7f7;
+	font-weight: 600;
+	color: #1d2327;
+	border-bottom: 2px solid #dcdcde;
+}
+
+.zerospam-network-overview-widget .sites-table td {
+	padding: 10px 8px;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.zerospam-network-overview-widget .badge {
+	display: inline-block;
+	padding: 2px 8px;
+	font-size: 11px;
+	font-weight: 600;
+	border-radius: 3px;
+	margin-left: 6px;
+}
+
+.zerospam-network-overview-widget .badge.free {
+	background: #f0f0f1;
+	color: #646970;
+}
+
+.zerospam-network-overview-widget .trend {
+	font-weight: 600;
+	font-size: 12px;
+}
+
+.zerospam-network-overview-widget .trend.up {
+	color: #d63638;
+}
+
+.zerospam-network-overview-widget .trend.down {
+	color: #00a32a;
+}
+
+.zerospam-network-overview-widget .trend.neutral {
+	color: #8c8f94;
+}
+
+/* Trend Indicator */
+.zerospam-network-overview-widget .trend-indicator {
+	padding: 12px;
+	border-radius: 4px;
+	font-size: 13px;
+	margin-bottom: 20px;
+	font-weight: 500;
+}
+
+.zerospam-network-overview-widget .trend-indicator.up {
+	background: #fcf0f1;
+	color: #c40000;
+	border-left: 3px solid #dc3232;
+}
+
+.zerospam-network-overview-widget .trend-indicator.down {
+	background: #ecf7ed;
+	color: #00761b;
+	border-left: 3px solid #00a32a;
+}
+
+/* Combined Analysis */
+.zerospam-network-overview-widget .combined-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 16px;
+	margin-bottom: 20px;
+}
+
+.zerospam-network-overview-widget .combined-stat-box {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 16px;
+	border-radius: 4px;
+}
+
+.zerospam-network-overview-widget .combined-stat-box.spam {
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+}
+
+.zerospam-network-overview-widget .combined-stat-box.api {
+	background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+	color: white;
+}
+
+.zerospam-network-overview-widget .combined-stat-box .stat-icon {
+	font-size: 32px;
+	opacity: 0.9;
+}
+
+.zerospam-network-overview-widget .combined-stat-box .stat-icon .dashicons {
+	width: 32px;
+	height: 32px;
+	font-size: 32px;
+}
+
+.zerospam-network-overview-widget .combined-stat-box .stat-value {
+	font-size: 24px;
+	color: white;
+}
+
+.zerospam-network-overview-widget .combined-stat-box .stat-label {
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.9);
+	text-transform: uppercase;
+}
+
+/* Insights */
+.zerospam-network-overview-widget .insights-section h4 {
+	margin: 0 0 12px 0;
+	font-size: 13px;
+	font-weight: 600;
+	color: #1d2327;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.zerospam-network-overview-widget .insights-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.zerospam-network-overview-widget .insight-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px;
+	background: #f6f7f7;
+	border-radius: 4px;
+	margin-bottom: 8px;
+	font-size: 13px;
+	color: #1d2327;
+}
+
+.zerospam-network-overview-widget .insight-item .dashicons {
+	color: #2271b1;
+	flex-shrink: 0;
+}
+
+/* Footer */
+.zerospam-network-overview-widget .tab-footer {
+	margin-top: 20px;
+	padding-top: 16px;
+	border-top: 1px solid #dcdcde;
+	text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+	.zerospam-network-overview-widget .widget-tabs {
+		flex-wrap: wrap;
+	}
+
+	.zerospam-network-overview-widget .tab-button {
+		flex: 1 1 auto;
+		min-width: 100px;
+		justify-content: center;
+	}
+
+	.zerospam-network-overview-widget .refresh-overview {
+		margin-left: 0;
+		width: 100%;
+		justify-content: center;
+	}
+
+	.zerospam-network-overview-widget .stats-grid {
+		grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	}
+}

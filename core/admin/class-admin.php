@@ -119,9 +119,7 @@ class Admin {
 	public function admin_notices() {
 		// Clean up old transients from previous implementation (temporary cleanup code).
 		$current_user_id = get_current_user_id();
-		if ( delete_transient( 'zerospam_promo_shown_' . $current_user_id ) ) {
-			error_log( 'Cleaned up old transient: zerospam_promo_shown_' . $current_user_id );
-		}
+		delete_transient( 'zerospam_promo_shown_' . $current_user_id );
 
 		// Get the Enhanced Protection settings using the Settings API for consistency.
 		$settings = \ZeroSpam\Core\Settings::get_settings();
@@ -211,41 +209,23 @@ class Admin {
 	 * Display promotional notice for Enhanced Protection
 	 */
 	private function display_promo_notice() {
-		error_log( '---------- display_promo_notice() CALLED ----------' );
-		
 		$current_user_id = get_current_user_id();
-		error_log( 'Current User ID: ' . $current_user_id );
-		
 		$screen          = get_current_screen();
-		error_log( 'Screen object: ' . ( $screen ? 'EXISTS' : 'NULL' ) );
-		
-		if ( $screen ) {
-			error_log( 'Screen ID: ' . $screen->id );
-		}
 		
 		$is_zerospam_page = $screen && ( 
 			strpos( $screen->id, 'wordpress-zero-spam' ) !== false || 
 			'dashboard' === $screen->id 
 		);
-		error_log( 'Is Zero Spam Page: ' . ( $is_zerospam_page ? 'YES' : 'NO' ) );
 
 		// Only show on dashboard or Zero Spam pages.
 		if ( ! $is_zerospam_page ) {
-			error_log( 'EXITING: Not a Zero Spam page or dashboard' );
-			error_log( '---------- display_promo_notice() END ----------' );
 			return;
 		}
-		
-		error_log( 'Calling should_display_promo_notice()...' );
 
 		// Check if user should see the promo notice.
 		if ( ! $this->should_display_promo_notice() ) {
-			error_log( 'EXITING: should_display_promo_notice() returned FALSE' );
-			error_log( '---------- display_promo_notice() END ----------' );
 			return;
 		}
-		
-		error_log( 'should_display_promo_notice() returned TRUE - showing notice!' );
 
 		// Build the pricing URL with UTM parameters and discount code.
 		$pricing_url = add_query_arg(
@@ -269,9 +249,6 @@ class Admin {
 
 		// Fire tracking hook.
 		do_action( 'zerospam_promo_notice_displayed', $current_user_id );
-		
-		error_log( 'ABOUT TO OUTPUT HTML NOTICE NOW!' );
-		error_log( '---------- display_promo_notice() END ----------' );
 		?>
 		<style>
 		/* Critical inline styles for promo notice */
@@ -654,62 +631,44 @@ class Admin {
 	 * @return bool
 	 */
 	private function should_display_promo_notice() {
-		error_log( '.......... should_display_promo_notice() START ..........' );
-		
 		$current_user_id = get_current_user_id();
-		error_log( 'Current User ID: ' . $current_user_id );
 
 		// Check if dismissed within the last 30 days.
 		$dismissed_time = get_user_meta( $current_user_id, 'zerospam_promo_dismissed', true );
-		error_log( 'Dismissed time from user meta: ' . ( $dismissed_time ? date( 'Y-m-d H:i:s', $dismissed_time ) : 'NOT SET' ) );
 		
 		if ( $dismissed_time ) {
 			$days_since_dismissed = ( time() - $dismissed_time ) / DAY_IN_SECONDS;
-			error_log( 'Days since dismissed: ' . round( $days_since_dismissed, 2 ) );
 			if ( $days_since_dismissed < 30 ) {
-				error_log( 'RETURNING FALSE: Dismissed less than 30 days ago' );
-				error_log( '.......... should_display_promo_notice() END ..........' );
 				return false;
 			}
 		}
 
 		// Check if plugin activated at least 3 days ago.
 		$activation_time = get_option( 'zerospam_activation_time' );
-		error_log( 'Activation time from DB: ' . ( $activation_time ? date( 'Y-m-d H:i:s', $activation_time ) : 'NOT SET' ) );
 		
 		// FIX: If activation time is less than 3 days ago (existing install issue), reset it
 		if ( $activation_time ) {
 			$days_since_activation = ( time() - $activation_time ) / DAY_IN_SECONDS;
-			error_log( 'Days since activation: ' . round( $days_since_activation, 2 ) );
 			if ( $days_since_activation < 3 ) {
 				// This was set too recently (probably from our earlier attempt)
 				// Reset it to 4 days ago for existing installations
-				error_log( 'RESETTING activation time to 4 days ago (was too recent)' );
 				$activation_time = time() - ( 4 * DAY_IN_SECONDS );
 				update_option( 'zerospam_activation_time', $activation_time );
-				error_log( 'New activation time: ' . date( 'Y-m-d H:i:s', $activation_time ) );
 			}
 		} elseif ( ! $activation_time ) {
 			// For existing installations, set activation time to 4 days ago
 			// so the notice shows immediately. For new installations, this will
 			// be set during plugin activation to the actual activation time.
-			error_log( 'SETTING activation time to 4 days ago (first time)' );
 			$activation_time = time() - ( 4 * DAY_IN_SECONDS );
 			update_option( 'zerospam_activation_time', $activation_time );
-			error_log( 'New activation time: ' . date( 'Y-m-d H:i:s', $activation_time ) );
 		}
 
 		$days_since_activation = ( time() - $activation_time ) / DAY_IN_SECONDS;
-		error_log( 'Final days since activation: ' . round( $days_since_activation, 2 ) );
 		
 		if ( $days_since_activation < 3 ) {
-			error_log( 'RETURNING FALSE: Plugin activated less than 3 days ago' );
-			error_log( '.......... should_display_promo_notice() END ..........' );
 			return false;
 		}
 
-		error_log( 'RETURNING TRUE: All checks passed - WILL SHOW ON EVERY PAGE UNTIL DISMISSED!' );
-		error_log( '.......... should_display_promo_notice() END ..........' );
 		return true;
 	}
 

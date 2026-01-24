@@ -11,9 +11,12 @@ defined( 'ABSPATH' ) || die();
 global $wpdb;
 
 $tables = array(
-	'log'       => 'wpzerospam_log',
-	'blocked'   => 'wpzerospam_blocked',
-	'blacklist' => 'wpzerospam_blacklist',
+	'log'           => 'wpzerospam_log',
+	'blocked'       => 'wpzerospam_blocked',
+	'blacklist'     => 'wpzerospam_blacklist',
+	'api_usage'     => 'wpzerospam_api_usage',
+	'stats_daily'   => 'wpzerospam_stats_daily',
+	'stats_monthly' => 'wpzerospam_stats_monthly',
 );
 
 $modules = array(
@@ -55,7 +58,7 @@ if ( is_multisite() ) {
 			delete_option( 'zero_spam_last_api_report' );
 			delete_option( 'zero-spam-last-update' );
 
-			foreach ( $modules as $key => $module ) {
+		foreach ( $modules as $key => $module ) {
 				delete_option( "zero-spam-$module" );
 			}
 
@@ -63,9 +66,35 @@ if ( is_multisite() ) {
 				// @codingStandardsIgnoreLine
 				$wpdb->query( "DROP TABLE IF EXISTS " . $wpdb->prefix . $table );
 			}
+
+			// Clean up transients for this site.
+			$wpdb->query(
+				"DELETE FROM {$wpdb->options} 
+				WHERE option_name LIKE '_transient_zerospam_%' 
+				OR option_name LIKE '_transient_timeout_zerospam_%'"
+			);
 		}
 		restore_current_blog();
 	}
+
+	// Clean up network-wide transients and tables.
+	$wpdb->query(
+		"DELETE FROM {$wpdb->sitemeta} 
+		WHERE meta_key LIKE '_site_transient_zerospam_%' 
+		OR meta_key LIKE '_site_transient_timeout_zerospam_%'"
+	);
+
+	// Drop network-wide tables (api_usage, stats_daily, stats_monthly).
+	foreach ( array( 'api_usage', 'stats_daily', 'stats_monthly' ) as $table ) {
+		// @codingStandardsIgnoreLine
+		$wpdb->query( "DROP TABLE IF EXISTS " . $wpdb->base_prefix . 'wpzerospam_' . $table );
+	}
+
+	// Clear scheduled cron jobs.
+	wp_clear_scheduled_hook( 'zerospam_aggregate_daily_stats' );
+	wp_clear_scheduled_hook( 'zerospam_api_usage_cleanup' );
+	wp_clear_scheduled_hook( 'zerospam_check_api_anomalies' );
+	wp_clear_scheduled_hook( 'zerospam_aggregate_api_data' );
 } else {
 	delete_option( 'wpzerospam' );
 	delete_option( 'wpzerospam_honeypot' );
@@ -83,4 +112,17 @@ if ( is_multisite() ) {
 		// @codingStandardsIgnoreLine
 		$wpdb->query( "DROP TABLE IF EXISTS " . $wpdb->prefix . $table );
 	}
+
+	// Clean up transients.
+	$wpdb->query(
+		"DELETE FROM {$wpdb->options} 
+		WHERE option_name LIKE '_transient_zerospam_%' 
+		OR option_name LIKE '_transient_timeout_zerospam_%'"
+	);
+
+	// Clear scheduled cron jobs.
+	wp_clear_scheduled_hook( 'zerospam_aggregate_daily_stats' );
+	wp_clear_scheduled_hook( 'zerospam_api_usage_cleanup' );
+	wp_clear_scheduled_hook( 'zerospam_check_api_anomalies' );
+	wp_clear_scheduled_hook( 'zerospam_aggregate_api_data' );
 }

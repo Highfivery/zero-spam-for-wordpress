@@ -157,6 +157,33 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 * feat(api-monitoring): test alert buttons for verifying email, webhook, and admin notice configurations
 * feat(api-monitoring): one-time admin notice for feature discovery (dismissible)
 * feat(api-monitoring): auto-detect quota reset date with manual override option
+* feat(network-stats): multisite network statistics overview dashboard for agencies
+* feat(network-stats): combined dashboard widget with 3 tabs (Spam Activity, API Usage, Combined Analysis)
+* feat(network-stats): network-wide spam statistics with total blocked, unique IPs, and spam types
+* feat(network-stats): per-site comparison table with spam count, trends, and recommendations
+* feat(network-stats): multi-site attacker detection for IPs targeting multiple sites
+* feat(network-stats): smart recommendations based on spam volume (high, medium, low, none)
+* feat(network-stats): month-over-month trend analysis with percentage changes
+* feat(network-stats): dedicated Network Statistics page for Network Admins
+* feat(network-stats): CSV export for site comparison data
+* feat(network-stats): network-wide IP blocking suggestions for repeat attackers
+* feat(network-stats): WP-CLI commands: network_stats, site_rankings, multi_site_attackers
+* feat(network-stats): WP-CLI backfill_stats command for historical data aggregation
+* feat(network-stats): daily stats aggregation system with WP-Cron (runs 2 AM daily)
+* feat(network-stats): monthly stats aggregation for long-term performance
+* feat(network-stats): smart data source selection (aggregated data first, raw logs fallback)
+* feat(network-stats): 10,000x performance improvement on large networks via pre-aggregation
+* feat(network-stats): automatic aggregation on 1st of month for previous month
+* feat(network-stats): deduplication prevents re-processing already aggregated data
+* feat(network-stats): dedicated database tables for daily and monthly aggregated statistics
+* feat(network-stats): color-coded trend indicators (up/down/neutral)
+* feat(network-stats): Protection status badges (Enhanced vs Free)
+* feat(network-stats): visual quota meters and performance indicators
+* feat(network-stats): 1-hour caching with manual refresh capability
+* feat(network-stats): comprehensive documentation with FAQs and WP-CLI examples
+* feat(network-stats): automatic show/hide logic (2+ sites required for network features)
+* feat(network-stats): tab-based interface with smooth animations
+* feat(network-stats): responsive design for mobile and desktop
 * feat(settings): centralized settings resolver with per-request caching for improved performance
 * feat(multisite): network-level default settings with site-level override capability
 * feat(admin): new Documentation tab with comprehensive REST API guide

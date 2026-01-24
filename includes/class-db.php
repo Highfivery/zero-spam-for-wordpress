@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '1.1';
+	const DB_VERSION = '1.2';
 
 	/**
 	 * DB tables
@@ -24,10 +24,12 @@ class DB {
 	 * @var array $tables List of plugin database tables.
 	 */
 	public static $tables = array(
-		'log'        => 'wpzerospam_log',
-		'blocked'    => 'wpzerospam_blocked',
-		'blacklist'  => 'wpzerospam_blacklist',
-		'api_usage'  => 'wpzerospam_api_usage',
+		'log'           => 'wpzerospam_log',
+		'blocked'       => 'wpzerospam_blocked',
+		'blacklist'     => 'wpzerospam_blacklist',
+		'api_usage'     => 'wpzerospam_api_usage',
+		'stats_daily'   => 'wpzerospam_stats_daily',
+		'stats_monthly' => 'wpzerospam_stats_monthly',
 	);
 
 	/**
@@ -79,7 +81,7 @@ class DB {
 				PRIMARY KEY  (blocked_id)
 			) $charset_collate;";
 
-			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['api_usage'] . " (
+			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['api_usage'] . " (
 				usage_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 				site_id bigint(20) unsigned NOT NULL DEFAULT 1,
 				event_type enum('api_call','cache_hit','cache_miss','error') NOT NULL DEFAULT 'api_call',
@@ -102,10 +104,90 @@ class DB {
 				PRIMARY KEY  (usage_id)
 			) $charset_collate;";
 
+			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_daily'] . " (
+				stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+				stat_date date NOT NULL,
+				total_spam_blocked int(11) NOT NULL DEFAULT 0,
+				spam_by_type text DEFAULT NULL,
+				top_countries text DEFAULT NULL,
+				top_ips text DEFAULT NULL,
+				top_log_types text DEFAULT NULL,
+				unique_ips int(11) NOT NULL DEFAULT 0,
+				date_aggregated datetime NOT NULL,
+				PRIMARY KEY  (stat_id),
+				UNIQUE KEY site_date (site_id, stat_date),
+				KEY stat_date (stat_date)
+			) $charset_collate;";
+
+			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_monthly'] . " (
+				stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+				stat_year int(4) NOT NULL,
+				stat_month int(2) NOT NULL,
+				total_spam_blocked int(11) NOT NULL DEFAULT 0,
+				spam_by_type text DEFAULT NULL,
+				top_countries text DEFAULT NULL,
+				top_ips text DEFAULT NULL,
+				top_log_types text DEFAULT NULL,
+				unique_ips int(11) NOT NULL DEFAULT 0,
+				date_aggregated datetime NOT NULL,
+				PRIMARY KEY  (stat_id),
+				UNIQUE KEY site_month (site_id, stat_year, stat_month),
+				KEY stat_period (stat_year, stat_month)
+			) $charset_collate;";
+
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			dbDelta( $sql );
 
+			// Add indexes to existing log table for performance.
+			self::add_log_indexes();
+
 			update_option( 'zerospam_db_version', self::DB_VERSION );
+		}
+	}
+
+	/**
+	 * Add indexes to log table for performance
+	 */
+	private static function add_log_indexes() {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . self::$tables['log'];
+
+		// Check if indexes already exist before adding.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$indexes = $wpdb->get_results( "SHOW INDEX FROM {$table_name}", ARRAY_A );
+
+		$existing_indexes = array();
+		if ( $indexes ) {
+			foreach ( $indexes as $index ) {
+				$existing_indexes[] = $index['Key_name'];
+			}
+		}
+
+		// Add date_recorded index if not exists.
+		if ( ! in_array( 'date_recorded', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX date_recorded (date_recorded)" );
+		}
+
+		// Add log_type index if not exists.
+		if ( ! in_array( 'log_type', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX log_type (log_type)" );
+		}
+
+		// Add user_ip index if not exists.
+		if ( ! in_array( 'user_ip', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX user_ip (user_ip)" );
+		}
+
+		// Add country index if not exists.
+		if ( ! in_array( 'country', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX country (country)" );
 		}
 	}
 

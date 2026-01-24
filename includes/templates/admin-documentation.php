@@ -38,6 +38,11 @@ $sections = apply_filters(
 			'template' => ZEROSPAM_PATH . 'includes/templates/docs/api-monitoring.php',
 			'priority' => 20,
 		),
+		'network-statistics' => array(
+			'title'    => __( 'Network Statistics & Insights', 'zero-spam' ),
+			'template' => ZEROSPAM_PATH . 'includes/templates/docs/network-statistics.php',
+			'priority' => 30,
+		),
 	)
 );
 

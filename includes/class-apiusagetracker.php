@@ -71,7 +71,7 @@ class API_Usage_Tracker {
 		);
 
 		// @codingStandardsIgnoreLine
-		$wpdb->insert( $wpdb->prefix . DB::$tables['api_usage'], $data );
+		$wpdb->insert( $wpdb->base_prefix . DB::$tables['api_usage'], $data );
 
 		// Clear usage cache after tracking.
 		self::clear_usage_cache( $site_id );
@@ -106,7 +106,7 @@ class API_Usage_Tracker {
 		);
 
 		// @codingStandardsIgnoreLine
-		$wpdb->insert( $wpdb->prefix . DB::$tables['api_usage'], $data );
+		$wpdb->insert( $wpdb->base_prefix . DB::$tables['api_usage'], $data );
 
 		// Clear usage cache after tracking.
 		self::clear_usage_cache( $site_id );
@@ -144,7 +144,7 @@ class API_Usage_Tracker {
 			return $cached;
 		}
 
-		$table = $wpdb->prefix . DB::$tables['api_usage'];
+		$table = $wpdb->base_prefix . DB::$tables['api_usage'];
 
 		// Build date filter based on period.
 		$date_filter = self::get_date_filter( $period );
@@ -203,7 +203,7 @@ class API_Usage_Tracker {
 			return $cached;
 		}
 
-		$table = $wpdb->prefix . DB::$tables['api_usage'];
+		$table = $wpdb->base_prefix . DB::$tables['api_usage'];
 
 		// Build date filter based on period.
 		$date_filter = self::get_date_filter( $period );
@@ -253,7 +253,7 @@ class API_Usage_Tracker {
 	public static function get_per_site_breakdown( $period = 'today' ) {
 		global $wpdb;
 
-		$table       = $wpdb->prefix . DB::$tables['api_usage'];
+		$table       = $wpdb->base_prefix . DB::$tables['api_usage'];
 		$date_filter = self::get_date_filter( $period );
 
 		$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -329,7 +329,7 @@ class API_Usage_Tracker {
 			$site_id = get_current_blog_id();
 		}
 
-		$table       = $wpdb->prefix . DB::$tables['api_usage'];
+		$table       = $wpdb->base_prefix . DB::$tables['api_usage'];
 		$date_filter = self::get_date_filter( $period );
 
 		$results = $wpdb->get_results( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -458,7 +458,7 @@ class API_Usage_Tracker {
 	public static function aggregate_old_data() {
 		global $wpdb;
 
-		$table = $wpdb->prefix . DB::$tables['api_usage'];
+		$table = $wpdb->base_prefix . DB::$tables['api_usage'];
 
 		// Get retention setting (default 90 days).
 		$settings        = \ZeroSpam\Core\Settings::get_settings();
