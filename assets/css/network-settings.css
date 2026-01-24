@@ -134,7 +134,7 @@
 }
 
 .settings-group-toggle {
-	padding: 6px 12px;
+	padding: 8px 14px;
 	font-size: 13px;
 	border: 1px solid #2271b1;
 	background: #2271b1;
@@ -143,8 +143,11 @@
 	cursor: pointer;
 	display: inline-flex;
 	align-items: center;
+	justify-content: center;
+	gap: 6px;
 	height: auto;
-	line-height: normal;
+	line-height: 1;
+	vertical-align: middle;
 }
 
 .settings-group-toggle:hover {
@@ -162,6 +165,13 @@
 	font-size: 16px;
 	width: 16px;
 	height: 16px;
+	line-height: 1;
+	vertical-align: middle;
+}
+
+.settings-group-toggle .button-text {
+	line-height: 1;
+	vertical-align: middle;
 }
 
 .settings-group-content {

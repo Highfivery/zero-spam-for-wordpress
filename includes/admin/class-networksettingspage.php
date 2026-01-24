@@ -513,28 +513,34 @@ class Network_Settings_Page {
 	 */
 	private function group_settings( $registered_fields ) {
 		$groups = array(
-			'protection' => array(
+			'protection'     => array(
 				'title'       => __( 'Spam Protection', 'zero-spam' ),
-				'description' => __( 'Control how spam is blocked', 'zero-spam' ),
+				'description' => __( 'Control how spam is detected and blocked', 'zero-spam' ),
 				'icon'        => 'shield-alt',
 				'settings'    => array(),
 			),
-			'blocking'   => array(
-				'title'       => __( 'IP Blocking', 'zero-spam' ),
-				'description' => __( 'How to handle blocked visitors', 'zero-spam' ),
+			'blocking'       => array(
+				'title'       => __( 'Blocking Behavior', 'zero-spam' ),
+				'description' => __( 'What happens when someone is blocked', 'zero-spam' ),
 				'icon'        => 'dismiss',
 				'settings'    => array(),
 			),
-			'logging'    => array(
-				'title'       => __( 'Data & Logging', 'zero-spam' ),
-				'description' => __( 'What information to keep track of', 'zero-spam' ),
-				'icon'        => 'backup',
+			'email_blocking' => array(
+				'title'       => __( 'Email & Domain Blocking', 'zero-spam' ),
+				'description' => __( 'Block specific email addresses and domains', 'zero-spam' ),
+				'icon'        => 'email-alt',
 				'settings'    => array(),
 			),
-			'advanced'   => array(
-				'title'       => __( 'Advanced Options', 'zero-spam' ),
-				'description' => __( 'Additional settings for power users', 'zero-spam' ),
-				'icon'        => 'admin-generic',
+			'logging'        => array(
+				'title'       => __( 'Logging & Data', 'zero-spam' ),
+				'description' => __( 'Track blocked visitors and share data', 'zero-spam' ),
+				'icon'        => 'database',
+				'settings'    => array(),
+			),
+			'interface'      => array(
+				'title'       => __( 'Interface & Display', 'zero-spam' ),
+				'description' => __( 'Control what admins can see', 'zero-spam' ),
+				'icon'        => 'admin-appearance',
 				'settings'    => array(),
 			),
 		);
@@ -568,14 +574,19 @@ class Network_Settings_Page {
 	 * @return string Category ID.
 	 */
 	private function categorize_setting( $key ) {
-		// Protection settings.
+		// Protection settings - spam detection.
 		if ( in_array( $key, array( 'verify_wpzerospam', 'stop_forum_spam', 'project_honeypot' ), true ) ) {
 			return 'protection';
 		}
 
-		// Blocking settings.
-		if ( in_array( $key, array( 'block_handler', 'block_method', 'blocked_message', 'blocked_redirect_url', 'ip_whitelist', 'blocked_email_domains' ), true ) ) {
+		// Blocking behavior - what happens to blocked visitors.
+		if ( in_array( $key, array( 'block_handler', 'block_method', 'blocked_message', 'blocked_redirect_url' ), true ) ) {
 			return 'blocking';
+		}
+
+		// Email/domain blocking.
+		if ( in_array( $key, array( 'ip_whitelist', 'blocked_email_domains' ), true ) ) {
+			return 'email_blocking';
 		}
 
 		// Logging settings.
@@ -583,8 +594,13 @@ class Network_Settings_Page {
 			return 'logging';
 		}
 
-		// Advanced settings.
-		return 'advanced';
+		// Interface settings.
+		if ( in_array( $key, array( 'widget_visibility' ), true ) ) {
+			return 'interface';
+		}
+
+		// Default to protection.
+		return 'protection';
 	}
 
 	/**
@@ -595,24 +611,33 @@ class Network_Settings_Page {
 	 * @return string Simple description.
 	 */
 	private function get_simple_description( $key, $field ) {
-		// Simple descriptions that a 5-year-old can understand.
+		// Simple descriptions for every field.
 		$descriptions = array(
-			'verify_wpzerospam'        => __( 'Blocks emails and visitors that look like spam based on a trust score', 'zero-spam' ),
-			'stop_forum_spam'          => __( 'Blocks visitors that other websites have reported as spammers', 'zero-spam' ),
-			'project_honeypot'         => __( 'Blocks visitors that have been caught sending spam before', 'zero-spam' ),
-			'block_handler'            => __( 'What should happen when we block a spammer', 'zero-spam' ),
-			'block_method'             => __( 'How to technically block bad visitors', 'zero-spam' ),
-			'blocked_message'          => __( 'The message spammers see when they\'re blocked', 'zero-spam' ),
-			'blocked_redirect_url'     => __( 'Send blocked visitors to this website instead', 'zero-spam' ),
-			'ip_whitelist'             => __( 'IP addresses that should never be blocked (one per line)', 'zero-spam' ),
-			'blocked_email_domains'    => __( 'Email domains to always block (like "spam.com")', 'zero-spam' ),
-			'log_blocked_ips'          => __( 'Keep a list of everyone we block', 'zero-spam' ),
-			'max_logs'                 => __( 'Maximum number of blocked visitors to remember', 'zero-spam' ),
-			'share_data'               => __( 'Help improve spam blocking by sharing anonymous data', 'zero-spam' ),
-			'widget_visibility'        => __( 'Who can see the Zero Spam dashboard widget', 'zero-spam' ),
+			// Protection.
+			'verify_wpzerospam'        => __( 'Checks if an email or visitor looks like spam using Zero Spam\'s database', 'zero-spam' ),
+			'stop_forum_spam'          => __( 'Checks if a visitor has been reported as a spammer by other websites', 'zero-spam' ),
+			'project_honeypot'         => __( 'Checks if a visitor is a known spammer from Project Honeypot\'s list', 'zero-spam' ),
+			
+			// Blocking Behavior.
+			'block_handler'            => __( 'Choose to show an error message or send them to another website', 'zero-spam' ),
+			'block_method'             => __( 'How to stop spammers - using server files (.htaccess) or PHP code', 'zero-spam' ),
+			'blocked_message'          => __( 'The message shown to people we block (when using error message)', 'zero-spam' ),
+			'blocked_redirect_url'     => __( 'The website address to send blocked visitors to (when using redirect)', 'zero-spam' ),
+			
+			// Email/Domain Blocking.
+			'ip_whitelist'             => __( 'Computer addresses (IPs) that should never be blocked, one per line', 'zero-spam' ),
+			'blocked_email_domains'    => __( 'Block anyone using these email domains (like "fakeemail.com"), one per line', 'zero-spam' ),
+			
+			// Logging.
+			'log_blocked_ips'          => __( 'Save a record every time we block someone (uses database space)', 'zero-spam' ),
+			'max_logs'                 => __( 'How many blocked visitor records to keep before deleting old ones', 'zero-spam' ),
+			'share_data'               => __( 'Help everyone by sharing spam data (no personal information is shared)', 'zero-spam' ),
+			
+			// Interface.
+			'widget_visibility'        => __( 'Choose which admin users can see the spam statistics widget', 'zero-spam' ),
 		);
 
-		return $descriptions[ $key ] ?? ( $field['desc'] ?? '' );
+		return $descriptions[ $key ] ?? '';
 	}
 
 	/**
