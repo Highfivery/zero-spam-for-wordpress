@@ -371,15 +371,6 @@ class Network_Settings_Page {
 										<button type="button" class="button button-primary button-small save-setting">
 											<?php esc_html_e( 'Save', 'zero-spam' ); ?>
 										</button>
-										<?php if ( $overridden > 0 ) : ?>
-											<button type="button" class="button button-small view-details" data-setting="<?php echo esc_attr( $setting_key ); ?>" title="<?php esc_attr_e( 'View which sites have custom values', 'zero-spam' ); ?>">
-												<span class="dashicons dashicons-admin-site"></span>
-												<?php
-												/* translators: %d: number of sites with custom values */
-												echo esc_html( sprintf( _n( '%d site', '%d sites', $overridden, 'zero-spam' ), $overridden ) );
-												?>
-											</button>
-										<?php endif; ?>
 									</td>
 								</tr>
 								<?php

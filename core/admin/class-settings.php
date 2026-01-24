@@ -337,6 +337,25 @@ class Settings {
 	public function settings_validation( $input ) {
 		$input = is_array( $input ) ? $input : array();
 
+		// CRITICAL FIX: WordPress doesn't submit unchecked checkboxes in forms.
+		// This causes a bug in multisite where unchecked boxes aren't recognized as overrides.
+		// We need to explicitly set unchecked checkboxes to false so they're saved in the database.
+		$all_settings = \ZeroSpam\Core\Settings::get_settings();
+		
+		foreach ( $all_settings as $setting_key => $setting_config ) {
+			// Only process checkboxes for this module's settings
+			if ( 
+				isset( $setting_config['type'] ) && 
+				'checkbox' === $setting_config['type'] &&
+				isset( $setting_config['module'] )
+			) {
+				// If this checkbox wasn't in the submitted data, it was unchecked
+				if ( ! isset( $input[ $setting_key ] ) ) {
+					$input[ $setting_key ] = false;
+				}
+			}
+		}
+
 		// If the Zero Spam license has been submitted, verify it.
 		if ( ! empty( $input['zerospam_license'] ) ) {
 			$license = \ZeroSpam\Modules\Zero_Spam::get_license( $input['zerospam_license'] );
