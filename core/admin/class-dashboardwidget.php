@@ -21,11 +21,18 @@ class Dashboard_Widget {
 	 * Constructor
 	 */
 	public function __construct() {
+		error_log( 'DEBUG: Dashboard_Widget __construct called' );
+		error_log( 'DEBUG: is_multisite=' . ( is_multisite() ? 'yes' : 'no' ) );
+		error_log( 'DEBUG: is_network_admin=' . ( is_network_admin() ? 'yes' : 'no' ) );
+		error_log( 'DEBUG: is_admin=' . ( is_admin() ? 'yes' : 'no' ) );
+		
 		// Hook into both regular and network admin dashboard setup
 		add_action( 'wp_dashboard_setup', array( $this, 'register_widget' ) );
 		add_action( 'wp_network_dashboard_setup', array( $this, 'register_widget' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_zerospam_refresh_dashboard', array( $this, 'ajax_refresh_data' ) );
+		
+		error_log( 'DEBUG: Dashboard_Widget hooks registered' );
 	}
 
 	/**
