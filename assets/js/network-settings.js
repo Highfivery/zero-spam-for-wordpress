@@ -105,8 +105,8 @@
 					const newLocked = !isLocked;
 					$button.data('locked', newLocked ? 1 : 0);
 					$button.html(newLocked 
-						? '🔓 Unlock'
-						: '🔒 Lock'
+						? '🔒'
+						: '🔓'
 					);
 
 					// Update badge

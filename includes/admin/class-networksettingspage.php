@@ -270,10 +270,10 @@ class Network_Settings_Page {
 	private function render_settings_tab() {
 		$settings          = $this->settings_manager->get_all_with_status();
 		$plugin_settings   = \ZeroSpam\Core\Settings::get_settings();
-		$registered_fields = \ZeroSpam\Core\Settings::get_settings_by_module();
+		$settings_by_module = \ZeroSpam\Core\Settings::get_settings_by_module();
 
-		// Group settings into logical categories.
-		$grouped_settings = $this->group_settings( $registered_fields );
+		// Group settings by module (dynamic categorization).
+		$grouped_settings = $this->group_settings_by_module( $settings_by_module );
 
 		?>
 		<div class="zerospam-settings-section">
@@ -320,15 +320,12 @@ class Network_Settings_Page {
 								$overridden    = $config ? $config['overridden'] : 0;
 								$total_sites   = $config ? $config['total_sites'] : count( get_sites( array( 'number' => 0 ) ) );
 
-								// Get simplified description.
-								$simple_desc = $this->get_simple_description( $setting_key, $field );
-
 								?>
 								<tr data-setting-key="<?php echo esc_attr( $setting_key ); ?>">
 									<td>
 										<strong><?php echo esc_html( $field['title'] ?? $setting_key ); ?></strong>
-										<?php if ( ! empty( $simple_desc ) ) : ?>
-											<p class="description"><?php echo wp_kses_post( $simple_desc ); ?></p>
+										<?php if ( ! empty( $field['desc'] ) ) : ?>
+											<p class="description"><?php echo wp_kses_post( $field['desc'] ); ?></p>
 										<?php endif; ?>
 									</td>
 									<td>
@@ -357,7 +354,7 @@ class Network_Settings_Page {
 									</td>
 									<td>
 										<button type="button" class="button button-small toggle-lock" data-locked="<?php echo $locked ? '1' : '0'; ?>" title="<?php echo $locked ? esc_attr__( 'Unlock to let sites customize', 'zero-spam' ) : esc_attr__( 'Lock to enforce on all sites', 'zero-spam' ); ?>">
-											<?php echo $locked ? '🔓' : '🔒'; ?>
+											<?php echo $locked ? '🔒' : '🔓'; ?>
 										</button>
 									</td>
 									<td>
@@ -506,138 +503,181 @@ class Network_Settings_Page {
 	}
 
 	/**
-	 * Group settings into logical categories
+	 * Group settings by their modules dynamically
 	 *
-	 * @param array $registered_fields All registered fields.
-	 * @return array Grouped settings.
+	 * @param array $settings_by_module Settings organized by module.
+	 * @return array Grouped settings with metadata.
 	 */
-	private function group_settings( $registered_fields ) {
-		$groups = array(
-			'protection'     => array(
-				'title'       => __( 'Spam Protection', 'zero-spam' ),
-				'description' => __( 'Control how spam is detected and blocked', 'zero-spam' ),
-				'icon'        => 'shield-alt',
-				'settings'    => array(),
-			),
-			'blocking'       => array(
-				'title'       => __( 'Blocking Behavior', 'zero-spam' ),
-				'description' => __( 'What happens when someone is blocked', 'zero-spam' ),
-				'icon'        => 'dismiss',
-				'settings'    => array(),
-			),
-			'email_blocking' => array(
-				'title'       => __( 'Email & Domain Blocking', 'zero-spam' ),
-				'description' => __( 'Block specific email addresses and domains', 'zero-spam' ),
-				'icon'        => 'email-alt',
-				'settings'    => array(),
-			),
-			'logging'        => array(
-				'title'       => __( 'Logging & Data', 'zero-spam' ),
-				'description' => __( 'Track blocked visitors and share data', 'zero-spam' ),
-				'icon'        => 'database',
-				'settings'    => array(),
-			),
-			'interface'      => array(
-				'title'       => __( 'Interface & Display', 'zero-spam' ),
-				'description' => __( 'Control what admins can see', 'zero-spam' ),
-				'icon'        => 'admin-appearance',
-				'settings'    => array(),
-			),
-		);
-
-		// Categorize each setting.
-		foreach ( $registered_fields as $section => $fields ) {
-			foreach ( $fields as $field_key => $field ) {
-				// Skip HTML-only fields.
-				if ( 'html' === ( $field['type'] ?? '' ) ) {
-					continue;
-				}
-
-				// Determine category.
-				$category = $this->categorize_setting( $field_key );
-				if ( isset( $groups[ $category ] ) ) {
-					$groups[ $category ]['settings'][ $field_key ] = $field;
-				}
+	private function group_settings_by_module( $settings_by_module ) {
+		// Get section metadata for proper titles/descriptions.
+		$sections = \ZeroSpam\Core\Settings::get_sections();
+		
+		// Map module names to user-friendly group metadata.
+		$module_metadata = $this->get_module_metadata();
+		
+		$grouped_settings = array();
+		
+		foreach ( $settings_by_module as $module_name => $settings ) {
+			// Skip HTML-only settings.
+			$filtered_settings = array_filter( $settings, function( $setting ) {
+				return 'html' !== ( $setting['type'] ?? '' );
+			} );
+			
+			if ( empty( $filtered_settings ) ) {
+				continue;
 			}
+			
+			// Use metadata if available, otherwise generate from module name.
+			$metadata = $module_metadata[ $module_name ] ?? array(
+				'title'       => ucwords( str_replace( array( '-', '_' ), ' ', $module_name ) ),
+				'description' => sprintf( __( 'Settings for %s', 'zero-spam' ), $module_name ),
+				'icon'        => 'admin-generic',
+			);
+			
+			$grouped_settings[ $module_name ] = array(
+				'title'       => $metadata['title'],
+				'description' => $metadata['description'],
+				'icon'        => $metadata['icon'],
+				'settings'    => $filtered_settings,
+			);
 		}
-
-		// Remove empty groups.
-		return array_filter( $groups, function( $group ) {
-			return ! empty( $group['settings'] );
-		} );
+		
+		return $grouped_settings;
 	}
 
 	/**
-	 * Categorize a setting
+	 * Get module metadata for display
 	 *
-	 * @param string $key Setting key.
-	 * @return string Category ID.
+	 * @return array Module metadata.
 	 */
-	private function categorize_setting( $key ) {
-		// Protection settings - spam detection.
-		if ( in_array( $key, array( 'verify_wpzerospam', 'stop_forum_spam', 'project_honeypot' ), true ) ) {
-			return 'protection';
-		}
-
-		// Blocking behavior - what happens to blocked visitors.
-		if ( in_array( $key, array( 'block_handler', 'block_method', 'blocked_message', 'blocked_redirect_url' ), true ) ) {
-			return 'blocking';
-		}
-
-		// Email/domain blocking.
-		if ( in_array( $key, array( 'ip_whitelist', 'blocked_email_domains' ), true ) ) {
-			return 'email_blocking';
-		}
-
-		// Logging settings.
-		if ( in_array( $key, array( 'log_blocked_ips', 'max_logs', 'share_data' ), true ) ) {
-			return 'logging';
-		}
-
-		// Interface settings.
-		if ( in_array( $key, array( 'widget_visibility' ), true ) ) {
-			return 'interface';
-		}
-
-		// Default to protection.
-		return 'protection';
-	}
-
-	/**
-	 * Get simplified description for a setting
-	 *
-	 * @param string $key   Setting key.
-	 * @param array  $field Field config.
-	 * @return string Simple description.
-	 */
-	private function get_simple_description( $key, $field ) {
-		// Simple descriptions for every field.
-		$descriptions = array(
-			// Protection.
-			'verify_wpzerospam'        => __( 'Checks if an email or visitor looks like spam using Zero Spam\'s database', 'zero-spam' ),
-			'stop_forum_spam'          => __( 'Checks if a visitor has been reported as a spammer by other websites', 'zero-spam' ),
-			'project_honeypot'         => __( 'Checks if a visitor is a known spammer from Project Honeypot\'s list', 'zero-spam' ),
-			
-			// Blocking Behavior.
-			'block_handler'            => __( 'Choose to show an error message or send them to another website', 'zero-spam' ),
-			'block_method'             => __( 'How to stop spammers - using server files (.htaccess) or PHP code', 'zero-spam' ),
-			'blocked_message'          => __( 'The message shown to people we block (when using error message)', 'zero-spam' ),
-			'blocked_redirect_url'     => __( 'The website address to send blocked visitors to (when using redirect)', 'zero-spam' ),
-			
-			// Email/Domain Blocking.
-			'ip_whitelist'             => __( 'Computer addresses (IPs) that should never be blocked, one per line', 'zero-spam' ),
-			'blocked_email_domains'    => __( 'Block anyone using these email domains (like "fakeemail.com"), one per line', 'zero-spam' ),
-			
-			// Logging.
-			'log_blocked_ips'          => __( 'Save a record every time we block someone (uses database space)', 'zero-spam' ),
-			'max_logs'                 => __( 'How many blocked visitor records to keep before deleting old ones', 'zero-spam' ),
-			'share_data'               => __( 'Help everyone by sharing spam data (no personal information is shared)', 'zero-spam' ),
-			
-			// Interface.
-			'widget_visibility'        => __( 'Choose which admin users can see the spam statistics widget', 'zero-spam' ),
+	private function get_module_metadata() {
+		return array(
+			'settings'          => array(
+				'title'       => __( 'General Settings', 'zero-spam' ),
+				'description' => __( 'Core plugin settings and blocking behavior', 'zero-spam' ),
+				'icon'        => 'admin-settings',
+			),
+			'zerospam'          => array(
+				'title'       => __( 'Zero Spam API', 'zero-spam' ),
+				'description' => __( 'Zero Spam confidence detection service', 'zero-spam' ),
+				'icon'        => 'shield-alt',
+			),
+			'stop_forum_spam'   => array(
+				'title'       => __( 'Stop Forum Spam', 'zero-spam' ),
+				'description' => __( 'Check IPs against the Stop Forum Spam database', 'zero-spam' ),
+				'icon'        => 'shield',
+			),
+			'project_honeypot'  => array(
+				'title'       => __( 'Project Honeypot', 'zero-spam' ),
+				'description' => __( 'Check IPs against Project Honeypot', 'zero-spam' ),
+				'icon'        => 'shield',
+			),
+			'comments'          => array(
+				'title'       => __( 'Comment Protection', 'zero-spam' ),
+				'description' => __( 'Protect WordPress comments from spam', 'zero-spam' ),
+				'icon'        => 'admin-comments',
+			),
+			'registration'      => array(
+				'title'       => __( 'Registration Protection', 'zero-spam' ),
+				'description' => __( 'Protect user registrations from spam', 'zero-spam' ),
+				'icon'        => 'admin-users',
+			),
+			'contactform7'      => array(
+				'title'       => __( 'Contact Form 7', 'zero-spam' ),
+				'description' => __( 'Protect Contact Form 7 submissions', 'zero-spam' ),
+				'icon'        => 'forms',
+			),
+			'wpforms'           => array(
+				'title'       => __( 'WPForms', 'zero-spam' ),
+				'description' => __( 'Protect WPForms submissions', 'zero-spam' ),
+				'icon'        => 'forms',
+			),
+			'formidable'        => array(
+				'title'       => __( 'Formidable Forms', 'zero-spam' ),
+				'description' => __( 'Protect Formidable Forms submissions', 'zero-spam' ),
+				'icon'        => 'forms',
+			),
+			'fluentforms'       => array(
+				'title'       => __( 'Fluent Forms', 'zero-spam' ),
+				'description' => __( 'Protect Fluent Forms submissions', 'zero-spam' ),
+				'icon'        => 'forms',
+			),
+			'gravityforms'      => array(
+				'title'       => __( 'Gravity Forms', 'zero-spam' ),
+				'description' => __( 'Protect Gravity Forms submissions', 'zero-spam' ),
+				'icon'        => 'forms',
+			),
+			'elementor'         => array(
+				'title'       => __( 'Elementor Forms', 'zero-spam' ),
+				'description' => __( 'Protect Elementor form submissions', 'zero-spam' ),
+				'icon'        => 'forms',
+			),
+			'give'              => array(
+				'title'       => __( 'GiveWP', 'zero-spam' ),
+				'description' => __( 'Protect GiveWP donation forms', 'zero-spam' ),
+				'icon'        => 'heart',
+			),
+			'woocommerce'       => array(
+				'title'       => __( 'WooCommerce', 'zero-spam' ),
+				'description' => __( 'Protect WooCommerce registrations', 'zero-spam' ),
+				'icon'        => 'cart',
+			),
+			'mailchimp4wp'      => array(
+				'title'       => __( 'Mailchimp for WordPress', 'zero-spam' ),
+				'description' => __( 'Protect Mailchimp form submissions', 'zero-spam' ),
+				'icon'        => 'email',
+			),
+			'davidwalsh'        => array(
+				'title'       => __( 'David Walsh Method', 'zero-spam' ),
+				'description' => __( 'JavaScript-based spam protection technique', 'zero-spam' ),
+				'icon'        => 'code-standards',
+			),
+			'login'             => array(
+				'title'       => __( 'Login Protection', 'zero-spam' ),
+				'description' => __( 'Protect WordPress login from spam', 'zero-spam' ),
+				'icon'        => 'lock',
+			),
+			'wpuseravatar'      => array(
+				'title'       => __( 'WP User Avatar', 'zero-spam' ),
+				'description' => __( 'Protect WP User Avatar registrations', 'zero-spam' ),
+				'icon'        => 'admin-users',
+			),
+			'ipbase'            => array(
+				'title'       => __( 'ipbase.com', 'zero-spam' ),
+				'description' => __( 'IP geolocation and details service', 'zero-spam' ),
+				'icon'        => 'location-alt',
+			),
+			'ipstack'           => array(
+				'title'       => __( 'ipstack', 'zero-spam' ),
+				'description' => __( 'IP geolocation service', 'zero-spam' ),
+				'icon'        => 'location-alt',
+			),
+			'ipinfo'            => array(
+				'title'       => __( 'IPinfo', 'zero-spam' ),
+				'description' => __( 'IP information service', 'zero-spam' ),
+				'icon'        => 'location-alt',
+			),
+			'google'            => array(
+				'title'       => __( 'Google Integration', 'zero-spam' ),
+				'description' => __( 'Google services integration', 'zero-spam' ),
+				'icon'        => 'google',
+			),
+			'security'          => array(
+				'title'       => __( 'Security', 'zero-spam' ),
+				'description' => __( 'Additional security features', 'zero-spam' ),
+				'icon'        => 'lock',
+			),
+			'api_monitoring'    => array(
+				'title'       => __( 'API Monitoring', 'zero-spam' ),
+				'description' => __( 'Monitor API usage and performance', 'zero-spam' ),
+				'icon'        => 'chart-line',
+			),
+			'debug'             => array(
+				'title'       => __( 'Debug', 'zero-spam' ),
+				'description' => __( 'Debugging and testing features', 'zero-spam' ),
+				'icon'        => 'admin-tools',
+			),
 		);
-
-		return $descriptions[ $key ] ?? '';
 	}
 
 	/**

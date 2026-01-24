@@ -103,9 +103,17 @@ class Network_Settings_Manager {
 		// Get current settings.
 		$settings = $this->network_settings->get_network_settings();
 
-		// Ensure setting exists.
+		// If setting doesn't exist, create it with default value from plugin settings.
 		if ( ! isset( $settings['settings'][ $setting_key ] ) ) {
-			return false;
+			$plugin_settings = \ZeroSpam\Core\Settings::get_settings();
+			$default_value   = $plugin_settings[ $setting_key ]['value'] ?? '';
+			
+			$settings['settings'][ $setting_key ] = array(
+				'value'      => $default_value,
+				'locked'     => false,
+				'updated_by' => get_current_user_id(),
+				'updated_at' => current_time( 'mysql' ),
+			);
 		}
 
 		// Lock it.
@@ -144,9 +152,17 @@ class Network_Settings_Manager {
 		// Get current settings.
 		$settings = $this->network_settings->get_network_settings();
 
-		// Ensure setting exists.
+		// If setting doesn't exist, create it with default value from plugin settings.
 		if ( ! isset( $settings['settings'][ $setting_key ] ) ) {
-			return false;
+			$plugin_settings = \ZeroSpam\Core\Settings::get_settings();
+			$default_value   = $plugin_settings[ $setting_key ]['value'] ?? '';
+			
+			$settings['settings'][ $setting_key ] = array(
+				'value'      => $default_value,
+				'locked'     => false,
+				'updated_by' => get_current_user_id(),
+				'updated_at' => current_time( 'mysql' ),
+			);
 		}
 
 		// Unlock it.
