@@ -28,6 +28,9 @@
 		// Save individual setting
 		$(document).on('click', '.save-setting', this.saveSetting);
 
+		// Save all settings button
+		$(document).on('click', '.save-all-settings', this.saveAllSettings);
+
 			// Save all settings
 			$('#save-all-settings').on('click', this.saveAllSettings);
 
@@ -245,67 +248,93 @@
 		});
 	},
 
-		/**
-		 * Save all settings
-		 */
-		saveAllSettings: function(e) {
-			e.preventDefault();
+	/**
+	 * Save all settings
+	 */
+	saveAllSettings: function(e) {
+		e.preventDefault();
 
-			const $button = $(this);
-			$button.prop('disabled', true).text('Saving...');
+		const $button = $(this);
+		const originalHtml = $button.html();
+		$button.prop('disabled', true);
+		$button.html('<span class="dashicons dashicons-update dashicons-spin"></span> Saving All...');
 
+		// Collect all settings to save
+		const savePromises = [];
+		const $rows = $('.zerospam-settings-table tbody tr[data-setting-key]');
+
+		$rows.each(function() {
+			const $row = $(this);
+			const key = $row.data('setting-key');
+			const $input = $row.find('input, select, textarea').first();
+			
+			if (!$input.length || !key) {
+				return; // Skip if no input or key
+			}
+			
+			let value;
+
+			// Handle different input types
+			if ($input.is(':checkbox')) {
+				value = $input.is(':checked') ? 'enabled' : 'disabled';
+			} else if ($input.is(':radio')) {
+				value = $row.find('input[type="radio"]:checked').val() || '';
+			} else if ($input.is('select[multiple]')) {
+				value = $input.val() || [];
+			} else {
+				value = $input.val() || '';
+			}
+
+			const locked = $row.find('.toggle-lock').data('locked') == 1;
+
+			// Create a promise for each save
+			const promise = $.ajax({
+				url: zeroSpamNetwork.ajaxUrl,
+				type: 'POST',
+				data: {
+					action: 'zerospam_network_set_setting',
+					nonce: zeroSpamNetwork.nonce,
+					key: key,
+					value: value,
+					locked: locked ? '1' : '0'
+				}
+			});
+			
+			savePromises.push(promise);
+		});
+
+		// Wait for all saves to complete
+		Promise.allSettled(savePromises).then(function(results) {
 			let savedCount = 0;
 			let errorCount = 0;
-			const $rows = $('.zerospam-settings-table tbody tr');
-
-			$rows.each(function() {
-				const $row = $(this);
-				const key = $row.data('setting-key');
-				const $input = $row.find('input, select').first();
-				let value;
-
-				if ($input.is(':checkbox')) {
-					value = $input.is(':checked') ? 'enabled' : 'disabled';
+			
+			results.forEach(function(result) {
+				if (result.status === 'fulfilled' && result.value.success) {
+					savedCount++;
 				} else {
-					value = $input.val();
+					errorCount++;
 				}
-
-				const locked = $row.find('.toggle-lock').data('locked') == 1; // Use == not ===
-
-				$.ajax({
-					url: zeroSpamNetwork.ajaxUrl,
-					type: 'POST',
-					data: {
-						action: 'zerospam_network_set_setting',
-						nonce: zeroSpamNetwork.nonce,
-						key: key,
-						value: value,
-						locked: locked ? '1' : '0'
-					},
-					success: function(response) {
-						if (response.success) {
-							savedCount++;
-						} else {
-							errorCount++;
-						}
-					},
-					error: function() {
-						errorCount++;
-					}
-				});
 			});
-
-			// Wait for all requests (simplified - in production use Promise.all)
-			setTimeout(function() {
-				$button.prop('disabled', false).text('Save All Settings');
-				if (errorCount === 0) {
-					ZeroSpamNetworkSettings.showNotice('success', savedCount + ' settings saved successfully!');
-					location.reload();
-				} else {
-					ZeroSpamNetworkSettings.showNotice('error', errorCount + ' settings failed to save.');
-				}
-			}, 1000);
-		},
+			
+			$button.prop('disabled', false).html(originalHtml);
+			
+			if (errorCount === 0) {
+				ZeroSpamNetworkSettings.showNotice('success', savedCount + ' settings saved successfully!');
+				
+				// Add visual feedback to all rows
+				$rows.addClass('setting-saved-flash');
+				setTimeout(function() {
+					$rows.removeClass('setting-saved-flash');
+				}, 2000);
+			} else {
+				ZeroSpamNetworkSettings.showNotice('error', savedCount + ' settings saved, ' + errorCount + ' failed.');
+			}
+		}).catch(function(error) {
+			console.error('Save all error:', error);
+			$button.prop('disabled', false).html(originalHtml);
+			ZeroSpamNetworkSettings.showNotice('error', 'An error occurred while saving settings.');
+		});
+	},
 
 		/**
 		 * Apply to all sites

@@ -277,10 +277,20 @@ class Network_Settings_Page {
 
 		?>
 		<div class="zerospam-settings-section">
-			<h2><?php esc_html_e( 'Network Settings', 'zero-spam' ); ?></h2>
-			<p class="description">
-				<?php esc_html_e( 'Configure default settings for all sites. Lock settings to prevent site admins from changing them.', 'zero-spam' ); ?>
-			</p>
+			<div class="settings-header">
+				<div>
+					<h2><?php esc_html_e( 'Network Settings', 'zero-spam' ); ?></h2>
+					<p class="description">
+						<?php esc_html_e( 'Configure default settings for all sites. Lock settings to prevent site admins from changing them.', 'zero-spam' ); ?>
+					</p>
+				</div>
+				<div class="settings-header-actions">
+					<button type="button" class="button button-primary button-large save-all-settings">
+						<span class="dashicons dashicons-yes"></span>
+						<?php esc_html_e( 'Save All Changes', 'zero-spam' ); ?>
+					</button>
+				</div>
+			</div>
 
 			<?php foreach ( $grouped_settings as $group_id => $group ) : ?>
 		<div class="settings-group">
