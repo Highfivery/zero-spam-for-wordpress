@@ -50,7 +50,7 @@ class Admin {
 			if ( ! empty( array_intersect( $roles, $selected_user_roles ) ) ) {
 				wp_add_dashboard_widget(
 					'zerospam_dashboard_widget',
-					__( 'Zero Spam for WordPress', 'zero-spam' ),
+					__( 'Zero Spam Overview', 'zero-spam' ),
 					array( $this, 'dashboard_widget' )
 				);
 			}
@@ -104,6 +104,14 @@ class Admin {
 			plugins_url( 'assets/css/dashboard-widget.css', ZEROSPAM ),
 			array(),
 			ZEROSPAM_VERSION
+		);
+
+		// Debug: Verify variables are set
+		$debug_info = array(
+			'enabled' => $zerospam_enabled,
+			'has_license' => (bool) $zerospam_license,
+			'license_valid' => $license_valid,
+			'entries_count' => count( $entries ),
 		);
 
 		require ZEROSPAM_PATH . 'includes/templates/dashboard-widget.php';
