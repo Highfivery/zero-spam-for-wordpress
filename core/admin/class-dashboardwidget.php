@@ -22,8 +22,8 @@ class Dashboard_Widget {
 	 */
 	public function __construct() {
 		// Hook into both regular and network admin dashboard setup.
-		add_action( 'wp_dashboard_setup', array( $this, 'register_widget' ) );
-		add_action( 'wp_network_dashboard_setup', array( $this, 'register_widget' ) );
+		add_action( 'wp_dashboard_setup', array( $this, 'register_widget' ), 10 );
+		add_action( 'wp_network_dashboard_setup', array( $this, 'register_widget' ), 10 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'wp_ajax_zerospam_refresh_dashboard', array( $this, 'ajax_refresh_data' ) );
 	}
