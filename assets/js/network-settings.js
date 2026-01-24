@@ -31,27 +31,26 @@
 		// Save all settings button
 		$(document).on('click', '.save-all-settings', this.saveAllSettings);
 
-			// Save all settings
-			$('#save-all-settings').on('click', this.saveAllSettings);
+		// Apply to all sites
+		$('#apply-to-all-sites, #apply-to-all-sites-settings').on('click', this.applyToAllSites);
 
-			// Apply to all sites
-			$('#apply-to-all-sites, #apply-to-all-sites-settings').on('click', this.applyToAllSites);
+		// Export settings
+		$('#export-settings').on('click', this.exportSettings);
 
-			// Load comparison
-			$('#load-comparison').on('click', this.loadComparison);
+		// Import settings
+		$('#import-settings').on('click', this.importSettings);
 
-			// Export settings
-			$('#export-settings').on('click', this.exportSettings);
+		// Template actions
+		$(document).on('click', '.apply-template-network', this.applyTemplateNetwork);
+		$(document).on('click', '.apply-template-sites', this.applyTemplateSites);
+		$(document).on('click', '.delete-template', this.deleteTemplate);
+		$('#save-current-as-template').on('click', this.saveTemplate);
 
-			// Import settings
-			$('#import-settings').on('click', this.importSettings);
-
-			// Template actions
-			$(document).on('click', '.apply-template-network', this.applyTemplateNetwork);
-			$(document).on('click', '.apply-template-sites', this.applyTemplateSites);
-			$(document).on('click', '.delete-template', this.deleteTemplate);
-			$('#save-current-as-template').on('click', this.saveTemplate);
-		},
+		// Auto-load comparison if on comparison tab
+		if ($('.zerospam-comparison-section').length > 0) {
+			this.loadComparison();
+		}
+	},
 
 	/**
 	 * Toggle settings group
@@ -380,13 +379,9 @@
 		/**
 		 * Load comparison
 		 */
-		loadComparison: function(e) {
-			e.preventDefault();
-
-			const $button = $(this);
+		loadComparison: function() {
 			const $results = $('#comparison-results');
 
-			$button.prop('disabled', true).text('Loading...');
 			$results.html('<p>Loading comparison data...</p>').show();
 
 			$.ajax({
@@ -405,9 +400,6 @@
 				},
 				error: function() {
 					$results.html('<p class="error">Failed to load comparison.</p>');
-				},
-				complete: function() {
-					$button.prop('disabled', false).text('Load Comparison');
 				}
 			});
 		},

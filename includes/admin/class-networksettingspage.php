@@ -859,11 +859,9 @@ class Network_Settings_Page {
 				<?php esc_html_e( 'Compare settings across all sites in your network.', 'zero-spam' ); ?>
 			</p>
 
-			<button type="button" class="button button-primary" id="load-comparison">
-				<?php esc_html_e( 'Load Comparison', 'zero-spam' ); ?>
-			</button>
-
-			<div id="comparison-results" style="display:none;"></div>
+			<div id="comparison-results">
+				<p><?php esc_html_e( 'Loading comparison data...', 'zero-spam' ); ?></p>
+			</div>
 		</div>
 		<?php
 	}
