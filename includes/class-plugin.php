@@ -103,10 +103,10 @@ class Plugin {
 		// API Usage Alerts.
 		new \ZeroSpam\Includes\API_Usage_Alerts();
 
-	// Unified Dashboard Widget.
-	if ( is_admin() ) {
-		new \ZeroSpam\Core\Admin\Dashboard_Widget();
-	}
+		// Unified Dashboard Widget - defer to init to ensure multisite context is set up.
+		if ( is_admin() ) {
+			add_action( 'init', array( $this, 'init_dashboard_widget' ) );
+		}
 
 		// Network Statistics Page (multisite only).
 		if ( is_admin() && is_multisite() ) {
@@ -269,6 +269,15 @@ class Plugin {
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
 			do_action( 'zerospam_share_detection', $details );
 		}
+	}
+
+	/**
+	 * Initialize dashboard widget
+	 *
+	 * Called on init hook to ensure multisite context is properly set up.
+	 */
+	public function init_dashboard_widget() {
+		new \ZeroSpam\Core\Admin\Dashboard_Widget();
 	}
 }
 
