@@ -128,6 +128,8 @@ class Network_Settings {
 			}
 
 			// Level 2: Site Override (if exists and not locked).
+			// The module already loaded the site option into 'value' at priority 10.
+			// We need to check if that value is a site override or just the plugin default.
 			if ( ! is_network_admin() ) {
 				$module = $setting_config['module'] ?? null;
 				
@@ -135,8 +137,8 @@ class Network_Settings {
 					// Check module-specific option for site override.
 					$module_settings = get_option( "zero-spam-{$module}", array() );
 					if ( isset( $module_settings[ $setting_key ] ) ) {
-						// Site has overridden this setting, use site value.
-						$settings[ $setting_key ]['value'] = $module_settings[ $setting_key ];
+						// Site HAS an override - the module already loaded it into 'value'.
+						// Don't overwrite it with the network default!
 						
 						/**
 						 * Fires when a site override is being used.
@@ -146,13 +148,14 @@ class Network_Settings {
 						 * @param mixed  $network_value  The network default value.
 						 * @param int    $site_id        The current site ID.
 						 */
-						do_action( 'zerospam_network_setting_overridden', $setting_key, $module_settings[ $setting_key ], $network_config['value'], get_current_blog_id() );
-						continue;
+						do_action( 'zerospam_network_setting_overridden', $setting_key, $original_value, $network_config['value'], get_current_blog_id() );
+						continue; // Keep the site override, don't apply network default
 					}
 				}
 			}
 
 			// Level 3: Network Default (if no site override).
+			// Site does NOT have an override, so apply network default.
 			if ( isset( $network_config['value'] ) ) {
 				$settings[ $setting_key ]['value'] = $network_config['value'];
 				
