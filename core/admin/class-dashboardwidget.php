@@ -30,11 +30,19 @@ class Dashboard_Widget {
 	 * Register the dashboard widget
 	 */
 	public function register_widget() {
+		error_log( 'DEBUG: register_widget called' );
+		error_log( 'DEBUG: is_multisite=' . ( is_multisite() ? 'yes' : 'no' ) );
+		error_log( 'DEBUG: is_network_admin=' . ( is_network_admin() ? 'yes' : 'no' ) );
+		
 		// Check visibility permissions.
 		$settings      = \ZeroSpam\Core\Settings::get_settings();
 		$visible_roles = ! empty( $settings['widget_visibility']['value'] ) ? $settings['widget_visibility']['value'] : array( 'administrator' );
 
+		error_log( 'DEBUG: visible_roles=' . print_r( $visible_roles, true ) );
+
 		$user       = wp_get_current_user();
+		error_log( 'DEBUG: user roles=' . print_r( $user->roles, true ) );
+		
 		$has_access = false;
 
 		if ( is_array( $visible_roles ) ) {
@@ -46,7 +54,10 @@ class Dashboard_Widget {
 			}
 		}
 
+		error_log( 'DEBUG: has_access=' . ( $has_access ? 'yes' : 'no' ) );
+
 		if ( ! $has_access ) {
+			error_log( 'DEBUG: Access denied, returning' );
 			return;
 		}
 
@@ -54,11 +65,15 @@ class Dashboard_Widget {
 		$is_network = is_multisite() && is_network_admin();
 		$title      = $is_network ? __( 'Zero Spam Network Overview', 'zero-spam' ) : __( 'Zero Spam Overview', 'zero-spam' );
 
+		error_log( 'DEBUG: Registering widget with title: ' . $title );
+
 		wp_add_dashboard_widget(
 			'zerospam_unified_widget',
 			$title,
 			array( $this, 'render_widget' )
 		);
+		
+		error_log( 'DEBUG: Widget registered successfully' );
 	}
 
 	/**
