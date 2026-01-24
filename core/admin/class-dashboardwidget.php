@@ -208,10 +208,6 @@ class Dashboard_Widget {
 	 */
 	private function get_dashboard_data( $is_network ) {
 		$cache_key = $is_network ? 'zerospam_dashboard_data_network' : 'zerospam_dashboard_data_site';
-		
-		// Force clear cache to ensure fresh data (temporary for debugging).
-		delete_transient( $cache_key );
-		
 		$data      = get_transient( $cache_key );
 
 		if ( false !== $data ) {
