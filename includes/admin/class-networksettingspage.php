@@ -36,18 +36,21 @@ class Network_Settings_Page {
 	 * Constructor
 	 */
 	public function __construct() {
-		// Only for multisite network admin.
-		if ( ! is_multisite() || ! is_network_admin() ) {
+		// Only for multisite.
+		if ( ! is_multisite() ) {
 			return;
 		}
 
 		$this->settings_manager = new \ZeroSpam\Includes\Network_Settings_Manager();
 		$this->network_settings = new \ZeroSpam\Includes\Network_Settings();
 
-		add_action( 'network_admin_menu', array( $this, 'add_menu' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		// Network admin UI hooks - only in network admin.
+		if ( is_network_admin() ) {
+			add_action( 'network_admin_menu', array( $this, 'add_menu' ) );
+			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
+		}
 		
-		// AJAX handlers.
+		// AJAX handlers - must be registered globally, not just in network admin context.
 		add_action( 'wp_ajax_zerospam_network_set_setting', array( $this, 'ajax_set_setting' ) );
 		add_action( 'wp_ajax_zerospam_network_lock_setting', array( $this, 'ajax_lock_setting' ) );
 		add_action( 'wp_ajax_zerospam_network_unlock_setting', array( $this, 'ajax_unlock_setting' ) );

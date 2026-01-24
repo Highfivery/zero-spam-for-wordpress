@@ -75,14 +75,16 @@
 						const newLocked = !isLocked;
 						$button.data('locked', newLocked ? 1 : 0);
 						$button.html(newLocked 
-							? '🔓 ' + zeroSpamNetwork.strings.unlocked 
-							: '🔒 ' + zeroSpamNetwork.strings.locked
+							? '🔓 Unlock'
+							: '🔒 Lock'
 						);
 
 						// Update badge
 						const $status = $row.find('.setting-status');
 						if (newLocked) {
-							$status.prepend('<span class="locked-badge">🔒 Locked</span>');
+							if ($status.find('.locked-badge').length === 0) {
+								$status.prepend('<span class="locked-badge">🔒 Locked</span>');
+							}
 						} else {
 							$status.find('.locked-badge').remove();
 						}
