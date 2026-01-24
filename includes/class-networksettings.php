@@ -40,14 +40,8 @@ class Network_Settings {
 	 * Constructor
 	 */
 	public function __construct() {
-		// Hook into settings retrieval - use priority 100 to run after modules (priority 10)
-		// but allow other plugins/themes to override with priority > 100.
 		add_filter( 'zerospam_settings', array( $this, 'resolve_all_settings' ), 100, 1 );
-		
-		// Clear cache when network settings are updated.
 		add_action( 'update_site_option_' . self::META_KEY, array( $this, 'clear_cache' ) );
-		
-		// Clear cache when site settings are updated (any module).
 		add_action( 'updated_option', array( $this, 'clear_site_cache_on_update' ), 10, 3 );
 	}
 
@@ -67,39 +61,25 @@ class Network_Settings {
 	/**
 	 * Resolve ALL settings using network hierarchy
 	 *
-	 * This filter runs AFTER all modules have built their settings arrays (priority 100),
-	 * allowing us to override the 'value' key based on network settings hierarchy.
-	 * Other plugins/themes can still override with priority > 100.
-	 *
-	 * Priority architecture:
-	 * - 10: Modules register their settings (default WordPress filter priority)
-	 * - 100: Network settings applies management layer (this method)
-	 * - 200+: Other plugins/themes can override (extensibility)
-	 *
 	 * @param array $settings All plugin settings.
 	 * @return array Modified settings with network values applied.
 	 */
 	public function resolve_all_settings( $settings ) {
-		// Only apply to multisite.
 		if ( ! is_multisite() ) {
 			return $settings;
 		}
 
-		// Get network settings.
 		$network_settings = $this->get_network_settings();
 
 		if ( empty( $network_settings['settings'] ) ) {
 			return $settings;
 		}
 
-		// Loop through each setting and apply network hierarchy.
 		foreach ( $settings as $setting_key => $setting_config ) {
-			// Skip if not a real setting (e.g., HTML blocks).
 			if ( empty( $setting_config['module'] ) ) {
 				continue;
 			}
 
-			// Check if this setting has a network configuration.
 			if ( ! isset( $network_settings['settings'][ $setting_key ] ) ) {
 				continue;
 			}
@@ -110,79 +90,30 @@ class Network_Settings {
 			// Level 1: Network Enforced (locked).
 			if ( ! empty( $network_config['locked'] ) ) {
 				$settings[ $setting_key ]['value'] = $network_config['value'];
-				
-				/**
-				 * Fires when a network setting is enforced (locked).
-				 * 
-				 * This allows other plugins to react to locked settings.
-				 * Note: Do NOT modify the value here if respecting the lock.
-				 * Use priority > 100 on 'zerospam_settings' filter to override.
-				 *
-				 * @param string $setting_key   The setting key being locked.
-				 * @param mixed  $network_value The enforced network value.
-				 * @param mixed  $original_value The original value before override.
-				 * @param array  $network_config Full network configuration for this setting.
-				 */
 				do_action( 'zerospam_network_setting_enforced', $setting_key, $network_config['value'], $original_value, $network_config );
 				continue;
 			}
 
 			// Level 2: Site Override (if exists and not locked).
-			// The module already loaded the site option into 'value' at priority 10.
-			// We need to check if that value is a site override or just the plugin default.
 			if ( ! is_network_admin() ) {
 				$module = $setting_config['module'] ?? null;
 				
 				if ( $module ) {
-					// Check module-specific option for site override.
 					$module_settings = get_option( "zero-spam-{$module}", array() );
 					if ( isset( $module_settings[ $setting_key ] ) ) {
-						// Site HAS an override - the module already loaded it into 'value'.
-						// Don't overwrite it with the network default!
-						
-						/**
-						 * Fires when a site override is being used.
-						 *
-						 * @param string $setting_key    The setting key with an override.
-						 * @param mixed  $site_value     The site's override value.
-						 * @param mixed  $network_value  The network default value.
-						 * @param int    $site_id        The current site ID.
-						 */
 						do_action( 'zerospam_network_setting_overridden', $setting_key, $original_value, $network_config['value'], get_current_blog_id() );
-						continue; // Keep the site override, don't apply network default
+						continue;
 					}
 				}
 			}
 
 			// Level 3: Network Default (if no site override).
-			// Site does NOT have an override, so apply network default.
 			if ( isset( $network_config['value'] ) ) {
 				$settings[ $setting_key ]['value'] = $network_config['value'];
-				
-				/**
-				 * Fires when a network default is being applied.
-				 *
-				 * @param string $setting_key   The setting key using network default.
-				 * @param mixed  $network_value The network default value.
-				 * @param mixed  $plugin_default The plugin's default value.
-				 */
 				do_action( 'zerospam_network_setting_default', $setting_key, $network_config['value'], $original_value );
 			}
-
-			// Level 4: Plugin Default (already set in the $settings array).
 		}
 
-		/**
-		 * Filter the settings after network hierarchy has been applied.
-		 * 
-		 * This runs at priority 100, allowing other plugins/themes to:
-		 * 1. Override network settings (use priority > 100 on 'zerospam_settings')
-		 * 2. React to network settings (use this action hook)
-		 * 3. Log/monitor network setting enforcement
-		 *
-		 * @param array $settings         Settings after network hierarchy applied.
-		 * @param array $network_settings Complete network settings configuration.
-		 */
 		do_action( 'zerospam_network_settings_applied', $settings, $network_settings );
 
 		return $settings;

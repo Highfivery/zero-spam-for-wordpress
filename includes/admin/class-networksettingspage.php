@@ -199,14 +199,24 @@ class Network_Settings_Page {
 		$total_sites     = count( $sites );
 		$settings        = $this->settings_manager->get_all_with_status();
 		$locked_count    = 0;
-		$override_count  = 0;
 
-		foreach ( $settings as $config ) {
+		// Count unique sites with ANY override.
+		$sites_with_overrides = array();
+		foreach ( $settings as $setting_key => $config ) {
 			if ( $config['locked'] ) {
 				$locked_count++;
 			}
-			$override_count += $config['overridden'];
+			
+			// Get sites that have overridden this specific setting.
+			if ( $config['overridden'] > 0 ) {
+				$sites_with_override = $this->network_settings->get_sites_with_overrides( $setting_key );
+				foreach ( $sites_with_override as $site_id ) {
+					$sites_with_overrides[ $site_id ] = true;
+				}
+			}
 		}
+		
+		$override_count = count( $sites_with_overrides );
 
 		?>
 		<div class="zerospam-overview-section">
