@@ -59,6 +59,8 @@
 		const isLocked = $button.data('locked') == 1; // Use == not === for type coercion
 		const action = isLocked ? 'zerospam_network_unlock_setting' : 'zerospam_network_lock_setting';
 
+		console.log('Toggle lock clicked:', key, 'Currently locked:', isLocked, 'Action:', action);
+
 		$button.prop('disabled', true);
 
 		$.ajax({
@@ -67,11 +69,12 @@
 			data: {
 				action: action,
 				nonce: zeroSpamNetwork.nonce,
-				key: key
-			},
-			success: function(response) {
-				if (response.success) {
-					// Toggle button state
+			key: key
+		},
+		success: function(response) {
+			console.log('Lock toggle response:', response);
+			if (response.success) {
+				// Toggle button state
 					const newLocked = !isLocked;
 					$button.data('locked', newLocked ? 1 : 0);
 					$button.html(newLocked 
@@ -116,15 +119,25 @@
 		const $input = $row.find('input, select, textarea').first();
 		let value;
 
+		// Debug logging
+		console.log('Save setting clicked:', key);
+		console.log('Input found:', $input.length, 'Type:', $input.prop('type'));
+
 		if ($input.is(':checkbox')) {
 			value = $input.is(':checked') ? 'enabled' : 'disabled';
 		} else if ($input.is(':radio')) {
-			value = $row.find('input[type="radio"]:checked').val() || '';
+			const $checked = $row.find('input[type="radio"]:checked');
+			value = $checked.val() || '';
+			console.log('Radio value:', value, 'Checked element:', $checked.length);
 		} else {
 			value = $input.val();
 		}
 
+		console.log('Value to save:', value);
+
 		const locked = $row.find('.toggle-lock').data('locked') == 1; // Use == not ===
+
+		console.log('Locked state:', locked);
 
 		$button.prop('disabled', true).text('Saving...');
 
@@ -139,6 +152,7 @@
 				locked: locked ? '1' : '0'
 			},
 			success: function(response) {
+				console.log('Save response:', response);
 				if (response.success) {
 					ZeroSpamNetworkSettings.showNotice('success', response.data.message);
 				} else {
