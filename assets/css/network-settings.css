@@ -108,7 +108,7 @@
 }
 
 .settings-group-header h3 {
-	margin: 0 0 8px 0;
+	margin: 0 0 10px 0;
 	font-size: 20px;
 	font-weight: 600;
 	color: #1d2327;
@@ -126,37 +126,44 @@
 }
 
 .settings-group-header .group-description {
-	margin: 0 0 15px 40px;
+	margin: 0;
 	color: #50575e;
 	font-size: 14px;
-	line-height: 1.5;
+	line-height: 1.6;
 }
 
 .settings-group-toggle {
-	margin-left: auto;
 	padding: 8px 16px;
 	font-size: 13px;
 	font-weight: 500;
-	border: 1px solid #2271b1;
-	background: #2271b1;
-	color: #fff;
+	border: none !important;
+	background: #2271b1 !important;
+	color: #fff !important;
 	border-radius: 4px;
 	cursor: pointer;
 	transition: all 0.2s;
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+	flex-shrink: 0;
 }
 
 .settings-group-toggle:hover {
-	background: #135e96;
-	border-color: #135e96;
+	background: #135e96 !important;
+	color: #fff !important;
+	border-color: #135e96 !important;
 	transform: translateY(-1px);
-	box-shadow: 0 2px 4px rgba(34,113,177,0.3);
+	box-shadow: 0 2px 4px rgba(34,113,177,0.3) !important;
 }
 
 .settings-group-toggle:active {
 	transform: translateY(0);
+}
+
+.settings-group-toggle:focus {
+	outline: none !important;
+	box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2271b1 !important;
 }
 
 .settings-group-toggle .dashicons {
@@ -164,6 +171,7 @@
 	width: 18px;
 	height: 18px;
 	margin: 0;
+	color: #fff !important;
 }
 
 .settings-group-content {
