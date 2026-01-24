@@ -106,13 +106,17 @@ class Admin {
 			ZEROSPAM_VERSION
 		);
 
-		// Debug: Verify variables are set
-		$debug_info = array(
-			'enabled' => $zerospam_enabled,
-			'has_license' => (bool) $zerospam_license,
+		// Make variables available to template
+		$widget_data = array(
+			'zerospam_enabled' => $zerospam_enabled,
+			'zerospam_license' => $zerospam_license,
 			'license_valid' => $license_valid,
-			'entries_count' => count( $entries ),
+			'license_status_message' => $license_status_message,
+			'entries' => $entries,
 		);
+
+		// Extract for template
+		extract( $widget_data );
 
 		require ZEROSPAM_PATH . 'includes/templates/dashboard-widget.php';
 	}

@@ -8,10 +8,8 @@
 // Security check.
 defined( 'ABSPATH' ) || die();
 
-// Debug output (remove after verifying)
-if ( defined( 'WP_DEBUG' ) && WP_DEBUG && isset( $debug_info ) ) {
-	echo '<!-- Zero Spam Widget Debug: ' . wp_json_encode( $debug_info ) . ' -->';
-}
+// Variables are passed from class-admin.php via extract()
+// Available: $zerospam_enabled, $zerospam_license, $license_valid, $license_status_message, $entries
 
 // Enqueue Chart.js 4.x (modern version)
 wp_enqueue_script(
