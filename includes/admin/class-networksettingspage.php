@@ -359,9 +359,11 @@ class Network_Settings_Page {
 								<button type="button" class="button button-primary save-setting">
 									<?php esc_html_e( 'Save', 'zero-spam' ); ?>
 								</button>
-								<button type="button" class="button view-details">
-									<?php esc_html_e( 'View Sites', 'zero-spam' ); ?>
-								</button>
+								<?php if ( $overridden > 0 ) : ?>
+									<button type="button" class="button view-details" data-setting="<?php echo esc_attr( $setting_key ); ?>" title="<?php esc_attr_e( 'View which sites have custom values', 'zero-spam' ); ?>">
+										<?php echo esc_html( sprintf( __( '%d Override(s)', 'zero-spam' ), $overridden ) ); ?>
+									</button>
+								<?php endif; ?>
 							</td>
 						</tr>
 						<?php

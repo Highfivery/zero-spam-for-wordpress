@@ -47,110 +47,113 @@
 			$('#save-current-as-template').on('click', this.saveTemplate);
 		},
 
-		/**
-		 * Toggle lock status
-		 */
-		toggleLock: function(e) {
-			e.preventDefault();
+	/**
+	 * Toggle lock status
+	 */
+	toggleLock: function(e) {
+		e.preventDefault();
 
-			const $button = $(this);
-			const $row = $button.closest('tr');
-			const key = $row.data('setting-key');
-			const isLocked = $button.data('locked') === 1;
-			const action = isLocked ? 'zerospam_network_unlock_setting' : 'zerospam_network_lock_setting';
+		const $button = $(this);
+		const $row = $button.closest('tr');
+		const key = $row.data('setting-key');
+		const isLocked = $button.data('locked') == 1; // Use == not === for type coercion
+		const action = isLocked ? 'zerospam_network_unlock_setting' : 'zerospam_network_lock_setting';
 
-			$button.prop('disabled', true);
+		$button.prop('disabled', true);
 
-			$.ajax({
-				url: zeroSpamNetwork.ajaxUrl,
-				type: 'POST',
-				data: {
-					action: action,
-					nonce: zeroSpamNetwork.nonce,
-					key: key
-				},
-				success: function(response) {
-					if (response.success) {
-						// Toggle button state
-						const newLocked = !isLocked;
-						$button.data('locked', newLocked ? 1 : 0);
-						$button.html(newLocked 
-							? '🔓 Unlock'
-							: '🔒 Lock'
-						);
+		$.ajax({
+			url: zeroSpamNetwork.ajaxUrl,
+			type: 'POST',
+			data: {
+				action: action,
+				nonce: zeroSpamNetwork.nonce,
+				key: key
+			},
+			success: function(response) {
+				if (response.success) {
+					// Toggle button state
+					const newLocked = !isLocked;
+					$button.data('locked', newLocked ? 1 : 0);
+					$button.html(newLocked 
+						? '🔓 Unlock'
+						: '🔒 Lock'
+					);
 
-						// Update badge
-						const $status = $row.find('.setting-status');
-						if (newLocked) {
-							if ($status.find('.locked-badge').length === 0) {
-								$status.prepend('<span class="locked-badge">🔒 Locked</span>');
-							}
-						} else {
-							$status.find('.locked-badge').remove();
+					// Update badge
+					const $status = $row.find('.setting-status');
+					if (newLocked) {
+						if ($status.find('.locked-badge').length === 0) {
+							$status.prepend('<span class="locked-badge">🔒 Locked</span>');
 						}
-
-						ZeroSpamNetworkSettings.showNotice('success', response.data.message);
 					} else {
-						ZeroSpamNetworkSettings.showNotice('error', response.data.message);
+						$status.find('.locked-badge').remove();
 					}
-				},
-				error: function() {
-					ZeroSpamNetworkSettings.showNotice('error', zeroSpamNetwork.strings.error);
-				},
-				complete: function() {
-					$button.prop('disabled', false);
+
+					ZeroSpamNetworkSettings.showNotice('success', response.data.message);
+				} else {
+					ZeroSpamNetworkSettings.showNotice('error', response.data.message || 'Failed to toggle lock');
 				}
-			});
-		},
-
-		/**
-		 * Save individual setting
-		 */
-		saveSetting: function(e) {
-			e.preventDefault();
-
-			const $button = $(this);
-			const $row = $button.closest('tr');
-			const key = $row.data('setting-key');
-			const $input = $row.find('input, select').first();
-			let value;
-
-			if ($input.is(':checkbox')) {
-				value = $input.is(':checked') ? 'enabled' : 'disabled';
-			} else {
-				value = $input.val();
+			},
+			error: function(xhr, status, error) {
+				console.error('Lock toggle error:', xhr.responseText);
+				ZeroSpamNetworkSettings.showNotice('error', 'AJAX error: ' + error);
+			},
+			complete: function() {
+				$button.prop('disabled', false);
 			}
+		});
+	},
 
-			const locked = $button.siblings('.toggle-lock').data('locked') === 1;
+	/**
+	 * Save individual setting
+	 */
+	saveSetting: function(e) {
+		e.preventDefault();
 
-			$button.prop('disabled', true);
+		const $button = $(this);
+		const $row = $button.closest('tr');
+		const key = $row.data('setting-key');
+		const $input = $row.find('input, select, textarea').first();
+		let value;
 
-			$.ajax({
-				url: zeroSpamNetwork.ajaxUrl,
-				type: 'POST',
-				data: {
-					action: 'zerospam_network_set_setting',
-					nonce: zeroSpamNetwork.nonce,
-					key: key,
-					value: value,
-					locked: locked ? '1' : '0'
-				},
-				success: function(response) {
-					if (response.success) {
-						ZeroSpamNetworkSettings.showNotice('success', response.data.message);
-						// Could reload to update status counts
-					} else {
-						ZeroSpamNetworkSettings.showNotice('error', response.data.message);
-					}
-				},
-				error: function() {
-					ZeroSpamNetworkSettings.showNotice('error', zeroSpamNetwork.strings.error);
-				},
-				complete: function() {
-					$button.prop('disabled', false);
+		if ($input.is(':checkbox')) {
+			value = $input.is(':checked') ? 'enabled' : 'disabled';
+		} else if ($input.is(':radio')) {
+			value = $row.find('input[type="radio"]:checked').val() || '';
+		} else {
+			value = $input.val();
+		}
+
+		const locked = $row.find('.toggle-lock').data('locked') == 1; // Use == not ===
+
+		$button.prop('disabled', true).text('Saving...');
+
+		$.ajax({
+			url: zeroSpamNetwork.ajaxUrl,
+			type: 'POST',
+			data: {
+				action: 'zerospam_network_set_setting',
+				nonce: zeroSpamNetwork.nonce,
+				key: key,
+				value: value,
+				locked: locked ? '1' : '0'
+			},
+			success: function(response) {
+				if (response.success) {
+					ZeroSpamNetworkSettings.showNotice('success', response.data.message);
+				} else {
+					ZeroSpamNetworkSettings.showNotice('error', response.data.message || 'Failed to save setting');
 				}
-			});
-		},
+			},
+			error: function(xhr, status, error) {
+				console.error('Save setting error:', xhr.responseText);
+				ZeroSpamNetworkSettings.showNotice('error', 'AJAX error: ' + error);
+			},
+			complete: function() {
+				$button.prop('disabled', false).text('Save');
+			}
+		});
+	},
 
 		/**
 		 * Save all settings
@@ -177,7 +180,7 @@
 					value = $input.val();
 				}
 
-				const locked = $row.find('.toggle-lock').data('locked') === 1;
+				const locked = $row.find('.toggle-lock').data('locked') == 1; // Use == not ===
 
 				$.ajax({
 					url: zeroSpamNetwork.ajaxUrl,

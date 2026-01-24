@@ -215,6 +215,23 @@
 
 .view-details {
 	margin: 0 !important;
+	font-size: 12px;
+	padding: 4px 10px;
+	height: auto;
+	line-height: 1.4;
+}
+
+.view-details:hover {
+	background: #f0f0f1;
+}
+
+/* Actions column */
+.zerospam-settings-table tbody td:last-child {
+	white-space: nowrap;
+}
+
+.zerospam-settings-table .button + .button {
+	margin-left: 5px;
 }
 
 /* Templates Section */
