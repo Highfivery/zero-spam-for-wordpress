@@ -150,75 +150,81 @@ class Dashboard_Widget {
 	 * Render the dashboard widget
 	 */
 	public function render_widget() {
-		$is_network      = is_multisite() && is_network_admin();
-		$api_monitoring  = \ZeroSpam\Includes\API_Usage_Tracker::is_monitoring_enabled();
-		$settings        = \ZeroSpam\Core\Settings::get_settings();
-		$zerospam_enabled = isset( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
-		
-		// Check for license key.
-		$zerospam_license = false;
-		if ( defined( 'ZEROSPAM_LICENSE_KEY' ) && ZEROSPAM_LICENSE_KEY ) {
-			$zerospam_license = ZEROSPAM_LICENSE_KEY;
-		} elseif ( ! empty( $settings['zerospam_license']['value'] ) ) {
-			$zerospam_license = $settings['zerospam_license']['value'];
-		}
+		try {
+			$is_network      = is_multisite() && is_network_admin();
+			$api_monitoring  = \ZeroSpam\Includes\API_Usage_Tracker::is_monitoring_enabled();
+			$settings        = \ZeroSpam\Core\Settings::get_settings();
+			$zerospam_enabled = isset( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
+			
+			// Check for license key.
+			$zerospam_license = false;
+			if ( defined( 'ZEROSPAM_LICENSE_KEY' ) && ZEROSPAM_LICENSE_KEY ) {
+				$zerospam_license = ZEROSPAM_LICENSE_KEY;
+			} elseif ( ! empty( $settings['zerospam_license']['value'] ) ) {
+				$zerospam_license = $settings['zerospam_license']['value'];
+			}
 
-	// Validate license.
-	$license_valid          = false;
-	$license_status_message = '';
+			// Validate license.
+			$license_valid          = false;
+			$license_status_message = '';
 
-	if ( $zerospam_license && function_exists( 'wp_remote_get' ) ) {
-		// Check cache first (12 hour cache).
-		$cache_key    = 'zerospam_license_check_' . md5( $zerospam_license );
-		$license_data = get_transient( $cache_key );
+			if ( $zerospam_license && function_exists( 'wp_remote_get' ) ) {
+				// Check cache first (12 hour cache).
+				$cache_key    = 'zerospam_license_check_' . md5( $zerospam_license );
+				$license_data = get_transient( $cache_key );
 
-		if ( false === $license_data ) {
-			// Make API call.
-			$response = wp_remote_get(
-				'https://www.zerospam.org/?wpserviceapi=license-check&license_key=' . rawurlencode( $zerospam_license ),
-				array( 'timeout' => 5 )
+				if ( false === $license_data ) {
+					// Make API call.
+					$response = wp_remote_get(
+						'https://www.zerospam.org/?wpserviceapi=license-check&license_key=' . rawurlencode( $zerospam_license ),
+						array( 'timeout' => 5 )
+					);
+
+					if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
+						$body = json_decode( wp_remote_retrieve_body( $response ), true );
+						$license_data = array(
+							'valid'   => ! empty( $body['success'] ) && true === $body['success'],
+							'message' => ! empty( $body['message'] ) ? $body['message'] : '',
+						);
+						// Cache for 12 hours.
+						set_transient( $cache_key, $license_data, 12 * HOUR_IN_SECONDS );
+					} else {
+						// API error - assume valid to avoid blocking users on temporary API issues.
+						$license_data = array(
+							'valid'   => true,
+							'message' => '',
+						);
+						// Cache for shorter time (15 minutes) on errors.
+						set_transient( $cache_key, $license_data, 15 * MINUTE_IN_SECONDS );
+					}
+				}
+
+				$license_valid          = $license_data['valid'];
+				$license_status_message = $license_data['message'];
+			}
+
+			// Get spam log data.
+			$data = $this->get_dashboard_data( $is_network );
+
+			// Extract data for template.
+			extract(
+				array(
+					'is_network'             => $is_network,
+					'api_monitoring'         => $api_monitoring,
+					'zerospam_enabled'       => $zerospam_enabled,
+					'zerospam_license'       => $zerospam_license,
+					'license_valid'          => $license_valid,
+					'license_status_message' => $license_status_message,
+					'data'                   => $data,
+				)
 			);
 
-			if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
-				$body = json_decode( wp_remote_retrieve_body( $response ), true );
-				$license_data = array(
-					'valid'   => ! empty( $body['success'] ) && true === $body['success'],
-					'message' => ! empty( $body['message'] ) ? $body['message'] : '',
-				);
-				// Cache for 12 hours.
-				set_transient( $cache_key, $license_data, 12 * HOUR_IN_SECONDS );
-			} else {
-				// API error - assume valid to avoid blocking users on temporary API issues.
-				$license_data = array(
-					'valid'   => true,
-					'message' => '',
-				);
-				// Cache for shorter time (15 minutes) on errors.
-				set_transient( $cache_key, $license_data, 15 * MINUTE_IN_SECONDS );
-			}
+			require ZEROSPAM_PATH . 'includes/templates/unified-dashboard-widget.php';
+		} catch ( \Exception $e ) {
+			echo '<div class="notice notice-error"><p>';
+			echo esc_html( sprintf( __( 'Error loading Zero Spam dashboard widget: %s', 'zero-spam' ), $e->getMessage() ) );
+			echo '</p></div>';
 		}
-
-		$license_valid          = $license_data['valid'];
-		$license_status_message = $license_data['message'];
-	}
-
-		// Get spam log data.
-		$data = $this->get_dashboard_data( $is_network );
-
-		// Extract data for template.
-		extract(
-			array(
-				'is_network'             => $is_network,
-				'api_monitoring'         => $api_monitoring,
-				'zerospam_enabled'       => $zerospam_enabled,
-				'zerospam_license'       => $zerospam_license,
-				'license_valid'          => $license_valid,
-				'license_status_message' => $license_status_message,
-				'data'                   => $data,
-			)
-		);
-
-		require ZEROSPAM_PATH . 'includes/templates/unified-dashboard-widget.php';
 	}
 
 	/**
