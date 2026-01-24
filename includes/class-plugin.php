@@ -103,14 +103,24 @@ class Plugin {
 		// API Usage Alerts.
 		new \ZeroSpam\Includes\API_Usage_Alerts();
 
-		// API Usage Dashboard Widget.
+		// Dashboard Widgets.
 		if ( is_admin() ) {
-			new \ZeroSpam\Includes\Admin\API_Usage_Dashboard_Widget();
-		}
+			// Network Overview widget (multisite with 2+ sites OR API monitoring enabled).
+			// This widget includes both spam stats and API usage in tabs.
+			$show_network_widget = false;
+			if ( is_multisite() && count( get_sites( array( 'number' => 2 ) ) ) >= 2 ) {
+				$show_network_widget = true;
+			} elseif ( \ZeroSpam\Includes\API_Usage_Tracker::is_monitoring_enabled() ) {
+				$show_network_widget = true;
+			}
 
-		// Network Overview Dashboard Widget.
-		if ( is_admin() ) {
-			new \ZeroSpam\Includes\Admin\Network_Overview_Dashboard_Widget();
+			if ( $show_network_widget ) {
+				// Show combined Network Overview widget.
+				new \ZeroSpam\Includes\Admin\Network_Overview_Dashboard_Widget();
+			} else {
+				// Fallback: Show standalone API Usage widget only if Network Overview not shown.
+				new \ZeroSpam\Includes\Admin\API_Usage_Dashboard_Widget();
+			}
 		}
 
 		// Network Statistics Page (multisite only).
