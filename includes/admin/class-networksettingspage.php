@@ -230,7 +230,7 @@ class Network_Settings_Page {
 
 				<div class="zerospam-stat-card">
 					<div class="stat-value"><?php echo esc_html( $override_count ); ?></div>
-					<div class="stat-label"><?php esc_html_e( 'Site Overrides', 'zero-spam' ); ?></div>
+					<div class="stat-label"><?php esc_html_e( 'Override Instances', 'zero-spam' ); ?></div>
 				</div>
 			</div>
 
@@ -252,8 +252,8 @@ class Network_Settings_Page {
 				<p>
 					<?php
 					printf(
-						/* translators: %d: number of sites with custom overrides */
-						esc_html__( 'There are %d site overrides across your network. Review the Comparison tab to see details.', 'zero-spam' ),
+						/* translators: %d: total number of override instances across all settings */
+						esc_html__( 'There are %d setting overrides across your network. Review the Comparison tab to see details.', 'zero-spam' ),
 						esc_html( $override_count )
 					);
 					?>
@@ -1064,14 +1064,24 @@ class Network_Settings_Page {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'zero-spam' ) ) );
 		}
 
-		// Build comparison data.
 		$sites            = get_sites( array( 'number' => 0 ) );
 		$settings         = $this->settings_manager->get_all_with_status();
 		$comparison_data  = array();
+		$sites_data       = array();
+
+		// Build sites data array.
+		foreach ( $sites as $site ) {
+			$sites_data[] = array(
+				'blog_id'  => $site->blog_id,
+				'blogname' => get_blog_details( $site->blog_id )->blogname,
+				'domain'   => $site->domain,
+				'path'     => $site->path,
+			);
+		}
 
 		foreach ( $settings as $key => $config ) {
 			$comparison_data[ $key ] = array(
-				'network_value' => $config['value'],
+				'network_value' => $this->format_value_for_display( $config['value'] ),
 				'locked'        => $config['locked'],
 				'sites'         => array(),
 			);
@@ -1079,13 +1089,38 @@ class Network_Settings_Page {
 			foreach ( $sites as $site ) {
 				$effective = $this->network_settings->get_effective_value( $key, $site->blog_id );
 				$comparison_data[ $key ]['sites'][ $site->blog_id ] = array(
-					'value'  => $effective['value'],
+					'value'  => $this->format_value_for_display( $effective['value'] ),
 					'source' => $effective['source'],
 				);
 			}
 		}
 
-		wp_send_json_success( array( 'comparison' => $comparison_data, 'sites' => $sites ) );
+		wp_send_json_success( array( 
+			'comparison' => $comparison_data, 
+			'sites'      => $sites_data,
+		) );
+	}
+
+	/**
+	 * Format value for display
+	 *
+	 * @param mixed $value Value to format.
+	 * @return string Formatted value.
+	 */
+	private function format_value_for_display( $value ) {
+		if ( is_array( $value ) ) {
+			return implode( ', ', $value );
+		}
+		
+		if ( is_bool( $value ) ) {
+			return $value ? 'enabled' : 'disabled';
+		}
+		
+		if ( null === $value || '' === $value ) {
+			return '—';
+		}
+		
+		return (string) $value;
 	}
 
 	/**

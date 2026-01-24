@@ -416,24 +416,39 @@
 		 * Render comparison table
 		 */
 		renderComparison: function(comparison, sites) {
+			if (!comparison || !sites || sites.length === 0) {
+				$('#comparison-results').html('<p class="error">No comparison data available.</p>');
+				return;
+			}
+
 			let html = '<table class="wp-list-table widefat striped"><thead><tr>';
 			html += '<th>Setting</th>';
 
 			sites.forEach(function(site) {
-				html += '<th>' + site.blogname + ' (' + site.blog_id + ')</th>';
+				const siteName = site.blogname || 'Site ' + site.blog_id;
+				html += '<th>' + siteName + ' (' + site.blog_id + ')</th>';
 			});
 
 			html += '</tr></thead><tbody>';
 
 			$.each(comparison, function(key, data) {
+				if (!data) {
+					return true; // Skip undefined data
+				}
+
 				html += '<tr><td><strong>' + key + '</strong><br>';
-				html += '<span class="description">Network: ' + data.network_value + '</span>';
+				html += '<span class="description">Network: ' + (data.network_value || '—') + '</span>';
 				if (data.locked) {
 					html += ' 🔒';
 				}
 				html += '</td>';
 
 				sites.forEach(function(site) {
+					if (!data.sites || !data.sites[site.blog_id]) {
+						html += '<td>—</td>';
+						return;
+					}
+
 					const siteData = data.sites[site.blog_id];
 					let cellClass = '';
 
@@ -441,11 +456,13 @@
 						cellClass = 'locked';
 					} else if (siteData.source === 'override') {
 						cellClass = 'override';
+					} else if (siteData.source === 'default') {
+						cellClass = 'default';
 					}
 
 					html += '<td class="' + cellClass + '">';
-					html += siteData.value;
-					html += '<br><span class="source-badge">' + siteData.source + '</span>';
+					html += (siteData.value !== undefined && siteData.value !== null) ? siteData.value : '—';
+					html += '<br><span class="source-badge">' + (siteData.source || 'unknown') + '</span>';
 					html += '</td>';
 				});
 

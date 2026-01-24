@@ -248,7 +248,7 @@ class Network_Settings {
 	 *
 	 * @param string $setting_key Setting key.
 	 * @param int    $site_id     Site ID (default current site).
-	 * @return mixed Site override value or null.
+	 * @return mixed Site override value or null if no override or matches network.
 	 */
 	public function get_site_override( $setting_key, $site_id = 0 ) {
 		if ( ! is_multisite() ) {
@@ -259,6 +259,9 @@ class Network_Settings {
 			$site_id = get_current_blog_id();
 		}
 
+		// Get network default.
+		$network_default = $this->get_network_default( $setting_key );
+
 		switch_to_blog( $site_id );
 		
 		$all_settings = \ZeroSpam\Core\Settings::get_settings();
@@ -267,7 +270,13 @@ class Network_Settings {
 		
 		if ( $module ) {
 			$module_settings = get_option( "zero-spam-{$module}", array() );
-			$override_value = $module_settings[ $setting_key ] ?? null;
+			if ( isset( $module_settings[ $setting_key ] ) ) {
+				$site_value = $module_settings[ $setting_key ];
+				// Only return as override if it DIFFERS from network default.
+				if ( $site_value !== $network_default ) {
+					$override_value = $site_value;
+				}
+			}
 		}
 		
 		restore_current_blog();
@@ -313,7 +322,7 @@ class Network_Settings {
 		$overrides = array();
 
 		foreach ( $sites as $site ) {
-			if ( ! $this->is_using_default( $setting_key, $site->blog_id ) && ! $this->is_locked( $setting_key ) ) {
+			if ( ! $this->is_using_default( $setting_key, $site->blog_id ) ) {
 				$overrides[] = $site->blog_id;
 			}
 		}

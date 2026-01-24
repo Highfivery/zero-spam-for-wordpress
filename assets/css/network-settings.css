@@ -733,12 +733,31 @@
 	letter-spacing: 0.5px;
 }
 
+#comparison-results td.default {
+	background: #f6f7f7;
+}
+
 #comparison-results td.locked {
 	background: #fef7f7;
 }
 
+#comparison-results td.locked .source-badge {
+	background: #d63638;
+	color: #fff;
+}
+
 #comparison-results td.override {
 	background: #fffaef;
+}
+
+#comparison-results td.override .source-badge {
+	background: #f0b849;
+	color: #000;
+}
+
+#comparison-results td.default .source-badge {
+	background: #2271b1;
+	color: #fff;
 }
 
 #comparison-results .description {
