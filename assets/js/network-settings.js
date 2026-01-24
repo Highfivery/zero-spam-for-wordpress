@@ -56,10 +56,11 @@
 		const $button = $(this);
 		const $row = $button.closest('tr');
 		const key = $row.data('setting-key');
-		const isLocked = $button.data('locked') == 1; // Use == not === for type coercion
+		const isLocked = $button.data('locked') == 1;
 		const action = isLocked ? 'zerospam_network_unlock_setting' : 'zerospam_network_lock_setting';
 
-		console.log('Toggle lock clicked:', key, 'Currently locked:', isLocked, 'Action:', action);
+		// Remove any existing inline messages
+		$row.find('.inline-save-message').remove();
 
 		$button.prop('disabled', true);
 
@@ -69,12 +70,11 @@
 			data: {
 				action: action,
 				nonce: zeroSpamNetwork.nonce,
-			key: key
-		},
-		success: function(response) {
-			console.log('Lock toggle response:', response);
-			if (response.success) {
-				// Toggle button state
+				key: key
+			},
+			success: function(response) {
+				if (response.success) {
+					// Toggle button state
 					const newLocked = !isLocked;
 					$button.data('locked', newLocked ? 1 : 0);
 					$button.html(newLocked 
@@ -92,14 +92,40 @@
 						$status.find('.locked-badge').remove();
 					}
 
-					ZeroSpamNetworkSettings.showNotice('success', response.data.message);
+					// Show inline success message
+					const $lockCell = $button.closest('td');
+					$lockCell.append('<span class="inline-save-message success">✓</span>');
+					
+					// Flash the row
+					$row.addClass('setting-saved-flash');
+					
+					setTimeout(function() {
+						$row.find('.inline-save-message').fadeOut(300, function() {
+							$(this).remove();
+						});
+						$row.removeClass('setting-saved-flash');
+					}, 2000);
 				} else {
-					ZeroSpamNetworkSettings.showNotice('error', response.data.message || 'Failed to toggle lock');
+					const $lockCell = $button.closest('td');
+					$lockCell.append('<span class="inline-save-message error">✗ Failed</span>');
+					
+					setTimeout(function() {
+						$row.find('.inline-save-message').fadeOut(300, function() {
+							$(this).remove();
+						});
+					}, 3000);
 				}
 			},
 			error: function(xhr, status, error) {
 				console.error('Lock toggle error:', xhr.responseText);
-				ZeroSpamNetworkSettings.showNotice('error', 'AJAX error: ' + error);
+				const $lockCell = $button.closest('td');
+				$lockCell.append('<span class="inline-save-message error">✗ Error</span>');
+				
+				setTimeout(function() {
+					$row.find('.inline-save-message').fadeOut(300, function() {
+						$(this).remove();
+					});
+				}, 3000);
 			},
 			complete: function() {
 				$button.prop('disabled', false);
@@ -119,30 +145,21 @@
 		const $input = $row.find('input, select, textarea').first();
 		let value;
 
-		// Debug logging
-		console.log('Save setting clicked:', key);
-		console.log('Input found:', $input.length, 'Type:', $input.prop('type'));
+		// Remove any existing inline messages
+		$row.find('.inline-save-message').remove();
 
 		// Handle different input types
 		if ($input.is(':checkbox')) {
 			value = $input.is(':checked') ? 'enabled' : 'disabled';
 		} else if ($input.is(':radio')) {
-			const $checked = $row.find('input[type="radio"]:checked');
-			value = $checked.val() || '';
-			console.log('Radio value:', value, 'Checked element:', $checked.length);
+			value = $row.find('input[type="radio"]:checked').val() || '';
 		} else if ($input.is('select[multiple]')) {
-			// Multi-select: get array of selected values
 			value = $input.val() || [];
-			console.log('Multi-select values:', value);
 		} else {
 			value = $input.val();
 		}
 
-		console.log('Value to save:', value);
-
-		const locked = $row.find('.toggle-lock').data('locked') == 1; // Use == not ===
-
-		console.log('Locked state:', locked);
+		const locked = $row.find('.toggle-lock').data('locked') == 1;
 
 		$button.prop('disabled', true).text('Saving...');
 
@@ -153,27 +170,47 @@
 				action: 'zerospam_network_set_setting',
 				nonce: zeroSpamNetwork.nonce,
 				key: key,
-				value: value, // jQuery will properly serialize arrays
+				value: value,
 				locked: locked ? '1' : '0'
 			},
 			success: function(response) {
-				console.log('Save response:', response);
 				if (response.success) {
-					// Show success notice
-					ZeroSpamNetworkSettings.showNotice('success', response.data.message);
+					// Add inline success message in the actions cell
+					const $actionsCell = $button.closest('td');
+					$actionsCell.append('<span class="inline-save-message success">✓ Saved!</span>');
 					
-					// Add visual feedback to the row
+					// Flash the row green
 					$row.addClass('setting-saved-flash');
+					
+					// Remove message and flash after 3 seconds
 					setTimeout(function() {
+						$row.find('.inline-save-message').fadeOut(300, function() {
+							$(this).remove();
+						});
 						$row.removeClass('setting-saved-flash');
-					}, 2000);
+					}, 3000);
 				} else {
-					ZeroSpamNetworkSettings.showNotice('error', response.data.message || 'Failed to save setting');
+					// Show inline error message
+					const $actionsCell = $button.closest('td');
+					$actionsCell.append('<span class="inline-save-message error">✗ ' + (response.data.message || 'Failed') + '</span>');
+					
+					setTimeout(function() {
+						$row.find('.inline-save-message').fadeOut(300, function() {
+							$(this).remove();
+						});
+					}, 5000);
 				}
 			},
 			error: function(xhr, status, error) {
 				console.error('Save setting error:', xhr.responseText);
-				ZeroSpamNetworkSettings.showNotice('error', 'AJAX error: ' + error);
+				const $actionsCell = $button.closest('td');
+				$actionsCell.append('<span class="inline-save-message error">✗ Error saving</span>');
+				
+				setTimeout(function() {
+					$row.find('.inline-save-message').fadeOut(300, function() {
+						$(this).remove();
+					});
+				}, 5000);
 			},
 			complete: function() {
 				$button.prop('disabled', false).text('Save');

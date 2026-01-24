@@ -546,7 +546,54 @@
 	}
 }
 
-/* Notices */
+/* Inline save messages */
+.inline-save-message {
+	display: inline-block;
+	margin-left: 10px;
+	padding: 4px 10px;
+	border-radius: 3px;
+	font-size: 13px;
+	font-weight: 600;
+	animation: slideIn 0.3s ease-out;
+}
+
+.inline-save-message.success {
+	background: #00a32a;
+	color: #fff;
+}
+
+.inline-save-message.error {
+	background: #d63638;
+	color: #fff;
+}
+
+@keyframes slideIn {
+	from {
+		opacity: 0;
+		transform: translateX(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+/* Row flash animation on save */
+@keyframes successFlash {
+	0% {
+		background-color: #edfaef;
+	}
+	100% {
+		background-color: transparent;
+	}
+}
+
+.setting-saved-flash {
+	animation: successFlash 2s ease-out;
+	border-left: 4px solid #00a32a;
+}
+
+/* Notices - keep for global notices but make less intrusive */
 .notice {
 	margin: 15px 0;
 	padding: 12px !important;
@@ -568,21 +615,6 @@
 	margin: 0.5em 0 !important;
 	font-size: 14px;
 	font-weight: 500;
-}
-
-/* Row flash animation on save */
-@keyframes successFlash {
-	0% {
-		background-color: #edfaef;
-	}
-	100% {
-		background-color: transparent;
-	}
-}
-
-.setting-saved-flash {
-	animation: successFlash 2s ease-out;
-	border-left: 4px solid #00a32a;
 }
 
 /* Loading States */
