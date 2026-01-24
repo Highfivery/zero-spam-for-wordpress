@@ -292,18 +292,36 @@ class Network_Settings_Page {
 					foreach ( $fields as $field_key => $field ) {
 						$setting_key = $field_key;
 						$config      = $settings[ $setting_key ] ?? null;
-						$current_value = $config ? $config['value'] : ( $plugin_settings[ $setting_key ] ?? '' );
+						$current_value = $config ? $config['value'] : ( $plugin_settings[ $setting_key ]['value'] ?? '' );
 						$locked        = $config && $config['locked'];
 						$using_default = $config ? $config['using_default'] : 0;
 						$overridden    = $config ? $config['overridden'] : 0;
 						$total_sites   = $config ? $config['total_sites'] : count( get_sites( array( 'number' => 0 ) ) );
+
+						// Skip HTML-only fields (buttons).
+						if ( 'html' === ( $field['type'] ?? '' ) ) {
+							continue;
+						}
+
+						// Prepare allowed HTML for descriptions.
+						$allowed_html = array(
+							'a'      => array(
+								'href'   => array(),
+								'target' => array(),
+								'rel'    => array(),
+								'class'  => array(),
+							),
+							'strong' => array(),
+							'code'   => array(),
+							'br'     => array(),
+						);
 
 						?>
 						<tr data-setting-key="<?php echo esc_attr( $setting_key ); ?>">
 							<td>
 								<strong><?php echo esc_html( $field['title'] ?? $setting_key ); ?></strong>
 								<?php if ( ! empty( $field['desc'] ) ) : ?>
-									<p class="description"><?php echo esc_html( $field['desc'] ); ?></p>
+									<p class="description"><?php echo wp_kses( $field['desc'], $allowed_html ); ?></p>
 								<?php endif; ?>
 							</td>
 							<td>
@@ -374,19 +392,58 @@ class Network_Settings_Page {
 
 		switch ( $type ) {
 			case 'checkbox':
-				?>
-				<label>
-					<input type="checkbox" name="<?php echo esc_attr( $key ); ?>" value="enabled" <?php checked( $value, 'enabled' ); ?> />
-					<?php echo esc_html( $field['label'] ?? __( 'Enable', 'zero-spam' ) ); ?>
-				</label>
-				<?php
+				$options = $field['options'] ?? array( 'enabled' => __( 'Enable', 'zero-spam' ) );
+				foreach ( $options as $option_value => $option_label ) :
+					?>
+					<label>
+						<input type="checkbox" 
+							name="<?php echo esc_attr( $key ); ?>" 
+							value="<?php echo esc_attr( $option_value ); ?>" 
+							<?php checked( $value, $option_value ); ?> />
+						<?php echo esc_html( is_string( $option_label ) ? $option_label : __( 'Enable', 'zero-spam' ) ); ?>
+					</label><br />
+					<?php
+				endforeach;
+				break;
+
+			case 'radio':
+				$options = $field['options'] ?? array();
+				$allowed_html = array(
+					'a'    => array(
+						'href'   => array(),
+						'target' => array(),
+						'rel'    => array(),
+					),
+					'code' => array(),
+				);
+				foreach ( $options as $option_value => $option_label ) :
+					?>
+					<label style="display: block; margin-bottom: 8px;">
+						<input type="radio" 
+							name="<?php echo esc_attr( $key ); ?>" 
+							value="<?php echo esc_attr( $option_value ); ?>" 
+							<?php checked( $value, $option_value ); ?> />
+						<?php echo wp_kses( $option_label, $allowed_html ); ?>
+					</label>
+					<?php
+				endforeach;
 				break;
 
 			case 'select':
+				$options  = $field['options'] ?? array();
+				$multiple = ! empty( $field['multiple'] );
 				?>
-				<select name="<?php echo esc_attr( $key ); ?>">
-					<?php foreach ( $field['options'] as $option_value => $option_label ) : ?>
-						<option value="<?php echo esc_attr( $option_value ); ?>" <?php selected( $value, $option_value ); ?>>
+				<select name="<?php echo esc_attr( $key ); ?><?php echo $multiple ? '[]' : ''; ?>" 
+					<?php echo $multiple ? 'multiple size="5" style="height: auto;"' : ''; ?>>
+					<?php foreach ( $options as $option_value => $option_label ) : ?>
+						<option value="<?php echo esc_attr( $option_value ); ?>" 
+							<?php 
+							if ( $multiple ) {
+								selected( in_array( $option_value, (array) $value, true ), true );
+							} else {
+								selected( $value, $option_value ); 
+							}
+							?>>
 							<?php echo esc_html( $option_label ); ?>
 						</option>
 					<?php endforeach; ?>
@@ -394,16 +451,52 @@ class Network_Settings_Page {
 				<?php
 				break;
 
-			case 'number':
+			case 'textarea':
+				$field_class = $field['field_class'] ?? 'large-text';
+				$placeholder = $field['placeholder'] ?? '';
 				?>
-				<input type="number" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>" />
+				<textarea 
+					name="<?php echo esc_attr( $key ); ?>" 
+					class="<?php echo esc_attr( $field_class ); ?>" 
+					rows="5"
+					placeholder="<?php echo esc_attr( $placeholder ); ?>"><?php echo esc_textarea( $value ); ?></textarea>
+				<?php
+				break;
+
+			case 'number':
+				$field_class = $field['field_class'] ?? 'small-text';
+				$placeholder = $field['placeholder'] ?? '';
+				?>
+				<input type="number" 
+					name="<?php echo esc_attr( $key ); ?>" 
+					value="<?php echo esc_attr( $value ); ?>" 
+					class="<?php echo esc_attr( $field_class ); ?>"
+					placeholder="<?php echo esc_attr( $placeholder ); ?>" />
+				<?php
+				break;
+
+			case 'url':
+				$field_class = $field['field_class'] ?? 'regular-text';
+				$placeholder = $field['placeholder'] ?? '';
+				?>
+				<input type="url" 
+					name="<?php echo esc_attr( $key ); ?>" 
+					value="<?php echo esc_attr( $value ); ?>" 
+					class="<?php echo esc_attr( $field_class ); ?>"
+					placeholder="<?php echo esc_attr( $placeholder ); ?>" />
 				<?php
 				break;
 
 			case 'text':
 			default:
+				$field_class = $field['field_class'] ?? 'regular-text';
+				$placeholder = $field['placeholder'] ?? '';
 				?>
-				<input type="text" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $value ); ?>" class="regular-text" />
+				<input type="text" 
+					name="<?php echo esc_attr( $key ); ?>" 
+					value="<?php echo esc_attr( $value ); ?>" 
+					class="<?php echo esc_attr( $field_class ); ?>"
+					placeholder="<?php echo esc_attr( $placeholder ); ?>" />
 				<?php
 				break;
 		}
