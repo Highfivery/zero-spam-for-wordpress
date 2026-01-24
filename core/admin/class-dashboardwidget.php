@@ -95,19 +95,40 @@ class Dashboard_Widget {
 			return;
 		}
 
-		// Check if user has access to widget.
+		// Check if user has access to widget - use same logic as register_widget().
 		$settings      = \ZeroSpam\Core\Settings::get_settings();
-		$visible_roles = ! empty( $settings['widget_visibility']['value'] ) ? $settings['widget_visibility']['value'] : array( 'administrator' );
-		$user          = wp_get_current_user();
-		$has_access    = false;
+		$visible_roles = array( 'administrator' ); // Default
+		
+		// Get widget visibility setting - handle both array and non-array values.
+		if ( ! empty( $settings['widget_visibility']['value'] ) ) {
+			if ( is_array( $settings['widget_visibility']['value'] ) ) {
+				$visible_roles = $settings['widget_visibility']['value'];
+			} elseif ( is_string( $settings['widget_visibility']['value'] ) ) {
+				$visible_roles = array( $settings['widget_visibility']['value'] );
+			}
+		}
 
-		if ( is_array( $visible_roles ) ) {
+		// If visible_roles is still not an array or is empty, default to administrator.
+		if ( ! is_array( $visible_roles ) || empty( $visible_roles ) ) {
+			$visible_roles = array( 'administrator' );
+		}
+
+		$user       = wp_get_current_user();
+		$has_access = false;
+
+		// Check if user has any of the allowed roles.
+		if ( ! empty( $user->roles ) && is_array( $user->roles ) ) {
 			foreach ( $visible_roles as $role ) {
 				if ( in_array( $role, $user->roles, true ) ) {
 					$has_access = true;
 					break;
 				}
 			}
+		}
+
+		// If user is super admin in multisite, always grant access.
+		if ( is_multisite() && is_super_admin() ) {
+			$has_access = true;
 		}
 
 		if ( ! $has_access ) {
