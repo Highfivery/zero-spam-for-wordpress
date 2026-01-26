@@ -3,7 +3,7 @@
         'name' => 'highfivery/zero-spam-for-wordpress',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'f21ab164ca203276e09e26cce0be5fc17a16ded4',
+        'reference' => '5a6c3a607a1dd89014fa9085b878de7f009c9684',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -67,7 +67,7 @@
         'highfivery/zero-spam-for-wordpress' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'f21ab164ca203276e09e26cce0be5fc17a16ded4',
+            'reference' => '5a6c3a607a1dd89014fa9085b878de7f009c9684',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

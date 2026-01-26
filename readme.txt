@@ -112,6 +112,16 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/zero-spam)
 
+= I blocked myself! How do I get back in? =
+
+If you have defined the `ZEROSPAM_RESCUE_KEY` constant in your `wp-config.php` file, you can bypass all checks by appending `?zerospam_rescue={YOUR_KEY}` to any URL. (e.g., `https://example.com/wp-admin/?zerospam_rescue=mysecretkey`).
+
+If you haven't defined this key, you must manually rename the plugin folder via FTP (`wp-content/plugins/zero-spam` -> `zero-spam-disabled`) to gain access.
+
+= Why can't I access `wp-login.php` or XML-RPC anymore? =
+
+As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation or use the Rescue Mode key to log in and whitelist your IP.
+
 == Screenshots ==
 
 1. Dashboard
@@ -124,6 +134,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = v5.7.0 =
 
+* feat(safety): implemented rescue mode (ZEROSPAM_RESCUE_KEY) to bypass blocks (emergency access)
+* feat(security): extended protection to wp-login.php and xmlrpc.php endpoints
+* fix(login): implemented intent token mechanism to prevent false positives with multi-step login flows (e.g. 2FA, Math Captcha)
+* fix(login): refined error messaging for missing verification fields to avoid incorrect "malicious" labeling
+* feat(performance): implemented transient caching for geolocation lookups (1 week) to reduce API calls
+* feat(logging): added granular failure reasons to detection logs (e.g. "High Confidence Score: 95%")
+* fast(core): removed incorrect main query check that could bypass blocks
 * feat(multisite): comprehensive network-wide settings management for agencies managing multiple sites
 * feat(multisite): network admin dashboard with overview statistics, site comparison, and application status
 * feat(multisite): settings hierarchy system - network defaults with site-level override capability and lock enforcement

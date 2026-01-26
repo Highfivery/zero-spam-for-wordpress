@@ -75,6 +75,11 @@ class Zero_Spam {
 					$access_checks['zero_spam']['blocked'] = true;
 					$access_checks['zero_spam']['type']    = 'blocked';
 					$access_checks['zero_spam']['details'] = $ip_data;
+					$access_checks['zero_spam']['details']['failed'] = sprintf(
+						/* translators: %s: The calculated confidence score. */
+						__( 'High Confidence Score: %s%%', 'zero-spam' ),
+						$confidence_score
+					);
 				}
 			}
 		}

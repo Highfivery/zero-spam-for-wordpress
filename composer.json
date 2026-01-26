@@ -35,5 +35,10 @@
 		"installer-paths": {
 			"vendor/{$name}/": ["type:wordpress-plugin"]
 		}
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
 	}
 }
