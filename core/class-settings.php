@@ -183,19 +183,19 @@ class Settings {
 			'recommended' => 'enabled',
 		);
 
-	global $wp_roles;
-	
-	// Ensure roles are initialized
-	if ( ! isset( $wp_roles ) || ! $wp_roles ) {
-		$wp_roles = wp_roles();
-	}
-	
-	$roles       = isset( $wp_roles->roles ) ? $wp_roles->roles : array();
-	$roles_array = array();
+		global $wp_roles;
 
-	foreach ( $roles as $role => $data ) {
-		$roles_array[ $role ] = $data['name'];
-	}
+		// Ensure roles are initialized
+		if ( ! isset( $wp_roles ) || ! $wp_roles ) {
+			$wp_roles = wp_roles();
+		}
+
+		$roles       = isset( $wp_roles->roles ) ? $wp_roles->roles : array();
+		$roles_array = array();
+
+		foreach ( $roles as $role => $data ) {
+			$roles_array[ $role ] = $data['name'];
+		}
 
 		self::$settings['widget_visibility'] = array(
 			'title'       => __( 'Dashboard Widget Visibility', 'zero-spam' ),
@@ -311,21 +311,21 @@ class Settings {
 			'value'       => get_option( 'zerospam_blocked_email_domains', ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false ),
 		);
 
-	self::$settings['update_blocked_email_domains'] = array(
-		'title'   => __( 'Use Blocked Email Domains Recommendation', 'zero-spam' ),
-		'desc'    => sprintf(
-			wp_kses(
-				__( '<strong>WARNING:</strong> This will override all existing blocked email domains with Zero Spam\'s recommended domains.', 'zero-spam' ),
-				array(
-					'strong' => array(),
+		self::$settings['update_blocked_email_domains'] = array(
+			'title'   => __( 'Use Blocked Email Domains Recommendation', 'zero-spam' ),
+			'desc'    => sprintf(
+				wp_kses(
+					__( '<strong>WARNING:</strong> This will override all existing blocked email domains with Zero Spam\'s recommended domains.', 'zero-spam' ),
+					array(
+						'strong' => array(),
+					)
 				)
-			)
-		),
-		'section' => 'general',
-		'module'  => 'settings',
-		'type'    => 'html',
-		'html'    => '', // Generated dynamically during render to avoid early nonce calls
-	);
+			),
+			'section' => 'general',
+			'module'  => 'settings',
+			'type'    => 'html',
+			'html'    => '', // Generated dynamically during render to avoid early nonce calls
+		);
 
 		self::$settings['regenerate_honeypot'] = array(
 			'title'   => __( 'Regenerate Honeypot ID', 'zero-spam' ),
@@ -364,15 +364,16 @@ class Settings {
 			return false;
 		}
 
-		$settings['general']['rescue_mode'] = array(
-			'title'       => __( 'Rescue Mode', 'zero-spam' ),
-			'section'     => 'general',
-			'type'        => 'html',
-			'html'        => defined( 'ZEROSPAM_RESCUE_KEY' ) ? 
-				'<span style="color: green; font-weight: bold;">' . __( 'Active', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Key defined in wp-config.php', 'zero-spam' ) . ')</span>' : 
+		self::$settings['rescue_mode'] = array(
+			'title'   => __( 'Rescue Mode', 'zero-spam' ),
+			'section' => 'general',
+			'module'  => 'settings',
+			'type'    => 'html',
+			'html'    => defined( 'ZEROSPAM_RESCUE_KEY' ) ?
+				'<span style="color: green; font-weight: bold;">' . __( 'Active', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Key defined in wp-config.php', 'zero-spam' ) . ')</span>' :
 				'<span style="color: red;">' . __( 'Inactive', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Define ZEROSPAM_RESCUE_KEY in wp-config.php to enable', 'zero-spam' ) . ')</span>',
-			'desc'        => __( 'Rescue Mode allows administrators to bypass blocks by appending ?zerospam_rescue={KEY} to any URL.', 'zero-spam' ),
-			'value'       => false,
+			'desc'    => __( 'Rescue Mode allows administrators to bypass blocks by appending ?zerospam_rescue={KEY} to any URL.', 'zero-spam' ),
+			'value'   => false,
 		);
 
 		return $settings;
