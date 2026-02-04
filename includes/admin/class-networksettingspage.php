@@ -1411,38 +1411,54 @@ class Network_Settings_Page {
 	 * AJAX: Toggle notifications
 	 */
 	public function ajax_toggle_notifications() {
-		check_ajax_referer( 'zerospam_network_settings', 'nonce' );
-
-		if ( ! current_user_can( 'manage_network_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'zero-spam' ) ) );
+		// Verify nonce.
+		if ( ! check_ajax_referer( 'zerospam_network_settings', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'zero-spam' ) ) );
+			return;
 		}
 
-		$enabled = isset( $_POST['enabled'] ) && '1' === $_POST['enabled'];
+		// Check permissions.
+		if ( ! current_user_can( 'manage_network_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'zero-spam' ) ) );
+			return;
+		}
 
+		// Validate input.
+		if ( ! isset( $_POST['enabled'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Missing required parameter', 'zero-spam' ) ) );
+			return;
+		}
+
+		$enabled = '1' === $_POST['enabled'];
+
+		// Toggle notifications.
 		$notifications = new \ZeroSpam\Includes\Network_Notifications();
 		$result        = $notifications->toggle_notifications( $enabled );
 
-		if ( $result ) {
-			// If disabling, unschedule the weekly summary.
-			if ( ! $enabled ) {
-				$timestamp = wp_next_scheduled( 'zerospam_network_weekly_summary' );
-				if ( $timestamp ) {
-					wp_unschedule_event( $timestamp, 'zerospam_network_weekly_summary' );
-				}
-			} else {
-				// If enabling, schedule the weekly summary if not already scheduled.
-				if ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
-					wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
-				}
-			}
-
-			$message = $enabled
-				? __( 'Weekly summary emails enabled successfully', 'zero-spam' )
-				: __( 'Weekly summary emails disabled successfully', 'zero-spam' );
-
-			wp_send_json_success( array( 'message' => $message ) );
-		} else {
+		if ( ! $result ) {
 			wp_send_json_error( array( 'message' => __( 'Failed to update notification settings', 'zero-spam' ) ) );
+			return;
 		}
+
+		// Handle cron scheduling.
+		if ( ! $enabled ) {
+			// If disabling, unschedule the weekly summary.
+			$timestamp = wp_next_scheduled( 'zerospam_network_weekly_summary' );
+			if ( $timestamp ) {
+				wp_unschedule_event( $timestamp, 'zerospam_network_weekly_summary' );
+			}
+		} else {
+			// If enabling, schedule the weekly summary if not already scheduled.
+			if ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
+				wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
+			}
+		}
+
+		// Send success response.
+		$message = $enabled
+			? __( 'Weekly summary emails enabled successfully', 'zero-spam' )
+			: __( 'Weekly summary emails disabled successfully', 'zero-spam' );
+
+		wp_send_json_success( array( 'message' => $message ) );
 	}
 }
