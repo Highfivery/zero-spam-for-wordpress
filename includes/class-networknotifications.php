@@ -420,7 +420,17 @@ Network Statistics:
 			return false;
 		}
 
-		return update_site_option( 'zerospam_network_notifications_enabled', (bool) $enabled );
+		$enabled = (bool) $enabled;
+		
+		// Check if the value is already set to the desired state.
+		$current_value = (bool) get_site_option( 'zerospam_network_notifications_enabled', true );
+		
+		// If already set to the desired value, consider it a success.
+		if ( $current_value === $enabled ) {
+			return true;
+		}
+
+		return update_site_option( 'zerospam_network_notifications_enabled', $enabled );
 	}
 
 	/**
