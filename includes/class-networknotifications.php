@@ -39,7 +39,7 @@ class Network_Notifications {
 		add_action( 'update_site_option_' . Network_Settings::META_KEY, array( $this, 'on_network_settings_updated' ), 10, 3 );
 
 		// Schedule weekly summary only if notifications are enabled.
-		$notifications_enabled = get_site_option( 'zerospam_network_notifications_enabled', true );
+		$notifications_enabled = get_site_option( 'zerospam_network_notifications_enabled', '1' );
 		
 		if ( $notifications_enabled ) {
 			if ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
@@ -65,7 +65,7 @@ class Network_Notifications {
 	 */
 	public function on_network_settings_updated( $option, $value, $old_value ) {
 		// Check if notifications are enabled.
-		$notifications_enabled = get_site_option( 'zerospam_network_notifications_enabled', true );
+		$notifications_enabled = get_site_option( 'zerospam_network_notifications_enabled', '1' );
 
 		if ( ! $notifications_enabled ) {
 			return;
@@ -239,7 +239,7 @@ The following settings were changed:
 		}
 
 		// Check if notifications are enabled.
-		$notifications_enabled = get_site_option( 'zerospam_network_notifications_enabled', true );
+		$notifications_enabled = get_site_option( 'zerospam_network_notifications_enabled', '1' );
 		if ( ! $notifications_enabled ) {
 			return;
 		}
@@ -420,17 +420,18 @@ Network Statistics:
 			return false;
 		}
 
-		$enabled = (bool) $enabled;
+		// Convert to string for reliable storage (WordPress site options handle strings better than booleans).
+		$value = $enabled ? '1' : '0';
 		
 		// Check if the value is already set to the desired state.
-		$current_value = (bool) get_site_option( 'zerospam_network_notifications_enabled', true );
+		$current_value = get_site_option( 'zerospam_network_notifications_enabled', '1' );
 		
 		// If already set to the desired value, consider it a success.
-		if ( $current_value === $enabled ) {
+		if ( $current_value === $value ) {
 			return true;
 		}
 
-		return update_site_option( 'zerospam_network_notifications_enabled', $enabled );
+		return update_site_option( 'zerospam_network_notifications_enabled', $value );
 	}
 
 	/**
@@ -443,6 +444,6 @@ Network Statistics:
 			return false;
 		}
 
-		return (bool) get_site_option( 'zerospam_network_notifications_enabled', true );
+		return '1' === get_site_option( 'zerospam_network_notifications_enabled', '1' );
 	}
 }
