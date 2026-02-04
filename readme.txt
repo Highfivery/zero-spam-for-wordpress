@@ -132,6 +132,12 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 
 == Changelog ==
 
+= v5.7.2 =
+
+* fix(ipinfo): migrated to Lite API (unlimited free tier) to resolve 429 quota exceeded errors
+* perf(ipinfo): added persistent transient caching to reduce API calls
+* refactor(ipinfo): removed ipinfo/ipinfo vendor dependency in favor of native WordPress HTTP API
+
 = v5.7.1 =
 
 * fix(settings): resolved undefined array key warnings for rescue mode setting

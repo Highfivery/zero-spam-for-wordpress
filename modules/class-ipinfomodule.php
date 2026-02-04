@@ -7,8 +7,6 @@
 
 namespace ZeroSpam\Modules;
 
-use ipinfo\ipinfo\IPinfo;
-
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -140,9 +138,13 @@ class IPinfoModule {
 	}
 
 	/**
-	 * Get geolocation information
+	 * Get geolocation information via IPinfo Lite API.
+	 *
+	 * Uses the Lite API (unlimited for free tier) instead of Legacy API (50k/month limit).
+	 * Implements two-tier caching: persistent transients and object cache.
 	 *
 	 * @param string $ip IP address.
+	 * @return array|false Normalized location array or false on failure.
 	 */
 	public static function get_geolocation( $ip ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
@@ -151,36 +153,119 @@ class IPinfoModule {
 			return false;
 		}
 
-		$cache_key = \ZeroSpam\Core\Utilities::cache_key(
+		// Generate cache keys.
+		$cache_key      = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'ipinfo',
 				$ip,
 			)
 		);
+		$transient_key = 'zerospam_ipinfo_' . md5( $ip );
 
+		// Check object cache first (non-persistent, fastest).
 		$result = wp_cache_get( $cache_key );
-		if ( false === $result ) {
-			// Load the IPinfo library.
-			require_once ZEROSPAM_PATH . 'vendor/autoload.php';
+		if ( false !== $result ) {
+			return $result;
+		}
 
-			try {
-				$client = new IPinfo( $settings['ipinfo_access_token']['value'] );
-				$result = $client->getDetails( $ip );
-			} catch ( \ipinfo\ipinfo\IPinfoException $e ) {
-				\ZeroSpam\Core\Utilities::log( 'ipinfo: ' . $e->__toString() );
-			} catch ( Exception $e ) {
-				\ZeroSpam\Core\Utilities::log( 'ipinfo: ' . $e->__toString() );
+		// Check transient cache (persistent, reduces API calls).
+		$result = get_transient( $transient_key );
+		if ( false !== $result ) {
+			// Store in object cache for this request.
+			$expiration = 14 * DAY_IN_SECONDS;
+			if ( ! empty( $settings['ipinfo_cache']['value'] ) ) {
+				$expiration = $settings['ipinfo_cache']['value'] * DAY_IN_SECONDS;
 			}
+			wp_cache_set( $cache_key, $result, 'zerospam', $expiration );
+			return $result;
+		}
 
-			if ( $result ) {
-				$result     = json_decode( wp_json_encode( $result ), true );
-				$expiration = 14 * DAY_IN_SECONDS;
-				if ( ! empty( $settings['ipinfo_cache']['value'] ) ) {
-					$expiration = $settings['ipinfo_cache']['value'] * DAY_IN_SECONDS;
-				}
-				wp_cache_set( $cache_key, $result, 'zerospam', $expiration );
+		// Make API request to Lite endpoint (unlimited for free tier).
+		$url = 'https://api.ipinfo.io/lite/' . rawurlencode( $ip ) . '?token=' . rawurlencode( $settings['ipinfo_access_token']['value'] );
+
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout' => 5,
+				'headers' => array(
+					'Accept' => 'application/json',
+				),
+			)
+		);
+
+		// Handle errors.
+		if ( is_wp_error( $response ) ) {
+			\ZeroSpam\Core\Utilities::log( 'IPinfo API error: ' . $response->get_error_message() );
+			return false;
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+
+		// Handle quota exceeded (429) - should not happen with Lite API, but log if it does.
+		if ( 429 === (int) $code ) {
+			\ZeroSpam\Core\Utilities::log( 'IPinfo API quota exceeded (429). This should not happen with Lite API. Check your token and endpoint.' );
+			return false;
+		}
+
+		// Handle other non-200 responses.
+		if ( 200 !== (int) $code ) {
+			\ZeroSpam\Core\Utilities::log( 'IPinfo API returned status code: ' . $code );
+			return false;
+		}
+
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
+
+		// Validate response data.
+		if ( ! is_array( $data ) || empty( $data['country_code'] ) ) {
+			\ZeroSpam\Core\Utilities::log( 'IPinfo API returned invalid or incomplete data for IP: ' . $ip );
+			return false;
+		}
+
+		// Normalize response to match existing data structure.
+		$result = array(
+			'country' => $data['country_code'],
+			'region'  => isset( $data['region'] ) ? $data['region'] : '',
+			'city'    => isset( $data['city'] ) ? $data['city'] : '',
+			'postal'  => isset( $data['postal'] ) ? $data['postal'] : '',
+		);
+
+		// Parse latitude and longitude from 'loc' field.
+		if ( ! empty( $data['loc'] ) ) {
+			$loc = explode( ',', $data['loc'], 2 );
+			if ( 2 === count( $loc ) ) {
+				$result['latitude']  = trim( $loc[0] );
+				$result['longitude'] = trim( $loc[1] );
 			}
 		}
+
+		// Add optional fields if available.
+		if ( ! empty( $data['hostname'] ) ) {
+			$result['hostname'] = $data['hostname'];
+		}
+
+		if ( ! empty( $data['org'] ) ) {
+			$result['org'] = $data['org'];
+		}
+
+		if ( ! empty( $data['timezone'] ) ) {
+			$result['timezone'] = $data['timezone'];
+		}
+
+		// Add country name for consistency with log_record method.
+		$countries = \ZeroSpam\Core\Utilities::countries();
+		if ( ! empty( $countries[ $result['country'] ] ) ) {
+			$result['country_name'] = $countries[ $result['country'] ];
+		}
+
+		// Cache the result in both transient and object cache.
+		$expiration = 14 * DAY_IN_SECONDS;
+		if ( ! empty( $settings['ipinfo_cache']['value'] ) ) {
+			$expiration = $settings['ipinfo_cache']['value'] * DAY_IN_SECONDS;
+		}
+
+		set_transient( $transient_key, $result, $expiration );
+		wp_cache_set( $cache_key, $result, 'zerospam', $expiration );
 
 		return $result;
 	}
