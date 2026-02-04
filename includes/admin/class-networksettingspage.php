@@ -62,6 +62,7 @@ class Network_Settings_Page {
 		add_action( 'wp_ajax_zerospam_network_apply_template', array( $this, 'ajax_apply_template' ) );
 		add_action( 'wp_ajax_zerospam_network_save_template', array( $this, 'ajax_save_template' ) );
 		add_action( 'wp_ajax_zerospam_network_delete_template', array( $this, 'ajax_delete_template' ) );
+		add_action( 'wp_ajax_zerospam_network_toggle_notifications', array( $this, 'ajax_toggle_notifications' ) );
 	}
 
 	/**
@@ -161,6 +162,9 @@ class Network_Settings_Page {
 				<a href="?page=zerospam-network-settings&tab=import-export" class="nav-tab <?php echo 'import-export' === $active_tab ? 'nav-tab-active' : ''; ?>">
 					<?php esc_html_e( 'Import/Export', 'zero-spam' ); ?>
 				</a>
+				<a href="?page=zerospam-network-settings&tab=notifications" class="nav-tab <?php echo 'notifications' === $active_tab ? 'nav-tab-active' : ''; ?>">
+					<?php esc_html_e( 'Notifications', 'zero-spam' ); ?>
+				</a>
 			</nav>
 
 			<div class="zerospam-tab-content">
@@ -184,6 +188,9 @@ class Network_Settings_Page {
 					case 'import-export':
 						$this->render_import_export_tab();
 						break;
+					case 'notifications':
+					$this->render_notifications_tab();
+					break;
 				}
 				?>
 			</div>
@@ -1296,6 +1303,146 @@ class Network_Settings_Page {
 			wp_send_json_success( array( 'message' => __( 'Template deleted successfully', 'zero-spam' ) ) );
 		} else {
 			wp_send_json_error( array( 'message' => __( 'Failed to delete template', 'zero-spam' ) ) );
+		}
+	}
+
+	/**
+	 * Render Notifications Tab
+	 */
+	private function render_notifications_tab() {
+		$notifications = new \ZeroSpam\Includes\Network_Notifications();
+		$enabled       = $notifications->are_notifications_enabled();
+
+		?>
+		<div class="zerospam-notifications-section">
+			<h2><?php esc_html_e( 'Email Notifications', 'zero-spam' ); ?></h2>
+			<p class="description">
+				<?php esc_html_e( 'Control email notifications sent to network administrators.', 'zero-spam' ); ?>
+			</p>
+
+			<table class="form-table">
+				<tr>
+					<th scope="row">
+						<label for="weekly-summary-enabled">
+							<?php esc_html_e( 'Weekly Summary Emails', 'zero-spam' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" 
+								id="weekly-summary-enabled" 
+								name="weekly_summary_enabled" 
+								value="1" 
+								<?php checked( $enabled, true ); ?> />
+							<?php esc_html_e( 'Enable weekly summary emails', 'zero-spam' ); ?>
+						</label>
+						<p class="description">
+							<?php
+							esc_html_e(
+								'When enabled, network administrators will receive a weekly email summary containing network statistics, locked settings count, site overrides, and recent changes.',
+								'zero-spam'
+							);
+							?>
+						</p>
+					</td>
+				</tr>
+			</table>
+
+			<p class="submit">
+				<button type="button" class="button button-primary" id="save-notification-settings">
+					<?php esc_html_e( 'Save Settings', 'zero-spam' ); ?>
+				</button>
+				<span class="spinner" style="float: none; margin: 0 10px;"></span>
+				<span class="notification-save-status"></span>
+			</p>
+
+			<script type="text/javascript">
+			jQuery(document).ready(function($) {
+				$('#save-notification-settings').on('click', function(e) {
+					e.preventDefault();
+					
+					var $button = $(this);
+					var $spinner = $('.spinner');
+					var $status = $('.notification-save-status');
+					var enabled = $('#weekly-summary-enabled').is(':checked');
+					
+					$button.prop('disabled', true);
+					$spinner.addClass('is-active');
+					$status.html('');
+					
+					$.ajax({
+						url: zeroSpamNetwork.ajaxUrl,
+						type: 'POST',
+						data: {
+							action: 'zerospam_network_toggle_notifications',
+							nonce: zeroSpamNetwork.nonce,
+							enabled: enabled ? '1' : '0'
+						},
+						success: function(response) {
+							$spinner.removeClass('is-active');
+							$button.prop('disabled', false);
+							
+							if (response.success) {
+								$status.html('<span style="color: #46b450;">✓ ' + response.data.message + '</span>');
+							} else {
+								$status.html('<span style="color: #dc3232;">✗ ' + response.data.message + '</span>');
+							}
+							
+							setTimeout(function() {
+								$status.fadeOut(function() {
+									$(this).html('').show();
+								});
+							}, 3000);
+						},
+						error: function() {
+							$spinner.removeClass('is-active');
+							$button.prop('disabled', false);
+							$status.html('<span style="color: #dc3232;">✗ An error occurred</span>');
+						}
+					});
+				});
+			});
+			</script>
+		</div>
+		<?php
+	}
+
+	/**
+	 * AJAX: Toggle notifications
+	 */
+	public function ajax_toggle_notifications() {
+		check_ajax_referer( 'zerospam_network_settings', 'nonce' );
+
+		if ( ! current_user_can( 'manage_network_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'zero-spam' ) ) );
+		}
+
+		$enabled = isset( $_POST['enabled'] ) && '1' === $_POST['enabled'];
+
+		$notifications = new \ZeroSpam\Includes\Network_Notifications();
+		$result        = $notifications->toggle_notifications( $enabled );
+
+		if ( $result ) {
+			// If disabling, unschedule the weekly summary.
+			if ( ! $enabled ) {
+				$timestamp = wp_next_scheduled( 'zerospam_network_weekly_summary' );
+				if ( $timestamp ) {
+					wp_unschedule_event( $timestamp, 'zerospam_network_weekly_summary' );
+				}
+			} else {
+				// If enabling, schedule the weekly summary if not already scheduled.
+				if ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
+					wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
+				}
+			}
+
+			$message = $enabled
+				? __( 'Weekly summary emails enabled successfully', 'zero-spam' )
+				: __( 'Weekly summary emails disabled successfully', 'zero-spam' );
+
+			wp_send_json_success( array( 'message' => $message ) );
+		} else {
+			wp_send_json_error( array( 'message' => __( 'Failed to update notification settings', 'zero-spam' ) ) );
 		}
 	}
 }

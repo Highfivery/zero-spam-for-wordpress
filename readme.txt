@@ -137,6 +137,8 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 * fix(ipinfo): migrated to Lite API (unlimited free tier) to resolve 429 quota exceeded errors
 * perf(ipinfo): added persistent transient caching to reduce API calls
 * refactor(ipinfo): removed ipinfo/ipinfo vendor dependency in favor of native WordPress HTTP API
+* feat(multisite): added Notifications tab to Network Settings with toggle for weekly summary emails
+* feat(multisite): network administrators can now enable/disable weekly email notifications from the UI
 
 = v5.7.1 =
 

@@ -47,17 +47,80 @@ class IPinfoModule {
 	/**
 	 * Admin settings
 	 *
+	 * NOTE: This intentionally does NOT call wp_kses(). The Settings renderer is the single
+	 * sanitizer/allowlist gatekeeper for html-type fields (prevents mismatched allowlists).
+	 *
 	 * @param array $settings Array of available settings.
 	 */
 	public function settings( $settings ) {
 		$options = get_option( 'zero-spam-ipinfo' );
 
+		// How It Works section.
+		$how_it_works_features = array(
+			esc_html__( 'Automatically identifies the location of every visitor to your site.', 'zero-spam' ),
+			esc_html__( 'Shows you where spam and malicious activity is coming from.', 'zero-spam' ),
+			esc_html__( 'Allows you to block entire countries, regions, or cities if needed.', 'zero-spam' ),
+			esc_html__( 'Completely invisible to your visitors — they never know it\'s working.', 'zero-spam' ),
+		);
+
+		$how_it_works_features_html = '';
+		foreach ( $how_it_works_features as $feature ) {
+			$how_it_works_features_html .= '<li>' . $feature . '</li>';
+		}
+
+		$settings['ipinfo_how_it_works'] = array(
+			'title'   => __( 'How It Works', 'zero-spam' ),
+			'desc'    => '',
+			'section' => 'ipinfo',
+			'module'  => 'ipinfo',
+			'type'    => 'html',
+			'html'    => sprintf(
+				'<p><strong>%1$s</strong></p><ol class="zerospam-list zerospam-list--decimal"><li>%2$s</li><li>%3$s</li><li>%4$s</li></ol><p><strong>%5$s</strong></p><ul class="zerospam-list zerospam-list--features">%6$s</ul>',
+				esc_html__( 'Here\'s what happens behind the scenes:', 'zero-spam' ),
+				esc_html__( 'When someone submits a form or comment, Zero Spam captures their IP address (a unique number that identifies their internet connection).', 'zero-spam' ),
+				esc_html__( 'Zero Spam sends that IP address to IPinfo, which looks it up in their massive database and returns location information.', 'zero-spam' ),
+				esc_html__( 'This information is saved with the spam detection log, so you can see patterns and make informed decisions about blocking.', 'zero-spam' ),
+				esc_html__( 'Key Features:', 'zero-spam' ),
+				$how_it_works_features_html
+			),
+		);
+
+		// Why Use IPinfo section.
+		$why_use_benefits = array(
+			esc_html__( 'See where your spam is coming from on a map.', 'zero-spam' ),
+			esc_html__( 'Block entire countries known for spam (like blocking all calls from a specific area code).', 'zero-spam' ),
+			esc_html__( 'Identify patterns — if all your spam comes from one city, you can block it.', 'zero-spam' ),
+			esc_html__( 'Free unlimited API calls with the Lite tier (no monthly limits).', 'zero-spam' ),
+			esc_html__( 'More accurate than other free geolocation services.', 'zero-spam' ),
+		);
+
+		$why_use_benefits_html = '';
+		foreach ( $why_use_benefits as $benefit ) {
+			$why_use_benefits_html .= '<li>' . $benefit . '</li>';
+		}
+
+		$settings['ipinfo_why_use'] = array(
+			'title'   => __( 'Why Use IPinfo?', 'zero-spam' ),
+			'desc'    => '',
+			'section' => 'ipinfo',
+			'module'  => 'ipinfo',
+			'type'    => 'html',
+			'html'    => sprintf(
+				'<p>%1$s</p><ul class="zerospam-list zerospam-list--features">%2$s</ul><p><strong>%3$s</strong> %4$s</p>',
+				esc_html__( 'Without geolocation, you\'re fighting spam blindfolded. With IPinfo, you can:', 'zero-spam' ),
+				$why_use_benefits_html,
+				esc_html__( 'Real-world example:', 'zero-spam' ),
+				esc_html__( 'If you run a local business in the United States and notice all your spam comes from overseas, you can block those countries entirely. Legitimate customers won\'t be affected, but spam will drop to zero.', 'zero-spam' )
+			),
+		);
+
+		// Access Token field.
 		$settings['ipinfo_access_token'] = array(
 			'title'       => __( 'Access Token', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the IPInfo URL, %2$s: Replaced with the IPinfo signup URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">IPinfo access token</a> to enable geolocation features. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zero-spam' ),
+					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">IPinfo access token</a> to enable geolocation features. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a> The free tier includes unlimited API calls — no credit card required.', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -78,6 +141,7 @@ class IPinfoModule {
 			'value'       => ! empty( $options['ipinfo_access_token'] ) ? $options['ipinfo_access_token'] : false,
 		);
 
+		// Cache Expiration field.
 		$settings['ipinfo_cache'] = array(
 			'title'       => __( 'Cache Expiration', 'zero-spam' ),
 			'section'     => 'ipinfo',
@@ -86,9 +150,72 @@ class IPinfoModule {
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
 			'placeholder' => __( '14', 'zero-spam' ),
-			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zero-spam' ),
+			'desc'        => __( 'How long to remember location information before checking again. 14 days is recommended — longer could show outdated data, shorter could slow down your site.', 'zero-spam' ),
 			'value'       => ! empty( $options['ipinfo_cache'] ) ? $options['ipinfo_cache'] : 14,
 			'recommended' => 14,
+		);
+
+		// How to Test section.
+		$testing_steps = array(
+			array(
+				'title' => esc_html__( '1. Get your free API token', 'zero-spam' ),
+				'desc'  => sprintf(
+					/* translators: %s: IPinfo signup URL. */
+					__( 'Visit <a href="%s" target="_blank" rel="noopener noreferrer">ipinfo.io/signup</a> and create a free account. Copy your access token from the dashboard.', 'zero-spam' ),
+					esc_url( 'https://ipinfo.io/signup/' )
+				),
+			),
+			array(
+				'title' => esc_html__( '2. Enter your token above', 'zero-spam' ),
+				'desc'  => esc_html__( 'Paste your access token into the "Access Token" field and save your settings.', 'zero-spam' ),
+			),
+			array(
+				'title' => esc_html__( '3. Submit a test form', 'zero-spam' ),
+				'desc'  => esc_html__( 'Leave a test comment or submit a contact form on your site.', 'zero-spam' ),
+			),
+			array(
+				'title' => esc_html__( '4. Check the log', 'zero-spam' ),
+				'desc'  => esc_html__( 'Go to Dashboard → Zero Spam → Log. You should see location information (country, city, etc.) for your test submission.', 'zero-spam' ),
+			),
+		);
+
+		$testing_steps_html = '';
+		foreach ( $testing_steps as $step ) {
+			$testing_steps_html .= sprintf(
+				'<li><strong>%1$s</strong> %2$s</li>',
+				$step['title'],
+				$step['desc']
+			);
+		}
+
+		$troubleshooting_items = array(
+			esc_html__( 'If location data shows as "Unknown", double-check that your access token is correct.', 'zero-spam' ),
+			esc_html__( 'Make sure you\'re using the free Lite API token (not a paid plan token).', 'zero-spam' ),
+			sprintf(
+				/* translators: %s: zerospam.log file path. */
+				__( 'Check %s in your uploads folder for any IPinfo error messages.', 'zero-spam' ),
+				'<code>wp-content/uploads/zerospam.log</code>'
+			),
+		);
+
+		$troubleshooting_html = '';
+		foreach ( $troubleshooting_items as $item ) {
+			$troubleshooting_html .= '<li>' . $item . '</li>';
+		}
+
+		$settings['ipinfo_testing'] = array(
+			'title'   => __( 'How to Test', 'zero-spam' ),
+			'desc'    => '',
+			'section' => 'ipinfo',
+			'module'  => 'ipinfo',
+			'type'    => 'html',
+			'html'    => sprintf(
+				'<p><strong>%1$s</strong></p><ol class="zerospam-list zerospam-list--steps">%2$s</ol><p><strong>%3$s</strong></p><ul class="zerospam-list zerospam-list--features">%4$s</ul>',
+				esc_html__( 'Follow these simple steps to verify IPinfo is working:', 'zero-spam' ),
+				$testing_steps_html,
+				esc_html__( 'Troubleshooting:', 'zero-spam' ),
+				$troubleshooting_html
+			),
 		);
 
 		return $settings;

@@ -38,9 +38,19 @@ class Network_Notifications {
 		// Hook into settings changes.
 		add_action( 'update_site_option_' . Network_Settings::META_KEY, array( $this, 'on_network_settings_updated' ), 10, 3 );
 
-		// Schedule weekly summary.
-		if ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
-			wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
+		// Schedule weekly summary only if notifications are enabled.
+		$notifications_enabled = get_site_option( 'zerospam_network_notifications_enabled', true );
+		
+		if ( $notifications_enabled ) {
+			if ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
+				wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
+			}
+		} else {
+			// If notifications are disabled, unschedule the event if it exists.
+			$timestamp = wp_next_scheduled( 'zerospam_network_weekly_summary' );
+			if ( $timestamp ) {
+				wp_unschedule_event( $timestamp, 'zerospam_network_weekly_summary' );
+			}
 		}
 
 		add_action( 'zerospam_network_weekly_summary', array( $this, 'send_weekly_summary' ) );
@@ -225,6 +235,12 @@ The following settings were changed:
 	 */
 	public function send_weekly_summary() {
 		if ( ! is_multisite() ) {
+			return;
+		}
+
+		// Check if notifications are enabled.
+		$notifications_enabled = get_site_option( 'zerospam_network_notifications_enabled', true );
+		if ( ! $notifications_enabled ) {
 			return;
 		}
 

@@ -1290,12 +1290,15 @@ a.zerospam-dashboard__menu-link--active {
 
 /* 
  * Features List (Checkmarks) 
- * Compact grid, tight vertical alignment.
+ * Modern implementation with proper text wrapping using padding-inline-start.
  */
 .zerospam-list--features {
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: 6px 12px;
+	list-style: none;
+	padding: 0;
+	margin: 0;
 }
 
 @media (min-width: 1400px) {
@@ -1305,9 +1308,8 @@ a.zerospam-dashboard__menu-link--active {
 }
 
 .zerospam-list--features li {
-	display: flex;
-	align-items: flex-start;
-	padding: 2px 0;
+	position: relative;
+	padding: 2px 0 2px 22px;
 	font-size: 13px;
 	color: #3c434a;
 	line-height: 1.4;
@@ -1319,12 +1321,11 @@ a.zerospam-dashboard__menu-link--active {
 
 .zerospam-list--features li::before {
 	content: '';
-	display: inline-block;
-	flex-shrink: 0;
+	position: absolute;
+	left: 0;
+	top: 4px;
 	width: 14px;
 	height: 14px;
-	margin-right: 8px;
-	margin-top: 2px;
 	background-color: var(--zerospam-success);
 	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E") no-repeat center;
 	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='currentColor'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E") no-repeat center;
@@ -2071,4 +2072,3 @@ html {
 .zerospam-documentation-section {
 	scroll-margin-top: 32px;
 }
-
