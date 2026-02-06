@@ -62,6 +62,7 @@ class Network_Settings_Page {
 		add_action( 'wp_ajax_zerospam_network_apply_template', array( $this, 'ajax_apply_template' ) );
 		add_action( 'wp_ajax_zerospam_network_save_template', array( $this, 'ajax_save_template' ) );
 		add_action( 'wp_ajax_zerospam_network_delete_template', array( $this, 'ajax_delete_template' ) );
+		add_action( 'wp_ajax_zerospam_network_save_notification_settings', array( $this, 'ajax_save_notification_settings' ) );
 		add_action( 'wp_ajax_zerospam_network_toggle_notifications', array( $this, 'ajax_toggle_notifications' ) );
 	}
 
@@ -1310,14 +1311,15 @@ class Network_Settings_Page {
 	 * Render Notifications Tab
 	 */
 	private function render_notifications_tab() {
-		$notifications = new \ZeroSpam\Includes\Network_Notifications();
-		$enabled       = $notifications->are_notifications_enabled();
+		$notifications                  = new \ZeroSpam\Includes\Network_Notifications();
+		$weekly_enabled                 = $notifications->are_notifications_enabled();
+		$settings_notifications_enabled = $notifications->are_settings_notifications_enabled();
 
 		?>
 		<div class="zerospam-notifications-section">
 			<h2><?php esc_html_e( 'Email Notifications', 'zero-spam' ); ?></h2>
 			<p class="description">
-				<?php esc_html_e( 'Control email notifications sent to network administrators.', 'zero-spam' ); ?>
+				<?php esc_html_e( 'Control email notifications sent to network and site administrators.', 'zero-spam' ); ?>
 			</p>
 
 			<table class="form-table">
@@ -1333,13 +1335,38 @@ class Network_Settings_Page {
 								id="weekly-summary-enabled" 
 								name="weekly_summary_enabled" 
 								value="1" 
-								<?php checked( $enabled, true ); ?> />
+								<?php checked( $weekly_enabled, true ); ?> />
 							<?php esc_html_e( 'Enable weekly summary emails', 'zero-spam' ); ?>
 						</label>
 						<p class="description">
 							<?php
 							esc_html_e(
 								'When enabled, network administrators will receive a weekly email summary containing network statistics, locked settings count, site overrides, and recent changes.',
+								'zero-spam'
+							);
+							?>
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<th scope="row">
+						<label for="settings-change-notifications-enabled">
+							<?php esc_html_e( 'Settings Change Notifications', 'zero-spam' ); ?>
+						</label>
+					</th>
+					<td>
+						<label>
+							<input type="checkbox" 
+								id="settings-change-notifications-enabled" 
+								name="settings_change_notifications_enabled" 
+								value="1" 
+								<?php checked( $settings_notifications_enabled, true ); ?> />
+							<?php esc_html_e( 'Send email notifications when network settings change', 'zero-spam' ); ?>
+						</label>
+						<p class="description">
+							<?php
+							esc_html_e(
+								'When enabled, site administrators will receive an email notification whenever network-level settings are changed. In large networks, disabling this can prevent thousands of emails from being sent.',
 								'zero-spam'
 							);
 							?>
@@ -1364,7 +1391,8 @@ class Network_Settings_Page {
 					var $button = $(this);
 					var $spinner = $('.spinner');
 					var $status = $('.notification-save-status');
-					var enabled = $('#weekly-summary-enabled').is(':checked');
+					var weeklyEnabled = $('#weekly-summary-enabled').is(':checked');
+					var settingsEnabled = $('#settings-change-notifications-enabled').is(':checked');
 					
 					$button.prop('disabled', true);
 					$spinner.addClass('is-active');
@@ -1374,9 +1402,10 @@ class Network_Settings_Page {
 						url: zeroSpamNetwork.ajaxUrl,
 						type: 'POST',
 						data: {
-							action: 'zerospam_network_toggle_notifications',
+							action: 'zerospam_network_save_notification_settings',
 							nonce: zeroSpamNetwork.nonce,
-							enabled: enabled ? '1' : '0'
+							weekly_enabled: weeklyEnabled ? '1' : '0',
+							settings_enabled: settingsEnabled ? '1' : '0'
 						},
 						success: function(response) {
 							$spinner.removeClass('is-active');
@@ -1408,7 +1437,66 @@ class Network_Settings_Page {
 	}
 
 	/**
-	 * AJAX: Toggle notifications
+	 * AJAX: Save notification settings
+	 */
+	public function ajax_save_notification_settings() {
+		// Verify nonce.
+		if ( ! check_ajax_referer( 'zerospam_network_settings', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed. Please refresh the page and try again.', 'zero-spam' ) ) );
+			return;
+		}
+
+		// Check permissions.
+		if ( ! current_user_can( 'manage_network_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'zero-spam' ) ) );
+			return;
+		}
+
+		// Validate input.
+		if ( ! isset( $_POST['weekly_enabled'] ) || ! isset( $_POST['settings_enabled'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Missing required parameters', 'zero-spam' ) ) );
+			return;
+		}
+
+		$weekly_enabled   = '1' === $_POST['weekly_enabled'];
+		$settings_enabled = '1' === $_POST['settings_enabled'];
+
+		// Toggle notifications.
+		$notifications = new \ZeroSpam\Includes\Network_Notifications();
+		
+		// Save weekly summary setting.
+		$weekly_result = $notifications->toggle_notifications( $weekly_enabled );
+		
+		// Save settings change notification setting.
+		$settings_result = $notifications->toggle_settings_notifications( $settings_enabled );
+
+		if ( ! $weekly_result || ! $settings_result ) {
+			wp_send_json_error( array( 'message' => __( 'Failed to update notification settings', 'zero-spam' ) ) );
+			return;
+		}
+
+		// Handle cron scheduling for weekly summaries.
+		if ( ! $weekly_enabled ) {
+			// If disabling, unschedule the weekly summary.
+			$timestamp = wp_next_scheduled( 'zerospam_network_weekly_summary' );
+			if ( $timestamp ) {
+				wp_unschedule_event( $timestamp, 'zerospam_network_weekly_summary' );
+			}
+		} else {
+			// If enabling, schedule the weekly summary if not already scheduled.
+			if ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
+				wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
+			}
+		}
+
+		// Send success response.
+		wp_send_json_success( array( 'message' => __( 'Notification settings saved successfully', 'zero-spam' ) ) );
+	}
+
+	/**
+	 * AJAX: Toggle notifications (legacy - kept for backwards compatibility)
+	 *
+	 * @deprecated 5.7.3 Use ajax_save_notification_settings() instead.
 	 */
 	public function ajax_toggle_notifications() {
 		// Verify nonce.

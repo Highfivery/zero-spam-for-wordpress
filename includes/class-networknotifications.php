@@ -64,10 +64,10 @@ class Network_Notifications {
 	 * @param mixed  $old_value Old value.
 	 */
 	public function on_network_settings_updated( $option, $value, $old_value ) {
-		// Check if notifications are enabled.
-		$notifications_enabled = get_site_option( 'zerospam_network_notifications_enabled', '1' );
+		// Check if settings change notifications are enabled (separate from weekly summaries).
+		$settings_notifications_enabled = get_site_option( 'zerospam_network_settings_notifications_enabled', '1' );
 
-		if ( ! $notifications_enabled ) {
+		if ( ! $settings_notifications_enabled ) {
 			return;
 		}
 
@@ -445,5 +445,48 @@ Network Statistics:
 		}
 
 		return '1' === get_site_option( 'zerospam_network_notifications_enabled', '1' );
+	}
+
+	/**
+	 * Enable/disable settings change notifications
+	 *
+	 * @param bool $enabled Enable or disable.
+	 * @return bool Success.
+	 */
+	public function toggle_settings_notifications( $enabled ) {
+		if ( ! is_multisite() ) {
+			return false;
+		}
+
+		// Check permission.
+		if ( ! current_user_can( 'manage_network_options' ) ) {
+			return false;
+		}
+
+		// Convert to string for reliable storage (WordPress site options handle strings better than booleans).
+		$value = $enabled ? '1' : '0';
+
+		// Check if the value is already set to the desired state.
+		$current_value = get_site_option( 'zerospam_network_settings_notifications_enabled', '1' );
+
+		// If already set to the desired value, consider it a success.
+		if ( $current_value === $value ) {
+			return true;
+		}
+
+		return update_site_option( 'zerospam_network_settings_notifications_enabled', $value );
+	}
+
+	/**
+	 * Check if settings change notifications are enabled
+	 *
+	 * @return bool Enabled status.
+	 */
+	public function are_settings_notifications_enabled() {
+		if ( ! is_multisite() ) {
+			return false;
+		}
+
+		return '1' === get_site_option( 'zerospam_network_settings_notifications_enabled', '1' );
 	}
 }
