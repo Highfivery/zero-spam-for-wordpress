@@ -304,7 +304,7 @@ class Dashboard_Widget {
 	 * @return array Network data.
 	 */
 	private function get_network_data( $wpdb ) {
-		$table = $wpdb->base_prefix . 'zerospam_log';
+		$table = $wpdb->base_prefix . \ZeroSpam\Includes\DB::$tables['log'];
 
 		// Total spam blocked across network.
 		$total_blocked = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -361,7 +361,7 @@ class Dashboard_Widget {
 	 * @return array Site data.
 	 */
 	private function get_site_data( $wpdb ) {
-		$table   = $wpdb->prefix . 'zerospam_log';
+		$table   = $wpdb->prefix . \ZeroSpam\Includes\DB::$tables['log'];
 		$blog_id = get_current_blog_id();
 
 		// Total spam blocked.

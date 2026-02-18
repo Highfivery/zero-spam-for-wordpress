@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '1.3';
+	const DB_VERSION = '1.4';
 
 	/**
 	 * DB tables
@@ -54,6 +54,7 @@ class DB {
 
 			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['log'] . " (
 				log_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				blog_id bigint(20) unsigned NOT NULL DEFAULT 1,
 				log_type varchar(255) NOT NULL,
 				user_ip varchar(39) NOT NULL,
 				date_recorded datetime NOT NULL,
@@ -67,7 +68,9 @@ class DB {
 				zip varchar(10) DEFAULT NULL,
 				latitude varchar(255) DEFAULT NULL,
 				longitude varchar(255) DEFAULT NULL,
-				PRIMARY KEY  (log_id)
+				PRIMARY KEY  (log_id),
+			KEY blog_id (blog_id),
+			KEY blog_date (blog_id, date_recorded)
 			) $charset_collate;";
 
 			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['blocked'] . " (
@@ -180,6 +183,9 @@ class DB {
 			// Add indexes to existing log table for performance.
 			self::add_log_indexes();
 
+			// Migrate existing log tables to include blog_id column.
+			self::migrate_log_table_blog_id();
+
 			update_option( 'zerospam_db_version', self::DB_VERSION );
 		}
 	}
@@ -225,6 +231,77 @@ class DB {
 		if ( ! in_array( 'country', $existing_indexes, true ) ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
 			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX country (country)" );
+		}
+	}
+
+	/**
+	 * Migrate existing log table to include blog_id column
+	 *
+	 * Adds blog_id column to existing log tables for compatibility with
+	 * dashboard widget queries. Sets default value of 1 for single-site
+	 * installations and actual blog ID for multisite.
+	 */
+	private static function migrate_log_table_blog_id() {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . self::$tables['log'];
+
+		// Check if table exists.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" );
+
+		if ( ! $table_exists ) {
+			return; // Table doesn't exist yet, will be created with blog_id column.
+		}
+
+		// Check if blog_id column already exists.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$columns = $wpdb->get_results( "SHOW COLUMNS FROM {$table_name}", ARRAY_A );
+
+		$has_blog_id = false;
+		if ( $columns ) {
+			foreach ( $columns as $column ) {
+				if ( 'blog_id' === $column['Field'] ) {
+					$has_blog_id = true;
+					break;
+				}
+			}
+		}
+
+		if ( $has_blog_id ) {
+			return; // Column already exists.
+		}
+
+		// Add blog_id column with default value.
+		$blog_id = get_current_blog_id();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query(
+			"ALTER TABLE {$table_name} 
+			ADD COLUMN blog_id bigint(20) unsigned NOT NULL DEFAULT {$blog_id} AFTER log_id"
+		);
+
+		// Add indexes for blog_id.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$indexes = $wpdb->get_results( "SHOW INDEX FROM {$table_name}", ARRAY_A );
+
+		$existing_indexes = array();
+		if ( $indexes ) {
+			foreach ( $indexes as $index ) {
+				$existing_indexes[] = $index['Key_name'];
+			}
+		}
+
+		// Add blog_id index if not exists.
+		if ( ! in_array( 'blog_id', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX blog_id (blog_id)" );
+		}
+
+		// Add composite blog_date index if not exists.
+		if ( ! in_array( 'blog_date', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX blog_date (blog_id, date_recorded)" );
 		}
 	}
 

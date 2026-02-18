@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 5.7.3
+Stable tag: 5.7.4
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -131,6 +131,15 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.4 =
+
+* fix(database): corrected table name reference in dashboard widget from `zerospam_log` to `wpzerospam_log`
+* fix(database): added `blog_id` column to log table schema for single-site compatibility
+* fix(dashboard): resolved SQL errors on single-site installations caused by missing `blog_id` column
+* perf(database): added indexes for `blog_id` and composite `blog_date` for improved query performance
+* feat(database): automatic migration adds `blog_id` column to existing installations
+* fix(dashboard): corrected widget styling to use light theme (removed dark mode support)
 
 = v5.7.3 =
 
