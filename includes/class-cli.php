@@ -37,22 +37,6 @@ class ZeroSpamCLI {
 	/**
 	 * Update a plugin setting(s)
 	 *
-	 * ## OPTIONS
-	 *
-	 * [--<setting>=<value>]
-	 * : One or more settings to update.
-	 *
-	 * ## EXAMPLES
-	 *
-	 *     # Enable data sharing
-	 *     wp zerospam set --share_data=enabled
-	 *
-	 *     # Set blocked email domains (newline-separated)
-	 *     wp zerospam set --blocked_email_domains="spam.com\nfake.com"
-	 *
-	 *     # Regenerate the honeypot ID
-	 *     wp zerospam set --regenerate_honeypot=1
-	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Array of settings to update.
 	 */

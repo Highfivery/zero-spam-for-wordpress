@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9.1
 Requires PHP: 8.2
-Stable tag: 5.7.5
+Stable tag: 5.7.6
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -131,6 +131,10 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.6 =
+
+* **fix(cli):** removed `## OPTIONS` docblock from `set` command that caused WP-CLI to reject valid flags like `--stop_forum_spam`
 
 = v5.7.5 =
 
