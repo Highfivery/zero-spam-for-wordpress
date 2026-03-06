@@ -104,6 +104,32 @@ class ContactForm7 {
 			$validation_errors[] = 'honeypot';
 		}
 
+		// Check submitted fields for blocked email domains and disallowed words.
+		$check_blocked_emails = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7_blocked_email_domains' );
+		$check_disallowed     = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7_disallowed_words' );
+
+		if ( $check_blocked_emails || $check_disallowed ) {
+			foreach ( $post as $key => $value ) {
+				if ( ! is_string( $value ) || empty( trim( $value ) ) ) {
+					continue;
+				}
+
+				$value = trim( $value );
+
+				// Check for blocked email domains.
+				if ( $check_blocked_emails && \ZeroSpam\Core\Utilities::is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
+					$validation_errors[] = 'blocked_email_domain';
+					break;
+				}
+
+				// Check against disallowed words list.
+				if ( $check_disallowed && \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
+					$validation_errors[] = 'disallowed_list';
+					break;
+				}
+			}
+		}
+
 		// Fire hook for additional validation (ex. David Walsh script).
 		$errors = apply_filters( 'zerospam_preprocess_cf7_submission', array(), $post, 'contactform7_spam_message' );
 
@@ -158,7 +184,7 @@ class ContactForm7 {
 		$sections['contactform7'] = array(
 			'title'    => __( 'Contact Form 7', 'zero-spam' ),
 			'icon'     => 'modules/contactform7/icon-cf7.png',
-			'supports' => array( 'honeypot', 'davidwalsh' ),
+			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
 		return $sections;
@@ -197,6 +223,32 @@ class ContactForm7 {
 			'placeholder' => $message,
 			'value'       => ! empty( $options['contactform7_spam_message'] ) ? $options['contactform7_spam_message'] : $message,
 			'recommended' => $message,
+		);
+
+		$settings['verify_contactform7_blocked_email_domains'] = array(
+			'title'       => __( 'Check Blocked Email Domains', 'zero-spam' ),
+			'desc'        => __( 'Block CF7 submissions containing email addresses from blocked domains.', 'zero-spam' ),
+			'module'      => 'contactform7',
+			'section'     => 'contactform7',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_contactform7_blocked_email_domains'] ) ? $options['verify_contactform7_blocked_email_domains'] : false,
+			'recommended' => 'enabled',
+		);
+
+		$settings['verify_contactform7_disallowed_words'] = array(
+			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'desc'        => __( 'Block CF7 submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
+			'module'      => 'contactform7',
+			'section'     => 'contactform7',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_contactform7_disallowed_words'] ) ? $options['verify_contactform7_disallowed_words'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$settings['log_blocked_contactform7'] = array(

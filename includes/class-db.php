@@ -358,16 +358,35 @@ class DB {
 			}
 		} elseif ( $key_type ) {
 			// Get record by key.
-			// @codingStandardsIgnoreLine
-			return $wpdb->get_row( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE key_type = "' . $key_type . '" AND blocked_key = "' . $record . '"', ARRAY_A );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			return $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE key_type = %s AND blocked_key = %s',
+					$key_type,
+					$record
+				),
+				ARRAY_A
+			);
 		} elseif ( is_int( $record ) ) {
 			// Get record by ID.
-			// @codingStandardsIgnoreLine
-			return $wpdb->get_row( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE blocked_id = "' . $record . '"', ARRAY_A );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			return $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE blocked_id = %d',
+					$record
+				),
+				ARRAY_A
+			);
 		} elseif ( rest_is_ip_address( $record ) ) {
 			// Get record by IP.
-			// @codingStandardsIgnoreLine
-			return $wpdb->get_row( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE user_ip = "' . $record . '"', ARRAY_A );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			return $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE user_ip = %s',
+					$record
+				),
+				ARRAY_A
+			);
 		}
 
 		return false;
@@ -401,10 +420,10 @@ class DB {
 		$maximum_entries = \ZeroSpam\Core\Settings::get_settings( 'max_logs' );
 
 		if ( $total_entries > $maximum_entries ) {
-			$difference = $total_entries - $maximum_entries;
+			$difference = absint( $total_entries - $maximum_entries );
 
-			// @codingStandardsIgnoreLine
-			$wpdb->query( "DELETE FROM $log_table ORDER BY date_recorded ASC LIMIT $difference" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$log_table} ORDER BY date_recorded ASC LIMIT %d", $difference ) );
 		}
 
 		// Sanitize details array.
@@ -466,43 +485,63 @@ class DB {
 			return false;
 		}
 
+		// Allowed columns for SELECT — prevents injection via column names.
+		$allowed_columns = array( '*', 'log_id', 'blog_id', 'log_type', 'user_ip', 'date_recorded', 'page_url',
+			'submission_data', 'country', 'country_name', 'region', 'region_name', 'city', 'zip',
+			'latitude', 'longitude', 'blocked_id', 'blocked_type', 'blocked_key', 'key_type',
+			'date_added', 'start_block', 'end_block', 'reason', 'COUNT(*)',
+		);
+
 		$sql = 'SELECT';
 
 		if ( ! empty( $args['select'] ) ) {
-			$sql .= implode( ', ', $args['select'] );
+			$safe_columns = array();
+			foreach ( $args['select'] as $col ) {
+				$col = trim( $col );
+				if ( in_array( $col, $allowed_columns, true ) ) {
+					$safe_columns[] = $col;
+				}
+			}
+			$sql .= ' ' . ( ! empty( $safe_columns ) ? implode( ', ', $safe_columns ) : '*' ) . ' ';
 		} else {
 			$sql .= ' * ';
 		}
 
 		$sql .= 'FROM ' . $wpdb->prefix . self::$tables[ $table ];
 
+		// Build WHERE clause using prepared statements.
+		$prepare_values = array();
+
 		if ( ! empty( $args['where'] ) ) {
-			$sql .= ' WHERE ';
+			$where_clauses = array();
 
-			$where_stmt = '';
 			foreach ( $args['where'] as $key => $where ) {
-				if ( $where_stmt ) {
-					$where_stmt .= ' AND ';
+				// Sanitize column name — only allow alphanumeric and underscores.
+				$column = preg_replace( '/[^a-zA-Z0-9_]/', '', $key );
+
+				// Determine the comparison operator.
+				$relation = '=';
+				$allowed_relations = array( '=', '!=', '>', '<', '>=', '<=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN' );
+				if ( ! empty( $where['relation'] ) && in_array( strtoupper( trim( $where['relation'] ) ), $allowed_relations, true ) ) {
+					$relation = strtoupper( trim( $where['relation'] ) );
 				}
 
-				$where_stmt .= $key;
-
-				if ( ! empty( $where['relation'] ) ) {
-					$where_stmt .= ' ' . $where['relation'] . ' ';
+				if ( is_array( $where['value'] ) ) {
+					$placeholders = array_fill( 0, count( $where['value'] ), '%s' );
+					$where_clauses[] = $column . ' IN (' . implode( ', ', $placeholders ) . ')';
+					$prepare_values  = array_merge( $prepare_values, $where['value'] );
+				} elseif ( is_numeric( $where['value'] ) ) {
+					$where_clauses[] = $column . ' ' . $relation . ' %d';
+					$prepare_values[] = $where['value'];
 				} else {
-					$where_stmt .= ' = ';
-				}
-
-				if ( is_numeric( $where['value'] ) ) {
-					$where_stmt .= $where['value'];
-				} elseif ( is_array( $where['value'] ) ) {
-					$where_stmt .= "('" . implode( "','", $where['value'] ) . "')";
-				} else {
-					$where_stmt .= '"' . $where['value'] . '"';
+					$where_clauses[] = $column . ' ' . $relation . ' %s';
+					$prepare_values[] = $where['value'];
 				}
 			}
 
-			$sql .= $where_stmt;
+			if ( ! empty( $where_clauses ) ) {
+				$sql .= ' WHERE ' . implode( ' AND ', $where_clauses );
+			}
 		}
 
 		if ( ! empty( $args['orderby'] ) ) {
@@ -511,17 +550,27 @@ class DB {
 				$orderby .= ' ' . $args['order'];
 			}
 
-			$sql .= ' ORDER BY ' . sanitize_sql_orderby( $orderby );
+			$sanitized_orderby = sanitize_sql_orderby( $orderby );
+			if ( $sanitized_orderby ) {
+				$sql .= ' ORDER BY ' . $sanitized_orderby;
+			}
 		}
 
 		if ( ! empty( $args['limit'] ) ) {
-			$sql .= ' LIMIT ' . $args['limit'];
+			$sql .= ' LIMIT ' . absint( $args['limit'] );
 		}
 
 		if ( ! empty( $args['offset'] ) ) {
-			$sql .= ' OFFSET ' . $args['offset'];
+			$sql .= ' OFFSET ' . absint( $args['offset'] );
 		}
-		// @codingStandardsIgnoreLine
+
+		// Use prepared statement if we have values to bind.
+		if ( ! empty( $prepare_values ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			return $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ), ARRAY_A );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		return $wpdb->get_results( $sql, ARRAY_A );
 	}
 }

@@ -271,8 +271,29 @@ class Utilities {
 			return false;
 		}
 
+		// Handle blocked_email_domains separately — it uses a standalone option
+		// to prevent autoloading large data on every page load.
+		if ( 'blocked_email_domains' === $key ) {
+			if ( update_option( 'zerospam_blocked_email_domains', $value ) ) {
+				wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
+				global $wpdb;
+				$wpdb->query(
+					$wpdb->prepare(
+						"UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s",
+						'no',
+						'zerospam_blocked_email_domains'
+					)
+				);
+			}
+			return true;
+		}
+
 		$module          = $settings[ $key ]['module'];
 		$module_settings = get_option( "zero-spam-$module" );
+
+		if ( ! is_array( $module_settings ) ) {
+			$module_settings = array();
+		}
 
 		$module_settings[ $key ] = $value;
 
@@ -296,14 +317,27 @@ class Utilities {
 
 		// If the entry is array, json_encode.
 		if ( is_array( $entry ) ) {
-			$entry = json_encode( $entry );
+			$entry = wp_json_encode( $entry );
+		}
+
+		// Sanitize the file name to prevent path traversal.
+		$file = sanitize_file_name( $file );
+
+		// Only allow append mode for safety.
+		$allowed_modes = array( 'a', 'w' );
+		if ( ! in_array( $mode, $allowed_modes, true ) ) {
+			$mode = 'a';
 		}
 
 		// Write the log file.
-		$file_path = $upload_dir . '/' . $file . '.log';
-		$file      = fopen( $file_path, $mode );
-		$bytes     = fwrite( $file, current_time( 'mysql' ) . '::' . $entry . "\n" );
-		fclose( $file );
+		$file_path   = $upload_dir . '/' . $file . '.log';
+		$file_handle = fopen( $file_path, $mode ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( false === $file_handle ) {
+			return false;
+		}
+
+		$bytes = fwrite( $file_handle, current_time( 'mysql' ) . '::' . $entry . "\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite
+		fclose( $file_handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 
 		return $bytes;
 	}
@@ -647,7 +681,7 @@ class Utilities {
 	 * @return string Returns a HTML honeypot field.
 	 */
 	public static function honeypot_field() {
-		return '<input type="text" name="' . self::get_honeypot() . '" value="" style="display: none !important;" />';
+		return '<input type="text" name="' . esc_attr( self::get_honeypot() ) . '" value="" style="display: none !important;" />';
 	}
 
 	/**

@@ -75,7 +75,7 @@ class GravityForms {
 		$sections['gravityforms'] = array(
 			'title'    => __( 'Gravity Forms', 'zero-spam' ),
 			'icon'     => 'modules/gravityforms/icon-gravity-forms.svg',
-			'supports' => array( 'honeypot', 'davidwalsh' ),
+			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
 		return $sections;
@@ -117,13 +117,13 @@ class GravityForms {
 	}
 
 	/**
-	 * Processes a donation submission.
+	 * Processes a Gravity Forms submission.
 	 *
-	 * @param boolean    $do_abort Indicates if the submission should abort without saving the entry. Default is false. Will be true if the anti-spam honeypot is enabled and the honeypot identified the submission as spam.
-	 * @param FormObject $form The form currently being processed.
+	 * @param boolean    $do_abort Indicates if the submission should abort without saving the entry.
+	 * @param FormObject $form     The form currently being processed.
 	 */
 	public function process_form( $do_abort, $form ) {
-		// // If submission is already marked to be aborted early, don't change it.
+		// If submission is already marked to be aborted early, don't change it.
 		if ( $do_abort ) {
 			return true;
 		}
@@ -146,6 +146,36 @@ class GravityForms {
 		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
 			// Failed the honeypot check.
 			$validation_errors[] = 'honeypot';
+		}
+
+		// Check submitted fields for blocked email domains and disallowed words.
+		$check_blocked_emails  = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_gravityforms_blocked_email_domains' );
+		$check_disallowed      = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_gravityforms_disallowed_words' );
+
+		if ( $check_blocked_emails || $check_disallowed ) {
+			foreach ( $post as $key => $value ) {
+				// Gravity Forms fields use input_X or input_X_Y naming.
+				if ( ! is_string( $value ) || 0 !== strpos( $key, 'input_' ) ) {
+					continue;
+				}
+
+				$value = trim( $value );
+				if ( empty( $value ) ) {
+					continue;
+				}
+
+				// Check for blocked email domains.
+				if ( $check_blocked_emails && \ZeroSpam\Core\Utilities::is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
+					$validation_errors[] = 'blocked_email_domain';
+					break;
+				}
+
+				// Check against disallowed words list.
+				if ( $check_disallowed && \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
+					$validation_errors[] = 'disallowed_list';
+					break;
+				}
+			}
 		}
 
 		// Fire hook for additional validation (ex. David Walsh).
@@ -214,6 +244,32 @@ class GravityForms {
 			'placeholder' => $message,
 			'value'       => ! empty( $options['gravityforms_spam_message'] ) ? $options['gravityforms_spam_message'] : $message,
 			'recommended' => $message,
+		);
+
+		$settings['verify_gravityforms_blocked_email_domains'] = array(
+			'title'       => __( 'Check Blocked Email Domains', 'zero-spam' ),
+			'desc'        => __( 'Block Gravity Forms submissions containing email addresses from blocked domains.', 'zero-spam' ),
+			'section'     => 'gravityforms',
+			'module'      => 'gravityforms',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_gravityforms_blocked_email_domains'] ) ? $options['verify_gravityforms_blocked_email_domains'] : false,
+			'recommended' => 'enabled',
+		);
+
+		$settings['verify_gravityforms_disallowed_words'] = array(
+			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'desc'        => __( 'Block Gravity Forms submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
+			'section'     => 'gravityforms',
+			'module'      => 'gravityforms',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_gravityforms_disallowed_words'] ) ? $options['verify_gravityforms_disallowed_words'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$settings['log_blocked_gravityforms'] = array(

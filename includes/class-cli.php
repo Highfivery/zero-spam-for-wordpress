@@ -37,6 +37,22 @@ class ZeroSpamCLI {
 	/**
 	 * Update a plugin setting(s)
 	 *
+	 * ## OPTIONS
+	 *
+	 * [--<setting>=<value>]
+	 * : One or more settings to update.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Enable data sharing
+	 *     wp zerospam set --share_data=enabled
+	 *
+	 *     # Set blocked email domains (newline-separated)
+	 *     wp zerospam set --blocked_email_domains="spam.com\nfake.com"
+	 *
+	 *     # Regenerate the honeypot ID
+	 *     wp zerospam set --regenerate_honeypot=1
+	 *
 	 * @param array $args       Positional arguments.
 	 * @param array $assoc_args Array of settings to update.
 	 */
@@ -45,17 +61,140 @@ class ZeroSpamCLI {
 
 		if ( $assoc_args ) {
 			foreach ( $assoc_args as $key => $value ) {
+				// Handle action-type settings that trigger operations rather than storing values.
+				if ( 'regenerate_honeypot' === $key ) {
+					\ZeroSpam\Core\Utilities::get_honeypot( true );
+					$new_key = \ZeroSpam\Core\Utilities::get_honeypot();
+					WP_CLI::success( 'Honeypot ID has been regenerated. New ID: ' . $new_key );
+					continue;
+				}
+
+				if ( 'update_blocked_email_domains' === $key ) {
+					\ZeroSpam\Core\Settings::update_blocked_email_domains();
+					WP_CLI::success( 'Blocked email domains have been updated to the recommended list.' );
+					continue;
+				}
+
+				if ( 'update_disallowed_words' === $key ) {
+					\ZeroSpam\Core\Settings::update_disallowed_words();
+					WP_CLI::success( 'WordPress disallowed words list has been updated to the recommended list.' );
+					continue;
+				}
+
 				if ( ! isset( $settings[ $key ] ) ) {
 					WP_CLI::error( $key . ' is not a valid setting.' );
 				} elseif ( \ZeroSpam\Core\Utilities::update_setting( $key, $value ) ) {
 						WP_CLI::success( '\'' . $key . '\' has been successfully updated to \'' . $value . '\'.' );
 				} else {
-					WP_CLI::error( 'There was a problem updating ' . $key . ' See the zerospam.log for more details.' );
+					WP_CLI::error( 'There was a problem updating ' . $key . '. See the zerospam.log for more details.' );
 				}
 			}
 		} else {
 			WP_CLI::error( __( 'Oops! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zero-spam' ) );
 		}
+	}
+
+	/**
+	 * Regenerate the honeypot ID
+	 *
+	 * Generates a new random honeypot field name to prevent bots from
+	 * scripting around the current ID.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp zerospam regenerate-honeypot
+	 *
+	 */
+	public function regenerate_honeypot() {
+		\ZeroSpam\Core\Utilities::get_honeypot( true );
+		$new_key = \ZeroSpam\Core\Utilities::get_honeypot();
+		WP_CLI::success( 'Honeypot ID has been regenerated. New ID: ' . $new_key );
+	}
+
+	/**
+	 * Update blocked email domains
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--file=<file>]
+	 * : Path to a text file with one domain per line.
+	 *
+	 * [--domains=<domains>]
+	 * : Newline-separated list of domains to set.
+	 *
+	 * [--recommended]
+	 * : Use the recommended blocked email domains from Zero Spam.
+	 *
+	 * [--append]
+	 * : Append to existing domains instead of replacing them.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     # Use recommended domains
+	 *     wp zerospam update-blocked-domains --recommended
+	 *
+	 *     # Set specific domains
+	 *     wp zerospam update-blocked-domains --domains="spam.com\nfake.com"
+	 *
+	 *     # Import from file
+	 *     wp zerospam update-blocked-domains --file=/path/to/domains.txt
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function update_blocked_domains( $args, $assoc_args ) {
+		$domains = '';
+
+		if ( ! empty( $assoc_args['recommended'] ) ) {
+			\ZeroSpam\Core\Settings::update_blocked_email_domains();
+			WP_CLI::success( 'Blocked email domains have been updated to the recommended list.' );
+			return;
+		}
+
+		if ( ! empty( $assoc_args['file'] ) ) {
+			$file_path = $assoc_args['file'];
+			if ( ! file_exists( $file_path ) ) {
+				WP_CLI::error( 'File not found: ' . $file_path );
+			}
+			$domains = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			if ( false === $domains ) {
+				WP_CLI::error( 'Could not read file: ' . $file_path );
+			}
+		} elseif ( ! empty( $assoc_args['domains'] ) ) {
+			$domains = $assoc_args['domains'];
+		} else {
+			WP_CLI::error( 'Please specify --recommended, --domains, or --file.' );
+		}
+
+		// Normalize newlines.
+		$domains = str_replace( array( '\n', '\r\n', '\r' ), "\n", $domains );
+
+		// Optionally append to existing domains.
+		if ( ! empty( $assoc_args['append'] ) ) {
+			$existing = get_option( 'zerospam_blocked_email_domains', '' );
+			if ( ! empty( $existing ) ) {
+				$domains = trim( $existing ) . "\n" . trim( $domains );
+			}
+		}
+
+		// Clean up: trim, remove empties, deduplicate.
+		$domain_array = array_filter( array_map( 'trim', explode( "\n", $domains ) ) );
+		$domain_array = array_unique( $domain_array );
+		$domains      = implode( "\n", $domain_array );
+
+		if ( update_option( 'zerospam_blocked_email_domains', $domains ) ) {
+			wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
+			global $wpdb;
+			$wpdb->query(
+				$wpdb->prepare(
+					"UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s",
+					'no',
+					'zerospam_blocked_email_domains'
+				)
+			);
+		}
+
+		WP_CLI::success( 'Blocked email domains updated. Total domains: ' . count( $domain_array ) );
 	}
 
 	/**
@@ -476,3 +615,8 @@ if ( is_multisite() && class_exists( '\ZeroSpam\Includes\CLI\Network_Settings_CL
 }
 
 WP_CLI::add_command( 'zerospam', 'ZeroSpamCLI' );
+
+// Register standalone convenience commands.
+$zerospam_cli = new ZeroSpamCLI();
+WP_CLI::add_command( 'zerospam regenerate-honeypot', array( $zerospam_cli, 'regenerate_honeypot' ) );
+WP_CLI::add_command( 'zerospam update-blocked-domains', array( $zerospam_cli, 'update_blocked_domains' ) );

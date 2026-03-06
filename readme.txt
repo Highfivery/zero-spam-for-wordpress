@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
-Tested up to: 6.9
+Tested up to: 6.9.1
 Requires PHP: 8.2
-Stable tag: 5.7.4
+Stable tag: 5.7.5
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -131,6 +131,28 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.5 =
+
+* **security(database):** fixed SQL injection vulnerabilities in `blocked()` method — all queries now use `$wpdb->prepare()`
+* **security(database):** refactored `query()` method to use prepared statements, column whitelisting, and sanitized LIMIT/OFFSET
+* **security(database):** secured DELETE query in `log()` method with `$wpdb->prepare()` and `absint()`
+* **security(utilities):** added `esc_attr()` to honeypot field output to prevent potential XSS
+* **security(utilities):** hardened `log()` method with `sanitize_file_name()`, mode allowlist, and `fopen` failure handling
+* **fix(gravityforms):** blocked email domains are now checked during Gravity Forms submissions — previously these features were disconnected
+* **fix(contactform7):** blocked email domains and disallowed words are now checked during CF7 submissions
+* **fix(formidable):** blocked email domains and disallowed words are now checked during Formidable Forms submissions
+* **fix(fluentforms):** fixed inverted logic in `validate_email()` that prevented blocked email domain checks from working correctly
+* **fix(cli):** `wp zerospam set --blocked_email_domains` now writes to the correct option (`zerospam_blocked_email_domains`)
+* **fix(cli):** `wp zerospam set --regenerate_honeypot` now properly regenerates the honeypot ID instead of storing a meaningless value
+* **fix(settings):** `auto_configure()` now correctly handles `blocked_email_domains` via standalone option and skips HTML action settings
+* **feat(cli):** added `wp zerospam regenerate-honeypot` standalone command for honeypot ID regeneration
+* **feat(cli):** added `wp zerospam update-blocked-domains` command with `--recommended`, `--file`, `--domains`, and `--append` options
+* **feat(cli):** `wp zerospam set` now supports `--update_blocked_email_domains` and `--update_disallowed_words` action flags
+* **feat(gravityforms):** added per-module toggle settings for blocked email domain and disallowed word checking
+* **feat(contactform7):** added per-module toggle settings for blocked email domain and disallowed word checking
+* **feat(formidable):** added per-module toggle settings for blocked email domain and disallowed word checking
+* **feat(fluentforms):** added per-module toggle setting for disallowed word checking
 
 = v5.7.4 =
 

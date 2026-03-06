@@ -127,6 +127,33 @@ class FluentForms {
 			);
 		}
 
+		// Check submitted fields against disallowed words list.
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_fluentforms_disallowed_words' ) ) {
+			foreach ( $data as $value ) {
+				if ( is_string( $value ) && ! empty( trim( $value ) ) && \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
+					$details['failed'] = 'disallowed_list';
+
+					if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_fluentforms' ) ) {
+						\ZeroSpam\Includes\DB::log( 'fluent_form', $details );
+					}
+
+					if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+						$details['type'] = 'fluent_form';
+						do_action( 'zerospam_share_detection', $details );
+					}
+
+					wp_send_json(
+						array(
+							'errors' => array(
+								'zerospam_disallowed' => $error_message,
+							),
+						),
+						422
+					);
+				}
+			}
+		}
+
 		// Fire hook for additional validation (ex. David Walsh script).
 		$errors = apply_filters( 'zerospam_preprocess_fluentform_submission', array(), $data, 'fluentforms_spam_message' );
 
@@ -175,11 +202,12 @@ class FluentForms {
 			return $error;
 		}
 
+		$email = $form_data[ $field_name ];
+
 		// Check blocked email domains.
 		if (
-			! empty( $form_data[ $field_name ] ) &&
-			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $form_data[ $field_name ] ) &&
-			! \ZeroSpam\Core\Utilities::is_email( $form_data[ $field_name ] )
+			\ZeroSpam\Core\Utilities::is_email( $email ) &&
+			\ZeroSpam\Core\Utilities::is_email_domain_blocked( $email )
 		) {
 			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'fluentforms_spam_message' );
 
@@ -251,6 +279,19 @@ class FluentForms {
 			'placeholder' => $message,
 			'value'       => ! empty( $options['fluentforms_spam_message'] ) ? $options['fluentforms_spam_message'] : $message,
 			'recommended' => $message,
+		);
+
+		$settings['verify_fluentforms_disallowed_words'] = array(
+			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'desc'        => __( 'Block Fluent Forms submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
+			'section'     => 'fluent_form',
+			'module'      => 'fluent_form',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_fluentforms_disallowed_words'] ) ? $options['verify_fluentforms_disallowed_words'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$settings['log_blocked_fluentforms'] = array(

@@ -106,10 +106,32 @@ class Settings {
 		foreach ( $modules as $module => $setting ) {
 			$recommended_settings = array();
 			foreach ( $setting as $key => $args ) {
+				// Skip action-type settings (buttons) that don't store values.
+				if ( ! empty( $args['type'] ) && 'html' === $args['type'] ) {
+					continue;
+				}
+
 				$recommended_settings[ $key ] = isset( $args['value'] ) ? $args['value'] : false;
 				if ( isset( $args['recommended'] ) ) {
 					$recommended_settings[ $key ] = $args['recommended'];
 				}
+			}
+
+			// Handle blocked_email_domains separately — uses standalone option.
+			if ( isset( $recommended_settings['blocked_email_domains'] ) ) {
+				$blocked_domains = $recommended_settings['blocked_email_domains'];
+				if ( $blocked_domains && update_option( 'zerospam_blocked_email_domains', $blocked_domains ) ) {
+					wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
+					global $wpdb;
+					$wpdb->query(
+						$wpdb->prepare(
+							"UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s",
+							'no',
+							'zerospam_blocked_email_domains'
+						)
+					);
+				}
+				unset( $recommended_settings['blocked_email_domains'] );
 			}
 
 			update_option( "zero-spam-$module", $recommended_settings );

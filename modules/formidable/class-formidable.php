@@ -71,7 +71,7 @@ class Formidable {
 		$sections['formidable'] = array(
 			'title'    => __( 'Formidable', 'zero-spam' ),
 			'icon'     => 'modules/formidable/icon-formidable.png',
-			'supports' => array( 'honeypot', 'davidwalsh' ),
+			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
 		return $sections;
@@ -110,6 +110,32 @@ class Formidable {
 			'placeholder' => $message,
 			'value'       => ! empty( $options['formidable_spam_message'] ) ? $options['formidable_spam_message'] : $message,
 			'recommended' => $message,
+		);
+
+		$settings['verify_formidable_blocked_email_domains'] = array(
+			'title'       => __( 'Check Blocked Email Domains', 'zero-spam' ),
+			'desc'        => __( 'Block Formidable submissions containing email addresses from blocked domains.', 'zero-spam' ),
+			'section'     => 'formidable',
+			'module'      => 'formidable',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_formidable_blocked_email_domains'] ) ? $options['verify_formidable_blocked_email_domains'] : false,
+			'recommended' => 'enabled',
+		);
+
+		$settings['verify_formidable_disallowed_words'] = array(
+			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'desc'        => __( 'Block Formidable submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
+			'section'     => 'formidable',
+			'module'      => 'formidable',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_formidable_disallowed_words'] ) ? $options['verify_formidable_disallowed_words'] : false,
+			'recommended' => 'enabled',
 		);
 
 		$settings['log_blocked_formidable'] = array(
@@ -177,6 +203,35 @@ class Formidable {
 			$details['failed'] = 'honeypot';
 
 			$validation_errors[] = 'honeypot';
+		}
+
+		// Check submitted fields for blocked email domains and disallowed words.
+		$check_blocked_emails = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_formidable_blocked_email_domains' );
+		$check_disallowed     = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_formidable_disallowed_words' );
+
+		if ( $check_blocked_emails || $check_disallowed ) {
+			// Formidable form fields use item_meta array.
+			$fields_to_check = ! empty( $post['item_meta'] ) && is_array( $post['item_meta'] ) ? $post['item_meta'] : $post;
+
+			foreach ( $fields_to_check as $value ) {
+				if ( ! is_string( $value ) || empty( trim( $value ) ) ) {
+					continue;
+				}
+
+				$value = trim( $value );
+
+				// Check for blocked email domains.
+				if ( $check_blocked_emails && \ZeroSpam\Core\Utilities::is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
+					$validation_errors[] = 'blocked_email_domain';
+					break;
+				}
+
+				// Check against disallowed words list.
+				if ( $check_disallowed && \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
+					$validation_errors[] = 'disallowed_list';
+					break;
+				}
+			}
 		}
 
 		// Fire hook for additional validation (ex. David Walsh).
