@@ -138,11 +138,6 @@
 		try {
 			const response = await fetch( config.restUrl, {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-WP-Nonce': config.restNonce || '',
-				},
-				credentials: 'same-origin',
 			} );
 
 			if ( ! response.ok ) {

@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9.1
 Requires PHP: 8.2
-Stable tag: 5.7.6
+Stable tag: 5.7.7
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -131,6 +131,12 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.7 =
+
+* **fix(davidwalsh):** fixed 403 responses on `/wp-json/zero-spam/v5/davidwalsh-key` for non-logged-in visitors on cached pages — stale `wp_rest` nonce in the AJAX key-refresh request triggered WordPress cookie authentication rejection before the public `permission_callback` was evaluated; removed unnecessary nonce header since the endpoint is intentionally public
+* **ui(project honeypot):** added direct link to Project Honeypot website in the settings section description
+* **ui(project honeypot):** renamed "Access Key" field to "HTTP:BL Access Key" with links to sign up and find the key on the HTTP:BL configuration page
 
 = v5.7.6 =
 

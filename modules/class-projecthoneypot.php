@@ -192,19 +192,46 @@ class ProjectHoneypot {
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
-			'desc'        => __( 'Check if visitors are known spammers from Project Honeypot\'s database.', 'zero-spam' ),
+			'desc'        => sprintf(
+				wp_kses(
+					/* translators: %s: URL to Project Honeypot website */
+					__( 'Check if visitors are known spammers using <a href="%s" target="_blank" rel="noopener noreferrer">Project Honeypot\'s</a> database.', 'zero-spam' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				),
+				'https://www.projecthoneypot.org/'
+			),
 			'value'       => ! empty( $options['project_honeypot'] ) ? $options['project_honeypot'] : false,
 			'recommended' => 'enabled',
 		);
 
 		$settings['project_honeypot_access_key'] = array(
-			'title'       => __( 'Access Key', 'zero-spam' ),
-			'desc'        => __( 'Enter your Project Honeypot access key (it\'s free to sign up).', 'zero-spam' ),
+			'title'       => __( 'HTTP:BL Access Key', 'zero-spam' ),
+			'desc'        => sprintf(
+				wp_kses(
+					/* translators: %1$s: URL to sign up, %2$s: URL to HTTP:BL configuration page */
+					__( 'Enter your Project Honeypot HTTP:BL Access Key. <a href="%1$s" target="_blank" rel="noopener noreferrer">Sign up for free</a>, then find your access key on the <a href="%2$s" target="_blank" rel="noopener noreferrer">HTTP:BL configuration page</a>.', 'zero-spam' ),
+					array(
+						'a' => array(
+							'href'   => array(),
+							'target' => array(),
+							'rel'    => array(),
+						),
+					)
+				),
+				'https://www.projecthoneypot.org/create_account.php',
+				'https://www.projecthoneypot.org/httpbl_configure.php'
+			),
 			'section'     => 'project_honeypot',
 			'module'      => 'project_honeypot',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
-			'placeholder' => __( 'Enter your Project Honeypot access key.', 'zero-spam' ),
+			'placeholder' => __( 'Enter your HTTP:BL access key.', 'zero-spam' ),
 			'value'       => ! empty( $options['project_honeypot_access_key'] ) ? $options['project_honeypot_access_key'] : false,
 		);
 

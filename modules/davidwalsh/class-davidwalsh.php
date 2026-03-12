@@ -522,7 +522,6 @@ class DavidWalsh {
 				'ttl'       => (int) self::KEY_TTL,
 				'selectors' => implode( ', ', (array) $selectors ),
 				'restUrl'   => rest_url( self::REST_NAMESPACE . '/davidwalsh-key' ),
-				'restNonce' => wp_create_nonce( 'wp_rest' ),
 			)
 		);
 	}
