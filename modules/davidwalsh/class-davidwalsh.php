@@ -110,8 +110,8 @@ class DavidWalsh {
 			add_filter( 'zerospam_preprocess_fluentform_submission', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_login_attempt', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_mailchimp4wp', array( $this, 'validate_post' ), 10, 3 );
-			add_filter( 'zerospam_process_woocommerce_registration', array( $this, 'validate_post' ), 10, 3 );
-			add_filter( 'zerospam_process_woocommerce_checkout', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_woocommerce_registration', array( $this, 'validate_post' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_woocommerce_checkout', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_gravityforms_submission', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_formidable_submission', array( $this, 'validate_post' ), 10, 3 );
 			add_filter( 'zerospam_preprocess_elementor_submission', array( $this, 'validate_post' ), 10, 3 );

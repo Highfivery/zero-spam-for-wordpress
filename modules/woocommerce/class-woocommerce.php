@@ -25,6 +25,69 @@ class WooCommerce {
 	 */
 	public function __construct() {
 		add_action( 'init', array( $this, 'init' ) );
+
+		// Run one-time option key migration.
+		self::maybe_migrate_options();
+	}
+
+	/**
+	 * Migrates legacy option keys to their correct names.
+	 *
+	 * Prior to 5.7.9:
+	 * - The registration spam message was stored under the incorrect key
+	 *   'registration_spam_message' instead of 'woocommerce_registration_spam_message'.
+	 * - Checkout protection was implicitly tied to the registration toggle. This
+	 *   migration enables the new 'verify_woocommerce_checkout' setting for sites
+	 *   that already had registration protection enabled, and copies the registration
+	 *   logging preference to the new checkout logging setting.
+	 *
+	 * Runs once per site.
+	 */
+	public static function maybe_migrate_options() {
+		if ( get_transient( 'zerospam_woo_options_migrated' ) ) {
+			return;
+		}
+
+		$options = get_option( 'zero-spam-woocommerce' );
+		$updated = false;
+
+		if ( is_array( $options ) ) {
+			// Migrate the mismatched spam message key.
+			if ( isset( $options['registration_spam_message'] ) ) {
+				if ( empty( $options['woocommerce_registration_spam_message'] ) ) {
+					$options['woocommerce_registration_spam_message'] = $options['registration_spam_message'];
+				}
+
+				unset( $options['registration_spam_message'] );
+				$updated = true;
+			}
+
+			// Carry over checkout protection from the registration toggle so existing
+			// sites don't silently lose checkout protection after the update.
+			if (
+				! empty( $options['verify_woocommerce_registrations'] ) &&
+				! isset( $options['verify_woocommerce_checkout'] )
+			) {
+				$options['verify_woocommerce_checkout'] = $options['verify_woocommerce_registrations'];
+				$updated = true;
+			}
+
+			// Carry over logging preference to the new checkout logging setting.
+			if (
+				! empty( $options['log_blocked_woocommerce_registrations'] ) &&
+				! isset( $options['log_blocked_woocommerce_checkouts'] )
+			) {
+				$options['log_blocked_woocommerce_checkouts'] = $options['log_blocked_woocommerce_registrations'];
+				$updated = true;
+			}
+
+			if ( $updated ) {
+				update_option( 'zero-spam-woocommerce', $options );
+			}
+		}
+
+		// Use a long-lived transient as a migration flag — cleaned up on uninstall.
+		set_transient( 'zerospam_woo_options_migrated', 1, YEAR_IN_SECONDS );
 	}
 
 	/**
@@ -85,14 +148,14 @@ class WooCommerce {
 		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
 
 		$settings['woocommerce_registration_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Registration Flagged Message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when WooCommerce detects a spam registration.', 'zero-spam' ),
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
 			'type'        => 'text',
 			'field_class' => 'large-text',
 			'placeholder' => $message,
-			'value'       => ! empty( $options['registration_spam_message'] ) ? $options['registration_spam_message'] : $message,
+			'value'       => ! empty( $options['woocommerce_registration_spam_message'] ) ? $options['woocommerce_registration_spam_message'] : $message,
 			'recommended' => $message,
 		);
 
@@ -109,6 +172,46 @@ class WooCommerce {
 			'recommended' => 'enabled',
 		);
 
+		$settings['verify_woocommerce_checkout'] = array(
+			'title'       => __( 'Protect Checkout', 'zero-spam' ),
+			'desc'        => __( 'Stop spam orders from being placed through WooCommerce checkout.', 'zero-spam' ),
+			'section'     => 'woocommerce',
+			'module'      => 'woocommerce',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_woocommerce_checkout'] ) ? 'enabled' : false,
+			'recommended' => 'enabled',
+		);
+
+		$checkout_message = __( 'Your order could not be processed. Please contact us for assistance.', 'zero-spam' );
+
+		$settings['woocommerce_checkout_spam_message'] = array(
+			'title'       => __( 'Checkout Flagged Message', 'zero-spam' ),
+			'desc'        => __( 'The message shown when WooCommerce detects a spam checkout attempt.', 'zero-spam' ),
+			'section'     => 'woocommerce',
+			'module'      => 'woocommerce',
+			'type'        => 'text',
+			'field_class' => 'large-text',
+			'placeholder' => $checkout_message,
+			'value'       => ! empty( $options['woocommerce_checkout_spam_message'] ) ? $options['woocommerce_checkout_spam_message'] : $checkout_message,
+			'recommended' => $checkout_message,
+		);
+
+		$settings['log_blocked_woocommerce_checkouts'] = array(
+			'title'       => __( 'Log Blocked Checkouts', 'zero-spam' ),
+			'section'     => 'woocommerce',
+			'module'      => 'woocommerce',
+			'type'        => 'checkbox',
+			'desc'        => __( 'Keep a record of blocked WooCommerce checkout attempts.', 'zero-spam' ),
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['log_blocked_woocommerce_checkouts'] ) ? 'enabled' : false,
+			'recommended' => 'enabled',
+		);
+
 		return $settings;
 	}
 
@@ -120,15 +223,23 @@ class WooCommerce {
 		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
+		$should_process = \ZeroSpam\Core\Access::process();
+
+		// Registration protection.
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_woocommerce_registrations' ) &&
-			\ZeroSpam\Core\Access::process()
+			$should_process
 		) {
 			add_action( 'woocommerce_register_form', array( $this, 'add_honeypot_field' ) );
 			add_action( 'woocommerce_register_form', array( $this, 'add_scripts' ) );
 			add_action( 'woocommerce_register_post', array( $this, 'process_registration' ), 10, 3 );
+		}
 
-			// Checkout protection.
+		// Checkout protection.
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_woocommerce_checkout' ) &&
+			$should_process
+		) {
 			add_action( 'woocommerce_before_checkout_form', array( $this, 'add_scripts' ) );
 			add_action( 'woocommerce_after_order_notes', array( $this, 'add_honeypot_field' ), 10 );
 			add_action( 'woocommerce_checkout_process', array( $this, 'process_checkout' ) );
@@ -136,7 +247,7 @@ class WooCommerce {
 	}
 
 	/**
-	 * Adds the 'honeypot' field to the WooCommerce registration form
+	 * Adds the 'honeypot' field to WooCommerce forms.
 	 */
 	public function add_honeypot_field() {
 		woocommerce_form_field(
@@ -205,7 +316,7 @@ class WooCommerce {
 		}
 
 		// Fire hook for additional validation (ex. David Walsh script).
-		$filtered_errors = apply_filters( 'zerospam_process_woocommerce_registration', array(), $data, 'woocommerce_registration_spam_message' );
+		$filtered_errors = apply_filters( 'zerospam_preprocess_woocommerce_registration', array(), $data, 'woocommerce_registration_spam_message' );
 
 		if ( ! empty( $filtered_errors ) ) {
 			foreach ( $filtered_errors as $key => $message ) {
@@ -245,12 +356,15 @@ class WooCommerce {
 		// @codingStandardsIgnoreLine
 		$data = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
 
-		// Get the WooCommerce registration spam message (reused for checkout).
-		$spam_message = \ZeroSpam\Core\Utilities::detection_message( 'woocommerce_registration_spam_message' );
+		// Get the WooCommerce checkout spam message.
+		$spam_message = \ZeroSpam\Core\Utilities::detection_message( 'woocommerce_checkout_spam_message' );
+
+		// Get the billing email for validation.
+		$billing_email = isset( $data['billing_email'] ) ? $data['billing_email'] : '';
 
 		// Create the details array for logging & sharing data.
 		$details = array(
-			'email' => isset( $data['billing_email'] ) ? $data['billing_email'] : '',
+			'email' => $billing_email,
 			'data'  => $data,
 			'type'  => 'woocommerce_checkout',
 		);
@@ -265,14 +379,17 @@ class WooCommerce {
 			$validation_errors[] = 'honeypot';
 		}
 
-		// Fire hook for additional validation (ex. David Walsh script).
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
-			$filtered_errors = apply_filters( 'zerospam_process_woocommerce_checkout', array(), $data, 'woocommerce_registration_spam_message' );
+		// Check blocked email domains against billing email.
+		if ( ! empty( $billing_email ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $billing_email ) ) {
+			$validation_errors[] = 'blocked_email_domain';
+		}
 
-			if ( ! empty( $filtered_errors ) ) {
-				foreach ( $filtered_errors as $key => $message ) {
-					$validation_errors[] = str_replace( 'zerospam_', '', $key );
-				}
+		// Fire hook for additional validation (ex. David Walsh script).
+		$filtered_errors = apply_filters( 'zerospam_preprocess_woocommerce_checkout', array(), $data, 'woocommerce_checkout_spam_message' );
+
+		if ( ! empty( $filtered_errors ) ) {
+			foreach ( $filtered_errors as $key => $message ) {
+				$validation_errors[] = str_replace( 'zerospam_', '', $key );
 			}
 		}
 
@@ -283,7 +400,7 @@ class WooCommerce {
 				$details['failed'] = $fail;
 
 				// Log the detection if enabled.
-				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_woocommerce_registrations' ) ) {
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_woocommerce_checkouts' ) ) {
 					\ZeroSpam\Includes\DB::log( 'woocommerce_checkout', $details );
 				}
 
