@@ -16,6 +16,7 @@ jobs:
             use_local_config: 'true'
             enable_warnings: 'false'
             only_changed_files: 'true'
+            only_changed_lines: 'true'
             extra_args: '--report-json=./phpcs.json'
         - name: Update summary
           run: |
