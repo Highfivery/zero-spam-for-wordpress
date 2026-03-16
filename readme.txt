@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9.1
 Requires PHP: 8.2
-Stable tag: 5.7.7
+Stable tag: 5.7.8
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -131,6 +131,21 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.8 =
+
+* **fix(contactform7):** disallowed word checks no longer scan security token fields like Cloudflare Turnstile (`cf-turnstile-response`), reCAPTCHA, and hCaptcha responses — these long random strings almost always triggered false positives against short blocklist entries
+* **fix(gravityforms):** disallowed word and blocked email domain checks now use the centralized field validation with excluded fields support
+* **fix(formidable):** disallowed word and blocked email domain checks now use the centralized field validation with excluded fields support
+* **fix(fluentforms):** disallowed word checks now use the centralized field validation with excluded fields support
+* **fix(wpforms):** disallowed word and blocked email domain checks now use the centralized field validation with excluded fields support
+* **feat(settings):** added "Allowed Words" setting — lets you whitelist specific words so they are never flagged as spam, even if they appear in the disallowed words list (e.g. if your email or domain contains a blocked string like "ugg")
+* **feat(settings):** added "Minimum Disallowed Word Length" setting — skip very short blocklist entries (3-4 characters) that cause the most false positives
+* **feat(utilities):** added `zerospam_excluded_fields` filter — developers can add custom POST field keys (e.g. third-party CAPTCHA tokens) to exclude from disallowed word scanning
+* **feat(utilities):** added `Utilities::check_fields_for_spam()` centralized method — all form modules now share the same field validation logic with automatic system field exclusion
+* **feat(comments):** allowed words and minimum word length settings now also apply to WordPress comment validation via `wp_check_comment_disallowed_list()`
+* **refactor(modules):** deduplicated field validation loops across CF7, Gravity Forms, Formidable, Fluent Forms, and WPForms modules into shared `check_fields_for_spam()` utility
+* **perf(utilities):** allowed words list and minimum length setting are cached per-request to avoid repeated database lookups when checking multiple form fields
 
 = v5.7.7 =
 

@@ -133,6 +133,8 @@ class Comments {
 		}
 
 		// Check comment disallowed list.
+		// Temporarily filter the disallowed_keys option to respect the allowed
+		// words setting and minimum word length, then restore after the check.
 		$disallowed_check = array(
 			'author'  => ! empty( $commentdata['comment_author'] ) ? $commentdata['comment_author'] : false,
 			'email'   => ! empty( $commentdata['comment_author_email'] ) ? $commentdata['comment_author_email'] : false,
@@ -141,6 +143,8 @@ class Comments {
 			'ip'      => \ZeroSpam\Core\User::get_ip(),
 			'agent'   => ! empty( $commentdata['comment_agent'] ) ? $commentdata['comment_agent'] : false,
 		);
+
+		\ZeroSpam\Core\Utilities::add_allowed_words_filter();
 
 		if ( wp_check_comment_disallowed_list(
 			$disallowed_check['author'],
@@ -152,6 +156,8 @@ class Comments {
 		) ) {
 			$validation_errors[] = 'disallowed_list';
 		}
+
+		\ZeroSpam\Core\Utilities::remove_allowed_words_filter();
 
 		if ( ! empty( $validation_errors ) ) {
 			// Failed validations, log & send details if enabled.

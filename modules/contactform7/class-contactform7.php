@@ -105,29 +105,14 @@ class ContactForm7 {
 		}
 
 		// Check submitted fields for blocked email domains and disallowed words.
+		// Uses the centralized check that automatically skips system/security
+		// token fields (e.g. cf-turnstile-response, g-recaptcha-response).
 		$check_blocked_emails = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7_blocked_email_domains' );
 		$check_disallowed     = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7_disallowed_words' );
 
 		if ( $check_blocked_emails || $check_disallowed ) {
-			foreach ( $post as $key => $value ) {
-				if ( ! is_string( $value ) || empty( trim( $value ) ) ) {
-					continue;
-				}
-
-				$value = trim( $value );
-
-				// Check for blocked email domains.
-				if ( $check_blocked_emails && \ZeroSpam\Core\Utilities::is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
-					$validation_errors[] = 'blocked_email_domain';
-					break;
-				}
-
-				// Check against disallowed words list.
-				if ( $check_disallowed && \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
-					$validation_errors[] = 'disallowed_list';
-					break;
-				}
-			}
+			$field_errors        = \ZeroSpam\Core\Utilities::check_fields_for_spam( $post, $check_blocked_emails, $check_disallowed );
+			$validation_errors   = array_merge( $validation_errors, $field_errors );
 		}
 
 		// Fire hook for additional validation (ex. David Walsh script).

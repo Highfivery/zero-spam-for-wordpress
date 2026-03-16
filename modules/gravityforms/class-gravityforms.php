@@ -153,29 +153,16 @@ class GravityForms {
 		$check_disallowed      = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_gravityforms_disallowed_words' );
 
 		if ( $check_blocked_emails || $check_disallowed ) {
+			// Extract only user-input fields (input_X or input_X_Y naming).
+			$user_fields = array();
 			foreach ( $post as $key => $value ) {
-				// Gravity Forms fields use input_X or input_X_Y naming.
-				if ( ! is_string( $value ) || 0 !== strpos( $key, 'input_' ) ) {
-					continue;
-				}
-
-				$value = trim( $value );
-				if ( empty( $value ) ) {
-					continue;
-				}
-
-				// Check for blocked email domains.
-				if ( $check_blocked_emails && \ZeroSpam\Core\Utilities::is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
-					$validation_errors[] = 'blocked_email_domain';
-					break;
-				}
-
-				// Check against disallowed words list.
-				if ( $check_disallowed && \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
-					$validation_errors[] = 'disallowed_list';
-					break;
+				if ( is_string( $value ) && 0 === strpos( $key, 'input_' ) ) {
+					$user_fields[ $key ] = $value;
 				}
 			}
+
+			$field_errors      = \ZeroSpam\Core\Utilities::check_fields_for_spam( $user_fields, $check_blocked_emails, $check_disallowed );
+			$validation_errors = array_merge( $validation_errors, $field_errors );
 		}
 
 		// Fire hook for additional validation (ex. David Walsh).

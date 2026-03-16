@@ -128,29 +128,29 @@ class FluentForms {
 		}
 
 		// Check submitted fields against disallowed words list.
+		// Uses the centralized check that skips system/security token fields.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_fluentforms_disallowed_words' ) ) {
-			foreach ( $data as $value ) {
-				if ( is_string( $value ) && ! empty( trim( $value ) ) && \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
-					$details['failed'] = 'disallowed_list';
+			$field_errors = \ZeroSpam\Core\Utilities::check_fields_for_spam( $data, false, true );
+			if ( ! empty( $field_errors ) ) {
+				$details['failed'] = $field_errors[0];
 
-					if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_fluentforms' ) ) {
-						\ZeroSpam\Includes\DB::log( 'fluent_form', $details );
-					}
-
-					if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
-						$details['type'] = 'fluent_form';
-						do_action( 'zerospam_share_detection', $details );
-					}
-
-					wp_send_json(
-						array(
-							'errors' => array(
-								'zerospam_disallowed' => $error_message,
-							),
-						),
-						422
-					);
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_fluentforms' ) ) {
+					\ZeroSpam\Includes\DB::log( 'fluent_form', $details );
 				}
+
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+					$details['type'] = 'fluent_form';
+					do_action( 'zerospam_share_detection', $details );
+				}
+
+				wp_send_json(
+					array(
+						'errors' => array(
+							'zerospam_disallowed' => $error_message,
+						),
+					),
+					422
+				);
 			}
 		}
 
