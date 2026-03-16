@@ -99,6 +99,64 @@ class Admin {
 
 		// Display API monitoring feature notice (one-time).
 		$this->display_api_monitoring_notice();
+
+		// Display one-time settings review notice after migration fix.
+		$this->display_settings_review_notice();
+	}
+
+	/**
+	 * Display one-time settings review notice after migration fix.
+	 *
+	 * A bug in previous versions caused the "Log Blocked IPs" setting (and potentially
+	 * other settings) to revert to defaults after plugin updates. This notice prompts
+	 * administrators to verify their configuration after the fix has been applied.
+	 *
+	 * @since 5.7.9
+	 */
+	private function display_settings_review_notice() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		if ( ! get_option( \ZeroSpam\Includes\Migrations::SETTINGS_REVIEW_NOTICE_OPTION, false ) ) {
+			return;
+		}
+
+		$settings_url = admin_url( 'options-general.php?page=wordpress-zero-spam-settings&subview=settings' );
+		$dismiss_url  = wp_nonce_url(
+			admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=dismiss-settings-review-notice' ),
+			'dismiss-settings-review-notice',
+			'zero-spam'
+		);
+		?>
+		<div class="notice notice-warning is-dismissible" id="zerospam-settings-review-notice">
+			<p>
+				<?php
+				printf(
+					wp_kses(
+						/* translators: %s: URL to the plugin settings page */
+						__( '<strong>Zero Spam for WordPress:</strong> A bug that could reset your settings (such as "Log Blocked IPs") after plugin updates has been fixed. Please <a href="%s">verify your settings</a> are configured as intended.', 'zero-spam' ),
+						array(
+							'strong' => array(),
+							'a'      => array(
+								'href' => array(),
+							),
+						)
+					),
+					esc_url( $settings_url )
+				);
+				?>
+			</p>
+			<p>
+				<a href="<?php echo esc_url( $settings_url ); ?>" class="button button-primary">
+					<?php esc_html_e( 'Review Settings', 'zero-spam' ); ?>
+				</a>
+				<a href="<?php echo esc_url( $dismiss_url ); ?>" class="button button-secondary">
+					<?php esc_html_e( 'Dismiss', 'zero-spam' ); ?>
+				</a>
+			</p>
+		</div>
+		<?php
 	}
 
 	/**
