@@ -134,6 +134,16 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 
 = v5.7.8 =
 
+* **fix(dashboard-widget):** widget now properly hides when disabled — previously displayed for administrators even when all roles were deselected in visibility settings ([#391](https://github.com/Highfivery/zero-spam-for-wordpress/issues/391))
+* **fix(dashboard-widget):** resolved database errors (`Table 'prefix_zerospam_log' doesn't exist`) by adding table existence checks before querying — shows a clean notice with remediation steps when the log table is missing ([#391](https://github.com/Highfivery/zero-spam-for-wordpress/issues/391))
+* **fix(settings):** multi-select fields (e.g. widget visibility) now correctly store an empty array when no options are selected, preventing fallback to default values
+* **fix(dashboard-widget):** AJAX refresh now correctly returns network-level data on multisite network admin dashboards
+* **fix(dashboard-widget):** widget transient cache is now cleared immediately when settings are saved, so visibility changes take effect without waiting for the 5-minute cache expiry
+* **feat(settings):** added "Dashboard Widget" enable/disable toggle — provides an unambiguous on/off control separate from role-based visibility
+* **feat(dashboard-widget):** added `zerospam_dashboard_widget_visible` filter — developers can programmatically override widget visibility
+* **feat(dashboard-widget):** refresh button now updates stats and charts in-place via AJAX without requiring a page reload
+* **refactor(dashboard-widget):** extracted duplicated role-check logic into reusable `has_widget_access()` method, eliminating ~60 lines of duplication
+* **perf(dashboard-widget):** Chart.js is now bundled locally instead of loaded from CDN — works in locked-down environments and eliminates external dependency
 * **fix(contactform7):** disallowed word checks no longer scan security token fields like Cloudflare Turnstile (`cf-turnstile-response`), reCAPTCHA, and hCaptcha responses — these long random strings almost always triggered false positives against short blocklist entries
 * **fix(gravityforms):** disallowed word and blocked email domain checks now use the centralized field validation with excluded fields support
 * **fix(formidable):** disallowed word and blocked email domain checks now use the centralized field validation with excluded fields support

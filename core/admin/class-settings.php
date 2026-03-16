@@ -342,13 +342,29 @@ class Settings {
 		$all_settings = \ZeroSpam\Core\Settings::get_settings();
 		
 		foreach ( $all_settings as $setting_key => $setting_config ) {
-			if ( 
-				isset( $setting_config['type'] ) && 
+			if (
+				isset( $setting_config['type'] ) &&
 				'checkbox' === $setting_config['type'] &&
 				isset( $setting_config['module'] ) &&
 				! isset( $input[ $setting_key ] )
 			) {
 				$input[ $setting_key ] = false;
+			}
+		}
+
+		// Handle empty multi-select fields.
+		// HTML multi-selects don't submit a value when nothing is selected,
+		// so explicitly store an empty array to distinguish "none selected"
+		// from "never configured".
+		foreach ( $all_settings as $setting_key => $setting_config ) {
+			if (
+				isset( $setting_config['type'] ) &&
+				'select' === $setting_config['type'] &&
+				! empty( $setting_config['multiple'] ) &&
+				isset( $setting_config['module'] ) &&
+				! isset( $input[ $setting_key ] )
+			) {
+				$input[ $setting_key ] = array();
 			}
 		}
 
