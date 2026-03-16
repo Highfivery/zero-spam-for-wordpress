@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <ruleset name="Zero Spam for WordPress">
-	<description>Custom ruleset for Zero Spam for WordPress, based on 10up standards.</description>
+	<description>Custom ruleset for Zero Spam for WordPress.</description>
 
-	<!-- Use 10up's standard ruleset -->
-	<rule ref="10up-Default" />
+	<!-- WordPress coding standards (Core + Extra + Docs) -->
+	<rule ref="WordPress" />
 
 	<!-- Scan everything in the current directory -->
 	<file>.</file>
