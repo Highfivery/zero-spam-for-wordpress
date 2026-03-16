@@ -504,12 +504,17 @@ class Utilities {
 			$value = trim( $value );
 
 			// Check for blocked email domains.
+			// If a blocked domain is found, break immediately — no need to
+			// also run the disallowed words check on the same value.
 			if ( $check_blocked_emails && self::is_email( $value ) && self::is_email_domain_blocked( $value ) ) {
 				$errors[] = 'blocked_email_domain';
 				break;
 			}
 
 			// Check against disallowed words list.
+			// Note: email values that pass the blocked domain check above will
+			// still be checked here for disallowed words. This is intentional —
+			// an email address can contain spam strings regardless of its domain.
 			if ( $check_disallowed && self::is_disallowed( $value ) ) {
 				$errors[] = 'disallowed_list';
 				break;
