@@ -251,6 +251,10 @@ class Settings {
 		}
 
 		foreach ( \ZeroSpam\Core\Settings::get_settings() as $key => $setting ) {
+			if ( ! \ZeroSpam\Core\Settings::is_valid_setting( $key, $setting ) ) {
+				continue;
+			}
+
 			$options = array_merge(
 				array(
 					'label_for' => $key,
@@ -284,6 +288,22 @@ class Settings {
 	 * @param array $args Field arguments.
 	 */
 	public function settings_field( $args ) {
+		$args = wp_parse_args(
+			$args,
+			array(
+				'module'      => 'settings',
+				'label_for'   => '',
+				'type'        => 'text',
+				'desc'        => '',
+				'html'        => '',
+				'value'       => false,
+				'options'     => array(),
+				'field_class' => '',
+				'placeholder' => '',
+				'suffix'      => '',
+			)
+		);
+
 		$setting_name = 'zero-spam-' . $args['module'] . '[' . $args['label_for'] . ']';
 
 		if ( ! empty( $args['desc'] ) ) {

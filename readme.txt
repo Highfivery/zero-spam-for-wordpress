@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9
 Requires PHP: 8.2
-Stable tag: 5.5.9
+Stable tag: 5.5.8
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -107,12 +107,13 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 == Changelog ==
 
-= v5.5.9 =
-
-* fix(api): corrected app_type case mismatch and app_details/email_details encoding
-
 = v5.5.8 =
 
+* fix(settings): resolved multiple PHP 8.x "Undefined array key" warnings for `type` and `module` in settings registration and rendering ([#394](https://github.com/Highfivery/zero-spam-for-wordpress/issues/394))
+* fix(settings): added centralized `Settings::is_valid_setting()` validation method to enforce required-key contract on `zerospam_settings` filter — invalid settings are logged in debug mode
+* fix(settings): `settings_field()` now applies `wp_parse_args()` defaults, preventing undefined key warnings for optional field attributes
+* fix(settings): settings missing the `section` key now default to `general` instead of triggering warnings
+* fix(api): corrected app_type case mismatch and app_details/email_details encoding
 * fix(caching): prevented caching of 403 forbidden pages to resolve compatibility with litespeed cache (closes #383)
 * fix(david walsh): improved js reliability for comment forms to prevent false positives (closes #378)
 * fix(david walsh): resolved conflict where wpforms submissions were blocked when david walsh protection was enabled (closes #364)
