@@ -1,0 +1,100 @@
+/**
+ * Site Overrides Styles
+ *
+ * Styling for lock indicators and network setting notices
+ * on site admin settings pages.
+ */
+
+/* Network Notice */
+.zerospam-network-notice {
+	border-left: 4px solid #2271b1;
+	margin: 20px 0;
+}
+
+.zerospam-network-notice strong {
+	font-size: 14px;
+	display: block;
+	margin-bottom: 5px;
+}
+
+/* Locked Badge */
+.zerospam-locked-badge {
+	display: inline-block;
+	background: #d63638;
+	color: #fff;
+	padding: 5px 12px;
+	border-radius: 3px;
+	font-size: 13px;
+	font-weight: 600;
+	margin-bottom: 10px;
+}
+
+/* Network Default Notice */
+.zerospam-network-default-notice {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin-top: 5px !important;
+	padding: 8px 12px;
+	background: #f0f6fc;
+	border-left: 3px solid #2271b1;
+	color: #1d2327;
+}
+
+.zerospam-network-default-notice code {
+	background: #fff;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+/* Override Notice */
+.zerospam-override-notice {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin-top: 5px !important;
+	padding: 8px 12px;
+	background: #fffaef;
+	border-left: 3px solid #dba617;
+	color: #1d2327;
+}
+
+.zerospam-override-notice code {
+	background: #fff;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-size: 12px;
+}
+
+/* Locked Field Styling */
+input[disabled].zerospam-locked,
+select[disabled].zerospam-locked,
+textarea[disabled].zerospam-locked {
+	background: #f0f0f1;
+	border-color: #d63638;
+	cursor: not-allowed;
+	opacity: 0.7;
+}
+
+/* Helper Text */
+.zerospam-setting-help {
+	font-size: 13px;
+	color: #646970;
+	margin-top: 8px;
+	font-style: italic;
+}
+
+/* Responsive */
+@media screen and (max-width: 782px) {
+	.zerospam-locked-badge {
+		display: block;
+		text-align: center;
+	}
+
+	.zerospam-network-default-notice,
+	.zerospam-override-notice {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+}

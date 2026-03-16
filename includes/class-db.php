@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '1.0';
+	const DB_VERSION = '1.4';
 
 	/**
 	 * DB tables
@@ -24,9 +24,14 @@ class DB {
 	 * @var array $tables List of plugin database tables.
 	 */
 	public static $tables = array(
-		'log'       => 'wpzerospam_log',
-		'blocked'   => 'wpzerospam_blocked',
-		'blacklist' => 'wpzerospam_blacklist',
+		'log'              => 'wpzerospam_log',
+		'blocked'          => 'wpzerospam_blocked',
+		'blacklist'        => 'wpzerospam_blacklist',
+		'api_usage'        => 'wpzerospam_api_usage',
+		'stats_daily'      => 'wpzerospam_stats_daily',
+		'stats_monthly'    => 'wpzerospam_stats_monthly',
+		'network_templates' => 'wpzerospam_network_templates',
+		'network_audit'    => 'wpzerospam_network_audit',
 	);
 
 	/**
@@ -49,6 +54,7 @@ class DB {
 
 			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['log'] . " (
 				log_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				blog_id bigint(20) unsigned NOT NULL DEFAULT 1,
 				log_type varchar(255) NOT NULL,
 				user_ip varchar(39) NOT NULL,
 				date_recorded datetime NOT NULL,
@@ -62,7 +68,9 @@ class DB {
 				zip varchar(10) DEFAULT NULL,
 				latitude varchar(255) DEFAULT NULL,
 				longitude varchar(255) DEFAULT NULL,
-				PRIMARY KEY  (log_id)
+				PRIMARY KEY  (log_id),
+			KEY blog_id (blog_id),
+			KEY blog_date (blog_id, date_recorded)
 			) $charset_collate;";
 
 			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['blocked'] . " (
@@ -78,10 +86,222 @@ class DB {
 				PRIMARY KEY  (blocked_id)
 			) $charset_collate;";
 
-			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-			dbDelta( $sql );
+			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['api_usage'] . " (
+				usage_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+				event_type enum('api_call','cache_hit','cache_miss','error') NOT NULL DEFAULT 'api_call',
+				endpoint varchar(255) NOT NULL,
+				response_code int(11) DEFAULT NULL,
+				response_time_ms int(11) DEFAULT NULL,
+				queries_limit int(11) DEFAULT NULL,
+				queries_made int(11) DEFAULT NULL,
+				queries_remaining int(11) DEFAULT NULL,
+				error_message text DEFAULT NULL,
+				request_params text DEFAULT NULL,
+				date_recorded datetime NOT NULL,
+				hour_bucket datetime NOT NULL,
+				day_bucket date NOT NULL,
+				KEY site_date (site_id, date_recorded),
+				KEY site_day (site_id, day_bucket),
+				KEY site_hour (site_id, hour_bucket),
+				KEY event_type (event_type),
+				KEY response_code (response_code),
+				PRIMARY KEY  (usage_id)
+			) $charset_collate;";
+
+			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_daily'] . " (
+				stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+				site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+				stat_date date NOT NULL,
+				total_spam_blocked int(11) NOT NULL DEFAULT 0,
+				spam_by_type text DEFAULT NULL,
+				top_countries text DEFAULT NULL,
+				top_ips text DEFAULT NULL,
+				top_log_types text DEFAULT NULL,
+				unique_ips int(11) NOT NULL DEFAULT 0,
+				date_aggregated datetime NOT NULL,
+				PRIMARY KEY  (stat_id),
+				UNIQUE KEY site_date (site_id, stat_date),
+				KEY stat_date (stat_date)
+			) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_monthly'] . " (
+			stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+			stat_year int(4) NOT NULL,
+			stat_month int(2) NOT NULL,
+			total_spam_blocked int(11) NOT NULL DEFAULT 0,
+			spam_by_type text DEFAULT NULL,
+			top_countries text DEFAULT NULL,
+			top_ips text DEFAULT NULL,
+			top_log_types text DEFAULT NULL,
+			unique_ips int(11) NOT NULL DEFAULT 0,
+			date_aggregated datetime NOT NULL,
+			PRIMARY KEY  (stat_id),
+			UNIQUE KEY site_month (site_id, stat_year, stat_month),
+			KEY stat_period (stat_year, stat_month)
+		) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_templates'] . " (
+			template_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			template_name varchar(255) NOT NULL,
+			template_slug varchar(255) NOT NULL,
+			template_type enum('built_in','custom') NOT NULL DEFAULT 'custom',
+			settings longtext NOT NULL,
+			description text DEFAULT NULL,
+			created_by bigint(20) unsigned NOT NULL,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (template_id),
+			UNIQUE KEY template_slug (template_slug),
+			KEY template_type (template_type)
+		) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_audit'] . " (
+			audit_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			site_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			action_type enum('set','lock','unlock','apply','bulk','template','import','reset') NOT NULL DEFAULT 'set',
+			setting_key varchar(255) DEFAULT NULL,
+			old_value text DEFAULT NULL,
+			new_value text DEFAULT NULL,
+			affected_sites text DEFAULT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			user_login varchar(60) NOT NULL,
+			ip_address varchar(39) NOT NULL,
+			date_created datetime NOT NULL,
+			PRIMARY KEY  (audit_id),
+			KEY site_id (site_id),
+			KEY action_type (action_type),
+			KEY setting_key (setting_key),
+			KEY user_id (user_id),
+			KEY date_created (date_created)
+		) $charset_collate;";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+
+			// Add indexes to existing log table for performance.
+			self::add_log_indexes();
+
+			// Migrate existing log tables to include blog_id column.
+			self::migrate_log_table_blog_id();
 
 			update_option( 'zerospam_db_version', self::DB_VERSION );
+		}
+	}
+
+	/**
+	 * Add indexes to log table for performance
+	 */
+	private static function add_log_indexes() {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . self::$tables['log'];
+
+		// Check if indexes already exist before adding.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$indexes = $wpdb->get_results( "SHOW INDEX FROM {$table_name}", ARRAY_A );
+
+		$existing_indexes = array();
+		if ( $indexes ) {
+			foreach ( $indexes as $index ) {
+				$existing_indexes[] = $index['Key_name'];
+			}
+		}
+
+		// Add date_recorded index if not exists.
+		if ( ! in_array( 'date_recorded', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX date_recorded (date_recorded)" );
+		}
+
+		// Add log_type index if not exists.
+		if ( ! in_array( 'log_type', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX log_type (log_type)" );
+		}
+
+		// Add user_ip index if not exists.
+		if ( ! in_array( 'user_ip', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX user_ip (user_ip)" );
+		}
+
+		// Add country index if not exists.
+		if ( ! in_array( 'country', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX country (country)" );
+		}
+	}
+
+	/**
+	 * Migrate existing log table to include blog_id column
+	 *
+	 * Adds blog_id column to existing log tables for compatibility with
+	 * dashboard widget queries. Sets default value of 1 for single-site
+	 * installations and actual blog ID for multisite.
+	 */
+	private static function migrate_log_table_blog_id() {
+		global $wpdb;
+
+		$table_name = $wpdb->prefix . self::$tables['log'];
+
+		// Check if table exists.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$table_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$table_name}'" );
+
+		if ( ! $table_exists ) {
+			return; // Table doesn't exist yet, will be created with blog_id column.
+		}
+
+		// Check if blog_id column already exists.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$columns = $wpdb->get_results( "SHOW COLUMNS FROM {$table_name}", ARRAY_A );
+
+		$has_blog_id = false;
+		if ( $columns ) {
+			foreach ( $columns as $column ) {
+				if ( 'blog_id' === $column['Field'] ) {
+					$has_blog_id = true;
+					break;
+				}
+			}
+		}
+
+		if ( $has_blog_id ) {
+			return; // Column already exists.
+		}
+
+		// Add blog_id column with default value.
+		$blog_id = get_current_blog_id();
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+		$wpdb->query(
+			"ALTER TABLE {$table_name} 
+			ADD COLUMN blog_id bigint(20) unsigned NOT NULL DEFAULT {$blog_id} AFTER log_id"
+		);
+
+		// Add indexes for blog_id.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$indexes = $wpdb->get_results( "SHOW INDEX FROM {$table_name}", ARRAY_A );
+
+		$existing_indexes = array();
+		if ( $indexes ) {
+			foreach ( $indexes as $index ) {
+				$existing_indexes[] = $index['Key_name'];
+			}
+		}
+
+		// Add blog_id index if not exists.
+		if ( ! in_array( 'blog_id', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX blog_id (blog_id)" );
+		}
+
+		// Add composite blog_date index if not exists.
+		if ( ! in_array( 'blog_date', $existing_indexes, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+			$wpdb->query( "ALTER TABLE {$table_name} ADD INDEX blog_date (blog_id, date_recorded)" );
 		}
 	}
 
@@ -138,16 +358,35 @@ class DB {
 			}
 		} elseif ( $key_type ) {
 			// Get record by key.
-			// @codingStandardsIgnoreLine
-			return $wpdb->get_row( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE key_type = "' . $key_type . '" AND blocked_key = "' . $record . '"', ARRAY_A );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			return $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE key_type = %s AND blocked_key = %s',
+					$key_type,
+					$record
+				),
+				ARRAY_A
+			);
 		} elseif ( is_int( $record ) ) {
 			// Get record by ID.
-			// @codingStandardsIgnoreLine
-			return $wpdb->get_row( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE blocked_id = "' . $record . '"', ARRAY_A );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			return $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE blocked_id = %d',
+					$record
+				),
+				ARRAY_A
+			);
 		} elseif ( rest_is_ip_address( $record ) ) {
 			// Get record by IP.
-			// @codingStandardsIgnoreLine
-			return $wpdb->get_row( 'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE user_ip = "' . $record . '"', ARRAY_A );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			return $wpdb->get_row(
+				$wpdb->prepare(
+					'SELECT * FROM ' . $wpdb->prefix . self::$tables['blocked'] . ' WHERE user_ip = %s',
+					$record
+				),
+				ARRAY_A
+			);
 		}
 
 		return false;
@@ -162,6 +401,14 @@ class DB {
 	public static function log( $type, $details ) {
 		global $wpdb;
 
+		$log_table = $wpdb->prefix . self::$tables['log'];
+
+		// Bail early if the log table does not exist to prevent DB errors.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $log_table ) ) !== $log_table ) {
+			return false;
+		}
+
 		$page_url  = \ZeroSpam\Core\Utilities::current_url();
 		$extension = substr( $page_url, strrpos( $page_url, '.' ) + 1 );
 		$ignore    = array( 'map', 'js', 'css', 'ico' );
@@ -174,17 +421,15 @@ class DB {
 		 * Check the total number of entries and delete the oldest if the maximum
 		 * has been reached.
 		 */
-		$log_table = $wpdb->prefix . self::$tables['log'];
-
 		// @codingStandardsIgnoreLine
 		$total_entries   = $wpdb->get_var( "SELECT COUNT(*) FROM $log_table" );
 		$maximum_entries = \ZeroSpam\Core\Settings::get_settings( 'max_logs' );
 
 		if ( $total_entries > $maximum_entries ) {
-			$difference = $total_entries - $maximum_entries;
+			$difference = absint( $total_entries - $maximum_entries );
 
-			// @codingStandardsIgnoreLine
-			$wpdb->query( "DELETE FROM $log_table ORDER BY date_recorded ASC LIMIT $difference" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query( $wpdb->prepare( "DELETE FROM {$log_table} ORDER BY date_recorded ASC LIMIT %d", $difference ) );
 		}
 
 		// Sanitize details array.
@@ -246,43 +491,71 @@ class DB {
 			return false;
 		}
 
+		// Bail early if the table does not exist to prevent DB errors.
+		$full_table = $wpdb->prefix . self::$tables[ $table ];
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $full_table ) ) !== $full_table ) {
+			return false;
+		}
+
+		// Allowed columns for SELECT — prevents injection via column names.
+		$allowed_columns = array( '*', 'log_id', 'blog_id', 'log_type', 'user_ip', 'date_recorded', 'page_url',
+			'submission_data', 'country', 'country_name', 'region', 'region_name', 'city', 'zip',
+			'latitude', 'longitude', 'blocked_id', 'blocked_type', 'blocked_key', 'key_type',
+			'date_added', 'start_block', 'end_block', 'reason', 'COUNT(*)',
+		);
+
 		$sql = 'SELECT';
 
 		if ( ! empty( $args['select'] ) ) {
-			$sql .= implode( ', ', $args['select'] );
+			$safe_columns = array();
+			foreach ( $args['select'] as $col ) {
+				$col = trim( $col );
+				if ( in_array( $col, $allowed_columns, true ) ) {
+					$safe_columns[] = $col;
+				}
+			}
+			$sql .= ' ' . ( ! empty( $safe_columns ) ? implode( ', ', $safe_columns ) : '*' ) . ' ';
 		} else {
 			$sql .= ' * ';
 		}
 
 		$sql .= 'FROM ' . $wpdb->prefix . self::$tables[ $table ];
 
+		// Build WHERE clause using prepared statements.
+		$prepare_values = array();
+
 		if ( ! empty( $args['where'] ) ) {
-			$sql .= ' WHERE ';
+			$where_clauses = array();
 
-			$where_stmt = '';
 			foreach ( $args['where'] as $key => $where ) {
-				if ( $where_stmt ) {
-					$where_stmt .= ' AND ';
+				// Sanitize column name — only allow alphanumeric and underscores.
+				$column = preg_replace( '/[^a-zA-Z0-9_]/', '', $key );
+
+				// Determine the comparison operator.
+				$relation = '=';
+				$allowed_relations = array( '=', '!=', '>', '<', '>=', '<=', 'LIKE', 'NOT LIKE', 'IN', 'NOT IN' );
+				if ( ! empty( $where['relation'] ) && in_array( strtoupper( trim( $where['relation'] ) ), $allowed_relations, true ) ) {
+					$relation = strtoupper( trim( $where['relation'] ) );
 				}
 
-				$where_stmt .= $key;
-
-				if ( ! empty( $where['relation'] ) ) {
-					$where_stmt .= ' ' . $where['relation'] . ' ';
+				if ( is_array( $where['value'] ) ) {
+					$placeholders = array_fill( 0, count( $where['value'] ), '%s' );
+					$where_clauses[] = $column . ' IN (' . implode( ', ', $placeholders ) . ')';
+					$prepare_values  = array_merge( $prepare_values, $where['value'] );
+				} elseif ( is_numeric( $where['value'] ) ) {
+					$where_clauses[] = $column . ' ' . $relation . ' %d';
+					$prepare_values[] = $where['value'];
 				} else {
-					$where_stmt .= ' = ';
-				}
-
-				if ( is_numeric( $where['value'] ) ) {
-					$where_stmt .= $where['value'];
-				} elseif ( is_array( $where['value'] ) ) {
-					$where_stmt .= "('" . implode( "','", $where['value'] ) . "')";
-				} else {
-					$where_stmt .= '"' . $where['value'] . '"';
+					$where_clauses[] = $column . ' ' . $relation . ' %s';
+					$prepare_values[] = $where['value'];
 				}
 			}
 
-			$sql .= $where_stmt;
+			if ( ! empty( $where_clauses ) ) {
+				$sql .= ' WHERE ' . implode( ' AND ', $where_clauses );
+			}
 		}
 
 		if ( ! empty( $args['orderby'] ) ) {
@@ -291,17 +564,27 @@ class DB {
 				$orderby .= ' ' . $args['order'];
 			}
 
-			$sql .= ' ORDER BY ' . sanitize_sql_orderby( $orderby );
+			$sanitized_orderby = sanitize_sql_orderby( $orderby );
+			if ( $sanitized_orderby ) {
+				$sql .= ' ORDER BY ' . $sanitized_orderby;
+			}
 		}
 
 		if ( ! empty( $args['limit'] ) ) {
-			$sql .= ' LIMIT ' . $args['limit'];
+			$sql .= ' LIMIT ' . absint( $args['limit'] );
 		}
 
 		if ( ! empty( $args['offset'] ) ) {
-			$sql .= ' OFFSET ' . $args['offset'];
+			$sql .= ' OFFSET ' . absint( $args['offset'] );
 		}
-		// @codingStandardsIgnoreLine
+
+		// Use prepared statement if we have values to bind.
+		if ( ! empty( $prepare_values ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+			return $wpdb->get_results( $wpdb->prepare( $sql, $prepare_values ), ARRAY_A );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 		return $wpdb->get_results( $sql, ARRAY_A );
 	}
 }

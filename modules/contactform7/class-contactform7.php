@@ -50,7 +50,9 @@ class ContactForm7 {
 	}
 
 	/**
-	 * Load the scripts
+	 * Load the scripts.
+	 *
+	 * Uses centralized David Walsh script - selectors are managed in class-davidwalsh.php.
 	 */
 	public function add_scripts() {
 		if (
@@ -58,13 +60,6 @@ class ContactForm7 {
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' )
 		) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			add_action(
-				'wp_footer',
-				function () {
-					echo '<script type="text/javascript">jQuery(".wpcf7-form").ZeroSpamDavidWalsh();</script>';
-				},
-				999
-			);
 		}
 	}
 
@@ -107,6 +102,17 @@ class ContactForm7 {
 		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
 			// Failed the honeypot check.
 			$validation_errors[] = 'honeypot';
+		}
+
+		// Check submitted fields for blocked email domains and disallowed words.
+		// Uses the centralized check that automatically skips system/security
+		// token fields (e.g. cf-turnstile-response, g-recaptcha-response).
+		$check_blocked_emails = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7_blocked_email_domains' );
+		$check_disallowed     = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7_disallowed_words' );
+
+		if ( $check_blocked_emails || $check_disallowed ) {
+			$field_errors      = \ZeroSpam\Core\Utilities::check_fields_for_spam( $post, $check_blocked_emails, $check_disallowed );
+			$validation_errors = array_merge( $validation_errors, $field_errors );
 		}
 
 		// Fire hook for additional validation (ex. David Walsh script).
@@ -163,7 +169,7 @@ class ContactForm7 {
 		$sections['contactform7'] = array(
 			'title'    => __( 'Contact Form 7', 'zero-spam' ),
 			'icon'     => 'modules/contactform7/icon-cf7.png',
-			'supports' => array( 'honeypot', 'davidwalsh' ),
+			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
 		return $sections;
@@ -179,7 +185,7 @@ class ContactForm7 {
 
 		$settings['verify_contactform7'] = array(
 			'title'       => __( 'Protect CF7 Submissions', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors Contact Form 7 submissions.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam from Contact Form 7 forms.', 'zero-spam' ),
 			'module'      => 'contactform7',
 			'section'     => 'contactform7',
 			'type'        => 'checkbox',
@@ -194,7 +200,7 @@ class ContactForm7 {
 
 		$settings['contactform7_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when Contact Form 7 detects spam.', 'zero-spam' ),
 			'module'      => 'contactform7',
 			'section'     => 'contactform7',
 			'type'        => 'text',
@@ -204,15 +210,38 @@ class ContactForm7 {
 			'recommended' => $message,
 		);
 
+		$settings['verify_contactform7_blocked_email_domains'] = array(
+			'title'       => __( 'Check Blocked Email Domains', 'zero-spam' ),
+			'desc'        => __( 'Block CF7 submissions containing email addresses from blocked domains.', 'zero-spam' ),
+			'module'      => 'contactform7',
+			'section'     => 'contactform7',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_contactform7_blocked_email_domains'] ) ? $options['verify_contactform7_blocked_email_domains'] : false,
+			'recommended' => 'enabled',
+		);
+
+		$settings['verify_contactform7_disallowed_words'] = array(
+			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'desc'        => __( 'Block CF7 submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
+			'module'      => 'contactform7',
+			'section'     => 'contactform7',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_contactform7_disallowed_words'] ) ? $options['verify_contactform7_disallowed_words'] : false,
+			'recommended' => 'enabled',
+		);
+
 		$settings['log_blocked_contactform7'] = array(
 			'title'       => __( 'Log Blocked CF7 Submissions', 'zero-spam' ),
 			'module'      => 'contactform7',
 			'section'     => 'contactform7',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked Contact Form 7 submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked Contact Form 7 submissions.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

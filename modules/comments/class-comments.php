@@ -133,6 +133,8 @@ class Comments {
 		}
 
 		// Check comment disallowed list.
+		// Temporarily filter the disallowed_keys option to respect the allowed
+		// words setting and minimum word length, then restore after the check.
 		$disallowed_check = array(
 			'author'  => ! empty( $commentdata['comment_author'] ) ? $commentdata['comment_author'] : false,
 			'email'   => ! empty( $commentdata['comment_author_email'] ) ? $commentdata['comment_author_email'] : false,
@@ -141,6 +143,8 @@ class Comments {
 			'ip'      => \ZeroSpam\Core\User::get_ip(),
 			'agent'   => ! empty( $commentdata['comment_agent'] ) ? $commentdata['comment_agent'] : false,
 		);
+
+		\ZeroSpam\Core\Utilities::add_allowed_words_filter();
 
 		if ( wp_check_comment_disallowed_list(
 			$disallowed_check['author'],
@@ -152,6 +156,8 @@ class Comments {
 		) ) {
 			$validation_errors[] = 'disallowed_list';
 		}
+
+		\ZeroSpam\Core\Utilities::remove_allowed_words_filter();
 
 		if ( ! empty( $validation_errors ) ) {
 			// Failed validations, log & send details if enabled.
@@ -214,7 +220,7 @@ class Comments {
 
 		$settings['verify_comments'] = array(
 			'title'       => __( 'Protect Comments', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors comment submissions.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam comments on your blog posts.', 'zero-spam' ),
 			'section'     => 'comments',
 			'module'      => 'comments',
 			'type'        => 'checkbox',
@@ -229,7 +235,7 @@ class Comments {
 
 		$settings['comment_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown to people trying to post spam comments.', 'zero-spam' ),
 			'section'     => 'comments',
 			'module'      => 'comments',
 			'type'        => 'text',
@@ -244,10 +250,7 @@ class Comments {
 			'section'     => 'comments',
 			'module'      => 'comments',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked comment submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of all blocked spam comments in the database.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

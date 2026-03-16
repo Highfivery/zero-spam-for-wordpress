@@ -149,10 +149,32 @@ class Settings {
 		foreach ( $modules as $module => $setting ) {
 			$recommended_settings = array();
 			foreach ( $setting as $key => $args ) {
+				// Skip action-type settings (buttons) that don't store values.
+				if ( ! empty( $args['type'] ) && 'html' === $args['type'] ) {
+					continue;
+				}
+
 				$recommended_settings[ $key ] = isset( $args['value'] ) ? $args['value'] : false;
 				if ( isset( $args['recommended'] ) ) {
 					$recommended_settings[ $key ] = $args['recommended'];
 				}
+			}
+
+			// Handle blocked_email_domains separately — uses standalone option.
+			if ( isset( $recommended_settings['blocked_email_domains'] ) ) {
+				$blocked_domains = $recommended_settings['blocked_email_domains'];
+				if ( $blocked_domains && update_option( 'zerospam_blocked_email_domains', $blocked_domains ) ) {
+					wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
+					global $wpdb;
+					$wpdb->query(
+						$wpdb->prepare(
+							"UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s",
+							'no',
+							'zerospam_blocked_email_domains'
+						)
+					);
+				}
+				unset( $recommended_settings['blocked_email_domains'] );
 			}
 
 			update_option( "zero-spam-$module", $recommended_settings );
@@ -214,39 +236,12 @@ class Settings {
 			'module'  => 'settings',
 			'section' => 'general',
 			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( '<a href="%s" class="button">Override &amp; Update Settings</a>', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-					)
-				),
-				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' )
-			),
+			'html'    => '', // Generated dynamically during render to avoid early nonce calls
 		);
 
 		self::$settings['share_data'] = array(
 			'title'       => __( 'Usage Data Sharing', 'zero-spam' ),
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( 'Help us provide better protection & contribute to our <a href="%1$s" target="_blank" rel="noreferrer noopener">real-time global detection network</a> by opting into sharing non-sensitive data (<strong>we will never share or sell any personal identifiable information, <a href="%2$s" target="_blank" rel="noreferrer noopener">learn more</a></strong>).', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( ZEROSPAM_URL . '?utm_source=wordpress_zero_spam&utm_medium=settings_page&utm_campaign=data_sharing' ),
-				esc_url( 'https://github.com/bmarshall511/wordpress-zero-spam/wiki/FAQ#what-data-is-shared-when-usage-data-sharing-is-enabled' )
-			),
+			'desc'        => __( 'Help us catch more spam by sharing anonymous spam data. We never share personal information.', 'zero-spam' ),
 			'module'      => 'settings',
 			'section'     => 'general',
 			'type'        => 'checkbox',
@@ -258,48 +253,53 @@ class Settings {
 		);
 
 		global $wp_roles;
-		$roles       = $wp_roles->roles;
+
+		// Ensure roles are initialized
+		if ( ! isset( $wp_roles ) || ! $wp_roles ) {
+			$wp_roles = wp_roles();
+		}
+
+		$roles       = isset( $wp_roles->roles ) ? $wp_roles->roles : array();
 		$roles_array = array();
 
 		foreach ( $roles as $role => $data ) {
 			$roles_array[ $role ] = $data['name'];
 		}
 
+		self::$settings['widget_enabled'] = array(
+			'title'       => __( 'Dashboard Widget', 'zero-spam' ),
+			'section'     => 'general',
+			'module'      => 'settings',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => __( 'Display the Zero Spam overview widget on the WordPress dashboard.', 'zero-spam' ),
+			),
+			'desc'        => __( 'Enable or disable the Zero Spam dashboard widget.', 'zero-spam' ),
+			'value'       => ! empty( $options['widget_enabled'] ) ? $options['widget_enabled'] : false,
+			'recommended' => 'enabled',
+		);
+
 		self::$settings['widget_visibility'] = array(
 			'title'       => __( 'Dashboard Widget Visibility', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'select',
-			'desc'        => __( 'Select which user roles have access to the admin dashboard widget. You may control-click (Windows) or command-click (Mac) to select more than one.', 'zero-spam' ),
+			'desc'        => __( 'Choose which user roles can see the dashboard widget. Only applies when the widget is enabled.', 'zero-spam' ),
 			'options'     => $roles_array,
-			'value'       => ! empty( $options['widget_visibility'] ) ? $options['widget_visibility'] : false,
+			'value'       => isset( $options['widget_visibility'] ) ? $options['widget_visibility'] : false,
 			'recommended' => array( 'administrator' ),
 			'multiple'    => true,
 		);
 
 		self::$settings['block_handler'] = array(
 			'title'       => __( 'IP Block Handler', 'zero-spam' ),
-			'desc'        => __( 'Determines how blocked IPs are handled when they attempt to access the site.', 'zero-spam' ),
+			'desc'        => __( 'What happens when we block someone from visiting your site.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'radio',
 			'options'     => array(
-				'redirect' => __( 'Redirect user', 'zero-spam' ),
-				'403'      => sprintf(
-					wp_kses(
-						/* translators: %s: url */
-						__( 'Display a <a href="%s" target="_blank" rel="noreferrer noopener"><code>403 Forbidden</code></a> error', 'zero-spam' ),
-						array(
-							'code' => array(),
-							'a'    => array(
-								'target' => array(),
-								'href'   => array(),
-								'rel'    => array(),
-							),
-						)
-					),
-					esc_url( 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/403' )
-				),
+				'redirect' => __( 'Send them to another website', 'zero-spam' ),
+				'403'      => __( 'Show them an error message', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['block_handler'] ) ? $options['block_handler'] : 403,
 			'recommended' => 403,
@@ -307,29 +307,14 @@ class Settings {
 
 		self::$settings['block_method'] = array(
 			'title'       => __( 'IP Block Method', 'zero-spam' ),
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %1$s: Replaced with the apache docs URL, %2$s: Replaced with Highfivery Studio's website URL */
-					__( '.htaccess is preferred for performance, however <strong>choosing the wrong Apache version or adding <a href="%1$s" target="_blank" rel="noreferrer noopener">more than 8190 characters</a> could cause the website to crash</strong> and require a manual fix to the .htaccess file. If this happens &amp; you\'re unsure how to fix, contact <a href="%2$s" target="_blank" rel="noreferrer noopener">Highfivery Studio</a> for a rapid response and resolution.', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( 'https://httpd.apache.org/docs/current/en/configuring.html' ),
-				esc_url( 'https://studio.highfivery.com/?utm_source=' . get_bloginfo( 'url' ) . '&utm_medium=zerospam_plugin_htaccess&utm_campaign=zerospam_plugin' )
-			),
+			'desc'        => __( 'How the plugin blocks bad visitors. PHP is safer and recommended.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'radio',
 			'options'     => array(
 				'htaccess_legacy' => __( '.htaccess (Apache servers < 2.4)', 'zero-spam' ),
 				'htaccess_modern' => __( '.htaccess (Apache servers >= 2.4)', 'zero-spam' ),
-				'php'             => __( 'PHP', 'zero-spam' ),
+				'php'             => __( 'PHP (Recommended)', 'zero-spam' ),
 			),
 			'value'       => ! empty( $options['block_method'] ) ? $options['block_method'] : 'php',
 			'recommended' => 'php',
@@ -339,7 +324,7 @@ class Settings {
 
 		self::$settings['blocked_message'] = array(
 			'title'       => __( 'Blocked Message', 'zero-spam' ),
-			'desc'        => __( 'The message displayed to blocked users when \'Display a 403 Forbidden error\' is selected.', 'zero-spam' ),
+			'desc'        => __( 'The message blocked visitors see if you chose "Show them an error message" above.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'text',
@@ -351,7 +336,7 @@ class Settings {
 
 		self::$settings['blocked_redirect_url'] = array(
 			'title'       => __( 'Blocked Users Redirect', 'zero-spam' ),
-			'desc'        => __( 'The URL blocked users are redirected to when \'Redirect user\' is selected.', 'zero-spam' ),
+			'desc'        => __( 'The website address to send blocked visitors to if you chose "Send them to another website" above.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'url',
@@ -366,7 +351,7 @@ class Settings {
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'checkbox',
-			'desc'        => __( 'When enabled, logs all IPs that are blocked from accessing the site. Not recommended for high-traffic websites.', 'zero-spam' ),
+			'desc'        => __( 'Keep a record of everyone we block. Turn off if you have a busy website to save database space.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),
@@ -376,7 +361,7 @@ class Settings {
 
 		self::$settings['max_logs'] = array(
 			'title'       => __( 'Maximum Log Entries', 'zero-spam' ),
-			'desc'        => __( 'The maximum number of log entries when logging is enabled. When the maximum is reached, the oldest entries will be deleted.', 'zero-spam' ),
+			'desc'        => __( 'How many blocked visitor records to keep. When this number is reached, the oldest records get deleted automatically.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'number',
@@ -388,7 +373,7 @@ class Settings {
 
 		self::$settings['ip_whitelist'] = array(
 			'title'       => __( 'IP Whitelist', 'zero-spam' ),
-			'desc'        => __( 'Enter IPs that should be whitelisted (IPs that should never be blocked), one per line.', 'zero-spam' ),
+			'desc'        => __( 'IP addresses that should never be blocked. Put one IP address per line.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'textarea',
@@ -399,7 +384,7 @@ class Settings {
 
 		self::$settings['blocked_email_domains'] = array(
 			'title'       => __( 'Blocked Email Domains', 'zero-spam' ),
-			'desc'        => __( 'Enter a list of email domains that should be blocked, one per line.', 'zero-spam' ),
+			'desc'        => __( 'Block email addresses from these domains (like "spam.com"). Put one per line.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'textarea',
@@ -421,19 +406,7 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( '<a href="%s" class="button">Override &amp; Update Blocked Email Domains</a>', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-					)
-				),
-				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-emails' ), 'update-blocked-emails', 'zero-spam' )
-			),
+			'html'    => '', // Generated dynamically during render to avoid early nonce calls
 		);
 
 		self::$settings['regenerate_honeypot'] = array(
@@ -451,19 +424,29 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %s: admin URL to regenerate the Zero Spam honeypot ID */
-					__( '<a href="%s" class="button">Regenerate Honeypot ID</a>', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-					)
-				),
-				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=regenerate-honeypot' ), 'regenerate-honeypot', 'zero-spam' )
-			),
+			'html'    => '', // Generated dynamically during render
+		);
+
+		self::$settings['allowed_words'] = array(
+			'title'       => __( 'Allowed Words', 'zero-spam' ),
+			'desc'        => __( 'Sometimes a word in the spam list accidentally matches part of your name, email, or website. Add those words here (one per line) so they won\'t be treated as spam. For example, if your email contains "ugg" and it keeps getting blocked, add "ugg" here to fix it.', 'zero-spam' ),
+			'section'     => 'general',
+			'module'      => 'settings',
+			'type'        => 'textarea',
+			'field_class' => 'regular-text code',
+			'placeholder' => '',
+			'value'       => ! empty( $options['allowed_words'] ) ? trim( $options['allowed_words'] ) : false,
+		);
+
+		self::$settings['disallowed_min_length'] = array(
+			'title'       => __( 'Minimum Disallowed Word Length', 'zero-spam' ),
+			'desc'        => __( 'Only check spam words that are at least this many characters long. Very short words (like 3-4 characters) can accidentally match normal text and cause false alarms. Set to 0 to check all words. We recommend 4 or 5 if you\'re seeing false positives.', 'zero-spam' ),
+			'section'     => 'general',
+			'module'      => 'settings',
+			'type'        => 'number',
+			'field_class' => 'small-text',
+			'placeholder' => 0,
+			'value'       => isset( $options['disallowed_min_length'] ) ? absint( $options['disallowed_min_length'] ) : 0,
 		);
 
 		self::$settings['update_disallowed_words'] = array(
@@ -472,19 +455,7 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( '<a href="%s" class="button">Override &amp; Update Core Disallowed Words</a>', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'  => array(),
-							'class' => array(),
-						),
-					)
-				),
-				wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ), 'update-disallowed-words', 'zero-spam' )
-			),
+			'html'    => '', // Generated dynamically during render
 		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings );
@@ -504,6 +475,18 @@ class Settings {
 
 			return false;
 		}
+
+		self::$settings['rescue_mode'] = array(
+			'title'   => __( 'Rescue Mode', 'zero-spam' ),
+			'section' => 'general',
+			'module'  => 'settings',
+			'type'    => 'html',
+			'html'    => defined( 'ZEROSPAM_RESCUE_KEY' ) ?
+				'<span style="color: green; font-weight: bold;">' . __( 'Active', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Key defined in wp-config.php', 'zero-spam' ) . ')</span>' :
+				'<span style="color: red;">' . __( 'Inactive', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Define ZEROSPAM_RESCUE_KEY in wp-config.php to enable', 'zero-spam' ) . ')</span>',
+			'desc'    => __( 'Rescue Mode allows administrators to bypass blocks by appending ?zerospam_rescue={KEY} to any URL.', 'zero-spam' ),
+			'value'   => false,
+		);
 
 		return $settings;
 	}

@@ -75,6 +75,11 @@ class Zero_Spam {
 					$access_checks['zero_spam']['blocked'] = true;
 					$access_checks['zero_spam']['type']    = 'blocked';
 					$access_checks['zero_spam']['details'] = $ip_data;
+					$access_checks['zero_spam']['details']['failed'] = sprintf(
+						/* translators: %s: The calculated confidence score. */
+						__( 'High Confidence Score: %s%%', 'zero-spam' ),
+						$confidence_score
+					);
 				}
 			}
 		}
@@ -112,45 +117,14 @@ class Zero_Spam {
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %s: Replaced with the Zero Spam URL */
-					__( 'Blocks visitor IPs &amp; supported submitted forms with an email address that meets the <a href="%s" target="_blank" rel="noopener noreferrer">Zero Spam</a> <em>Confidence Minimum</em> score.', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-						'em'     => array(),
-					)
-				),
-				esc_url( ZEROSPAM_URL )
-			),
+			'desc'        => __( 'Turn on spam checking using Zero Spam\'s spam database to block bad visitors.', 'zero-spam' ),
 			'value'       => ! empty( $options['zerospam'] ) ? $options['zerospam'] : false,
 			'recommended' => 'enabled',
 		);
 
 		$settings['zerospam_license'] = array(
 			'title'       => __( 'License Key', 'zero-spam' ),
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: 1: the zerospam.org URL 2: the zerospam.org premium product URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Zero Spam</a> license key or define it in <code>wp-config.php</code>, using the constant <code>ZEROSPAM_LICENSE_KEY</code> to enable enhanced protection. Don\'t have an license key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one now!</strong></a>', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-						'code'   => array(),
-					)
-				),
-				esc_url( ZEROSPAM_URL ),
-				esc_url( ZEROSPAM_URL . 'product/premium/' )
-			),
+			'desc'        => __( 'Enter your Zero Spam license key to unlock spam protection features.', 'zero-spam' ),
 			'section'     => 'zerospam',
 			'module'      => 'zerospam',
 			'type'        => 'text',
@@ -172,7 +146,7 @@ class Zero_Spam {
 			'suffix'      => __( 'seconds', 'zero-spam' ),
 			'placeholder' => __( '5', 'zero-spam' ),
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond; recommended 5 seconds.', 'zero-spam' ),
+			'desc'        => __( 'How long to wait for a response from Zero Spam. Recommended: 5 seconds.', 'zero-spam' ),
 			'value'       => ! empty( $options['zerospam_timeout'] ) ? $options['zerospam_timeout'] : 5,
 			'recommended' => 5,
 		);
@@ -186,7 +160,7 @@ class Zero_Spam {
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
 			'placeholder' => WEEK_IN_SECONDS,
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zero-spam' ),
+			'desc'        => __( 'How long to remember spam check results. Recommended: 14 days.', 'zero-spam' ),
 			'value'       => ! empty( $options['zerospam_cache'] ) ? $options['zerospam_cache'] : 14,
 			'recommended' => 14,
 		);
@@ -202,20 +176,7 @@ class Zero_Spam {
 			'min'         => 0,
 			'max'         => 100,
 			'step'        => 0.1,
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %s: Replaced with the Zero Spam API URL */
-					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 20%%.', 'zero-spam' ),
-					array(
-						'a' => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( ZEROSPAM_URL . 'spam-blacklist-api/?utm_source=' . site_url() . '&utm_medium=admin_confidence_score&utm_campaign=wpzerospam' )
-			),
+			'desc'        => __( 'How sure we need to be that someone is a spammer before blocking them. Lower number blocks more. Recommended: 30%.', 'zero-spam' ),
 			'value'       => ! empty( $options['zerospam_confidence_min'] ) ? $options['zerospam_confidence_min'] : 30,
 			'recommended' => 30,
 		);
@@ -270,23 +231,25 @@ class Zero_Spam {
 			return;
 		}
 
-		$endpoint = ZEROSPAM_URL . 'wp-json/v5.4/report/';
+		$endpoint = ZEROSPAM_URL . 'wp-json/v6/report/';
 		$ip       = \ZeroSpam\Core\User::get_ip();
 		if ( ! $ip ) {
 			return;
 		}
 
-		$api_data = [
+		$query_params = array(
 			'report_type'   => 'ip_address',
 			'report_module' => sanitize_text_field( $data['type'] ),
 			'report_key'    => sanitize_text_field( $ip ),
 			'report_failed' => isset( $data['failed'] ) ? sanitize_text_field( $data['failed'] ) : '',
-		];
+		);
 
 		$global_data = self::global_api_data();
-		$api_data    = array_merge( $api_data, $global_data );
+		$query_params = array_merge( $query_params, $global_data );
 
-		self::remote_request( $endpoint, [ 'body' => [ 'data' => $api_data ] ] );
+		// Build URL with query params - wrap in 'data' array for API format.
+		$endpoint = add_query_arg( array( 'data' => $query_params ), $endpoint );
+		self::remote_request( $endpoint );
 
 		// Process email fields.
 		$valid_email_fields = [
@@ -358,11 +321,17 @@ class Zero_Spam {
 				}
 			}
 
-			// Encode email_details as JSON string (API expects JSON, not array).
-			$report_details['email_details'] = wp_json_encode( $report_details['email_details'] );
+		// Encode email_details as JSON string (API expects JSON, not array).
+		$report_details['email_details'] = wp_json_encode( $report_details['email_details'] );
 
-			// Append global data and submit the email report.
-			self::remote_request( $endpoint, [ 'body' => [ 'data' => array_merge( $report_details, $global_data ) ] ] );
+		// Add report_ip (the IP being reported for email reports).
+		$report_details['report_ip'] = $ip;
+
+		// Append global data and submit the email report.
+		$email_query_params = array_merge( $report_details, $global_data );
+		$email_endpoint = ZEROSPAM_URL . 'wp-json/v6/report/';
+		$email_endpoint = add_query_arg( array( 'data' => $email_query_params ), $email_endpoint );
+		self::remote_request( $email_endpoint );
 		}
 
 		// Successfully updated the last API request time.
@@ -383,12 +352,10 @@ class Zero_Spam {
 		$license_data = get_transient( $cache_key );
 
 		if ( false === $license_data ) {
-			$endpoint = ZEROSPAM_URL . 'wp-json/v1/get-license';
-			$args     = array(
-				'body' => array( 'license_key' => $license ),
-			);
+			$endpoint = ZEROSPAM_URL . 'wp-json/v2/get-license';
+			$endpoint = add_query_arg( 'license_key', $license, $endpoint );
 
-			$response = self::remote_request( $endpoint, $args );
+			$response = self::remote_request( $endpoint );
 
 			if ( $response && ! is_wp_error( $response ) ) {
 				$license_data = json_decode( wp_remote_retrieve_body( $response ), true );
@@ -435,22 +402,23 @@ class Zero_Spam {
 		$response = get_transient( $cache_key );
 
 		if ( false === $response ) {
-			$endpoint = 'https://www.zerospam.org/wp-json/v2/query';
+			$endpoint = ZEROSPAM_URL . 'wp-json/v3/query';
 
-			$args = array(
-				'body' => array(
-					'license_key' => $settings['zerospam_license']['value'],
-				),
+			$query_params = array(
+				'license_key' => $settings['zerospam_license']['value'],
 			);
 
 			if ( ! empty( $params['ip'] ) ) {
-				$args['body']['ip'] = $params['ip'];
+				$query_params['ip'] = $params['ip'];
 			}
 
 			if ( ! empty( $params['email'] ) ) {
-				$args['body']['email'] = $params['email'];
+				$query_params['email'] = $params['email'];
 			}
 
+			$endpoint = add_query_arg( $query_params, $endpoint );
+
+			$args = array();
 			$args['timeout'] = 5;
 			if ( ! empty( $settings['zerospam_timeout'] ) ) {
 				$args['timeout'] = intval( $settings['zerospam_timeout']['value'] );
@@ -491,17 +459,25 @@ class Zero_Spam {
 				// Store persistently.
 				set_transient( $cache_key, $response, $expiration );
 			}
+		} else {
+			// Cache hit - track it if monitoring is enabled.
+			if ( class_exists( '\ZeroSpam\Includes\API_Usage_Tracker' ) ) {
+				\ZeroSpam\Includes\API_Usage_Tracker::track_cache_hit(
+					ZEROSPAM_URL . 'wp-json/v3/query',
+					$params
+				);
+			}
 		}
 
 		return $response;
 	}
 
 	/**
-	 * Remote request wrapper with Circuit Breaker pattern.
+	 * Remote request wrapper with Circuit Breaker pattern and API usage tracking.
 	 *
 	 * @param string $endpoint The URL to request.
 	 * @param array  $args     Request arguments.
-	 * @return array|WP_Error Response array or WP_Error.
+	 * @return array|\WP_Error Response array or WP_Error.
 	 */
 	public static function remote_request( $endpoint, $args = [] ) {
 		// Circuit Breaker: Check if circuit is open.
@@ -509,7 +485,25 @@ class Zero_Spam {
 			return new \WP_Error( 'circuit_open', 'API Circuit Breaker is open due to recent failures.' );
 		}
 
-		$response = wp_remote_post( $endpoint, $args );
+		// Track start time for response time measurement.
+		$start_time = microtime( true );
+
+		$response = wp_remote_get( $endpoint, $args );
+
+		// Calculate response time.
+		$response_time_ms = round( ( microtime( true ) - $start_time ) * 1000 );
+
+		// Track API call if monitoring is enabled.
+		if ( class_exists( '\ZeroSpam\Includes\API_Usage_Tracker' ) ) {
+			\ZeroSpam\Includes\API_Usage_Tracker::track_api_call(
+				$endpoint,
+				$response,
+				array(
+					'timeout' => isset( $args['timeout'] ) ? $args['timeout'] : 5,
+				),
+				$response_time_ms
+			);
+		}
 
 		// Analyze response for Circuit Breaker.
 		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {

@@ -60,13 +60,14 @@ class Registration {
 	}
 
 	/**
-	 * Load the scripts
+	 * Load the scripts.
+	 *
+	 * Uses centralized David Walsh script - selectors are managed in class-davidwalsh.php.
 	 */
 	public function add_scripts() {
-		// Only add scripts to the appropriate pages.
+		// Only add scripts if David Walsh is enabled.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			wp_add_inline_script( 'zerospam-davidwalsh', 'document.addEventListener("DOMContentLoaded", function() { jQuery("#registerform").ZeroSpamDavidWalsh(); });' );
 		}
 	}
 
@@ -182,7 +183,7 @@ class Registration {
 
 		$settings['verify_registrations'] = array(
 			'title'       => __( 'Protect Registrations', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors registration submissions.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam bots from creating fake user accounts.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'checkbox',
@@ -197,7 +198,7 @@ class Registration {
 
 		$settings['registration_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown to spam bots trying to register.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'text',
@@ -212,10 +213,7 @@ class Registration {
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked registration submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of all blocked registration attempts in the database.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

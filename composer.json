@@ -25,8 +25,7 @@
 		}
 	],
 	"require": {
-		"php" : ">=8.2",
-		"ipinfo/ipinfo": "^2.3"
+		"php" : ">=8.2"
 	},
 	"require-dev": {
 		"10up/phpcs-composer": "*"
@@ -34,6 +33,11 @@
 	"extra": {
 		"installer-paths": {
 			"vendor/{$name}/": ["type:wordpress-plugin"]
+		}
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
 		}
 	}
 }

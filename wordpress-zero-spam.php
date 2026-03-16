@@ -49,6 +49,9 @@ if ( ! version_compare( PHP_VERSION, '8.2', '>=' ) ) {
 	add_action( 'admin_notices', 'zerospam_fail_wp_version' );
 } else {
 	require_once ZEROSPAM_PATH . 'includes/class-plugin.php';
+	
+	// Set activation time for new installations.
+	register_activation_hook( ZEROSPAM, 'zerospam_plugin_activation' );
 }
 
 /**
@@ -92,6 +95,17 @@ function zerospam_fail_wp_version() {
 	);
 	$html_message = sprintf( '<div class="notice notice-error"><p>%s</p></div>', $message );
 	echo wp_kses_post( $html_message );
+}
+
+/**
+ * Plugin activation hook
+ */
+function zerospam_plugin_activation() {
+	// Set activation time for new installations.
+	// This will only be set if it doesn't already exist.
+	if ( ! get_option( 'zerospam_activation_time' ) ) {
+		update_option( 'zerospam_activation_time', time() );
+	}
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {

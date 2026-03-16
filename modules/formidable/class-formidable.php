@@ -5,6 +5,7 @@
  * Malicious user detection techniques available:
  *
  * 1. Zero Spam honeypot field
+ * 2. David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -39,6 +40,11 @@ class Formidable {
 		) {
 			add_action( 'frm_entry_form', array( $this, 'honeypot' ), 10, 1 );
 			add_filter( 'frm_validate_entry', array( $this, 'preprocess_submission' ), 10, 2 );
+
+			// Load David Walsh scripts.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+				add_action( 'frm_enqueue_form_scripts', array( $this, 'add_scripts' ), 10 );
+			}
 		}
 	}
 
@@ -65,7 +71,7 @@ class Formidable {
 		$sections['formidable'] = array(
 			'title'    => __( 'Formidable', 'zero-spam' ),
 			'icon'     => 'modules/formidable/icon-formidable.png',
-			'supports' => array( 'honeypot' ),
+			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
 		return $sections;
@@ -81,7 +87,7 @@ class Formidable {
 
 		$settings['verify_formidable'] = array(
 			'title'       => __( 'Protect Formidable Submissions', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors Formidable submissions.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam from Formidable Forms.', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
 			'type'        => 'checkbox',
@@ -96,7 +102,7 @@ class Formidable {
 
 		$settings['formidable_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when Formidable Forms detects spam.', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
 			'type'        => 'text',
@@ -106,15 +112,38 @@ class Formidable {
 			'recommended' => $message,
 		);
 
+		$settings['verify_formidable_blocked_email_domains'] = array(
+			'title'       => __( 'Check Blocked Email Domains', 'zero-spam' ),
+			'desc'        => __( 'Block Formidable submissions containing email addresses from blocked domains.', 'zero-spam' ),
+			'section'     => 'formidable',
+			'module'      => 'formidable',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_formidable_blocked_email_domains'] ) ? $options['verify_formidable_blocked_email_domains'] : false,
+			'recommended' => 'enabled',
+		);
+
+		$settings['verify_formidable_disallowed_words'] = array(
+			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'desc'        => __( 'Block Formidable submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
+			'section'     => 'formidable',
+			'module'      => 'formidable',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_formidable_disallowed_words'] ) ? $options['verify_formidable_disallowed_words'] : false,
+			'recommended' => 'enabled',
+		);
+
 		$settings['log_blocked_formidable'] = array(
 			'title'       => __( 'Log Blocked Formidable Submissions', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked Formidable submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked Formidable Forms submissions.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),
@@ -133,6 +162,16 @@ class Formidable {
 	public function honeypot( $form_data ) {
 		// @codingStandardsIgnoreLine
 		echo \ZeroSpam\Core\Utilities::honeypot_field();
+	}
+
+	/**
+	 * Load the David Walsh scripts for Formidable Forms.
+	 *
+	 * @see https://formidableforms.com/knowledgebase/frm_enqueue_form_scripts/
+	 */
+	public function add_scripts() {
+		// Trigger the custom action to enqueue the David Walsh script.
+		do_action( 'zerospam_formidable_scripts' );
 	}
 
 	/**
@@ -164,6 +203,29 @@ class Formidable {
 			$details['failed'] = 'honeypot';
 
 			$validation_errors[] = 'honeypot';
+		}
+
+		// Check submitted fields for blocked email domains and disallowed words.
+		$check_blocked_emails = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_formidable_blocked_email_domains' );
+		$check_disallowed     = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_formidable_disallowed_words' );
+
+		if ( $check_blocked_emails || $check_disallowed ) {
+			// Formidable form fields use item_meta array.
+			$fields_to_check = ! empty( $post['item_meta'] ) && is_array( $post['item_meta'] ) ? $post['item_meta'] : $post;
+
+			$field_errors      = \ZeroSpam\Core\Utilities::check_fields_for_spam( $fields_to_check, $check_blocked_emails, $check_disallowed );
+			$validation_errors = array_merge( $validation_errors, $field_errors );
+		}
+
+		// Fire hook for additional validation (ex. David Walsh).
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			$filtered_errors = apply_filters( 'zerospam_preprocess_formidable_submission', array(), $post, 'formidable_spam_message' );
+
+			if ( ! empty( $filtered_errors ) ) {
+				foreach ( $filtered_errors as $key => $message ) {
+					$validation_errors[] = str_replace( 'zerospam_', '', $key );
+				}
+			}
 		}
 
 		if ( ! empty( $validation_errors ) ) {

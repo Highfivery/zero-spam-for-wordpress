@@ -32,10 +32,16 @@ class Access {
 	 * request should be blocked.
 	 */
 	public function init() {
-		if ( ! is_admin() && is_main_query() && self::process() ) {
+		if ( ! is_admin() && self::process() ) {
 			add_action( 'template_redirect', array( $this, 'access_check' ), 0 );
 			add_filter( 'zerospam_access_checks', array( $this, 'check_blocked' ), 0, 3 );
 		}
+
+		// Protect login.
+		add_action( 'login_init', array( $this, 'login_access_check' ) );
+
+		// Protect XML-RPC.
+		add_action( 'xmlrpc_call', array( $this, 'xmlrpc_access_check' ) );
 	}
 
 	/**
@@ -80,6 +86,13 @@ class Access {
 
 		$user_ip = \ZeroSpam\Core\User::get_ip();
 
+		// Check for rescue mode.
+		if ( defined( 'ZEROSPAM_RESCUE_KEY' ) && ! empty( $_GET['zerospam_rescue'] ) ) {
+			if ( hash_equals( ZEROSPAM_RESCUE_KEY, $_GET['zerospam_rescue'] ) ) {
+				return false;
+			}
+		}
+
 		// Sanitize the REQUEST_URI before further processing.
 		$request_uri = esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) );
 
@@ -102,6 +115,38 @@ class Access {
 	 * Access check
 	 */
 	public function access_check() {
+		// Ensure this is the main query for standard template redirects.
+		if ( ! is_main_query() ) {
+			return;
+		}
+
+		$this->run_block_check();
+	}
+
+	/**
+	 * Login Access check
+	 */
+	public function login_access_check() {
+		if ( self::process( true ) ) {
+			$this->run_block_check();
+		}
+	}
+
+	/**
+	 * XML-RPC Access check
+	 */
+	public function xmlrpc_access_check() {
+		if ( self::process( true ) ) {
+			$this->run_block_check( true );
+		}
+	}
+
+	/**
+	 * Runs the block check logic.
+	 *
+	 * @param boolean $is_xmlrpc True if this is an XML-RPC request.
+	 */
+	public function run_block_check( $is_xmlrpc = false ) {
 		$access = self::get_access();
 
 		if ( ! empty( $access['blocked'] ) ) {
@@ -119,6 +164,14 @@ class Access {
 						}
 					}
 				}
+			}
+
+			if ( $is_xmlrpc ) {
+				wp_die(
+					'<?xml version="1.0"?><methodResponse><fault><value><struct><member><name>faultCode</name><value><int>403</int></value></member><member><name>faultString</name><value><string>' . esc_html__( 'Access Denied: Your IP address has been blocked due to suspected malicious activity.', 'zero-spam' ) . '</string></value></member></struct></value></fault></methodResponse>',
+					'XML-RPC Access Denied',
+					array( 'response' => 403, 'Content-Type' => 'text/xml' )
+				);
 			}
 
 			if ( ! empty( $settings['block_handler']['value'] ) ) {

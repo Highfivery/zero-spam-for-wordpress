@@ -1,0 +1,831 @@
+/**
+ * Network Settings JavaScript
+ *
+ * Handles interactive functionality for the Network Settings page.
+ */
+
+(function($) {
+	'use strict';
+
+	const ZeroSpamNetworkSettings = {
+		/**
+		 * Initialize
+		 */
+		init: function() {
+			this.bindEvents();
+		},
+
+	/**
+	 * Bind events
+	 */
+	bindEvents: function() {
+		// Group toggle
+		$(document).on('click', '.settings-group-toggle', this.toggleGroup);
+
+		// Lock/Unlock toggle
+		$(document).on('click', '.toggle-lock', this.toggleLock);
+
+		// Save individual setting
+		$(document).on('click', '.save-setting', this.saveSetting);
+
+		// Save all settings button
+		$(document).on('click', '.save-all-settings', this.saveAllSettings);
+
+		// Apply to all sites
+		$('#apply-to-all-sites, #apply-to-all-sites-settings').on('click', this.applyToAllSites);
+
+		// Export settings
+		$('#export-settings').on('click', this.exportSettings);
+
+		// Import settings
+		$('#import-settings').on('click', this.importSettings);
+
+		// Template actions
+		$(document).on('click', '.apply-template-network', this.applyTemplateNetwork);
+		$(document).on('click', '.apply-template-sites', this.applyTemplateSites);
+		$(document).on('click', '.delete-template', this.deleteTemplate);
+		$('#save-current-as-template').on('click', this.saveTemplate);
+
+		// Auto-load comparison if on comparison tab
+		if ($('.zerospam-comparison-section').length > 0) {
+			this.loadComparison();
+		}
+	},
+
+	/**
+	 * Toggle settings group
+	 */
+	toggleGroup: function(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		
+		const $button = $(this);
+		const groupId = $button.data('group');
+		const $content = $('#group-' + groupId);
+		const $icon = $button.find('.dashicons');
+		const $text = $button.find('.button-text');
+		
+		if ($content.is(':visible')) {
+			$content.slideUp(300);
+			$icon.removeClass('dashicons-arrow-up-alt2').addClass('dashicons-arrow-down-alt2');
+			$text.text('Expand');
+		} else {
+			$content.slideDown(300);
+			$icon.removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-up-alt2');
+			$text.text('Collapse');
+		}
+	},
+
+	/**
+	 * Toggle lock status
+	 */
+	toggleLock: function(e) {
+		e.preventDefault();
+
+		const $button = $(this);
+		const $row = $button.closest('tr');
+		const key = $row.data('setting-key');
+		const isLocked = $button.data('locked') == 1;
+		const action = isLocked ? 'zerospam_network_unlock_setting' : 'zerospam_network_lock_setting';
+
+		// Remove any existing inline messages
+		$row.find('.inline-save-message').remove();
+
+		$button.prop('disabled', true);
+
+		$.ajax({
+			url: zeroSpamNetwork.ajaxUrl,
+			type: 'POST',
+			data: {
+				action: action,
+				nonce: zeroSpamNetwork.nonce,
+				key: key
+			},
+			success: function(response) {
+				if (response.success) {
+					// Toggle button state
+					const newLocked = !isLocked;
+					$button.data('locked', newLocked ? 1 : 0);
+					$button.html(newLocked 
+						? '🔒'
+						: '🔓'
+					);
+
+					// Update badge
+					const $status = $row.find('.setting-status');
+					if (newLocked) {
+						if ($status.find('.locked-badge').length === 0) {
+							$status.prepend('<span class="locked-badge">🔒 Locked</span>');
+						}
+					} else {
+						$status.find('.locked-badge').remove();
+					}
+
+					// Show inline success message
+					const $lockCell = $button.closest('td');
+					$lockCell.append('<span class="inline-save-message success">✓</span>');
+					
+					// Flash the row
+					$row.addClass('setting-saved-flash');
+					
+					setTimeout(function() {
+						$row.find('.inline-save-message').fadeOut(300, function() {
+							$(this).remove();
+						});
+						$row.removeClass('setting-saved-flash');
+					}, 2000);
+				} else {
+					const $lockCell = $button.closest('td');
+					$lockCell.append('<span class="inline-save-message error">✗ Failed</span>');
+					
+					setTimeout(function() {
+						$row.find('.inline-save-message').fadeOut(300, function() {
+							$(this).remove();
+						});
+					}, 3000);
+				}
+			},
+			error: function(xhr, status, error) {
+				console.error('Lock toggle error:', xhr.responseText);
+				const $lockCell = $button.closest('td');
+				$lockCell.append('<span class="inline-save-message error">✗ Error</span>');
+				
+				setTimeout(function() {
+					$row.find('.inline-save-message').fadeOut(300, function() {
+						$(this).remove();
+					});
+				}, 3000);
+			},
+			complete: function() {
+				$button.prop('disabled', false);
+			}
+		});
+	},
+
+	/**
+	 * Save individual setting
+	 */
+	saveSetting: function(e) {
+		e.preventDefault();
+
+		const $button = $(this);
+		const $row = $button.closest('tr');
+		const key = $row.data('setting-key');
+		const $input = $row.find('input, select, textarea').first();
+		let value;
+
+		// Remove any existing inline messages
+		$row.find('.inline-save-message').remove();
+
+		// Handle different input types
+		if ($input.is(':checkbox')) {
+			value = $input.is(':checked') ? 'enabled' : 'disabled';
+		} else if ($input.is(':radio')) {
+			value = $row.find('input[type="radio"]:checked').val() || '';
+		} else if ($input.is('select[multiple]')) {
+			value = $input.val() || [];
+		} else {
+			value = $input.val();
+		}
+
+		const locked = $row.find('.toggle-lock').data('locked') == 1;
+
+		$button.prop('disabled', true).text('Saving...');
+
+		$.ajax({
+			url: zeroSpamNetwork.ajaxUrl,
+			type: 'POST',
+			data: {
+				action: 'zerospam_network_set_setting',
+				nonce: zeroSpamNetwork.nonce,
+				key: key,
+				value: value,
+				locked: locked ? '1' : '0'
+			},
+			success: function(response) {
+				if (response.success) {
+					// Add inline success message in the actions cell
+					const $actionsCell = $button.closest('td');
+					$actionsCell.append('<span class="inline-save-message success">✓ Saved!</span>');
+					
+					// Flash the row green
+					$row.addClass('setting-saved-flash');
+					
+					// Remove message and flash after 3 seconds
+					setTimeout(function() {
+						$row.find('.inline-save-message').fadeOut(300, function() {
+							$(this).remove();
+						});
+						$row.removeClass('setting-saved-flash');
+					}, 3000);
+				} else {
+					// Show inline error message
+					const $actionsCell = $button.closest('td');
+					$actionsCell.append('<span class="inline-save-message error">✗ ' + (response.data.message || 'Failed') + '</span>');
+					
+					setTimeout(function() {
+						$row.find('.inline-save-message').fadeOut(300, function() {
+							$(this).remove();
+						});
+					}, 5000);
+				}
+			},
+			error: function(xhr, status, error) {
+				console.error('Save setting error:', xhr.responseText);
+				const $actionsCell = $button.closest('td');
+				$actionsCell.append('<span class="inline-save-message error">✗ Error saving</span>');
+				
+				setTimeout(function() {
+					$row.find('.inline-save-message').fadeOut(300, function() {
+						$(this).remove();
+					});
+				}, 5000);
+			},
+			complete: function() {
+				$button.prop('disabled', false).text('Save');
+			}
+		});
+	},
+
+	/**
+	 * Save all settings
+	 */
+	saveAllSettings: function(e) {
+		e.preventDefault();
+
+		const $button = $(this);
+		const originalHtml = $button.html();
+		$button.prop('disabled', true);
+		$button.html('<span class="dashicons dashicons-update dashicons-spin"></span> Saving All...');
+
+		// Collect all settings to save
+		const savePromises = [];
+		const $rows = $('.zerospam-settings-table tbody tr[data-setting-key]');
+
+		$rows.each(function() {
+			const $row = $(this);
+			const key = $row.data('setting-key');
+			const $input = $row.find('input, select, textarea').first();
+			
+			if (!$input.length || !key) {
+				return; // Skip if no input or key
+			}
+			
+			let value;
+
+			// Handle different input types
+			if ($input.is(':checkbox')) {
+				value = $input.is(':checked') ? 'enabled' : 'disabled';
+			} else if ($input.is(':radio')) {
+				value = $row.find('input[type="radio"]:checked').val() || '';
+			} else if ($input.is('select[multiple]')) {
+				value = $input.val() || [];
+			} else {
+				value = $input.val() || '';
+			}
+
+			const locked = $row.find('.toggle-lock').data('locked') == 1;
+
+			// Create a promise for each save
+			const promise = $.ajax({
+				url: zeroSpamNetwork.ajaxUrl,
+				type: 'POST',
+				data: {
+					action: 'zerospam_network_set_setting',
+					nonce: zeroSpamNetwork.nonce,
+					key: key,
+					value: value,
+					locked: locked ? '1' : '0'
+				}
+			});
+			
+			savePromises.push(promise);
+		});
+
+		// Wait for all saves to complete
+		Promise.allSettled(savePromises).then(function(results) {
+			let savedCount = 0;
+			let errorCount = 0;
+			
+			results.forEach(function(result) {
+				if (result.status === 'fulfilled' && result.value.success) {
+					savedCount++;
+				} else {
+					errorCount++;
+				}
+			});
+			
+			$button.prop('disabled', false).html(originalHtml);
+			
+			if (errorCount === 0) {
+				ZeroSpamNetworkSettings.showNotice('success', savedCount + ' settings saved successfully!');
+				
+				// Add visual feedback to all rows
+				$rows.addClass('setting-saved-flash');
+				setTimeout(function() {
+					$rows.removeClass('setting-saved-flash');
+				}, 2000);
+			} else {
+				ZeroSpamNetworkSettings.showNotice('error', savedCount + ' settings saved, ' + errorCount + ' failed.');
+			}
+		}).catch(function(error) {
+			console.error('Save all error:', error);
+			$button.prop('disabled', false).html(originalHtml);
+			ZeroSpamNetworkSettings.showNotice('error', 'An error occurred while saving settings.');
+		});
+	},
+
+		/**
+		 * Apply to all sites
+		 */
+		applyToAllSites: function(e) {
+			e.preventDefault();
+
+			if (!confirm(zeroSpamNetwork.strings.confirm_apply)) {
+				return;
+			}
+
+			const $button = $(this);
+			$button.prop('disabled', true).text('Applying...');
+
+			$.ajax({
+				url: zeroSpamNetwork.ajaxUrl,
+				type: 'POST',
+				data: {
+					action: 'zerospam_network_apply_all',
+					nonce: zeroSpamNetwork.nonce,
+					force: '0',
+					mode: 'all'
+				},
+				success: function(response) {
+					if (response.success) {
+						const msg = response.data.updated_count + ' sites updated, ' + 
+									response.data.skipped_count + ' skipped.';
+						ZeroSpamNetworkSettings.showNotice('success', msg);
+						location.reload();
+					} else {
+						ZeroSpamNetworkSettings.showNotice('error', response.data.message);
+					}
+				},
+				error: function() {
+					ZeroSpamNetworkSettings.showNotice('error', zeroSpamNetwork.strings.error);
+				},
+				complete: function() {
+					$button.prop('disabled', false).text($button.text().replace('Applying...', 'Apply to All Sites'));
+				}
+			});
+		},
+
+		/**
+		 * Load comparison
+		 */
+		loadComparison: function() {
+			const $results = $('#comparison-results');
+
+			$results.html('<p>Loading comparison data...</p>').show();
+
+			$.ajax({
+				url: zeroSpamNetwork.ajaxUrl,
+				type: 'POST',
+				data: {
+					action: 'zerospam_network_get_comparison',
+					nonce: zeroSpamNetwork.nonce
+				},
+				success: function(response) {
+					if (response.success) {
+						ZeroSpamNetworkSettings.renderComparison(response.data.comparison, response.data.sites);
+					} else {
+						$results.html('<p class="error">Failed to load comparison.</p>');
+					}
+				},
+				error: function() {
+					$results.html('<p class="error">Failed to load comparison.</p>');
+				}
+			});
+		},
+
+		/**
+		 * Render comparison table
+		 */
+		renderComparison: function(comparison, sites) {
+			if (!comparison || !sites || sites.length === 0) {
+				$('#comparison-results').html('<p class="error">No comparison data available.</p>');
+				return;
+			}
+
+			let html = '<table class="wp-list-table widefat striped"><thead><tr>';
+			html += '<th>Setting</th>';
+
+			sites.forEach(function(site) {
+				const siteName = site.blogname || 'Site ' + site.blog_id;
+				html += '<th>' + siteName + ' (' + site.blog_id + ')</th>';
+			});
+
+			html += '</tr></thead><tbody>';
+
+			$.each(comparison, function(key, data) {
+				if (!data) {
+					return true; // Skip undefined data
+				}
+
+				html += '<tr><td><strong>' + key + '</strong><br>';
+				html += '<span class="description">Network: ' + (data.network_value || '—') + '</span>';
+				if (data.locked) {
+					html += ' 🔒';
+				}
+				html += '</td>';
+
+				sites.forEach(function(site) {
+					if (!data.sites || !data.sites[site.blog_id]) {
+						html += '<td>—</td>';
+						return;
+					}
+
+					const siteData = data.sites[site.blog_id];
+					let cellClass = '';
+
+					if (siteData.source === 'locked') {
+						cellClass = 'locked';
+					} else if (siteData.source === 'override') {
+						cellClass = 'override';
+					} else if (siteData.source === 'default') {
+						cellClass = 'default';
+					}
+
+					html += '<td class="' + cellClass + '">';
+					html += (siteData.value !== undefined && siteData.value !== null) ? siteData.value : '—';
+					html += '<br><span class="source-badge">' + (siteData.source || 'unknown') + '</span>';
+					html += '</td>';
+				});
+
+				html += '</tr>';
+			});
+
+			html += '</tbody></table>';
+
+			$('#comparison-results').html(html);
+		},
+
+		/**
+		 * Export settings
+		 */
+		exportSettings: function(e) {
+			e.preventDefault();
+
+			const $button = $(this);
+			const $status = $('#export-status');
+			
+			$button.prop('disabled', true).text('Exporting...');
+			$status.html('<span class="spinner is-active" style="float: none; margin: 0;"></span> Preparing export...');
+
+			$.ajax({
+				url: zeroSpamNetwork.ajaxUrl,
+				type: 'POST',
+				data: {
+					action: 'zerospam_network_export',
+					nonce: zeroSpamNetwork.nonce
+				},
+				success: function(response) {
+					if (response.success) {
+						const blob = new Blob([response.data.json], {type: 'application/json'});
+						const url = window.URL.createObjectURL(blob);
+						const a = document.createElement('a');
+						const timestamp = new Date().toISOString().slice(0,10);
+						a.href = url;
+						a.download = 'zerospam-network-settings-' + timestamp + '.json';
+						document.body.appendChild(a);
+						a.click();
+						window.URL.revokeObjectURL(url);
+						document.body.removeChild(a);
+
+						$status.html('<div class="notice notice-success inline"><p><strong>Settings exported successfully!</strong> The file has been downloaded to your computer.</p></div>');
+					} else {
+						$status.html('<div class="notice notice-error inline"><p><strong>Export failed:</strong> ' + (response.data.message || 'Unknown error') + '</p></div>');
+					}
+				},
+				error: function(xhr, status, error) {
+					$status.html('<div class="notice notice-error inline"><p><strong>Export failed:</strong> ' + error + '</p></div>');
+				},
+				complete: function() {
+					$button.prop('disabled', false).text('Export as JSON');
+				}
+			});
+		},
+
+		/**
+		 * Import settings
+		 */
+		importSettings: function(e) {
+			e.preventDefault();
+
+			const $button = $(this);
+			const $status = $('#import-status');
+			const fileInput = $('#import-file')[0];
+			const file = fileInput.files[0];
+			const mode = $('input[name="import_mode"]:checked').val();
+
+			$status.html('');
+
+			if (!file) {
+				$status.html('<div class="notice notice-error inline"><p><strong>No file selected.</strong> Please choose a JSON file to import.</p></div>');
+				return;
+			}
+
+			if (!file.name.endsWith('.json')) {
+				$status.html('<div class="notice notice-error inline"><p><strong>Invalid file type.</strong> Please select a JSON file.</p></div>');
+				return;
+			}
+
+			if (file.size > 5 * 1024 * 1024) {
+				$status.html('<div class="notice notice-error inline"><p><strong>File too large.</strong> Maximum file size is 5MB.</p></div>');
+				return;
+			}
+
+			const modeText = mode === 'merge' ? 'merge' : (mode === 'replace' ? 'replace all' : 'add new');
+			if (!confirm('Import settings and ' + modeText + '? This will modify your network configuration.')) {
+				return;
+			}
+
+			const reader = new FileReader();
+
+			reader.onload = function(e) {
+				let json = e.target.result;
+				let data;
+
+				try {
+					data = JSON.parse(json);
+				} catch (err) {
+					$status.html('<div class="notice notice-error inline"><p><strong>Invalid JSON file:</strong> ' + err.message + '</p></div>');
+					return;
+				}
+
+				$button.prop('disabled', true).text('Importing...');
+				$status.html('<span class="spinner is-active" style="float: none; margin: 0;"></span> Importing settings...');
+
+				$.ajax({
+					url: zeroSpamNetwork.ajaxUrl,
+					type: 'POST',
+					data: {
+						action: 'zerospam_network_import',
+						nonce: zeroSpamNetwork.nonce,
+						json: json,
+						mode: mode
+					},
+					success: function(response) {
+						if (response.success) {
+							const imported = response.data.imported_count || 0;
+							const skipped = response.data.skipped_count || 0;
+							let msg = '<div class="notice notice-success inline"><p><strong>Import successful!</strong> ';
+							msg += imported + ' setting' + (imported !== 1 ? 's' : '') + ' imported.';
+							if (skipped > 0) {
+								msg += ' ' + skipped + ' skipped.';
+							}
+							msg += '<br>The page will reload in 3 seconds...</p></div>';
+							$status.html(msg);
+							
+							setTimeout(function() {
+								location.reload();
+							}, 3000);
+						} else {
+							$status.html('<div class="notice notice-error inline"><p><strong>Import failed:</strong> ' + (response.data.message || 'Unknown error') + '</p></div>');
+							$button.prop('disabled', false).text('Import Settings');
+						}
+					},
+					error: function(xhr, status, error) {
+						$status.html('<div class="notice notice-error inline"><p><strong>Import failed:</strong> ' + error + '</p></div>');
+						$button.prop('disabled', false).text('Import Settings');
+					}
+				});
+			};
+
+			reader.onerror = function() {
+				$status.html('<div class="notice notice-error inline"><p><strong>Failed to read file.</strong> Please try again.</p></div>');
+			};
+
+			reader.readAsText(file);
+		},
+
+	/**
+	 * Show notice (non-scrolling, for Save All button)
+	 */
+	showNotice: function(type, message) {
+		// Remove any existing notices
+		$('.zerospam-ajax-notice').remove();
+		
+		// Create new notice
+		const $notice = $('<div class="notice notice-' + type + ' is-dismissible zerospam-ajax-notice"><p><strong>' + message + '</strong></p></div>');
+		
+		// Insert at the top of the page
+		if ($('.wrap > h1').length) {
+			$('.wrap > h1').after($notice);
+		} else {
+			$('.wrap').prepend($notice);
+		}
+		
+		// DO NOT SCROLL - let the user stay where they are
+		
+		// Auto-dismiss after 5 seconds
+		setTimeout(function() {
+			$notice.fadeOut(400, function() {
+				$(this).remove();
+			});
+		}, 5000);
+		
+		// Manual dismiss
+		$notice.find('.notice-dismiss').on('click', function() {
+			$notice.fadeOut(400, function() {
+				$(this).remove();
+			});
+		});
+	},
+
+		/**
+		 * Apply template to network
+		 */
+		applyTemplateNetwork: function(e) {
+			e.preventDefault();
+
+			const slug = $(this).data('slug');
+
+			if (!confirm('Apply this template to network settings?')) {
+				return;
+			}
+
+			const $button = $(this);
+			$button.prop('disabled', true).text('Applying...');
+
+			$.ajax({
+				url: zeroSpamNetwork.ajaxUrl,
+				type: 'POST',
+				data: {
+					action: 'zerospam_network_apply_template',
+					nonce: zeroSpamNetwork.nonce,
+					slug: slug,
+					scope: 'network',
+					lock: '0'
+				},
+				success: function(response) {
+					if (response.success) {
+						ZeroSpamNetworkSettings.showNotice('success', response.data.message);
+						setTimeout(function() {
+							location.reload();
+						}, 1000);
+					} else {
+						ZeroSpamNetworkSettings.showNotice('error', response.data.message);
+					}
+				},
+				error: function() {
+					ZeroSpamNetworkSettings.showNotice('error', zeroSpamNetwork.strings.error);
+				},
+				complete: function() {
+					$button.prop('disabled', false).text('Apply to Network');
+				}
+			});
+		},
+
+		/**
+		 * Apply template to sites
+		 */
+		applyTemplateSites: function(e) {
+			e.preventDefault();
+
+			const slug = $(this).data('slug');
+
+			if (!confirm('Apply this template to all sites?')) {
+				return;
+			}
+
+			const $button = $(this);
+			$button.prop('disabled', true).text('Applying...');
+
+			$.ajax({
+				url: zeroSpamNetwork.ajaxUrl,
+				type: 'POST',
+				data: {
+					action: 'zerospam_network_apply_template',
+					nonce: zeroSpamNetwork.nonce,
+					slug: slug,
+					scope: 'sites',
+					lock: '0'
+				},
+				success: function(response) {
+					if (response.success) {
+						const msg = response.data.updated_count + ' sites updated!';
+						ZeroSpamNetworkSettings.showNotice('success', msg);
+						setTimeout(function() {
+							location.reload();
+						}, 1000);
+					} else {
+						ZeroSpamNetworkSettings.showNotice('error', response.data.message);
+					}
+				},
+				error: function() {
+					ZeroSpamNetworkSettings.showNotice('error', zeroSpamNetwork.strings.error);
+				},
+				complete: function() {
+					$button.prop('disabled', false).text('Apply to Sites');
+				}
+			});
+		},
+
+		/**
+		 * Save template
+		 */
+		saveTemplate: function(e) {
+			e.preventDefault();
+
+			const name = $('#template-name').val();
+			const slug = $('#template-slug').val();
+			const description = $('#template-description').val();
+
+			if (!name || !slug) {
+				alert('Template name and slug are required.');
+				return;
+			}
+
+			const $button = $(this);
+			$button.prop('disabled', true).text('Saving...');
+
+			$.ajax({
+				url: zeroSpamNetwork.ajaxUrl,
+				type: 'POST',
+				data: {
+					action: 'zerospam_network_save_template',
+					nonce: zeroSpamNetwork.nonce,
+					name: name,
+					slug: slug,
+					description: description
+				},
+				success: function(response) {
+					if (response.success) {
+						ZeroSpamNetworkSettings.showNotice('success', response.data.message);
+						// Clear form
+						$('#template-name').val('');
+						$('#template-slug').val('');
+						$('#template-description').val('');
+						setTimeout(function() {
+							location.reload();
+						}, 1000);
+					} else {
+						ZeroSpamNetworkSettings.showNotice('error', response.data.message);
+					}
+				},
+				error: function() {
+					ZeroSpamNetworkSettings.showNotice('error', zeroSpamNetwork.strings.error);
+				},
+				complete: function() {
+					$button.prop('disabled', false).text('Save Current Settings as Template');
+				}
+			});
+		},
+
+		/**
+		 * Delete template
+		 */
+		deleteTemplate: function(e) {
+			e.preventDefault();
+
+			const slug = $(this).data('slug');
+
+			if (!confirm('Are you sure you want to delete this template?')) {
+				return;
+			}
+
+			const $button = $(this);
+			const $card = $button.closest('.template-card');
+
+			$button.prop('disabled', true).text('Deleting...');
+
+			$.ajax({
+				url: zeroSpamNetwork.ajaxUrl,
+				type: 'POST',
+				data: {
+					action: 'zerospam_network_delete_template',
+					nonce: zeroSpamNetwork.nonce,
+					slug: slug
+				},
+				success: function(response) {
+					if (response.success) {
+						ZeroSpamNetworkSettings.showNotice('success', response.data.message);
+						$card.fadeOut(function() {
+							$(this).remove();
+						});
+					} else {
+						ZeroSpamNetworkSettings.showNotice('error', response.data.message);
+						$button.prop('disabled', false).text('Delete');
+					}
+				},
+				error: function() {
+					ZeroSpamNetworkSettings.showNotice('error', zeroSpamNetwork.strings.error);
+					$button.prop('disabled', false).text('Delete');
+				}
+			});
+		}
+	};
+
+	// Initialize on document ready
+	$(document).ready(function() {
+		ZeroSpamNetworkSettings.init();
+	});
+
+})(jQuery);

@@ -3,7 +3,7 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
-Tested up to: 6.9
+Tested up to: 6.9.1
 Requires PHP: 8.2
 Stable tag: 5.5.8
 License: GPL v2 or later
@@ -25,6 +25,7 @@ Rest easy knowing that we utilize multiple detection methods to swiftly identify
 * Block IPs temporarily or permanently, keep unwanted visitors out.
 * Geolocation tracks origins of threats, providing valuable insights.
 * Ability to block countries, regions, zip/postal codes & cities.
+* REST API for programmatic settings management — perfect for CI/CD, staging syncs, and automation.
 * Utilize [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist) to strengthen your disallowed list.
 * Block disposable & malicious email effortlessly with [disposable](https://github.com/disposable).
 * Multiple techniques, including the renowned solution by [David Walsh](https://davidwalsh.name/wordpress-comment-spam).
@@ -85,6 +86,20 @@ To further optimize performance, you can adjust the cache and API timeout settin
 * `wp zerospam settings` &mdash; Displays all plugin settings.
 * `wp zerospam set --[SETTING_KEY]=[VALUE]` &mdash; Updates a plugin setting.
 
+= Can I manage Zero Spam settings programmatically? =
+
+**Yes!** Zero Spam provides a secure REST API for reading and updating settings remotely. This is perfect for:
+
+* Syncing settings between staging and production environments
+* Automating configuration in CI/CD pipelines
+* Managing settings across multiple WordPress sites
+* Remote administration and monitoring
+* Testing configuration changes safely with dry-run mode
+
+The API supports multisite installations with granular control over network defaults and per-site overrides. Authentication uses WordPress Application Passwords for secure, revocable access without exposing your main password.
+
+**Getting Started:** Visit the Documentation tab in Settings > Zero Spam for complete details, step-by-step setup instructions, real-world examples, and troubleshooting tips. No technical expertise required!
+
 = Are you getting a `ftp_fget` PHP warning? =
 
 Some hosts have issues with they way they access files. If you're seeing a `ftp_fget` PHP notice, setting the `FS_METHOD` constant to `direct` in `wp-config.php` above the line `/* That's all, stop editing! Happy Pressing. */` should solve the problem:
@@ -96,6 +111,16 @@ If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs
 = Where do I report security bugs found in this plugin? =
 
 You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/zero-spam)
+
+= I blocked myself! How do I get back in? =
+
+If you have defined the `ZEROSPAM_RESCUE_KEY` constant in your `wp-config.php` file, you can bypass all checks by appending `?zerospam_rescue={YOUR_KEY}` to any URL. (e.g., `https://example.com/wp-admin/?zerospam_rescue=mysecretkey`).
+
+If you haven't defined this key, you must manually rename the plugin folder via FTP (`wp-content/plugins/zero-spam` -> `zero-spam-disabled`) to gain access.
+
+= Why can't I access `wp-login.php` or XML-RPC anymore? =
+
+As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation or use the Rescue Mode key to log in and whitelist your IP.
 
 == Screenshots ==
 

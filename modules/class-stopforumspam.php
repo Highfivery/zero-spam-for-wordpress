@@ -68,21 +68,7 @@ class StopForumSpam {
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %s: Replaced with the Stop Forum Spam URL */
-					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Stop Forum Spam</a>.', 'zero-spam' ),
-					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( 'https://www.stopforumspam.com/#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
-			),
+			'desc'        => __( 'Check if visitors have been reported as spammers by other websites.', 'zero-spam' ),
 			'value'       => ! empty( $options['stop_forum_spam'] ) ? $options['stop_forum_spam'] : false,
 			'recommended' => 'enabled',
 		);
@@ -96,7 +82,7 @@ class StopForumSpam {
 			'suffix'      => __( 'seconds', 'zero-spam' ),
 			'placeholder' => __( '5', 'zero-spam' ),
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in degraded site performance, too low won\'t allow to API enough time to respond; recommended 5 seconds.', 'zero-spam' ),
+			'desc'        => __( 'How long to wait for a response. Recommended: 5 seconds.', 'zero-spam' ),
 			'value'       => ! empty( $options['stop_forum_spam_timeout'] ) ? $options['stop_forum_spam_timeout'] : 5,
 			'recommended' => 5,
 		);
@@ -110,7 +96,7 @@ class StopForumSpam {
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
 			'placeholder' => WEEK_IN_SECONDS,
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zero-spam' ),
+			'desc'        => __( 'How long to remember spam check results. Recommended: 14 days.', 'zero-spam' ),
 			'value'       => ! empty( $options['stop_forum_spam_cache'] ) ? $options['stop_forum_spam_cache'] : 14,
 			'recommended' => 14,
 		);
@@ -126,20 +112,7 @@ class StopForumSpam {
 			'min'         => 0,
 			'max'         => 100,
 			'step'        => 0.1,
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %s: Replaced with the Stop Forum Spam URL */
-					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">confidence score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 50%%', 'zero-spam' ),
-					array(
-						'a' => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( 'https://www.stopforumspam.com/usage?utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
-			),
+			'desc'        => __( 'How sure we need to be before blocking. Lower blocks more visitors. Recommended: 50%.', 'zero-spam' ),
 			'value'       => ! empty( $options['stop_forum_spam_confidence_min'] ) ? $options['stop_forum_spam_confidence_min'] : 50,
 			'recommended' => 50,
 		);

@@ -5,6 +5,7 @@
  * Malicious user detection techniques available:
  *
  * 1. Zero Spam honeypot field
+ * 2. David Walsh technique
  *
  * @package ZeroSpam
  */
@@ -43,10 +44,11 @@ class GravityForms {
 			// Processes the form.
 			add_action( 'gform_abort_submission_with_confirmation', array( $this, 'process_form' ), 10, 2 );
 			add_filter( 'gform_confirmation', array( $this, 'confirmation_message' ), 10, 4 );
-			/*
-			// Load scripts.
-			add_action( 'wp_print_scripts', array( $this, 'add_scripts' ), 999 );
-			*/
+
+			// Load David Walsh scripts.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+				add_action( 'gform_enqueue_scripts', array( $this, 'add_scripts' ), 10 );
+			}
 		}
 	}
 
@@ -73,20 +75,20 @@ class GravityForms {
 		$sections['gravityforms'] = array(
 			'title'    => __( 'Gravity Forms', 'zero-spam' ),
 			'icon'     => 'modules/gravityforms/icon-gravity-forms.svg',
-			'supports' => array( 'honeypot' ),
+			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
 		return $sections;
 	}
 
 	/**
-	 * Load the scripts
+	 * Load the David Walsh scripts for Gravity Forms.
 	 *
-	 * @see https://givewp.com/documentation/developers/conditionally-load-give-styles-and-scripts/
+	 * @see https://docs.gravityforms.com/gform_enqueue_scripts/
 	 */
 	public function add_scripts() {
-		// wp_enqueue_script( 'zerospam-davidwalsh' );
-		// wp_add_inline_script( 'zerospam-davidwalsh', 'jQuery(".give-form").ZeroSpamDavidWalsh();' );
+		// Trigger the custom action to enqueue the David Walsh script.
+		do_action( 'zerospam_gravityforms_scripts' );
 	}
 
 
@@ -115,13 +117,13 @@ class GravityForms {
 	}
 
 	/**
-	 * Processes a donation submission.
+	 * Processes a Gravity Forms submission.
 	 *
-	 * @param boolean    $do_abort Indicates if the submission should abort without saving the entry. Default is false. Will be true if the anti-spam honeypot is enabled and the honeypot identified the submission as spam.
-	 * @param FormObject $form The form currently being processed.
+	 * @param boolean    $do_abort Indicates if the submission should abort without saving the entry.
+	 * @param FormObject $form     The form currently being processed.
 	 */
 	public function process_form( $do_abort, $form ) {
-		// // If submission is already marked to be aborted early, don't change it.
+		// If submission is already marked to be aborted early, don't change it.
 		if ( $do_abort ) {
 			return true;
 		}
@@ -144,6 +146,34 @@ class GravityForms {
 		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
 			// Failed the honeypot check.
 			$validation_errors[] = 'honeypot';
+		}
+
+		// Check submitted fields for blocked email domains and disallowed words.
+		$check_blocked_emails  = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_gravityforms_blocked_email_domains' );
+		$check_disallowed      = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_gravityforms_disallowed_words' );
+
+		if ( $check_blocked_emails || $check_disallowed ) {
+			// Extract only user-input fields (input_X or input_X_Y naming).
+			$user_fields = array();
+			foreach ( $post as $key => $value ) {
+				if ( is_string( $value ) && 0 === strpos( $key, 'input_' ) ) {
+					$user_fields[ $key ] = $value;
+				}
+			}
+
+			$field_errors      = \ZeroSpam\Core\Utilities::check_fields_for_spam( $user_fields, $check_blocked_emails, $check_disallowed );
+			$validation_errors = array_merge( $validation_errors, $field_errors );
+		}
+
+		// Fire hook for additional validation (ex. David Walsh).
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			$filtered_errors = apply_filters( 'zerospam_preprocess_gravityforms_submission', array(), $post, 'gravityforms_spam_message' );
+
+			if ( ! empty( $filtered_errors ) ) {
+				foreach ( $filtered_errors as $key => $message ) {
+					$validation_errors[] = str_replace( 'zerospam_', '', $key );
+				}
+			}
 		}
 
 		if ( ! empty( $validation_errors ) ) {
@@ -178,22 +208,8 @@ class GravityForms {
 		$options = get_option( 'zero-spam-gravityforms' );
 
 		$settings['verify_gravityforms'] = array(
-			'title'       => sprintf(
-				wp_kses(
-					/* translators: %s: url */
-					__( 'Protect <a href="%s" target="_blank" rel="noreferrer noopener">Gravity Form</a> Submissions', 'zero-spam' ),
-					array(
-						'a' => array(
-							'href'   => array(),
-							'class'  => array(),
-							'target' => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( 'https://www.gravityforms.com/' )
-			),
-			'desc'        => __( 'Protects & monitors Gravity Form submissions (requires >=v2.7 to enable).', 'zero-spam' ),
+			'title'       => __( 'Protect Gravity Forms Submissions', 'zero-spam' ),
+			'desc'        => __( 'Stop spam from Gravity Forms (requires version 2.7 or newer).', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
 			'type'        => 'checkbox',
@@ -207,7 +223,7 @@ class GravityForms {
 		$message                               = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
 		$settings['gravityforms_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when Gravity Forms detects spam.', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
 			'type'        => 'text',
@@ -217,15 +233,38 @@ class GravityForms {
 			'recommended' => $message,
 		);
 
+		$settings['verify_gravityforms_blocked_email_domains'] = array(
+			'title'       => __( 'Check Blocked Email Domains', 'zero-spam' ),
+			'desc'        => __( 'Block Gravity Forms submissions containing email addresses from blocked domains.', 'zero-spam' ),
+			'section'     => 'gravityforms',
+			'module'      => 'gravityforms',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_gravityforms_blocked_email_domains'] ) ? $options['verify_gravityforms_blocked_email_domains'] : false,
+			'recommended' => 'enabled',
+		);
+
+		$settings['verify_gravityforms_disallowed_words'] = array(
+			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'desc'        => __( 'Block Gravity Forms submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
+			'section'     => 'gravityforms',
+			'module'      => 'gravityforms',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => ! empty( $options['verify_gravityforms_disallowed_words'] ) ? $options['verify_gravityforms_disallowed_words'] : false,
+			'recommended' => 'enabled',
+		);
+
 		$settings['log_blocked_gravityforms'] = array(
 			'title'       => __( 'Log Blocked Gravity Form Submissions', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked form submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked Gravity Forms submissions.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

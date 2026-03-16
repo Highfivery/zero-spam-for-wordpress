@@ -79,20 +79,60 @@ class Plugin {
 			new \ZeroSpam\Core\Admin\Admin();
 		}
 
+		// Register REST API routes.
+		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+
 		// Preform the firewall access check.
 		new \ZeroSpam\Core\Access();
 
 		// Database functionality.
 		new \ZeroSpam\Includes\DB();
 
-		// Updates functionality.
-		new \ZeroSpam\Includes\Updates();
+		// Migrations — runs one-time data migrations on plugin update.
+		new \ZeroSpam\Includes\Migrations();
 
 		// Site security
 		new \ZeroSpam\Modules\Security\Security();
 
 		// Zero Spam module.
 		new \ZeroSpam\Modules\Zero_Spam();
+
+		// API Monitoring module.
+		new \ZeroSpam\Modules\API_Monitoring();
+
+		// API Usage Alerts.
+		new \ZeroSpam\Includes\API_Usage_Alerts();
+
+		// Unified Dashboard Widget - use plugins_loaded for multisite compatibility.
+		if ( is_admin() ) {
+			add_action( 'plugins_loaded', array( $this, 'init_dashboard_widget' ), 20 );
+		}
+
+		// Network Statistics Page (multisite only).
+		if ( is_admin() && is_multisite() ) {
+			new \ZeroSpam\Includes\Admin\Network_Stats_Page();
+		}
+
+		// Network Settings Page (multisite only).
+		if ( is_admin() && is_multisite() ) {
+			new \ZeroSpam\Includes\Admin\Network_Settings_Page();
+		}
+
+		// Site Admin Overrides (multisite only).
+		if ( is_admin() && is_multisite() && ! is_network_admin() ) {
+			new \ZeroSpam\Includes\Admin\Site_Admin_Overrides();
+		}
+
+		// Stats Aggregation (multisite only).
+		if ( is_multisite() ) {
+			new \ZeroSpam\Includes\Stats_Aggregator();
+		}
+
+		// Network Settings (multisite only).
+		if ( is_multisite() ) {
+			new \ZeroSpam\Includes\Network_Settings();
+			new \ZeroSpam\Includes\Network_Notifications();
+		}
 
 		// Stop Forum Spam module.
 		new \ZeroSpam\Modules\StopForumSpam();
@@ -192,6 +232,23 @@ class Plugin {
 	}
 
 	/**
+	 * Register REST API routes.
+	 */
+	public function register_rest_routes() {
+		$settings_controller = new \ZeroSpam\Includes\Rest\Settings_Controller();
+		$settings_controller->register_routes();
+
+		$api_usage_controller = new \ZeroSpam\Includes\Rest\API_Usage_Controller();
+		$api_usage_controller->register_routes();
+
+		// Network Settings REST API (multisite only).
+		if ( is_multisite() ) {
+			$network_settings_controller = new \ZeroSpam\Includes\Rest\Network_Settings_Controller();
+			$network_settings_controller->register_routes();
+		}
+	}
+
+	/**
 	 * Action taken for flagged attempts
 	 *
 	 * @param string $module The associated module.
@@ -211,6 +268,21 @@ class Plugin {
 
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
 			do_action( 'zerospam_share_detection', $details );
+		}
+	}
+
+	/**
+	 * Initialize dashboard widget
+	 *
+	 * Called on plugins_loaded hook to ensure multisite context is properly set up.
+	 * Skips instantiation entirely when the widget is disabled to avoid
+	 * registering unnecessary hooks.
+	 */
+	public function init_dashboard_widget() {
+		$options = get_option( 'zero-spam-settings' );
+
+		if ( ! empty( $options['widget_enabled'] ) && 'enabled' === $options['widget_enabled'] ) {
+			new \ZeroSpam\Core\Admin\Dashboard_Widget();
 		}
 	}
 }

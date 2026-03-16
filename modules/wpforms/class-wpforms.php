@@ -82,30 +82,24 @@ class WPForms {
 		$validation_errors = array();
 
 		// Check individual fields.
+		// WPForms scopes user input to wpforms[fields], so system/token fields
+		// are not included here, but we still use the centralized check for
+		// allowed words and minimum word length support.
 		if ( ! empty( $post['wpforms'] ) && ! empty( $post['wpforms']['fields'] ) ) {
+			// Flatten nested field arrays (e.g. name fields with first/last).
+			$flat_fields = array();
 			foreach ( $post['wpforms']['fields'] as $key => $field ) {
 				if ( is_array( $field ) ) {
 					foreach ( $field as $k => $value ) {
-						if ( \ZeroSpam\Core\Utilities::is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
-							// Email address found & is blocked.
-							$validation_errors[] = 'blocked_email_domain';
-						} else {
-							// Check against disallowed list.
-							if ( \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
-								$validation_errors[] = 'disallowed_list';
-							}
-						}
+						$flat_fields[ $key . '_' . $k ] = $value;
 					}
-				} elseif ( \ZeroSpam\Core\Utilities::is_email( $field ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $field ) ) {
-						// Email address found & is blocked.
-						$validation_errors[] = 'blocked_email_domain';
 				} else {
-					// Check against disallowed list.
-					if ( \ZeroSpam\Core\Utilities::is_disallowed( $field ) ) {
-						$validation_errors[] = 'disallowed_list';
-					}
+					$flat_fields[ $key ] = $field;
 				}
 			}
+
+			$field_errors      = \ZeroSpam\Core\Utilities::check_fields_for_spam( $flat_fields, true, true );
+			$validation_errors = array_merge( $validation_errors, $field_errors );
 		}
 
 		// Check Zero Spam's honeypot field.
@@ -196,7 +190,7 @@ class WPForms {
 
 		$settings['verify_wpforms'] = array(
 			'title'       => __( 'Protect WPForms Submissions', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors WPForms submissions.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam from WPForms.', 'zero-spam' ),
 			'section'     => 'wpforms',
 			'module'      => 'wpforms',
 			'type'        => 'checkbox',
@@ -211,7 +205,7 @@ class WPForms {
 
 		$settings['wpforms_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown when WPForms detects spam.', 'zero-spam' ),
 			'section'     => 'wpforms',
 			'module'      => 'wpforms',
 			'type'        => 'text',
@@ -226,10 +220,7 @@ class WPForms {
 			'section'     => 'wpforms',
 			'module'      => 'wpforms',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked WPForms submissions in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of blocked WPForms submissions.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),

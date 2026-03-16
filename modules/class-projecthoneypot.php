@@ -194,46 +194,44 @@ class ProjectHoneypot {
 			),
 			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %s: Replaced with the Project Honeypot URL */
-					__( 'Blocks visitor IPs that have been reported to <a href="%s" target="_blank" rel="noopener noreferrer">Project Honeypot</a>.', 'zero-spam' ),
+					/* translators: %s: URL to Project Honeypot website */
+					__( 'Check if visitors are known spammers using <a href="%s" target="_blank" rel="noopener noreferrer">Project Honeypot\'s</a> database.', 'zero-spam' ),
 					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
+						'a' => array(
 							'href'   => array(),
+							'target' => array(),
 							'rel'    => array(),
 						),
 					)
 				),
-				esc_url( 'https://www.projecthoneypot.org/index.php' )
+				'https://www.projecthoneypot.org/'
 			),
 			'value'       => ! empty( $options['project_honeypot'] ) ? $options['project_honeypot'] : false,
 			'recommended' => 'enabled',
 		);
 
 		$settings['project_honeypot_access_key'] = array(
-			'title'       => __( 'Access Key', 'zero-spam' ),
+			'title'       => __( 'HTTP:BL Access Key', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
-					/* translators: %1s: Replaced with the Project Honeypot URL, %2s: Replaced with the Project Honeypot account creation URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">Project Honeypot</a> access key. Don\'t have an access key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zero-spam' ),
+					/* translators: %1$s: URL to sign up, %2$s: URL to HTTP:BL configuration page */
+					__( 'Enter your Project Honeypot HTTP:BL Access Key. <a href="%1$s" target="_blank" rel="noopener noreferrer">Sign up for free</a>, then find your access key on the <a href="%2$s" target="_blank" rel="noopener noreferrer">HTTP:BL configuration page</a>.', 'zero-spam' ),
 					array(
-						'strong' => array(),
-						'a'      => array(
-							'target' => array(),
+						'a' => array(
 							'href'   => array(),
+							'target' => array(),
 							'rel'    => array(),
 						),
 					)
 				),
-				esc_url( 'https://www.projecthoneypot.org/' ),
-				esc_url( 'https://www.projecthoneypot.org/create_account.php' )
+				'https://www.projecthoneypot.org/create_account.php',
+				'https://www.projecthoneypot.org/httpbl_configure.php'
 			),
 			'section'     => 'project_honeypot',
 			'module'      => 'project_honeypot',
 			'type'        => 'text',
 			'field_class' => 'regular-text',
-			'placeholder' => __( 'Enter your Project Honeypot access key.', 'zero-spam' ),
+			'placeholder' => __( 'Enter your HTTP:BL access key.', 'zero-spam' ),
 			'value'       => ! empty( $options['project_honeypot_access_key'] ) ? $options['project_honeypot_access_key'] : false,
 		);
 
@@ -246,7 +244,7 @@ class ProjectHoneypot {
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
 			'placeholder' => WEEK_IN_SECONDS,
 			'min'         => 0,
-			'desc'        => __( 'Setting to high could result in outdated information, too low could cause a decrease in performance; recommended 14 days.', 'zero-spam' ),
+			'desc'        => __( 'How long to remember spam check results. Recommended: 14 days.', 'zero-spam' ),
 			'value'       => ! empty( $options['project_honeypot_cache'] ) ? $options['project_honeypot_cache'] : 14,
 			'recommended' => 14,
 		);
@@ -261,20 +259,7 @@ class ProjectHoneypot {
 			'min'         => 0,
 			'max'         => 255,
 			'step'        => 1,
-			'desc'        => sprintf(
-				wp_kses(
-					/* translators: %s: Replaced with the Project Honeypot threat page URL */
-					__( 'Minimum <a href="%s" target="_blank" rel="noopener noreferrer">threat score</a> an IP must meet before being blocked. Setting this too low could cause users to be blocked that shouldn\'t be; recommended 50.', 'zero-spam' ),
-					array(
-						'a' => array(
-							'target' => array(),
-							'href'   => array(),
-							'rel'    => array(),
-						),
-					)
-				),
-				esc_url( 'https://www.projecthoneypot.org/threat_info.php?utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam' )
-			),
+			'desc'        => __( 'How dangerous a visitor needs to be before blocking. Lower blocks more. Recommended: 50.', 'zero-spam' ),
 			'value'       => ! empty( $options['project_honeypot_score_min'] ) ? $options['project_honeypot_score_min'] : 50,
 			'recommended' => 50,
 		);

@@ -46,17 +46,74 @@ class Login {
 
 			// Load scripts.
 			add_action( 'login_enqueue_scripts', array( $this, 'add_scripts' ), 10 );
+
+			// Set intent token on login page load.
+			add_action( 'login_init', array( $this, 'set_intent_token' ) );
 		}
 	}
 
 	/**
-	 * Load the scripts
+	 * Sets a login intent token cookie and transient.
+	 *
+	 * This token proves the user visited the login page and is the same client,
+	 * even if the POST payload is scrubbed by an intermediate plugin (e.g. math captcha).
+	 */
+	public function set_intent_token() {
+		// Only run on the login page.
+		if ( ! did_action( 'login_init' ) ) {
+			return;
+		}
+
+		// Generate a secure random token.
+		$token = wp_generate_password( 32, false, false );
+
+		// Set a transient with a short TTL (10 minutes).
+		// We use the token as part of the key to keep it unique per session.
+		set_transient( 'zerospam_login_intent_' . $token, time(), 10 * MINUTE_IN_SECONDS );
+
+		// Set a secure cookie.
+		$secure = is_ssl();
+		$samesite = PHP_VERSION_ID < 70300 ? null : 'Lax'; // PHP 7.3+ supports SameSite in setcookie options.
+		
+		// WordPress doesn't support SameSite in setcookie() natively pre-5.5 fully? 
+		// Actually, let's use standard PHP setcookie for maximum compatibility or WP's if possible.
+		// WP 6.9 environment so use setcookie with array options for modern PHP.
+		if ( PHP_VERSION_ID >= 70300 ) {
+			setcookie(
+				'zerospam_login_intent',
+				$token,
+				array(
+					'expires'  => time() + ( 10 * MINUTE_IN_SECONDS ),
+					'path'     => COOKIEPATH,
+					'domain'   => COOKIE_DOMAIN,
+					'secure'   => $secure,
+					'httponly' => true,
+					'samesite' => 'Lax',
+				)
+			);
+		} else {
+			// Fallback for older PHP.
+			setcookie(
+				'zerospam_login_intent',
+				$token,
+				time() + ( 10 * MINUTE_IN_SECONDS ),
+				COOKIEPATH,
+				COOKIE_DOMAIN,
+				$secure,
+				true
+			);
+		}
+	}
+
+	/**
+	 * Load the scripts.
+	 *
+	 * Uses centralized David Walsh script - selectors are managed in class-davidwalsh.php.
 	 */
 	public function add_scripts() {
-		// Only add scripts to the appropriate pages.
+		// Only add scripts if David Walsh is enabled.
 		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			wp_enqueue_script( 'zerospam-davidwalsh' );
-			wp_add_inline_script( 'zerospam-davidwalsh', 'document.addEventListener("DOMContentLoaded", function() { jQuery("#loginform").ZeroSpamDavidWalsh(); });' );
 		}
 	}
 
@@ -119,10 +176,17 @@ class Login {
 		// Begin validation checks.
 		$validation_errors = array();
 
+		// Begin validation checks.
+		$validation_errors = array();
+		$missing_keys      = false;
+
 		// @codingStandardsIgnoreLine
 		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
-			// Failed the honeypot check.
+			// Failed the honeypot check (Bot filled it out).
 			$validation_errors[] = 'honeypot';
+		} elseif ( ! isset( $post[ $honeypot_field_name ] ) ) {
+			// Honey pot missing entirely. Potentially interrupted flow.
+			$missing_keys = true;
 		}
 
 		// Fire hook for additional validation (ex. David Walsh script).
@@ -130,7 +194,30 @@ class Login {
 
 		if ( ! empty( $errors ) ) {
 			foreach ( $errors as $key => $message ) {
+				// Check if this error is due to a missing key (David Walsh).
+				if ( 'zerospam_david_walsh' === $key ) {
+					// Check if the key was actually posted but invalid, or completely missing.
+					if ( empty( $post['zerospam_david_walsh_key'] ) ) {
+						$missing_keys = true;
+					}
+				}
 				$validation_errors[] = str_replace( 'zerospam_', '', $key );
+			}
+		}
+
+		// If validation failed solely due to missing keys/fields, check for Intent Token.
+		if ( ! empty( $validation_errors ) && $missing_keys ) {
+			if ( $this->validate_login_intent() ) {
+				// Intent valid! Bypassing checks for this request.
+				// Log the bypass if debugging/logging enabled.
+				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_logins' ) ) {
+					$details['failed'] = 'bypassed_by_intent';
+					$details['type']   = 'login_bypass';
+					// Optional: Log it as a "Notice" rather than "Block" if your DB logger supports it, 
+					// for now just skip logging the block or log successful bypass.
+					// We will skip logging a BLOCK here.
+				}
+				return $user;
 			}
 		}
 
@@ -148,6 +235,14 @@ class Login {
 				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
 					do_action( 'zerospam_share_detection', $details );
 				}
+			}
+
+			// If missing keys, return a specific "Verification Missing" error instead of "Malicious".
+			if ( $missing_keys ) {
+				return new \WP_Error( 
+					'failed_zerospam', 
+					__( 'Verification missing. Please try again.', 'zero-spam' ) 
+				);
 			}
 
 			return new \WP_Error( 'failed_zerospam', $error_message );
@@ -195,7 +290,7 @@ class Login {
 
 		$settings['verify_login'] = array(
 			'title'       => __( 'Protect Login Attempts', 'zero-spam' ),
-			'desc'        => __( 'Protects & monitors login attempts.', 'zero-spam' ),
+			'desc'        => __( 'Stop spam bots from trying to login to your website.', 'zero-spam' ),
 			'section'     => 'login',
 			'module'      => 'login',
 			'type'        => 'checkbox',
@@ -210,7 +305,7 @@ class Login {
 
 		$settings['login_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),
-			'desc'        => __( 'Message displayed when a submission has been flagged.', 'zero-spam' ),
+			'desc'        => __( 'The message shown to spam bots trying to login.', 'zero-spam' ),
 			'section'     => 'login',
 			'module'      => 'login',
 			'type'        => 'text',
@@ -225,10 +320,7 @@ class Login {
 			'section'     => 'login',
 			'module'      => 'login',
 			'type'        => 'checkbox',
-			'desc'        => wp_kses(
-				__( 'When enabled, stores blocked login attempts in the database.', 'zero-spam' ),
-				array( 'strong' => array() )
-			),
+			'desc'        => __( 'Keep a record of all blocked login attempts in the database.', 'zero-spam' ),
 			'options'     => array(
 				'enabled' => false,
 			),
@@ -237,5 +329,32 @@ class Login {
 		);
 
 		return $settings;
+	}
+
+	/**
+	 * Validates the login intent token.
+	 *
+	 * Checks if a valid intent cookie exists and matches a server-side transient.
+	 *
+	 * @return bool True if intent is valid, false otherwise.
+	 */
+	public function validate_login_intent() {
+		// Check for the intent cookie.
+		if ( empty( $_COOKIE['zerospam_login_intent'] ) ) {
+			return false;
+		}
+
+		$token = sanitize_text_field( wp_unslash( $_COOKIE['zerospam_login_intent'] ) );
+
+		// Check for the corresponding transient.
+		$transient_key = 'zerospam_login_intent_' . $token;
+		if ( get_transient( $transient_key ) ) {
+			// Intent is valid!
+			// Invalidate the token (one-time use) to prevent replay attacks.
+			delete_transient( $transient_key );
+			return true;
+		}
+
+		return false;
 	}
 }
