@@ -11,11 +11,16 @@ jobs:
         - name: WPCS Check
           uses: 10up/wpcs-action@stable
           with:
-            standard: '.'
+            use_local_config: 'true'
+            enable_warnings: 'false'
             extra_args: '--report-json=./phpcs.json'
         - name: Update summary
           run: |
             npm i -g github:10up/phpcs-json-to-md
-            phpcs-json-to-md --path ./phpcs.json --output ./phpcs.md
-            cat phpcs.md >> $GITHUB_STEP_SUMMARY
+            if [ -f ./phpcs.json ]; then
+              phpcs-json-to-md --path ./phpcs.json --output ./phpcs.md
+              cat phpcs.md >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ PHPCS JSON report was not generated." >> $GITHUB_STEP_SUMMARY
+            fi
           if: always()
