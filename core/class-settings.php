@@ -47,6 +47,49 @@ class Settings {
 	}
 
 	/**
+	 * Validates that a setting definition contains all required keys.
+	 *
+	 * Settings registered via the `zerospam_settings` filter must include
+	 * `type` and `module` keys. Invalid settings are skipped to prevent
+	 * PHP 8.x "Undefined array key" warnings.
+	 *
+	 * @param string $key     Setting key.
+	 * @param mixed  $setting Setting definition array.
+	 * @return bool True if the setting is valid, false otherwise.
+	 */
+	public static function is_valid_setting( $key, $setting ) {
+		if ( ! is_array( $setting ) ) {
+			return false;
+		}
+
+		$required = array( 'type', 'module' );
+		$missing  = array();
+
+		foreach ( $required as $field ) {
+			if ( empty( $setting[ $field ] ) ) {
+				$missing[] = $field;
+			}
+		}
+
+		if ( $missing ) {
+			if ( defined( 'ZEROSPAM_DEBUG' ) && ZEROSPAM_DEBUG ) {
+				Utilities::log(
+					sprintf(
+						/* translators: 1: setting key, 2: comma-separated list of missing keys */
+						'Zero Spam: setting "%1$s" skipped — missing required key(s): %2$s.',
+						$key,
+						implode( ', ', $missing )
+					)
+				);
+			}
+
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
 	 * Updates core disallowed words.
 	 */
 	public static function update_disallowed_words() {
@@ -148,6 +191,10 @@ class Settings {
 		$modules  = array();
 
 		foreach ( $settings as $key => $setting ) {
+			if ( ! self::is_valid_setting( $key, $setting ) ) {
+				continue;
+			}
+
 			if ( ! array_key_exists( $setting['module'], $modules ) ) {
 				$modules[ $setting['module'] ] = array(
 					$key => $setting,
@@ -412,6 +459,14 @@ class Settings {
 		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings );
+
+		// Ensure every setting has a section fallback.
+		foreach ( $settings as $setting_key => &$s ) {
+			if ( is_array( $s ) && empty( $s['section'] ) ) {
+				$s['section'] = 'general';
+			}
+		}
+		unset( $s );
 
 		if ( $key ) {
 			if ( ! empty( $settings[ $key ]['value'] ) ) {
