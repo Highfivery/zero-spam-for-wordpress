@@ -105,7 +105,7 @@ class Dashboard_Widget {
 
 		$value = $settings['widget_visibility']['value'];
 
-		// Explicitly saved empty array means "no roles".
+		// Explicitly saved empty array means "no roles" — hide from everyone.
 		if ( is_array( $value ) ) {
 			return $value;
 		}
@@ -115,7 +115,12 @@ class Dashboard_Widget {
 			return array( $value );
 		}
 
-		// false or empty string from a never-configured state.
+		// Empty string means the user cleared all selections — hide from everyone.
+		if ( '' === $value ) {
+			return array();
+		}
+
+		// false means never configured — use default.
 		if ( false === $value ) {
 			return $default;
 		}
@@ -358,8 +363,12 @@ class Dashboard_Widget {
 	 * @return bool
 	 */
 	private function table_exists( $wpdb, $table ) {
+		$suppress = $wpdb->suppress_errors( true );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
+		$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table;
+		$wpdb->suppress_errors( $suppress );
+
+		return $result;
 	}
 
 	/**

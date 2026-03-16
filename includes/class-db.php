@@ -401,6 +401,14 @@ class DB {
 	public static function log( $type, $details ) {
 		global $wpdb;
 
+		$log_table = $wpdb->prefix . self::$tables['log'];
+
+		// Bail early if the log table does not exist to prevent DB errors.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $log_table ) ) !== $log_table ) {
+			return false;
+		}
+
 		$page_url  = \ZeroSpam\Core\Utilities::current_url();
 		$extension = substr( $page_url, strrpos( $page_url, '.' ) + 1 );
 		$ignore    = array( 'map', 'js', 'css', 'ico' );
@@ -413,8 +421,6 @@ class DB {
 		 * Check the total number of entries and delete the oldest if the maximum
 		 * has been reached.
 		 */
-		$log_table = $wpdb->prefix . self::$tables['log'];
-
 		// @codingStandardsIgnoreLine
 		$total_entries   = $wpdb->get_var( "SELECT COUNT(*) FROM $log_table" );
 		$maximum_entries = \ZeroSpam\Core\Settings::get_settings( 'max_logs' );
@@ -482,6 +488,14 @@ class DB {
 		global $wpdb;
 
 		if ( ! array_key_exists( $table, self::$tables ) ) {
+			return false;
+		}
+
+		// Bail early if the table does not exist to prevent DB errors.
+		$full_table = $wpdb->prefix . self::$tables[ $table ];
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $full_table ) ) !== $full_table ) {
 			return false;
 		}
 
