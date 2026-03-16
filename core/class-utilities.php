@@ -343,7 +343,266 @@ class Utilities {
 	}
 
 	/**
+	 * Cache for allowed words to avoid repeated lookups within a single request.
+	 *
+	 * @since 5.7.8
+	 * @var array|false|null
+	 */
+	private static $allowed_words_cache = null;
+
+	/**
+	 * Cache for minimum disallowed word length setting within a single request.
+	 *
+	 * @since 5.7.8
+	 * @var int|null
+	 */
+	private static $min_length_cache = null;
+
+	/**
+	 * Returns the list of POST field keys that should be excluded from
+	 * disallowed word and blocked email domain checks.
+	 *
+	 * These are system/security token fields that contain non-user-input data
+	 * (e.g. CAPTCHA response tokens, nonces, form metadata) and should never
+	 * be validated against the disallowed words list.
+	 *
+	 * @since 5.7.8
+	 *
+	 * @return array Filterable array of field key names to skip.
+	 */
+	public static function get_excluded_fields() {
+		$excluded = array(
+			// Contact Form 7 internal fields.
+			'_wpcf7',
+			'_wpcf7_version',
+			'_wpcf7_locale',
+			'_wpcf7_unit_tag',
+			'_wpcf7_container_post',
+			'_wpcf7_posted_data_hash',
+			'_wpcf7_recaptcha_response',
+			// Cloudflare Turnstile.
+			'cf-turnstile-response',
+			// Google reCAPTCHA.
+			'g-recaptcha-response',
+			// hCaptcha.
+			'h-captcha-response',
+			'hcaptcha-widget-id',
+			// Zero Spam's own fields.
+			'zerospam_david_walsh_key',
+			// WordPress internals.
+			'_wpnonce',
+			'_wp_http_referer',
+			// Gravity Forms internals.
+			'is_submit',
+			'gform_submit',
+			'gform_unique_id',
+			'gform_target_page_number',
+			'gform_source_page_number',
+			'gform_field_values',
+			// Formidable internals.
+			'frm_action',
+			'form_id',
+			'frm_submit_entry',
+			'_wp_original_http_referer',
+		);
+
+		// Add the honeypot field name so it's not double-checked.
+		$excluded[] = self::get_honeypot();
+
+		/**
+		 * Filters the list of POST field keys excluded from spam content checks.
+		 *
+		 * Use this to add custom fields (e.g. third-party CAPTCHA tokens) that
+		 * should not be validated against the disallowed words list.
+		 *
+		 * @param array $excluded Array of field key names to skip.
+		 */
+		return apply_filters( 'zerospam_excluded_fields', $excluded );
+	}
+
+	/**
+	 * Returns the cached minimum disallowed word length setting.
+	 *
+	 * @since 5.7.8
+	 *
+	 * @return int Minimum word length (0 means check all words).
+	 */
+	public static function get_min_disallowed_length() {
+		if ( null !== self::$min_length_cache ) {
+			return self::$min_length_cache;
+		}
+
+		$value                  = \ZeroSpam\Core\Settings::get_settings( 'disallowed_min_length' );
+		self::$min_length_cache = max( 0, intval( $value ) );
+
+		return self::$min_length_cache;
+	}
+
+	/**
+	 * Returns the user-configured allowed words list.
+	 *
+	 * Allowed words are excluded from disallowed word matching to prevent
+	 * false positives when a user's email, domain, or business name contains
+	 * a string that appears in the blocklist.
+	 *
+	 * @since 5.7.8
+	 *
+	 * @return array|false Array of lowercase allowed word strings, or false if none.
+	 */
+	public static function get_allowed_words() {
+		if ( null !== self::$allowed_words_cache ) {
+			return self::$allowed_words_cache;
+		}
+
+		$settings = \ZeroSpam\Core\Settings::get_settings( 'allowed_words' );
+		if ( empty( $settings ) ) {
+			self::$allowed_words_cache = false;
+			return false;
+		}
+
+		$words = explode( "\n", $settings );
+		$words = array_map(
+			function ( $w ) {
+				return strtolower( trim( $w ) );
+			},
+			$words
+		);
+		$words = array_filter( $words );
+
+		self::$allowed_words_cache = empty( $words ) ? false : $words;
+
+		return self::$allowed_words_cache;
+	}
+
+	/**
+	 * Checks an array of form fields for blocked email domains and disallowed words.
+	 *
+	 * Centralized validation used by form integration modules. Automatically
+	 * skips excluded system/token fields returned by get_excluded_fields().
+	 *
+	 * @since 5.7.8
+	 *
+	 * @param array $fields              Key-value array of field names to values.
+	 * @param bool  $check_blocked_emails Whether to check for blocked email domains.
+	 * @param bool  $check_disallowed     Whether to check against the disallowed words list.
+	 * @return array Array of validation error type strings (e.g. 'blocked_email_domain', 'disallowed_list').
+	 */
+	public static function check_fields_for_spam( $fields, $check_blocked_emails = true, $check_disallowed = true ) {
+		$errors          = array();
+		$excluded_fields = self::get_excluded_fields();
+
+		foreach ( $fields as $key => $value ) {
+			if ( ! is_string( $value ) || empty( trim( $value ) ) ) {
+				continue;
+			}
+
+			// Skip system/security token fields.
+			if ( in_array( $key, $excluded_fields, true ) ) {
+				continue;
+			}
+
+			$value = trim( $value );
+
+			// Check for blocked email domains.
+			// If a blocked domain is found, break immediately — no need to
+			// also run the disallowed words check on the same value.
+			if ( $check_blocked_emails && self::is_email( $value ) && self::is_email_domain_blocked( $value ) ) {
+				$errors[] = 'blocked_email_domain';
+				break;
+			}
+
+			// Check against disallowed words list.
+			// Note: email values that pass the blocked domain check above will
+			// still be checked here for disallowed words. This is intentional —
+			// an email address can contain spam strings regardless of its domain.
+			if ( $check_disallowed && self::is_disallowed( $value ) ) {
+				$errors[] = 'disallowed_list';
+				break;
+			}
+		}
+
+		return $errors;
+	}
+
+	/**
+	 * Temporarily filters the disallowed_keys option to remove allowed words.
+	 *
+	 * Used to make wp_check_comment_disallowed_list() respect the allowed words
+	 * setting. Call remove_allowed_words_filter() to clean up after use.
+	 *
+	 * @since 5.7.8
+	 */
+	public static function add_allowed_words_filter() {
+		add_filter( 'option_disallowed_keys', array( __CLASS__, 'filter_disallowed_keys' ) );
+	}
+
+	/**
+	 * Removes the temporary disallowed_keys filter.
+	 *
+	 * @since 5.7.8
+	 */
+	public static function remove_allowed_words_filter() {
+		remove_filter( 'option_disallowed_keys', array( __CLASS__, 'filter_disallowed_keys' ) );
+	}
+
+	/**
+	 * Filters the disallowed_keys option value to strip out allowed words
+	 * and words below the minimum length threshold.
+	 *
+	 * @since 5.7.8
+	 *
+	 * @param string $value The raw disallowed_keys option value.
+	 * @return string Filtered disallowed_keys value.
+	 */
+	public static function filter_disallowed_keys( $value ) {
+		if ( empty( $value ) ) {
+			return $value;
+		}
+
+		$allowed_words = self::get_allowed_words();
+		$min_length    = self::get_min_disallowed_length();
+
+		if ( ! $allowed_words && 0 === $min_length ) {
+			return $value;
+		}
+
+		$words    = explode( "\n", $value );
+		$filtered = array();
+
+		foreach ( $words as $word ) {
+			$trimmed = trim( $word );
+			if ( empty( $trimmed ) ) {
+				continue;
+			}
+
+			// Skip words below minimum length.
+			if ( $min_length > 0 && mb_strlen( $trimmed ) < $min_length ) {
+				continue;
+			}
+
+			// Skip words in the allowed list.
+			if ( $allowed_words && in_array( strtolower( $trimmed ), $allowed_words, true ) ) {
+				continue;
+			}
+
+			$filtered[] = $word;
+		}
+
+		return implode( "\n", $filtered );
+	}
+
+	/**
 	 * Validates submitted data against the WP core disallowed list.
+	 *
+	 * Respects the allowed words setting and minimum word length threshold
+	 * to reduce false positives from short blacklist entries or strings that
+	 * legitimately appear in user email addresses and domains.
+	 *
+	 * @since 5.0.0
+	 * @since 5.7.8 Added allowed words and minimum word length support.
+	 *
+	 * @param string $content The content to check.
+	 * @return bool True if the content contains a disallowed word.
 	 */
 	public static function is_disallowed( $content ) {
 		$disallowed_keys = trim( get_option( 'disallowed_keys' ) );
@@ -351,6 +610,8 @@ class Utilities {
 			return false;
 		}
 
+		$allowed_words    = self::get_allowed_words();
+		$min_length       = self::get_min_disallowed_length();
 		$disallowed_words = explode( "\n", $disallowed_keys );
 
 		// Ensure HTML tags are not being used to bypass the list of disallowed characters and words.
@@ -360,6 +621,16 @@ class Utilities {
 			$word = trim( $word );
 
 			if ( empty( $word ) ) {
+				continue;
+			}
+
+			// Skip words below the minimum length threshold.
+			if ( $min_length > 0 && mb_strlen( $word ) < $min_length ) {
+				continue;
+			}
+
+			// Skip words that are in the allowed list.
+			if ( $allowed_words && in_array( strtolower( $word ), $allowed_words, true ) ) {
 				continue;
 			}
 

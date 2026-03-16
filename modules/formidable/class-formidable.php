@@ -213,25 +213,8 @@ class Formidable {
 			// Formidable form fields use item_meta array.
 			$fields_to_check = ! empty( $post['item_meta'] ) && is_array( $post['item_meta'] ) ? $post['item_meta'] : $post;
 
-			foreach ( $fields_to_check as $value ) {
-				if ( ! is_string( $value ) || empty( trim( $value ) ) ) {
-					continue;
-				}
-
-				$value = trim( $value );
-
-				// Check for blocked email domains.
-				if ( $check_blocked_emails && \ZeroSpam\Core\Utilities::is_email( $value ) && \ZeroSpam\Core\Utilities::is_email_domain_blocked( $value ) ) {
-					$validation_errors[] = 'blocked_email_domain';
-					break;
-				}
-
-				// Check against disallowed words list.
-				if ( $check_disallowed && \ZeroSpam\Core\Utilities::is_disallowed( $value ) ) {
-					$validation_errors[] = 'disallowed_list';
-					break;
-				}
-			}
+			$field_errors      = \ZeroSpam\Core\Utilities::check_fields_for_spam( $fields_to_check, $check_blocked_emails, $check_disallowed );
+			$validation_errors = array_merge( $validation_errors, $field_errors );
 		}
 
 		// Fire hook for additional validation (ex. David Walsh).
