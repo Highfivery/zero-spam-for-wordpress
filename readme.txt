@@ -134,6 +134,13 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 
 = v5.7.8 =
 
+* **fix(woocommerce):** custom spam message for WooCommerce registrations could never be saved due to an option key mismatch — messages now persist correctly ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+* **feat(woocommerce):** added independent "Protect Checkout" toggle — checkout and registration protection can now be enabled/disabled separately ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+* **feat(woocommerce):** added dedicated "Checkout Flagged Message" setting with context-appropriate default for checkout blocks ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+* **feat(woocommerce):** added dedicated "Log Blocked Checkouts" toggle for independent checkout logging ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+* **feat(woocommerce):** checkout now validates billing email against blocked email domains, matching registration behavior ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+* **refactor(woocommerce):** normalized David Walsh filter hooks to `zerospam_preprocess_*` naming convention for consistency with all other modules
+* **fix(woocommerce):** one-time migration ensures existing sites retain checkout protection and logging preferences after update
 * **fix(dashboard-widget):** widget now properly hides when disabled — previously displayed for administrators even when all roles were deselected in visibility settings ([#391](https://github.com/Highfivery/zero-spam-for-wordpress/issues/391))
 * **fix(dashboard-widget):** resolved database errors (`Table 'prefix_zerospam_log' doesn't exist`) by adding table existence checks before querying — shows a clean notice with remediation steps when the log table is missing ([#391](https://github.com/Highfivery/zero-spam-for-wordpress/issues/391))
 * **fix(settings):** multi-select fields (e.g. widget visibility) now correctly store an empty array when no options are selected, preventing fallback to default values
