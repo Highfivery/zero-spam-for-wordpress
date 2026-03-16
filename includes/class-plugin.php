@@ -274,10 +274,16 @@ class Plugin {
 	/**
 	 * Initialize dashboard widget
 	 *
-	 * Called on init hook to ensure multisite context is properly set up.
+	 * Called on plugins_loaded hook to ensure multisite context is properly set up.
+	 * Skips instantiation entirely when the widget is disabled to avoid
+	 * registering unnecessary hooks.
 	 */
 	public function init_dashboard_widget() {
-		new \ZeroSpam\Core\Admin\Dashboard_Widget();
+		$options = get_option( 'zero-spam-settings' );
+
+		if ( ! empty( $options['widget_enabled'] ) && 'enabled' === $options['widget_enabled'] ) {
+			new \ZeroSpam\Core\Admin\Dashboard_Widget();
+		}
 	}
 }
 
