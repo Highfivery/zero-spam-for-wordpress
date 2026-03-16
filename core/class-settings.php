@@ -219,14 +219,27 @@ class Settings {
 			$roles_array[ $role ] = $data['name'];
 		}
 
+		self::$settings['widget_enabled'] = array(
+			'title'       => __( 'Dashboard Widget', 'zero-spam' ),
+			'section'     => 'general',
+			'module'      => 'settings',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => __( 'Display the Zero Spam overview widget on the WordPress dashboard.', 'zero-spam' ),
+			),
+			'desc'        => __( 'Enable or disable the Zero Spam dashboard widget.', 'zero-spam' ),
+			'value'       => ! empty( $options['widget_enabled'] ) ? $options['widget_enabled'] : false,
+			'recommended' => 'enabled',
+		);
+
 		self::$settings['widget_visibility'] = array(
 			'title'       => __( 'Dashboard Widget Visibility', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'select',
-			'desc'        => __( 'Choose which admin users can see the spam statistics on the dashboard.', 'zero-spam' ),
+			'desc'        => __( 'Choose which user roles can see the dashboard widget. Only applies when the widget is enabled.', 'zero-spam' ),
 			'options'     => $roles_array,
-			'value'       => ! empty( $options['widget_visibility'] ) ? $options['widget_visibility'] : false,
+			'value'       => isset( $options['widget_visibility'] ) ? $options['widget_visibility'] : false,
 			'recommended' => array( 'administrator' ),
 			'multiple'    => true,
 		);

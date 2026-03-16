@@ -424,6 +424,9 @@ h4.zerospam-toggle-trigger {
 
 /* Footer */
 .zerospam-widget-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
 	margin-top: 16px;
 	padding-top: 12px;
 	border-top: 1px solid #dcdcde;
@@ -454,6 +457,42 @@ h4.zerospam-toggle-trigger {
 	font-size: 16px;
 	width: 16px;
 	height: 16px;
+}
+
+/* Refresh Button */
+.zerospam-refresh-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.zerospam-refresh-btn .dashicons {
+	font-size: 14px;
+	width: 14px;
+	height: 14px;
+	line-height: 14px;
+}
+
+.zerospam-refresh-btn.is-loading .dashicons {
+	animation: zerospam-spin 1s linear infinite;
+}
+
+.zerospam-refresh-btn.is-refreshed {
+	color: #00a32a;
+	border-color: #00a32a;
+}
+
+.zerospam-refresh-btn.is-error {
+	color: #d63638;
+	border-color: #d63638;
+}
+
+@keyframes zerospam-spin {
+	from { transform: rotate(0deg); }
+	to { transform: rotate(360deg); }
 }
 
 /* Responsive */
