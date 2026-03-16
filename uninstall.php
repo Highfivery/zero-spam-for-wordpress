@@ -57,6 +57,8 @@ if ( is_multisite() ) {
 			delete_option( 'zerospam_davidwalsh' );
 			delete_option( 'zero_spam_last_api_report' );
 			delete_option( 'zero-spam-last-update' );
+			delete_option( 'zerospam_completed_migrations' );
+			delete_option( 'zerospam_show_settings_review_notice' );
 
 		foreach ( $modules as $key => $module ) {
 				delete_option( "zero-spam-$module" );
@@ -103,6 +105,8 @@ if ( is_multisite() ) {
 	delete_option( 'zerospam_davidwalsh' );
 	delete_option( 'zero_spam_last_api_report' );
 	delete_option( 'zero-spam-last-update' );
+	delete_option( 'zerospam_completed_migrations' );
+	delete_option( 'zerospam_show_settings_review_notice' );
 
 	foreach ( $modules as $module => $settings ) {
 		delete_option( "zero-spam-$module" );

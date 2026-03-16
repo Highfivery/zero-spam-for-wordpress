@@ -228,6 +228,23 @@ class Settings {
 			exit;
 		}
 
+		// Dismiss settings review notice (shown after migration fix).
+		if ( 'dismiss-settings-review-notice' === $action && check_admin_referer( 'dismiss-settings-review-notice', 'zero-spam' ) ) {
+			delete_option( \ZeroSpam\Includes\Migrations::SETTINGS_REVIEW_NOTICE_OPTION );
+
+			$message      = __( 'Settings review notice dismissed.', 'zero-spam' );
+			$redirect_url = add_query_arg(
+				array(
+					'zerospam-msg'  => rawurlencode( $message ),
+					'zerospam-type' => 'success',
+				),
+				admin_url( $base_admin_link )
+			);
+
+			wp_safe_redirect( $redirect_url );
+			exit;
+		}
+
 		// Dismiss API monitoring notice.
 		if ( 'dismiss-api-monitoring-notice' === $action && check_admin_referer( 'dismiss-api-monitoring-notice', 'zero-spam' ) ) {
 			update_option( 'zerospam_api_monitoring_notice_dismissed', true );

@@ -88,8 +88,8 @@ class Plugin {
 		// Database functionality.
 		new \ZeroSpam\Includes\DB();
 
-		// Updates functionality.
-		new \ZeroSpam\Includes\Updates();
+		// Migrations — runs one-time data migrations on plugin update.
+		new \ZeroSpam\Includes\Migrations();
 
 		// Site security
 		new \ZeroSpam\Modules\Security\Security();
