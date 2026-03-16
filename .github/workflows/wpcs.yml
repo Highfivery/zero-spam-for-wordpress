@@ -8,11 +8,14 @@ jobs:
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v4
+          with:
+            fetch-depth: 0
         - name: WPCS Check
           uses: 10up/wpcs-action@stable
           with:
             use_local_config: 'true'
             enable_warnings: 'false'
+            only_changed_files: 'true'
             extra_args: '--report-json=./phpcs.json'
         - name: Update summary
           run: |
