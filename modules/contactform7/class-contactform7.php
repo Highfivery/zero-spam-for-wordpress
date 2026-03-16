@@ -111,8 +111,8 @@ class ContactForm7 {
 		$check_disallowed     = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_contactform7_disallowed_words' );
 
 		if ( $check_blocked_emails || $check_disallowed ) {
-			$field_errors        = \ZeroSpam\Core\Utilities::check_fields_for_spam( $post, $check_blocked_emails, $check_disallowed );
-			$validation_errors   = array_merge( $validation_errors, $field_errors );
+			$field_errors      = \ZeroSpam\Core\Utilities::check_fields_for_spam( $post, $check_blocked_emails, $check_disallowed );
+			$validation_errors = array_merge( $validation_errors, $field_errors );
 		}
 
 		// Fire hook for additional validation (ex. David Walsh script).

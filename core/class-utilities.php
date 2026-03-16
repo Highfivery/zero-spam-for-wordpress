@@ -432,7 +432,7 @@ class Utilities {
 			return self::$min_length_cache;
 		}
 
-		$value                = \ZeroSpam\Core\Settings::get_settings( 'disallowed_min_length' );
+		$value                  = \ZeroSpam\Core\Settings::get_settings( 'disallowed_min_length' );
 		self::$min_length_cache = max( 0, intval( $value ) );
 
 		return self::$min_length_cache;
