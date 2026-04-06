@@ -12,7 +12,7 @@ jobs:
 
     steps:
     - name: Run stale_repos tool
-      uses: github/stale-repos@v1
+      uses: github-community-projects/stale-repos@v1
       env:
         GH_TOKEN: ${{ secrets.GH_PAT_REPO }}
         ORGANIZATION: Zero Spam
