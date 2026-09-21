@@ -136,6 +136,7 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 
 * **fix(admin):** the Enhanced Protection promo notice and other plugin admin notices are now only shown to users who can manage options — previously they appeared for every role with dashboard access ([#405](https://github.com/Highfivery/zero-spam-for-wordpress/issues/405))
 * **fix(admin):** dismissing the Enhanced Protection promo notice is now permanent — it no longer reappears every 30 days ([#405](https://github.com/Highfivery/zero-spam-for-wordpress/issues/405))
+* **security(dashboard-widget):** on multisite, the dashboard widget refresh request no longer returns network-wide stats to site administrators — the client-sent `is_network` flag is now only honored for users with the `manage_network_options` capability; everyone else gets their own site's data
 * **security(admin):** settings page actions (auto-configure, clear logs, delete IP/location blocks, etc.) now require the `manage_options` capability in addition to a valid nonce — previously the auto-configure link, with a valid nonce, was shown to non-admin users
 * **fix(admin):** promo notice dismiss and click-tracking requests now check the `manage_options` capability instead of the `administrator` role name
 * **fix(admin):** the promo notice now respects the 3-day waiting period after activation on new installs — a leftover workaround was resetting the activation time so it showed immediately
