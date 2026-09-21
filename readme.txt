@@ -132,6 +132,14 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 
 == Changelog ==
 
+= v5.7.10 =
+
+* **fix(license):** a valid license key is no longer reported as "invalid" when the Zero Spam API can't be reached — saving the key while the API is unavailable now keeps the key, leaves Enhanced Protection enabled, and shows a "not verified yet" notice instead of replacing the key with "Invalid license entered."
+* **fix(api):** the circuit breaker now only counts real outages (connection errors, 5xx, 429) — "query limit exceeded" and "invalid license" responses no longer pause all API requests, which previously caused false "invalid license" errors after a free key used up its queries
+* **fix(license):** a rejected license is only cached when the API explicitly reports it invalid, and for 1 hour instead of 24; saving a key always re-checks it with the API
+* **fix(license):** license status is refreshed hourly instead of monthly, so remaining query counts stay current
+* **ui(settings):** the settings header now distinguishes "invalid license", "couldn't verify license (API unreachable)" and "query limit reached" (with an upgrade link)
+
 = v5.7.9 =
 
 * **fix(admin):** the Enhanced Protection promo notice and other plugin admin notices are now only shown to users who can manage options — previously they appeared for every role with dashboard access ([#405](https://github.com/Highfivery/zero-spam-for-wordpress/issues/405))
