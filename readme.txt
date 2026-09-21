@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 6.9.1
 Requires PHP: 8.2
-Stable tag: 5.7.9
+Stable tag: 5.7.10
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
