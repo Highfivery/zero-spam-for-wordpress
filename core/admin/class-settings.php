@@ -92,6 +92,11 @@ class Settings {
 	 * Processes nonce actions
 	 */
 	public function process_nonce_actions() {
+		// admin_menu fires for every logged-in user, but these actions are admin-only.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
 		$base_admin_link = self::$base_admin_link;
 
 		$action = ! empty( $_REQUEST['zerospam-action'] ) ? sanitize_key( wp_unslash( $_REQUEST['zerospam-action'] ) ) : '';
