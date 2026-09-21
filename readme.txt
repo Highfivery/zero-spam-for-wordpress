@@ -114,7 +114,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = I blocked myself! How do I get back in? =
 
-If you have defined the `ZEROSPAM_RESCUE_KEY` constant in your `wp-config.php` file, you can bypass all checks by appending `?zerospam_rescue={YOUR_KEY}` to any URL. (e.g., `https://example.com/wp-admin/?zerospam_rescue=mysecretkey`).
+If you have defined the `ZEROSPAM_RESCUE_KEY` constant in your `wp-config.php` file (e.g. `define( 'ZEROSPAM_RESCUE_KEY', 'a-long-random-secret' );`), visit any page of your site with `?zerospam_rescue={YOUR_KEY}` appended (e.g., `https://example.com/wp-login.php?zerospam_rescue=a-long-random-secret`). All checks are bypassed in that browser for one hour, so you can log in and add your IP address to **IP Whitelist** under Settings → Zero Spam → Settings. Logged-in users are never blocked.
 
 If you haven't defined this key, you must manually rename the plugin folder via FTP (`wp-content/plugins/zero-spam` -> `zero-spam-disabled`) to gain access.
 
@@ -134,6 +134,11 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 
 = v5.7.10 =
 
+* **fix(sharing):** "Usage Data Sharing" no longer creates a cron event for every detection — reports are now queued (capped at 100, duplicates skipped, not autoloaded) and sent in batches by a single cron event. Busy sites could build up thousands of `zerospam_async_share_detection` events, bloating the autoloaded `cron` option and slowing every page load. Existing piled-up events are removed automatically on update ([support topic](https://wordpress.org/support/topic/usage-data-sharing-creates-thousands-of-duplicate-cron-events/))
+* **fix(sharing):** shared detection reports now include the visitor's IP captured at detection time — previously the IP was read when the cron job ran, so reports could carry the site's own server IP instead of the spammer's
+* **security(sharing):** queued detection reports only store the details the report needs (type, reason, IP, email, names) — previously the full detection data was stored in the `cron` option, which could include submitted form fields and, for blocked logins, the user object
+* **fix(rescue-mode):** rescue mode now works for logging in — a valid `?zerospam_rescue={KEY}` bypasses checks in that browser for one hour (HttpOnly cookie), so the redirect to `wp-login.php` and the login form submission are no longer blocked. Previously the key only applied to the one request that carried it, so the login form still blocked locked-out administrators ([support topic](https://wordpress.org/support/topic/your-ip-has-been-flagged-as-spam-malicious-2/))
+* **fix(rescue-mode):** an array value for `zerospam_rescue` no longer causes a PHP TypeError
 * **fix(license):** a valid license key is no longer reported as "invalid" when the Zero Spam API can't be reached — saving the key while the API is unavailable now keeps the key, leaves Enhanced Protection enabled, and shows a "not verified yet" notice instead of replacing the key with "Invalid license entered."
 * **fix(api):** the circuit breaker now only counts real outages (connection errors, 5xx, 429) — "query limit exceeded" and "invalid license" responses no longer pause all API requests, which previously caused false "invalid license" errors after a free key used up its queries
 * **fix(license):** a rejected license is only cached when the API explicitly reports it invalid, and for 1 hour instead of 24; saving a key always re-checks it with the API

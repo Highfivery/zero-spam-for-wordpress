@@ -17,6 +17,13 @@ defined( 'ABSPATH' ) || die();
  */
 class Access {
 	/**
+	 * Cookie that keeps rescue mode active after a valid rescue key is used.
+	 *
+	 * @var string
+	 */
+	const RESCUE_COOKIE = 'zerospam_rescue';
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -75,6 +82,55 @@ class Access {
 	}
 
 	/**
+	 * Checks whether the request uses rescue mode.
+	 *
+	 * A valid `?zerospam_rescue={ZEROSPAM_RESCUE_KEY}` also sets a cookie that
+	 * bypasses checks for an hour, because the key isn't carried through
+	 * redirects or the login form (e.g. /wp-admin/ → wp-login.php → POST).
+	 *
+	 * @return bool
+	 */
+	private static function is_rescue_request() {
+		if ( ! defined( 'ZEROSPAM_RESCUE_KEY' ) || ! is_string( ZEROSPAM_RESCUE_KEY ) || '' === ZEROSPAM_RESCUE_KEY ) {
+			return false;
+		}
+
+		$token = hash_hmac( 'sha256', 'zerospam_rescue', ZEROSPAM_RESCUE_KEY );
+
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput -- Compared with hash_equals() against the secret key only.
+		if (
+			isset( $_GET['zerospam_rescue'] ) &&
+			is_string( $_GET['zerospam_rescue'] ) &&
+			hash_equals( ZEROSPAM_RESCUE_KEY, wp_unslash( $_GET['zerospam_rescue'] ) )
+		) {
+			if ( ! headers_sent() ) {
+				setcookie(
+					self::RESCUE_COOKIE,
+					$token,
+					array(
+						'expires'  => time() + HOUR_IN_SECONDS,
+						'path'     => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
+						'domain'   => defined( 'COOKIE_DOMAIN' ) && COOKIE_DOMAIN ? COOKIE_DOMAIN : '',
+						'secure'   => is_ssl(),
+						'httponly' => true,
+						'samesite' => 'Lax',
+					)
+				);
+			}
+			$_COOKIE[ self::RESCUE_COOKIE ] = $token;
+
+			return true;
+		}
+
+		$has_cookie = isset( $_COOKIE[ self::RESCUE_COOKIE ] ) &&
+			is_string( $_COOKIE[ self::RESCUE_COOKIE ] ) &&
+			hash_equals( $token, $_COOKIE[ self::RESCUE_COOKIE ] );
+		// phpcs:enable
+
+		return $has_cookie;
+	}
+
+	/**
 	 * Determines is security checks need to be triggers.
 	 *
 	 * @param boolean $ignore_ajax True if AJAX shouldn't be checked.
@@ -87,10 +143,8 @@ class Access {
 		$user_ip = \ZeroSpam\Core\User::get_ip();
 
 		// Check for rescue mode.
-		if ( defined( 'ZEROSPAM_RESCUE_KEY' ) && ! empty( $_GET['zerospam_rescue'] ) ) {
-			if ( hash_equals( ZEROSPAM_RESCUE_KEY, $_GET['zerospam_rescue'] ) ) {
-				return false;
-			}
+		if ( self::is_rescue_request() ) {
+			return false;
 		}
 
 		// Sanitize the REQUEST_URI before further processing.

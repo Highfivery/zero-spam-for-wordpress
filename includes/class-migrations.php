@@ -97,6 +97,7 @@ class Migrations {
 	private function get_migrations() {
 		return array(
 			'legacy_options_to_modules_v5' => array( $this, 'migrate_legacy_options' ),
+			'share_detection_cron_cleanup'  => array( $this, 'remove_share_detection_cron_events' ),
 		);
 	}
 
@@ -121,6 +122,22 @@ class Migrations {
 		$completed[] = $key;
 
 		update_option( self::COMPLETED_OPTION, array_unique( $completed ), true );
+	}
+
+	/**
+	 * Remove the per-detection cron events scheduled before 5.7.10.
+	 *
+	 * Earlier versions scheduled a `zerospam_async_share_detection` event for
+	 * every detection, with the raw detection data as its argument. On busy
+	 * sites thousands of them built up in the autoloaded `cron` option.
+	 * Detections are now queued and sent by a single event.
+	 *
+	 * @return true
+	 */
+	public function remove_share_detection_cron_events() {
+		wp_unschedule_hook( 'zerospam_async_share_detection' );
+
+		return true;
 	}
 
 	/**
