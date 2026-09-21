@@ -3,9 +3,9 @@ Contributors: bmarshall511
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
-Tested up to: 6.9.1
+Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 5.7.9
+Stable tag: 5.7.10
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -131,6 +131,15 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.10 =
+
+* **fix(license):** a valid license key is no longer reported as "invalid" when the Zero Spam API can't be reached — saving the key while the API is unavailable now keeps the key, leaves Enhanced Protection enabled, and shows a "not verified yet" notice instead of replacing the key with "Invalid license entered."
+* **fix(api):** the circuit breaker now only counts real outages (connection errors, 5xx, 429) — "query limit exceeded" and "invalid license" responses no longer pause all API requests, which previously caused false "invalid license" errors after a free key used up its queries
+* **fix(license):** a rejected license is only cached when the API explicitly reports it invalid, and for 1 hour instead of 24; saving a key always re-checks it with the API
+* **fix(license):** license status is refreshed hourly instead of monthly, so remaining query counts stay current
+* **ui(settings):** the settings header now distinguishes "invalid license", "couldn't verify license (API unreachable)" and "query limit reached" (with an upgrade link)
+* **chore(compat):** tested up to WordPress 7.1
 
 = v5.7.9 =
 

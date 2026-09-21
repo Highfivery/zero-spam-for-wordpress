@@ -391,12 +391,29 @@ class Settings {
 		}
 
 		// If the Zero Spam license has been submitted, verify it.
+		// The key is always kept as entered so a failed check never erases it.
 		if ( ! empty( $input['zerospam_license'] ) ) {
+			$input['zerospam_license'] = trim( $input['zerospam_license'] );
+
+			// Always verify a saved key with the API rather than a cached result.
+			\ZeroSpam\Modules\Zero_Spam::delete_license_cache( $input['zerospam_license'] );
 			$license = \ZeroSpam\Modules\Zero_Spam::get_license( $input['zerospam_license'] );
-			if ( empty( $license['license_key'] ) ) {
+
+			if ( false === $license ) {
+				add_settings_error(
+					'zero-spam',
+					'zerospam_license_unverified',
+					__( 'Couldn\'t reach the Zero Spam API, so your license key hasn\'t been verified yet. It has been saved and will be checked again the next time the API is available.', 'zero-spam' ),
+					'warning'
+				);
+			} elseif ( empty( $license['license_key'] ) ) {
 				\ZeroSpam\Core\Utilities::log( 'Zero Spam: invalid license key entered.' );
-				$input['zerospam_license'] = __( 'Invalid license entered.', 'zero-spam' );
-				$input['zerospam']         = false;
+				add_settings_error(
+					'zero-spam',
+					'zerospam_license_invalid',
+					__( 'The Zero Spam license key you entered is invalid. Please check the key and try again.', 'zero-spam' )
+				);
+				$input['zerospam'] = false;
 			}
 		}
 

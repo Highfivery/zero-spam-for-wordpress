@@ -342,37 +342,70 @@ class Zero_Spam {
 	 * Returns license key data from the API
 	 *
 	 * @param string $license The license key.
+	 * @return array|false License data (with `license_key`) when valid,
+	 *                     `array( 'status' => 'invalid' )` when the API rejected the key,
+	 *                     or false when the key couldn't be verified (API unreachable).
 	 */
 	public static function get_license( $license ) {
-		if ( strpos( $license, 'invalid' ) !== false ) {
+		// Older versions replaced a rejected key with an error message, which is never a real key.
+		if ( false !== stripos( $license, 'invalid' ) ) {
+			return array( 'status' => 'invalid' );
+		}
+
+		$cache_key    = self::license_cache_key( $license );
+		$license_data = get_transient( $cache_key );
+
+		if ( false !== $license_data ) {
+			return $license_data;
+		}
+
+		$endpoint = ZEROSPAM_URL . 'wp-json/v2/get-license';
+		$endpoint = add_query_arg( 'license_key', $license, $endpoint );
+
+		$response = self::remote_request( $endpoint );
+
+		// Without an answer from the API the key is neither valid nor invalid, so don't cache anything.
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
 			return false;
 		}
 
-		$cache_key    = sanitize_title( 'license_' . $license );
-		$license_data = get_transient( $cache_key );
+		$license_data = json_decode( wp_remote_retrieve_body( $response ), true );
 
-		if ( false === $license_data ) {
-			$endpoint = ZEROSPAM_URL . 'wp-json/v2/get-license';
-			$endpoint = add_query_arg( 'license_key', $license, $endpoint );
+		if ( ! empty( $license_data['license_key'] ) ) {
+			set_transient( $cache_key, $license_data, HOUR_IN_SECONDS );
 
-			$response = self::remote_request( $endpoint );
-
-			if ( $response && ! is_wp_error( $response ) ) {
-				$license_data = json_decode( wp_remote_retrieve_body( $response ), true );
-
-				if ( empty( $license_data['license_key'] ) ) {
-					// Cache the negative response for a shorter time to avoid repeated hits.
-					set_transient( $cache_key, [ 'status' => 'invalid' ], DAY_IN_SECONDS );
-					\ZeroSpam\Core\Utilities::log( 'Zero Spam License Check: ' . ( isset( $license_data['response'] ) ? $license_data['response'] : 'Unknown error' ) );
-				}
-
-				if ( ! empty( $license_data['license_key'] ) ) {
-					set_transient( $cache_key, $license_data, MONTH_IN_SECONDS );
-				}
-			}
+			return $license_data;
 		}
 
-		return $license_data;
+		if ( isset( $license_data['response'] ) && 'invalid_license' === $license_data['response'] ) {
+			set_transient( $cache_key, array( 'status' => 'invalid' ), HOUR_IN_SECONDS );
+			\ZeroSpam\Core\Utilities::log( 'Zero Spam License Check: invalid_license' );
+
+			return array( 'status' => 'invalid' );
+		}
+
+		\ZeroSpam\Core\Utilities::log( 'Zero Spam License Check: unexpected response from the API.' );
+
+		return false;
+	}
+
+	/**
+	 * Clears the cached license check so the next check asks the API again
+	 *
+	 * @param string $license The license key.
+	 */
+	public static function delete_license_cache( $license ) {
+		delete_transient( self::license_cache_key( $license ) );
+	}
+
+	/**
+	 * Returns the transient key used to cache a license check
+	 *
+	 * @param string $license The license key.
+	 * @return string
+	 */
+	private static function license_cache_key( $license ) {
+		return sanitize_title( 'license_' . $license );
 	}
 
 	/**
@@ -505,8 +538,10 @@ class Zero_Spam {
 			);
 		}
 
-		// Analyze response for Circuit Breaker.
-		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+		// Analyze response for Circuit Breaker. Only outages count as failures: other 4xx
+		// responses (invalid license, query limit exceeded) mean the API is up and answering.
+		$response_code = wp_remote_retrieve_response_code( $response );
+		if ( is_wp_error( $response ) || 429 === $response_code || $response_code >= 500 ) {
 			// Increment failure count.
 			$failures = (int) get_transient( 'zero_spam_failure_count' );
 			$failures++;
