@@ -17,6 +17,27 @@ defined( 'ABSPATH' ) || exit; // Prevent direct access.
  */
 class Zero_Spam {
 	/**
+	 * Option holding detection reports waiting to be sent (not autoloaded).
+	 *
+	 * @var string
+	 */
+	const SHARE_QUEUE_OPTION = 'zerospam_share_queue';
+
+	/**
+	 * Maximum number of queued detection reports.
+	 *
+	 * @var int
+	 */
+	const SHARE_QUEUE_MAX = 100;
+
+	/**
+	 * Number of detection reports sent per cron run.
+	 *
+	 * @var int
+	 */
+	const SHARE_BATCH_SIZE = 20;
+
+	/**
 	 * Class constructor.
 	 *
 	 * Adds necessary hooks for initialization.
@@ -209,133 +230,204 @@ class Zero_Spam {
 	/**
 	 * Shares detection details with zerospam.org.
 	 *
+	 * Only the details needed for the report are kept, and the visitor's IP is
+	 * captured now because the report is sent later from a cron request. Reports
+	 * are queued in a single option and sent by one cron event, so detections
+	 * never create a cron event each.
+	 *
 	 * @param array $data Contains all detection details. Must include 'type' and may include 'failed'.
-	 * @return true|WP_Error True on success, WP_Error on failure.
+	 * @return true
 	 */
 	public function share_detection( $data ) {
-		// Schedule the async event to offload API calls.
-		if ( ! wp_next_scheduled( 'zerospam_async_share_detection', [ $data ] ) ) {
-			wp_schedule_single_event( time(), 'zerospam_async_share_detection', [ $data ] );
+		if ( ! is_array( $data ) || empty( $data['type'] ) ) {
+			return true;
+		}
+
+		$ip = \ZeroSpam\Core\User::get_ip();
+		if ( ! $ip ) {
+			return true;
+		}
+
+		$report = array(
+			'type'   => sanitize_text_field( $data['type'] ),
+			'failed' => isset( $data['failed'] ) && is_scalar( $data['failed'] ) ? sanitize_text_field( $data['failed'] ) : '',
+			'ip'     => sanitize_text_field( $ip ),
+			'email'  => self::get_report_email( $data ),
+			'names'  => self::get_report_names( $data ),
+		);
+
+		$queue = get_option( self::SHARE_QUEUE_OPTION, array() );
+		$queue = is_array( $queue ) ? $queue : array();
+		$key   = md5( $report['type'] . '|' . $report['failed'] . '|' . $report['ip'] . '|' . $report['email'] );
+
+		// Skip duplicates, and cap the queue so a flood of detections can't grow it without limit.
+		if ( ! isset( $queue[ $key ] ) && count( $queue ) < self::SHARE_QUEUE_MAX ) {
+			$queue[ $key ] = $report;
+			update_option( self::SHARE_QUEUE_OPTION, $queue, false );
+		}
+
+		if ( ! wp_next_scheduled( 'zerospam_async_share_detection' ) ) {
+			wp_schedule_single_event( time(), 'zerospam_async_share_detection' );
 		}
 
 		return true;
 	}
 
 	/**
-	 * Processes the async share detection event.
+	 * Sends queued detection reports to zerospam.org.
 	 *
-	 * @param array $data Contains all detection details.
+	 * Events scheduled by versions before 5.7.10 passed the raw detection data as
+	 * an argument. That data is ignored: its IP would be the cron request's, not
+	 * the visitor's.
 	 */
-	public function process_share_detection( $data ) {
-		if ( ! is_array( $data ) || empty( $data['type'] ) ) {
+	public function process_share_detection() {
+		$queue = get_option( self::SHARE_QUEUE_OPTION, array() );
+		if ( empty( $queue ) || ! is_array( $queue ) ) {
 			return;
 		}
 
-		$endpoint = ZEROSPAM_URL . 'wp-json/v6/report/';
-		$ip       = \ZeroSpam\Core\User::get_ip();
-		if ( ! $ip ) {
-			return;
+		$batch     = array_slice( $queue, 0, self::SHARE_BATCH_SIZE, true );
+		$remaining = array_slice( $queue, self::SHARE_BATCH_SIZE, null, true );
+
+		// Save the rest of the queue before sending so a timeout can't resend this batch.
+		if ( $remaining ) {
+			update_option( self::SHARE_QUEUE_OPTION, $remaining, false );
+		} else {
+			delete_option( self::SHARE_QUEUE_OPTION );
 		}
 
-		$query_params = array(
-			'report_type'   => 'ip_address',
-			'report_module' => sanitize_text_field( $data['type'] ),
-			'report_key'    => sanitize_text_field( $ip ),
-			'report_failed' => isset( $data['failed'] ) ? sanitize_text_field( $data['failed'] ) : '',
-		);
-
-		$global_data = self::global_api_data();
-		$query_params = array_merge( $query_params, $global_data );
-
-		// Build URL with query params - wrap in 'data' array for API format.
-		$endpoint = add_query_arg( array( 'data' => $query_params ), $endpoint );
-		self::remote_request( $endpoint );
-
-		// Process email fields.
-		$valid_email_fields = [
-			'comment_author_email', // Comments.
-			'user_email',           // Registration.
-			'email',                // WooCommerce Registration.
-			'post' => [             // Mailchimp.
-				'EMAIL',
-			],
-			'data' => [             // Give.
-				'give_email',
-			],
-		];
-
-		$valid_name_fields = [
-			'comment_author', // Comment.
-			'user_login',     // Register.
-			'username',       // WooCommerce Registration.
-			'data' => [       // Give.
-				'give_first',
-				'give_last',
-			],
-		];
-
-		$email = false;
-		foreach ( $valid_email_fields as $key => $field ) {
-			if ( is_array( $field ) ) {
-				foreach ( $field as $f ) {
-					if ( ! empty( $data[ $key ][ $f ] ) && \ZeroSpam\Core\Utilities::is_email( $data[ $key ][ $f ] ) ) {
-						$email = sanitize_email( $data[ $key ][ $f ] );
-						break 2; // Exit both loops.
-					}
-				}
-			} elseif ( ! empty( $data[ $field ] ) && \ZeroSpam\Core\Utilities::is_email( $data[ $field ] ) ) {
-				$email = sanitize_email( $data[ $field ] );
-				break; // Exit the loop.
+		foreach ( $batch as $report ) {
+			if ( is_array( $report ) && ! empty( $report['type'] ) && ! empty( $report['ip'] ) ) {
+				$this->send_report( $report );
 			}
 		}
 
-		if ( ! empty( $email ) ) {
-			$report_details = [
-				'report_type'   => 'email_address',
-				'report_module' => sanitize_text_field( $data['type'] ),
-				'report_key'    => $email,
-				'report_failed' => isset( $data['failed'] ) ? sanitize_text_field( $data['failed'] ) : '',
-				'email_details' => [
-					'names'     => [],
-					'companies' => [],
-					'titles'    => [],
-					'phones'    => [],
-					'locations' => [],
-				],
-			];
-
-			foreach ( $valid_name_fields as $key => $field ) {
-				if ( is_array( $field ) ) {
-					$names = array_map(
-						function ( $f ) use ( $data, $key ) {
-							return ! empty( $data[ $key ][ $f ] ) ? sanitize_text_field( $data[ $key ][ $f ] ) : '';
-						},
-						$field
-					);
-					$names = array_filter( $names ); // Remove empty values.
-					if ( $names ) {
-						$report_details['email_details']['names'][] = implode( ' ', $names );
-					}
-				} elseif ( ! empty( $data[ $field ] ) ) {
-					$report_details['email_details']['names'][] = sanitize_text_field( $data[ $field ] );
-				}
-			}
-
-		// Encode email_details as JSON string (API expects JSON, not array).
-		$report_details['email_details'] = wp_json_encode( $report_details['email_details'] );
-
-		// Add report_ip (the IP being reported for email reports).
-		$report_details['report_ip'] = $ip;
-
-		// Append global data and submit the email report.
-		$email_query_params = array_merge( $report_details, $global_data );
-		$email_endpoint = ZEROSPAM_URL . 'wp-json/v6/report/';
-		$email_endpoint = add_query_arg( array( 'data' => $email_query_params ), $email_endpoint );
-		self::remote_request( $email_endpoint );
+		if ( $remaining && ! wp_next_scheduled( 'zerospam_async_share_detection' ) ) {
+			wp_schedule_single_event( time(), 'zerospam_async_share_detection' );
 		}
 
 		// Successfully updated the last API request time.
 		update_site_option( 'zero_spam_last_api_request', current_time( 'mysql' ) );
+	}
+
+	/**
+	 * Sends a single queued detection report.
+	 *
+	 * @param array $report Report built by share_detection().
+	 */
+	private function send_report( $report ) {
+		$global_data = self::global_api_data();
+
+		$query_params = array(
+			'report_type'   => 'ip_address',
+			'report_module' => $report['type'],
+			'report_key'    => $report['ip'],
+			'report_failed' => $report['failed'],
+		);
+
+		// Build URL with query params - wrap in 'data' array for API format.
+		$endpoint = add_query_arg( array( 'data' => array_merge( $query_params, $global_data ) ), ZEROSPAM_URL . 'wp-json/v6/report/' );
+		self::remote_request( $endpoint );
+
+		// The domain's DNS check is done here, in cron, rather than during the visitor's request.
+		if ( empty( $report['email'] ) || ! \ZeroSpam\Core\Utilities::is_email( $report['email'] ) ) {
+			return;
+		}
+
+		$report_details = array(
+			'report_type'   => 'email_address',
+			'report_module' => $report['type'],
+			'report_key'    => $report['email'],
+			'report_failed' => $report['failed'],
+			// Encode email_details as JSON string (API expects JSON, not array).
+			'email_details' => wp_json_encode(
+				array(
+					'names'     => ! empty( $report['names'] ) ? array_values( (array) $report['names'] ) : array(),
+					'companies' => array(),
+					'titles'    => array(),
+					'phones'    => array(),
+					'locations' => array(),
+				)
+			),
+			// The IP being reported for email reports.
+			'report_ip'     => $report['ip'],
+		);
+
+		$email_endpoint = add_query_arg( array( 'data' => array_merge( $report_details, $global_data ) ), ZEROSPAM_URL . 'wp-json/v6/report/' );
+		self::remote_request( $email_endpoint );
+	}
+
+	/**
+	 * Returns the email address to report from detection details, if any.
+	 *
+	 * Only the format is checked here; send_report() checks the domain.
+	 *
+	 * @param array $data Detection details.
+	 * @return string Email address, or an empty string.
+	 */
+	private static function get_report_email( $data ) {
+		$valid_email_fields = array(
+			'comment_author_email', // Comments.
+			'user_email',           // Registration.
+			'email',                // WooCommerce Registration.
+			'post' => array(        // Mailchimp.
+				'EMAIL',
+			),
+			'data' => array(        // Give.
+				'give_email',
+			),
+		);
+
+		foreach ( $valid_email_fields as $key => $field ) {
+			if ( is_array( $field ) ) {
+				foreach ( $field as $f ) {
+					if ( ! empty( $data[ $key ][ $f ] ) && is_string( $data[ $key ][ $f ] ) && is_email( $data[ $key ][ $f ] ) ) {
+						return sanitize_email( $data[ $key ][ $f ] );
+					}
+				}
+			} elseif ( ! empty( $data[ $field ] ) && is_string( $data[ $field ] ) && is_email( $data[ $field ] ) ) {
+				return sanitize_email( $data[ $field ] );
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * Returns the names to report alongside an email address.
+	 *
+	 * @param array $data Detection details.
+	 * @return array Names.
+	 */
+	private static function get_report_names( $data ) {
+		$valid_name_fields = array(
+			'comment_author', // Comment.
+			'user_login',     // Register.
+			'username',       // WooCommerce Registration.
+			'data' => array(  // Give.
+				'give_first',
+				'give_last',
+			),
+		);
+
+		$names = array();
+		foreach ( $valid_name_fields as $key => $field ) {
+			if ( is_array( $field ) ) {
+				$parts = array();
+				foreach ( $field as $f ) {
+					if ( ! empty( $data[ $key ][ $f ] ) && is_string( $data[ $key ][ $f ] ) ) {
+						$parts[] = sanitize_text_field( $data[ $key ][ $f ] );
+					}
+				}
+				if ( $parts ) {
+					$names[] = implode( ' ', $parts );
+				}
+			} elseif ( ! empty( $data[ $field ] ) && is_string( $data[ $field ] ) ) {
+				$names[] = sanitize_text_field( $data[ $field ] );
+			}
+		}
+
+		return $names;
 	}
 
 	/**

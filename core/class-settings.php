@@ -484,7 +484,7 @@ class Settings {
 			'html'    => defined( 'ZEROSPAM_RESCUE_KEY' ) ?
 				'<span style="color: green; font-weight: bold;">' . __( 'Active', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Key defined in wp-config.php', 'zero-spam' ) . ')</span>' :
 				'<span style="color: red;">' . __( 'Inactive', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Define ZEROSPAM_RESCUE_KEY in wp-config.php to enable', 'zero-spam' ) . ')</span>',
-			'desc'    => __( 'Rescue Mode allows administrators to bypass blocks by appending ?zerospam_rescue={KEY} to any URL.', 'zero-spam' ),
+			'desc'    => __( 'Rescue Mode lets administrators bypass blocks by visiting any page with ?zerospam_rescue={KEY} appended. Checks stay bypassed in that browser for one hour, long enough to log in.', 'zero-spam' ),
 			'value'   => false,
 		);
 
