@@ -19,6 +19,9 @@ $tables = array(
 	'stats_monthly' => 'wpzerospam_stats_monthly',
 );
 
+// User meta is shared across a network, so it only needs deleting once.
+delete_metadata( 'user', 0, 'zerospam_promo_dismissed', '', true );
+
 $modules = array(
 	'comments',
 	'contactform7',
@@ -59,6 +62,8 @@ if ( is_multisite() ) {
 			delete_option( 'zero-spam-last-update' );
 			delete_option( 'zerospam_completed_migrations' );
 			delete_option( 'zerospam_show_settings_review_notice' );
+			delete_option( 'zerospam_activation_time' );
+			delete_option( 'zerospam_api_monitoring_notice_dismissed' );
 
 		foreach ( $modules as $key => $module ) {
 				delete_option( "zero-spam-$module" );
@@ -107,6 +112,8 @@ if ( is_multisite() ) {
 	delete_option( 'zero-spam-last-update' );
 	delete_option( 'zerospam_completed_migrations' );
 	delete_option( 'zerospam_show_settings_review_notice' );
+	delete_option( 'zerospam_activation_time' );
+	delete_option( 'zerospam_api_monitoring_notice_dismissed' );
 
 	foreach ( $modules as $module => $settings ) {
 		delete_option( "zero-spam-$module" );

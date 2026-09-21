@@ -41,6 +41,12 @@ class Admin {
 	 * Display admin notices
 	 */
 	public function admin_notices() {
+		// Every notice below links to settings only administrators can change, so
+		// don't show them to other roles (#405).
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
 		// Clean up old transients from previous implementation (temporary cleanup code).
 		$current_user_id = get_current_user_id();
 		delete_transient( 'zerospam_promo_shown_' . $current_user_id );
@@ -560,43 +566,35 @@ class Admin {
 	private function should_display_promo_notice() {
 		$current_user_id = get_current_user_id();
 
-		// Check if dismissed within the last 30 days.
-		$dismissed_time = get_user_meta( $current_user_id, 'zerospam_promo_dismissed', true );
-		
-		if ( $dismissed_time ) {
-			$days_since_dismissed = ( time() - $dismissed_time ) / DAY_IN_SECONDS;
-			if ( $days_since_dismissed < 30 ) {
-				return false;
-			}
+		// Once dismissed, the notice stays dismissed for that user (#405).
+		if ( get_user_meta( $current_user_id, 'zerospam_promo_dismissed', true ) ) {
+			return false;
 		}
 
 		// Check if plugin activated at least 3 days ago.
-		$activation_time = get_option( 'zerospam_activation_time' );
-		
-		// FIX: If activation time is less than 3 days ago (existing install issue), reset it
-		if ( $activation_time ) {
-			$days_since_activation = ( time() - $activation_time ) / DAY_IN_SECONDS;
-			if ( $days_since_activation < 3 ) {
-				// This was set too recently (probably from our earlier attempt)
-				// Reset it to 4 days ago for existing installations
-				$activation_time = time() - ( 4 * DAY_IN_SECONDS );
-				update_option( 'zerospam_activation_time', $activation_time );
-			}
-		} elseif ( ! $activation_time ) {
-			// For existing installations, set activation time to 4 days ago
-			// so the notice shows immediately. For new installations, this will
-			// be set during plugin activation to the actual activation time.
+		$activation_time = (int) get_option( 'zerospam_activation_time' );
+
+		if ( ! $activation_time ) {
+			// Installs that predate the activation hook have no activation time,
+			// so treat them as past the waiting period. New installations get the
+			// real time from zerospam_plugin_activation().
 			$activation_time = time() - ( 4 * DAY_IN_SECONDS );
 			update_option( 'zerospam_activation_time', $activation_time );
 		}
 
 		$days_since_activation = ( time() - $activation_time ) / DAY_IN_SECONDS;
-		
+
 		if ( $days_since_activation < 3 ) {
 			return false;
 		}
 
-		return true;
+		/**
+		 * Filters whether the Enhanced Protection promo notice is displayed.
+		 *
+		 * @param bool $display         Whether to display the notice.
+		 * @param int  $current_user_id The current user ID.
+		 */
+		return (bool) apply_filters( 'zerospam_display_promo_notice', true, $current_user_id );
 	}
 
 	/**
@@ -605,7 +603,7 @@ class Admin {
 	public function ajax_dismiss_promo_notice() {
 		check_ajax_referer( 'zerospam_dismiss_promo', 'nonce' );
 
-		if ( ! current_user_can( 'administrator' ) ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'zero-spam' ) ) );
 		}
 
@@ -624,7 +622,7 @@ class Admin {
 	public function ajax_track_promo_click() {
 		check_ajax_referer( 'zerospam_track_promo', 'nonce' );
 
-		if ( ! current_user_can( 'administrator' ) ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Unauthorized', 'zero-spam' ) ) );
 		}
 
