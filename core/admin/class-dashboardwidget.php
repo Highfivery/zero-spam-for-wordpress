@@ -219,8 +219,12 @@ class Dashboard_Widget {
 		delete_transient( 'zerospam_dashboard_data_network' );
 
 		// Determine context from the client since is_network_admin() is
-		// unreliable during AJAX requests.
-		$is_network = is_multisite() && ! empty( $_POST['is_network'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// unreliable during AJAX requests. The client flag can't be trusted on
+		// its own, so network-wide data also requires network-level access;
+		// site admins fall back to their own site's data.
+		$is_network = is_multisite()
+			&& ! empty( $_POST['is_network'] ) // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			&& current_user_can( 'manage_network_options' );
 		$data       = $this->get_dashboard_data( $is_network );
 
 		wp_send_json_success(

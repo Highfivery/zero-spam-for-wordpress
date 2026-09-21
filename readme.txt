@@ -132,6 +132,10 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 
 == Changelog ==
 
+= v5.7.10 =
+
+* **security(dashboard-widget):** on multisite, the dashboard widget refresh request no longer returns network-wide stats to site administrators — the client-sent `is_network` flag is now only honored for users with the `manage_network_options` capability; everyone else gets their own site's data
+
 = v5.7.9 =
 
 * **fix(admin):** the Enhanced Protection promo notice and other plugin admin notices are now only shown to users who can manage options — previously they appeared for every role with dashboard access ([#405](https://github.com/Highfivery/zero-spam-for-wordpress/issues/405))
