@@ -194,10 +194,10 @@ endif;
 				<span class="zerospam-list__value">
 					<?php
 					if ( is_array( $value ) ) :
-						// Sanatize the array.
-						$value = \ZeroSpam\Core\Utilities::sanitize_array( $value, 'esc_html' );
+						// Escaped after encoding: nested keys are attacker-controlled too,
+						// and they aren't escaped by sanitizing the array's values.
 						?>
-						<?php echo wp_json_encode( $value ); ?>
+						<?php echo esc_html( wp_json_encode( $value ) ); ?>
 					<?php else : ?>
 						<?php echo esc_html( $value ); ?>
 					<?php endif; ?>

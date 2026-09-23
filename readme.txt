@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 5.7.10
+Stable tag: 5.7.11
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -131,6 +131,10 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.11 =
+
+* **security(log):** fixed an unauthenticated stored cross-site scripting vulnerability in the detection log (CVE-2026-96752). A form submission with a nested field name containing HTML (e.g. `field[<img …>]`) was stored verbatim, because array keys were never sanitized, and the log details modal output nested data unescaped. Keys are now sanitized on storage and the modal escapes all submission data on output, including entries logged before this update. Reported by Adrien Brunner via Wordfence.
 
 = v5.7.10 =
 
