@@ -46,6 +46,10 @@ class Utilities {
 	/**
 	 * Recursive sanitation for an array.
 	 *
+	 * Keys are sanitized as well as values: PHP turns a submitted field name such
+	 * as `field[<img src=x onerror=…>]` into an array key, so keys are just as
+	 * attacker-controlled as values.
+	 *
 	 * @param array  $array Array to sanitize.
 	 * @param string $type  Type of sanitization.
 	 */
@@ -62,22 +66,26 @@ class Utilities {
 					$array = sanitize_text_field( $array );
 			}
 		} else {
-			foreach ( $array as $key => &$value ) {
+			$sanitized = array();
+			foreach ( $array as $key => $value ) {
+				$key = is_string( $key ) ? sanitize_text_field( $key ) : $key;
+
 				if ( is_array( $value ) ) {
-					$value = self::sanitize_array( $value );
+					$sanitized[ $key ] = self::sanitize_array( $value, $type );
 				} else {
 					switch ( $type ) {
 						case 'sanitize_text_field':
-							$value = sanitize_text_field( $value );
+							$sanitized[ $key ] = sanitize_text_field( $value );
 							break;
 						case 'esc_html':
-							$value = esc_html( $value );
+							$sanitized[ $key ] = esc_html( $value );
 							break;
 						default:
-							$value = sanitize_text_field( $value );
+							$sanitized[ $key ] = sanitize_text_field( $value );
 					}
 				}
 			}
+			$array = $sanitized;
 		}
 
 		return $array;
