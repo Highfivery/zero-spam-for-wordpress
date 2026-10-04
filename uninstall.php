@@ -70,7 +70,7 @@ if ( is_multisite() ) {
 			delete_option( 'zerospam_share_queue' );
 			wp_unschedule_hook( 'zerospam_async_share_detection' );
 
-		foreach ( $modules as $key => $module ) {
+			foreach ( $modules as $key => $module ) {
 				delete_option( "zero-spam-$module" );
 			}
 

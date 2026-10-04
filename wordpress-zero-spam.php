@@ -49,7 +49,7 @@ if ( ! version_compare( PHP_VERSION, '8.2', '>=' ) ) {
 	add_action( 'admin_notices', 'zerospam_fail_wp_version' );
 } else {
 	require_once ZEROSPAM_PATH . 'includes/class-plugin.php';
-	
+
 	// Set activation time for new installations.
 	register_activation_hook( ZEROSPAM, 'zerospam_plugin_activation' );
 }

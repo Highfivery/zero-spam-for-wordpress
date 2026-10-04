@@ -74,8 +74,8 @@ class Login {
 		// Set a secure cookie.
 		$secure = is_ssl();
 		$samesite = PHP_VERSION_ID < 70300 ? null : 'Lax'; // PHP 7.3+ supports SameSite in setcookie options.
-		
-		// WordPress doesn't support SameSite in setcookie() natively pre-5.5 fully? 
+
+		// WordPress doesn't support SameSite in setcookie() natively pre-5.5 fully?
 		// Actually, let's use standard PHP setcookie for maximum compatibility or WP's if possible.
 		// WP 6.9 environment so use setcookie with array options for modern PHP.
 		if ( PHP_VERSION_ID >= 70300 ) {
@@ -192,7 +192,7 @@ class Login {
 				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_logins' ) ) {
 					$details['failed'] = 'bypassed_by_intent';
 					$details['type']   = 'login_bypass';
-					// Optional: Log it as a "Notice" rather than "Block" if your DB logger supports it, 
+					// Optional: Log it as a "Notice" rather than "Block" if your DB logger supports it,
 					// for now just skip logging the block or log successful bypass.
 					// We will skip logging a BLOCK here.
 				}
@@ -218,9 +218,9 @@ class Login {
 
 			// If missing keys, return a specific "Verification Missing" error instead of "Malicious".
 			if ( $missing_keys ) {
-				return new \WP_Error( 
-					'failed_zerospam', 
-					__( 'Verification missing. Please try again.', 'zero-spam' ) 
+				return new \WP_Error(
+					'failed_zerospam',
+					__( 'Verification missing. Please try again.', 'zero-spam' )
 				);
 			}
 

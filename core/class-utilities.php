@@ -1349,7 +1349,6 @@ class Utilities {
 			}
 		}
 
-		
 		// Cache the result.
 		set_transient( $cache_key, $location_details, WEEK_IN_SECONDS );
 
