@@ -5,7 +5,7 @@
  * Features:
  * - No jQuery dependency
  * - MutationObserver for dynamically loaded forms
- * - AJAX key refresh for cached pages
+ * - Fresh per-visitor key fetched on form interaction (cached pages, AJAX forms)
  * - Centralized selector management
  *
  * @package ZeroSpam
@@ -35,11 +35,27 @@
 	const DATA_ATTR = 'data-zerospam-davidwalsh';
 
 	/**
-	 * Threshold in seconds to trigger AJAX key refresh (12 hours).
+	 * Key age in seconds after which the page is assumed to be cached and a
+	 * fresh key is fetched right away.
 	 *
 	 * @type {number}
 	 */
-	const REFRESH_THRESHOLD = 43200;
+	const REFRESH_THRESHOLD = 300;
+
+	/**
+	 * Cookie carrying the key on login pages, so the login check still has it
+	 * when another plugin strips unknown fields from the login POST.
+	 *
+	 * @type {string}
+	 */
+	const LOGIN_COOKIE = 'zerospam_david_walsh_key';
+
+	/**
+	 * Login form selector.
+	 *
+	 * @type {string}
+	 */
+	const LOGIN_FORM_SELECTOR = '#loginform, form[name="loginform"]';
 
 	/**
 	 * Current key value (may be updated via AJAX).
@@ -49,11 +65,18 @@
 	let currentKey = config.key || '';
 
 	/**
-	 * Flag to track if we've already attempted a key refresh.
+	 * In-flight key refresh, if any.
+	 *
+	 * @type {Promise<void>|null}
+	 */
+	let refreshing = null;
+
+	/**
+	 * Whether a key has already been fetched for this page view.
 	 *
 	 * @type {boolean}
 	 */
-	let keyRefreshAttempted = false;
+	let keyFetched = false;
 
 	/**
 	 * Initialize protection on a single form element.
@@ -73,6 +96,19 @@
 
 		// Mark as protected.
 		form.setAttribute( DATA_ATTR, 'protected' );
+
+		// Keys expire and can only be used a few times, so get a fresh one as
+		// soon as the visitor starts using the form, and again after each
+		// submission (AJAX forms can be resubmitted without a reload).
+		form.addEventListener( 'focusin', refreshOnce );
+		form.addEventListener( 'pointerdown', refreshOnce );
+		form.addEventListener( 'submit', function() {
+			setTimeout( refreshKey, 1000 );
+		} );
+
+		if ( form.matches( LOGIN_FORM_SELECTOR ) ) {
+			setLoginCookie();
+		}
 
 		// Check if the hidden input already exists.
 		let input = form.querySelector( `input[name="${INPUT_NAME}"]` );
@@ -110,55 +146,98 @@
 	}
 
 	/**
-	 * Refresh the key via AJAX if it's stale.
+	 * Fetch a key from a URL.
 	 *
-	 * @return {Promise<void>}
+	 * @param {string} url Endpoint URL.
+	 * @return {Promise<Object|null>} Key data or null.
 	 */
-	async function maybeRefreshKey() {
-		// Only attempt refresh once per page load.
-		if ( keyRefreshAttempted ) {
-			return;
-		}
-
-		// Check if we have the necessary data.
-		if ( ! config.restUrl || ! config.generated ) {
-			return;
-		}
-
-		// Check if key is older than threshold.
-		const now = Math.floor( Date.now() / 1000 );
-		const keyAge = now - config.generated;
-
-		if ( keyAge < REFRESH_THRESHOLD ) {
-			return;
-		}
-
-		keyRefreshAttempted = true;
-
+	async function fetchKey( url ) {
 		try {
-			const response = await fetch( config.restUrl, {
+			const response = await fetch( url, {
 				method: 'GET',
+				cache: 'no-store',
+				credentials: 'same-origin',
 			} );
 
 			if ( ! response.ok ) {
-				return;
+				return null;
 			}
 
 			const data = await response.json();
 
-			if ( data && data.key ) {
+			return data && data.key ? data : null;
+		} catch ( e ) {
+			return null;
+		}
+	}
+
+	/**
+	 * Fetch a fresh key (REST API, falling back to admin-ajax) and apply it
+	 * to all protected forms.
+	 *
+	 * @return {Promise<void>}
+	 */
+	function refreshKey() {
+		if ( refreshing ) {
+			return refreshing;
+		}
+
+		refreshing = ( async function() {
+			let data = config.restUrl ? await fetchKey( config.restUrl ) : null;
+
+			if ( ! data && config.ajaxUrl ) {
+				data = await fetchKey( config.ajaxUrl );
+			}
+
+			if ( data ) {
+				keyFetched = true;
 				currentKey = data.key;
 				config.generated = data.generated;
 
 				// Update all already-initialized forms with the new key.
 				updateExistingForms();
+			} else if ( console && console.warn ) {
+				console.warn( 'Zero Spam: Failed to refresh David Walsh key' );
 			}
-		} catch ( e ) {
-			// Fetch failed, continue with existing key.
-			if ( console && console.warn ) {
-				console.warn( 'Zero Spam: Failed to refresh David Walsh key', e );
-			}
+
+			refreshing = null;
+		} )();
+
+		return refreshing;
+	}
+
+	/**
+	 * Fetch a fresh key once per page view (on first form interaction).
+	 */
+	function refreshOnce() {
+		if ( ! keyFetched && ! refreshing ) {
+			refreshKey();
 		}
+	}
+
+	/**
+	 * Fetch a fresh key right away if the page looks cached.
+	 */
+	function maybeRefreshKey() {
+		if ( ! config.generated ) {
+			return;
+		}
+
+		const now = Math.floor( Date.now() / 1000 );
+
+		if ( now - config.generated >= REFRESH_THRESHOLD ) {
+			refreshKey();
+		}
+	}
+
+	/**
+	 * Store the key in a cookie for the login check.
+	 */
+	function setLoginCookie() {
+		const secure = 'https:' === window.location.protocol ? '; Secure' : '';
+
+		document.cookie = LOGIN_COOKIE + '=' + encodeURIComponent( currentKey ) +
+			'; path=/; max-age=' + ( config.ttl || 3600 ) + '; SameSite=Lax' + secure;
 	}
 
 	/**
@@ -171,6 +250,10 @@
 			const input = form.querySelector( `input[name="${INPUT_NAME}"]` );
 			if ( input ) {
 				input.value = currentKey;
+			}
+
+			if ( form.matches( LOGIN_FORM_SELECTOR ) ) {
+				setLoginCookie();
 			}
 		} );
 	}

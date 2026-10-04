@@ -135,29 +135,7 @@ class Login {
 		// @codingStandardsIgnoreLine
 		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
 
-		/**
-		 * Fix for https://github.com/Highfivery/wordpress-zero-spam/issues/310
-		 *
-		 * Don't process WooCommerce login forms, this module is only for core login
-		 * forms. Would be nice if there was a hook specific to core logins that
-		 * wasn't fired for other 3rd-party login forms. A bit of a hacky solution,
-		 * but checking if the woocommerce nonce was submitted, if so, ignore
-		 * processing. WooCommerce login forms will eventually be processed by a
-		 * WooCommerce login hook in the WooCommerce Zero Spam module.
-		 */
-		if ( ! empty( $post['woocommerce-login-nonce'] ) ) {
-			// Submitted via a WooCommerce login form, ignore processing.
-			return $user;
-		}
-
-		/**
-		 * Fix for https://github.com/Highfivery/zero-spam-for-wordpress/issues/357
-		 *
-		 * Don't process ProfilePress login forms, this module is only for core login
-		 * forms... same as above.
-		 */
-		if ( ! empty( $post['pp_current_url'] ) ) {
-			// Submitted via a ProfilePress login form, ignore processing.
+		if ( $this->is_third_party_login( $post ) ) {
 			return $user;
 		}
 
@@ -175,15 +153,17 @@ class Login {
 
 		// Begin validation checks.
 		$validation_errors = array();
-
-		// Begin validation checks.
-		$validation_errors = array();
 		$missing_keys      = false;
+
+		// Set when a check failed on a submitted value (e.g. a filled honeypot or
+		// an invalid key), not just a missing field. These are never waived.
+		$spam_signal = false;
 
 		// @codingStandardsIgnoreLine
 		if ( isset( $post[ $honeypot_field_name ] ) && ! empty( $post[ $honeypot_field_name ] ) ) {
 			// Failed the honeypot check (Bot filled it out).
 			$validation_errors[] = 'honeypot';
+			$spam_signal         = true;
 		} elseif ( ! isset( $post[ $honeypot_field_name ] ) ) {
 			// Honey pot missing entirely. Potentially interrupted flow.
 			$missing_keys = true;
@@ -195,18 +175,17 @@ class Login {
 		if ( ! empty( $errors ) ) {
 			foreach ( $errors as $key => $message ) {
 				// Check if this error is due to a missing key (David Walsh).
-				if ( 'zerospam_david_walsh' === $key ) {
-					// Check if the key was actually posted but invalid, or completely missing.
-					if ( empty( $post['zerospam_david_walsh_key'] ) ) {
-						$missing_keys = true;
-					}
+				if ( 'zerospam_david_walsh' === $key && empty( $post['zerospam_david_walsh_key'] ) ) {
+					$missing_keys = true;
+				} else {
+					$spam_signal = true;
 				}
 				$validation_errors[] = str_replace( 'zerospam_', '', $key );
 			}
 		}
 
 		// If validation failed solely due to missing keys/fields, check for Intent Token.
-		if ( ! empty( $validation_errors ) && $missing_keys ) {
+		if ( ! empty( $validation_errors ) && $missing_keys && ! $spam_signal ) {
 			if ( $this->validate_login_intent() ) {
 				// Intent valid! Bypassing checks for this request.
 				// Log the bypass if debugging/logging enabled.
@@ -249,6 +228,44 @@ class Login {
 		}
 
 		return $user;
+	}
+
+	/**
+	 * Checks if a login attempt came from a supported third-party login form
+	 * (WooCommerce, ProfilePress), which this module doesn't process.
+	 *
+	 * Only applies outside wp-login.php, and only when that plugin is active —
+	 * otherwise anyone could skip the login checks by adding the plugin's
+	 * field to a wp-login.php request.
+	 *
+	 * @see https://github.com/Highfivery/wordpress-zero-spam/issues/310
+	 * @see https://github.com/Highfivery/zero-spam-for-wordpress/issues/357
+	 *
+	 * @param array $post Sanitized POST data.
+	 * @return bool
+	 */
+	public function is_third_party_login( $post ) {
+		// Core login form (wp-login.php, including custom login URLs).
+		if ( did_action( 'login_init' ) ) {
+			return false;
+		}
+
+		// WooCommerce login form, with a valid WooCommerce login nonce.
+		if (
+			! empty( $post['woocommerce-login-nonce'] ) &&
+			is_string( $post['woocommerce-login-nonce'] ) &&
+			class_exists( 'WooCommerce' ) &&
+			wp_verify_nonce( $post['woocommerce-login-nonce'], 'woocommerce-login' )
+		) {
+			return true;
+		}
+
+		// ProfilePress login form.
+		if ( ! empty( $post['pp_current_url'] ) && defined( 'PPRESS_VERSION_NUMBER' ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**
@@ -335,10 +352,21 @@ class Login {
 	 * Validates the login intent token.
 	 *
 	 * Checks if a valid intent cookie exists and matches a server-side transient.
+	 * When the David Walsh technique is enabled, also requires the key cookie set
+	 * by its script — the intent cookie alone only proves the login page was
+	 * requested, which any client can do.
 	 *
 	 * @return bool True if intent is valid, false otherwise.
 	 */
 	public function validate_login_intent() {
+		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+			$dw_key = isset( $_COOKIE['zerospam_david_walsh_key'] ) && is_string( $_COOKIE['zerospam_david_walsh_key'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['zerospam_david_walsh_key'] ) ) : '';
+
+			if ( ! \ZeroSpam\Modules\DavidWalsh\DavidWalsh::validate_token( $dw_key ) ) {
+				return false;
+			}
+		}
+
 		// Check for the intent cookie.
 		if ( empty( $_COOKIE['zerospam_login_intent'] ) ) {
 			return false;

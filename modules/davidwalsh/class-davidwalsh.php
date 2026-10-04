@@ -20,42 +20,76 @@ defined( 'ABSPATH' ) || die();
  * JavaScript, they fail validation.
  *
  * Features:
- * - 16-character alphanumeric keys for enhanced security
- * - Dual-key system for caching compatibility (current + previous key valid)
- * - Daily key rotation via WP Cron
- * - REST API endpoint for AJAX key refresh on cached pages
+ * - Signed, per-visitor tokens (HMAC with a site secret) instead of one shared key
+ * - Tokens expire after TOKEN_TTL and are only accepted MAX_USES times, so a token
+ *   fetched once can't be replayed for bulk submissions
+ * - REST API (with admin-ajax fallback) to fetch a fresh token on cached pages
  * - MutationObserver support for dynamically loaded forms
  * - Centralized selector management via filter
  */
 class DavidWalsh {
 
 	/**
-	 * Option name for storing key data.
+	 * Option name for the legacy shared key data (before 5.7.12).
+	 *
+	 * Only read during the upgrade grace period, see validate_legacy_key().
 	 *
 	 * @var string
 	 */
 	const OPTION_NAME = 'zerospam_davidwalsh_data';
 
 	/**
-	 * Cron hook name for key rotation.
+	 * Option name for the secret used to sign tokens.
+	 *
+	 * @var string
+	 */
+	const SECRET_OPTION = 'zerospam_davidwalsh_secret';
+
+	/**
+	 * Legacy cron hook name for key rotation (no longer scheduled).
 	 *
 	 * @var string
 	 */
 	const CRON_HOOK = 'zerospam_davidwalsh_rotate_key';
 
 	/**
-	 * Key length in characters.
+	 * Legacy key length in characters.
 	 *
 	 * @var int
 	 */
 	const KEY_LENGTH = 16;
 
 	/**
-	 * Key TTL in seconds (24 hours).
+	 * Token lifetime in seconds (12 hours).
 	 *
 	 * @var int
 	 */
-	const KEY_TTL = 86400;
+	const KEY_TTL = 43200;
+
+	/**
+	 * How many submissions a single token is accepted for.
+	 *
+	 * More than one so AJAX forms can be resubmitted after a validation
+	 * error without reloading the page.
+	 *
+	 * @var int
+	 */
+	const MAX_USES = 3;
+
+	/**
+	 * How long legacy shared keys stay valid after upgrading, so pages
+	 * cached before the update keep working.
+	 *
+	 * @var int
+	 */
+	const LEGACY_GRACE = DAY_IN_SECONDS;
+
+	/**
+	 * Admin-ajax action for fetching a token (fallback when REST is blocked).
+	 *
+	 * @var string
+	 */
+	const AJAX_ACTION = 'zerospam_davidwalsh_token';
 
 	/**
 	 * REST API namespace.
@@ -70,10 +104,9 @@ class DavidWalsh {
 	public function __construct() {
 		add_action( 'init', array( $this, 'init' ), 0 );
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
-		add_action( self::CRON_HOOK, array( $this, 'rotate_key' ) );
+		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'ajax_get_key' ) );
+		add_action( 'wp_ajax_nopriv_' . self::AJAX_ACTION, array( $this, 'ajax_get_key' ) );
 
-		// Schedule cron on plugin activation.
-		register_activation_hook( ZEROSPAM, array( __CLASS__, 'schedule_cron' ) );
 		register_deactivation_hook( ZEROSPAM, array( __CLASS__, 'unschedule_cron' ) );
 	}
 
@@ -85,8 +118,10 @@ class DavidWalsh {
 		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_failed_types', array( $this, 'failed_types' ), 10, 1 );
 
-		// Ensure cron is scheduled (in case it was missed).
-		self::maybe_schedule_cron();
+		// Keys are no longer rotated by cron (tokens carry their own expiry).
+		if ( wp_next_scheduled( self::CRON_HOOK ) ) {
+			self::unschedule_cron();
+		}
 
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) &&
@@ -134,22 +169,44 @@ class DavidWalsh {
 	}
 
 	/**
-	 * REST API callback for getting the current David Walsh key.
+	 * REST API callback for getting a fresh David Walsh token.
+	 *
+	 * Public by design: the token is what the page's JavaScript adds to forms,
+	 * so it's no more secret than the page itself. Each call returns a new
+	 * token that expires and is only accepted MAX_USES times — there is no
+	 * shared site-wide key to leak.
 	 *
 	 * @return \WP_REST_Response
 	 */
 	public function rest_get_key() {
-		$key_data = self::get_key_data();
+		$response = new \WP_REST_Response( self::get_token_response(), 200 );
+		$response->header( 'Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0' );
 
-		$generated = ! empty( $key_data['rotated_at'] ) ? strtotime( $key_data['rotated_at'] ) : 0;
+		return $response;
+	}
 
-		return new \WP_REST_Response(
-			array(
-				'key'       => (string) $key_data['current_key'],
-				'generated' => (int) $generated,
-				'ttl'       => (int) self::KEY_TTL,
-			),
-			200
+	/**
+	 * Admin-ajax callback for getting a fresh David Walsh token.
+	 *
+	 * Fallback for sites where the REST API is blocked for visitors.
+	 */
+	public function ajax_get_key() {
+		nocache_headers();
+		wp_send_json( self::get_token_response() );
+	}
+
+	/**
+	 * Builds the token payload returned to the browser.
+	 *
+	 * @return array
+	 */
+	public static function get_token_response() {
+		$token = self::generate_token();
+
+		return array(
+			'key'       => $token,
+			'generated' => (int) self::get_token_time( $token ),
+			'ttl'       => (int) self::KEY_TTL,
 		);
 	}
 
@@ -163,8 +220,7 @@ class DavidWalsh {
 	/**
 	 * Validates a submission against the David Walsh field.
 	 *
-	 * Accepts both current and previous keys to support caching scenarios
-	 * where the page HTML contains a key from before the last rotation.
+	 * Accepts a valid, unexpired token that hasn't been used up.
 	 *
 	 * @param array  $errors            Array of submission errors.
 	 * @param array  $post              Form post array.
@@ -172,20 +228,9 @@ class DavidWalsh {
 	 * @return array Modified errors array.
 	 */
 	public function validate_post( $errors, $post, $detection_msg_key ) {
-		$submitted_key = isset( $post['zerospam_david_walsh_key'] ) ? sanitize_text_field( $post['zerospam_david_walsh_key'] ) : '';
-		$key_data      = self::get_key_data();
+		$submitted_key = isset( $post['zerospam_david_walsh_key'] ) && is_string( $post['zerospam_david_walsh_key'] ) ? sanitize_text_field( $post['zerospam_david_walsh_key'] ) : '';
 
-		// Accept either current or previous key (for caching compatibility).
-		$valid_keys = array(
-			$key_data['current_key'],
-		);
-
-		// Only include previous key if it exists.
-		if ( ! empty( $key_data['previous_key'] ) ) {
-			$valid_keys[] = $key_data['previous_key'];
-		}
-
-		if ( empty( $submitted_key ) || ! in_array( $submitted_key, $valid_keys, true ) ) {
+		if ( ! self::validate_token( $submitted_key ) ) {
 			// Failed the David Walsh check.
 			$error_message = \ZeroSpam\Core\Utilities::detection_message( $detection_msg_key );
 			$errors['zerospam_david_walsh'] = $error_message;
@@ -232,39 +277,13 @@ class DavidWalsh {
 	public function settings( $settings ) {
 		$settings = is_array( $settings ) ? $settings : array();
 
-		$options  = get_option( 'zero-spam-davidwalsh', array() );
-		$key_data = self::get_key_data();
-
-		$key_data = wp_parse_args(
-			is_array( $key_data ) ? $key_data : array(),
-			array(
-				'rotated_at'   => '',
-				'current_key'  => '',
-				'previous_key' => '',
-			)
-		);
-
-		// Get human-readable time until next rotation.
-		$rotation_readable    = esc_html__( 'Unknown', 'zero-spam' );
-		$rotated_at_timestamp = ! empty( $key_data['rotated_at'] ) ? strtotime( $key_data['rotated_at'] ) : false;
-
-		if ( false !== $rotated_at_timestamp ) {
-			$next_rotation = $rotated_at_timestamp + self::KEY_TTL;
-			$time_until    = $next_rotation - time();
-			$hours_until   = max( 0, (int) floor( $time_until / HOUR_IN_SECONDS ) );
-
-			$rotation_readable = sprintf(
-				/* translators: %d: number of hours until the next key rotation. */
-				_n( '%d hour', '%d hours', $hours_until, 'zero-spam' ),
-				$hours_until
-			);
-		}
+		$options = get_option( 'zero-spam-davidwalsh', array() );
 
 		// How It Works.
 		$how_it_works_features = array(
 			esc_html__( 'Works invisibly — no CAPTCHAs or puzzles for your users.', 'zero-spam' ),
 			esc_html__( 'Automatically protects comments, registrations, logins, and supported plugins.', 'zero-spam' ),
-			esc_html__( 'Compatible with page caching through automatic key rotation.', 'zero-spam' ),
+			esc_html__( 'Compatible with page caching — visitors get a fresh, short-lived key automatically.', 'zero-spam' ),
 			esc_html__( 'No impact on user experience for legitimate visitors.', 'zero-spam' ),
 		);
 
@@ -315,28 +334,22 @@ class DavidWalsh {
 			'recommended' => 'enabled',
 		);
 
-		// Current Key Status.
-		$masked_key  = esc_html__( 'Unavailable', 'zero-spam' );
-		$current_key = (string) $key_data['current_key'];
-
-		if ( strlen( $current_key ) >= 8 ) {
-			$masked_key = substr( $current_key, 0, 4 ) . '••••••••' . substr( $current_key, -4 );
-		}
+		// Key Status.
+		$ttl_hours = (int) ( self::KEY_TTL / HOUR_IN_SECONDS );
 
 		$settings['davidwalsh_status'] = array(
 			'title'   => __( 'Security Key Status', 'zero-spam' ),
-			'desc'    => esc_html__(
-				'Your security key automatically rotates every 24 hours to maintain optimal protection, especially for cached pages. The previous key remains valid for an additional 24 hours to prevent false positives during the transition.',
-				'zero-spam'
-			),
+			'desc'    => '',
 			'section' => 'davidwalsh',
 			'module'  => 'davidwalsh',
 			'type'    => 'html',
-			'html'    => sprintf(
-				'<code>%1$s</code> &nbsp;&mdash;&nbsp; %2$s <strong>%3$s</strong>',
-				esc_html( $masked_key ),
-				esc_html__( 'Next rotation in approximately', 'zero-spam' ),
-				esc_html( $rotation_readable )
+			'html'    => esc_html(
+				sprintf(
+					/* translators: 1: number of hours a key is valid for, 2: number of submissions a key can be used for. */
+					__( 'Each visitor gets their own signed security key. A key expires after %1$d hours and can be used for up to %2$d submissions, so a key copied from your site can\'t be reused to send spam in bulk.', 'zero-spam' ),
+					$ttl_hours,
+					self::MAX_USES
+				)
 			),
 		);
 
@@ -497,8 +510,6 @@ class DavidWalsh {
 	 * Register scripts.
 	 */
 	public function scripts() {
-		$key_data = self::get_key_data();
-
 		wp_register_script(
 			'zerospam-davidwalsh',
 			plugin_dir_url( ZEROSPAM ) . 'modules/davidwalsh/assets/js/davidwalsh.js',
@@ -510,18 +521,17 @@ class DavidWalsh {
 		// Get all selectors via centralized method.
 		$selectors = self::get_all_selectors();
 
-		$generated = ! empty( $key_data['rotated_at'] ) ? strtotime( $key_data['rotated_at'] ) : 0;
-
 		// Pass data to the script.
 		wp_localize_script(
 			'zerospam-davidwalsh',
 			'ZeroSpamDavidWalsh',
-			array(
-				'key'       => (string) $key_data['current_key'],
-				'generated' => (int) $generated,
-				'ttl'       => (int) self::KEY_TTL,
-				'selectors' => implode( ', ', (array) $selectors ),
-				'restUrl'   => rest_url( self::REST_NAMESPACE . '/davidwalsh-key' ),
+			array_merge(
+				self::get_token_response(),
+				array(
+					'selectors' => implode( ', ', (array) $selectors ),
+					'restUrl'   => rest_url( self::REST_NAMESPACE . '/davidwalsh-key' ),
+					'ajaxUrl'   => add_query_arg( 'action', self::AJAX_ACTION, admin_url( 'admin-ajax.php' ) ),
+				)
 			)
 		);
 	}
@@ -574,99 +584,202 @@ class DavidWalsh {
 	}
 
 	/**
-	 * Get key data with current and previous keys.
+	 * Gets (creating if needed) the secret used to sign tokens.
 	 *
-	 * @return array {
-	 *     Key data array.
-	 *
-	 *     @type string $current_key  The current active key.
-	 *     @type string $previous_key The previous key (for caching grace period).
-	 *     @type string $rotated_at   MySQL datetime of last rotation.
-	 * }
+	 * @return string
 	 */
-	public static function get_key_data() {
+	public static function get_secret() {
+		$secret = get_option( self::SECRET_OPTION );
+
+		if ( empty( $secret ) || ! is_string( $secret ) ) {
+			$secret = wp_generate_password( 64, true, true );
+			update_option( self::SECRET_OPTION, $secret, true );
+		}
+
+		return $secret;
+	}
+
+	/**
+	 * Signs a token payload.
+	 *
+	 * @param string $payload Token payload ("{issued}.{random}").
+	 * @return string
+	 */
+	private static function sign( $payload ) {
+		return substr( hash_hmac( 'sha256', $payload, self::get_secret() ), 0, 32 );
+	}
+
+	/**
+	 * Generates a new signed token.
+	 *
+	 * Format: "{issued time, base 36}.{random}.{signature}".
+	 *
+	 * @return string
+	 */
+	public static function generate_token() {
+		$payload = base_convert( (string) time(), 10, 36 ) . '.' . wp_generate_password( 12, false, false );
+
+		return $payload . '.' . self::sign( $payload );
+	}
+
+	/**
+	 * Gets the issue time of a token.
+	 *
+	 * @param string $token Token.
+	 * @return int Unix timestamp, or 0 if the token is malformed.
+	 */
+	public static function get_token_time( $token ) {
+		if ( ! is_string( $token ) || ! preg_match( '/^([0-9a-z]{1,10})\.([0-9A-Za-z]{12})\.([0-9a-f]{32})$/', $token, $parts ) ) {
+			return 0;
+		}
+
+		return (int) base_convert( $parts[1], 36, 10 );
+	}
+
+	/**
+	 * Checks a submitted token: signature, expiry and number of uses.
+	 *
+	 * Each successful check counts as one use of the token (counted once per
+	 * request, even if several integrations validate the same submission).
+	 *
+	 * @param string $token Submitted token.
+	 * @return bool
+	 */
+	public static function validate_token( $token ) {
+		static $accepted = array();
+
+		if ( empty( $token ) || ! is_string( $token ) ) {
+			return false;
+		}
+
+		if ( isset( $accepted[ $token ] ) ) {
+			return true;
+		}
+
+		$issued = self::get_token_time( $token );
+		if ( ! $issued ) {
+			return self::validate_legacy_key( $token );
+		}
+
+		// Allow a minute of clock skew between web servers.
+		$age = time() - $issued;
+		if ( $age < -60 || $age > self::KEY_TTL ) {
+			return false;
+		}
+
+		$last_dot = strrpos( $token, '.' );
+		$payload  = substr( $token, 0, $last_dot );
+		if ( ! hash_equals( self::sign( $payload ), substr( $token, $last_dot + 1 ) ) ) {
+			return false;
+		}
+
+		$uses_key = 'zerospam_dw_' . md5( $token );
+		$uses     = (int) get_transient( $uses_key );
+		if ( $uses >= self::MAX_USES ) {
+			return false;
+		}
+
+		set_transient( $uses_key, $uses + 1, self::KEY_TTL + MINUTE_IN_SECONDS );
+		$accepted[ $token ] = true;
+
+		return true;
+	}
+
+	/**
+	 * Accepts the pre-5.7.12 shared keys for a short time after upgrading,
+	 * so pages cached before the update don't block visitors.
+	 *
+	 * @param string $key Submitted key.
+	 * @return bool
+	 */
+	private static function validate_legacy_key( $key ) {
 		$key_data = get_option( self::OPTION_NAME );
+		if ( ! is_array( $key_data ) ) {
+			return false;
+		}
 
-		// Initialize if doesn't exist or is in old format (single string key).
-		if ( ! $key_data || ! is_array( $key_data ) || empty( $key_data['current_key'] ) ) {
-			// Migrate from old single-key format if exists.
-			$old_key = get_option( 'zerospam_davidwalsh' );
+		// The grace period starts when the plugin is updated (see Migrations).
+		if ( empty( $key_data['grace_until'] ) ) {
+			return false;
+		}
 
-			$key_data = array(
-				'current_key'  => wp_generate_password( self::KEY_LENGTH, false, false ),
-				'previous_key' => ! empty( $old_key ) && is_string( $old_key ) ? $old_key : '',
-				'rotated_at'   => current_time( 'mysql' ),
-			);
+		if ( time() > (int) $key_data['grace_until'] ) {
+			delete_option( self::OPTION_NAME );
+			return false;
+		}
 
-			update_option( self::OPTION_NAME, $key_data, false );
+		$valid_keys = array_filter(
+			array(
+				isset( $key_data['current_key'] ) ? (string) $key_data['current_key'] : '',
+				isset( $key_data['previous_key'] ) ? (string) $key_data['previous_key'] : '',
+			)
+		);
 
-			// Clean up old option if it exists and is the old format.
-			if ( ! empty( $old_key ) && is_string( $old_key ) ) {
-				delete_option( 'zerospam_davidwalsh' );
+		foreach ( $valid_keys as $valid_key ) {
+			if ( hash_equals( $valid_key, $key ) ) {
+				return true;
 			}
 		}
 
-		return $key_data;
+		return false;
 	}
 
 	/**
-	 * Rotate the David Walsh key.
+	 * Starts the grace period for the pre-5.7.12 shared keys. Runs once on update.
 	 *
-	 * Moves current key to previous, generates new current key.
-	 * Called via WP Cron daily.
+	 * @return true
+	 */
+	public static function start_legacy_grace_period() {
+		self::unschedule_cron();
+
+		$key_data = get_option( self::OPTION_NAME );
+		if ( is_array( $key_data ) ) {
+			$key_data['grace_until'] = time() + self::LEGACY_GRACE;
+			update_option( self::OPTION_NAME, $key_data, false );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Legacy: rotating keys is no longer needed (tokens carry their own expiry).
+	 *
+	 * @deprecated 5.7.12
 	 */
 	public static function rotate_key() {
-		$key_data = self::get_key_data();
-
-		$new_key_data = array(
-			'current_key'  => wp_generate_password( self::KEY_LENGTH, false, false ),
-			'previous_key' => $key_data['current_key'],
-			'rotated_at'   => current_time( 'mysql' ),
-		);
-
-		update_option( self::OPTION_NAME, $new_key_data, false );
+		self::unschedule_cron();
 	}
 
 	/**
-	 * Schedule the daily cron event for key rotation.
-	 */
-	public static function schedule_cron() {
-		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-			wp_schedule_event( time(), 'daily', self::CRON_HOOK );
-		}
-	}
-
-	/**
-	 * Maybe schedule cron if not already scheduled.
+	 * Legacy: no cron is scheduled anymore.
 	 *
-	 * Fallback for cases where activation hook didn't run.
+	 * @deprecated 5.7.12
 	 */
-	public static function maybe_schedule_cron() {
-		if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
-			self::schedule_cron();
-		}
-	}
+	public static function schedule_cron() {}
 
 	/**
-	 * Unschedule the cron event.
+	 * Legacy: no cron is scheduled anymore.
+	 *
+	 * @deprecated 5.7.12
+	 */
+	public static function maybe_schedule_cron() {}
+
+	/**
+	 * Removes the legacy key rotation cron event.
 	 */
 	public static function unschedule_cron() {
-		$timestamp = wp_next_scheduled( self::CRON_HOOK );
-		if ( $timestamp ) {
-			wp_unschedule_event( $timestamp, self::CRON_HOOK );
-		}
+		wp_clear_scheduled_hook( self::CRON_HOOK );
 	}
 
 	/**
 	 * Legacy method for backward compatibility.
 	 *
-	 * @deprecated Use get_key_data() instead.
+	 * @deprecated Use generate_token() instead.
 	 *
 	 * @param bool $regenerate Unused parameter, kept for compatibility.
-	 * @return string The current David Walsh key.
+	 * @return string A new David Walsh token.
 	 */
 	public static function get_davidwalsh( $regenerate = false ) {
-		$key_data = self::get_key_data();
-		return $key_data['current_key'];
+		return self::generate_token();
 	}
 }

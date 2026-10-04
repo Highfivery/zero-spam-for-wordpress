@@ -1075,6 +1075,143 @@ class Utilities {
 	}
 
 	/**
+	 * Cloudflare's IP ranges.
+	 *
+	 * @see https://www.cloudflare.com/ips/
+	 *
+	 * @return array
+	 */
+	public static function cloudflare_ip_ranges() {
+		$ranges = array(
+			'173.245.48.0/20',
+			'103.21.244.0/22',
+			'103.22.200.0/22',
+			'103.31.4.0/22',
+			'141.101.64.0/18',
+			'108.162.192.0/18',
+			'190.93.240.0/20',
+			'188.114.96.0/20',
+			'197.234.240.0/22',
+			'198.41.128.0/17',
+			'162.158.0.0/15',
+			'104.16.0.0/13',
+			'104.24.0.0/14',
+			'172.64.0.0/13',
+			'131.0.72.0/22',
+			'2400:cb00::/32',
+			'2606:4700::/32',
+			'2803:f800::/32',
+			'2405:b500::/32',
+			'2405:8100::/32',
+			'2a06:98c0::/29',
+			'2c0f:f248::/32',
+		);
+
+		/**
+		 * Filters the IP ranges Cloudflare connects from.
+		 *
+		 * @param array $ranges CIDR ranges.
+		 */
+		return (array) apply_filters( 'zerospam_cloudflare_ip_ranges', $ranges );
+	}
+
+	/**
+	 * Checks if an IP address is within a CIDR range (IPv4 or IPv6).
+	 *
+	 * @param string $ip   IP address.
+	 * @param string $cidr CIDR range (or a single IP address).
+	 * @return bool
+	 */
+	public static function ip_in_range( $ip, $cidr ) {
+		$parts  = explode( '/', (string) $cidr, 2 );
+		$ip_bin = @inet_pton( (string) $ip ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$net    = @inet_pton( $parts[0] ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+
+		if ( false === $ip_bin || false === $net || strlen( $ip_bin ) !== strlen( $net ) ) {
+			return false;
+		}
+
+		$max_bits = strlen( $ip_bin ) * 8;
+		$bits     = isset( $parts[1] ) && is_numeric( $parts[1] ) ? (int) $parts[1] : $max_bits;
+		if ( $bits < 0 || $bits > $max_bits ) {
+			return false;
+		}
+
+		$bytes = intdiv( $bits, 8 );
+		if ( substr( $ip_bin, 0, $bytes ) !== substr( $net, 0, $bytes ) ) {
+			return false;
+		}
+
+		$remaining = $bits % 8;
+		if ( 0 === $remaining ) {
+			return true;
+		}
+
+		$mask = ( 0xff << ( 8 - $remaining ) ) & 0xff;
+
+		return ( ord( $ip_bin[ $bytes ] ) & $mask ) === ( ord( $net[ $bytes ] ) & $mask );
+	}
+
+	/**
+	 * Gets the visitor's country code from a header set by a trusted proxy.
+	 *
+	 * Visitors can send any header they like, so country headers are only used
+	 * when the request actually came through the proxy that sets them:
+	 * - `CF-IPCountry` when the connection comes from a Cloudflare IP address
+	 *   or a trusted proxy (`zerospam_trusted_proxies` filter).
+	 * - `X-Forwarded-Country` (Cloudways) only from a trusted proxy.
+	 * Sites that restore the visitor's IP at the web server (so the proxy's IP
+	 * isn't visible) and only accept traffic through the proxy can opt in with
+	 * the `zerospam_trust_country_headers` filter.
+	 *
+	 * @return string|false Two-character country code or false.
+	 */
+	public static function get_proxy_country_code() {
+		$remote_addr = ! empty( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+
+		/**
+		 * Filters whether country headers are trusted regardless of where the
+		 * request came from. Only enable this when every request reaches the
+		 * site through a proxy that overwrites these headers.
+		 *
+		 * @param bool $trust Whether to trust country headers. Default false.
+		 */
+		$trust_headers = (bool) apply_filters( 'zerospam_trust_country_headers', false );
+
+		$trusted_proxy = $trust_headers || in_array( $remote_addr, (array) apply_filters( 'zerospam_trusted_proxies', array() ), true );
+
+		$country = false;
+
+		if ( ! empty( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) {
+			$from_cloudflare = $trusted_proxy;
+			if ( ! $from_cloudflare && $remote_addr ) {
+				foreach ( self::cloudflare_ip_ranges() as $range ) {
+					if ( self::ip_in_range( $remote_addr, $range ) ) {
+						$from_cloudflare = true;
+						break;
+					}
+				}
+			}
+
+			if ( $from_cloudflare ) {
+				$country = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_IPCOUNTRY'] ) );
+			}
+		}
+
+		if ( ! $country && $trusted_proxy && ! empty( $_SERVER['HTTP_X_FORWARDED_COUNTRY'] ) ) {
+			$country = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_COUNTRY'] ) );
+		}
+
+		if ( ! $country ) {
+			return false;
+		}
+
+		$country = strtoupper( $country );
+
+		return preg_match( '/^[A-Z0-9]{2}$/', $country ) ? $country : false;
+	}
+
+	/**
 	 * Get an IP address geolocation information.
 	 *
 	 * @param string $ip IP address to lookup.
@@ -1085,7 +1222,7 @@ class Utilities {
 		$cache_key = 'zerospam_geo_' . md5( $ip );
 		$cached    = get_transient( $cache_key );
 		if ( false !== $cached ) {
-			return $cached;
+			return self::add_proxy_country( $cached );
 		}
 
 		// The standardized location array that will be returned.
@@ -1106,14 +1243,8 @@ class Utilities {
 			'longitude'      => false,
 		);
 
-		// 1. Check for the country code via server variables.
-		if ( ! empty( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) {
-			// Check Cloudflare.
-			$location_details['country_code'] = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_IPCOUNTRY'] ) );
-		} elseif ( ! empty( $_SERVER['HTTP_X_FORWARDED_COUNTRY'] ) ) {
-			// Check Cloudways.
-			$location_details['country_code'] = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_COUNTRY'] ) );
-		}
+		// 1. The country code set by a trusted proxy is added after caching
+		// (see add_proxy_country()), since it comes from the request, not the IP.
 
 		// 2. Query the ipstack API.
 		$ipstack_location = \ZeroSpam\Modules\ipstack::get_geolocation( $ip );
@@ -1221,6 +1352,24 @@ class Utilities {
 		
 		// Cache the result.
 		set_transient( $cache_key, $location_details, WEEK_IN_SECONDS );
+
+		return self::add_proxy_country( $location_details );
+	}
+
+	/**
+	 * Adds the country code from a trusted proxy header when the geolocation
+	 * APIs didn't provide one.
+	 *
+	 * @param array $location_details Location details.
+	 * @return array
+	 */
+	private static function add_proxy_country( $location_details ) {
+		if ( is_array( $location_details ) && empty( $location_details['country_code'] ) ) {
+			$header_country = self::get_proxy_country_code();
+			if ( $header_country ) {
+				$location_details['country_code'] = $header_country;
+			}
+		}
 
 		return $location_details;
 	}

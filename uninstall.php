@@ -58,6 +58,9 @@ if ( is_multisite() ) {
 			delete_option( 'zerospam_db_version' );
 			delete_option( 'zerospam_configured' );
 			delete_option( 'zerospam_davidwalsh' );
+			delete_option( 'zerospam_davidwalsh_data' );
+			delete_option( 'zerospam_davidwalsh_secret' );
+			wp_clear_scheduled_hook( 'zerospam_davidwalsh_rotate_key' );
 			delete_option( 'zero_spam_last_api_report' );
 			delete_option( 'zero-spam-last-update' );
 			delete_option( 'zerospam_completed_migrations' );
@@ -111,6 +114,9 @@ if ( is_multisite() ) {
 	delete_option( 'zerospam_db_version' );
 	delete_option( 'zerospam_configured' );
 	delete_option( 'zerospam_davidwalsh' );
+	delete_option( 'zerospam_davidwalsh_data' );
+	delete_option( 'zerospam_davidwalsh_secret' );
+	wp_clear_scheduled_hook( 'zerospam_davidwalsh_rotate_key' );
 	delete_option( 'zero_spam_last_api_report' );
 	delete_option( 'zero-spam-last-update' );
 	delete_option( 'zerospam_completed_migrations' );

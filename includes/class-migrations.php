@@ -98,6 +98,8 @@ class Migrations {
 		return array(
 			'legacy_options_to_modules_v5' => array( $this, 'migrate_legacy_options' ),
 			'share_detection_cron_cleanup'  => array( $this, 'remove_share_detection_cron_events' ),
+			'davidwalsh_signed_tokens'      => array( '\\ZeroSpam\\Modules\\DavidWalsh\\DavidWalsh', 'start_legacy_grace_period' ),
+			'geolocation_header_cache'      => array( $this, 'clear_geolocation_cache' ),
 		);
 	}
 
@@ -136,6 +138,34 @@ class Migrations {
 	 */
 	public function remove_share_detection_cron_events() {
 		wp_unschedule_hook( 'zerospam_async_share_detection' );
+
+		return true;
+	}
+
+	/**
+	 * Clear cached geolocation data.
+	 *
+	 * Before 5.7.12 the country from `CF-IPCountry`/`X-Forwarded-Country` was
+	 * trusted from any visitor and cached by IP for a week, so a visitor could
+	 * pick the country cached for their IP.
+	 *
+	 * @return true
+	 */
+	public function clear_geolocation_cache() {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+				$wpdb->esc_like( '_transient_zerospam_geo_' ) . '%',
+				$wpdb->esc_like( '_transient_timeout_zerospam_geo_' ) . '%'
+			)
+		);
+
+		if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
+			wp_cache_flush_group( 'transient' );
+		}
 
 		return true;
 	}
