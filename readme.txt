@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 5.7.11
+Stable tag: 5.7.12
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -131,6 +131,13 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.12 =
+
+* **security(davidwalsh):** the David Walsh check no longer relies on one site-wide key. Before, the same key was handed to every visitor (in the page and from the public `zero-spam/v5/davidwalsh-key` endpoint) and accepted for up to 48 hours, so a bot could fetch it once and pass the check on every protected form. Each visitor now gets their own signed key that expires after 12 hours and is accepted for at most 3 submissions. The endpoint stays public (cached pages need it) but only issues these short-lived keys, and an admin-ajax fallback is used when the REST API is blocked. Keys from before the update keep working for 24 hours so cached pages don't break. Reported by Peter Tang via Patchstack.
+* **security(login):** the login check could be skipped on `wp-login.php` by adding a `woocommerce-login-nonce` or `pp_current_url` field to the request, even when WooCommerce or ProfilePress weren't installed. Those forms are now only skipped outside `wp-login.php`, when the plugin is active (and, for WooCommerce, with a valid login nonce).
+* **security(login):** the "login intent" fallback (for login forms whose fields are stripped by another plugin) could be triggered by any client that requested `wp-login.php` first. With David Walsh enabled it now also needs a valid key set by the login page's script, and it's never used when a submission filled in the honeypot or sent an invalid key.
+* **security(geolocation):** the `CF-IPCountry` and `X-Forwarded-Country` headers were trusted from any visitor, so country blocks could be avoided (or a country cached for an IP for a week) by sending a different country. `CF-IPCountry` is now only used for requests that come from Cloudflare's IP ranges or a trusted proxy (`zerospam_trusted_proxies` filter), and `X-Forwarded-Country` only from a trusted proxy. Sites whose server restores the visitor IP and only accept proxied traffic can opt in with the new `zerospam_trust_country_headers` filter. Header countries are no longer cached, and existing cached locations are cleared on update.
 
 = v5.7.11 =
 
