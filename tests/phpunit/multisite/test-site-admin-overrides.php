@@ -9,8 +9,10 @@ declare( strict_types=1 );
 
 use ZeroSpam\Core\Admin\Settings as Settings_Page;
 use ZeroSpam\Core\Settings;
+use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\Admin\Site_Admin_Overrides;
 use ZeroSpam\Includes\Network_Settings;
+use ZeroSpam\Includes\Network_Settings_Manager;
 use ZeroSpam\Tests\TestCase;
 
 /**
@@ -51,7 +53,27 @@ class Test_Site_Admin_Overrides extends TestCase {
 	private Settings_Page $page;
 
 	/**
+	 * A second network site, for "Apply to All Sites".
+	 *
+	 * @var int
+	 */
+	private static int $other_site = 0;
+
+	/**
+	 * Creates the second site.
+	 *
+	 * @param WP_UnitTest_Factory $factory Test factory.
+	 */
+	public static function wpSetUpBeforeClass( WP_UnitTest_Factory $factory ): void { // phpcs:ignore WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid -- Name required by the WordPress test framework.
+		self::$other_site = self::create_site_with_tables( $factory );
+	}
+
+	/**
 	 * Sets up a site administrator on the settings screen with the network UI loaded.
+	 *
+	 * The save filters are not registered here: the plugin registers them on
+	 * `init` for every request on a network site (not only in the admin), and
+	 * that registration is what these tests exercise.
 	 */
 	public function set_up(): void {
 		parent::set_up();
@@ -59,12 +81,22 @@ class Test_Site_Admin_Overrides extends TestCase {
 		$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
 		$this->as_role( 'administrator' );
 		delete_option( self::OPTION );
+		delete_option( 'zerospam_blocked_email_domains' );
 
-		$overrides = new Site_Admin_Overrides();
-		$overrides->register_save_filters();
+		// The settings page UI; is_admin() is true now, which it was not when the plugin loaded.
+		new Site_Admin_Overrides();
 
 		$this->page = new Settings_Page();
 		$this->page->register_settings();
+	}
+
+	/**
+	 * Forgets the simulated form post.
+	 */
+	public function tear_down(): void {
+		unset( $_POST['option_page'] );
+
+		parent::tear_down();
 	}
 
 	/**
@@ -109,15 +141,18 @@ class Test_Site_Admin_Overrides extends TestCase {
 	}
 
 	/**
-	 * Saves the Comments view the way options.php does.
+	 * Saves a settings view the way options.php does for the settings form.
 	 *
 	 * @param array<string, mixed> $submitted Submitted fields (unticked checkboxes are absent).
+	 * @param string               $option    Option (and option page) saved.
 	 * @return array<string, mixed> What was stored.
 	 */
-	private function save( array $submitted ): array {
-		update_option( self::OPTION, $submitted );
+	private function save( array $submitted, string $option = self::OPTION ): array {
+		$_POST['option_page'] = $option;
+		update_option( $option, $submitted );
+		unset( $_POST['option_page'] );
 
-		$stored = get_option( self::OPTION );
+		$stored = get_option( $option );
 
 		return is_array( $stored ) ? $stored : array();
 	}
@@ -368,5 +403,113 @@ class Test_Site_Admin_Overrides extends TestCase {
 
 		$this->assertIsArray( $stored );
 		$this->assertSame( 'Network locked message.', $stored[ self::TEXT_KEY ] );
+	}
+
+	/**
+	 * "Apply to All Sites" (defaults only) leaves a site on the network defaults.
+	 *
+	 * It writes one key at a time inside switch_to_blog(), through admin-ajax.php
+	 * where settings_validation() is registered. Filling every unticked checkbox
+	 * on each write stored verify_comments = false before verify_comments itself
+	 * was applied, so the site skipped it and resolved protection off.
+	 */
+	public function test_apply_defaults_to_a_site_keeps_its_network_defaults(): void {
+		$this->set_network_setting( self::CHECKBOX_KEY, 'enabled' );
+		$this->set_network_setting( 'verify_comments', 'enabled' );
+		grant_super_admin( get_current_user_id() );
+
+		$result = ( new Network_Settings_Manager() )->apply_to_sites( false, array( self::$other_site ), 'defaults_only' );
+
+		switch_to_blog( self::$other_site );
+		self::reset_static_caches();
+		$verify   = Settings::get_settings( 'verify_comments' );
+		$comments = get_option( self::OPTION );
+		$general  = get_option( 'zero-spam-settings' );
+		restore_current_blog();
+
+		$this->assertTrue( $result['success'] );
+		$this->assertSame( 'enabled', $verify, 'Comment protection stays on.' );
+		$this->assertEqualsCanonicalizing(
+			array(
+				self::CHECKBOX_KEY => 'enabled',
+				'verify_comments'  => 'enabled',
+			),
+			$comments,
+			'Only the network settings are written; no other key becomes an override.'
+		);
+		$this->assertFalse( is_array( $general ) && array_key_exists( 'widget_visibility', $general ), 'Other modules are not touched.' );
+	}
+
+	/**
+	 * A write outside the settings form stores only what it writes.
+	 */
+	public function test_writes_outside_the_settings_form_are_not_filled_in(): void {
+		update_option( self::OPTION, array( self::TEXT_KEY => 'Site message.' ) );
+
+		$this->assertSame( array( self::TEXT_KEY => 'Site message.' ), get_option( self::OPTION ) );
+	}
+
+	/**
+	 * A form save fills in only the unticked checkboxes of the module being saved.
+	 */
+	public function test_form_save_fills_only_its_own_module(): void {
+		$stored = $this->save( array( self::TEXT_KEY => 'Site message.' ) );
+
+		foreach ( array_keys( $stored ) as $key ) {
+			$this->assertSame( 'comments', Settings::get_settings()[ $key ]['module'] ?? null, "{$key} belongs to another module." );
+		}
+	}
+
+	/**
+	 * A tampered save cannot change a locked blocked_email_domains, which has its own option.
+	 */
+	public function test_locked_blocked_email_domains_survive_a_tampered_save(): void {
+		update_option( 'zerospam_blocked_email_domains', 'site.example' );
+		$this->set_network_setting( 'blocked_email_domains', 'network.example', true );
+
+		$this->save( array( 'blocked_email_domains' => 'tampered.example' ), 'zero-spam-settings' );
+
+		$this->assertSame( 'site.example', get_option( 'zerospam_blocked_email_domains' ) );
+	}
+
+	/**
+	 * The "Override & Update Blocked Email Domains" action cannot change it while locked either.
+	 */
+	public function test_locked_blocked_email_domains_survive_the_update_action(): void {
+		update_option( 'zerospam_blocked_email_domains', 'site.example' );
+		$this->set_network_setting( 'blocked_email_domains', 'network.example', true );
+
+		Settings::update_blocked_email_domains();
+
+		$this->assertSame( 'site.example', get_option( 'zerospam_blocked_email_domains' ) );
+	}
+
+	/**
+	 * Unlocked, the action updates the list as before.
+	 */
+	public function test_unlocked_blocked_email_domains_can_be_updated(): void {
+		update_option( 'zerospam_blocked_email_domains', 'site.example' );
+		$this->set_network_setting( 'blocked_email_domains', 'network.example' );
+
+		Settings::update_blocked_email_domains();
+
+		$this->assertNotSame( 'site.example', get_option( 'zerospam_blocked_email_domains' ) );
+	}
+
+	/**
+	 * WP-CLI (`wp zerospam set`) cannot store a value for a locked setting.
+	 */
+	public function test_update_setting_cannot_store_a_locked_value(): void {
+		update_option( 'zerospam_blocked_email_domains', 'site.example' );
+		$this->set_network_setting( self::TEXT_KEY, 'Network locked message.', true );
+		$this->set_network_setting( 'blocked_email_domains', 'network.example', true );
+
+		Utilities::update_setting( self::TEXT_KEY, 'CLI message.' );
+		Utilities::update_setting( 'blocked_email_domains', 'cli.example' );
+
+		$stored = get_option( self::OPTION );
+		$this->assertFalse( is_array( $stored ) && array_key_exists( self::TEXT_KEY, $stored ) );
+		$this->assertSame( 'site.example', get_option( 'zerospam_blocked_email_domains' ) );
+		$this->assertSame( 'Network locked message.', $this->resolved( self::TEXT_KEY ) );
 	}
 }

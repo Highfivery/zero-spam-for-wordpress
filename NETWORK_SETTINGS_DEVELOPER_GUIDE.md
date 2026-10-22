@@ -153,12 +153,16 @@ On a network site, `Site_Admin_Overrides` (`includes/admin/class-siteadminoverri
 
 ### What a site save stores
 
-The settings form submits every field, and an unticked checkbox is stored as `false`. Because `resolve_all_settings()` treats any key stored in a site's `zero-spam-{module}` option as a site override, a site save filters what it stores (`Site_Admin_Overrides::filter_site_save()`, on `sanitize_option_zero-spam-{module}` at priority 20):
+The settings form submits every field. On a real form submission (the posted `option_page` matches the option being saved), `Settings::settings_validation()` stores the unticked checkboxes and empty multi-selects of that module only as `false` and `[]`; any other write (imports, "Apply to All Sites", WP-CLI, REST) is stored as given.
+
+Because `resolve_all_settings()` treats any key stored in a site's `zero-spam-{module}` option as a site override, every write to a network site's options is filtered (`Site_Admin_Overrides::filter_site_save()`, on `sanitize_option_zero-spam-{module}` at priority 20, registered on `init` on every network-site request, so it also covers `wp zerospam set` and the REST settings route):
 
 - **Locked setting:** the submitted value is never stored. The site's previously stored value is kept unchanged, so an override made before the lock applies again if the setting is unlocked.
 - **Unlocked setting, submitted value equals the network value:** the key is removed, so the site keeps following the network default. An unticked checkbox equals `disabled`, empty values equal each other, numbers equal their string form, and multi-select order is ignored.
 - **Unlocked setting, different value:** stored as a site override.
 - **Setting the network has not configured:** stored as on a single site.
+
+`blocked_email_domains` lives in its own option, `zerospam_blocked_email_domains`; while it is locked, `pre_update_option_zerospam_blocked_email_domains` keeps the stored value whichever path writes it.
 
 Writes made inside `switch_to_blog()` (for example "Apply to All Sites") are not filtered.
 

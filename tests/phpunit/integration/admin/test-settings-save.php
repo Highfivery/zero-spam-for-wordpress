@@ -12,9 +12,10 @@ use ZeroSpam\Core\Settings;
 use ZeroSpam\Tests\TestCase;
 
 /**
- * A single-site save stores what the form submits, with unticked checkboxes
- * as false and empty multi-selects as empty arrays; the network lock handling
- * does not apply.
+ * A single-site settings form save stores what the form submits, with the
+ * module's unticked checkboxes as false and empty multi-selects as empty
+ * arrays; the network lock handling does not apply. Writes from outside the
+ * form store only what they write.
  *
  * @group ms-excluded
  * @covers \ZeroSpam\Core\Admin\Settings::settings_validation
@@ -36,10 +37,31 @@ class Test_Settings_Save extends TestCase {
 	}
 
 	/**
+	 * Forgets the simulated form post.
+	 */
+	public function tear_down(): void {
+		unset( $_POST['option_page'] );
+
+		parent::tear_down();
+	}
+
+	/**
+	 * Saves a settings view the way options.php does for the settings form.
+	 *
+	 * @param string               $option    Option (and option page) saved.
+	 * @param array<string, mixed> $submitted Submitted fields (unticked checkboxes are absent).
+	 */
+	private function submit_form( string $option, array $submitted ): void {
+		$_POST['option_page'] = $option;
+		update_option( $option, $submitted );
+		unset( $_POST['option_page'] );
+	}
+
+	/**
 	 * Submitted values are stored and every unticked checkbox becomes false.
 	 */
 	public function test_save_stores_submitted_values_and_unticked_checkboxes(): void {
-		update_option(
+		$this->submit_form(
 			'zero-spam-comments',
 			array(
 				'comment_spam_message' => 'Site message.',
@@ -64,13 +86,36 @@ class Test_Settings_Save extends TestCase {
 				$this->assertFalse( $stored[ $key ] );
 			}
 		}
+
+		foreach ( array_keys( $stored ) as $key ) {
+			$this->assertSame( 'comments', Settings::get_settings()[ $key ]['module'] ?? null, "{$key} belongs to another module." );
+		}
+	}
+
+	/**
+	 * A write from outside the form (import, CLI, REST) stores only what it writes.
+	 */
+	public function test_write_outside_the_form_is_not_filled_in(): void {
+		update_option( 'zero-spam-comments', array( 'comment_spam_message' => 'Site message.' ) );
+
+		$this->assertSame( array( 'comment_spam_message' => 'Site message.' ), get_option( 'zero-spam-comments' ) );
+	}
+
+	/**
+	 * A post for another option page does not fill in this option.
+	 */
+	public function test_other_option_page_is_not_filled_in(): void {
+		$_POST['option_page'] = 'zero-spam-settings';
+		update_option( 'zero-spam-comments', array( 'comment_spam_message' => 'Site message.' ) );
+
+		$this->assertSame( array( 'comment_spam_message' => 'Site message.' ), get_option( 'zero-spam-comments' ) );
 	}
 
 	/**
 	 * An empty multi-select is stored as an empty array.
 	 */
 	public function test_empty_multiselect_is_stored_as_empty_array(): void {
-		update_option( 'zero-spam-settings', array( 'block_handler' => 'redirect' ) );
+		$this->submit_form( 'zero-spam-settings', array( 'block_handler' => 'redirect' ) );
 
 		$stored = get_option( 'zero-spam-settings' );
 		$this->assertIsArray( $stored );
@@ -84,7 +129,7 @@ class Test_Settings_Save extends TestCase {
 	public function test_value_equal_to_default_is_still_stored(): void {
 		$default = Settings::get_settings( 'comment_spam_message' );
 
-		update_option( 'zero-spam-comments', array( 'comment_spam_message' => $default ) );
+		$this->submit_form( 'zero-spam-comments', array( 'comment_spam_message' => $default ) );
 
 		$stored = get_option( 'zero-spam-comments' );
 		$this->assertIsArray( $stored );
@@ -99,7 +144,7 @@ class Test_Settings_Save extends TestCase {
 
 		delete_option( 'zerospam_blocked_email_domains' );
 
-		update_option( 'zero-spam-settings', array( 'blocked_email_domains' => "example.com\nexample.net" ) );
+		$this->submit_form( 'zero-spam-settings', array( 'blocked_email_domains' => "example.com\nexample.net" ) );
 
 		$stored = get_option( 'zero-spam-settings' );
 		$this->assertIsArray( $stored );

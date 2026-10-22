@@ -26,7 +26,7 @@ test.describe( 'Network settings', { tag: '@multisite' }, () => {
 		await expect( asSiteAdmin.locator( `#${ KEY }` ) ).toHaveValue( 'E2E: network default message.' );
 	} );
 
-	test( 'a locked value is enforced on the subsite even when a save is tampered with', async ( { page, asSiteAdmin, target, gallery } ) => {
+	test( 'a locked value is enforced on the subsite even when a save is tampered with', async ( { page, asSiteAdmin, target, gallery, zs } ) => {
 		const url = subsiteURL( target, `${ SETTINGS_PATH }&subview=comments` );
 		const save = () => Promise.all( [ asSiteAdmin.waitForURL( /settings-updated=true/ ), asSiteAdmin.getByRole( 'button', { name: /Save Settings/ } ).click() ] );
 
@@ -54,6 +54,11 @@ test.describe( 'Network settings', { tag: '@multisite' }, () => {
 			await save();
 			await asSiteAdmin.goto( url );
 			await expect( asSiteAdmin.locator( `#${ KEY }` ) ).toHaveValue( 'E2E: locked network message.' );
+
+			// The resolver enforces the lock on read anyway; what proves the save rule is what the site stored.
+			const stored = JSON.stringify( await zs.forSite( target.subsitePath! ).options( 'zero-spam-comments' ) );
+			expect( stored ).not.toContain( 'E2E: tampered message.' );
+			expect( stored ).toContain( 'E2E: site message.' );
 		} );
 	} );
 

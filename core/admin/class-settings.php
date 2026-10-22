@@ -351,42 +351,65 @@ class Settings {
 	}
 
 	/**
+	 * Module whose settings form this sanitize call is saving, if any.
+	 *
+	 * The settings form posts `option_page` (the group passed to
+	 * settings_fields(), which is also the option name), and options.php
+	 * verifies its nonce before it calls update_option(). Other writes to the same options (the network's "Apply
+	 * to All Sites", imports, the recommended-settings action, WP-CLI, REST)
+	 * have no matching `option_page`.
+	 *
+	 * @return string Module key, or '' when this is not a settings form submission.
+	 */
+	private static function submitted_form_module(): string {
+		$prefix = 'sanitize_option_zero-spam-';
+		$filter = (string) current_filter();
+
+		if ( 0 !== strpos( $filter, $prefix ) ) {
+			return '';
+		}
+
+		$option = substr( $filter, strlen( 'sanitize_option_' ) );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- options.php verified this option page's nonce before saving; the value is only compared.
+		$option_page = isset( $_POST['option_page'] ) ? sanitize_text_field( wp_unslash( $_POST['option_page'] ) ) : '';
+
+		return $option_page === $option ? substr( $filter, strlen( $prefix ) ) : '';
+	}
+
+	/**
 	 * Validates plugin settings before save
+	 *
+	 * On a settings form submission, the unticked checkboxes and empty
+	 * multi-selects of the module being saved, which browsers do not submit,
+	 * are stored as `false` and an empty array. Other writes are stored as
+	 * given, so on a network they never turn settings they did not mention
+	 * into site overrides.
 	 *
 	 * @param array $input Input array.
 	 * @return array
 	 */
 	public function settings_validation( $input ) {
-		$input = is_array( $input ) ? $input : array();
+		$input  = is_array( $input ) ? $input : array();
+		$module = self::submitted_form_module();
 
-		// Handle unchecked checkboxes for multisite override detection.
-		// WordPress doesn't submit unchecked checkboxes, so explicitly set them to false.
-		$all_settings = \ZeroSpam\Core\Settings::get_settings();
+		if ( '' !== $module ) {
+			foreach ( \ZeroSpam\Core\Settings::get_settings() as $setting_key => $setting_config ) {
+				if (
+					! isset( $setting_config['type'], $setting_config['module'] ) ||
+					$module !== $setting_config['module'] ||
+					isset( $input[ $setting_key ] )
+				) {
+					continue;
+				}
 
-		foreach ( $all_settings as $setting_key => $setting_config ) {
-			if (
-				isset( $setting_config['type'] ) &&
-				'checkbox' === $setting_config['type'] &&
-				isset( $setting_config['module'] ) &&
-				! isset( $input[ $setting_key ] )
-			) {
-				$input[ $setting_key ] = false;
-			}
-		}
-
-		// Handle empty multi-select fields.
-		// HTML multi-selects don't submit a value when nothing is selected,
-		// so explicitly store an empty array to distinguish "none selected"
-		// from "never configured".
-		foreach ( $all_settings as $setting_key => $setting_config ) {
-			if (
-				isset( $setting_config['type'] ) &&
-				'select' === $setting_config['type'] &&
-				! empty( $setting_config['multiple'] ) &&
-				isset( $setting_config['module'] ) &&
-				! isset( $input[ $setting_key ] )
-			) {
-				$input[ $setting_key ] = array();
+				if ( 'checkbox' === $setting_config['type'] ) {
+					// Browsers don't submit unticked checkboxes.
+					$input[ $setting_key ] = false;
+				} elseif ( 'select' === $setting_config['type'] && ! empty( $setting_config['multiple'] ) ) {
+					// Nor multi-selects with nothing selected: store "none selected", not "never configured".
+					$input[ $setting_key ] = array();
+				}
 			}
 		}
 

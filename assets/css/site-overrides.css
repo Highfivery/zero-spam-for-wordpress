@@ -76,16 +76,6 @@
 	font-size: 12px;
 }
 
-/* Locked Field Styling */
-input[disabled].zerospam-locked,
-select[disabled].zerospam-locked,
-textarea[disabled].zerospam-locked {
-	background: #f0f0f1;
-	border-color: #d63638;
-	cursor: not-allowed;
-	opacity: 0.7;
-}
-
 /* Helper Text */
 .zerospam-setting-help {
 	font-size: 13px;
