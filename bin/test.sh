@@ -125,6 +125,7 @@ fi
 # MySQL.
 # ---------------------------------------------------------------------------
 
+user_db_name="${WP_TESTS_DB_NAME:-}"
 export WP_TESTS_DB_HOST="${WP_TESTS_DB_HOST:-127.0.0.1}"
 export WP_TESTS_DB_USER="${WP_TESTS_DB_USER:-root}"
 export WP_TESTS_DB_PASSWORD="${WP_TESTS_DB_PASSWORD:-}"
@@ -242,10 +243,18 @@ case "$wp_arg" in
 		;;
 esac
 
+# Several checkouts of this repository (git worktrees used by parallel agents,
+# a second clone) may run the suite at the same time, so everything a run
+# writes is keyed by a short hash of the checkout path: the plugins directory
+# below and, unless WP_TESTS_DB_NAME is given, the test database names
+# (zerospam_tests_<id> and zerospam_tests_<id>_ms). The WordPress core and
+# test-library downloads in the cache are read-only and stay shared.
+checkout_id="$("${php_cmd[@]}" -r 'echo substr( md5( $argv[1] ), 0, 8 );' "$PWD")"
+
 # WordPress loads plugins from a plugins directory of its own, in which the
 # plugin is always called zero-spam (as on WordPress.org) whatever this
 # checkout's directory is called.
-plugins_dir="$cache_dir/plugins"
+plugins_dir="$cache_dir/plugins-$checkout_id"
 mkdir -p "$plugins_dir"
 ln -sfn "$PWD" "$plugins_dir/zero-spam"
 
@@ -291,6 +300,12 @@ run_mode() {
 		config="phpunit.xml.dist"
 	fi
 	args=(--configuration "$config")
+	# Per-checkout database names (see checkout_id above). An explicit
+	# WP_TESTS_DB_NAME is respected for the single-site run and suffixed for
+	# the multisite run so the two never share a database.
+	local db_name="${user_db_name:-zerospam_tests_${checkout_id}}"
+	[[ "$run" == "multisite" ]] && db_name="${db_name}_ms"
+	export WP_TESTS_DB_NAME="$db_name"
 	[[ -n "$suite" ]] && args+=(--testsuite "$suite")
 	[[ $known_defects -eq 1 ]] && args+=(--group known-defect)
 	if [[ $coverage -eq 1 ]]; then
