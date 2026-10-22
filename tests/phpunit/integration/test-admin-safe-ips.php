@@ -205,11 +205,11 @@ class Test_Admin_Safe_IPs extends TestCase {
 	}
 
 	/**
-	 * The zerospam_whitelist_activating_admin filter turns it off.
+	 * The zerospam_admin_safe_ip_enabled filter turns it off.
 	 */
 	public function test_filter_turns_it_off(): void {
 		$this->admin_from( self::PUBLIC_IP );
-		add_filter( 'zerospam_whitelist_activating_admin', '__return_false' );
+		add_filter( 'zerospam_admin_safe_ip_enabled', '__return_false' );
 
 		zerospam_plugin_activation( false );
 

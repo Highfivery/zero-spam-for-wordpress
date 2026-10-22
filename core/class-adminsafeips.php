@@ -134,13 +134,13 @@ final class Admin_Safe_IPs {
 		}
 
 		/**
-		 * Filters whether the administrator's address is saved, on activation and
-		 * update, as one Zero Spam never locks out.
+		 * Filters whether the activating or updating administrator's address is
+		 * saved as one Zero Spam never locks out (Admin_Safe_IPs).
 		 *
-		 * @param bool   $protect Whether to save it. Default true.
+		 * @param bool   $enabled Whether to save it. Default true.
 		 * @param string $ip      The administrator's IP address.
 		 */
-		if ( ! apply_filters( 'zerospam_whitelist_activating_admin', true, $ip ) ) {
+		if ( ! apply_filters( 'zerospam_admin_safe_ip_enabled', true, $ip ) ) {
 			return false;
 		}
 

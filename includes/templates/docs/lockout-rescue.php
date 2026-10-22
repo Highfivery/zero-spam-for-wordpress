@@ -54,7 +54,7 @@ defined( 'ABSPATH' ) || die();
 			<ul>
 				<li><?php echo wp_kses( __( '<code>zerospam_rescue_form_enabled</code> (default true): hide the rescue form from the blocked page; form requests then send nothing.', 'zero-spam' ), array( 'code' => array() ) ); ?></li>
 				<li><?php echo wp_kses( __( '<code>zerospam_rescue_email_via_cron</code> (default true unless DISABLE_WP_CRON is set): send rescue emails from a WP-Cron event instead of at the end of the request.', 'zero-spam' ), array( 'code' => array() ) ); ?></li>
-				<li><?php echo wp_kses( __( '<code>zerospam_whitelist_activating_admin</code> (default true): save the activating or updating administrator\'s address.', 'zero-spam' ), array( 'code' => array() ) ); ?></li>
+				<li><?php echo wp_kses( __( '<code>zerospam_admin_safe_ip_enabled</code> (default true): save the activating or updating administrator\'s address.', 'zero-spam' ), array( 'code' => array() ) ); ?></li>
 				<li><?php echo wp_kses( __( '<code>ZEROSPAM_RESCUE_KEY</code> in wp-config.php still works: visit any page with <code>?zerospam_rescue={KEY}</code> appended.', 'zero-spam' ), array( 'code' => array() ) ); ?></li>
 				<li><?php echo wp_kses( __( '<code>DB::query( \'log\' )</code> returns detections only; pass <code>include_non_detections</code> to include rescue entries.', 'zero-spam' ), array( 'code' => array() ) ); ?></li>
 			</ul>
