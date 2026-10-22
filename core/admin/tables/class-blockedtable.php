@@ -187,8 +187,10 @@ class BlockedTable extends WP_List_Table {
 		}
 
 		if ( $user_ip ) {
+			// As typed or in canonical form, the form blocks are stored in.
+			$canonical                      = \ZeroSpam\Core\User::normalize_ip( $user_ip );
 			$query_args['where']['user_ip'] = array(
-				'value' => $user_ip,
+				'value' => array_values( array_unique( array( $user_ip, '' !== $canonical ? $canonical : $user_ip ) ) ),
 			);
 		}
 

@@ -26,6 +26,7 @@ class Test_Migrations extends TestCase {
 		'davidwalsh_signed_tokens',
 		'geolocation_header_cache',
 		'proxy_detection_since',
+		'canonical_blocked_ips',
 	);
 
 	/**

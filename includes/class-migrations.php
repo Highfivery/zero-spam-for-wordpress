@@ -45,6 +45,13 @@ class Migrations {
 	const PROXY_DETECTION_SINCE_OPTION = 'zerospam_proxy_detection_since';
 
 	/**
+	 * Rows read per query by canonicalize_blocked_ips().
+	 *
+	 * @var int
+	 */
+	const BLOCKED_IP_BATCH_SIZE = 200;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -109,6 +116,7 @@ class Migrations {
 			'davidwalsh_signed_tokens'     => array( '\\ZeroSpam\\Modules\\DavidWalsh\\DavidWalsh', 'start_legacy_grace_period' ),
 			'geolocation_header_cache'     => array( $this, 'clear_geolocation_cache' ),
 			'proxy_detection_since'        => array( $this, 'record_proxy_detection_since' ),
+			'canonical_blocked_ips'        => array( $this, 'canonicalize_blocked_ips' ),
 		);
 	}
 
@@ -194,6 +202,99 @@ class Migrations {
 		add_option( self::PROXY_DETECTION_SINCE_OPTION, current_time( 'mysql' ), '', false );
 
 		return true;
+	}
+
+	/**
+	 * Rewrite blocked IPv6 addresses in canonical form.
+	 *
+	 * Visitor addresses are now reported in canonical form
+	 * (User::normalize_ip(): lowercase, compressed IPv6, IPv4 for IPv4-mapped
+	 * addresses) and blocks are looked up and stored that way. A block saved
+	 * from a server that reported `2001:DB8:0:0:0:0:0:1` would otherwise stop
+	 * matching that visitor. Rows are read in batches; when two rows end up
+	 * with the same address, the longer-lasting block is kept.
+	 *
+	 * @return true
+	 */
+	public function canonicalize_blocked_ips() {
+		global $wpdb;
+
+		$table = $wpdb->prefix . DB::$tables['blocked'];
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration.
+		if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) !== $table ) {
+			return true;
+		}
+
+		$last_id = 0;
+		$deleted = array();
+
+		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration, bounded batch.
+			$rows = (array) $wpdb->get_results(
+				$wpdb->prepare(
+					'SELECT * FROM %i WHERE blocked_id > %d AND user_ip LIKE %s ORDER BY blocked_id ASC LIMIT %d',
+					$table,
+					$last_id,
+					'%' . $wpdb->esc_like( ':' ) . '%',
+					self::BLOCKED_IP_BATCH_SIZE
+				),
+				ARRAY_A
+			);
+
+			foreach ( $rows as $row ) {
+				$id      = (int) $row['blocked_id'];
+				$last_id = $id;
+
+				if ( isset( $deleted[ $id ] ) ) {
+					continue;
+				}
+
+				$canonical = \ZeroSpam\Core\User::normalize_ip( (string) $row['user_ip'] );
+				if ( '' === $canonical || $canonical === $row['user_ip'] ) {
+					continue;
+				}
+
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration.
+				$existing = $wpdb->get_row(
+					$wpdb->prepare( 'SELECT * FROM %i WHERE user_ip = %s AND blocked_id <> %d LIMIT 1', $table, $canonical, $id ),
+					ARRAY_A
+				);
+
+				if ( $existing && self::block_ends_at( $existing ) >= self::block_ends_at( $row ) ) {
+					// The other block lasts at least as long: drop this one.
+					$wpdb->delete( $table, array( 'blocked_id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration.
+					$deleted[ $id ] = true;
+					continue;
+				}
+
+				if ( $existing ) {
+					$wpdb->delete( $table, array( 'blocked_id' => (int) $existing['blocked_id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration.
+					$deleted[ (int) $existing['blocked_id'] ] = true;
+				}
+
+				$wpdb->update( $table, array( 'user_ip' => $canonical ), array( 'blocked_id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration.
+			}
+
+			$full_batch = self::BLOCKED_IP_BATCH_SIZE === count( $rows );
+		} while ( $full_batch );
+
+		return true;
+	}
+
+	/**
+	 * When a block ends, for comparing two blocks of the same address.
+	 *
+	 * @param array<string, mixed> $block Blocked table row.
+	 * @return int Unix time; PHP_INT_MAX for a permanent block, 0 for a
+	 *             temporary block without an end date (it never applies).
+	 */
+	private static function block_ends_at( array $block ): int {
+		if ( 'temporary' !== ( $block['blocked_type'] ?? '' ) ) {
+			return PHP_INT_MAX;
+		}
+
+		return empty( $block['end_block'] ) ? 0 : (int) strtotime( (string) $block['end_block'] );
 	}
 
 	/**
