@@ -80,6 +80,8 @@ class Plugin {
 
 			// Administrator addresses that are never locked out: notice and Settings page list.
 			new \ZeroSpam\Core\Admin_Safe_IPs();
+			// Warns when visitors appear to share one IP address (unknown proxy or CDN).
+			new \ZeroSpam\Core\Admin\Shared_IP_Warning();
 		}
 
 		// Register REST API routes.

@@ -335,6 +335,15 @@ class DB {
 		if ( is_array( $record ) ) {
 			$blocked = false;
 
+			// Store IP addresses in canonical form (User::normalize_ip()), the
+			// form visitors are reported in.
+			if ( ! empty( $record['user_ip'] ) && is_string( $record['user_ip'] ) ) {
+				$canonical = \ZeroSpam\Core\User::normalize_ip( $record['user_ip'] );
+				if ( '' !== $canonical ) {
+					$record['user_ip'] = $canonical;
+				}
+			}
+
 			// Add or update a record.
 			if ( ! empty( $record['blocked_id'] ) ) {
 				// Update a record.
@@ -387,14 +396,17 @@ class DB {
 				),
 				ARRAY_A
 			);
-		} elseif ( rest_is_ip_address( $record ) ) {
-			// Get record by IP.
+		} elseif ( is_string( $record ) && '' !== \ZeroSpam\Core\User::normalize_ip( $record ) ) {
+			// Get record by IP, as given or in canonical form (blocks are stored
+			// canonical; the `canonical_blocked_ips` migration rewrote older
+			// rows). If both exist, the longer-lasting block wins.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			return $wpdb->get_row(
 				$wpdb->prepare(
-					'SELECT * FROM %i WHERE user_ip = %s',
+					"SELECT * FROM %i WHERE user_ip IN (%s, %s) ORDER BY blocked_type = 'permanent' DESC, end_block DESC LIMIT 1",
 					$wpdb->prefix . self::$tables['blocked'],
-					$record
+					$record,
+					\ZeroSpam\Core\User::normalize_ip( $record )
 				),
 				ARRAY_A
 			);

@@ -31,12 +31,6 @@ parameters:
 			path: core/admin/tables/class-blockedlocations.php
 
 		-
-			message: '#^Offset ''where'' on array\{order\: mixed, orderby\: mixed, where\: array\{key_type\: array\{value\: ''ip''\}, blocked_type\?\: array\{value\: mixed\}, user_ip\?\: array\{value\: mixed\}\}\} in empty\(\) always exists and is not falsy\.$#'
-			identifier: empty.offset
-			count: 1
-			path: core/admin/tables/class-blockedtable.php
-
-		-
 			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: int\<0, max\>, per_page\: 50, total_pages\: float, orderby\: non\-falsy\-string\|false, order\: string\} given\.$#'
 			identifier: argument.type
 			count: 1

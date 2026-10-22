@@ -277,8 +277,12 @@ class LogTable extends WP_List_Table {
 		}
 
 		if ( $user_ip ) {
-			$where_clauses[] = '`user_ip` = %s';
+			// As typed or in canonical form: detections are logged canonical
+			// now, older ones as the server reported them.
+			$canonical       = \ZeroSpam\Core\User::normalize_ip( $user_ip );
+			$where_clauses[] = '`user_ip` IN (%s, %s)';
 			$where_values[]  = $user_ip;
+			$where_values[]  = '' !== $canonical ? $canonical : $user_ip;
 		}
 
 		$where_statement = $where_clauses ? ' WHERE ' . implode( ' AND ', $where_clauses ) : '';

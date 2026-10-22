@@ -351,16 +351,6 @@
 	},
 	{
 		"screen": "network-settings-group-expanded",
-		"rule": "label",
-		"target": "*",
-		"count": 3,
-		"kind": "debt",
-		"reason": "Form controls without an accessible name: the <textarea> value controls (allowed_words, blocked_email_domains, ip_whitelist) rendered by render_setting_field() in includes/admin/class-networksettingspage.php have no label.",
-		"issue": "AGENTS.md §8",
-		"added": "2026-10-22"
-	},
-	{
-		"screen": "network-settings-group-expanded",
 		"rule": "select-name",
 		"target": "*",
 		"count": 1,

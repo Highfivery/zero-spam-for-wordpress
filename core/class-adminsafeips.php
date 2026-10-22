@@ -320,8 +320,9 @@ final class Admin_Safe_IPs {
 	 * Whether the request came through a proxy that Zero Spam does not trust.
 	 *
 	 * True when the request carries a forwarding header (User::PROXY_HEADERS)
-	 * but the visitor IP is still REMOTE_ADDR, so no trusted-proxy resolution
-	 * happened and the IP is most likely the proxy's. Reads $_SERVER only.
+	 * but the visitor IP is still the connecting address (REMOTE_ADDR, in
+	 * User::get_remote_addr()'s canonical form), so no trusted-proxy resolution
+	 * happened and the IP is most likely the proxy's.
 	 *
 	 * @param string $ip Visitor IP from User::get_ip().
 	 */
@@ -338,9 +339,9 @@ final class Admin_Safe_IPs {
 			return false;
 		}
 
-		$remote = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) ? trim( sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) ) : '';
+		$remote = User::get_remote_addr();
 
-		return '' !== $remote && $remote === $ip;
+		return '' !== $remote && User::normalize_ip( $ip ) === $remote;
 	}
 
 	/**
