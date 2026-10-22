@@ -215,6 +215,7 @@ defined( 'ABSPATH' ) || die();
 			<ul>
 				<li><?php esc_html_e( 'Blue info box: "Using network default: [value]"', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Field is enabled - can customize if desired', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'Saving the page with the network default unchanged keeps the site on the network default, so later network changes still apply', 'zero-spam' ); ?></li>
 			</ul>
 
 			<h4>⚠️ <?php esc_html_e( 'Customized Settings', 'zero-spam' ); ?></h4>

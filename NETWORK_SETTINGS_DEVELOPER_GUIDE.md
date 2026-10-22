@@ -138,6 +138,30 @@ add_action('zerospam_network_settings_applied', function($settings, $network_set
 }, 10, 2);
 ```
 
+## Site Settings Page Hooks
+
+On a network site, `Site_Admin_Overrides` (`includes/admin/class-siteadminoverrides.php`) uses these hooks, which the Zero Spam settings page (`core/admin/class-settings.php`) fires. You can use them too.
+
+| Hook | Type | Arguments | Fired |
+|---|---|---|---|
+| `zerospam_settings_page_top` | action | `string $subview` | At the top of every settings form view (not on Documentation, Import/Export or Error Log). |
+| `zerospam_setting_field_before` | action | `string $setting_key, array $field` | Before each setting's description and control. |
+| `zerospam_setting_field_after` | action | `string $setting_key, array $field` | After each setting's control. |
+| `zerospam_setting_field_disabled` | filter | `bool $disabled, string $setting_key, array $field` | Before each control is rendered. Return `true` to render it disabled. |
+
+`$field` holds the field arguments, including the resolved `value`. A disabled control gets the `disabled` attribute and an `aria-describedby` pointing to a visually hidden "Locked by the network administrator" explanation.
+
+### What a site save stores
+
+The settings form submits every field, and an unticked checkbox is stored as `false`. Because `resolve_all_settings()` treats any key stored in a site's `zero-spam-{module}` option as a site override, a site save filters what it stores (`Site_Admin_Overrides::filter_site_save()`, on `sanitize_option_zero-spam-{module}` at priority 20):
+
+- **Locked setting:** the submitted value is never stored. The site's previously stored value is kept unchanged, so an override made before the lock applies again if the setting is unlocked.
+- **Unlocked setting, submitted value equals the network value:** the key is removed, so the site keeps following the network default. An unticked checkbox equals `disabled`, empty values equal each other, numbers equal their string form, and multi-select order is ignored.
+- **Unlocked setting, different value:** stored as a site override.
+- **Setting the network has not configured:** stored as on a single site.
+
+Writes made inside `switch_to_blog()` (for example "Apply to All Sites") are not filtered.
+
 ## Advanced Use Cases
 
 ### 1. Conditional Network Enforcement
