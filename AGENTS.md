@@ -444,9 +444,9 @@ npm run env:stop                 # stop both wp-env sites
 
 ## 8. Known debt and pitfalls (October 2026, 5.7.14)
 
-- WPCS backlog at 5.7.14: 160 errors / 186 warnings in 33 files (176
+- WPCS backlog at 5.7.14: 143 errors / 172 warnings in 32 files (176
   auto-fixable), down from 293 / 292 in 52 files at 5.7.13 and 429 / 367 in
-  62 files before; PHPStan level 5 baseline of 138 findings in 94 entries
+  62 files before; PHPStan level 5 baseline of 135 findings in 93 entries
   (was 144 in 99 at 5.7.13), with no unmatched entries. Clearing them is planned work; do it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
@@ -470,7 +470,9 @@ npm run env:stop                 # stop both wp-env sites
   rescue link and saved administrator addresses, #432); network-screen
   textarea settings losing their newlines (#430); IPv6 matching in the IP
   Whitelist and blocked IPs (canonical form, IPv4-mapped addresses, #430);
-  and, from #433, keyboard-accessible settings switches, a
+  `Settings::get_settings()` registering `rescue_mode` after the
+  `zerospam_settings` filter (missing from the first call, invisible to
+  filters); and, from #433, keyboard-accessible settings switches, a
   `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
