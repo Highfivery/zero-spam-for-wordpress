@@ -741,7 +741,7 @@ final class Rescue_Link {
 		self::render(
 			__( 'Check your email', 'zero-spam' ),
 			'<p>' . esc_html__( 'If that address belongs to a site administrator, a rescue link has been sent.', 'zero-spam' ) . '</p>' .
-			'<p>' . esc_html__( 'The link works once and expires in 15 minutes. If it does not arrive, check the spam folder.', 'zero-spam' ) . '</p>',
+			'<p>' . esc_html__( 'The link works once and expires in 15 minutes. It can take a few minutes to arrive. If it does not arrive, check the spam folder.', 'zero-spam' ) . '</p>',
 			200
 		);
 	}

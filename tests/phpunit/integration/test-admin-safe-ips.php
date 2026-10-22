@@ -97,6 +97,25 @@ class Test_Admin_Safe_IPs extends TestCase {
 	}
 
 	/**
+	 * The list keeps the 10 most recent addresses, dropping the oldest.
+	 */
+	public function test_list_keeps_the_ten_most_recent(): void {
+		$seed = array();
+		for ( $i = 1; $i <= Admin_Safe_IPs::MAX_IPS; $i++ ) {
+			$seed[] = "8.8.4.{$i}";
+		}
+		update_option( Admin_Safe_IPs::OPTION, $seed, false );
+		$this->admin_from( self::PUBLIC_IP );
+
+		zerospam_plugin_activation( false );
+
+		$expected   = array_slice( $seed, 1 );
+		$expected[] = self::PUBLIC_IP;
+		$this->assertSame( 10, Admin_Safe_IPs::MAX_IPS );
+		$this->assertSame( $expected, Admin_Safe_IPs::get_ips() );
+	}
+
+	/**
 	 * Non-public addresses are never saved.
 	 *
 	 * @dataProvider data_non_public_ips
@@ -131,6 +150,8 @@ class Test_Admin_Safe_IPs extends TestCase {
 			'IPv6 unique'        => array( 'fd00::1' ),
 			'IPv6 link-local'    => array( 'fe80::1' ),
 			'IPv6 documentation' => array( '2001:db8::1' ),
+			'6to4 relay anycast' => array( '192.88.99.1' ),
+			'IPv6 6to4'          => array( '2002:c058:6301::1' ),
 		);
 	}
 
@@ -300,6 +321,102 @@ class Test_Admin_Safe_IPs extends TestCase {
 	}
 
 	/**
+	 * The list is only read when a block applies, not on every request.
+	 */
+	public function test_list_is_read_only_when_a_block_applies(): void {
+		global $wpdb;
+
+		update_option( Admin_Safe_IPs::OPTION, array( self::PUBLIC_IP ), false );
+		$access = new Access();
+		add_filter( 'zerospam_access_checks', array( $access, 'check_blocked' ), 0, 3 );
+
+		$reads = function () use ( $access, $wpdb ): int {
+			wp_cache_delete( Admin_Safe_IPs::OPTION, 'options' );
+			wp_cache_delete( 'notoptions', 'options' );
+			$queries = $this->capture_queries(
+				static function () use ( $access ) {
+					$access->get_access();
+				}
+			);
+
+			return count(
+				array_filter(
+					$queries,
+					static fn ( string $query ): bool => false !== strpos( $query, $wpdb->options ) && false !== strpos( $query, Admin_Safe_IPs::OPTION )
+				)
+			);
+		};
+
+		$this->set_request( '/', self::PUBLIC_IP );
+		$this->assertSame( 0, $reads(), 'The list was read on a request that is not blocked.' );
+
+		$this->block( self::PUBLIC_IP );
+		$this->assertSame( 1, $reads(), 'The list was not read when a block applied.' );
+	}
+
+	/**
+	 * In .htaccess mode the generated deny rules leave saved addresses out, and are refreshed when the list changes.
+	 */
+	public function test_htaccess_rules_leave_saved_addresses_out(): void {
+		$file = get_temp_dir() . 'zerospam-htaccess-' . wp_generate_password( 8, false ) . '.txt';
+		file_put_contents( $file, '' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Throwaway test file.
+		add_filter(
+			'zerospam_htaccess_file',
+			static function () use ( $file ) {
+				return $file;
+			}
+		);
+		$this->set_setting( 'block_method', 'htaccess_modern', 'settings' );
+		$this->block( self::PUBLIC_IP );
+		$this->block( '1.1.1.1' );
+
+		try {
+			// Saving the address rewrites the rules without it.
+			$this->admin_from( self::PUBLIC_IP );
+			zerospam_plugin_activation( false );
+			$rules = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Throwaway test file.
+			$this->assertStringContainsString( 'Require not ip 1.1.1.1', $rules );
+			$this->assertStringNotContainsString( self::PUBLIC_IP, $rules, 'A saved administrator address is denied by the web server.' );
+			$this->assertSame( array( 'Require not ip 1.1.1.1' ), array_values( preg_grep( '/^Require not ip/', \ZeroSpam\Core\Utilities::htaccess_rules( 'htaccess_modern' ) ) ) );
+
+			// Removing it from the list puts it back.
+			$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
+			$_GET     = array(
+				'ip'       => self::PUBLIC_IP,
+				'_wpnonce' => wp_create_nonce( Admin_Safe_IPs::REMOVE_ACTION . '|' . self::PUBLIC_IP ),
+			);
+			$_REQUEST = $_GET;
+			$this->catch_redirect(
+				static function () {
+					( new Admin_Safe_IPs() )->remove_ip();
+				}
+			);
+			$rules = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Throwaway test file.
+			$this->assertStringContainsString( self::PUBLIC_IP, $rules, 'Removing the address did not refresh the rules.' );
+		} finally {
+			wp_delete_file( $file );
+			$_GET     = array();
+			$_REQUEST = array();
+		}
+	}
+
+	/**
+	 * The Settings list escapes what is stored.
+	 */
+	public function test_settings_list_escapes_stored_values(): void {
+		update_option( Admin_Safe_IPs::OPTION, array( '<script>alert(1)</script>' ), false );
+		$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
+		$this->as_role( 'administrator' );
+
+		ob_start();
+		( new Admin_Safe_IPs() )->settings_list( 'ip_whitelist' );
+		$html = (string) ob_get_clean();
+
+		$this->assertStringNotContainsString( '<script>', $html );
+		$this->assertStringContainsString( '&lt;script&gt;', $html );
+	}
+
+	/**
 	 * A spam comment from a saved IP is still detected and logged.
 	 */
 	public function test_spam_from_a_saved_ip_is_still_detected(): void {
@@ -416,6 +533,17 @@ class Test_Admin_Safe_IPs extends TestCase {
 		}
 
 		$this->as_role( 'administrator' );
+
+		// A nonce made for another address does not remove this one.
+		$_REQUEST['_wpnonce'] = wp_create_nonce( Admin_Safe_IPs::REMOVE_ACTION . '|1.1.1.1' );
+		$_GET                 = $_REQUEST;
+		try {
+			$safe_ips->remove_ip();
+			$this->fail( 'Removed with a nonce for another address.' );
+		} catch ( WPDieException $e ) {
+			$this->assertCount( 2, Admin_Safe_IPs::get_ips() );
+		}
+
 		$_REQUEST['_wpnonce'] = wp_create_nonce( Admin_Safe_IPs::REMOVE_ACTION . '|' . self::PUBLIC_IP );
 		$_GET                 = $_REQUEST;
 		$this->catch_redirect(

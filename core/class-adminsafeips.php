@@ -22,8 +22,11 @@ defined( 'ABSPATH' ) || die();
  * block applies): blocked IPs, blocked locations and the reputation checks
  * never lock that address out. Everything sent from it (comments,
  * registrations, forms) is still checked and logged, and the IP Whitelist
- * setting is never changed. Nothing expires; the Settings page lists the
- * addresses under the IP Whitelist with a Remove control.
+ * setting is never changed. Nothing expires, but only the 10 most recent
+ * addresses are kept; the Settings page lists them under the IP Whitelist
+ * with a Remove control. In an .htaccess block mode the deny rules leave
+ * them out too (Utilities::htaccess_rules()), and are rewritten when the
+ * list changes.
  *
  * Only a public IP (see is_public_ip()) of a user who can manage options is
  * saved, never twice. Behind a proxy Zero Spam does not trust yet, the IP it
@@ -66,6 +69,13 @@ final class Admin_Safe_IPs {
 	 * @var string
 	 */
 	const REMOVE_ACTION = 'zerospam_remove_admin_safe_ip';
+
+	/**
+	 * Most addresses kept; the oldest is dropped when a new one is saved.
+	 *
+	 * @var int
+	 */
+	const MAX_IPS = 10;
 
 	/**
 	 * Registers the notice, the Settings page list and their handlers.
@@ -150,7 +160,8 @@ final class Admin_Safe_IPs {
 		}
 
 		$ips[] = $ip;
-		update_option( self::OPTION, $ips, false );
+		update_option( self::OPTION, array_slice( $ips, -self::MAX_IPS ), false );
+		Utilities::refresh_htaccess();
 
 		update_option(
 			self::NOTICE_OPTION,
@@ -306,6 +317,9 @@ final class Admin_Safe_IPs {
 			delete_option( self::OPTION );
 		}
 
+		// In .htaccess mode the address may be blocked by the web server again.
+		Utilities::refresh_htaccess();
+
 		$notice = get_option( self::NOTICE_OPTION );
 		if ( is_array( $notice ) && isset( $notice['ip'] ) && $ip === $notice['ip'] ) {
 			delete_option( self::NOTICE_OPTION );
@@ -348,9 +362,17 @@ final class Admin_Safe_IPs {
 	 * Whether an IP is public: not private, loopback, link-local, reserved,
 	 * shared (CGNAT) or documentation space (RFC 6890 non-global ranges).
 	 *
+	 * The 6to4 ranges (192.88.99.0/24, 2002::/16) are rejected explicitly,
+	 * because PHP versions disagree on them. User has a private-range check
+	 * of its own, but it accepts the IPv4 documentation ranges.
+	 *
 	 * @param string $ip IP address.
 	 */
 	private static function is_public_ip( string $ip ): bool {
-		return false !== filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_GLOBAL_RANGE );
+		if ( false === filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_GLOBAL_RANGE ) ) {
+			return false;
+		}
+
+		return ! Utilities::ip_in_range( $ip, '192.88.99.0/24' ) && ! Utilities::ip_in_range( $ip, '2002::/16' );
 	}
 }

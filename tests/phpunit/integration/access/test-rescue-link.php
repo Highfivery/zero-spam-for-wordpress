@@ -233,6 +233,7 @@ class Test_Rescue_Link extends TestCase {
 
 		$this->assertSame( 200, $response['code'] );
 		$this->assertStringContainsString( 'If that address belongs to a site administrator, a rescue link has been sent.', $response['message'] );
+		$this->assertStringContainsString( 'It can take a few minutes to arrive.', $response['message'] );
 		$this->assertSame( 'Check your email', $this->parse( $response['message'] )->evaluate( 'normalize-space(//h1)' ) );
 
 		$sent = $this->sent();
@@ -295,6 +296,21 @@ class Test_Rescue_Link extends TestCase {
 
 		Rescue_Link::send_queued();
 		$this->assertCount( 1, $this->sent(), 'The queue sent twice.' );
+	}
+
+	/**
+	 * Both rate counters are written for any address, so the work does not show whether it is an administrator's.
+	 */
+	public function test_rate_counters_are_written_for_any_address(): void {
+		$this->submit( 'nobody@example.com' );
+
+		$address = get_transient( Rescue_Link::RECIPIENT_LIMIT_TRANSIENT_PREFIX . hash( 'sha256', 'nobody@example.com' ) );
+		$site    = get_transient( Rescue_Link::SITE_LIMIT_TRANSIENT );
+
+		$this->assertIsArray( $address, 'The per-address counter was not written for a non-administrator address.' );
+		$this->assertIsArray( $site, 'The site counter was not written for a non-administrator address.' );
+		$this->assertSame( 0, $address['count'], 'A request that sends nothing was counted.' );
+		$this->assertSame( 0, $site['count'] );
 	}
 
 	/**

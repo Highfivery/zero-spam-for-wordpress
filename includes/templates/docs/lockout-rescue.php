@@ -30,6 +30,7 @@ defined( 'ABSPATH' ) || die();
 			</ol>
 			<p><?php esc_html_e( 'The link works once and expires 15 minutes after it is sent. The page answers the same way whatever address is entered, and only an administrator\'s address ever receives an email. Requests are limited to 5 per hour per IP address, 3 emails per hour per address and 10 emails per hour per site.', 'zero-spam' ); ?></p>
 			<p><?php esc_html_e( 'Each use is recorded in the Detection Log as "Rescue link used", with the IP address that asked for the link and the one that used it. These entries are not detections: dashboard totals, charts, top lists, the dashboard widget and network statistics leave them out.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'The email is sent by WP-Cron a moment after the request, so it can take a few minutes to arrive. If it never arrives, check Tools → Site Health: WP-Cron needs loopback requests to work (or a system cron that runs wp-cron.php).', 'zero-spam' ); ?></p>
 			<p><?php esc_html_e( 'The link cannot help when an .htaccess block method is used: the web server rejects blocked addresses before WordPress runs.', 'zero-spam' ); ?></p>
 		</div>
 	</div>
@@ -41,7 +42,7 @@ defined( 'ABSPATH' ) || die();
 		</button>
 		<div class="zerospam-docs-accordion-content">
 			<p><?php esc_html_e( 'When an administrator activates or updates Zero Spam, their current IP address is saved (public addresses only, and never when the request comes through a proxy Zero Spam does not trust). Zero Spam never blocks that address from the site, but comments, registrations and forms sent from it are still checked and logged, and the IP Whitelist is not changed.', 'zero-spam' ); ?></p>
-			<p><?php esc_html_e( 'The saved addresses are listed under the IP Whitelist on Settings → Zero Spam → Settings, each with a Remove button.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'The 10 most recent saved addresses are kept and listed under the IP Whitelist on Settings → Zero Spam → Settings, each with a Remove button. With an .htaccess block method, the deny rules leave them out too.', 'zero-spam' ); ?></p>
 		</div>
 	</div>
 
