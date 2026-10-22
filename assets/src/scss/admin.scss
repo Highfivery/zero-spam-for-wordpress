@@ -1008,7 +1008,9 @@ a.zerospam-dashboard__menu-link {
     }
 
     &__input:disabled + &__label::before,
-    &__input:disabled + &__label:hover::before {
+    &__input:disabled + &__label:hover::before,
+    &__input:checked:disabled + &__label::before,
+    &__input:checked:disabled + &__label:hover::before {
       border-color: GrayText;
       opacity: 1;
     }

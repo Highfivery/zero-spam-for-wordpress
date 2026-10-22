@@ -528,7 +528,7 @@ npm run env:stop                 # stop both wp-env sites
     plugin's `.zerospam-switch`, so the same setting looks different on the
     two pages.
 - `assets/css/admin.css` is not a pure compile of `assets/src/scss/admin.scss`:
-  about 790 lines (documentation, feature/step lists, labels) exist only in
+  about 850 lines (documentation, feature/step lists, labels) exist only in
   the CSS. Change both by hand, keeping the compiled regions identical to
   what sass produces, until those rules are moved into the SCSS. There is no
   source map.

@@ -857,7 +857,7 @@ a.zerospam-dashboard__menu-link--active {
   .zerospam-switch__input:focus-visible + .zerospam-switch__label::before {
     outline-color: Highlight;
   }
-  .zerospam-switch__input:disabled + .zerospam-switch__label::before, .zerospam-switch__input:disabled + .zerospam-switch__label:hover::before {
+  .zerospam-switch__input:disabled + .zerospam-switch__label::before, .zerospam-switch__input:disabled + .zerospam-switch__label:hover::before, .zerospam-switch__input:checked:disabled + .zerospam-switch__label::before, .zerospam-switch__input:checked:disabled + .zerospam-switch__label:hover::before {
     border-color: GrayText;
     opacity: 1;
   }
