@@ -142,14 +142,14 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 
 ```bash
 composer install     # installs tooling and points git at .githooks/
-composer check       # version check, WPCS on changed files, PHP 8.2+ compat, PHPStan, PHPUnit
+composer check       # version check, WPCS on changed files and tests, PHP 8.2+ compat, PHPStan, PHPUnit
 composer check:all   # WPCS on every file and the tests, compat, PHPStan, the PHPUnit matrix
                      # (red until the WPCS backlog is cleared)
 composer lint:fix    # apply the WPCS fixes phpcbf can make
 ```
 
 - `.githooks/pre-push` runs the same checks as `composer check` (PHPUnit is
-  step 5/5, `bin/test.sh --mode=all`) and refuses the push on failure.
+  step 6/6, `bin/test.sh --mode=all`) and refuses the push on failure.
   `SKIP_QUALITY_GATE=1` is for a genuine emergency only and must be mentioned
   in the PR.
 - `phpstan-baseline.neon` holds pre-existing findings. Fix new findings; never
@@ -194,8 +194,11 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
 - **Database safety:** the suite installs WordPress into `zerospam_tests`
   (single) and `zerospam_tests_ms` (multisite) on the Homebrew MySQL, never a
   Local site database. The bootstrap and `tests/phpunit/wp-tests-config.php`
-  refuse any name that does not match `^zerospam_tests(_\w+)?$`, because the
-  WordPress installer drops tables. Do not weaken that check.
+  refuse any name that does not match `^zerospam_tests(_\w+)?\z`, and drop
+  and recreate the database on every run, because the WordPress installer
+  drops tables. Do not weaken that check. Choose the install type with
+  `--mode`; each PHPUnit configuration declares the type it runs
+  (`ZEROSPAM_TESTS_EXPECT_MULTISITE`) and the bootstrap refuses a mismatch.
 - **Tables:** the plugin tables are created for real while WordPress loads.
   Inside a test, WordPress rewrites `CREATE/DROP TABLE` to `TEMPORARY` tables,
   which `SHOW TABLES` (and so `DB::log()`/`DB::query()`) cannot see. Never call
@@ -204,8 +207,10 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
   `create_site_with_tables()` from `wpSetUpBeforeClass()`.
 - **No network:** every WordPress HTTP API request is answered by
   `tests/phpunit/includes/HttpMock.php`; an unmocked request fails the test
-  (`mock_http()` to answer one). DNS (`checkdnsrr`, `dns_get_record`) and
-  `setcookie()` are stubbed in the plugin namespaces that call them
+  (`mock_http()` to answer one), including requests made while WordPress
+  loads or in `wpSetUpBeforeClass()`. DNS (`checkdnsrr`, `dns_get_record`),
+  `setcookie()` and `headers_sent()` are stubbed in the plugin namespaces that
+  call them
   (`tests/phpunit/includes/stubs/`); add a stub when code in another namespace
   starts calling a network or header function.
 - **Versions:** `tests/phpunit/versions.env` pins the WordPress versions
@@ -238,7 +243,10 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
 - WordPress cores and the test library for the minimum version are downloaded
   once, checksum-verified, into `~/Library/Caches/zero-spam-tests/`
   (override with `ZEROSPAM_TESTS_CACHE`). Delete a directory there to force a
-  fresh download.
+  fresh download. The test WordPress loads plugins from `plugins/` there,
+  where `bin/test.sh` links `zero-spam` to the current checkout, so the suite
+  works from a checkout with any directory name and never sees the Local
+  site's other plugins.
 - The plugin's email checks reject `.test` addresses; use `@example.com` in
   test data.
 
@@ -277,8 +285,11 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
     `zerospam_network_settings`, `zero-spam-network-zerospam`,
     `zerospam_network_notifications_enabled`,
     `zerospam_network_settings_notifications_enabled` and
-    `zero_spam_last_api_request` are never removed, and the multisite branch
-    calls `switch_to_blog()` per site but `restore_current_blog()` once.
+    `zero_spam_last_api_request` are never removed; the
+    `zerospam_network_weekly_summary` cron event is never cleared; and the
+    multisite branch calls `switch_to_blog()` per site but
+    `restore_current_blog()` once, so the network-wide cron clean-up runs on
+    the wrong site.
   - `core/admin/tables/class-logtable.php`: `LIMIT` has count and offset
     swapped, the offset is `per_page * page` instead of `per_page * (page - 1)`,
     `$wpdb->prepare()` is called with no placeholders when no filter is set,
@@ -314,6 +325,8 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
 - Network settings exist in two storage models (`zerospam_network_settings`
   used by the admin, CLI and most REST; `zero-spam-network-zerospam` used by
   the `zero-spam/v1/settings` resolver). Reconcile before extending either.
+- `DavidWalsh::validate_token()` caches accepted tokens in a function-level
+  `static $accepted`, which tests cannot reset; use a fresh token per test.
 - `core/class-cli.php` is dead code; the `zerospam_blacklist` table is defined
   but never created.
 - Release pitfall: in March 2026 a release shipped as 5.5.8 instead of 5.7.8.
