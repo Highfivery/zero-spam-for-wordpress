@@ -28,25 +28,21 @@ class Dashboard {
 	 * Constructor
 	 */
 	public function __construct() {
-		add_action( 'admin_init', array( $this, 'admin_init' ) );
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
 		add_action( 'admin_action_add_blocked_ip', array( $this, 'block_ip' ) );
+		add_action( 'admin_post_zerospam_refresh_htaccess', array( $this, 'refresh_htaccess' ) );
 	}
 
 	/**
 	 * Refreshes the .htaccess block rules when an administrator asks for it.
 	 *
-	 * Runs on every admin request (including admin-ajax), so it only acts on
-	 * the `zerospam-refresh-htaccess` flag and requires `manage_options` and a
-	 * valid `zerospam-refresh-htaccess` nonce in `_wpnonce`. A failed check
-	 * ends the request with wp_die().
+	 * Handles admin-post.php?action=zerospam_refresh_htaccess (the "Refresh
+	 * .htaccess" button on the Blocked IPs screen). Requires `manage_options`
+	 * and a valid `zerospam-refresh-htaccess` nonce in `_wpnonce`; a failed
+	 * check ends the request with wp_die(). Redirects back to the Blocked IPs
+	 * screen with a notice, so the nonce never stays in the page URL.
 	 */
-	public function admin_init() {
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Only detects the flag; the nonce is verified below before anything runs.
-		if ( empty( $_REQUEST['zerospam-refresh-htaccess'] ) ) {
-			return;
-		}
-
+	public function refresh_htaccess() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die(
 				esc_html__( 'Sorry, you are not allowed to refresh the .htaccess file.', 'zero-spam' ),
@@ -57,7 +53,11 @@ class Dashboard {
 
 		check_admin_referer( 'zerospam-refresh-htaccess' );
 
-		\ZeroSpam\Core\Utilities::refresh_htaccess();
+		if ( \ZeroSpam\Core\Utilities::refresh_htaccess() ) {
+			self::redirect_with_message( 'blocked-ips', 'success', __( '.htaccess refreshed.', 'zero-spam' ) );
+		}
+
+		self::redirect_with_message( 'blocked-ips', 'error', __( 'The .htaccess file was not updated. Check that the IP block method is an .htaccess option, that the file is writable, and that at least one IP is blocked.', 'zero-spam' ) );
 	}
 
 	/**

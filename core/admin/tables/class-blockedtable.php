@@ -65,14 +65,16 @@ class BlockedTable extends WP_List_Table {
 					return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', strtotime( $item[ $column_name ] ) ), $date_time_format );
 				}
 			case 'actions':
+				$start_attr = self::datetime_attr( $item['start_block'] ?? '' );
+				$end_attr   = self::datetime_attr( $item['end_block'] ?? '' );
 				ob_start();
 				?>
 					<button
 						class="button zerospam-block-trigger"
 						data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"
 						data-reason="<?php echo esc_attr( $item['reason'] ); ?>"
-						data-start="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $item['start_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $item['start_block'] ) ) ); ?>"
-						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $item['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $item['end_block'] ) ) ); ?>"
+						data-start="<?php echo esc_attr( $start_attr ); ?>"
+						data-end="<?php echo esc_attr( $end_attr ); ?>"
 						data-type="<?php echo esc_attr( $item['blocked_type'] ); ?>"
 						aria-label="<?php echo esc_attr( __( 'Update Block', 'zero-spam' ) ); ?>"
 					>
@@ -92,9 +94,28 @@ class BlockedTable extends WP_List_Table {
 				if ( empty( $item[ $column_name ] ) ) {
 					return 'N/A';
 				} else {
-					return $item[ $column_name ];
+					return esc_html( $item[ $column_name ] );
 				}
 		}
+	}
+
+	/**
+	 * Formats a stored block date for a datetime-local field (Y-m-dTH:i).
+	 *
+	 * Permanent blocks have no end date (NULL); an empty or zero date gives ''
+	 * so the Update Block modal leaves the field empty instead of 1970.
+	 *
+	 * @param string|null $value Stored date (Y-m-d H:i:s) or null.
+	 * @return string Formatted date or ''.
+	 */
+	private static function datetime_attr( ?string $value ): string {
+		if ( null === $value || '' === $value || '0000-00-00 00:00:00' === $value ) {
+			return '';
+		}
+
+		$timestamp = strtotime( $value );
+
+		return false === $timestamp ? '' : gmdate( 'Y-m-d\\TH:i', $timestamp );
 	}
 
 	/**
@@ -233,7 +254,7 @@ class BlockedTable extends WP_List_Table {
 
 			if ( ! empty( $settings ) && 'php' !== $settings ) :
 				?>
-				<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&subview=blocked-ips&zerospam-refresh-htaccess=1' ), 'zerospam-refresh-htaccess' ) ); ?>" class="button"><?php esc_html_e( 'Refresh .htaccess', 'zero-spam' ); ?></a>
+				<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=zerospam_refresh_htaccess' ), 'zerospam-refresh-htaccess' ) ); ?>" class="button"><?php esc_html_e( 'Refresh .htaccess', 'zero-spam' ); ?></a>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -291,7 +312,7 @@ class BlockedTable extends WP_List_Table {
 		return sprintf(
 			'<input type="checkbox" name="%1$s[]" value="%2$s" />',
 			/*$1%s*/ 'ids',
-			/*$2%s*/ $item['blocked_id']
+			/*$2%s*/ (int) $item['blocked_id']
 		);
 	}
 
