@@ -1053,21 +1053,34 @@ class Utilities {
 	 * @since 5.0.0
 	 * @access public
 	 *
+	 * Addresses are compared in canonical form (see User::normalize_ip()), so
+	 * `2001:DB8::1` on the list matches a visitor seen as `2001:db8:0:0::1`.
+	 *
 	 * @param string|false $ip IP address.
 	 */
 	public static function is_whitelisted( $ip ) {
+		if ( ! is_string( $ip ) || '' === $ip ) {
+			return false;
+		}
+
 		$settings = ZeroSpam\Core\Settings::get_settings();
 
-		// Check whitelist.
-		if ( ! empty( $settings['ip_whitelist']['value'] ) ) {
-			$whitelisted = explode( PHP_EOL, $settings['ip_whitelist']['value'] );
-			if ( $whitelisted ) {
-				foreach ( $whitelisted as $key => $whitelisted_ip ) {
-					$whitelisted_ip = trim( $whitelisted_ip );
-					if ( $whitelisted_ip === $ip ) {
-						return true;
-					}
-				}
+		if ( empty( $settings['ip_whitelist']['value'] ) || ! is_string( $settings['ip_whitelist']['value'] ) ) {
+			return false;
+		}
+
+		$ip_normalized = User::normalize_ip( $ip );
+
+		foreach ( (array) preg_split( '/\R/', $settings['ip_whitelist']['value'] ) as $whitelisted_ip ) {
+			$whitelisted_ip = trim( (string) $whitelisted_ip );
+			if ( '' === $whitelisted_ip ) {
+				continue;
+			}
+
+			// Non-IP values (a Debug IP mock, for example) are compared as entered.
+			$whitelisted_normalized = User::normalize_ip( $whitelisted_ip );
+			if ( '' !== $ip_normalized && '' !== $whitelisted_normalized ? $whitelisted_normalized === $ip_normalized : $whitelisted_ip === $ip ) {
+				return true;
 			}
 		}
 
@@ -1191,12 +1204,15 @@ class Utilities {
 				continue;
 			}
 
-			if ( ! self::is_ip_range( $entry ) ) {
+			$unmapped = self::unmap_ip_range( $entry );
+
+			if ( null === $unmapped || ! self::is_ip_range( $unmapped ) ) {
 				$key = 'invalid';
-			} elseif ( self::is_too_broad_range( $entry ) ) {
+			} elseif ( self::is_too_broad_range( $unmapped ) ) {
 				$key = 'too_broad';
 			} else {
-				$key = 'valid';
+				$key   = 'valid';
+				$entry = $unmapped;
 			}
 
 			if ( ! in_array( $entry, $parsed[ $key ], true ) ) {
@@ -1205,6 +1221,67 @@ class Utilities {
 		}
 
 		return $parsed;
+	}
+
+	/**
+	 * Rewrites an IPv4-mapped IPv6 address or range (`::ffff:192.0.2.1`,
+	 * `::ffff:192.0.2.0/120`) as IPv4 (`192.0.2.1`, `192.0.2.0/24`).
+	 *
+	 * Visitor addresses are compared in IPv4 form (User::normalize_ip()), so a
+	 * mapped range would silently never match.
+	 *
+	 * @param string $entry IP address or CIDR range.
+	 * @return string|null The entry (rewritten when mapped), or null for a
+	 *                     mapped range wider than the IPv4 space (/96).
+	 */
+	public static function unmap_ip_range( string $entry ): ?string {
+		$parts = explode( '/', $entry, 2 );
+		if ( false === strpos( $parts[0], ':' ) || false === filter_var( $parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
+			return $entry;
+		}
+
+		$binary = inet_pton( $parts[0] );
+		if ( false === $binary || str_repeat( "\0", 10 ) . "\xff\xff" !== substr( $binary, 0, 12 ) ) {
+			return $entry;
+		}
+
+		$ipv4 = inet_ntop( substr( $binary, 12 ) );
+		if ( false === $ipv4 ) {
+			return null;
+		}
+
+		if ( ! isset( $parts[1] ) ) {
+			return $ipv4;
+		}
+
+		if ( 1 !== preg_match( '/^\d{1,3}$/', $parts[1] ) || (int) $parts[1] < 96 || (int) $parts[1] > 128 ) {
+			return null;
+		}
+
+		return $ipv4 . '/' . ( (int) $parts[1] - 96 );
+	}
+
+	/**
+	 * The entries parse_ip_ranges() dropped, as text for a notice: invalid
+	 * entries as entered, too-broad ranges with the reason.
+	 *
+	 * The result is not escaped.
+	 *
+	 * @param array{invalid: string[], too_broad: string[]} $parsed Result of parse_ip_ranges().
+	 * @return string[]
+	 */
+	public static function describe_dropped_ip_ranges( array $parsed ): array {
+		$dropped = $parsed['invalid'];
+
+		foreach ( $parsed['too_broad'] as $range ) {
+			$dropped[] = sprintf(
+				/* translators: %s: CIDR range, e.g. 0.0.0.0/0 */
+				__( '%s (too broad: would trust every visitor\'s X-Forwarded-For)', 'zero-spam' ),
+				$range
+			);
+		}
+
+		return $dropped;
 	}
 
 	/**

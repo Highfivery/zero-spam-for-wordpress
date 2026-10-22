@@ -454,14 +454,7 @@ class Settings {
 			$proxies                  = \ZeroSpam\Core\Utilities::parse_ip_ranges( $input['trusted_proxies'] );
 			$input['trusted_proxies'] = implode( "\n", $proxies['valid'] );
 
-			$dropped = $proxies['invalid'];
-			foreach ( $proxies['too_broad'] as $range ) {
-				$dropped[] = sprintf(
-					/* translators: %s: CIDR range, e.g. 0.0.0.0/0 */
-					__( '%s (too broad: would trust every visitor\'s X-Forwarded-For)', 'zero-spam' ),
-					$range
-				);
-			}
+			$dropped = \ZeroSpam\Core\Utilities::describe_dropped_ip_ranges( $proxies );
 
 			if ( $dropped ) {
 				add_settings_error(

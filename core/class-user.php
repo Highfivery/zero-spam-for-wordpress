@@ -72,6 +72,8 @@ class User {
 	 * 3. If it is a trusted proxy, the first usable value of:
 	 *    - `CF-Connecting-IP`, only when REMOTE_ADDR is a Cloudflare address;
 	 *    - `X-Forwarded-For`, walked from the right (see from_forwarded_for());
+	 *      a Cloudflare hop in it ends the walk with CF-Connecting-IP or,
+	 *      without a usable one, with REMOTE_ADDR;
 	 *    - `X-Real-IP`, then `True-Client-IP`, when X-Forwarded-For is missing
 	 *      or lists trusted proxies only.
 	 *    Forwarded values must be valid, public addresses (see
@@ -123,9 +125,11 @@ class User {
 	}
 
 	/**
-	 * Validates an IP address and turns an IPv4-mapped IPv6 address
-	 * (`::ffff:192.0.2.1`) into the IPv4 address it carries, so range checks
-	 * and validation see one form.
+	 * Validates an IP address and returns it in one canonical form: an
+	 * IPv4-mapped IPv6 address (`::ffff:192.0.2.1`) becomes the IPv4 address
+	 * it carries, and other IPv6 addresses are lowercased and compressed
+	 * (`2001:DB8:0:0::1` becomes `2001:db8::1`), so range checks, validation
+	 * and exact matches (whitelist) see one form.
 	 *
 	 * @param string $value Possible IP address.
 	 * @return string The address, or '' when it is not a valid IP address.
@@ -138,11 +142,17 @@ class User {
 
 		if ( false !== strpos( $value, ':' ) ) {
 			$binary = inet_pton( $value );
-			if ( false !== $binary && 16 === strlen( $binary ) && str_repeat( "\0", 10 ) . "\xff\xff" === substr( $binary, 0, 12 ) ) {
-				$ipv4 = inet_ntop( substr( $binary, 12 ) );
-
-				return false !== $ipv4 ? $ipv4 : '';
+			if ( false === $binary || 16 !== strlen( $binary ) ) {
+				return '';
 			}
+
+			// IPv4-mapped: keep the IPv4 address. Otherwise the canonical
+			// (lowercase, compressed) form, so `2001:DB8:0:0::1` and
+			// `2001:db8::1` compare equal.
+			$mapped    = str_repeat( "\0", 10 ) . "\xff\xff" === substr( $binary, 0, 12 );
+			$canonical = inet_ntop( $mapped ? substr( $binary, 12 ) : $binary );
+
+			return false !== $canonical ? $canonical : '';
 		}
 
 		return rest_is_ip_address( $value ) ? $value : '';
@@ -254,7 +264,7 @@ class User {
 	 * header reads "what the visitor sent, …, visitor, proxy 1, proxy 2". The
 	 * leftmost entries are whatever the visitor put in its own header and are
 	 * spoofable: only the entries added by trusted proxies can be believed.
-	 * Walking from the right, trusted proxies are skipped; the first other
+	 * Walking from the right, configured proxies are skipped; the first other
 	 * entry is the address the last trusted proxy received the request from,
 	 * so it is the visitor. The walk stops there whatever that entry is: if it
 	 * is not a usable public address (not an IP, private, reserved, CGNAT),
@@ -262,6 +272,14 @@ class User {
 	 * forged entry to its left win, for example behind a load balancer that
 	 * does not add its own entry. Internal hops (an ingress or load balancer
 	 * on 10.0.0.0/8, …) must therefore be listed as trusted proxies.
+	 *
+	 * A Cloudflare hop also ends the walk. Everything to its left is what
+	 * reached Cloudflare, and anyone in Cloudflare's address space (a
+	 * Cloudflare Worker, for example) can send a request with any
+	 * X-Forwarded-For straight to a configured proxy. So behind a Cloudflare
+	 * hop only CF-Connecting-IP is believed (Cloudflare sets it itself; the
+	 * configured proxy passes it on). If it is missing or unusable, the
+	 * header is not believed and REMOTE_ADDR is used.
 	 *
 	 * @param string $header        Header value.
 	 * @param bool   $allow_private Whether private and reserved addresses are visitor addresses.
@@ -281,7 +299,13 @@ class User {
 				return false;
 			}
 
-			if ( self::is_trusted_proxy( $hop ) ) {
+			if ( self::is_cloudflare_ip( $hop ) ) {
+				$cloudflare_visitor = self::usable_forwarded_ip( self::server_value( 'HTTP_CF_CONNECTING_IP' ), $allow_private );
+
+				return '' !== $cloudflare_visitor ? $cloudflare_visitor : false;
+			}
+
+			if ( self::is_configured_proxy( $hop ) ) {
 				continue;
 			}
 

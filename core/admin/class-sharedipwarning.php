@@ -308,9 +308,11 @@ class Shared_IP_Warning {
 	/**
 	 * Whether the network administrator has locked Trusted Proxy IPs for this site.
 	 *
-	 * Reads the network settings option directly, as Network_Settings::is_locked()
-	 * does, because constructing Network_Settings registers another settings
-	 * resolver for the rest of the request.
+	 * Reads the `zerospam_network_settings` site option directly instead of
+	 * calling Network_Settings::is_locked(), which reads the same data through
+	 * its site-transient cache: constructing Network_Settings would register
+	 * another settings resolver for the rest of the request. The option is
+	 * the source of truth, so the answer is never staler than the cache's.
 	 *
 	 * @return bool
 	 */

@@ -502,8 +502,9 @@ npm run env:stop                 # stop both wp-env sites
     list-table action buttons (`core/admin/tables/`);
   - controls without a label: the import/export and error-log textareas
     (`core/admin/class-settings.php`), the list-table row checkboxes, the
-    network settings value controls (`render_setting_field()`), the network
-    import file input and the Network Stats period select;
+    network settings multi-select value control (`render_setting_field()`;
+    its textareas are labelled since #430), the network import file input
+    and the Network Stats period select;
   - the Facebook `<iframe>` in the dashboard sidebar has no `title`;
   - text below 4.5:1 contrast: the header "Enhanced Protection is DISABLED"
     link, the restyled "Save Settings" and other buttons, list-table sort

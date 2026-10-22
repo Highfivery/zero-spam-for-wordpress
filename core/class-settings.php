@@ -362,7 +362,7 @@ class Settings {
 
 		self::$settings['trusted_proxies'] = array(
 			'title'       => __( 'Trusted Proxy IPs', 'zero-spam' ),
-			'desc'        => __( 'If your site sits behind a CDN, load balancer or reverse proxy (for example Cloudflare, Hostinger CDN, Sucuri, a Kubernetes ingress), list its IP addresses or ranges here, one per line, e.g. 203.0.113.5 or 203.0.113.0/24. Zero Spam will then read the real visitor address that the proxy forwards, so the proxy must send it in an X-Forwarded-For (or CF-Connecting-IP / X-Real-IP) header. List internal hops between the proxy and your site too, such as a load balancer on 10.0.0.0/8. Cloudflare is recognised automatically. Leave empty if your site is not behind a proxy.', 'zero-spam' ),
+			'desc'        => __( 'If your site sits behind a CDN, load balancer or reverse proxy (for example Cloudflare, Hostinger CDN, Sucuri, a Kubernetes ingress), list its IP addresses or ranges here, one per line, e.g. 203.0.113.5 or 203.0.113.0/24. Zero Spam will then read the real visitor address that the proxy forwards, so the proxy must send it in an X-Forwarded-For or X-Real-IP header. If your proxy sits behind Cloudflare, it must also pass on Cloudflare\'s CF-Connecting-IP header. List internal hops between the proxy and your site too, such as a load balancer on 10.0.0.0/8. Cloudflare is recognised automatically. Leave empty if your site is not behind a proxy.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'textarea',

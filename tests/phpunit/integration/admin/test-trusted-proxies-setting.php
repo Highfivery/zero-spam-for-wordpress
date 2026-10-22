@@ -214,4 +214,23 @@ class Test_Trusted_Proxies_Setting extends TestCase {
 		}
 		$this->assertStringContainsString( 'nope', $message );
 	}
+
+	/**
+	 * IPv4-mapped entries are stored as IPv4; a mapped range wider than the
+	 * IPv4 space is rejected.
+	 */
+	public function test_ipv4_mapped_entries_are_rewritten_or_rejected(): void {
+		$parsed = Utilities::parse_ip_ranges( "::ffff:192.0.2.0/120\n::FFFF:192.0.2.7\n192.0.2.7\n::ffff:0.0.0.0/64\n::ffff:0.0.0.0/96" );
+
+		$this->assertSame( array( '192.0.2.0/24', '192.0.2.7' ), $parsed['valid'] );
+		$this->assertSame( array( '::ffff:0.0.0.0/64' ), $parsed['invalid'] );
+		$this->assertSame( array( '::ffff:0.0.0.0/96' ), $parsed['too_broad'], 'Rewritten to 0.0.0.0/0, which is too broad.' );
+
+		update_option( 'zero-spam-settings', array( 'trusted_proxies' => "::ffff:192.0.2.0/120\n::ffff:0.0.0.0/64" ) );
+		$stored = get_option( 'zero-spam-settings' );
+		$this->assertIsArray( $stored );
+		$this->assertSame( '192.0.2.0/24', $stored['trusted_proxies'] );
+		$errors = wp_list_filter( get_settings_errors( 'zero-spam' ), array( 'code' => 'zerospam_trusted_proxies_invalid' ) );
+		$this->assertStringContainsString( '::ffff:0.0.0.0/64', array_shift( $errors )['message'] );
+	}
 }

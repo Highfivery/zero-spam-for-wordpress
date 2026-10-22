@@ -131,7 +131,7 @@ class Test_Client_IP extends TestCase {
 		$this->request_from(
 			self::PROXY,
 			array(
-				'X-Forwarded-For' => '192.0.2.20, ' . self::CLOUDFLARE_EDGE,
+				'X-Forwarded-For' => '192.0.2.20, 192.0.2.30',
 				'X-Real-IP'       => self::VISITOR,
 			)
 		);
@@ -215,14 +215,36 @@ class Test_Client_IP extends TestCase {
 	}
 
 	/**
-	 * Behind Cloudflare and a trusted load balancer, Cloudflare's edge in
-	 * X-Forwarded-For is skipped as a trusted hop.
+	 * Cloudflare → load balancer → origin: when the walk reaches Cloudflare's
+	 * edge it stops there and uses CF-Connecting-IP. Without a usable
+	 * CF-Connecting-IP the chain is not believed and REMOTE_ADDR is used: the
+	 * entry left of a Cloudflare hop is whatever reached Cloudflare, which a
+	 * Cloudflare Worker can choose.
 	 */
-	public function test_cloudflare_hop_in_forwarded_chain_is_skipped(): void {
+	public function test_cloudflare_hop_in_forwarded_chain_uses_cf_connecting_ip(): void {
 		$this->trust_test_proxy_range();
-		$this->request_from( self::PROXY, array( 'X-Forwarded-For' => self::VISITOR . ', ' . self::CLOUDFLARE_EDGE ) );
 
-		$this->assertSame( self::VISITOR, User::get_ip() );
+		$this->request_from(
+			self::PROXY,
+			array(
+				'X-Forwarded-For'  => '198.51.100.66, ' . self::CLOUDFLARE_EDGE,
+				'CF-Connecting-IP' => self::VISITOR,
+			)
+		);
+		$this->assertSame( self::VISITOR, User::get_ip(), 'CF-Connecting-IP passed on by the load balancer.' );
+
+		$this->request_from( self::PROXY, array( 'X-Forwarded-For' => self::VISITOR . ', ' . self::CLOUDFLARE_EDGE ) );
+		$this->assertSame( self::PROXY, User::get_ip(), 'CF-Connecting-IP stripped: the chain is not believed.' );
+
+		$this->request_from(
+			self::PROXY,
+			array(
+				'X-Forwarded-For'  => '198.51.100.66, ' . self::CLOUDFLARE_EDGE,
+				'CF-Connecting-IP' => '10.0.0.5',
+				'X-Real-IP'        => '198.51.100.67',
+			)
+		);
+		$this->assertSame( self::PROXY, User::get_ip(), 'An unusable CF-Connecting-IP: neither the forged left entry nor another header is used.' );
 	}
 
 	/**
@@ -454,5 +476,42 @@ class Test_Client_IP extends TestCase {
 
 		$this->request_from( '198.51.100.7', array( 'CF-IPCountry' => 'NL' ) );
 		$this->assertFalse( Utilities::get_proxy_country_code(), 'A visitor cannot pick a country.' );
+	}
+
+	/**
+	 * IPv6 addresses are returned in canonical form (lowercase, compressed).
+	 */
+	public function test_ipv6_addresses_are_canonical(): void {
+		$this->assertSame( '2001:db8::1', User::normalize_ip( '2001:DB8:0:0::1' ) );
+		$this->assertSame( '2001:db8::1', User::normalize_ip( '2001:0db8:0000:0000:0000:0000:0000:0001' ) );
+
+		$this->request_from( '2A01:4F8:1:2:0:0:0:9' );
+		$this->assertSame( self::VISITOR_V6, User::get_ip() );
+	}
+
+	/**
+	 * The IP Whitelist matches IPv6 addresses whatever form they are written in.
+	 */
+	public function test_whitelist_matches_ipv6_in_any_form(): void {
+		$this->set_setting( 'ip_whitelist', "192.0.2.1\n2001:DB8::1", 'settings' );
+
+		$this->assertTrue( Utilities::is_whitelisted( '2001:db8:0:0::1' ) );
+		$this->assertTrue( Utilities::is_whitelisted( '192.0.2.1' ) );
+		$this->assertFalse( Utilities::is_whitelisted( '2001:db8::2' ) );
+		$this->assertFalse( Utilities::is_whitelisted( false ) );
+
+		$this->request_from( '2001:db8:0:0::1' );
+		$this->assertFalse( \ZeroSpam\Core\Access::process(), 'A whitelisted visitor is not checked.' );
+	}
+
+	/**
+	 * A configured IPv4-mapped range is rewritten as IPv4, so it matches the
+	 * normalised addresses instead of silently never matching.
+	 */
+	public function test_ipv4_mapped_configured_range_is_trusted(): void {
+		$this->set_setting( 'trusted_proxies', '::ffff:192.0.2.0/120', 'settings' );
+		$this->request_from( self::PROXY, array( 'X-Forwarded-For' => self::VISITOR ) );
+
+		$this->assertSame( self::VISITOR, User::get_ip() );
 	}
 }

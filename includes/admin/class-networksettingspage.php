@@ -967,17 +967,42 @@ class Network_Settings_Page {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below, per element for multi-selects.
 		$value = isset( $_POST['value'] ) ? wp_unslash( $_POST['value'] ) : '';
 
+		if ( ! $key ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid setting key', 'zero-spam' ) ) );
+		}
+
 		// Sanitize based on type.
 		if ( is_array( $value ) ) {
 			// Multi-select: sanitize each value.
 			$value = array_map( 'sanitize_text_field', $value );
+		} elseif ( 'textarea' === $this->get_setting_type( $key ) ) {
+			// Lists (IP addresses, domains, words) keep one entry per line.
+			$value = sanitize_textarea_field( $value );
 		} else {
 			// Single value: sanitize as text.
 			$value = sanitize_text_field( $value );
 		}
 
-		if ( ! $key ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid setting key', 'zero-spam' ) ) );
+		// Trusted proxies are validated like on the site settings page; nothing
+		// is stored while an entry is invalid or too broad.
+		if ( 'trusted_proxies' === $key && is_string( $value ) ) {
+			$proxies = \ZeroSpam\Core\Utilities::parse_ip_ranges( $value );
+			$dropped = \ZeroSpam\Core\Utilities::describe_dropped_ip_ranges( $proxies );
+
+			if ( $dropped ) {
+				wp_send_json_error(
+					array(
+						'message' => sprintf(
+							/* translators: %s: comma-separated list of the rejected entries */
+							esc_html__( 'Not saved. These Trusted Proxy IPs entries are not IP addresses or ranges (like 203.0.113.5 or 203.0.113.0/24) or are too broad: %s', 'zero-spam' ),
+							esc_html( implode( ', ', $dropped ) )
+						),
+						'invalid' => $dropped,
+					)
+				);
+			}
+
+			$value = implode( "\n", $proxies['valid'] );
 		}
 
 		$result = $this->settings_manager->set_setting( $key, $value, $locked );
@@ -987,6 +1012,18 @@ class Network_Settings_Page {
 		} else {
 			wp_send_json_error( array( 'message' => __( 'Failed to save setting', 'zero-spam' ) ) );
 		}
+	}
+
+	/**
+	 * The registered type of a setting (`textarea`, `checkbox`, …).
+	 *
+	 * @param string $key Setting key.
+	 * @return string Type, or '' for an unknown key.
+	 */
+	private function get_setting_type( string $key ): string {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+
+		return isset( $settings[ $key ]['type'] ) && is_string( $settings[ $key ]['type'] ) ? $settings[ $key ]['type'] : '';
 	}
 
 	/**
