@@ -1,0 +1,9 @@
+{
+	"_comment": "Throwaway accounts created by tests/e2e/bin/wp-env-after-start.mjs inside the disposable wp-env containers only (ports 8900/8910). They are not secrets and never exist on a Local site; Local targets read their accounts from the git-ignored tests/e2e/.env written by setup-local.mjs.",
+	"admin": { "user": "e2eadmin", "pass": "wp-env-admin-pass", "email": "e2eadmin@example.com", "role": "administrator" },
+	"editor": { "user": "e2eeditor", "pass": "wp-env-editor-pass", "email": "e2eeditor@example.com", "role": "editor" },
+	"author": { "user": "e2eauthor", "pass": "wp-env-author-pass", "email": "e2eauthor@example.com", "role": "author" },
+	"siteadmin": { "user": "e2esiteadmin", "pass": "wp-env-siteadmin-pass", "email": "e2esiteadmin@example.com", "role": "administrator" },
+	"token": "wp-env-only-not-secret",
+	"rescueKey": "wp-env-rescue-key"
+}
