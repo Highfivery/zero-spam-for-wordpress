@@ -4,17 +4,26 @@
  * Fails the test:
  * - a critical or serious violation of a WCAG 2.0–2.2 A/AA rule that is not
  *   in tests/e2e/a11y/allowlist.json;
+ * - an allowlist entry that matches more nodes than its `count` (the number
+ *   of nodes it covered when it was recorded), so a new violation of an
+ *   allowlisted rule on the same screen still fails;
  * - an allowlist entry for this screen that no longer matches anything
  *   (the list can only shrink, like the PHPStan baseline);
- * - an allowlist entry with an empty or TODO reason, or a "debt" entry
- *   without an issue.
+ * - an allowlist entry with an empty or TODO reason, a "debt" entry without
+ *   an issue, a `target: "*"` entry without a `count` (only `kind:
+ *   "external"` may leave it out), or a `targets` field (screens are already
+ *   limited to single site or network by their `sites`).
  *
  * Reported only: moderate and minor violations, AAA-only rules,
- * best-practice rules and axe "incomplete" results (manual review).
+ * best-practice rules, axe "incomplete" results (manual review) and entries
+ * that match fewer nodes than their count ("lower the count": counts can
+ * differ between targets, so this does not fail).
  *
- * With E2E_A11Y_BASELINE=1 nothing fails; proposed allowlist entries for the
- * gating violations are written to <artifacts>/a11y-baseline/<screen>.json so
- * the first baseline can be reviewed and given real reasons.
+ * With E2E_A11Y_BASELINE=1 nothing fails and entries may lack a count;
+ * proposed allowlist entries for the gating violations are written to
+ * <artifacts>/a11y-baseline/<screen>.json so they can be reviewed and given
+ * real reasons, and every entry's matched node count is in summary.json
+ * (a11y[].allowlistUsage) for setting `count`.
  */
 
 import AxeBuilder from '@axe-core/playwright';
@@ -40,8 +49,19 @@ export interface AllowlistEntry {
 	reason: string;
 	issue?: string;
 	added: string;
-	/** Optional: only on these targets. */
-	targets?: string[];
+	/**
+	 * Nodes the entry covered when it was recorded. More matching nodes fail
+	 * the scan; fewer print "lower the count". Required for target "*"
+	 * unless kind is "external".
+	 */
+	count?: number;
+}
+
+export interface AllowlistUsage {
+	rule: string;
+	target: string;
+	count: number | null;
+	matched: number;
 }
 
 export interface ScreenA11yResult {
@@ -52,13 +72,18 @@ export interface ScreenA11yResult {
 	reported: Array< { rule: string; impact: string; target: string; help: string; kind: 'aa' | 'aaa' | 'best-practice' } >;
 	incomplete: Array< { rule: string; target: string; help: string } >;
 	staleAllowlist: AllowlistEntry[];
+	/** Every allowlist entry of the screen with the nodes it matched. */
+	allowlistUsage: AllowlistUsage[];
+	/** Entries that matched fewer nodes than their count. */
+	lowerCount: AllowlistUsage[];
 }
 
 /**
  * Loads and validates the allowlist.
  */
 export function loadAllowlist(): AllowlistEntry[] {
-	const entries = JSON.parse( readFileSync( join( E2E_DIR, 'a11y/allowlist.json' ), 'utf8' ) ) as AllowlistEntry[];
+	const entries = JSON.parse( readFileSync( join( E2E_DIR, 'a11y/allowlist.json' ), 'utf8' ) ) as Array< AllowlistEntry & { targets?: unknown } >;
+	const baseline = '1' === process.env.E2E_A11Y_BASELINE;
 	const problems: string[] = [];
 	entries.forEach( ( e, i ) => {
 		const where = `allowlist.json entry ${ i } (${ e.screen } / ${ e.rule })`;
@@ -73,6 +98,15 @@ export function loadAllowlist(): AllowlistEntry[] {
 		}
 		if ( ! e.screen || ! e.rule || ! e.target ) {
 			problems.push( `${ where }: screen, rule and target are required.` );
+		}
+		if ( undefined !== e.targets ) {
+			problems.push( `${ where }: "targets" is not supported; a screen already runs only where its "sites" allow.` );
+		}
+		if ( undefined !== e.count && ! ( Number.isInteger( e.count ) && e.count > 0 ) ) {
+			problems.push( `${ where }: count must be a positive integer.` );
+		}
+		if ( '*' === e.target && 'external' !== e.kind && undefined === e.count && ! baseline ) {
+			problems.push( `${ where }: a target "*" entry needs a count (the number of nodes it covers; see summary.json a11y[].allowlistUsage).` );
 		}
 	} );
 	if ( problems.length ) {
@@ -90,7 +124,7 @@ export function loadAllowlist(): AllowlistEntry[] {
  * @param testInfo Test info (results are attached for the summary).
  */
 export async function scanScreen( page: Page, screen: Screen, target: Target, testInfo: TestInfo ): Promise< ScreenA11yResult > {
-	const allowlist = loadAllowlist().filter( ( e ) => e.screen === screen.id && ( ! e.targets || e.targets.includes( target.name ) ) );
+	const allowlist = loadAllowlist().filter( ( e ) => e.screen === screen.id );
 
 	let builder = new AxeBuilder( { page } ).withTags( AXE_TAGS );
 	if ( screen.include?.length ) {
@@ -119,8 +153,10 @@ export async function scanScreen( page: Page, screen: Screen, target: Target, te
 		reported: [],
 		incomplete: [],
 		staleAllowlist: [],
+		allowlistUsage: [],
+		lowerCount: [],
 	};
-	const used = new Set< AllowlistEntry >();
+	const matched = new Map< AllowlistEntry, Array< { impact: string; target: string; help: string } > >();
 	const proposals: AllowlistEntry[] = [];
 
 	for ( const v of results.violations ) {
@@ -143,10 +179,11 @@ export async function scanScreen( page: Page, screen: Screen, target: Target, te
 			}
 
 			const gatingImpact = 'critical' === impact || 'serious' === impact;
-			const match = allowlist.find( ( e ) => e.rule === v.id && ( '*' === e.target || e.target === nodeTarget ) );
+			// An exact-target entry wins over a "*" entry of the same rule.
+			const match =
+				allowlist.find( ( e ) => e.rule === v.id && e.target === nodeTarget ) ?? allowlist.find( ( e ) => e.rule === v.id && '*' === e.target );
 			if ( match ) {
-				used.add( match );
-				result.counts.allowlisted++;
+				matched.set( match, [ ...( matched.get( match ) ?? [] ), { impact, target: nodeTarget, help: v.help } ] );
 				continue;
 			}
 			result.counts[ impact as 'critical' | 'serious' | 'moderate' | 'minor' ]++;
@@ -174,7 +211,34 @@ export async function scanScreen( page: Page, screen: Screen, target: Target, te
 		}
 	}
 
-	result.staleAllowlist = allowlist.filter( ( e ) => ! used.has( e ) );
+	for ( const entry of allowlist ) {
+		const nodes = matched.get( entry ) ?? [];
+		const usage: AllowlistUsage = { rule: entry.rule, target: entry.target, count: entry.count ?? null, matched: nodes.length };
+		result.allowlistUsage.push( usage );
+		if ( ! nodes.length ) {
+			result.staleAllowlist.push( entry );
+			continue;
+		}
+		const allowed = undefined === entry.count ? nodes.length : Math.min( entry.count, nodes.length );
+		result.counts.allowlisted += allowed;
+		if ( nodes.length > allowed ) {
+			// More nodes than were recorded: a new violation of an allowlisted rule.
+			for ( const extra of nodes.slice( allowed ) ) {
+				result.counts[ extra.impact as 'critical' | 'serious' | 'moderate' | 'minor' ]++;
+			}
+			result.gating.push( {
+				rule: entry.rule,
+				impact: nodes.some( ( n ) => 'critical' === n.impact ) ? 'critical' : 'serious',
+				target: `${ nodes.length } nodes where the allowlist entry (target ${ entry.target }) allows ${ entry.count }: ${ nodes.map( ( n ) => n.target ).join( ', ' ) }`,
+				help: nodes[ 0 ].help,
+			} );
+		} else if ( undefined !== entry.count && nodes.length < entry.count ) {
+			result.lowerCount.push( usage );
+			const note = `${ screen.id } / ${ entry.rule }: ${ nodes.length } node(s) match, the allowlist count is ${ entry.count }: lower the count to ${ nodes.length } in tests/e2e/a11y/allowlist.json`;
+			testInfo.annotations.push( { type: 'a11y-lower-count', description: note } );
+			process.stdout.write( `${ note }\n` );
+		}
+	}
 
 	await testInfo.attach( 'zs-a11y', { body: JSON.stringify( result ), contentType: 'application/json' } );
 

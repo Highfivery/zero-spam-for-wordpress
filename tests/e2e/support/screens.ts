@@ -12,7 +12,7 @@
  * - `visual`: whether a baseline is kept (true, or options).
  */
 
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import type { ZsApi } from './e2e-api';
 import { COMMENTS_POST_PATH } from './pages/front';
@@ -38,8 +38,6 @@ export interface Screen {
 	/** Expected HTTP status (blocked pages answer 403). */
 	status?: number;
 	visual?: boolean | { mobile?: boolean; mask?: string[]; selector?: string };
-	/** Not on Local (needs wp-env-only constants such as ZEROSPAM_RESCUE_KEY). */
-	wpEnvOnly?: boolean;
 }
 
 const SETTINGS = 'wp-admin/options-general.php?page=wordpress-zero-spam-settings&subview=';
@@ -74,20 +72,35 @@ export const REPORT_MASKS = [ ...DYNAMIC_MASKS, 'canvas', '#world-map', '.zerosp
 export const TABLE_MASKS = [ ...DYNAMIC_MASKS, 'td.column-date_recorded', '.tablenav .displaying-num' ];
 export const WIDGET_MASKS = [ 'canvas', '.zerospam-stat-value' ];
 
-const openFirstDetails = async ( page: Page ) => {
-	await page.locator( '.zerospam-details-trigger' ).first().click();
-	await page.locator( '.zerospam-modal.is-active' ).waitFor();
+/**
+ * Waits until an element's CSS transitions and finite animations have ended.
+ * The modals fade in over 0.5 s (opacity, assets/css/admin.css) and ignore
+ * prefers-reduced-motion (AGENTS.md §8); scanned mid-fade, their text blends
+ * with the overlay and axe reports contrast failures that depend on timing.
+ *
+ * @param locator Element.
+ */
+const settle = ( locator: Locator ) =>
+	locator.evaluate( ( el ) =>
+		Promise.all(
+			el
+				.getAnimations( { subtree: true } )
+				.filter( ( a ) => Infinity !== a.effect?.getComputedTiming().endTime )
+				.map( ( a ) => a.finished.catch( () => undefined ) )
+		)
+	);
+
+const openModal = async ( page: Page, trigger: string, modal: string ) => {
+	await page.locator( trigger ).first().click();
+	await page.locator( modal ).waitFor();
+	await settle( page.locator( modal ) );
 };
 
-const openBlockModal = async ( page: Page ) => {
-	await page.locator( '.zerospam-block-trigger' ).first().click();
-	await page.locator( '#zerospam-block-ip.is-active' ).waitFor();
-};
+const openFirstDetails = ( page: Page ) => openModal( page, '.zerospam-details-trigger', '.zerospam-modal.is-active' );
 
-const openLocationModal = async ( page: Page ) => {
-	await page.locator( '.zerospam-block-location-trigger' ).first().click();
-	await page.locator( '#zerospam-block-location.is-active' ).waitFor();
-};
+const openBlockModal = ( page: Page ) => openModal( page, '.zerospam-block-trigger', '#zerospam-block-ip.is-active' );
+
+const openLocationModal = ( page: Page ) => openModal( page, '.zerospam-block-location-trigger', '#zerospam-block-location.is-active' );
 
 const expandFirstGroup = async ( page: Page ) => {
 	await page.locator( '.settings-group-toggle' ).first().click();
@@ -233,9 +246,6 @@ export function screensFor( target: Target ): Screen[] {
 			return false;
 		}
 		if ( 'multisite' === s.sites && ! target.multisite ) {
-			return false;
-		}
-		if ( s.wpEnvOnly && 'wp-env' !== target.kind ) {
 			return false;
 		}
 		return true;
