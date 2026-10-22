@@ -36,7 +36,7 @@ in the same PR.
 | `includes/class-networksettings*.php`, `includes/admin/`, `includes/cli/`, `includes/rest/` | Multisite network settings, templates, stats, audit, notifications, REST controllers (`zero-spam/v1`), WP-CLI (`wp zerospam …`). |
 | `includes/templates/` | Plain PHP admin templates. Escape everything on output. |
 | `modules/` | One directory or file per detection technique or integrated plugin. Third-party modules are only instantiated when that plugin is active (`includes/class-plugin.php`). |
-| `assets/` | Hand-written CSS/JS (jQuery), `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand, vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. No build tooling exists. |
+| `assets/` | Hand-written CSS/JS (jQuery), `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand, vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. No build tooling exists. Enqueue the plugin's own CSS/JS with `Utilities::asset_version( 'assets/…' )` as the version (file time with `SCRIPT_DEBUG`, else `ZEROSPAM_VERSION`); pinned vendored libraries keep their own version. |
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
 | `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
@@ -366,6 +366,17 @@ npm run env:stop                 # stop both wp-env sites
   site's other plugins.
 - The plugin's email checks reject `.test` addresses; use `@example.com` in
   test data.
+- **Previewing a branch on the Local site:** the single-site Local plugin
+  folder *is* the main checkout, normally on `develop`, so merged work shows
+  there after `git pull`. To preview an unmerged branch, run
+  `git fetch origin <branch> && git checkout --detach origin/<branch> && composer install`
+  in the main checkout, then hard-refresh the browser: admin assets are
+  versioned by `ZEROSPAM_VERSION`, so the browser keeps the old CSS/JS until
+  the version changes (unless the site defines `SCRIPT_DEBUG`, which versions
+  them by file time). Afterwards run `git checkout develop && composer install`.
+  Never switch it while `composer check` or the pre-push hook is running
+  there. Agents work in their own worktree and never rely on the main
+  checkout's branch.
 
 ### e2e environments
 
@@ -429,11 +440,12 @@ npm run env:stop                 # stop both wp-env sites
 - Report outcomes faithfully: failing checks with their output, skipped steps
   as skipped.
 
-## 8. Known debt and pitfalls (October 2026)
+## 8. Known debt and pitfalls (October 2026, 5.7.14)
 
-- WPCS backlog at 5.7.13: 293 errors / 292 warnings in 52 files (296
-  auto-fixable), down from 429 / 367 in 62 files; PHPStan level 5 baseline of
-  144 findings in 99 entries (was 168). Clearing them is planned work; do it
+- WPCS backlog at 5.7.14: 160 errors / 186 warnings in 33 files (176
+  auto-fixable), down from 293 / 292 in 52 files at 5.7.13 and 429 / 367 in
+  62 files before; PHPStan level 5 baseline of 138 findings in 94 entries
+  (was 144 in 99 at 5.7.13), with no unmatched entries. Clearing them is planned work; do it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
   `build/`.
@@ -448,6 +460,16 @@ npm run env:stop                 # stop both wp-env sites
   `admin_post` action), the Stop Forum Spam cache group, `DB::log()` pruning,
   the never-loaded Elementor Pro module, the login cookie guard, and the
   1970 end date on permanent blocks.
+- Fixed in 5.7.14 (tests in the gate): the client IP behind CDNs and proxies
+  (`CF-Connecting-IP` / `X-Forwarded-For` read only from Cloudflare or the
+  Trusted Proxy IPs setting, `zerospam_trusted_proxies` with CIDR, #430);
+  logins refused on lapsed David Walsh keys, including WPMU DEV Defender Pro
+  and other two-step logins (#429); lockouts without a way back in (emailed
+  rescue link and saved administrator addresses, #432); network-screen
+  textarea settings losing their newlines (#430); IPv6 matching in the IP
+  Whitelist and blocked IPs (canonical form, IPv4-mapped addresses, #430);
+  and, from #433, keyboard-accessible settings switches, a
+  `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
   - `modules/class-stopforumspam.php`: `preprocess_registrations()` is hooked
