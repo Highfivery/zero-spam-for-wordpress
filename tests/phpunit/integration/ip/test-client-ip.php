@@ -87,14 +87,79 @@ class Test_Client_IP extends TestCase {
 	}
 
 	/**
-	 * Behind a proxy in a trusted range, the rightmost address that is not a
-	 * trusted proxy (or an internal hop) is the visitor.
+	 * Behind a proxy in a trusted range with an internal hop (a Kubernetes
+	 * ingress on 10.0.0.0/8, listed as trusted too), the rightmost address
+	 * that is not a trusted proxy is the visitor.
 	 */
 	public function test_trusted_cidr_uses_rightmost_untrusted_forwarded_address(): void {
-		$this->trust_test_proxy_range();
+		$this->set_setting( 'trusted_proxies', "192.0.2.0/24\n10.0.0.0/8", 'settings' );
 		$this->request_from( self::PROXY, array( 'X-Forwarded-For' => self::VISITOR . ', 10.0.0.1, 192.0.2.20' ) );
 
 		$this->assertSame( self::VISITOR, User::get_ip() );
+	}
+
+	/**
+	 * An internal hop that is not listed as a trusted proxy stops the walk:
+	 * skipping it would let the forged entry to its left win (an L4 or SNAT
+	 * load balancer that adds no entry of its own).
+	 */
+	public function test_unlisted_private_hop_stops_the_walk(): void {
+		$this->trust_test_proxy_range();
+		$this->request_from( self::PROXY, array( 'X-Forwarded-For' => '8.8.4.4, 10.1.2.3' ) );
+
+		$this->assertSame( self::PROXY, User::get_ip() );
+	}
+
+	/**
+	 * Carrier-grade NAT addresses (100.64.0.0/10) are not public visitor addresses.
+	 */
+	public function test_cgnat_forwarded_address_is_not_public(): void {
+		$this->trust_test_proxy_range();
+
+		$this->request_from( self::PROXY, array( 'X-Forwarded-For' => '100.64.1.2' ) );
+		$this->assertSame( self::PROXY, User::get_ip() );
+
+		$this->request_from( self::PROXY, array( 'X-Real-IP' => '100.127.255.1' ) );
+		$this->assertSame( self::PROXY, User::get_ip() );
+	}
+
+	/**
+	 * When X-Forwarded-For lists trusted proxies only, X-Real-IP is used.
+	 */
+	public function test_all_trusted_forwarded_for_falls_back_to_x_real_ip(): void {
+		$this->trust_test_proxy_range();
+		$this->request_from(
+			self::PROXY,
+			array(
+				'X-Forwarded-For' => '192.0.2.20, ' . self::CLOUDFLARE_EDGE,
+				'X-Real-IP'       => self::VISITOR,
+			)
+		);
+
+		$this->assertSame( self::VISITOR, User::get_ip() );
+	}
+
+	/**
+	 * IPv4-mapped IPv6 addresses are treated as the IPv4 address they carry,
+	 * for REMOTE_ADDR, range checks and forwarded values.
+	 */
+	public function test_ipv4_mapped_addresses_are_normalised(): void {
+		$this->request_from( '::ffff:' . self::CLOUDFLARE_EDGE, array( 'CF-Connecting-IP' => self::VISITOR ) );
+		$this->assertSame( self::VISITOR, User::get_ip(), 'A mapped Cloudflare edge is recognised.' );
+
+		$this->request_from( '::ffff:198.51.100.7', array( 'X-Forwarded-For' => self::VISITOR ) );
+		$this->assertSame( '198.51.100.7', User::get_ip(), 'A mapped visitor is reported as IPv4 and still not trusted.' );
+
+		$this->trust_test_proxy_range();
+		$this->request_from( '::ffff:' . self::PROXY, array( 'X-Forwarded-For' => '::ffff:' . self::VISITOR ) );
+		$this->assertSame( self::VISITOR, User::get_ip(), 'A mapped proxy is trusted and a mapped forwarded value is unwrapped.' );
+
+		$this->request_from( self::PROXY, array( 'X-Forwarded-For' => '::ffff:10.0.0.5' ) );
+		$this->assertSame( self::PROXY, User::get_ip(), 'A mapped private address is still private.' );
+
+		$this->assertTrue( User::is_cloudflare_ip( '::ffff:173.245.48.5' ) );
+		$this->assertSame( '173.245.48.5', User::normalize_ip( '::FFFF:173.245.48.5' ) );
+		$this->assertSame( '', User::normalize_ip( '::ffff:999.1.1.1' ) );
 	}
 
 	/**

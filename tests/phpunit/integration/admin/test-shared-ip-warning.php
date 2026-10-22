@@ -112,7 +112,10 @@ class Test_Shared_IP_Warning extends TestCase {
 		$html = $this->notices();
 
 		$this->assertStringContainsString( 'Many different visitors appear to share one IP address', $html );
-		$this->assertStringContainsString( 'Settings → Zero Spam → Trusted Proxy IPs', $html );
+		$this->assertStringContainsString( 'Settings → Zero Spam → Settings → Trusted Proxy IPs', $html );
+		$this->assertStringContainsString( 'The last 20 detections all came from', $html );
+		$this->assertStringContainsString( 'aria-label="Dismiss the shared IP address warning"', $html );
+		$this->assertStringNotContainsString( 'network administrator', $html );
 		$this->assertStringContainsString( self::SHARED_IP, $html );
 		$this->assertStringContainsString( 'subview=settings#trusted_proxies', $html );
 		$this->assertStringContainsString( 'action=' . Shared_IP_Warning::ACTION, $html );
@@ -170,7 +173,13 @@ class Test_Shared_IP_Warning extends TestCase {
 			),
 			$verdict
 		);
-		$this->assertStringContainsString( '173.245.48.5', $this->notices() );
+
+		$html = $this->notices();
+		$this->assertStringContainsString( '173.245.48.5', $html );
+		$this->assertStringContainsString( 'which belongs to a proxy Zero Spam already trusts, was logged as a visitor', $html );
+		$this->assertStringContainsString( 'check its X-Forwarded-For setup', $html );
+		$this->assertStringNotContainsString( 'Many different visitors', $html, 'Not the unknown-proxy text.' );
+		$this->assertStringContainsString( 'Review trusted proxies', $html );
 	}
 
 	/**
@@ -263,7 +272,9 @@ class Test_Shared_IP_Warning extends TestCase {
 		$this->forwarded_request();
 
 		$this->assertNotNull( Shared_IP_Warning::get_verdict() );
-		$this->assertLessThanOrEqual( time() + HOUR_IN_SECONDS, (int) get_option( '_transient_timeout_' . Shared_IP_Warning::TRANSIENT ) );
+		$expires = (int) get_option( '_transient_timeout_' . Shared_IP_Warning::TRANSIENT );
+		$this->assertGreaterThan( time() + HOUR_IN_SECONDS - MINUTE_IN_SECONDS, $expires, 'Cached for about an hour.' );
+		$this->assertLessThanOrEqual( time() + HOUR_IN_SECONDS, $expires );
 
 		$log_table = $this->log_table();
 		$queries   = $this->capture_queries(

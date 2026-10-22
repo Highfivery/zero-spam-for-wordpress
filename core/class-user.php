@@ -72,10 +72,14 @@ class User {
 	 * 3. If it is a trusted proxy, the first usable value of:
 	 *    - `CF-Connecting-IP`, only when REMOTE_ADDR is a Cloudflare address;
 	 *    - `X-Forwarded-For`, walked from the right (see from_forwarded_for());
-	 *    - `X-Real-IP`, then `True-Client-IP`.
+	 *    - `X-Real-IP`, then `True-Client-IP`, when X-Forwarded-For is missing
+	 *      or lists trusted proxies only.
 	 *    Forwarded values must be valid, public addresses (see
 	 *    `zerospam_allow_private_forwarded_ip`). When none is usable,
 	 *    REMOTE_ADDR is used.
+	 *
+	 * IPv4-mapped IPv6 addresses (`::ffff:192.0.2.1`) are treated as the IPv4
+	 * address they carry, for REMOTE_ADDR and forwarded values alike.
 	 * 4. The `zerospam_get_ip` filter has the last word (the Debug module's IP
 	 *    mock uses it).
 	 *
@@ -115,9 +119,33 @@ class User {
 	 * @return string IP address, or '' when REMOTE_ADDR is missing or invalid.
 	 */
 	public static function get_remote_addr(): string {
-		$remote = self::server_value( 'REMOTE_ADDR' );
+		return self::normalize_ip( self::server_value( 'REMOTE_ADDR' ) );
+	}
 
-		return '' !== $remote && rest_is_ip_address( $remote ) ? $remote : '';
+	/**
+	 * Validates an IP address and turns an IPv4-mapped IPv6 address
+	 * (`::ffff:192.0.2.1`) into the IPv4 address it carries, so range checks
+	 * and validation see one form.
+	 *
+	 * @param string $value Possible IP address.
+	 * @return string The address, or '' when it is not a valid IP address.
+	 */
+	public static function normalize_ip( string $value ): string {
+		$value = trim( $value );
+		if ( '' === $value || false === filter_var( $value, FILTER_VALIDATE_IP ) ) {
+			return '';
+		}
+
+		if ( false !== strpos( $value, ':' ) ) {
+			$binary = inet_pton( $value );
+			if ( false !== $binary && 16 === strlen( $binary ) && str_repeat( "\0", 10 ) . "\xff\xff" === substr( $binary, 0, 12 ) ) {
+				$ipv4 = inet_ntop( substr( $binary, 12 ) );
+
+				return false !== $ipv4 ? $ipv4 : '';
+			}
+		}
+
+		return rest_is_ip_address( $value ) ? $value : '';
 	}
 
 	/**
@@ -200,6 +228,11 @@ class User {
 		}
 
 		$ip = self::from_forwarded_for( self::server_value( 'HTTP_X_FORWARDED_FOR' ), $allow_private );
+		if ( false === $ip ) {
+			// The hop the last trusted proxy saw is unusable: no other header can be believed over it.
+			return '';
+		}
+
 		if ( '' !== $ip ) {
 			return $ip;
 		}
@@ -221,33 +254,38 @@ class User {
 	 * header reads "what the visitor sent, …, visitor, proxy 1, proxy 2". The
 	 * leftmost entries are whatever the visitor put in its own header and are
 	 * spoofable: only the entries added by trusted proxies can be believed.
-	 * Walking from the right, trusted proxies (and private or reserved
-	 * addresses, which are internal hops such as a load balancer or a
-	 * Kubernetes ingress) are skipped; the first other address is the visitor.
-	 * An entry that is not an IP address stops the walk, since nothing to its
-	 * left can be trusted.
+	 * Walking from the right, trusted proxies are skipped; the first other
+	 * entry is the address the last trusted proxy received the request from,
+	 * so it is the visitor. The walk stops there whatever that entry is: if it
+	 * is not a usable public address (not an IP, private, reserved, CGNAT),
+	 * the header is not believed at all. Skipping it instead would let a
+	 * forged entry to its left win, for example behind a load balancer that
+	 * does not add its own entry. Internal hops (an ingress or load balancer
+	 * on 10.0.0.0/8, …) must therefore be listed as trusted proxies.
 	 *
 	 * @param string $header        Header value.
 	 * @param bool   $allow_private Whether private and reserved addresses are visitor addresses.
-	 * @return string IP address, or '' when none is usable.
+	 * @return string|false IP address; '' when the header is missing or lists
+	 *                      trusted proxies only; false when the visitor entry
+	 *                      is unusable.
 	 */
-	private static function from_forwarded_for( string $header, bool $allow_private ): string {
+	private static function from_forwarded_for( string $header, bool $allow_private ) {
 		if ( '' === $header ) {
 			return '';
 		}
 
 		foreach ( array_reverse( explode( ',', $header ) ) as $hop ) {
-			$hop = self::strip_port( trim( $hop ) );
+			$hop = self::normalize_ip( self::strip_port( trim( $hop ) ) );
 
-			if ( ! rest_is_ip_address( $hop ) ) {
-				return '';
+			if ( '' === $hop ) {
+				return false;
 			}
 
-			if ( self::is_trusted_proxy( $hop ) || ( ! $allow_private && self::is_private_ip( $hop ) ) ) {
+			if ( self::is_trusted_proxy( $hop ) ) {
 				continue;
 			}
 
-			return $hop;
+			return $allow_private || ! self::is_private_ip( $hop ) ? $hop : false;
 		}
 
 		return '';
@@ -261,9 +299,9 @@ class User {
 	 * @return string IP address, or ''.
 	 */
 	private static function usable_forwarded_ip( string $value, bool $allow_private ): string {
-		$ip = self::strip_port( trim( $value ) );
+		$ip = self::normalize_ip( self::strip_port( trim( $value ) ) );
 
-		if ( '' === $ip || ! rest_is_ip_address( $ip ) || ( ! $allow_private && self::is_private_ip( $ip ) ) ) {
+		if ( '' === $ip || ( ! $allow_private && self::is_private_ip( $ip ) ) ) {
 			return '';
 		}
 
@@ -290,15 +328,17 @@ class User {
 	}
 
 	/**
-	 * Whether an address is private or reserved (10.0.0.0/8, 127.0.0.0/8,
-	 * 192.168.0.0/16, fc00::/7, ::1, …), as PHP's filter defines them (recent
-	 * PHP versions also count 2001:db8::/32, the IPv6 documentation range).
+	 * Whether an address is not public: private or reserved (10.0.0.0/8,
+	 * 127.0.0.0/8, 192.168.0.0/16, fc00::/7, ::1, …) as PHP's filter defines
+	 * them (recent PHP versions also count 2001:db8::/32, the IPv6
+	 * documentation range), or carrier-grade NAT (100.64.0.0/10).
 	 *
 	 * @param string $ip IP address.
 	 * @return bool
 	 */
 	private static function is_private_ip( string $ip ): bool {
-		return false === filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE );
+		return false === filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE )
+			|| Utilities::ip_in_range( $ip, '100.64.0.0/10' );
 	}
 
 	/**
@@ -384,6 +424,11 @@ class User {
 	 * @return bool
 	 */
 	private static function in_ranges( string $ip, array $ranges ): bool {
+		$ip = self::normalize_ip( $ip );
+		if ( '' === $ip ) {
+			return false;
+		}
+
 		foreach ( $ranges as $range ) {
 			if ( Utilities::ip_in_range( $ip, $range ) ) {
 				return true;

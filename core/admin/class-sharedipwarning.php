@@ -12,6 +12,7 @@ namespace ZeroSpam\Core\Admin;
 use ZeroSpam\Core\User;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Migrations;
+use ZeroSpam\Includes\Network_Settings;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -104,35 +105,43 @@ class Shared_IP_Warning {
 
 		$settings_url = admin_url( 'options-general.php?page=wordpress-zero-spam-settings&subview=settings#trusted_proxies' );
 		$dismiss_url  = wp_nonce_url( admin_url( 'admin-post.php?action=' . self::ACTION ), self::ACTION );
-
-		$address = '<code>' . esc_html( $verdict['ip'] ) . '</code>';
+		$locked       = self::is_setting_locked();
+		$address      = '<code>' . esc_html( $verdict['ip'] ) . '</code>';
 
 		if ( 'trusted_proxy' === $verdict['reason'] ) {
-			$detail = sprintf(
+			$summary = sprintf(
 				/* translators: %s: IP address */
-				esc_html__( 'Recent detections were recorded with the proxy address %s instead of the visitor\'s address.', 'zero-spam' ),
+				esc_html__( 'The address %s, which belongs to a proxy Zero Spam already trusts, was logged as a visitor. Either those detections were recorded before the proxy was trusted, or the proxy is not forwarding visitor addresses: check its X-Forwarded-For setup.', 'zero-spam' ),
 				$address
 			);
+			$action = $locked
+				? esc_html__( 'Trusted Proxy IPs is locked by your network administrator: ask your network administrator to check the proxy if the warning comes back.', 'zero-spam' )
+				: esc_html__( 'You can review the list under Settings → Zero Spam → Settings → Trusted Proxy IPs.', 'zero-spam' );
+			$button = esc_html__( 'Review trusted proxies', 'zero-spam' );
 		} else {
-			$detail = sprintf(
+			$summary = sprintf(
 				/* translators: 1: number of detections, 2: IP address */
-				esc_html__( 'The last %1$d detections all came from %2$s.', 'zero-spam' ),
+				esc_html__( 'Many different visitors appear to share one IP address, which usually means your site is behind a proxy or CDN that Zero Spam does not know about. The last %1$d detections all came from %2$s.', 'zero-spam' ),
 				self::SAMPLE_SIZE,
 				$address
 			);
+			$action = $locked
+				? esc_html__( 'Trusted Proxy IPs is locked by your network administrator: ask your network administrator to add the proxy\'s address there, or every visitor may be blocked together.', 'zero-spam' )
+				: esc_html__( 'Add its address under Settings → Zero Spam → Settings → Trusted Proxy IPs, or every visitor may be blocked together.', 'zero-spam' );
+			$button = esc_html__( 'Add a trusted proxy', 'zero-spam' );
 		}
 		?>
 		<div class="notice notice-warning" id="zerospam-shared-ip-warning">
 			<p>
 				<strong><?php esc_html_e( 'Zero Spam:', 'zero-spam' ); ?></strong>
-				<?php esc_html_e( 'Many different visitors appear to share one IP address, which usually means your site is behind a proxy or CDN that Zero Spam does not know about. Add its address under Settings → Zero Spam → Trusted Proxy IPs, or every visitor may be blocked together.', 'zero-spam' ); ?>
+				<?php echo wp_kses( $summary, array( 'code' => array() ) ); ?>
 			</p>
-			<p><?php echo wp_kses( $detail, array( 'code' => array() ) ); ?></p>
+			<p><?php echo esc_html( $action ); ?></p>
 			<p>
-				<a href="<?php echo esc_url( $settings_url ); ?>" class="button button-primary">
-					<?php esc_html_e( 'Add a trusted proxy', 'zero-spam' ); ?>
-				</a>
-				<a href="<?php echo esc_url( $dismiss_url ); ?>" class="button button-secondary">
+				<?php if ( ! $locked ) : ?>
+					<a href="<?php echo esc_url( $settings_url ); ?>" class="button button-primary"><?php echo esc_html( $button ); ?></a>
+				<?php endif; ?>
+				<a href="<?php echo esc_url( $dismiss_url ); ?>" class="button button-secondary" aria-label="<?php esc_attr_e( 'Dismiss the shared IP address warning', 'zero-spam' ); ?>">
 					<?php esc_html_e( 'Dismiss', 'zero-spam' ); ?>
 				</a>
 			</p>
@@ -294,6 +303,25 @@ class Shared_IP_Warning {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Whether the network administrator has locked Trusted Proxy IPs for this site.
+	 *
+	 * Reads the network settings option directly, as Network_Settings::is_locked()
+	 * does, because constructing Network_Settings registers another settings
+	 * resolver for the rest of the request.
+	 *
+	 * @return bool
+	 */
+	private static function is_setting_locked(): bool {
+		if ( ! is_multisite() ) {
+			return false;
+		}
+
+		$network = get_site_option( Network_Settings::META_KEY, array() );
+
+		return is_array( $network ) && ! empty( $network['settings']['trusted_proxies']['locked'] );
 	}
 
 	/**

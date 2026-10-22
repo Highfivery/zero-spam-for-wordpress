@@ -7,8 +7,10 @@
 
 declare( strict_types=1 );
 
+use ZeroSpam\Core\Admin\Shared_IP_Warning;
 use ZeroSpam\Core\Settings;
 use ZeroSpam\Core\User;
+use ZeroSpam\Includes\Migrations;
 use ZeroSpam\Includes\Network_Settings;
 use ZeroSpam\Includes\Network_Settings_Manager;
 use ZeroSpam\Tests\TestCase;
@@ -20,6 +22,7 @@ use ZeroSpam\Tests\TestCase;
  * @group ms-required
  * @covers \ZeroSpam\Includes\Network_Settings_Manager::set_setting
  * @covers \ZeroSpam\Core\User::get_ip
+ * @covers \ZeroSpam\Core\Admin\Shared_IP_Warning::render
  */
 class Test_Network_Trusted_Proxies extends TestCase {
 
@@ -45,5 +48,27 @@ class Test_Network_Trusted_Proxies extends TestCase {
 
 		$this->set_request( '/', '198.51.100.10' );
 		$this->assertSame( '198.51.100.10', User::get_ip(), 'The site\'s own list does not apply while the setting is locked.' );
+	}
+
+	/**
+	 * On a site where Trusted Proxy IPs is locked, the shared-IP warning asks
+	 * for the network administrator instead of linking to a disabled field.
+	 */
+	public function test_warning_points_to_the_network_admin_when_locked(): void {
+		$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
+		$this->as_role( 'administrator' );
+		$this->set_network_setting( 'trusted_proxies', '192.0.2.0/24', true );
+		delete_transient( Shared_IP_Warning::TRANSIENT );
+		update_option( Migrations::PROXY_DETECTION_SINCE_OPTION, wp_date( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
+		$this->insert_log_rows( Shared_IP_Warning::SAMPLE_SIZE, array( 'user_ip' => '198.51.100.50' ) );
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = '203.0.113.77';
+
+		ob_start();
+		( new Shared_IP_Warning() )->render();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'ask your network administrator', $html );
+		$this->assertStringNotContainsString( 'subview=settings#trusted_proxies', $html, 'No link to the locked field.' );
+		$this->assertStringContainsString( 'action=' . Shared_IP_Warning::ACTION, $html, 'It can still be dismissed.' );
 	}
 }
