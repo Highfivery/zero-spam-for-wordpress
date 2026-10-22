@@ -50,7 +50,15 @@ class Test_Uninstall_Single extends TestCase {
 	}
 
 	/**
-	 * Options, network options, transients, cron events and user meta are all removed.
+	 * Path of the current site's error log written by Utilities::log().
+	 */
+	private static function error_log_file(): string {
+		return trailingslashit( wp_upload_dir( null, false )['basedir'] ) . 'zerospam.log';
+	}
+
+	/**
+	 * Options, network options, transients, cron events, user meta and the
+	 * error log are all removed.
 	 */
 	public function test_removes_options_transients_and_cron_events(): void {
 		global $wpdb;
@@ -76,11 +84,17 @@ class Test_Uninstall_Single extends TestCase {
 		}
 		set_site_transient( 'zerospam_network_settings', 'seeded', HOUR_IN_SECONDS );
 
-		foreach ( self::PLUGIN_CRON_HOOKS as $hook ) {
+		$cron_hooks = array_merge( self::PLUGIN_CRON_HOOKS, self::PLUGIN_LEGACY_CRON_HOOKS );
+		foreach ( $cron_hooks as $hook ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', $hook );
 		}
 		$user_id = self::factory()->user->create();
-		update_user_meta( $user_id, 'zerospam_promo_dismissed', time() );
+		foreach ( self::PLUGIN_USER_META as $meta_key ) {
+			update_user_meta( $user_id, $meta_key, time() );
+		}
+		$log_file = self::error_log_file();
+		wp_mkdir_p( dirname( $log_file ) );
+		file_put_contents( $log_file, "203.0.113.10 seeded\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Seeds a fixture file.
 
 		$this->uninstall();
 		wp_cache_flush();
@@ -124,13 +138,19 @@ class Test_Uninstall_Single extends TestCase {
 		if ( false !== get_site_transient( 'zerospam_network_settings' ) ) {
 			$left[] = 'site transient zerospam_network_settings';
 		}
-		foreach ( self::PLUGIN_CRON_HOOKS as $hook ) {
+		foreach ( $cron_hooks as $hook ) {
 			if ( false !== wp_next_scheduled( $hook ) ) {
 				$left[] = "cron {$hook}";
 			}
 		}
-		if ( '' !== get_user_meta( $user_id, 'zerospam_promo_dismissed', true ) ) {
-			$left[] = 'user meta zerospam_promo_dismissed';
+		foreach ( self::PLUGIN_USER_META as $meta_key ) {
+			if ( '' !== get_user_meta( $user_id, $meta_key, true ) ) {
+				$left[] = "user meta {$meta_key}";
+			}
+		}
+		if ( file_exists( $log_file ) ) {
+			$left[] = 'error log uploads/zerospam.log';
+			wp_delete_file( $log_file );
 		}
 
 		$this->assertSame( array(), $left, 'uninstall.php left these behind.' );
@@ -216,13 +236,15 @@ class Test_Uninstall_Single extends TestCase {
 	 * Loaded outside WordPress's uninstall routine, the file does nothing.
 	 */
 	public function test_does_nothing_without_wp_uninstall_plugin(): void {
-		$code = sprintf( 'define( "ABSPATH", "/" ); require %s; echo "ran";', var_export( $this->uninstall_file(), true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- Builds a PHP string literal for the child process.
+		$marker = 'zerospam-uninstall-continued';
+		$code   = sprintf( 'define( "ABSPATH", "/" ); require %s; echo %s;', var_export( $this->uninstall_file(), true ), var_export( $marker, true ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- Builds PHP string literals for the child process.
 
 		$output = array();
 		$status = null;
-		exec( escapeshellarg( PHP_BINARY ) . ' -r ' . escapeshellarg( $code ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Runs the file in a separate PHP process without WordPress.
+		exec( escapeshellarg( PHP_BINARY ) . ' -d display_startup_errors=0 -r ' . escapeshellarg( $code ) . ' 2>&1', $output, $status ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Runs the file in a separate PHP process without WordPress.
 
-		$this->assertSame( 0, $status, implode( "\n", $output ) );
-		$this->assertSame( array(), $output, 'uninstall.php ran without WP_UNINSTALL_PLUGIN.' );
+		$output = implode( "\n", $output );
+		$this->assertSame( 0, $status, "uninstall.php did not exit cleanly without WP_UNINSTALL_PLUGIN:\n{$output}" );
+		$this->assertStringNotContainsString( $marker, $output, 'uninstall.php returned instead of exiting without WP_UNINSTALL_PLUGIN.' );
 	}
 }

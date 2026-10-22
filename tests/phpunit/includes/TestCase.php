@@ -80,6 +80,23 @@ abstract class TestCase extends WP_UnitTestCase {
 	);
 
 	/**
+	 * Cron hooks only older versions scheduled; uninstall still clears them.
+	 */
+	const PLUGIN_LEGACY_CRON_HOOKS = array(
+		'zerospam_api_usage_cleanup',
+		'zerospam_update_blacklist_terms',
+	);
+
+	/**
+	 * User meta keys the plugin writes or older versions wrote.
+	 */
+	const PLUGIN_USER_META = array(
+		'zero_spam_dismiss_notice_enhanced_protection',
+		'zero_spam_dismiss_notice_missing_license',
+		'zerospam_promo_dismissed',
+	);
+
+	/**
 	 * Per-site options the plugin writes besides the module options (some
 	 * only by older versions).
 	 */

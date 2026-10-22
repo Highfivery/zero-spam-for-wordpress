@@ -70,6 +70,7 @@ $zerospam_site_options = array(
 );
 
 // Per-site transients with fixed names. Deleted through the API so a persistent object cache is cleared too.
+// Runtime-named transients that live only in a persistent object cache are out of reach of the SQL sweeps; they expire on their own.
 $zerospam_site_transients = array(
 	'zero_spam_circuit_open',
 	'zero_spam_failure_count',
@@ -78,7 +79,7 @@ $zerospam_site_transients = array(
 	'zerospam_woo_options_migrated',
 );
 
-// Cron hooks; WordPress keeps a cron list per site. `zerospam_api_usage_cleanup` was scheduled by older versions.
+// Cron hooks; WordPress keeps a cron list per site. `zerospam_api_usage_cleanup` and `zerospam_update_blacklist_terms` were scheduled by older versions.
 $zerospam_cron_hooks = array(
 	'zerospam_aggregate_api_data',
 	'zerospam_aggregate_daily_stats',
@@ -87,6 +88,14 @@ $zerospam_cron_hooks = array(
 	'zerospam_check_api_anomalies',
 	'zerospam_davidwalsh_rotate_key',
 	'zerospam_network_weekly_summary',
+	'zerospam_update_blacklist_terms',
+);
+
+// User meta keys; user meta is shared by every site of a network. The `zero_spam_dismiss_notice_*` keys were written by older versions.
+$zerospam_user_meta = array(
+	'zero_spam_dismiss_notice_enhanced_protection',
+	'zero_spam_dismiss_notice_missing_license',
+	'zerospam_promo_dismissed',
 );
 
 // Option name prefixes swept on every site after the named options are gone.
@@ -107,7 +116,7 @@ $zerospam_option_prefixes = array(
 	'_site_transient_timeout_zerospam_',
 );
 
-// Per-site tables ({prefix}), see DB::$tables. `wpzerospam_blacklist` is defined there but never created.
+// Per-site tables ({prefix}), see DB::$tables. `wpzerospam_blacklist` was created by 4.x and is no longer created.
 $zerospam_site_tables = array(
 	'wpzerospam_blacklist',
 	'wpzerospam_blocked',
@@ -236,6 +245,10 @@ $zerospam_uninstall_site = static function () use (
 	foreach ( $zerospam_site_tables as $table ) {
 		$zerospam_drop_table( $wpdb->prefix . $table );
 	}
+
+	// Utilities::log() writes this site's error log (it can contain visitor IPs) to uploads/, or uploads/sites/{id}/ on a subsite.
+	$uploads = wp_upload_dir( null, false );
+	wp_delete_file( trailingslashit( $uploads['basedir'] ) . 'zerospam.log' );
 };
 
 if ( is_multisite() ) {
@@ -274,5 +287,6 @@ foreach ( $zerospam_network_tables as $zerospam_table ) {
 	$zerospam_drop_table( $wpdb->base_prefix . $zerospam_table );
 }
 
-// User meta is shared by every site of a network.
-delete_metadata( 'user', 0, 'zerospam_promo_dismissed', '', true );
+foreach ( $zerospam_user_meta as $zerospam_meta_key ) {
+	delete_metadata( 'user', 0, $zerospam_meta_key, '', true );
+}

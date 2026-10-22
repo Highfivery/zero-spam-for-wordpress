@@ -110,6 +110,13 @@ class Test_Uninstall_Network extends TestCase {
 	}
 
 	/**
+	 * Path of the current site's error log written by Utilities::log().
+	 */
+	private static function error_log_file(): string {
+		return trailingslashit( wp_upload_dir( null, false )['basedir'] ) . 'zerospam.log';
+	}
+
+	/**
 	 * Module options, site options and transients are removed from every site.
 	 */
 	public function test_removes_options_on_every_site(): void {
@@ -182,12 +189,70 @@ class Test_Uninstall_Network extends TestCase {
 	}
 
 	/**
-	 * Cron events are cleared on every site.
+	 * Every site's error log (uploads/ or uploads/sites/{id}/) is deleted.
 	 */
-	public function test_removes_cron_events_on_every_site(): void {
+	public function test_deletes_the_error_log_on_every_site(): void {
+		$files = array();
 		foreach ( $this->all_sites() as $blog_id ) {
 			switch_to_blog( $blog_id );
-			foreach ( self::PLUGIN_CRON_HOOKS as $hook ) {
+			$files[ $blog_id ] = self::error_log_file();
+			restore_current_blog();
+		}
+		$this->assertCount( count( $files ), array_unique( $files ), 'Each site needs its own error log path.' );
+		foreach ( $files as $file ) {
+			wp_mkdir_p( dirname( $file ) );
+			file_put_contents( $file, "203.0.113.10 seeded\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Seeds a fixture file.
+		}
+
+		$this->uninstall();
+		while ( ms_is_switched() ) {
+			restore_current_blog();
+		}
+
+		$left = array();
+		foreach ( $files as $blog_id => $file ) {
+			if ( file_exists( $file ) ) {
+				$left[] = "site {$blog_id}: {$file}";
+				wp_delete_file( $file );
+			}
+		}
+
+		$this->assertSame( array(), $left, 'uninstall.php left these error logs behind.' );
+	}
+
+	/**
+	 * Legacy user meta is removed.
+	 */
+	public function test_removes_user_meta(): void {
+		$user_id = self::factory()->user->create();
+		foreach ( self::PLUGIN_USER_META as $meta_key ) {
+			update_user_meta( $user_id, $meta_key, time() );
+		}
+
+		$this->uninstall();
+		while ( ms_is_switched() ) {
+			restore_current_blog();
+		}
+		wp_cache_flush();
+
+		$left = array();
+		foreach ( self::PLUGIN_USER_META as $meta_key ) {
+			if ( '' !== get_user_meta( $user_id, $meta_key, true ) ) {
+				$left[] = $meta_key;
+			}
+		}
+
+		$this->assertSame( array(), $left, 'uninstall.php left this user meta behind.' );
+	}
+
+	/**
+	 * Cron events, including those older versions scheduled, are cleared on every site.
+	 */
+	public function test_removes_cron_events_on_every_site(): void {
+		$cron_hooks = array_merge( self::PLUGIN_CRON_HOOKS, self::PLUGIN_LEGACY_CRON_HOOKS );
+		foreach ( $this->all_sites() as $blog_id ) {
+			switch_to_blog( $blog_id );
+			foreach ( $cron_hooks as $hook ) {
 				wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', $hook );
 			}
 			restore_current_blog();
@@ -201,7 +266,7 @@ class Test_Uninstall_Network extends TestCase {
 		$left = array();
 		foreach ( $this->all_sites() as $blog_id ) {
 			switch_to_blog( $blog_id );
-			foreach ( self::PLUGIN_CRON_HOOKS as $hook ) {
+			foreach ( $cron_hooks as $hook ) {
 				if ( false !== wp_next_scheduled( $hook ) ) {
 					$left[] = "site {$blog_id}: {$hook}";
 				}
