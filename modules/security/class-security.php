@@ -50,6 +50,13 @@ class Security {
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'remove_resource_query_parameters' )
 		) {
+			add_filter( 'style_loader_src', array( $this, 'remove_resource_query_params' ), 10, 2 );
+			add_filter( 'script_loader_src', array( $this, 'remove_resource_query_params' ), 10, 2 );
+		}
+
+		if (
+			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'disable_emojis' )
+		) {
 			remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
 			remove_action( 'admin_print_scripts', 'print_emoji_detection_script' );
 			remove_action( 'wp_print_styles', 'print_emoji_styles' );
@@ -58,13 +65,6 @@ class Security {
 			remove_filter( 'comment_text_rss', 'wp_staticize_emoji' );
 			remove_filter( 'wp_mail', 'wp_staticize_emoji_for_email' );
 			add_filter( 'tiny_mce_plugins', array( $this, 'disable_emojis' ) );
-		}
-
-		if (
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'disable_emojis' )
-		) {
-			add_filter( 'style_loader_src', array( $this, 'remove_resource_query_params' ), 10, 2 );
-			add_filter( 'script_loader_src', array( $this, 'remove_resource_query_params' ), 10, 2 );
 		}
 
 		if (
@@ -179,7 +179,10 @@ class Security {
 	}
 
 	/**
-	 * Disables emojis
+	 * Removes the emoji plugin from the TinyMCE editor.
+	 *
+	 * @param array $plugins TinyMCE plugin names.
+	 * @return array TinyMCE plugin names without wpemoji.
 	 */
 	public function disable_emojis( $plugins ) {
 		if ( is_array( $plugins ) ) {
@@ -193,11 +196,14 @@ class Security {
 	 * Disables RSS feeds
 	 */
 	public function disable_rss() {
-		wp_die( __( 'No feed available.', 'zero-spam' ) );
+		wp_die( esc_html__( 'No feed available.', 'zero-spam' ) );
 	}
 
 	/**
-	 * Removes resource query parameters
+	 * Removes the WordPress version query argument from a script or style URL.
+	 *
+	 * @param string $src Script or style URL.
+	 * @return string URL without a ver argument that matches the WordPress version.
 	 */
 	public function remove_resource_query_params( $src ) {
 		if ( strpos( $src, 'ver=' . get_bloginfo( 'version' ) ) ) {
@@ -219,11 +225,11 @@ class Security {
 	 * Block access to xmlrpc.php
 	 */
 	public function block_xmlrpc() {
-		$current_url = rtrim( $_SERVER['REQUEST_URI'], '/' );
+		$current_url = isset( $_SERVER['REQUEST_URI'] ) ? rtrim( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ), '/' ) : '';
 		add_filter(
 			'bloginfo_url',
 			function ( $output, $property ) {
-				return ( $property == 'pingback_url' ) ? null : $output;
+				return ( 'pingback_url' === $property ) ? null : $output;
 			},
 			11,
 			2
@@ -234,7 +240,7 @@ class Security {
 		if ( strpos( $current_url, '/xmlrpc.php' ) !== false ) {
 			status_header( 404 );
 			nocache_headers();
-			wp_die( __( 'This file is not accessible.', 'zero-spam' ) );
+			wp_die( esc_html__( 'This file is not accessible.', 'zero-spam' ) );
 		}
 	}
 }
