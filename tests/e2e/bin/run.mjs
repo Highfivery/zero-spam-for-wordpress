@@ -94,10 +94,20 @@ for ( const l of lines ) {
 const sha = run( 'git', [ 'rev-parse', '--short', 'HEAD' ] ).stdout.trim() || 'nogit';
 const stamp = new Date().toISOString().replace( /[-:]/g, '' ).replace( /\..*$/, '' );
 const runDir = join( ROOT, 'artifacts/e2e', `${ stamp }-${ sha }` );
-mkdirSync( runDir, { recursive: true } );
 const latest = join( ROOT, 'artifacts/e2e/latest' );
-rmSync( latest, { force: true } );
-symlinkSync( runDir, latest );
+
+/**
+ * Creates the run directory and points artifacts/e2e/latest at it, once the
+ * preflight has passed (a refused run leaves the previous results in place).
+ */
+function ensureRunDir() {
+	if ( existsSync( runDir ) ) {
+		return;
+	}
+	mkdirSync( runDir, { recursive: true } );
+	rmSync( latest, { force: true } );
+	symlinkSync( runDir, latest );
+}
 
 const playwrightArgs = [ 'test', '-c', 'tests/e2e/playwright.config.ts' ];
 const project = opt( 'project' );
@@ -176,6 +186,7 @@ try {
 			process.stdout.write( `preflight ${ t }: OK (WordPress ${ check.ping.wp }, PHP ${ check.ping.php }, Zero Spam ${ check.ping.plugin })\n` );
 		}
 
+		ensureRunDir();
 		const dirFor = ( t ) => join( runDir, `${ t }${ 'min' === line ? '-min' : '' }` );
 		const codes = await Promise.all( wpEnvTargets.map( ( t ) => runTarget( t, line, dirFor( t ) ).then( ( code ) => ( { target: t, line, code } ) ) ) );
 		results.push( ...codes );
