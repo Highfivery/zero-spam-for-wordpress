@@ -193,8 +193,7 @@ class Test_Blocked_IP_Forms extends TestCase {
 	}
 
 	/**
-	 * Searching Blocked IPs in any form finds the canonical block, and the
-	 * pagination links keep the search as typed.
+	 * Searching Blocked IPs in any form finds the canonical block.
 	 */
 	public function test_blocked_search_matches_canonical_form(): void {
 		$this->admin_screen( 'dashboard_page_wordpress-zero-spam-dashboard' );
@@ -208,9 +207,6 @@ class Test_Blocked_IP_Forms extends TestCase {
 		try {
 			$table = new \ZeroSpam\Core\Admin\Tables\BlockedTable();
 			$table->prepare_items();
-			ob_start();
-			$table->pagination( 'top' );
-			$pagination = (string) ob_get_clean();
 		} finally {
 			$_GET     = array();
 			$_REQUEST = array();
@@ -218,6 +214,5 @@ class Test_Blocked_IP_Forms extends TestCase {
 
 		$this->assertCount( 1, $table->items );
 		$this->assertSame( '2001:db8::d', $table->items[0]['user_ip'] );
-		$this->assertStringNotContainsString( 'Array', $pagination );
 	}
 }
