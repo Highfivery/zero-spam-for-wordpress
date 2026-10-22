@@ -972,7 +972,8 @@ a.zerospam-dashboard__menu-link {
   &woocommerce_registration,
   &gravityforms,
   &formidable,
-  &wp_user_avatar {
+  &wp_user_avatar,
+  &elementor {
     &::before {
       background-position: center;
       background-repeat: no-repeat;
@@ -1053,6 +1054,12 @@ a.zerospam-dashboard__menu-link {
   &gravityforms {
     &::before {
       background-image: url("../../modules/gravityforms/icon-gravity-forms.svg");
+    }
+  }
+
+  &elementor {
+    &::before {
+      background-image: url("../../modules/elementor/icon-elementor.svg");
     }
   }
 }

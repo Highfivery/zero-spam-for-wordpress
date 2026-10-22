@@ -18,7 +18,8 @@ namespace ZeroSpam\Tests;
  * (ZeroSpam\Core, ZeroSpam\Modules, ZeroSpam\Modules\Login); PHP resolves an
  * unqualified call to the namespaced function first, so these run instead of
  * the real network and header functions. headers_sent() is stubbed in
- * ZeroSpam\Core so Access reaches its setcookie() call under the CLI.
+ * ZeroSpam\Core and ZeroSpam\Modules\Login so Access and Login reach their
+ * setcookie() calls under the CLI.
  */
 final class Stubs {
 
@@ -30,7 +31,7 @@ final class Stubs {
 	public static array $cookies = array();
 
 	/**
-	 * Answer for headers_sent() in ZeroSpam\Core.
+	 * Answer for headers_sent() in ZeroSpam\Core and ZeroSpam\Modules\Login.
 	 *
 	 * @var bool
 	 */

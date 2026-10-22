@@ -42,7 +42,7 @@ class Login {
 			add_action( 'login_form', array( $this, 'add_honeypot' ), 10 );
 
 			// Processes the form.
-			add_filter( 'wp_authenticate_user', array( $this, 'process_form' ), 10, 2 );
+			add_filter( 'wp_authenticate_user', array( $this, 'process_form' ), 10, 1 );
 
 			// Load scripts.
 			add_action( 'login_enqueue_scripts', array( $this, 'add_scripts' ), 10 );
@@ -57,52 +57,33 @@ class Login {
 	 *
 	 * This token proves the user visited the login page and is the same client,
 	 * even if the POST payload is scrubbed by an intermediate plugin (e.g. math captcha).
+	 * Nothing is set once headers have been sent (WP-CLI, or output already
+	 * started), since the cookie could not reach the browser.
 	 */
 	public function set_intent_token() {
 		// Only run on the login page.
-		if ( ! did_action( 'login_init' ) ) {
+		if ( ! did_action( 'login_init' ) || headers_sent() ) {
 			return;
 		}
 
 		// Generate a secure random token.
 		$token = wp_generate_password( 32, false, false );
 
-		// Set a transient with a short TTL (10 minutes).
-		// We use the token as part of the key to keep it unique per session.
+		// Set a transient with a short TTL, keyed by the token to keep it unique per visitor.
 		set_transient( 'zerospam_login_intent_' . $token, time(), 10 * MINUTE_IN_SECONDS );
 
-		// Set a secure cookie.
-		$secure = is_ssl();
-		$samesite = PHP_VERSION_ID < 70300 ? null : 'Lax'; // PHP 7.3+ supports SameSite in setcookie options.
-
-		// WordPress doesn't support SameSite in setcookie() natively pre-5.5 fully?
-		// Actually, let's use standard PHP setcookie for maximum compatibility or WP's if possible.
-		// WP 6.9 environment so use setcookie with array options for modern PHP.
-		if ( PHP_VERSION_ID >= 70300 ) {
-			setcookie(
-				'zerospam_login_intent',
-				$token,
-				array(
-					'expires'  => time() + ( 10 * MINUTE_IN_SECONDS ),
-					'path'     => COOKIEPATH,
-					'domain'   => COOKIE_DOMAIN,
-					'secure'   => $secure,
-					'httponly' => true,
-					'samesite' => 'Lax',
-				)
-			);
-		} else {
-			// Fallback for older PHP.
-			setcookie(
-				'zerospam_login_intent',
-				$token,
-				time() + ( 10 * MINUTE_IN_SECONDS ),
-				COOKIEPATH,
-				COOKIE_DOMAIN,
-				$secure,
-				true
-			);
-		}
+		setcookie(
+			'zerospam_login_intent',
+			$token,
+			array(
+				'expires'  => time() + ( 10 * MINUTE_IN_SECONDS ),
+				'path'     => COOKIEPATH,
+				'domain'   => COOKIE_DOMAIN,
+				'secure'   => is_ssl(),
+				'httponly' => true,
+				'samesite' => 'Lax',
+			)
+		);
 	}
 
 	/**
@@ -128,10 +109,10 @@ class Login {
 	/**
 	 * Processes a login attempt.
 	 *
-	 * @param WP_User|WP_Error $user     WP_User or WP_Error object if a previous callback failed authentication.
-	 * @param string           $password Password to check against the user.
+	 * @param \WP_User|\WP_Error $user WP_User or WP_Error object if a previous callback failed authentication.
+	 * @return \WP_User|\WP_Error
 	 */
-	public function process_form( $user, $password ) {
+	public function process_form( $user ) {
 		// @codingStandardsIgnoreLine
 		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
 
