@@ -725,20 +725,20 @@ class Settings {
 
 					if ( 'use_recommended_settings' === $label_for ) {
 						$html = sprintf(
-							'<a href="%s" class="button button-primary">%s</a>',
+							'<a href="%s" class="button">%s</a>',
 							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' ) ),
 							esc_html__( 'Override & Update Settings', 'zero-spam' )
 						);
 					} elseif ( 'update_blocked_email_domains' === $label_for && $disabled ) {
 						// Not a link while disabled: the action would change a locked setting.
 						$html = sprintf(
-							'<button type="button" class="button button-primary" disabled aria-describedby="%s">%s</button>',
+							'<button type="button" class="button" disabled aria-describedby="%s">%s</button>',
 							esc_attr( $description_id ),
 							esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
 						);
 					} elseif ( 'update_blocked_email_domains' === $label_for ) {
 						$html = sprintf(
-							'<a href="%s" class="button button-primary">%s</a>',
+							'<a href="%s" class="button">%s</a>',
 							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-emails' ), 'update-blocked-emails', 'zero-spam' ) ),
 							esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
 						);
@@ -750,7 +750,7 @@ class Settings {
 						);
 					} elseif ( 'update_disallowed_words' === $label_for ) {
 						$html = sprintf(
-							'<a href="%s" class="button button-primary">%s</a>',
+							'<a href="%s" class="button">%s</a>',
 							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ), 'update-disallowed-words', 'zero-spam' ) ),
 							esc_html__( 'Override & Update Core Disallowed Words', 'zero-spam' )
 						);

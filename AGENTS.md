@@ -494,10 +494,6 @@ npm run env:stop                 # stop both wp-env sites
     "Data refreshed." string is never put in a live region (WCAG 4.1.3);
   - the add/update block modal (`assets/js/admin.js`) does not move focus
     into the modal or return it to the button that opened it;
-  - no plugin stylesheet has a `prefers-reduced-motion` rule;
-  - `assets/css/admin.css` hides every settings checkbox and radio with
-    `display: none` and draws the switch on the label, so the settings
-    toggles cannot be reached or switched with the keyboard (WCAG 2.1.1);
   - the admin header logo (`<img width="250">` in
     `includes/templates/admin-header.php`) makes the plugin screens 378px wide
     at a 320px viewport, where WordPress's own screens fit (WCAG 1.4.10); the
@@ -514,10 +510,27 @@ npm run env:stop                 # stop both wp-env sites
     network settings value controls (`render_setting_field()`), the network
     import file input and the Network Stats period select;
   - the Facebook `<iframe>` in the dashboard sidebar has no `title`;
-  - text below 4.5:1 contrast: the header "Enhanced Protection is DISABLED"
-    link, the restyled "Save Settings" and other buttons, list-table sort
-    headers and IP links, the "Tweets by ZeroSpamOrg" link, the promo notice's
-    call to action and status text, and the Network Stats trend badges.
+  - text below 4.5:1 contrast: the admin link colour `#ff2929` (3.74:1) on
+    the header "Enhanced Protection is DISABLED" link, list-table sort headers
+    and IP links, the "Tweets by ZeroSpamOrg" link and links in setting
+    descriptions and dashboard blocks; `<code>` in the David Walsh help text;
+    the promo notice's status text; and the Network Stats trend badges (the
+    `color-contrast` entries of `tests/e2e/a11y/allowlist.json`).
+- Admin UI debt not covered by a test yet:
+  - the settings row titles are printed by WordPress's settings API as
+    `<label for="{setting key}">` (`label_for`), but checkbox and radio inputs
+    have the id `{setting key}{option}`, so for those settings the title
+    labels nothing;
+  - the Network Settings page (`render_setting_field()` in
+    `includes/admin/class-networksettingspage.php`) shows native checkboxes
+    inside their labels, in WordPress blue, where the site settings show the
+    plugin's `.zerospam-switch`, so the same setting looks different on the
+    two pages.
+- `assets/css/admin.css` is not a pure compile of `assets/src/scss/admin.scss`:
+  about 790 lines (documentation, feature/step lists, labels) exist only in
+  the CSS. Change both by hand, keeping the compiled regions identical to
+  what sass produces, until those rules are moved into the SCSS. There is no
+  source map.
 - `includes/templates/admin-bar-chart.php` and `admin-line-chart.php` still
   load Chart.js from a CDN (the e2e browser serves the bundled
   `assets/js/vendor/chart.umd.min.js` instead and lists the request in the

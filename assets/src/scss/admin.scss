@@ -362,24 +362,24 @@ $breakpoints: (
 
 %zerospam-button--secondary {
   background-color: #fff;
-  border-color: #8c8f94;
+  border-color: #787c82;
   color: #1d2327;
 
   &:focus {
     background-color: #fff;
-    border-color: #8c8f94;
+    border-color: #787c82;
     color: #1d2327;
   }
 
   &:hover {
     background-color: #f0f0f1;
-    border-color: #8c8f94;
+    border-color: #787c82;
     color: #1d2327;
   }
 
   &:active {
     background-color: #dcdcde;
-    border-color: #8c8f94;
+    border-color: #787c82;
     color: #1d2327;
   }
 
@@ -894,12 +894,15 @@ a.zerospam-dashboard__menu-link {
     display: inline-flex;
     gap: 0.5rem;
     line-height: 22px;
+    // A 24px target even without option text (WCAG 2.5.8).
+    min-height: 24px;
     position: relative;
 
     // Track.
     &::before {
       background-color: #8c8f94;
       border-radius: 11px;
+      box-sizing: border-box;
       content: "";
       flex-shrink: 0;
       height: 22px;
@@ -966,6 +969,53 @@ a.zerospam-dashboard__menu-link {
 
   &__input:checked:disabled + &__label:hover::before {
     background-color: var(--zerospam-trinary);
+  }
+
+  // Forced colours (Windows High Contrast): draw the track and thumb in
+  // system colours, so the switch shows and not only its 8px glyph.
+  @media (forced-colors: active) {
+    &__label::before,
+    &__label::after {
+      forced-color-adjust: none;
+    }
+
+    &__label::before,
+    &__label:hover::before,
+    &__input:checked + &__label::before,
+    &__input:checked + &__label:hover::before,
+    &__input:disabled + &__label:hover::before,
+    &__input:checked:disabled + &__label:hover::before {
+      background-color: Canvas;
+      border: 1px solid ButtonText;
+    }
+
+    &__label::after {
+      background: ButtonText;
+      box-shadow: none;
+    }
+
+    &__input:checked + &__label::before,
+    &__input:checked + &__label:hover::before {
+      border-color: Highlight;
+    }
+
+    &__input:checked + &__label::after {
+      background: Highlight;
+    }
+
+    &__input:focus-visible + &__label::before {
+      outline-color: Highlight;
+    }
+
+    &__input:disabled + &__label::before,
+    &__input:disabled + &__label:hover::before {
+      border-color: GrayText;
+      opacity: 1;
+    }
+
+    &__input:disabled + &__label::after {
+      background: GrayText;
+    }
   }
 }
 

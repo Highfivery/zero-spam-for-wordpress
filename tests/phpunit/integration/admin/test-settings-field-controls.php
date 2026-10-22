@@ -12,8 +12,9 @@ use ZeroSpam\Tests\TestCase;
 
 /**
  * Checkbox settings are switches whose input stays in the accessibility tree;
- * radios keep WordPress's control; the "Override & Update" actions are the
- * primary button of their card.
+ * radios keep WordPress's control; the setting actions ("Override & Update",
+ * "Regenerate Honeypot ID") are neutral secondary buttons, so Save Settings
+ * stays the only primary button of a settings view.
  *
  * @covers \ZeroSpam\Core\Admin\Settings::settings_field
  */
@@ -92,6 +93,7 @@ class Test_Settings_Field_Controls extends TestCase {
 		$label = $xpath->query( '//label[@for="verify_commentsenabled"]' )->item( 0 );
 		$this->assertInstanceOf( DOMElement::class, $label );
 		$this->assertSame( 'zerospam-switch__label', $label->getAttribute( 'class' ) );
+		$this->assertSame( $label, self::next_element( $input ), 'The label follows the input: the CSS styles it with "input + label".' );
 		$text = $xpath->query( './/span[@class="zerospam-switch__text"]', $label )->item( 0 );
 		$this->assertSame( 'Check comments for spam.', self::text_of( $text ) );
 		$this->assertSame( 1, $xpath->query( './/strong', $label )->length, 'Allowed markup in the option text is kept.' );
@@ -114,7 +116,11 @@ class Test_Settings_Field_Controls extends TestCase {
 		$this->assertInstanceOf( DOMElement::class, $label );
 		$this->assertSame( 'Usage Data Sharing', self::text_of( $xpath->query( './/span[@class="screen-reader-text"]', $label )->item( 0 ) ) );
 		$this->assertSame( 0, $xpath->query( './/span[@class="zerospam-switch__text"]', $label )->length );
-		$this->assertFalse( $xpath->query( '//input[@id="share_dataenabled"]' )->item( 0 )->hasAttribute( 'checked' ) );
+
+		$input = $xpath->query( '//input[@id="share_dataenabled"]' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $input );
+		$this->assertFalse( $input->hasAttribute( 'checked' ) );
+		$this->assertSame( $label, self::next_element( $input ), 'The label follows the input.' );
 	}
 
 	/**
@@ -142,8 +148,12 @@ class Test_Settings_Field_Controls extends TestCase {
 			$this->assertFalse( $radio->hasAttribute( 'role' ) );
 			$this->assertFalse( $radio->hasAttribute( 'class' ) );
 		}
-		$this->assertTrue( $xpath->query( '//input[@id="block_handler403"]' )->item( 0 )->hasAttribute( 'checked' ) );
-		$this->assertSame( 'Show them an error message', self::text_of( $xpath->query( '//label[@for="block_handler403"]' )->item( 0 ) ) );
+		$radio = $xpath->query( '//input[@id="block_handler403"]' )->item( 0 );
+		$label = $xpath->query( '//label[@for="block_handler403"]' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $radio );
+		$this->assertTrue( $radio->hasAttribute( 'checked' ) );
+		$this->assertSame( 'Show them an error message', self::text_of( $label ) );
+		$this->assertSame( $label, self::next_element( $radio ), 'The label follows the radio.' );
 	}
 
 	/**
@@ -174,14 +184,20 @@ class Test_Settings_Field_Controls extends TestCase {
 	}
 
 	/**
-	 * The "Override & Update" actions are primary buttons; regenerating the honeypot is secondary.
+	 * The setting actions are neutral secondary buttons (plain .button), also while locked.
 	 *
 	 * @dataProvider data_action_buttons
 	 *
-	 * @param string $key      Setting key.
-	 * @param string $expected Expected class attribute.
+	 * @param string $key    Setting key.
+	 * @param bool   $locked Whether the network administrator locked the setting.
+	 * @param string $tag    Expected element.
 	 */
-	public function test_action_buttons_use_the_intended_level( string $key, string $expected ): void {
+	public function test_action_buttons_are_secondary( string $key, bool $locked, string $tag ): void {
+		$lock = static function ( bool $disabled, string $field_key ) use ( $key, $locked ): bool {
+			return $locked && $key === $field_key ? true : $disabled;
+		};
+		add_filter( 'zerospam_setting_field_disabled', $lock, 10, 2 );
+
 		$xpath = $this->render(
 			array(
 				'label_for' => $key,
@@ -190,22 +206,43 @@ class Test_Settings_Field_Controls extends TestCase {
 			)
 		);
 
-		$button = $xpath->query( '//*[contains(concat(" ", @class, " "), " button ")]' )->item( 0 );
+		remove_filter( 'zerospam_setting_field_disabled', $lock, 10 );
+
+		$buttons = $xpath->query( '//*[contains(concat(" ", @class, " "), " button ")]' );
+		$this->assertSame( 1, $buttons->length );
+		$button = $buttons->item( 0 );
 		$this->assertInstanceOf( DOMElement::class, $button );
-		$this->assertSame( $expected, $button->getAttribute( 'class' ) );
+		$this->assertSame( $tag, $button->tagName ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOM API property.
+		$this->assertSame( 'button', $button->getAttribute( 'class' ), 'Secondary: no button-primary, Save Settings is the only primary.' );
+		$this->assertSame( $locked, $button->hasAttribute( 'disabled' ) );
 	}
 
 	/**
-	 * Action settings and the button class they render.
+	 * Action settings, whether they are locked, and the element they render.
 	 *
-	 * @return array<string, array{0: string, 1: string}>
+	 * @return array<string, array{0: string, 1: bool, 2: string}>
 	 */
 	public static function data_action_buttons(): array {
 		return array(
-			'recommended settings'   => array( 'use_recommended_settings', 'button button-primary' ),
-			'blocked email domains'  => array( 'update_blocked_email_domains', 'button button-primary' ),
-			'core disallowed words'  => array( 'update_disallowed_words', 'button button-primary' ),
-			'regenerate honeypot id' => array( 'regenerate_honeypot', 'button' ),
+			'recommended settings'           => array( 'use_recommended_settings', false, 'a' ),
+			'blocked email domains'          => array( 'update_blocked_email_domains', false, 'a' ),
+			'blocked email domains (locked)' => array( 'update_blocked_email_domains', true, 'button' ),
+			'core disallowed words'          => array( 'update_disallowed_words', false, 'a' ),
+			'regenerate honeypot id'         => array( 'regenerate_honeypot', false, 'a' ),
 		);
+	}
+
+	/**
+	 * The next element sibling of a node.
+	 *
+	 * @param DOMNode $node Node.
+	 */
+	private static function next_element( DOMNode $node ): ?DOMNode {
+		$next = $node->nextSibling; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOM API property.
+		while ( null !== $next && XML_ELEMENT_NODE !== $next->nodeType ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOM API property.
+			$next = $next->nextSibling; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOM API property.
+		}
+
+		return $next;
 	}
 }

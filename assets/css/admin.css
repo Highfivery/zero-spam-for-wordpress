@@ -322,25 +322,25 @@
 .zerospam-table-form .button,
 .zerospam-form .button, .zerospam-block .button, .zerospam-button--secondary {
   background-color: #fff;
-  border-color: #8c8f94;
+  border-color: #787c82;
   color: #1d2327;
 }
 .zerospam-table-form .button:focus,
 .zerospam-form .button:focus, .zerospam-block .button:focus, .zerospam-button--secondary:focus {
   background-color: #fff;
-  border-color: #8c8f94;
+  border-color: #787c82;
   color: #1d2327;
 }
 .zerospam-table-form .button:hover,
 .zerospam-form .button:hover, .zerospam-block .button:hover, .zerospam-button--secondary:hover {
   background-color: #f0f0f1;
-  border-color: #8c8f94;
+  border-color: #787c82;
   color: #1d2327;
 }
 .zerospam-table-form .button:active,
 .zerospam-form .button:active, .zerospam-block .button:active, .zerospam-button--secondary:active {
   background-color: #dcdcde;
-  border-color: #8c8f94;
+  border-color: #787c82;
   color: #1d2327;
 }
 .zerospam-table-form .button:disabled,
@@ -779,11 +779,13 @@ a.zerospam-dashboard__menu-link--active {
   display: inline-flex;
   gap: 0.5rem;
   line-height: 22px;
+  min-height: 24px;
   position: relative;
 }
 .zerospam-switch__label::before {
   background-color: #8c8f94;
   border-radius: 11px;
+  box-sizing: border-box;
   content: "";
   flex-shrink: 0;
   height: 22px;
@@ -833,6 +835,35 @@ a.zerospam-dashboard__menu-link--active {
 }
 .zerospam-switch__input:checked:disabled + .zerospam-switch__label:hover::before {
   background-color: var(--zerospam-trinary);
+}
+@media (forced-colors: active) {
+  .zerospam-switch__label::before, .zerospam-switch__label::after {
+    forced-color-adjust: none;
+  }
+  .zerospam-switch__label::before, .zerospam-switch__label:hover::before, .zerospam-switch__input:checked + .zerospam-switch__label::before, .zerospam-switch__input:checked + .zerospam-switch__label:hover::before, .zerospam-switch__input:disabled + .zerospam-switch__label:hover::before, .zerospam-switch__input:checked:disabled + .zerospam-switch__label:hover::before {
+    background-color: Canvas;
+    border: 1px solid ButtonText;
+  }
+  .zerospam-switch__label::after {
+    background: ButtonText;
+    box-shadow: none;
+  }
+  .zerospam-switch__input:checked + .zerospam-switch__label::before, .zerospam-switch__input:checked + .zerospam-switch__label:hover::before {
+    border-color: Highlight;
+  }
+  .zerospam-switch__input:checked + .zerospam-switch__label::after {
+    background: Highlight;
+  }
+  .zerospam-switch__input:focus-visible + .zerospam-switch__label::before {
+    outline-color: Highlight;
+  }
+  .zerospam-switch__input:disabled + .zerospam-switch__label::before, .zerospam-switch__input:disabled + .zerospam-switch__label:hover::before {
+    border-color: GrayText;
+    opacity: 1;
+  }
+  .zerospam-switch__input:disabled + .zerospam-switch__label::after {
+    background: GrayText;
+  }
 }
 
 .zerospam-form-field-container {
