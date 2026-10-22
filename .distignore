@@ -32,3 +32,6 @@ artifacts
 test-results
 playwright-report
 blob-report
+AGENTS.md
+CLAUDE.md
+.claude
