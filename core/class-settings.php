@@ -447,6 +447,18 @@ class Settings {
 			'html'    => '', // Generated dynamically during render.
 		);
 
+		self::$settings['rescue_mode'] = array(
+			'title'   => __( 'Rescue Mode', 'zero-spam' ),
+			'section' => 'general',
+			'module'  => 'settings',
+			'type'    => 'html',
+			'html'    => defined( 'ZEROSPAM_RESCUE_KEY' ) ?
+				'<span style="color: green; font-weight: bold;">' . __( 'Active', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Key defined in wp-config.php', 'zero-spam' ) . ')</span>' :
+				'<span style="color: red;">' . __( 'Inactive', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Define ZEROSPAM_RESCUE_KEY in wp-config.php to enable', 'zero-spam' ) . ')</span>',
+			'desc'    => __( 'Locked out? Blocked visitors who administer the site can ask for an emailed rescue link from the blocked page; it lets their browser in for one hour. You can also define ZEROSPAM_RESCUE_KEY in wp-config.php and visit any page with ?zerospam_rescue={KEY} appended; checks stay bypassed in that browser for one hour, long enough to log in.', 'zero-spam' ),
+			'value'   => false,
+		);
+
 		$settings = apply_filters( 'zerospam_settings', self::$settings );
 
 		// Ensure every setting has a section fallback.
@@ -464,18 +476,6 @@ class Settings {
 
 			return false;
 		}
-
-		self::$settings['rescue_mode'] = array(
-			'title'   => __( 'Rescue Mode', 'zero-spam' ),
-			'section' => 'general',
-			'module'  => 'settings',
-			'type'    => 'html',
-			'html'    => defined( 'ZEROSPAM_RESCUE_KEY' ) ?
-				'<span style="color: green; font-weight: bold;">' . __( 'Active', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Key defined in wp-config.php', 'zero-spam' ) . ')</span>' :
-				'<span style="color: red;">' . __( 'Inactive', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Define ZEROSPAM_RESCUE_KEY in wp-config.php to enable', 'zero-spam' ) . ')</span>',
-			'desc'    => __( 'Locked out? Blocked visitors who administer the site can ask for an emailed rescue link from the blocked page; it lets their browser in for one hour. You can also define ZEROSPAM_RESCUE_KEY in wp-config.php and visit any page with ?zerospam_rescue={KEY} appended; checks stay bypassed in that browser for one hour, long enough to log in.', 'zero-spam' ),
-			'value'   => false,
-		);
 
 		return $settings;
 	}
