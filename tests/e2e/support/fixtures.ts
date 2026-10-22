@@ -38,12 +38,7 @@ const BUNDLED_CHARTJS = join( ROOT, 'assets/js/vendor/chart.umd.min.js' );
  * test.fail marker is removed. Nothing enforces removing the entry here, so
  * delete it in the same change.
  */
-export const KNOWN_PHP_ERRORS: Array< { match: RegExp; reason: string } > = [
-	{
-		match: /wpdb::prepare.*must have a placeholder.*class-logtable\.php|class-logtable\.php.*wpdb::prepare/,
-		reason: 'AGENTS.md §8: LogTable calls $wpdb->prepare() without placeholders when no filter is set',
-	},
-];
+export const KNOWN_PHP_ERRORS: Array< { match: RegExp; reason: string } > = [];
 
 const PHP_ERROR_IN_HTML = /<b>(Notice|Warning|Deprecated|Fatal error|Parse error)<\/b>:\s+([^<]{0,300})/g;
 

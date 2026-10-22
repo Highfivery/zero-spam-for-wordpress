@@ -27,17 +27,13 @@ test.describe( 'Smoke', () => {
 			} );
 		}
 
-		// The unfiltered Log screen's known notice is covered by the next test.
 		for ( const e of await zs.errors() ) {
-			if ( ! /class-logtable\.php/.test( e.file ) || ! /must have a placeholder/.test( e.message ) ) {
-				problems.push( `${ e.kind }: ${ e.message } in ${ e.file }:${ e.line } (${ e.uri })` );
-			}
+			problems.push( `${ e.kind }: ${ e.message } in ${ e.file }:${ e.line } (${ e.uri })` );
 		}
 		expect( problems ).toEqual( [] );
 	} );
 
 	test( 'the unfiltered Log screen loads without a wpdb::prepare() notice', async ( { page, zs } ) => {
-		test.fail( true, 'AGENTS.md §8: LogTable calls $wpdb->prepare() without placeholders when no filter is set (_doing_it_wrong notice)' );
 		await page.goto( LOG_SCREEN );
 		await expect( page.locator( 'table.wp-list-table' ) ).toBeVisible();
 		const errors = await zs.errors();
