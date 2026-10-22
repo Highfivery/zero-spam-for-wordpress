@@ -428,7 +428,11 @@ npm run env:stop                 # stop both wp-env sites
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
   `build/`.
-- Fixed in 5.7.13 (tests now in the gate): the `uninstall.php` cleanup, the
+- Fixed in 5.7.13 (tests now in the gate): the multisite locked-settings UI
+  and site-save rule (locked keys are never stored; a saved value equal to the
+  network value follows the network; REST returns 403 `rest_setting_locked`
+  and WP-CLI warns and exits non-zero on locked keys), the `uninstall.php`
+  cleanup, the
   detection-log table (pagination, filtered count, `prepare()` notice, region
   sort, lost type filter, bulk-delete capability), the Security module's
   cross-wired settings, the unprotected `.htaccess` refresh (now an
@@ -437,11 +441,6 @@ npm run env:stop                 # stop both wp-env sites
   1970 end date on permanent blocks.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
-  - `includes/admin/class-siteadminoverrides.php`: the settings page never
-    fired the lock hooks, so site admins on a network got no lock badge and
-    could edit locked fields; `settings_validation` stores `false` for every
-    unticked checkbox so one save (and the network's "Apply to All Sites")
-    turns every checkbox into a site override. Fix in progress (PR #424).
   - `modules/class-stopforumspam.php`: `preprocess_registrations()` is hooked
     to `zerospam_preprocess_registration_submission`, whose arguments are
     `( array $errors, $post, 'registration_spam_message' )`, so the registration
@@ -468,10 +467,12 @@ npm run env:stop                 # stop both wp-env sites
     `remove_resource_query_params` is hooked with 2 arguments but takes 1.
   - `core/class-utilities.php` `refresh_htaccess()`: a subsite admin in
     `.htaccess` mode writes the network-root `.htaccess`.
-  - `includes/rest/class-settingscontroller.php` and WP-CLI `wp zerospam set`
-    bypass the settings-page save rules (no `settings_validation`, no lock
-    enforcement on write); the second network-settings storage model (see §2)
-    is still unreconciled.
+  - The second network-settings storage model (`zero-spam-network-zerospam`
+    used by the `zero-spam/v1/settings` resolver vs `zerospam_network_settings`
+    used everywhere else, see §2) is still unreconciled; `Network_Settings` is
+    instantiated in several places, each registering its own resolver;
+    `Network_Settings::is_using_default()` rebuilds the settings registry per
+    call (the settings page now caches, other callers do not).
   - Unqualified `WP_Error` in docblocks of namespaced classes (for example
     `includes/rest/class-apiusagecontroller.php`) resolves to the wrong
     namespace for static analysis; the runtime code uses `\WP_Error` or

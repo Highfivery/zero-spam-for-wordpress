@@ -175,12 +175,6 @@ parameters:
 			path: includes/admin/class-networkstatspage.php
 
 		-
-			message: '#^Parameter \#1 \$text of function esc_html expects string, int\<1, max\> given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/admin/class-siteadminoverrides.php
-
-		-
 			message: '#^Parameter \#1 \$new_blog_id of function switch_to_blog expects int, string given\.$#'
 			identifier: argument.type
 			count: 1
