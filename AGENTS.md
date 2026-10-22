@@ -37,6 +37,7 @@ in the same PR.
 | `includes/templates/` | Plain PHP admin templates. Escape everything on output. |
 | `modules/` | One directory or file per detection technique or integrated plugin. Third-party modules are only instantiated when that plugin is active (`includes/class-plugin.php`). |
 | `assets/` | Hand-written CSS/JS (jQuery), `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand, vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. No build tooling exists. |
+| `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
 | `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
 
@@ -86,10 +87,18 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 - **Commits:** `type(scope): what and why` as in the existing history
   (`fix(login): …`, `security(davidwalsh): …`, `feat(woocommerce): …`,
   `perf(dashboard-widget): …`, `docs: …`, `chore: …`).
-- **Changelog:** `readme.txt` is the only changelog. Every user-visible or
+- **Changelog:** new entries go in `readme.txt`. Every user-visible or
   behavioral change adds a bullet under the next `= vX.Y.Z =` heading in the
   existing `**type(scope):** description` style, linking issues or support
-  topics. Fill the PR template's "Changelog Entry" too.
+  topics. Fill the PR template's "Changelog Entry" too. `CHANGELOG.md` holds
+  the full history (Markdown: `## vX.Y.Z`, `- **type(scope):** text`); add the
+  same entry there. `readme.txt` keeps only the current minor series (5.7.x),
+  because WordPress.org truncates the readme changelog at 5,000 words and
+  `composer version:check` fails above 4,500. When a new minor series starts
+  (for example 5.8.0), move the previous series out of `readme.txt` into
+  `CHANGELOG.md` (it is already there if every release was added to both;
+  confirm before deleting) and keep the "full changelog on GitHub" line below
+  the last readme entry.
 - **Versions:** `Version:` header, `ZEROSPAM_VERSION` and `Stable tag` must
   agree and never go backwards (`composer version:check`). Bump
   `Tested up to` only after testing on that WordPress release.

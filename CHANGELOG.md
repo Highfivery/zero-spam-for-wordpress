@@ -1,0 +1,617 @@
+# Changelog
+
+The `readme.txt` changelog (shown on WordPress.org) carries only the current minor series. This file carries the full release history, newest first.
+
+## v5.7.13
+
+- **fix(uninstall):** deleting the plugin now removes all of its data: every module's settings, the blocked email domains list, API notices, the settings audit log, network settings, the network templates and audit tables, scheduled tasks (including the network weekly summary and events left by older versions), cached data, dismissed-notice user meta and the error log file. Previously most of it was left behind.
+- **fix(uninstall):** on multisite, deleting the plugin now cleans every site and returns to the original site, so the network-wide clean-up runs on the right site.
+- **fix(log):** the Detection Log now shows 50 entries per page with no repeated or missing rows. Page 2 used to repeat and overflow rows and later pages were empty.
+- **fix(log):** searching or filtering the Detection Log now reports the matching number of entries instead of the total, moving between pages keeps the type filter, and sorting by Region sorts by region instead of country.
+- **fix(log):** removed the "wpdb::prepare was called incorrectly" debug notice on the Detection Log screen.
+- **fix(log):** the Detection Log now keeps at most "Maximum Log Entries" rows (it used to keep one extra), deleting the oldest entries first.
+- **fix(dashboard):** editing a permanent block from the Detection Log or Blocked IPs screens no longer pre-fills an end date of January 1, 1970.
+- **security(dashboard):** refreshing the .htaccess block rules now requires an administrator and a valid security token, and the "Refresh .htaccess" button shows whether the refresh worked. Previously any admin request carrying the refresh flag rewrote .htaccess. Adding a blocked IP or location now also requires the manage_options capability, and dashboard notices are escaped.
+- **fix(security):** the "Remove Resource Query Parameters" and "Disable WordPress Emoji's" settings each now do what their label says. Before, enabling one applied the other's behaviour, so sites that had either setting enabled will notice the change after updating.
+- **fix(stopforumspam):** Stop Forum Spam results are now reused from the object cache instead of calling the API on every check; different IPs and emails no longer share a cached result, and error or rate-limit answers are no longer cached. The "Cache Expiration" field now shows a days placeholder.
+- **fix(login):** the login intent cookie is no longer set once headers have been sent, which stops "Cannot modify header information" warnings under WP-CLI and when output has started.
+- **fix(elementor):** the Elementor Pro forms integration is now actually loaded when Elementor Pro is active (it was never loaded before). Missing or invalid David Walsh tokens now block the submission, blocked email domains are logged, and spam messages are escaped.
+- **fix(multisite):** on a network site's Zero Spam settings page, settings locked by the network administrator now show a "Locked by Network Admin" badge, cannot be edited, and are announced as locked to screen readers, with a summary notice of network-managed settings at the top of the page.
+- **fix(multisite):** saving a network site's Zero Spam settings no longer turns every setting into a site override. Only settings changed from the network value are kept as the site's own, so later network default changes still reach the site, and a save can no longer store a value for a locked setting. The network's "Apply to All Sites" action no longer creates overrides on the target sites either.
+- **fix(multisite):** on a network site, the REST settings endpoint now refuses changes to locked settings with a clear 403 that lists them and accepts a value equal to the network default instead of returning an error; `wp zerospam set` warns, instead of reporting success, when a setting is locked.
+- **chore(dev):** development tooling only: GitHub Actions replaced by a committed local quality gate (WPCS, PHP compatibility, PHPStan, version guard, pre-push hook), a PHPUnit integration suite (single site and multisite, PHP 8.2 and 8.4, WordPress 6.9 and 7.1) and Playwright end-to-end, accessibility and visual-regression suites; `AGENTS.md` documents the conventions.
+
+## v5.7.12
+
+- **security(davidwalsh):** the David Walsh check no longer relies on one site-wide key. Before, the same key was handed to every visitor (in the page and from the public `zero-spam/v5/davidwalsh-key` endpoint) and accepted for up to 48 hours, so a bot could fetch it once and pass the check on every protected form. Each visitor now gets their own signed key that expires after 12 hours and is accepted for at most 3 submissions. The endpoint stays public (cached pages need it) but only issues these short-lived keys, and an admin-ajax fallback is used when the REST API is blocked. Keys from before the update keep working for 24 hours so cached pages don't break. Reported by Peter Tang via Patchstack.
+- **security(login):** the login check could be skipped on `wp-login.php` by adding a `woocommerce-login-nonce` or `pp_current_url` field to the request, even when WooCommerce or ProfilePress weren't installed. Those forms are now only skipped outside `wp-login.php`, when the plugin is active (and, for WooCommerce, with a valid login nonce).
+- **security(login):** the "login intent" fallback (for login forms whose fields are stripped by another plugin) could be triggered by any client that requested `wp-login.php` first. With David Walsh enabled it now also needs a valid key set by the login page's script, and it's never used when a submission filled in the honeypot or sent an invalid key.
+- **security(geolocation):** the `CF-IPCountry` and `X-Forwarded-Country` headers were trusted from any visitor, so country blocks could be avoided (or a country cached for an IP for a week) by sending a different country. `CF-IPCountry` is now only used for requests that come from Cloudflare's IP ranges or a trusted proxy (`zerospam_trusted_proxies` filter), and `X-Forwarded-Country` only from a trusted proxy. Sites whose server restores the visitor IP and only accept proxied traffic can opt in with the new `zerospam_trust_country_headers` filter. Header countries are no longer cached, and existing cached locations are cleared on update.
+
+## v5.7.11
+
+- **security(log):** fixed an unauthenticated stored cross-site scripting vulnerability in the detection log (CVE-2026-96752). A form submission with a nested field name containing HTML (e.g. `field[<img …>]`) was stored verbatim, because array keys were never sanitized, and the log details modal output nested data unescaped. Keys are now sanitized on storage and the modal escapes all submission data on output, including entries logged before this update. Reported by Adrien Brunner via Wordfence.
+
+## v5.7.10
+
+- **fix(sharing):** "Usage Data Sharing" no longer creates a cron event for every detection — reports are now queued (capped at 100, duplicates skipped, not autoloaded) and sent in batches by a single cron event. Busy sites could build up thousands of `zerospam_async_share_detection` events, bloating the autoloaded `cron` option and slowing every page load. Existing piled-up events are removed automatically on update ([support topic](https://wordpress.org/support/topic/usage-data-sharing-creates-thousands-of-duplicate-cron-events/))
+- **fix(sharing):** shared detection reports now include the visitor's IP captured at detection time — previously the IP was read when the cron job ran, so reports could carry the site's own server IP instead of the spammer's
+- **security(sharing):** queued detection reports only store the details the report needs (type, reason, IP, email, names) — previously the full detection data was stored in the `cron` option, which could include submitted form fields and, for blocked logins, the user object
+- **fix(rescue-mode):** rescue mode now works for logging in — a valid `?zerospam_rescue={KEY}` bypasses checks in that browser for one hour (HttpOnly cookie), so the redirect to `wp-login.php` and the login form submission are no longer blocked. Previously the key only applied to the one request that carried it, so the login form still blocked locked-out administrators ([support topic](https://wordpress.org/support/topic/your-ip-has-been-flagged-as-spam-malicious-2/))
+- **fix(rescue-mode):** an array value for `zerospam_rescue` no longer causes a PHP TypeError
+- **fix(license):** a valid license key is no longer reported as "invalid" when the Zero Spam API can't be reached — saving the key while the API is unavailable now keeps the key, leaves Enhanced Protection enabled, and shows a "not verified yet" notice instead of replacing the key with "Invalid license entered."
+- **fix(api):** the circuit breaker now only counts real outages (connection errors, 5xx, 429) — "query limit exceeded" and "invalid license" responses no longer pause all API requests, which previously caused false "invalid license" errors after a free key used up its queries
+- **fix(license):** a rejected license is only cached when the API explicitly reports it invalid, and for 1 hour instead of 24; saving a key always re-checks it with the API
+- **fix(license):** license status is refreshed hourly instead of monthly, so remaining query counts stay current
+- **ui(settings):** the settings header now distinguishes "invalid license", "couldn't verify license (API unreachable)" and "query limit reached" (with an upgrade link)
+- **chore(compat):** tested up to WordPress 7.1
+
+## v5.7.9
+
+- **fix(admin):** the Enhanced Protection promo notice and other plugin admin notices are now only shown to users who can manage options — previously they appeared for every role with dashboard access ([#405](https://github.com/Highfivery/zero-spam-for-wordpress/issues/405))
+- **fix(admin):** dismissing the Enhanced Protection promo notice is now permanent — it no longer reappears every 30 days ([#405](https://github.com/Highfivery/zero-spam-for-wordpress/issues/405))
+- **security(dashboard-widget):** on multisite, the dashboard widget refresh request no longer returns network-wide stats to site administrators — the client-sent `is_network` flag is now only honored for users with the `manage_network_options` capability; everyone else gets their own site's data
+- **security(admin):** settings page actions (auto-configure, clear logs, delete IP/location blocks, etc.) now require the `manage_options` capability in addition to a valid nonce — previously the auto-configure link, with a valid nonce, was shown to non-admin users
+- **fix(admin):** promo notice dismiss and click-tracking requests now check the `manage_options` capability instead of the `administrator` role name
+- **fix(admin):** the promo notice now respects the 3-day waiting period after activation on new installs — a leftover workaround was resetting the activation time so it showed immediately
+- **feat(admin):** added `zerospam_display_promo_notice` filter to turn off the promo notice programmatically
+- **fix(uninstall):** uninstalling now removes the promo notice dismissal user meta, activation time, and API monitoring notice options
+- **fix(release):** corrected the plugin version — the previous release was mislabeled 5.5.8, so sites running 5.7.7 were never offered it. This release includes everything from that release, listed below
+- **fix(settings):** resolved multiple PHP 8.x "Undefined array key" warnings for `type` and `module` in settings registration and rendering ([#394](https://github.com/Highfivery/zero-spam-for-wordpress/issues/394))
+- **fix(settings):** added centralized `Settings::is_valid_setting()` validation method to enforce required-key contract on `zerospam_settings` filter — invalid settings are logged in debug mode
+- **fix(settings):** `settings_field()` now applies `wp_parse_args()` defaults, preventing undefined key warnings for optional field attributes
+- **fix(settings):** settings missing the `section` key now default to `general` instead of triggering warnings
+- **fix(settings):** settings such as "Log Blocked IPs" no longer reset after plugin updates — the legacy settings migration now runs once and only fills in missing values ([#392](https://github.com/Highfivery/zero-spam-for-wordpress/issues/392))
+- **fix(woocommerce):** custom spam message for WooCommerce registrations could never be saved due to an option key mismatch — messages now persist correctly ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+- **feat(woocommerce):** added independent "Protect Checkout" toggle — checkout and registration protection can now be enabled/disabled separately ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+- **feat(woocommerce):** added dedicated "Checkout Flagged Message" setting with context-appropriate default for checkout blocks ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+- **feat(woocommerce):** added dedicated "Log Blocked Checkouts" toggle for independent checkout logging ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+- **feat(woocommerce):** checkout now validates billing email against blocked email domains, matching registration behavior ([#393](https://github.com/Highfivery/zero-spam-for-wordpress/issues/393))
+- **refactor(woocommerce):** normalized David Walsh filter hooks to `zerospam_preprocess_*` naming convention for consistency with all other modules
+- **fix(woocommerce):** one-time migration ensures existing sites retain checkout protection and logging preferences after update
+- **fix(dashboard-widget):** widget now properly hides when disabled — previously displayed for administrators even when all roles were deselected in visibility settings ([#391](https://github.com/Highfivery/zero-spam-for-wordpress/issues/391))
+- **fix(dashboard-widget):** resolved database errors (`Table 'prefix_zerospam_log' doesn't exist`) by adding table existence checks before querying — shows a clean notice with remediation steps when the log table is missing ([#391](https://github.com/Highfivery/zero-spam-for-wordpress/issues/391))
+- **fix(settings):** multi-select fields (e.g. widget visibility) now correctly store an empty array when no options are selected, preventing fallback to default values
+- **fix(dashboard-widget):** AJAX refresh now correctly returns network-level data on multisite network admin dashboards
+- **fix(dashboard-widget):** widget transient cache is now cleared immediately when settings are saved, so visibility changes take effect without waiting for the 5-minute cache expiry
+- **feat(settings):** added "Dashboard Widget" enable/disable toggle — provides an unambiguous on/off control separate from role-based visibility
+- **feat(dashboard-widget):** added `zerospam_dashboard_widget_visible` filter — developers can programmatically override widget visibility
+- **feat(dashboard-widget):** refresh button now updates stats and charts in-place via AJAX without requiring a page reload
+- **refactor(dashboard-widget):** extracted duplicated role-check logic into reusable `has_widget_access()` method, eliminating ~60 lines of duplication
+- **perf(dashboard-widget):** Chart.js is now bundled locally instead of loaded from CDN — works in locked-down environments and eliminates external dependency
+- **fix(contactform7):** disallowed word checks no longer scan security token fields like Cloudflare Turnstile (`cf-turnstile-response`), reCAPTCHA, and hCaptcha responses — these long random strings almost always triggered false positives against short blocklist entries
+- **fix(gravityforms):** disallowed word and blocked email domain checks now use the centralized field validation with excluded fields support
+- **fix(formidable):** disallowed word and blocked email domain checks now use the centralized field validation with excluded fields support
+- **fix(fluentforms):** disallowed word checks now use the centralized field validation with excluded fields support
+- **fix(wpforms):** disallowed word and blocked email domain checks now use the centralized field validation with excluded fields support
+- **feat(settings):** added "Allowed Words" setting — lets you whitelist specific words so they are never flagged as spam, even if they appear in the disallowed words list (e.g. if your email or domain contains a blocked string like "ugg")
+- **feat(settings):** added "Minimum Disallowed Word Length" setting — skip very short blocklist entries (3-4 characters) that cause the most false positives
+- **feat(utilities):** added `zerospam_excluded_fields` filter — developers can add custom POST field keys (e.g. third-party CAPTCHA tokens) to exclude from disallowed word scanning
+- **feat(utilities):** added `Utilities::check_fields_for_spam()` centralized method — all form modules now share the same field validation logic with automatic system field exclusion
+- **feat(comments):** allowed words and minimum word length settings now also apply to WordPress comment validation via `wp_check_comment_disallowed_list()`
+- **refactor(modules):** deduplicated field validation loops across CF7, Gravity Forms, Formidable, Fluent Forms, and WPForms modules into shared `check_fields_for_spam()` utility
+- **perf(utilities):** allowed words list and minimum length setting are cached per-request to avoid repeated database lookups when checking multiple form fields
+
+## v5.7.7
+
+- **fix(davidwalsh):** fixed 403 responses on `/wp-json/zero-spam/v5/davidwalsh-key` for non-logged-in visitors on cached pages — stale `wp_rest` nonce in the AJAX key-refresh request triggered WordPress cookie authentication rejection before the public `permission_callback` was evaluated; removed unnecessary nonce header since the endpoint is intentionally public
+- **ui(project honeypot):** added direct link to Project Honeypot website in the settings section description
+- **ui(project honeypot):** renamed "Access Key" field to "HTTP:BL Access Key" with links to sign up and find the key on the HTTP:BL configuration page
+
+## v5.7.6
+
+- **fix(cli):** removed `## OPTIONS` docblock from `set` command that caused WP-CLI to reject valid flags like `--stop_forum_spam`
+
+## v5.7.5
+
+- **security(database):** fixed SQL injection vulnerabilities in `blocked()` method — all queries now use `$wpdb->prepare()`
+- **security(database):** refactored `query()` method to use prepared statements, column whitelisting, and sanitized LIMIT/OFFSET
+- **security(database):** secured DELETE query in `log()` method with `$wpdb->prepare()` and `absint()`
+- **security(utilities):** added `esc_attr()` to honeypot field output to prevent potential XSS
+- **security(utilities):** hardened `log()` method with `sanitize_file_name()`, mode allowlist, and `fopen` failure handling
+- **fix(gravityforms):** blocked email domains are now checked during Gravity Forms submissions — previously these features were disconnected
+- **fix(contactform7):** blocked email domains and disallowed words are now checked during CF7 submissions
+- **fix(formidable):** blocked email domains and disallowed words are now checked during Formidable Forms submissions
+- **fix(fluentforms):** fixed inverted logic in `validate_email()` that prevented blocked email domain checks from working correctly
+- **fix(cli):** `wp zerospam set --blocked_email_domains` now writes to the correct option (`zerospam_blocked_email_domains`)
+- **fix(cli):** `wp zerospam set --regenerate_honeypot` now properly regenerates the honeypot ID instead of storing a meaningless value
+- **fix(settings):** `auto_configure()` now correctly handles `blocked_email_domains` via standalone option and skips HTML action settings
+- **feat(cli):** added `wp zerospam regenerate-honeypot` standalone command for honeypot ID regeneration
+- **feat(cli):** added `wp zerospam update-blocked-domains` command with `--recommended`, `--file`, `--domains`, and `--append` options
+- **feat(cli):** `wp zerospam set` now supports `--update_blocked_email_domains` and `--update_disallowed_words` action flags
+- **feat(gravityforms):** added per-module toggle settings for blocked email domain and disallowed word checking
+- **feat(contactform7):** added per-module toggle settings for blocked email domain and disallowed word checking
+- **feat(formidable):** added per-module toggle settings for blocked email domain and disallowed word checking
+- **feat(fluentforms):** added per-module toggle setting for disallowed word checking
+
+## v5.7.4
+
+- fix(database): corrected table name reference in dashboard widget from `zerospam_log` to `wpzerospam_log`
+- fix(database): added `blog_id` column to log table schema for single-site compatibility
+- fix(dashboard): resolved SQL errors on single-site installations caused by missing `blog_id` column
+- perf(database): added indexes for `blog_id` and composite `blog_date` for improved query performance
+- feat(database): automatic migration adds `blog_id` column to existing installations
+- fix(dashboard): corrected widget styling to use light theme (removed dark mode support)
+
+## v5.7.3
+
+- feat(multisite): added independent control for network settings change email notifications
+- fix(multisite): resolved issue where changing network settings sent exponential emails in large networks
+- feat(multisite): network administrators can now separately control weekly summaries and settings change notifications
+- perf(multisite): prevents thousands of emails from being sent when network settings are modified
+
+## v5.7.2
+
+- fix(ipinfo): migrated to Lite API (unlimited free tier) to resolve 429 quota exceeded errors
+- perf(ipinfo): added persistent transient caching to reduce API calls
+- refactor(ipinfo): removed ipinfo/ipinfo vendor dependency in favor of native WordPress HTTP API
+- feat(multisite): added Notifications tab to Network Settings with toggle for weekly summary emails
+- feat(multisite): network administrators can now enable/disable weekly email notifications from the UI
+
+## v5.7.1
+
+- fix(settings): resolved undefined array key warnings for rescue mode setting
+
+## v5.7.0
+
+- feat(safety): implemented rescue mode (ZEROSPAM_RESCUE_KEY) to bypass blocks (emergency access)
+- feat(security): extended protection to wp-login.php and xmlrpc.php endpoints
+- fix(login): implemented intent token mechanism to prevent false positives with multi-step login flows (e.g. 2FA, Math Captcha)
+- fix(login): refined error messaging for missing verification fields to avoid incorrect "malicious" labeling
+- feat(performance): implemented transient caching for geolocation lookups (1 week) to reduce API calls
+- feat(logging): added granular failure reasons to detection logs (e.g. "High Confidence Score: 95%")
+- fast(core): removed incorrect main query check that could bypass blocks
+- feat(multisite): comprehensive network-wide settings management for agencies managing multiple sites
+- feat(multisite): network admin dashboard with overview statistics, site comparison, and application status
+- feat(multisite): settings hierarchy system - network defaults with site-level override capability and lock enforcement
+- feat(multisite): settings templates system for quick configuration deployment across sites
+- feat(multisite): audit trail tracking all network setting changes with user attribution
+- feat(multisite): import/export functionality for network settings backup and migration
+- feat(multisite): WP-CLI commands for programmatic network settings management
+- feat(multisite): REST API endpoints for remote network configuration
+- feat(dashboard): unified dashboard widget that intelligently adapts to multisite/single-site context
+- feat(dashboard): modern, responsive design using WordPress core components with dark mode support
+- feat(dashboard): real-time API usage monitoring with visual progress bars and warning levels
+- feat(dashboard): 30-day spam trend visualization using Chart.js 4.x
+- feat(dashboard): top 10 sites by spam volume (network admin) and spam types breakdown (single site)
+- fix(dashboard): improved permission handling for multisite super admins
+- fix(dashboard): added proper hooks for both network and regular admin dashboards
+- fix(comparison): corrected override count calculation to show actual differences, not just stored values
+- fix(comparison): resolved undefined value errors and improved data validation
+- fix(comparison): auto-load comparison data when viewing tab for better UX
+- fix(import-export): added 3-second delay before page reload so success messages are visible
+- fix(import-export): enhanced validation with file type checking, size limits, and JSON parsing
+- fix(import-export): improved error messages and inline status feedback
+- fix(ui): polished settings interface with better grouping, descriptions, and visual hierarchy
+- fix(ui): inline save feedback that doesn't scroll users away from their work
+- fix(ui): simplified setting descriptions to be non-technical and user-friendly
+- fix(php8.1): resolved deprecation warnings for number_format() with null values
+
+## v5.6.2
+
+- fix(admin): resolved issue where "Advanced Protection is enabled but not licensed" notice displayed incorrectly when Enhanced Protection was disabled
+- fix(admin): corrected Settings API usage in admin notices for consistency with dashboard widget
+- fix(admin): added support for ZEROSPAM_LICENSE_KEY constant check in admin notice logic
+- fix(debug): removed testing debug statements
+
+## v5.6.1
+
+- fix(api): corrected email report submission to use GET method with query parameters (was incorrectly using POST with body)
+- fix(api): email reports now properly include report_ip parameter
+- fix(api): fixed variable reuse bug by using separate $email_endpoint variable for email reports
+
+## v5.6.0
+
+- feat(api): API version increment - v2/query to v3/query, v5.4/report to v6/report, v1/get-license to v2/get-license
+- feat(api): migrated all protected endpoints from POST to GET method with query parameters
+- feat(api): master API key can bypass localhost blocking for testing purposes
+- feat(david walsh): rewritten in vanilla JavaScript, removing jQuery dependency
+- feat(david walsh): added MutationObserver for dynamically loaded forms (AJAX, React)
+- feat(david walsh): implemented daily key rotation with dual-key caching for cached pages
+- feat(david walsh): increased key length from 5 to 16 characters for enhanced security
+- feat(david walsh): added REST API endpoint for AJAX-based key refresh
+- feat(gravity forms): added David Walsh technique support
+- feat(formidable): added David Walsh technique support
+- feat(elementor): added David Walsh technique support
+- feat(woocommerce): added David Walsh validation for checkout (in addition to registration)
+- feat(admin): added conversion-optimized promotional notice for Enhanced Protection with lifetime discount offer
+- refactor(givewp): removed David Walsh support (incompatible with v3 block-based forms)
+- refactor(david walsh): centralized form selector management via filter
+- fix(david walsh): removed dead MemberPress selectors from JavaScript
+- perf(api): Apache-level validation requires license_key parameter (zero PHP overhead for invalid requests)
+- perf(api): v3/query requires ip or email parameter at Apache level
+- fix(api): corrected hardcoded api url to use ZEROSPAM_URL constant in query function
+- fix(api): wrapped report data in 'data' array for proper API format
+- fix(code): corrected remote_request return type docblock
+- fix(code): corrected Object→WP_REST_Request param types and increment_license_queries parameter
+- ui(david walsh): redesigned settings page with comprehensive how-it-works documentation
+- ui(david walsh): added security key status display with rotation countdown
+- ui(david walsh): added step-by-step testing instructions for non-technical users
+- ui(david walsh): enhanced custom form selectors field with detailed usage examples
+- ui(david walsh): added list of currently protected form selectors
+- ui(admin): promotional notice displays on dashboard and Zero Spam pages for unlicensed users
+- ui(admin): notice is dismissible and reappears after 30 days if no license is added
+- ui(admin): notice waits 3 days after plugin activation before displaying
+
+## v5.5.9
+
+- fix(api): corrected app_type case mismatch and app_details/email_details encoding
+
+## v5.5.8
+
+- fix(caching): prevented caching of 403 forbidden pages to resolve compatibility with litespeed cache (closes #383)
+- fix(david walsh): improved js reliability for comment forms to prevent false positives (closes #378)
+- fix(david walsh): resolved conflict where wpforms submissions were blocked when david walsh protection was enabled (closes #364)
+- fix(ipinfo): corrected issue where location data was reported as "unknown" in the dashboard widget (closes #360)
+- fix(install): resolved database errors on fresh installations due to strict dbdelta requirements (closes #332)
+- chore(requirements): updated php and wp version requirements
+- chore(standards): fixed issues with strict types
+- docs(project): updated project documentation files
+- ci(github): updated github workflows and templates
+- perf(core): optimized disallowed words option to prevent autoloading large data
+- perf(api): implemented async detection reporting to reduce server load
+- perf(api): implemented persistent response caching (transients)
+- perf(api): implemented circuit breaker pattern for api fault tolerance
+- perf(core): optimized disposable email domains storage to prevent autoloading large data
+
+## v5.5.7
+
+- fix(bypass vulnerability): see https://patchstack.com/database/database/vulnerability/zero-spam/wordpress-zero-spam-for-wordpress-plugin-5-5-5-bypass-spam-protection-vulnerability
+
+## v5.5.6
+
+- fix(missing tables): fix for missing tables error on multisites, #377
+
+## v5.5.5
+
+- fix(jquery): fix for jquery not found error when jquery is loaded with defer
+- chore(splorp): updated the slorp blacklist
+
+## v5.5.4
+
+- fix(zero spam): fix for error in the zero spam api
+
+## v5.5.3
+
+- feat(patchstack): integrating patchstack faqs
+- fix(coding standards): updates to better comply with wp coding standards
+
+## v5.5.2
+
+- fix(vulnerability): fix for bypass using .ico in url or adjusting the x-forwarded-for header
+
+## v5.5.1
+
+- fix(david walsh): fix for jquery not defined error, related to the zerospamdavidwalsh method, resolves #359
+
+## v5.5.0
+
+- feat(profilepress): added support for profilepress registrations
+
+## v5.4.7
+
+- fix(david walsh): fix for missing david walsh dependency, resolves #345
+
+## v5.4.6
+
+- fix(admin): fix for php notice about missing database_query_arguments
+- fix(whitelist): fix for whitelisted ips not getting triggered on comments, resolves #350
+
+## v5.4.5
+
+- fix(security): fixed sql injection vulnerability in the zero spam admin log table query
+
+## v5.4.4
+
+- refactor(project honeypot): resolves #344, added additional check & debug info for ip type support
+- fix(wpforms): resolves #343, fix for jquery dependency
+- fix(registration): resolves #342, fix for failed registration output
+- fix(php8): resolves #341, fix for php8+ compatibility issue
+
+## v5.4.3
+
+- fix(emojis): fix for fatal error when emojis are disabled
+
+## v5.4.2
+
+- feat(ipbase): added support for ipbase.com
+- feat(security): added additional advanced security protections
+
+## v5.4.1
+
+- feat(dashboard): dashboard ui enhancements
+- perf(sharing): performance improvements when sharing data
+- fix(memberpress): removed memberpress support, they made fundamental changes to their plugin that's ganna require a rework
+- fix(uninstall): fix issue where the plugin couldn't be deleted
+- fix(cli): resolves #33
+- chore(charts): updated chart.js to 3.9.1
+
+## v5.4.0
+
+- chore(admin): updated the after-activation message
+- chore(spam): updated splorp's wordpress comment blacklist
+- feat(givewp): enhanced security using the david walsh method on legacy forms
+- feat(admin): major ui enhancements
+- feat(gravityforms): adds support for gravity forms
+- feat(reports): improved error logs
+- feat(wpdiscuz): resolves #327, added support for wpdiscuz
+- feat(wpforms): now supports checking blocked email addresses
+- feat(email): enhanced email security checks
+- fix(double requests): issue with double checks being performed per page visit
+- fix(blocks): fix for blocked ips not getting properly blocked
+- fix(locations): fix for blocked locations not getting added/updated
+- fix(comments): fix for valid comment submissions being flagged
+- fix(admin): missing country flag in ip details modal
+- fix(woocommerce): fix for login woocommerce registrations fixed
+- fix(david walsh): fix for flagged submissions when using the david walsh technique
+- perf(misc): misc performance improvements related to 3rd-party api queries
+
+## v5.3.9
+
+- fix(admin): fix issue with admin notice not dismissing properly, resolves #319
+
+## v5.3.8
+
+- chore(zero spam api): updated the zero spam api to v2
+
+## v5.3.7
+
+- chore(readme): documentation updates
+
+## v5.3.6
+
+- fix(admin): fix for admin notice not getting dismissed when clicked, resolves #318
+
+## v5.3.5
+
+- chore(readme): added 3rd-party service integration documentation to the readme
+- chore(admin): revised the admin message that's displayed with zero spam enhanced protection is enabled, but a valid api key is not provided
+
+## v5.3.4
+
+- fix(notice): removed dismiss button on initial install to ensure plugin settings are configured before use
+
+## v5.3.3
+
+- feat(zero spam settings): displays dismissible notices for enhanced protection and invalid license keys
+- feat(dates): updated the admin tables to display dates based on the site settings, resolves #305
+- fix(ukraine): removed the ukraine banner
+
+## v5.3.2
+
+- feat(zero spam api): now reports spam and malicious email addresses
+
+## v5.3.1
+
+- fix(zero spam api): update to limit number of requests when sharing data
+
+## v5.3.0
+
+- fix(woocommerce): fix for spam getting triggered during woo checkout with create account checked, resolves #313
+- refactor(zero spam api): performance improvements when sharing detections
+
+## v5.2.15
+
+- feat(ukraine): we'll no longer provide protection for .ru, .su, and .by domains & will display a banner of support for the ukrainian people on those sites - united with ukraine
+
+## v5.2.14
+
+- fix(woocommerce): fixes issues with woocommerce login not working, resolves #310
+
+## v5.2.13
+
+- feat(woocommerce): added support for woocommerce registrations, resolves #306
+- fix(admin): fix for displaying & adding blocked ip addresses, resolves #308
+
+## v5.2.12
+
+- refactor(wordpress coding standards): misc updates to conform to wordpress coding standards
+
+## v5.2.11
+
+- fix(security): fixes the missing orderby parameter sanitization in the admin dashboard
+- fix(admin settings): fixed whitespace issue in textarea setting fields, resolves #303
+- fix(admin log): updated date column to use the local setting date & time format, resolves #305
+
+## v5.2.10
+
+- fix(security): fixes the missing parameter sanitization in the admin dashboard, resolves #301
+
+## v5.2.9
+
+- feat(zero spam): you can now define your zero spam license key in wp-config.php using the constant ZEROSPAM_LICENSE_KEY, resolves #298
+- fix(admin): fix for setting action buttons not doing anything, resolves #295
+- fix(admin): fixes php notice for in_array in class-utilities, resolves #299
+
+## v5.2.8
+
+- feat(memberpress): resolves #286, added support for the memberpress login page
+- fix(memberpress): updated memberpress sign-up hook priority to ensure it runs
+- refactor(admin): now using nonces to process zero spam admin actions
+
+## v5.2.7
+
+- perf(settings): performance improvement to settings being loaded
+- style(admin): added check for zero spam license key when enabled
+- style(admin): misc. admin interface improvements
+
+## v5.2.6
+
+- fix(undefined method): fix for undefined types method
+
+## v5.2.5
+
+- feat(givewp): now checks submitted emails against the blocked email domains list
+- perf(everything): refactoring of code for a boost in performance
+- docs(readme): misc. readme file updates
+- fix(admin): fix for error log not clearing
+
+## v5.2.4
+
+- feat(memberpress): resolves #283, now supports memberpress registration forms
+- feat(mailchimp4wp): resolves #121, now supports mailchimp4wp forms
+- refactor(misc): misc. updates to comply with wordpress coding standards.
+- style(admin): misc. admin interface improvements
+
+## v5.2.3
+
+- feat(givewp): now support givewp donation forms
+- style(notices): minor update to default detection notice
+
+## v5.2.2
+
+- fix(db): resolves #281, fixes db update error for multisite installations
+- fix(db): fix for unsanitized db log entries
+- style(admin): new cf7 icon added for blocked log
+
+## v5.2.1
+
+- fix(woocommerce): resolves #280, fixes login integration breaking woocommerce login form
+
+## v5.2.0
+
+- feat(login): now protects user login attempts
+- feat(project honeypot): resolves #201, project honeypot ip checks now integrated
+- perf(sharing): blocked ips are no longer shared with zerospam.org
+- perf(database): doesn't log .ico requests anymore that normally resulted in 2 entries per detection
+- style(admin): misc admin interface improvements
+- refactor(misc): cleaning up code & wordpress coding standards updates
+- refactor(zero spam api): updated version on the zero spam api endpoint
+
+## v5.1.7
+
+- fix(php notice): fix for some hosts firing a php notice when unable to retrieve the list of recommended blocked email domains
+
+## v5.1.6
+
+- feat(fluent forms): resolves #276, fluent forms is now supported
+- fix(php notice): resolves #277, fix for array_intersect(): Argument #2 must be of type array, bool
+
+## v5.1.5
+
+- feat(dashboard widget): resolves #275, added the ability to control the dashboard widget visibility
+- feat(settings): button to quickly override and update settings to zero spam's recommended
+- feat(email domains): resolves #246, ability to block disposable and malicious email domains
+- perf(sharing): sharing detections optimized
+- perf(disallowed list): removed the unused cron to sync disallowed words
+- chore(disallowed list): updated to the latest splorp's disallowed list
+- docs(htaccess): added a notice & recommended max number of blocked ips when using .htaccess
+- fix(ipinfo): fix for uncaught ipinfo exception
+
+## v5.1.4
+
+- fix(htaccess): resolves #274, fix for newer apache versions and option to select the method ips are blocked
+
+## v5.1.3
+
+- perf(blocked ips): moved blocked ips to .htacess for improved performance
+- refactor(woocommerce): woocommerce registration forms support dropped in place of 3rd-party IP checks
+- docs(admin): misc updates to admin interface
+
+## v5.1.2
+
+- perf(geolocation): improved performance for geolocation and data sharing
+- docs(readme): updated readme file
+- refactor(misc): added some functionality to make debugging easier
+- fix(ipinfo): resolves #273, loads the ipinfo library only if enabled
+
+## v5.1.1
+
+- feat(geolocation): resolves #270, added support for ipinfo geolocation
+- feat(cli): resolves #271, added WP CLI support
+- feat(admin): resolves #237, new admin dashboard widget
+- refactor(admin): wordpress coding standards fixes
+- refactor(settings): minor update to settings section title
+- docs(readme): updated readme file
+
+## v5.1.0
+
+- feat(ipstack): ipstack errors are logged to the zerospam.log file in the uploads directory
+- feat(cloudflare): resolves #267, checks http_cf_ipcountry against blocked countries
+- feat(admin): resolves #264, adds ability to export & import settings
+- perf(davidwalsh): resolves #266, only loads the david walsh script on pages that are needed
+- fix(caching): resolves #258, added no-cache header to the blocked page output
+- refactor(stopforumspam): increased the default confidence score for stop forum spam to help prevent false positives
+- docs(faq): added common question about how to boost performance of the plugin
+
+## v5.0.13
+
+- fix(updates): resolves #262, sanitized & escaped variables
+- fix(standards): resolved #261, sanitized & escaped variables
+- fix(cron jobs): resolves #260, removed the remote call to splorp's blacklist on Github
+
+## v5.0.12
+
+- Fixed issue with WPForms AJAX forms not getting validated by Zero Spam for WordPress [#238](https://github.com/bmarshall511/wordpress-zero-spam/issues/238)
+- David Walsh detection technique applied to WPForms & CF7
+- Miscellaneous admin UI improvements
+- Added ability to disable syncing WP's Disallowed Comment Keys
+
+## v5.0.11
+
+- Improved protection for comments, CF7, Formidbale, registrations, WooCommerce and WPForms submissions.
+- David Walsh detection technique applied to core WP registration forms.
+
+## v5.0.10
+
+- PHP notice fix
+
+## v5.0.9
+
+- Performance enhancements
+- Various admin UI improvements
+- Strengthened comment & registration spam detections
+
+## v5.0.8
+
+- Fix for admin first-time config notice
+
+## v5.0.7
+
+- Added first-time configuration notice & auto-configure recommended settings functionality
+- Added the ability to regenerate the honeypot ID
+- Various admin UI improvements
+- WP Disallowed Comment Keys are automatically updated weekly using https://github.com/splorp/wordpress-comment-blacklist
+- Strengthened comment spam detections using WP core disallowed list
+- [David Walsh's spam technique](https://davidwalsh.name/wordpress-comment-spam#utm_source=wordpresszerospam&utm_medium=admin_link&utm_campaign=wordpresszerospam) is back! https://github.com/bmarshall511/wordpress-zero-spam/issues/247
+
+## v5.0.6
+
+- Various admin UI improvements
+- Strengthened comment spam detections
+
+## v5.0.5
+
+- Fix autoloader compatibility with Windows paths (https://github.com/bmarshall511/wordpress-zero-spam/pull/236)
+- Various admin UI improvements
+
+## v5.0.4
+
+- Fix for when checks should be preformed
+
+## v5.0.3
+
+- Added support for Formidable Form Builder
+- Fixed PHP error related to a blacklist call
+
+## v5.0.2
+
+- Admin UI enhancements
+- Added support for WooCommerce
+- Added Cloudflare IP address support (https://github.com/bmarshall511/wordpress-zero-spam/issues/220)
+- Update to data sharing option
+- Added ability to block individual locations (country, region, zip & city)
+- Added support for WPForms
+
+## v5.0.1
+
+- Updated readme file & documentation
+- Can now be installed via composer
+- Updated the required PHP version
+
+## v5.0.0
+
+- Initial v5.0.0 release
+- Huge performance enhancements
+- More control over settings to fine-tune functionality
+- Lots of bug fixes & improvements
