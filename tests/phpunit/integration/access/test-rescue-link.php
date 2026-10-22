@@ -52,12 +52,16 @@ class Test_Rescue_Link extends TestCase {
 	/**
 	 * Submits the blocked page's rescue form and returns the response.
 	 *
-	 * @param string      $email Submitted address.
-	 * @param string      $ip    Visitor IP.
-	 * @param string|null $nonce Nonce; a valid one when null.
+	 * The email is sent on `shutdown`; unless $shutdown is false, this runs
+	 * the plugin's shutdown sender afterwards, as the end of the request would.
+	 *
+	 * @param string      $email    Submitted address.
+	 * @param string      $ip       Visitor IP.
+	 * @param string|null $nonce    Nonce; a valid one when null.
+	 * @param bool        $shutdown Whether to run the shutdown sender.
 	 * @return array{message: string, code: int}
 	 */
-	private function submit( string $email, string $ip = self::DEFAULT_IP, ?string $nonce = null ): array {
+	private function submit( string $email, string $ip = self::DEFAULT_IP, ?string $nonce = null, bool $shutdown = true ): array {
 		$this->set_request( '/wp-admin/admin-post.php', $ip );
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 
@@ -71,6 +75,10 @@ class Test_Rescue_Link extends TestCase {
 		try {
 			Rescue_Link::handle_request();
 		} catch ( WPDieException $e ) {
+			if ( $shutdown ) {
+				Rescue_Link::send_queued();
+			}
+
 			return array(
 				'message' => $e->getMessage(),
 				'code'    => (int) $e->getCode(),
@@ -106,27 +114,65 @@ class Test_Rescue_Link extends TestCase {
 	}
 
 	/**
-	 * Opens a rescue link and returns where it redirected, or null.
-	 *
-	 * @param string $token Token.
-	 * @param string $ip    Visitor IP.
+	 * Makes wp_redirect() throw a RedirectException.
 	 */
-	private function open_link( string $token, string $ip = self::DEFAULT_IP ): ?string {
-		$this->set_request( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token, $ip );
-
+	private function catch_redirects(): void {
 		add_filter(
 			'wp_redirect',
 			static function ( $location, $status ) {
-				throw new RedirectException( (string) $location, (int) $status ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Caught below, never rendered.
+				throw new RedirectException( (string) $location, (int) $status ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Caught by the caller, never rendered.
 			},
 			1,
 			2
 		);
+	}
+
+	/**
+	 * Opens a rescue link (GET) and returns the page it shows, or null when the request continues.
+	 *
+	 * @param string $token Token.
+	 * @param string $ip    Visitor IP.
+	 * @return array{message: string, code: int}|null
+	 */
+	private function open_link( string $token, string $ip = self::DEFAULT_IP ): ?array {
+		$this->set_request( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token, $ip );
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		$this->catch_redirects();
+
+		try {
+			( new Access() )->init();
+		} catch ( WPDieException $e ) {
+			return array(
+				'message' => $e->getMessage(),
+				'code'    => (int) $e->getCode(),
+			);
+		} catch ( RedirectException $e ) {
+			$this->fail( 'Opening the link (GET) used the token and redirected to ' . $e->getMessage() );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Presses "Let me back in" (POST of the token) and returns where it redirected, or null.
+	 *
+	 * @param string $token Token.
+	 * @param string $ip    Visitor IP.
+	 */
+	private function confirm_link( string $token, string $ip = self::DEFAULT_IP ): ?string {
+		$this->set_request( '/', $ip );
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = array( Rescue_Link::TOKEN_PARAM => $token );
+		$_REQUEST                  = $_POST;
+		$this->catch_redirects();
 
 		try {
 			( new Access() )->init();
 		} catch ( RedirectException $e ) {
 			return $e->getMessage();
+		} finally {
+			$_POST    = array();
+			$_REQUEST = array();
 		}
 
 		return null;
@@ -163,6 +209,104 @@ class Test_Rescue_Link extends TestCase {
 		$this->assertStringContainsString( '15 minutes', $sent[0]->body );
 		$this->assertStringContainsString( self::DEFAULT_IP, $sent[0]->body, 'The email does not say which IP asked for it.' );
 		$this->assertStringNotContainsString( '@', home_url( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token ) );
+	}
+
+	/**
+	 * The email is sent on shutdown, after the answer, so sending takes no visible time.
+	 */
+	public function test_email_is_sent_on_shutdown(): void {
+		$sent_answer = $this->submit( (string) get_option( 'admin_email' ), self::DEFAULT_IP, null, false );
+
+		$this->assertSame( array(), $this->sent(), 'The email was sent before the answer.' );
+		$this->assertNotFalse( has_action( 'shutdown', array( Rescue_Link::class, 'send_queued' ) ) );
+
+		Rescue_Link::send_queued();
+		$this->assertCount( 1, $this->sent() );
+
+		Rescue_Link::send_queued();
+		$this->assertCount( 1, $this->sent(), 'The queue sent twice.' );
+
+		$other_answer = $this->submit( 'nobody@example.com', self::OTHER_IP, null, false );
+		Rescue_Link::send_queued();
+		$this->assertCount( 1, $this->sent() );
+		$this->assertSame( $sent_answer, $other_answer );
+	}
+
+	/**
+	 * The zerospam_rescue_form_enabled filter hides the form and stops sending.
+	 */
+	public function test_rescue_form_can_be_turned_off(): void {
+		add_filter( 'zerospam_rescue_form_enabled', '__return_false' );
+		$this->block( self::DEFAULT_IP );
+
+		$access = new Access();
+		add_filter( 'zerospam_access_checks', array( $access, 'check_blocked' ), 0, 3 );
+		try {
+			$access->run_block_check();
+			$this->fail( 'A blocked visitor was let through.' );
+		} catch ( WPDieException $e ) {
+			$this->assertSame( 403, (int) $e->getCode() );
+			$this->assertStringContainsString( 'blocked', $e->getMessage() );
+			$this->assertStringNotContainsString( '<details', $e->getMessage() );
+			$this->assertStringNotContainsString( '<form', $e->getMessage() );
+		}
+
+		$response = $this->submit( (string) get_option( 'admin_email' ) );
+		$this->assertSame( 200, $response['code'] );
+		$this->assertSame( array(), $this->sent(), 'A disabled form still sent an email.' );
+	}
+
+	/**
+	 * Opening a link (GET, as email scanners do) shows a "Let me back in" button and leaves the token unused.
+	 */
+	public function test_opening_the_link_shows_a_button_and_keeps_the_token(): void {
+		$this->block( self::DEFAULT_IP );
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$token = $this->token_from_email();
+		$key   = Rescue_Link::TOKEN_TRANSIENT_PREFIX . hash( 'sha256', $token );
+
+		$first = $this->open_link( $token );
+		$this->open_link( $token, self::OTHER_IP );
+
+		$this->assertIsArray( $first, 'Opening the link showed no page.' );
+		$this->assertSame( 200, $first['code'] );
+		$this->assertNotFalse( get_transient( $key ), 'Opening the link used the token.' );
+		$this->assertSame( array(), Stubs::$cookies );
+		$this->assertSame( array(), $this->rescue_log_rows() );
+
+		$xpath = $this->parse( $first['message'] );
+		$form  = $xpath->query( '//form' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $form );
+		$this->assertSame( 'post', strtolower( $form->getAttribute( 'method' ) ) );
+		$this->assertSame( home_url( '/' ), $form->getAttribute( 'action' ) );
+		$this->assertSame( 1, $xpath->query( '//form//input[@type="hidden"][@name="' . Rescue_Link::TOKEN_PARAM . '"][@value="' . $token . '"]' )->length );
+		$this->assertSame( 'Let me back in', $xpath->evaluate( 'normalize-space(//form//button[@type="submit"])' ) );
+		$this->assertStringContainsString( 'outline: 2px solid', $first['message'] );
+
+		$this->assertSame( wp_login_url(), $this->confirm_link( $token ) );
+		$this->assertFalse( get_transient( $key ) );
+	}
+
+	/**
+	 * A POST with the token only in the URL is treated like opening the link.
+	 */
+	public function test_post_without_the_token_field_does_not_use_it(): void {
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$token = $this->token_from_email();
+
+		$this->set_request( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token );
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = array();
+		$this->catch_redirects();
+		try {
+			( new Access() )->init();
+			$this->fail( 'No page was shown.' );
+		} catch ( WPDieException $e ) {
+			$this->assertSame( 200, (int) $e->getCode() );
+		}
+
+		$this->assertNotFalse( get_transient( Rescue_Link::TOKEN_TRANSIENT_PREFIX . hash( 'sha256', $token ) ) );
+		$this->assertSame( array(), Stubs::$cookies );
 	}
 
 	/**
@@ -302,7 +446,7 @@ class Test_Rescue_Link extends TestCase {
 		$this->submit( (string) get_option( 'admin_email' ) );
 		$token = $this->token_from_email();
 
-		$location = $this->open_link( $token );
+		$location = $this->confirm_link( $token );
 
 		$this->assertSame( wp_login_url(), $location );
 
@@ -325,17 +469,18 @@ class Test_Rescue_Link extends TestCase {
 	}
 
 	/**
-	 * A link works once.
+	 * A link works once: a second "Let me back in" is refused, and opening it again shows nothing.
 	 */
 	public function test_link_is_single_use(): void {
 		$this->submit( (string) get_option( 'admin_email' ) );
 		$token = $this->token_from_email();
 
-		$this->assertSame( wp_login_url(), $this->open_link( $token ) );
+		$this->assertSame( wp_login_url(), $this->confirm_link( $token ) );
 		Stubs::$cookies = array();
 		unset( $_COOKIE[ Access::RESCUE_COOKIE ] );
 
-		$this->assertNull( $this->open_link( $token ), 'A used link worked again.' );
+		$this->assertNull( $this->confirm_link( $token ), 'A used link worked again.' );
+		$this->assertNull( $this->open_link( $token ), 'A used link still shows the button.' );
 		$this->assertSame( array(), Stubs::$cookies );
 		$this->assertCount( 1, $this->rescue_log_rows() );
 	}
@@ -353,14 +498,15 @@ class Test_Rescue_Link extends TestCase {
 		$stored['expires'] = time() - 1;
 		set_transient( $key, $stored, MINUTE_IN_SECONDS );
 
-		$this->assertNull( $this->open_link( $token ), 'An expired link worked.' );
+		$this->assertNull( $this->open_link( $token ), 'An expired link shows the button.' );
+		$this->assertNull( $this->confirm_link( $token ), 'An expired link worked.' );
 		$this->assertSame( array(), Stubs::$cookies );
 
 		$this->submit( (string) get_option( 'admin_email' ), self::OTHER_IP );
 		$token = $this->token_from_email( 1 );
 		if ( ! wp_using_ext_object_cache() ) {
 			update_option( '_transient_timeout_' . Rescue_Link::TOKEN_TRANSIENT_PREFIX . hash( 'sha256', $token ), time() - 1 );
-			$this->assertNull( $this->open_link( $token ), 'A link whose transient expired worked.' );
+			$this->assertNull( $this->confirm_link( $token ), 'A link whose transient expired worked.' );
 		}
 	}
 
@@ -371,7 +517,7 @@ class Test_Rescue_Link extends TestCase {
 		$this->submit( (string) get_option( 'admin_email' ) );
 		$token = $this->token_from_email();
 
-		$this->assertSame( wp_login_url(), $this->open_link( $token, self::OTHER_IP ) );
+		$this->assertSame( wp_login_url(), $this->confirm_link( $token, self::OTHER_IP ) );
 
 		$rows = $this->rescue_log_rows();
 		$this->assertCount( 1, $rows );
@@ -391,6 +537,7 @@ class Test_Rescue_Link extends TestCase {
 	 */
 	public function test_unknown_tokens_are_ignored( string $token ): void {
 		$this->assertNull( $this->open_link( rawurlencode( $token ) ) );
+		$this->assertNull( $this->confirm_link( $token ) );
 		$this->assertSame( array(), Stubs::$cookies );
 		$this->assertSame( array(), $this->rescue_log_rows() );
 	}
@@ -414,7 +561,7 @@ class Test_Rescue_Link extends TestCase {
 	 */
 	public function test_tampered_link_cookie_is_ignored(): void {
 		$this->submit( (string) get_option( 'admin_email' ) );
-		$this->open_link( $this->token_from_email() );
+		$this->confirm_link( $this->token_from_email() );
 		$value = Stubs::$cookies[0]['value'];
 
 		$this->set_request( '/' );
@@ -454,6 +601,7 @@ class Test_Rescue_Link extends TestCase {
 			$this->assertSame( 200, (int) $e->getCode() );
 		}
 
+		Rescue_Link::send_queued();
 		$this->assertCount( 1, $this->sent() );
 	}
 
@@ -510,6 +658,9 @@ class Test_Rescue_Link extends TestCase {
 		$this->assertSame( 1, $xpath->query( '//form//button[@type="submit"]' )->length );
 		$this->assertSame( 1, $xpath->query( '//details//a[@href="https://wordpress.org/plugins/zero-spam/#faq"]' )->length );
 		$this->assertStringContainsString( 'Site owner? If you administer this site, enter the site', $html );
+
+		// A 2px focus outline with an offset for the form controls.
+		$this->assertMatchesRegularExpression( '/<style>[^<]*\.zerospam-rescue input:focus-visible[^<]*outline: 2px solid #2271b1; outline-offset: 2px;/', $html );
 	}
 
 	/**

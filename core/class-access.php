@@ -69,13 +69,16 @@ class Access {
 	 *                        Defaults to 403 to indicate a Forbidden error.
 	 * @param bool   $rescue  Optional. Whether to add the "Help for site owners"
 	 *                        section with the rescue link form (the blocked
-	 *                        page only). Default false.
+	 *                        page only), unless the zerospam_rescue_form_enabled
+	 *                        filter turns it off. Default false.
 	 */
 	public static function terminate_execution( $title, $message, $code = 403, $rescue = false ) {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 			define( 'DONOTCACHEPAGE', true );
 		}
 		nocache_headers();
+
+		$rescue = $rescue && Rescue_Link::form_enabled();
 
 		wp_die(
 			$rescue ? wp_kses( $message . Rescue_Link::form_html(), Rescue_Link::allowed_html() ) : wp_kses_post( $message ),
@@ -188,20 +191,33 @@ class Access {
 	}
 
 	/**
-	 * Uses an emailed rescue link: sets the rescue cookie, logs it and sends the visitor to log in.
+	 * Handles an emailed rescue link before any block check (runs on `init`).
 	 *
-	 * Runs on `init`, before any block check. Only requests carrying the
-	 * token parameter do any work. Invalid, used and expired tokens are
-	 * ignored, so the request continues as usual.
+	 * Opening the link (GET) only shows a "Let me back in" button and leaves
+	 * the token unused, because email scanners open links on their own. The
+	 * button's POST uses the token: it sets the rescue cookie, logs it and
+	 * sends the visitor to log in. Only requests carrying the token do any
+	 * work; invalid, used and expired tokens are ignored, so the request
+	 * continues as usual.
 	 */
 	private function redeem_rescue_link(): void {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- The single-use token is the credential.
-		if ( ! isset( $_GET[ Rescue_Link::TOKEN_PARAM ] ) || ! is_string( $_GET[ Rescue_Link::TOKEN_PARAM ] ) ) {
+		// phpcs:disable WordPress.Security.NonceVerification -- The single-use token is the credential; see Rescue_Link.
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
+
+		if ( 'POST' === $method && isset( $_POST[ Rescue_Link::TOKEN_PARAM ] ) && is_string( $_POST[ Rescue_Link::TOKEN_PARAM ] ) ) {
+			$grant = Rescue_Link::redeem_token( sanitize_text_field( wp_unslash( $_POST[ Rescue_Link::TOKEN_PARAM ] ) ) );
+		} elseif ( isset( $_GET[ Rescue_Link::TOKEN_PARAM ] ) && is_string( $_GET[ Rescue_Link::TOKEN_PARAM ] ) ) {
+			$token = sanitize_text_field( wp_unslash( $_GET[ Rescue_Link::TOKEN_PARAM ] ) );
+			if ( Rescue_Link::peek_token( $token ) ) {
+				Rescue_Link::show_confirm_page( $token );
+			}
+
+			return;
+		} else {
 			return;
 		}
-
-		$grant = Rescue_Link::redeem_token( sanitize_text_field( wp_unslash( $_GET[ Rescue_Link::TOKEN_PARAM ] ) ) );
 		// phpcs:enable
+
 		if ( null === $grant ) {
 			return;
 		}

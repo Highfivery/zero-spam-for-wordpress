@@ -123,6 +123,75 @@ class Test_Admin_Whitelist extends TestCase {
 	}
 
 	/**
+	 * Behind a proxy Zero Spam does not trust yet, the IP it sees is the proxy's: never whitelist it.
+	 *
+	 * @dataProvider data_proxy_headers
+	 *
+	 * @param string $header $_SERVER key of the forwarding header.
+	 */
+	public function test_activation_skips_an_untrusted_proxy( string $header ): void {
+		$this->admin_from( self::DEFAULT_IP );
+		$_SERVER[ $header ] = '198.51.100.23';
+
+		zerospam_plugin_activation( false );
+
+		$this->assertSame( '', $this->whitelist(), 'The proxy address was whitelisted, which would exempt every visitor.' );
+		$this->assertFalse( get_option( Admin_Whitelist::NOTICE_OPTION ) );
+	}
+
+	/**
+	 * Forwarding headers that mean the request came through a proxy.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function data_proxy_headers(): array {
+		return array(
+			'X-Forwarded-For'  => array( 'HTTP_X_FORWARDED_FOR' ),
+			'X-Real-IP'        => array( 'HTTP_X_REAL_IP' ),
+			'True-Client-IP'   => array( 'HTTP_TRUE_CLIENT_IP' ),
+			'CF-Connecting-IP' => array( 'HTTP_CF_CONNECTING_IP' ),
+		);
+	}
+
+	/**
+	 * Once the proxy is trusted (the visitor IP comes from the header, not REMOTE_ADDR), the visitor IP is whitelisted.
+	 */
+	public function test_activation_whitelists_the_client_behind_a_trusted_proxy(): void {
+		$this->admin_from( '198.51.100.1' );
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = self::DEFAULT_IP;
+		add_filter(
+			'zerospam_get_ip',
+			static function () {
+				return self::DEFAULT_IP;
+			}
+		);
+
+		zerospam_plugin_activation( false );
+
+		$this->assertSame( self::DEFAULT_IP, $this->whitelist() );
+	}
+
+	/**
+	 * The update migration stays pending behind an untrusted proxy, and runs on a later plain request.
+	 */
+	public function test_update_migration_waits_behind_an_untrusted_proxy(): void {
+		update_option( Migrations::COMPLETED_OPTION, array( 'legacy_options_to_modules_v5', 'share_detection_cron_cleanup', 'davidwalsh_signed_tokens', 'geolocation_header_cache' ) );
+		$this->admin_from( self::DEFAULT_IP );
+		$_SERVER['HTTP_X_FORWARDED_FOR'] = '198.51.100.23';
+
+		( new Migrations() )->run();
+
+		$this->assertNotContains( 'whitelist_admin_ip', get_option( Migrations::COMPLETED_OPTION ) );
+		$this->assertSame( '', $this->whitelist() );
+
+		unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+		( new Migrations() )->run();
+
+		$this->assertContains( 'whitelist_admin_ip', get_option( Migrations::COMPLETED_OPTION ) );
+		$this->assertSame( self::DEFAULT_IP, $this->whitelist() );
+	}
+
+	/**
 	 * The zerospam_whitelist_activating_admin filter turns it off.
 	 */
 	public function test_filter_turns_it_off(): void {

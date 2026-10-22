@@ -22,12 +22,24 @@ defined( 'ABSPATH' ) || die();
  * administrator, it answers every request the same way, and it is rate
  * limited per site and per IP before it does anything else.
  *
+ * The email is sent on `shutdown`, after the answer has been generated (and,
+ * under PHP-FPM or LiteSpeed, sent), so a request that sends an email takes
+ * as long as one that does not.
+ *
  * The emailed link carries a random single-use token that expires after
- * 15 minutes; only its SHA-256 hash is stored. Opening the link (Access::init())
- * sets the same one-hour rescue cookie as the ZEROSPAM_RESCUE_KEY constant
- * and sends the visitor to the login page. The link may be opened from
- * another IP than the one that asked for it (people often open email on
- * another device); both IPs are written to the detection log.
+ * 15 minutes; only its SHA-256 hash is stored. Opening the link (a GET,
+ * handled in Access::init()) only shows a "Let me back in" button: email
+ * security scanners open links in emails on their own, and must not use up
+ * the token. The button POSTs the token (no nonce: the token is the secret),
+ * which uses it, sets the same one-hour rescue cookie as the
+ * ZEROSPAM_RESCUE_KEY constant and sends the visitor to the login page. The
+ * link may be opened from another IP than the one that asked for it (people
+ * often open email on another device); both IPs are written to the
+ * detection log.
+ *
+ * The `zerospam_rescue_form_enabled` filter (default true) hides the form
+ * from the blocked page and makes the request handler send nothing. Links
+ * already sent keep working until they expire.
  */
 final class Rescue_Link {
 
@@ -123,6 +135,13 @@ final class Rescue_Link {
 	const FIELD_ID = 'zerospam-rescue-email';
 
 	/**
+	 * Emails waiting for `shutdown`, as recipient and requester IP.
+	 *
+	 * @var array<int, array{0: string, 1: string}>
+	 */
+	private static array $queue = array();
+
+	/**
 	 * Registers the form handler and the log type.
 	 */
 	public function __construct() {
@@ -162,12 +181,31 @@ final class Rescue_Link {
 	}
 
 	/**
+	 * Whether the blocked page offers the rescue form.
+	 */
+	public static function form_enabled(): bool {
+		/**
+		 * Filters whether the blocked page offers the "Help for site owners" rescue form.
+		 *
+		 * When false the form is not shown and form submissions send nothing.
+		 *
+		 * @param bool $enabled Whether the form is offered. Default true.
+		 */
+		return (bool) apply_filters( 'zerospam_rescue_form_enabled', true );
+	}
+
+	/**
 	 * Handles a rescue form submission and ends the request.
 	 *
 	 * Every valid submission gets the same answer whether or not an email is
 	 * sent, so the form cannot be used to find out who the administrators are.
 	 */
 	public static function handle_request(): void {
+		if ( ! self::form_enabled() ) {
+			self::respond_sent();
+			return;
+		}
+
 		$ip = self::visitor_ip();
 
 		// Rate limits first: a flood costs one transient read and write per request.
@@ -191,10 +229,49 @@ final class Rescue_Link {
 
 		$recipient = self::administrator_email( $email );
 		if ( null !== $recipient && self::take( self::SITE_LIMIT_TRANSIENT, self::SITE_LIMIT ) ) {
-			self::send( $recipient, $ip );
+			self::$queue[] = array( $recipient, $ip );
+			if ( false === has_action( 'shutdown', array( self::class, 'send_queued' ) ) ) {
+				add_action( 'shutdown', array( self::class, 'send_queued' ) );
+			}
 		}
 
 		self::respond_sent();
+	}
+
+	/**
+	 * Sends the queued rescue emails, on `shutdown`.
+	 *
+	 * Finishes the response first where the server allows it (as wp-cron.php
+	 * does), so the visitor never waits for the mail server.
+	 */
+	public static function send_queued(): void {
+		$queue       = self::$queue;
+		self::$queue = array();
+
+		if ( ! $queue ) {
+			return;
+		}
+
+		if ( function_exists( 'fastcgi_finish_request' ) ) {
+			fastcgi_finish_request();
+		} elseif ( function_exists( 'litespeed_finish_request' ) ) {
+			litespeed_finish_request();
+		}
+
+		foreach ( $queue as $item ) {
+			self::send( $item[0], $item[1] );
+		}
+	}
+
+	/**
+	 * Whether a token from an emailed link is valid, without using it.
+	 *
+	 * @param string $token Token from the link.
+	 */
+	public static function peek_token( string $token ): bool {
+		$stored = self::stored_token( $token );
+
+		return null !== $stored && (int) $stored['data']['expires'] >= time();
 	}
 
 	/**
@@ -204,6 +281,29 @@ final class Rescue_Link {
 	 * @return array{ip: string, time: int}|null The IP that asked for the link and when, or null when the token is not valid.
 	 */
 	public static function redeem_token( string $token ): ?array {
+		$stored = self::stored_token( $token );
+		if ( null === $stored ) {
+			return null;
+		}
+
+		// Single use: only the request that deletes the token may use it.
+		if ( ! delete_transient( $stored['key'] ) || (int) $stored['data']['expires'] < time() ) {
+			return null;
+		}
+
+		return array(
+			'ip'   => isset( $stored['data']['ip'] ) ? (string) $stored['data']['ip'] : '',
+			'time' => isset( $stored['data']['time'] ) ? (int) $stored['data']['time'] : 0,
+		);
+	}
+
+	/**
+	 * Looks up a token's stored record.
+	 *
+	 * @param string $token Token from the link.
+	 * @return array{key: string, data: array<string, mixed>}|null Transient name and record, or null.
+	 */
+	private static function stored_token( string $token ): ?array {
 		if ( 1 !== preg_match( '/\A[a-f0-9]{64}\z/', $token ) ) {
 			return null;
 		}
@@ -221,15 +321,33 @@ final class Rescue_Link {
 			return null;
 		}
 
-		// Single use: only the request that deletes the token may use it.
-		if ( ! delete_transient( $key ) || (int) $stored['expires'] < time() ) {
-			return null;
-		}
-
 		return array(
-			'ip'   => isset( $stored['ip'] ) ? (string) $stored['ip'] : '',
-			'time' => isset( $stored['time'] ) ? (int) $stored['time'] : 0,
+			'key'  => $key,
+			'data' => $stored,
 		);
+	}
+
+	/**
+	 * Ends the request with the page an emailed link opens: one "Let me back in" button.
+	 *
+	 * @param string $token Token from the link (valid, see peek_token()).
+	 */
+	public static function show_confirm_page( string $token ): void {
+		$html  = self::focus_style();
+		$html .= '<div class="zerospam-rescue">';
+		$html .= '<p>' . sprintf(
+			/* translators: %s: site name */
+			esc_html__( 'This Zero Spam rescue link lets this browser into %s for one hour, so you can log in.', 'zero-spam' ),
+			'<strong>' . esc_html( wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ) ) . '</strong>'
+		) . '</p>';
+		$html .= '<form method="post" action="' . esc_url( home_url( '/' ) ) . '">';
+		$html .= '<input type="hidden" name="' . esc_attr( self::TOKEN_PARAM ) . '" value="' . esc_attr( $token ) . '">';
+		$html .= '<p><button type="submit" class="button button-large">' . esc_html__( 'Let me back in', 'zero-spam' ) . '</button></p>';
+		$html .= '</form>';
+		$html .= '<p>' . esc_html__( 'The link works once and expires 15 minutes after it was sent.', 'zero-spam' ) . '</p>';
+		$html .= '</div>';
+
+		self::render( __( 'Let me back in', 'zero-spam' ), $html, 200 );
 	}
 
 	/**
@@ -273,7 +391,8 @@ final class Rescue_Link {
 		$error_id  = self::FIELD_ID . '-error';
 		$described = $help_id . ( '' !== $error ? ' ' . $error_id : '' );
 
-		$html  = '<details class="zerospam-rescue"' . ( $open ? ' open' : '' ) . ' style="margin-top: 24px; border-top: 1px solid #dcdcde; padding-top: 16px;">';
+		$html  = self::focus_style();
+		$html .= '<details class="zerospam-rescue"' . ( $open ? ' open' : '' ) . ' style="margin-top: 24px; border-top: 1px solid #dcdcde; padding-top: 16px;">';
 		$html .= '<summary style="font-size: 14px; font-weight: 600;">' . esc_html__( 'Help for site owners', 'zero-spam' ) . '</summary>';
 		$html .= '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		$html .= '<p id="' . esc_attr( $help_id ) . '">' . esc_html__( 'Site owner? If you administer this site, enter the site\'s administrator email address and we\'ll email you a link that lets you in for one hour.', 'zero-spam' ) . '</p>';
@@ -299,6 +418,17 @@ final class Rescue_Link {
 	}
 
 	/**
+	 * A visible focus indicator for the rescue controls.
+	 *
+	 * The wp_die() page only styles `.button:focus` (a 1px ring); this adds a 2px
+	 * outline, offset from the control, in WordPress blue (#2271b1, 5.3:1
+	 * against the white page).
+	 */
+	private static function focus_style(): string {
+		return '<style>.zerospam-rescue summary:focus-visible, .zerospam-rescue input:focus-visible, .zerospam-rescue button:focus-visible, .zerospam-rescue a:focus-visible { outline: 2px solid #2271b1; outline-offset: 2px; box-shadow: none; }</style>';
+	}
+
+	/**
 	 * Tags and attributes allowed on pages that include the rescue form.
 	 *
 	 * The post allowlist (for the configured blocked message) plus the form
@@ -314,6 +444,8 @@ final class Rescue_Link {
 			'style' => true,
 		);
 
+		$allowed['style']   = array();
+		$allowed['div']     = array_merge( $allowed['div'] ?? array(), $global );
 		$allowed['details'] = array_merge( $allowed['details'] ?? array(), $global, array( 'open' => true ) );
 		$allowed['summary'] = array_merge( $allowed['summary'] ?? array(), $global );
 		$allowed['form']    = array_merge(

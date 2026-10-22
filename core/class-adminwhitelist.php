@@ -20,6 +20,12 @@ defined( 'ABSPATH' ) || die();
  * IP of a user who can manage options is added, never twice, and nothing
  * is ever removed. A one-time notice tells that administrator.
  *
+ * Behind a proxy Zero Spam does not trust yet, the IP it sees is the
+ * proxy's, and whitelisting it would exempt every visitor: such requests
+ * (see is_untrusted_proxy_request()) are skipped, and the migration stays
+ * pending until a request without that problem, for example once the proxy
+ * is configured as trusted.
+ *
  * Multisite: a site activation writes to that site. A network activation
  * writes to the main site only; other sites get the IP of the first
  * administrator who visits them after the update (the migration runs per
@@ -78,7 +84,12 @@ final class Admin_Whitelist {
 	 * @return bool False while no administrator has loaded the site (the migration stays pending).
 	 */
 	public static function migrate(): bool {
-		if ( wp_doing_cron() || ! current_user_can( 'manage_options' ) || ! is_string( User::get_ip() ) ) {
+		if ( wp_doing_cron() || ! current_user_can( 'manage_options' ) ) {
+			return false;
+		}
+
+		$ip = User::get_ip();
+		if ( ! is_string( $ip ) || self::is_untrusted_proxy_request( $ip ) ) {
 			return false;
 		}
 
@@ -98,7 +109,7 @@ final class Admin_Whitelist {
 		}
 
 		$ip = User::get_ip();
-		if ( ! is_string( $ip ) || ! self::is_public_ip( $ip ) ) {
+		if ( ! is_string( $ip ) || ! self::is_public_ip( $ip ) || self::is_untrusted_proxy_request( $ip ) ) {
 			return false;
 		}
 
@@ -201,6 +212,34 @@ final class Admin_Whitelist {
 		$referer = wp_get_referer();
 		wp_safe_redirect( $referer ? $referer : admin_url() );
 		exit;
+	}
+
+	/**
+	 * Whether the request came through a proxy that Zero Spam does not trust.
+	 *
+	 * True when the request carries a forwarding header (X-Forwarded-For,
+	 * X-Real-IP, True-Client-IP or CF-Connecting-IP) but the visitor IP is
+	 * still REMOTE_ADDR, so no trusted-proxy resolution happened and the IP is
+	 * most likely the proxy's. Reads $_SERVER only.
+	 *
+	 * @param string $ip Visitor IP from User::get_ip().
+	 */
+	private static function is_untrusted_proxy_request( string $ip ): bool {
+		$forwarded = false;
+		foreach ( array( 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_TRUE_CLIENT_IP', 'HTTP_CF_CONNECTING_IP' ) as $header ) {
+			if ( ! empty( $_SERVER[ $header ] ) ) {
+				$forwarded = true;
+				break;
+			}
+		}
+
+		if ( ! $forwarded ) {
+			return false;
+		}
+
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) ? trim( sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) ) : '';
+
+		return '' !== $remote && $remote === $ip;
 	}
 
 	/**

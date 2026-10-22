@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Stats_Aggregator to this file name.
 /**
  * Stats_Aggregator class
  *
@@ -74,7 +74,7 @@ class Stats_Aggregator {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$exists = $wpdb->get_var(
 				$wpdb->prepare(
-					"SELECT stat_id FROM {$wpdb->base_prefix}wpzerospam_stats_daily 
+					"SELECT stat_id FROM {$wpdb->base_prefix}wpzerospam_stats_daily
 					WHERE site_id = %d AND stat_date = %s",
 					$site->blog_id,
 					$date
@@ -90,15 +90,20 @@ class Stats_Aggregator {
 
 			$log_table = $wpdb->prefix . DB::$tables['log'];
 
+			// Detections only: rescue-link entries and other non-detections are left out.
+			$detections = DB::detections_sql();
+
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- $detections is prepared by DB::detections_sql(); aggregation runs once a day from cron.
+
 			// Get daily totals.
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$totals = $wpdb->get_row(
 				$wpdb->prepare(
-					"SELECT 
+					"SELECT
 						COUNT(*) as total_spam,
 						COUNT(DISTINCT user_ip) as unique_ips
-					FROM {$log_table}
-					WHERE DATE(date_recorded) = %s",
+					FROM %i
+					WHERE DATE(date_recorded) = %s AND {$detections}",
+					$log_table,
 					$date
 				),
 				ARRAY_A
@@ -110,64 +115,66 @@ class Stats_Aggregator {
 			}
 
 			// Get spam by type.
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$spam_by_type = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT log_type, COUNT(*) as count
-					FROM {$log_table}
-					WHERE DATE(date_recorded) = %s
+					FROM %i
+					WHERE DATE(date_recorded) = %s AND {$detections}
 					GROUP BY log_type
 					ORDER BY count DESC
 					LIMIT 10",
+					$log_table,
 					$date
 				),
 				ARRAY_A
 			);
 
 			// Get top countries.
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$top_countries = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT country, country_name, COUNT(*) as count
-					FROM {$log_table}
-					WHERE DATE(date_recorded) = %s AND country IS NOT NULL
+					FROM %i
+					WHERE DATE(date_recorded) = %s AND country IS NOT NULL AND {$detections}
 					GROUP BY country, country_name
 					ORDER BY count DESC
 					LIMIT 10",
+					$log_table,
 					$date
 				),
 				ARRAY_A
 			);
 
 			// Get top IPs.
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$top_ips = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT user_ip, COUNT(*) as count
-					FROM {$log_table}
-					WHERE DATE(date_recorded) = %s
+					FROM %i
+					WHERE DATE(date_recorded) = %s AND {$detections}
 					GROUP BY user_ip
 					ORDER BY count DESC
 					LIMIT 10",
+					$log_table,
 					$date
 				),
 				ARRAY_A
 			);
 
 			// Get top log types.
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$top_log_types = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT log_type, COUNT(*) as count
-					FROM {$log_table}
-					WHERE DATE(date_recorded) = %s
+					FROM %i
+					WHERE DATE(date_recorded) = %s AND {$detections}
 					GROUP BY log_type
 					ORDER BY count DESC
 					LIMIT 10",
+					$log_table,
 					$date
 				),
 				ARRAY_A
 			);
+
+			// phpcs:enable
 
 			restore_current_blog();
 
@@ -211,7 +218,7 @@ class Stats_Aggregator {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$exists = $wpdb->get_var(
 				$wpdb->prepare(
-					"SELECT stat_id FROM {$wpdb->base_prefix}wpzerospam_stats_monthly 
+					"SELECT stat_id FROM {$wpdb->base_prefix}wpzerospam_stats_monthly
 					WHERE site_id = %d AND stat_year = %d AND stat_month = %d",
 					$site->blog_id,
 					$year,
@@ -234,7 +241,7 @@ class Stats_Aggregator {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$daily_data = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT 
+					"SELECT
 						SUM(total_spam_blocked) as total_spam,
 						SUM(unique_ips) as unique_ips,
 						GROUP_CONCAT(spam_by_type) as spam_types,
@@ -242,8 +249,8 @@ class Stats_Aggregator {
 						GROUP_CONCAT(top_ips) as ips,
 						GROUP_CONCAT(top_log_types) as log_types
 					FROM {$wpdb->base_prefix}wpzerospam_stats_daily
-					WHERE site_id = %d 
-					AND stat_date >= %s 
+					WHERE site_id = %d
+					AND stat_date >= %s
 					AND stat_date <= %s",
 					$site->blog_id,
 					$first_day,
@@ -274,17 +281,20 @@ class Stats_Aggregator {
 				// Fall back to raw logs.
 				switch_to_blog( $site->blog_id );
 
-				$log_table = $wpdb->prefix . DB::$tables['log'];
+				$log_table  = $wpdb->prefix . DB::$tables['log'];
+				$detections = DB::detections_sql();
 
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- $detections is prepared by DB::detections_sql(); aggregation runs from cron.
 				$totals = $wpdb->get_row(
 					$wpdb->prepare(
-						"SELECT 
+						"SELECT
 							COUNT(*) as total_spam,
 							COUNT(DISTINCT user_ip) as unique_ips
-						FROM {$log_table}
-						WHERE date_recorded >= %s 
-						AND date_recorded < DATE_ADD(%s, INTERVAL 1 MONTH)",
+						FROM %i
+						WHERE date_recorded >= %s
+						AND date_recorded < DATE_ADD(%s, INTERVAL 1 MONTH)
+						AND {$detections}",
+						$log_table,
 						$first_day . ' 00:00:00',
 						$first_day . ' 00:00:00'
 					),
@@ -297,20 +307,22 @@ class Stats_Aggregator {
 				}
 
 				// Get aggregated stats (simplified versions of daily query).
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$spam_by_type = $wpdb->get_results(
 					$wpdb->prepare(
 						"SELECT log_type, COUNT(*) as count
-						FROM {$log_table}
+						FROM %i
 						WHERE date_recorded >= %s AND date_recorded < DATE_ADD(%s, INTERVAL 1 MONTH)
+						AND {$detections}
 						GROUP BY log_type
 						ORDER BY count DESC
 						LIMIT 10",
+						$log_table,
 						$first_day . ' 00:00:00',
 						$first_day . ' 00:00:00'
 					),
 					ARRAY_A
 				);
+				// phpcs:enable
 
 				$spam_by_type_str = wp_json_encode( $spam_by_type );
 
