@@ -54,7 +54,6 @@ test.describe( 'Keyboard and motion', () => {
 	} );
 
 	test( 'a settings toggle can be reached and switched with the keyboard', async ( { page } ) => {
-		test.fail( true, 'AGENTS.md §8: assets/css/admin.css hides every settings checkbox and radio with display:none and draws the switch on the label, so Tab never reaches it' );
 		const settings = new SettingsPage( page );
 		await settings.goto( 'comments' );
 		const toggle = settings.field( 'verify_comments', 'enabled' );
@@ -88,7 +87,6 @@ test.describe( 'Keyboard and motion', () => {
 	} );
 
 	test( 'with reduced motion requested, the plugin CSS turns its animations and transitions off', async ( { page } ) => {
-		test.fail( true, 'AGENTS.md §8: no plugin stylesheet has a prefers-reduced-motion rule' );
 		await page.goto( 'wp-admin/index.php' );
 		const report = await page.evaluate( () => {
 			const own = Array.from( document.styleSheets ).filter( ( s ) => s.href && s.href.includes( '/plugins/zero-spam/' ) );
