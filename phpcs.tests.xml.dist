@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<ruleset name="Zero Spam for WordPress tests">
+	<description>WordPress Coding Standards for the PHPUnit test code (composer lint:tests).</description>
+
+	<rule ref="WordPress">
+		<!-- Test classes and helpers use PSR-4 file names (TestCase.php) and test-*.php. -->
+		<exclude name="WordPress.Files.FileName"/>
+		<!-- Tests inspect the database directly; that is the point. -->
+		<exclude name="WordPress.DB.DirectDatabaseQuery"/>
+		<!-- Tests simulate requests by writing to superglobals. -->
+		<exclude name="WordPress.Security.NonceVerification"/>
+		<exclude name="WordPress.Security.ValidatedSanitizedInput"/>
+	</rule>
+
+	<file>tests/phpunit</file>
+
+	<arg value="sp"/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="basepath" value="."/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="zero-spam"/>
+			</property>
+		</properties>
+	</rule>
+
+	<config name="testVersion" value="8.2-"/>
+</ruleset>

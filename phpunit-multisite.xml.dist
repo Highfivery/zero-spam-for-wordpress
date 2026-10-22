@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<!--
+	PHPUnit configuration for Zero Spam for WordPress (multisite network).
+	Run through composer test:multisite (bin/test.sh).
+	WP_MULTISITE must be an environment variable, not a constant: the
+	WordPress test installer runs in a separate PHP process.
+-->
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+	bootstrap="tests/phpunit/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	convertDeprecationsToExceptions="true"
+	failOnWarning="true"
+	failOnRisky="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+>
+	<testsuites>
+		<testsuite name="unit">
+			<directory prefix="test-" suffix=".php">tests/phpunit/unit</directory>
+		</testsuite>
+		<testsuite name="integration">
+			<directory prefix="test-" suffix=".php">tests/phpunit/integration</directory>
+		</testsuite>
+		<testsuite name="multisite">
+			<directory prefix="test-" suffix=".php">tests/phpunit/multisite</directory>
+		</testsuite>
+	</testsuites>
+
+	<groups>
+		<exclude>
+			<!-- Single-site only behaviour. -->
+			<group>ms-excluded</group>
+			<!-- Documents a confirmed bug and fails until it is fixed; run with composer test:defects. -->
+			<group>known-defect</group>
+		</exclude>
+	</groups>
+
+	<php>
+		<env name="WP_MULTISITE" value="1" force="true"/>
+		<env name="WP_TESTS_DB_NAME" value="zerospam_tests_ms"/>
+	</php>
+
+	<coverage includeUncoveredFiles="true">
+		<include>
+			<file>wordpress-zero-spam.php</file>
+			<directory suffix=".php">core</directory>
+			<directory suffix=".php">includes</directory>
+			<directory suffix=".php">modules</directory>
+		</include>
+		<exclude>
+			<directory>includes/templates</directory>
+		</exclude>
+	</coverage>
+</phpunit>

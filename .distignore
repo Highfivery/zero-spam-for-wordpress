@@ -13,7 +13,11 @@ node_modules
 composer.json
 composer.lock
 phpcs.xml.dist
+phpcs.tests.xml.dist
+phpunit.xml.dist
+phpunit-multisite.xml.dist
 phpstan.neon.dist
 phpstan-baseline.neon
+build
 assets/src
 NETWORK_SETTINGS_DEVELOPER_GUIDE.md

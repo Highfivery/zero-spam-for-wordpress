@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<!--
+	PHPUnit configuration for Zero Spam for WordPress (single site).
+	Run through bin/test.sh (composer test), not vendor/bin/phpunit directly:
+	the script downloads WordPress and exports where it is.
+	Multisite: phpunit-multisite.xml.dist.
+-->
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+	bootstrap="tests/phpunit/bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	convertDeprecationsToExceptions="true"
+	failOnWarning="true"
+	failOnRisky="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+>
+	<testsuites>
+		<testsuite name="unit">
+			<directory prefix="test-" suffix=".php">tests/phpunit/unit</directory>
+		</testsuite>
+		<testsuite name="integration">
+			<directory prefix="test-" suffix=".php">tests/phpunit/integration</directory>
+		</testsuite>
+	</testsuites>
+
+	<groups>
+		<exclude>
+			<!-- Needs a network; runs in phpunit-multisite.xml.dist. -->
+			<group>ms-required</group>
+			<!-- Documents a confirmed bug and fails until it is fixed; run with composer test:defects. -->
+			<group>known-defect</group>
+		</exclude>
+	</groups>
+
+	<php>
+		<env name="WP_TESTS_DB_NAME" value="zerospam_tests"/>
+	</php>
+
+	<coverage includeUncoveredFiles="true">
+		<include>
+			<file>wordpress-zero-spam.php</file>
+			<directory suffix=".php">core</directory>
+			<directory suffix=".php">includes</directory>
+			<directory suffix=".php">modules</directory>
+		</include>
+		<exclude>
+			<directory>includes/templates</directory>
+		</exclude>
+	</coverage>
+</phpunit>
