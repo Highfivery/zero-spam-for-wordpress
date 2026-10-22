@@ -23,8 +23,9 @@ if [[ "${SKIP_QUALITY_GATE:-0}" == "1" ]]; then
 	exit 0
 fi
 
-if [[ ! -x vendor/bin/phpcs || ! -x vendor/bin/phpstan ]]; then
-	echo "pre-push: dev tooling missing. Run: composer install" >&2
+if [[ ! -x vendor/bin/phpcs || ! -x vendor/bin/phpstan || ! -f vendor/composer/installed.json ]]; then
+	echo "pre-push: dev tooling missing or the Composer autoloader is stale (this happens after" >&2
+	echo "          checking out a branch that still tracks vendor/). Run: composer install" >&2
 	exit 1
 fi
 
