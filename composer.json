@@ -27,40 +27,97 @@
 		"php": ">=8.2"
 	},
 	"require-dev": {
-		"wp-coding-standards/wpcs": "^3.4",
-		"phpcompatibility/phpcompatibility-wp": "^2.1",
 		"automattic/vipwpcs": "^3.0",
-		"phpstan/phpstan": "^2.3",
-		"szepeviktor/phpstan-wordpress": "^2.0",
 		"php-stubs/wordpress-stubs": "^7.1",
-		"phpstan/extension-installer": "^1.4"
+		"phpcompatibility/phpcompatibility-wp": "^2.1",
+		"phpstan/extension-installer": "^1.4",
+		"phpstan/phpstan": "^2.3",
+		"phpunit/phpunit": "^9.6",
+		"szepeviktor/phpstan-wordpress": "^2.0",
+		"wp-coding-standards/wpcs": "^3.4",
+		"wp-phpunit/wp-phpunit": "7.1.1",
+		"yoast/phpunit-polyfills": "^4.0"
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"ZeroSpam\\Tests\\": "tests/phpunit/includes/"
+		}
 	},
 	"config": {
 		"allow-plugins": {
 			"dealerdirect/phpcodesniffer-composer-installer": true,
 			"phpstan/extension-installer": true
 		},
-		"sort-packages": true
+		"sort-packages": true,
+		"platform": {
+			"php": "8.2.27"
+		},
+		"process-timeout": 0
 	},
 	"scripts": {
 		"lint": "phpcs --standard=phpcs.xml.dist",
 		"lint:fix": "phpcbf --standard=phpcs.xml.dist",
 		"lint:changed": "bin/lint-changed.sh",
+		"lint:tests": "phpcs --standard=phpcs.tests.xml.dist",
 		"compat": "phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.2- --extensions=php --ignore=*/vendor/*,*/tests/*,*/node_modules/* .",
 		"analyse": "phpstan analyse --memory-limit=1G",
 		"analyse:baseline": "phpstan analyse --memory-limit=1G --generate-baseline phpstan-baseline.neon --allow-empty-baseline",
 		"version:check": "bin/check-version.sh",
+		"test": "bin/test.sh --mode=all",
+		"test:unit": "bin/test.sh --mode=single --suite=unit",
+		"test:integration": "bin/test.sh --mode=single --suite=integration",
+		"test:multisite": "bin/test.sh --mode=multisite",
+		"test:wp": "bin/test-matrix.sh",
+		"test:defects": "bin/test.sh --mode=all --known-defects",
+		"test:coverage": "bin/test.sh --mode=all --coverage",
+		"e2e:install": [
+			"Composer\\Config::disableProcessTimeout",
+			"npm ci",
+			"npx playwright install chromium"
+		],
+		"test:e2e": [
+			"Composer\\Config::disableProcessTimeout",
+			"npm run --silent test:e2e --"
+		],
+		"test:e2e:local": [
+			"Composer\\Config::disableProcessTimeout",
+			"npm run --silent test:e2e:local --"
+		],
+		"test:e2e:network": [
+			"Composer\\Config::disableProcessTimeout",
+			"npm run --silent test:e2e:network --"
+		],
+		"test:e2e:wp-env": [
+			"Composer\\Config::disableProcessTimeout",
+			"npm run --silent test:e2e:wp-env --"
+		],
+		"test:e2e:wp-env:min": [
+			"Composer\\Config::disableProcessTimeout",
+			"npm run --silent test:e2e:wp-env:min --"
+		],
+		"test:a11y": [
+			"Composer\\Config::disableProcessTimeout",
+			"npm run --silent test:a11y --"
+		],
+		"test:visual": [
+			"Composer\\Config::disableProcessTimeout",
+			"npm run --silent test:visual --"
+		],
 		"check": [
 			"@version:check",
 			"@lint:changed",
+			"@lint:tests",
 			"@compat",
-			"@analyse"
+			"@analyse",
+			"@test"
 		],
 		"check:all": [
 			"@version:check",
 			"@lint",
+			"@lint:tests",
 			"@compat",
-			"@analyse"
+			"@analyse",
+			"@test:wp"
 		],
 		"hooks:install": "git config core.hooksPath .githooks && echo 'Git hooks installed from .githooks/'",
 		"post-install-cmd": "@hooks:install",
@@ -70,12 +127,28 @@
 		"lint": "Run the full WordPress Coding Standards ruleset on every PHP file.",
 		"lint:fix": "Auto-fix the WPCS violations phpcbf can handle.",
 		"lint:changed": "Run WPCS only on PHP files changed against origin/develop (what the pre-push hook runs).",
+		"lint:tests": "Run WPCS on the PHPUnit test code (phpcs.tests.xml.dist).",
 		"compat": "Check PHP 8.2+ compatibility with PHPCompatibilityWP.",
 		"analyse": "Run PHPStan (level 5, WordPress + WP-CLI stubs) against the baseline.",
 		"analyse:baseline": "Regenerate phpstan-baseline.neon. Only do this when intentionally accepting new debt.",
 		"version:check": "Verify the plugin header, ZEROSPAM_VERSION and readme.txt Stable tag agree and never go backwards.",
-		"check": "The quality gate the pre-push hook enforces: version check, WPCS on changed files, PHP compatibility, PHPStan.",
-		"check:all": "The same gate with WPCS on every file. Fails until the pre-existing WPCS backlog is cleared.",
+		"test": "Run the PHPUnit suite on single site and multisite (latest WordPress, PHP on PATH). Needs MySQL.",
+		"test:unit": "Run only the unit test suite (single site).",
+		"test:integration": "Run only the integration test suite (single site).",
+		"test:multisite": "Run the PHPUnit suite on a multisite network.",
+		"test:wp": "Run the suite on PHP 8.2 and 8.4 x minimum and latest WordPress x single site and multisite, then check the readme.txt WordPress headers.",
+		"test:defects": "Run only the @group known-defect tests. They fail until the bug each one documents is fixed.",
+		"test:coverage": "Run the suite with code coverage into build/coverage/ (needs pcov or Xdebug).",
+		"e2e:install": "Install the Node dev dependencies (npm ci) and Playwright's Chromium for the e2e suite. Needs Node 22 (nvm use).",
+		"test:e2e": "Run the Playwright e2e, accessibility and visual suite on both Local sites (needs npm run e2e:setup:local once). Not part of composer check.",
+		"test:e2e:local": "Run the e2e suite on the Local single site only.",
+		"test:e2e:network": "Run the e2e suite on the Local multisite network only.",
+		"test:e2e:wp-env": "Run the e2e suite on the disposable wp-env single site and network (latest WordPress; npm run env:start and env:start:ms first).",
+		"test:e2e:wp-env:min": "Run the e2e suite on wp-env with the minimum supported WordPress, then switch back to the latest.",
+		"test:a11y": "Run only the accessibility scans (axe-core) on wp-env.",
+		"test:visual": "Compare the visual baselines in tests/e2e/__screenshots__ on wp-env (latest WordPress).",
+		"check": "The quality gate the pre-push hook enforces: version check, WPCS on changed files and on the tests, PHP compatibility, PHPStan, PHPUnit.",
+		"check:all": "The full gate: WPCS on every file and on the tests, PHP compatibility, PHPStan and the PHPUnit matrix. Fails until the pre-existing WPCS backlog is cleared.",
 		"hooks:install": "Point git at the committed .githooks/ directory (runs automatically after composer install/update)."
 	}
 }

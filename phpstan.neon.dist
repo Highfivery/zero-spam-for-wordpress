@@ -6,6 +6,8 @@ includes:
 parameters:
     level: 5
     phpVersion: 80200
+    # tests/phpunit is not analysed: it extends the WordPress test library
+    # (WP_UnitTestCase), which only exists once bin/test.sh has loaded it.
     paths:
         - wordpress-zero-spam.php
         - uninstall.php

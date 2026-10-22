@@ -8,8 +8,11 @@
 #
 #   1. version:check   plugin header, ZEROSPAM_VERSION and Stable tag agree
 #   2. lint:changed    full WPCS ruleset on PHP files changed vs origin/develop
-#   3. compat          PHP 8.2+ compatibility on the same files
-#   4. analyse         PHPStan (level 5) against phpstan-baseline.neon
+#   3. lint:tests      WPCS on the test code (phpcs.tests.xml.dist)
+#   4. compat          PHP 8.2+ compatibility on the changed files
+#   5. analyse         PHPStan (level 5) against phpstan-baseline.neon
+#   6. test            PHPUnit on single site and multisite (bin/test.sh --mode=all;
+#                      needs MySQL: brew services start mysql)
 #
 # Escape hatch for a genuine emergency only: SKIP_QUALITY_GATE=1 git push
 # (say so in the PR description).
@@ -23,7 +26,7 @@ if [[ "${SKIP_QUALITY_GATE:-0}" == "1" ]]; then
 	exit 0
 fi
 
-if [[ ! -x vendor/bin/phpcs || ! -x vendor/bin/phpstan || ! -f vendor/composer/installed.json ]]; then
+if [[ ! -x vendor/bin/phpcs || ! -x vendor/bin/phpstan || ! -x vendor/bin/phpunit || ! -f vendor/composer/installed.json ]]; then
 	echo "pre-push: dev tooling missing or the Composer autoloader is stale (this happens after" >&2
 	echo "          checking out a branch that still tracks vendor/). Run: composer install" >&2
 	exit 1
@@ -31,16 +34,24 @@ fi
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
 
-step "1/4 Version consistency"
+step "1/6 Version consistency"
 bin/check-version.sh
 
-step "2/4 WordPress Coding Standards (changed PHP files)"
+step "2/6 WordPress Coding Standards (changed PHP files)"
 bin/lint-changed.sh
 
-step "3/4 PHP 8.2+ compatibility (changed PHP files)"
+step "3/6 WordPress Coding Standards (test code)"
+vendor/bin/phpcs --standard=phpcs.tests.xml.dist -q
+echo "lint:tests: tests/phpunit and tests/e2e/mu-plugins are clean."
+
+step "4/6 PHP 8.2+ compatibility (changed PHP files)"
 PHPCS_STANDARD=PHPCompatibilityWP bin/lint-changed.sh
 
-step "4/4 PHPStan"
+step "5/6 PHPStan"
 vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+wp_latest="$(sed -nE 's/^WP_LATEST=(.*)$/\1/p' tests/phpunit/versions.env)"
+step "6/6 PHPUnit (PHP $(php -r 'echo PHP_VERSION;'), WordPress ${wp_latest}, single site and multisite)"
+bin/test.sh --mode=all
 
 printf '\n\033[32mpre-push: all checks passed.\033[0m\n'

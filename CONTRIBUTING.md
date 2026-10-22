@@ -39,24 +39,36 @@ This project deliberately uses no hosted CI (GitHub Actions is not used). Instea
 
 ```bash
 composer install        # also points git at .githooks/ so the pre-push hook is active
-composer check          # the gate: version check, WPCS on changed files, PHP 8.2+ compatibility, PHPStan
-composer check:all      # the same with WPCS on every file (red until the pre-existing backlog is cleared)
+composer check          # the gate: version check, WPCS on changed files and the tests, PHP 8.2+ compatibility, PHPStan, PHPUnit
+composer check:all      # WPCS on every file and the tests, PHPStan and the full PHPUnit matrix (red until the pre-existing WPCS backlog is cleared)
 ```
 
 | Script | What it runs |
 |---|---|
 | `composer lint` / `composer lint:fix` | The full WordPress Coding Standards ruleset (`phpcs.xml.dist`) on every PHP file; `lint:fix` applies the fixes `phpcbf` can make |
 | `composer lint:changed` | WPCS on the PHP files changed against `origin/develop` (whole files, so a touched file is left clean) |
-| `composer check` / `composer check:all` | Version check, WPCS (changed files / every file), PHP compatibility and PHPStan in one run |
+| `composer check` / `composer check:all` | Version check, WPCS (changed files and the tests / every file and the tests), PHP compatibility, PHPStan and PHPUnit (one run / the full matrix) |
+| `composer test` | PHPUnit on single site and multisite against the latest WordPress (`bin/test.sh --mode=all`). Needs MySQL on 127.0.0.1 (`brew services start mysql`); downloads WordPress once into `~/Library/Caches/zero-spam-tests/` |
+| `composer test:unit` / `test:integration` / `test:multisite` | One test suite |
+| `composer test:wp` | The matrix: PHP 8.2 and 8.4 × minimum and latest WordPress × single site and multisite, then checks `Tested up to` and `Requires at least` in `readme.txt` |
+| `composer test:defects` | Only the `@group known-defect` tests, which document confirmed bugs and fail until each is fixed |
+| `composer test:coverage` | PHPUnit with an HTML coverage report in `build/coverage/` (needs pcov or Xdebug) |
+| `composer lint:tests` | WPCS on the test code (`phpcs.tests.xml.dist`) |
 | `composer compat` | PHPCompatibilityWP for PHP 8.2 and newer |
 | `composer analyse` | PHPStan level 5 with WordPress and WP-CLI stubs, against `phpstan-baseline.neon` |
 | `composer version:check` | The plugin header, `ZEROSPAM_VERSION` and the `readme.txt` Stable tag and changelog agree and are not lower than the latest release tag |
+| `npm run test:e2e:wp-env` (`composer test:e2e:wp-env`) | The Playwright end-to-end, accessibility (axe-core) and visual-regression suite on the disposable wp-env single site (port 8900) and network (port 8910), latest WordPress. Needs Node 22 (`nvm use`), Docker Desktop, `npm ci`, `npx playwright install chromium` and `npm run env:start` / `env:start:ms`. Not part of `composer check` or the hook |
+| `npm run test:e2e:wp-env:min` | The same on the minimum supported WordPress (`tests/e2e/wp-versions.json`), then switches wp-env back to the latest |
+| `npm run test:e2e` / `test:e2e:local` / `test:e2e:network` | The suite on the Local single site and/or network (after the one-off `npm run e2e:setup:local`; see `AGENTS.md` section 6) |
+| `npm run test:a11y` / `test:visual` / `test:visual:update` | Accessibility scans only / compare the committed visual baselines / re-record them (in a commit of its own) |
 
-The committed `.githooks/pre-push` hook runs the version check, WPCS and PHP compatibility on changed files, and PHPStan, and refuses the push when any of them fail. `SKIP_QUALITY_GATE=1 git push` bypasses it for a genuine emergency only; say so in the PR.
+The committed `.githooks/pre-push` hook runs the version check, WPCS and PHP compatibility on changed files, WPCS on the test code, PHPStan and the PHPUnit suite (single site and multisite), and refuses the push when any of them fail. `SKIP_QUALITY_GATE=1 git push` bypasses it for a genuine emergency only; say so in the PR.
 
 `phpstan-baseline.neon` records the pre-existing findings so the gate passes today. Do not regenerate it to silence new findings; fix them, and shrink the baseline whenever you touch a file it lists.
 
 Every PR must include the output of `composer check` (or the equivalent subagent report) in its description so the PR carries a visible test record.
+
+The Playwright suite (`tests/e2e/`) runs outside the hook because it needs Docker or the Local sites and takes several minutes. Run it before opening a PR and paste the combined `summary.md` it prints (also in `artifacts/e2e/latest/summary.md`) into the PR description, naming the targets it ran on. Its last line is `E2E RESULT: PASS|FAIL …`. Accessibility and visual-baseline policies are in `AGENTS.md` section 5.
 
 ## Release instructions
 
