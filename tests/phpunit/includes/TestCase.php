@@ -40,6 +40,7 @@ abstract class TestCase extends WP_UnitTestCase {
 	 * settings in the option `zero-spam-{module}`.
 	 */
 	const PLUGIN_MODULES = array(
+		'api-monitoring',
 		'comments',
 		'contactform7',
 		'davidwalsh',
@@ -61,6 +62,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'settings',
 		'stop_forum_spam',
 		'woocommerce',
+		'wp-user-avatar',
 		'wpforms',
 		'zerospam',
 	);
@@ -75,6 +77,74 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_aggregate_api_data',
 		'zerospam_async_share_detection',
 		'zerospam_network_weekly_summary',
+	);
+
+	/**
+	 * Cron hooks only older versions scheduled; uninstall still clears them.
+	 */
+	const PLUGIN_LEGACY_CRON_HOOKS = array(
+		'zerospam_api_usage_cleanup',
+		'zerospam_update_blacklist_terms',
+	);
+
+	/**
+	 * User meta keys the plugin writes or older versions wrote.
+	 */
+	const PLUGIN_USER_META = array(
+		'zero_spam_dismiss_notice_enhanced_protection',
+		'zero_spam_dismiss_notice_missing_license',
+		'zerospam_promo_dismissed',
+	);
+
+	/**
+	 * Per-site options the plugin writes besides the module options (some
+	 * only by older versions).
+	 */
+	const PLUGIN_SITE_OPTIONS = array(
+		'wpzerospam',
+		'wpzerospam_honeypot',
+		'zerospam_activation_time',
+		'zerospam_api_monitoring_notice_dismissed',
+		'zerospam_api_notices',
+		'zerospam_blocked_email_domains',
+		'zerospam_completed_migrations',
+		'zerospam_configured',
+		'zerospam_davidwalsh',
+		'zerospam_davidwalsh_data',
+		'zerospam_davidwalsh_secret',
+		'zerospam_db_version',
+		'zerospam_settings_audit',
+		'zerospam_share_queue',
+		'zerospam_show_settings_review_notice',
+		'zero-spam-last-update',
+		'zero_spam_last_api_report',
+	);
+
+	/**
+	 * Per-site transients the plugin sets (fixed names and examples of the
+	 * runtime-built ones).
+	 */
+	const PLUGIN_TRANSIENTS = array(
+		'zero_spam_circuit_open',
+		'zero_spam_failure_count',
+		'zerospam_dashboard_data_network',
+		'zerospam_dashboard_data_site',
+		'zerospam_dw_test',
+		'zerospam_geo_test',
+		'zerospam_ipinfo_test',
+		'zerospam_login_intent_test',
+		'zerospam_woo_options_migrated',
+	);
+
+	/**
+	 * Network options the plugin writes besides `zero-spam-network-{module}`
+	 * (sitemeta on a network, the options table on a single site).
+	 */
+	const PLUGIN_NETWORK_OPTIONS = array(
+		'zero_spam_last_api_request',
+		'zerospam_network_notifications_enabled',
+		'zerospam_network_settings',
+		'zerospam_network_settings_notifications_enabled',
 	);
 
 	/**
