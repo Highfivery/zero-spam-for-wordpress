@@ -33,9 +33,9 @@ Once an issue is reported, Highfivery Studio uses the following disclosure proce
 - When a report is received, we confirm the issue and determine its severity.
 - If we know of specific third-party services or software that require mitigation before publication, those projects will be notified.
 - An advisory is prepared (but not published) which details the problem and steps for mitigation.
-- Wherever possible, fixes are prepared for the last minor release of the two latest major releases, as well as the trunk branch.  We will attempt to commit these fixes as soon as possible, and as close together as possible.
+- Wherever possible, fixes are prepared for the last minor release of the two latest major releases, as well as the `develop` branch.  We will attempt to commit these fixes as soon as possible, and as close together as possible.
 - Patch releases are published for all fixed released versions and the advisory is published.
-- Release notes and our CHANGELOG.md will include a `Security` section with a link to the advisory.
+- Release notes and the `readme.txt` changelog will include a `Security` section with a link to the advisory.
 
 We credit reporters for identifying vulnerabilities, although we will keep your name confidential if you request it.
 

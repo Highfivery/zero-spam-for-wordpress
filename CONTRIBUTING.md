@@ -24,28 +24,30 @@ For more on how Highfivery Studio writes and manages code, check out our [WordPr
 
 ## Workflow
 
-The `develop` branch is the development branch which means it contains the next version to be released. `stable` contains the current latest release and `trunk` contains the corresponding stable development version. Always work on the `develop` branch and open up PRs against `develop`.
+- `develop` is the default branch and the integration branch. It always contains the next release and is kept in sync with `main` (fast-forwarded after every release).
+- `main` always matches the latest release published on WordPress.org. Release tags (`vX.Y.Z`) are cut from `main`.
+- Branch from `develop` using a descriptive prefix (`fix/`, `feature/`, `security/`, `chore/`, `docs/`) and open pull requests against `develop`.
+- Both `develop` and `main` are protected: changes land only through pull requests with a passing WPCS check, and force pushes and branch deletion are disabled.
+- Commit messages follow the conventional style already used in the history: `fix(scope): …`, `feat(scope): …`, `security(scope): …`, `perf(scope): …`, `docs: …`, `chore: …`.
+- Every PR must include a `readme.txt` changelog entry (see the PR template). `readme.txt` is the single changelog for this project; there is no separate `CHANGELOG.md`.
 
 ## Release instructions
 
-1. Branch: Starting from `develop`, cut a release branch named `release/X.Y.Z` for your changes.
-2. Version bump: Bump the version number in `wordpress-zero-spam.php`, `readme.txt`, and any other relevant files if it does not already reflect the version being released.
-3. Changelog: Add/update the changelog in `CHANGELOG.md` and `readme.txt`.
-4. Props: update `CREDITS.md` file with any new contributors, and confirm maintainers are accurate.
-5. New files: Check to be sure any new files/paths that are unnecessary in the production version are included in `.gitattributes` or `.distignore`.
-6. Readme updates: Make any other readme changes as necessary. `CHANGELOG.md` and `README.md` are geared toward GitHub and `readme.txt` contains WordPress.org-specific content. The two are slightly different.
-7. Merge: Make a non-fast-forward merge from your release branch to `develop` (or merge the pull request), then do the same for `develop` into `trunk`, ensuring you pull the most recent changes into `develop` first (`git checkout develop && git pull origin develop && git checkout trunk && git merge --no-ff develop`). `trunk` contains the stable development version.
-8. Push: Push your `trunk` branch to GitHub (e.g. `git push origin trunk`).
-9. Compare `trunk` to `develop` to ensure no additional changes were missed. Visit [REPOSITORY_URL]/compare/trunk...develop
-10. Test the pre-release ZIP locally by downloading it from the **Build release zip** action artifact and installing it locally. Ensure this zip has all the files we expect, that it installs and activates correctly and that all basic functionality is working.
-11. Release: Create a [new release](/releases/new), naming the tag and the release with the new version number, and targeting the `trunk` branch. Paste the changelog from `CHANGELOG.md` into the body of the release and include a link to the closed issues on the [X.Y.Z milestone](/milestone/#?closed=1).
-12. SVN: Wait for the [GitHub Action](/actions) to finish deploying to the WordPress.org repository. If all goes well, users with SVN commit access for that plugin will receive an emailed diff of changes.
-13. Check WordPress.org: Ensure that the changes are live on https://wordpress.org/plugins/zero-spam/. This may take a few minutes.
-14. Close milestone: Edit the [X.Y.Z milestone](/milestone/#) with release date (in the `Due date (optional)` field) and link to GitHub release (in the `Description` field), then close the milestone.
-15. Punt incomplete items: If any open issues or PRs which were milestoned for `X.Y.Z` do not make it into the release, update their milestone to `X.Y.Z+1`, `X.Y+1.0`, `X+1.0.0` or `Future Release`.
+1. **Branch:** starting from an up-to-date `develop`, cut `release/X.Y.Z`.
+2. **Version bump:** update the version in all three places and confirm they match: the `Version:` plugin header and the `ZEROSPAM_VERSION` constant in `wordpress-zero-spam.php`, and `Stable tag:` in `readme.txt`. Compare against the previous release tag so the version never goes backwards (in March 2026 a release was mislabeled 5.5.8 instead of 5.7.8, so 5.7.7 sites were never offered the update).
+3. **Changelog:** add a `= vX.Y.Z =` section at the top of `== Changelog ==` in `readme.txt`, one bullet per change using the `**type(scope):**` convention, linking issues and support topics where relevant.
+4. **Compatibility:** check the current WordPress release (`https://api.wordpress.org/core/version-check/1.7/`). Bump `Tested up to` in `readme.txt` only after actually testing the plugin on that version.
+5. **Review and test:** open the release PR against `develop`, wait for the WPCS check to pass, and run the full regression pass on both the single-site and the multisite Local sites (settings save, each enabled module, log and dashboard screens, network settings, uninstall).
+6. **Merge to develop**, then open a PR from `develop` to `main` and merge it with a merge commit (not a squash) so history stays shared between the two branches.
+7. **Tag and release:** on `main`, create an annotated tag `git tag -a vX.Y.Z -m "vX.Y.Z"`, push it, and create a [GitHub release](/releases/new) for that tag with the changelog section as its body.
+8. **WordPress.org SVN (manual, there is no deploy action):** in the SVN working copy of `https://plugins.svn.wordpress.org/zero-spam`, replace `trunk/` with `git archive vX.Y.Z` from this repo, excluding the development-only files (`.github/`, `.gitignore`, `composer.json`, `composer.lock`, `phpcs.xml.dist`, `assets/src/`, `NETWORK_SETTINGS_DEVELOPER_GUIDE.md`). Review `svn status`, commit `trunk`, then `svn cp trunk tags/X.Y.Z` and commit the tag.
+9. **Verify:** confirm https://wordpress.org/plugins/zero-spam/ shows the new version and `Tested up to`, and that `https://downloads.wordpress.org/plugin/zero-spam.X.Y.Z.zip` installs and activates cleanly on a fresh site. The update-check API can lag behind the plugin page by several hours.
+10. **Sync develop:** `git checkout develop && git merge --ff-only main && git push origin develop`.
+11. **Security releases:** if the release fixes a reported vulnerability, submit the patch details to the reporting program (Wordfence, Patchstack) only after the SVN tag is live, since that can start public disclosure.
+12. **Close the milestone:** set the release date and link the GitHub release, then close it. Move any unfinished milestoned issues or PRs to the next milestone.
 
 ### What to do if things go wrong
 
-If you run into issues during the release process and things have NOT fully deployed to WordPress.org / npm / whatever external-to-GitHub location that we might be publishing to, then the best thing to do will be to delete any Tag (e.g., https://github.com/ORG/REPO/releases/tag/TAGNAME) or Release that's been created, research what's wrong, and once things are resolved work on re-tagging and re-releasing on GitHub and publishing externally where needed.
+If you run into issues during the release process and the new version has NOT been committed to WordPress.org, delete the GitHub tag and release, fix the problem on a new release branch, and re-tag and re-release once resolved.
 
-If you run into issues during the release process and things HAVE deployed to WordPress.org / npm / whatever external-to-GitHub location that we might be publishing to, then the best thing to do will be to research what's wrong and once things are resolved work on a patch release and tag on GitHub and publishing externally where needed.  At the top of the changelog / release notes it's best to note that its a hotfix to resolve whatever issues were found after the previous release.
+If the new version HAS been committed to WordPress.org, do not delete or overwrite the SVN tag. Fix the problem on a new release branch, ship it as a patch release (X.Y.Z+1), and note at the top of its changelog entry that it is a hotfix for the previous release.

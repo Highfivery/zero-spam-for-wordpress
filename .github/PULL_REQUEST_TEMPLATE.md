@@ -21,7 +21,7 @@ Closes #
 
 ### Changelog Entry
 <!--
-Please include a summary for this PR, noting whether this is something being Added / Changed / Deprecated / Removed / Fixed / or Security related.  You can replace the sample entries after this comment block with the single changelog entry line for this PR. -->
+Please include a summary for this PR, noting whether this is something being Added / Changed / Deprecated / Removed / Fixed / or Security related.  You can replace the sample entries after this comment block with the single changelog entry line for this PR. The same entry must be added to the `== Changelog ==` section of `readme.txt`. -->
 > Added - New feature
 > Changed - Existing functionality
 > Deprecated - Soon-to-be removed feature
@@ -31,7 +31,7 @@ Please include a summary for this PR, noting whether this is something being Add
 
 
 ### Credits
-<!-- Please list any and all contributors on this PR so that they can be added to this projects CREDITS.md file. -->
+<!-- Please list any and all contributors on this PR so that they can be credited in the release notes. -->
 Props @username, @username2, ...
 
 
