@@ -42,7 +42,7 @@ bin/lint-changed.sh
 
 step "3/6 WordPress Coding Standards (test code)"
 vendor/bin/phpcs --standard=phpcs.tests.xml.dist -q
-echo "lint:tests: tests/phpunit is clean."
+echo "lint:tests: tests/phpunit and tests/e2e/mu-plugins are clean."
 
 step "4/6 PHP 8.2+ compatibility (changed PHP files)"
 PHPCS_STANDARD=PHPCompatibilityWP bin/lint-changed.sh
