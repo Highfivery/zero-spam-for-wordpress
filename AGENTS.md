@@ -63,10 +63,11 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   `manage_options` for site pages. Never leak one site's data to another.
 
 ### Data
-- Per-site tables `{prefix}zerospam_log`, `{prefix}zerospam_blocked`;
-  network-wide (`base_prefix`) `zerospam_api_usage`, `zerospam_stats_daily`,
-  `zerospam_stats_monthly`, `zerospam_network_templates`,
-  `zerospam_network_audit`. Schema changes go through `DB::update()` and a
+- Per-site tables `{prefix}wpzerospam_log`, `{prefix}wpzerospam_blocked`;
+  network-wide (`base_prefix`) `wpzerospam_api_usage`,
+  `wpzerospam_stats_daily`, `wpzerospam_stats_monthly`,
+  `wpzerospam_network_templates`, `wpzerospam_network_audit` (see
+  `DB::$tables`). `wpzerospam_blacklist` is listed there but never created. Schema changes go through `DB::update()` and a
   `DB_VERSION` bump.
 - Logged submission data is sanitized on write (keys and values) and must be
   escaped on read: it has carried a stored XSS before (CVE-2026-96752).
@@ -197,13 +198,34 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
 - WPCS backlog measured at 429 errors / 367 warnings in 62 files (340
   auto-fixable); PHPStan level 5 baseline of 168 findings. Clearing them is
   planned work; do it file by file with tests, not in one sweep.
-- Confirmed defects awaiting a fix: `uninstall.php` single-site branch loops
-  over array indexes and never deletes module options; the log table builds
-  `LIMIT` with count and offset swapped; the Security module wires the
-  "remove resource query parameters" and "disable emojis" settings to each
-  other's behavior; `admin_init` rewrites `.htaccess` on a query flag with no
-  nonce or capability check; `new WP_Error` inside namespaced modules resolves
-  to `ZeroSpam\Modules\WP_Error`.
+- Confirmed defects awaiting a fix (each gets its own PR with a failing-first
+  test):
+  - `uninstall.php`: the single-site branch loops over array indexes and
+    deletes `zero-spam-0`, `zero-spam-1`, … instead of the module options; the
+    module list omits `settings`, `ipbase`, `elementor` and uses `fluentforms`
+    for the `fluent_form` key; the two `network_*` tables and the
+    `zerospam_network_settings` site option are never removed; the multisite
+    branch calls `switch_to_blog()` per site but `restore_current_blog()` once.
+  - `core/admin/tables/class-logtable.php`: `LIMIT` has count and offset
+    swapped, the offset is `per_page * page` instead of `per_page * (page - 1)`,
+    `$wpdb->prepare()` is called with no placeholders when no filter is set,
+    the total count ignores the active filters, and `region` sorts by country.
+  - `modules/security/class-security.php`: the "remove resource query
+    parameters" and "disable emojis" settings trigger each other's behavior.
+  - `core/admin/class-dashboard.php`: `admin_init` rewrites `.htaccess` on a
+    query flag with no nonce or capability check.
+  - `modules/class-stopforumspam.php`: `wp_cache_get()` reads the default
+    group while `wp_cache_set()` writes group `zerospam`, so results are never
+    served from cache.
+  - `modules/elementor/class-elementor.php` exists but `Plugin::init_modules()`
+    never instantiates it.
+  - `modules/login/class-login.php`: `setcookie()` with no `headers_sent()`
+    guard and dead PHP < 7.3 branches.
+  - Unqualified `WP_Error` in docblocks of namespaced classes (for example
+    `includes/rest/class-apiusagecontroller.php`,
+    `modules/class-stopforumspam.php`) resolves to the wrong namespace for
+    static analysis; the runtime code uses `\WP_Error` or `use WP_Error`
+    correctly. Fix the docblocks and drop the matching baseline entries.
 - `includes/templates/admin-bar-chart.php` and `admin-line-chart.php` still
   load Chart.js from a CDN; the dashboard page loads every log row.
 - Network settings exist in two storage models (`zerospam_network_settings`
