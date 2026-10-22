@@ -38,12 +38,15 @@ class BlockedTable extends WP_List_Table {
 	 *
 	 * @since 5.0.0
 	 * @access public
+	 *
+	 * @param array  $item        Blocked record.
+	 * @param string $column_name Column key.
+	 * @return string Column HTML.
 	 */
 	public function column_default( $item, $column_name ) {
 		switch ( $column_name ) {
 			case 'user_ip':
-				return '<a href="' . ZEROSPAM_URL . 'ip-lookup/' . urlencode( $item[ $column_name ] ) . '" target="_blank" rel="noopener noreferrer">' . $item[ $column_name ] . '</a>';
-				break;
+				return '<a href="' . esc_url( ZEROSPAM_URL . 'ip-lookup/' . rawurlencode( $item[ $column_name ] ) ) . '" target="_blank" rel="noopener noreferrer">' . esc_html( $item[ $column_name ] ) . '</a>';
 			case 'date_added':
 			case 'start_block':
 			case 'end_block':
@@ -61,39 +64,58 @@ class BlockedTable extends WP_List_Table {
 					$date_time_format = 'm/d/Y';
 					return get_date_from_gmt( gmdate( 'Y-m-d H:i:s', strtotime( $item[ $column_name ] ) ), $date_time_format );
 				}
-				break;
 			case 'actions':
+				$start_attr = self::datetime_attr( $item['start_block'] ?? '' );
+				$end_attr   = self::datetime_attr( $item['end_block'] ?? '' );
 				ob_start();
 				?>
 					<button
 						class="button zerospam-block-trigger"
 						data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"
 						data-reason="<?php echo esc_attr( $item['reason'] ); ?>"
-						data-start="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $item['start_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $item['start_block'] ) ) ); ?>"
-						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $item['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $item['end_block'] ) ) ); ?>"
+						data-start="<?php echo esc_attr( $start_attr ); ?>"
+						data-end="<?php echo esc_attr( $end_attr ); ?>"
 						data-type="<?php echo esc_attr( $item['blocked_type'] ); ?>"
 						aria-label="<?php echo esc_attr( __( 'Update Block', 'zero-spam' ) ); ?>"
 					>
-						<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-edit.svg" width="13" />
+						<img src="<?php echo esc_url( plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-edit.svg' ); ?>" width="13" />
 					</button>
 
 					<a
 						class="button"
 						aria-label="<?php echo esc_attr( __( 'Delete block', 'zero-spam' ) ); ?>"
-						href="<?php echo wp_nonce_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&zerospam-action=delete-ip-block&zerospam-id=' . $item['blocked_id'] ), 'delete-ip-block', 'zero-spam' ); ?>"
+						href="<?php echo esc_url( wp_nonce_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&zerospam-action=delete-ip-block&zerospam-id=' . $item['blocked_id'] ), 'delete-ip-block', 'zero-spam' ) ); ?>"
 					>
-						<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-trash.svg" width="13" />
+						<img src="<?php echo esc_url( plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-trash.svg' ); ?>" width="13" />
 					</a>
 					<?php
 				return ob_get_clean();
-				break;
 			default:
 				if ( empty( $item[ $column_name ] ) ) {
 					return 'N/A';
 				} else {
-					return $item[ $column_name ];
+					return esc_html( $item[ $column_name ] );
 				}
 		}
+	}
+
+	/**
+	 * Formats a stored block date for a datetime-local field (Y-m-dTH:i).
+	 *
+	 * Permanent blocks have no end date (NULL); an empty or zero date gives ''
+	 * so the Update Block modal leaves the field empty instead of 1970.
+	 *
+	 * @param string|null $value Stored date (Y-m-d H:i:s) or null.
+	 * @return string Formatted date or ''.
+	 */
+	private static function datetime_attr( ?string $value ): string {
+		if ( null === $value || '' === $value || '0000-00-00 00:00:00' === $value ) {
+			return '';
+		}
+
+		$timestamp = strtotime( $value );
+
+		return false === $timestamp ? '' : gmdate( 'Y-m-d\\TH:i', $timestamp );
 	}
 
 	/**
@@ -105,7 +127,6 @@ class BlockedTable extends WP_List_Table {
 	public function get_bulk_actions() {
 		$actions = array(
 			'delete' => __( 'Delete Selected', 'zero-spam' ),
-			// 'delete_all' => __( 'Delete All IPs', 'zero-spam' ),
 		);
 
 		return $actions;
@@ -126,6 +147,8 @@ class BlockedTable extends WP_List_Table {
 	 *
 	 * @since 5.0.0
 	 * @access public
+	 *
+	 * @param array $args Unused; kept for signature compatibility.
 	 */
 	public function prepare_items( $args = array() ) {
 		$this->process_bulk_action();
@@ -137,11 +160,13 @@ class BlockedTable extends WP_List_Table {
 		$per_page     = 50;
 		$current_page = $this->get_pagenum();
 		$offset       = $per_page * ( $current_page - 1 );
-		$order        = ! empty( $_REQUEST['order'] ) ? sanitize_key( $_REQUEST['order'] ) : 'desc';
-		$orderby      = ! empty( $_REQUEST['orderby'] ) ? sanitize_sql_orderby( $_REQUEST['orderby'] ) : 'date_added';
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only sorting, filter and search parameters of the list table; they change nothing.
+		$order   = ! empty( $_REQUEST['order'] ) ? sanitize_key( wp_unslash( $_REQUEST['order'] ) ) : 'desc';
+		$orderby = ! empty( $_REQUEST['orderby'] ) ? sanitize_sql_orderby( wp_unslash( $_REQUEST['orderby'] ) ) : 'date_added';
 
-		$log_type = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
-		$user_ip  = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( $_REQUEST['s'] ) : false;
+		$log_type = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['type'] ) ) : false;
+		$user_ip  = ! empty( $_REQUEST['s'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['s'] ) ) : false;
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		$query_args = array(
 			'limit'   => $per_page,
@@ -205,7 +230,8 @@ class BlockedTable extends WP_List_Table {
 			}
 		}
 
-		$_SERVER['REQUEST_URI'] = add_query_arg( $paging_options, $_SERVER['REQUEST_URI'] );
+		$request_uri            = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+		$_SERVER['REQUEST_URI'] = add_query_arg( $paging_options, $request_uri );
 	}
 
 	/**
@@ -213,6 +239,8 @@ class BlockedTable extends WP_List_Table {
 	 *
 	 * @since 5.0.0
 	 * @access public
+	 *
+	 * @param string $which Which navigation (top or bottom).
 	 */
 	public function extra_tablenav( $which ) {
 		if ( 'top' !== $which ) {
@@ -220,29 +248,13 @@ class BlockedTable extends WP_List_Table {
 		}
 		?>
 		<div class="alignleft actions">
-			<?php
-			/*
-			echo '<label class="screen-reader-text" for="filter-by-type">' . __( 'Filter by type', 'zero-spam' ) . '</label>';
-			$options      = apply_filters( 'zerospam_types', array() );
-			$current_type = ! empty( $_REQUEST['type'] ) ? sanitize_text_field( $_REQUEST['type'] ) : false;
-			?>
-			<select name="type" id="filter-by-type">
-				<option value=""><?php _e( 'All types', 'zero-spam' ); ?></option>
-				<?php foreach ( $options as $key => $value ) : ?>
-					<option<?php if ( $current_type === $key ) : ?> selected="selected"<?php endif; ?> value="<?php echo esc_attr( $key ); ?>"><?php echo $value; ?></option>
-				<?php endforeach; ?>
-			</select>
-			<?php
-			submit_button( __( 'Filter', 'zero-spam' ), '', 'filter_action', false );
-			*/
-			?>
-			<button class="button zerospam-block-trigger"><?php echo __( 'Add Blocked IP Address →', 'zero-spam' ); ?></button>
+			<button class="button zerospam-block-trigger"><?php esc_html_e( 'Add Blocked IP Address →', 'zero-spam' ); ?></button>
 			<?php
 			$settings = \ZeroSpam\Core\Settings::get_settings( 'block_method' );
 
 			if ( ! empty( $settings ) && 'php' !== $settings ) :
 				?>
-				<a href="<?php echo esc_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&tab=blocked&zerospam-refresh-htaccess=1' ) ); ?>" class="button"><?php esc_html_e( 'Refresh .htaccess', 'zero-spam' ); ?></a>
+				<a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=zerospam_refresh_htaccess' ), 'zerospam-refresh-htaccess' ) ); ?>" class="button"><?php esc_html_e( 'Refresh .htaccess', 'zero-spam' ); ?></a>
 			<?php endif; ?>
 		</div>
 		<?php
@@ -292,12 +304,15 @@ class BlockedTable extends WP_List_Table {
 	 *
 	 * @since 5.0.0
 	 * @access public
+	 *
+	 * @param array $item Blocked record.
+	 * @return string Checkbox HTML.
 	 */
 	public function column_cb( $item ) {
 		return sprintf(
 			'<input type="checkbox" name="%1$s[]" value="%2$s" />',
 			/*$1%s*/ 'ids',
-			/*$2%s*/ $item['blocked_id']
+			/*$2%s*/ (int) $item['blocked_id']
 		);
 	}
 
@@ -314,7 +329,7 @@ class BlockedTable extends WP_List_Table {
 
 		switch ( $this->current_action() ) {
 			case 'delete':
-				$nonce = ( isset( $_REQUEST['zerospam_nonce'] ) ) ? sanitize_text_field( $_REQUEST['zerospam_nonce'] ) : '';
+				$nonce = ( isset( $_REQUEST['zerospam_nonce'] ) ) ? sanitize_text_field( wp_unslash( $_REQUEST['zerospam_nonce'] ) ) : '';
 				if ( ! wp_verify_nonce( $nonce, 'zerospam_nonce' ) ) {
 					return false;
 				}
@@ -324,9 +339,6 @@ class BlockedTable extends WP_List_Table {
 						ZeroSpam\Includes\DB::delete( 'blocked', 'blocked_id', $blocked_id );
 					}
 				}
-				break;
-			case 'delete_all':
-				// ZeroSpam\Includes\DB::delete_all( 'blocked' );
 				break;
 		}
 	}

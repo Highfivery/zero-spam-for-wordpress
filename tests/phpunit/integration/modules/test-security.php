@@ -62,8 +62,6 @@ class Test_Security extends TestCase {
 
 	/**
 	 * "Disable emojis" removes the emoji script and leaves asset URLs alone.
-	 *
-	 * @group known-defect
 	 */
 	public function test_disable_emojis_only_disables_emojis(): void {
 		$this->init_with( 'disable_emojis' );
@@ -75,8 +73,6 @@ class Test_Security extends TestCase {
 
 	/**
 	 * "Remove resource query parameters" strips ?ver= and leaves emojis alone.
-	 *
-	 * @group known-defect
 	 */
 	public function test_remove_resource_query_parameters_only_strips_versions(): void {
 		$this->init_with( 'remove_resource_query_parameters' );
