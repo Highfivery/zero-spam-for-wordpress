@@ -135,7 +135,7 @@ class Network_Settings_Page {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'zero-spam' ) );
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only choice of the tab to display.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection for display.
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'overview';
 
 		?>
@@ -472,6 +472,7 @@ class Network_Settings_Page {
 				?>
 				<textarea 
 					name="<?php echo esc_attr( $key ); ?>" 
+					aria-label="<?php echo esc_attr( is_string( $field['title'] ?? null ) ? $field['title'] : $key ); ?>"
 					class="<?php echo esc_attr( $field_class ); ?>" 
 					rows="5"
 					placeholder="<?php echo esc_attr( $placeholder ); ?>"><?php echo esc_textarea( $value ); ?></textarea>
@@ -548,7 +549,7 @@ class Network_Settings_Page {
 			// Use metadata if available, otherwise generate from module name.
 			$metadata = $module_metadata[ $module_name ] ?? array(
 				'title'       => ucwords( str_replace( array( '-', '_' ), ' ', $module_name ) ),
-				/* translators: %s: module name. */
+				/* translators: %s: module name */
 				'description' => sprintf( __( 'Settings for %s', 'zero-spam' ), $module_name ),
 				'icon'        => 'admin-generic',
 			);
@@ -963,19 +964,45 @@ class Network_Settings_Page {
 		$locked = isset( $_POST['locked'] ) && '1' === $_POST['locked'];
 
 		// Handle value - could be string or array (for multi-selects).
-		$value = isset( $_POST['value'] ) ? wp_unslash( $_POST['value'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized just below, per value for a multi-select.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below, per element for multi-selects.
+		$value = isset( $_POST['value'] ) ? wp_unslash( $_POST['value'] ) : '';
+
+		if ( ! $key ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid setting key', 'zero-spam' ) ) );
+		}
 
 		// Sanitize based on type.
 		if ( is_array( $value ) ) {
 			// Multi-select: sanitize each value.
 			$value = array_map( 'sanitize_text_field', $value );
+		} elseif ( 'textarea' === $this->get_setting_type( $key ) ) {
+			// Lists (IP addresses, domains, words) keep one entry per line.
+			$value = sanitize_textarea_field( $value );
 		} else {
 			// Single value: sanitize as text.
 			$value = sanitize_text_field( $value );
 		}
 
-		if ( ! $key ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid setting key', 'zero-spam' ) ) );
+		// Trusted proxies are validated like on the site settings page; nothing
+		// is stored while an entry is invalid or too broad.
+		if ( 'trusted_proxies' === $key && is_string( $value ) ) {
+			$proxies = \ZeroSpam\Core\Utilities::parse_ip_ranges( $value );
+			$dropped = \ZeroSpam\Core\Utilities::describe_dropped_ip_ranges( $proxies );
+
+			if ( $dropped ) {
+				wp_send_json_error(
+					array(
+						'message' => sprintf(
+							/* translators: %s: comma-separated list of the rejected entries */
+							esc_html__( 'Not saved. These Trusted Proxy IPs entries are not IP addresses or ranges (like 203.0.113.5 or 203.0.113.0/24) or are too broad: %s', 'zero-spam' ),
+							esc_html( implode( ', ', $dropped ) )
+						),
+						'invalid' => array_map( 'esc_html', $dropped ),
+					)
+				);
+			}
+
+			$value = implode( "\n", $proxies['valid'] );
 		}
 
 		$result = $this->settings_manager->set_setting( $key, $value, $locked );
@@ -985,6 +1012,18 @@ class Network_Settings_Page {
 		} else {
 			wp_send_json_error( array( 'message' => __( 'Failed to save setting', 'zero-spam' ) ) );
 		}
+	}
+
+	/**
+	 * The registered type of a setting (`textarea`, `checkbox`, …).
+	 *
+	 * @param string $key Setting key.
+	 * @return string Type, or '' for an unknown key.
+	 */
+	private function get_setting_type( string $key ): string {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+
+		return isset( $settings[ $key ]['type'] ) && is_string( $settings[ $key ]['type'] ) ? $settings[ $key ]['type'] : '';
 	}
 
 	/**
@@ -1184,7 +1223,8 @@ class Network_Settings_Page {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to import settings.', 'zero-spam' ) ) );
 		}
 
-		$json = isset( $_POST['json'] ) ? wp_unslash( $_POST['json'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Raw JSON: decoded and validated below, each imported value is sanitized by the settings manager.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON is validated by json_decode() below.
+		$json = isset( $_POST['json'] ) ? wp_unslash( $_POST['json'] ) : '';
 		$mode = isset( $_POST['mode'] ) ? sanitize_text_field( wp_unslash( $_POST['mode'] ) ) : 'merge';
 
 		if ( ! $json ) {
