@@ -33,12 +33,12 @@ class Settings {
 	 * Returns the plugin setting sections
 	 */
 	public static function get_sections() {
-		// DEPRECATED
+		// Deprecated.
 		self::$sections['general'] = array(
 			'title' => __( 'General Settings', 'zero-spam' ),
 		);
 
-		// v5.4
+		// Since v5.4.
 		self::$sections['settings'] = array(
 			'title' => __( 'Settings', 'zero-spam' ),
 		);
@@ -101,13 +101,9 @@ class Settings {
 		$text = $wp_filesystem->get_contents( ZEROSPAM_PATH . 'assets/blacklist.txt' );
 
 		if ( $text ) {
-			if ( update_option( 'disallowed_keys', $text ) ) {
-				// Prevent autoloading large options.
-				// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
-				wp_cache_delete( 'disallowed_keys', 'options' );
-				global $wpdb;
-				$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s", 'no', 'disallowed_keys' ) );
-			}
+			// Prevent autoloading large options.
+			// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
+			update_option( 'disallowed_keys', $text, false );
 		}
 	}
 
@@ -122,13 +118,9 @@ class Settings {
 		foreach ( $modules['settings'] as $key => $setting ) {
 			if ( 'blocked_email_domains' === $key ) {
 				$domains = trim( implode( "\n", $recommended_blocked_email_domains ) );
-				if ( update_option( 'zerospam_blocked_email_domains', $domains ) ) {
-					// Prevent autoloading large options.
-					// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
-					wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
-					global $wpdb;
-					$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s", 'no', 'zerospam_blocked_email_domains' ) );
-				}
+				// Prevent autoloading large options.
+				// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
+				update_option( 'zerospam_blocked_email_domains', $domains, false );
 			} else {
 				$new_settings[ $key ] = isset( $setting['value'] ) ? $setting['value'] : false;
 			}
@@ -163,16 +155,8 @@ class Settings {
 			// Handle blocked_email_domains separately — uses standalone option.
 			if ( isset( $recommended_settings['blocked_email_domains'] ) ) {
 				$blocked_domains = $recommended_settings['blocked_email_domains'];
-				if ( $blocked_domains && update_option( 'zerospam_blocked_email_domains', $blocked_domains ) ) {
-					wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
-					global $wpdb;
-					$wpdb->query(
-						$wpdb->prepare(
-							"UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s",
-							'no',
-							'zerospam_blocked_email_domains'
-						)
-					);
+				if ( $blocked_domains ) {
+					update_option( 'zerospam_blocked_email_domains', $blocked_domains, false );
 				}
 				unset( $recommended_settings['blocked_email_domains'] );
 			}
@@ -236,7 +220,7 @@ class Settings {
 			'module'  => 'settings',
 			'section' => 'general',
 			'type'    => 'html',
-			'html'    => '', // Generated dynamically during render to avoid early nonce calls
+			'html'    => '', // Generated dynamically during render to avoid early nonce calls.
 		);
 
 		self::$settings['share_data'] = array(
@@ -252,14 +236,8 @@ class Settings {
 			'recommended' => 'enabled',
 		);
 
-		global $wp_roles;
-
-		// Ensure roles are initialized
-		if ( ! isset( $wp_roles ) || ! $wp_roles ) {
-			$wp_roles = wp_roles();
-		}
-
-		$roles       = isset( $wp_roles->roles ) ? $wp_roles->roles : array();
+		// wp_roles() initializes the roles global when needed.
+		$roles       = wp_roles()->roles;
 		$roles_array = array();
 
 		foreach ( $roles as $role => $data ) {
@@ -382,6 +360,17 @@ class Settings {
 			'value'       => ! empty( $options['ip_whitelist'] ) ? trim( $options['ip_whitelist'] ) : false,
 		);
 
+		self::$settings['trusted_proxies'] = array(
+			'title'       => __( 'Trusted Proxy IPs', 'zero-spam' ),
+			'desc'        => __( 'If your site sits behind a CDN, load balancer or reverse proxy (for example Cloudflare, Hostinger CDN, Sucuri, a Kubernetes ingress), list its IP addresses or ranges here, one per line, e.g. 203.0.113.5 or 203.0.113.0/24. Zero Spam will then read the real visitor address that the proxy forwards. Cloudflare is recognised automatically.', 'zero-spam' ),
+			'section'     => 'general',
+			'module'      => 'settings',
+			'type'        => 'textarea',
+			'field_class' => 'regular-text code',
+			'placeholder' => '',
+			'value'       => ! empty( $options['trusted_proxies'] ) && is_string( $options['trusted_proxies'] ) ? trim( $options['trusted_proxies'] ) : false,
+		);
+
 		self::$settings['blocked_email_domains'] = array(
 			'title'       => __( 'Blocked Email Domains', 'zero-spam' ),
 			'desc'        => __( 'Block email addresses from these domains (like "spam.com"). Put one per line.', 'zero-spam' ),
@@ -406,7 +395,7 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => '', // Generated dynamically during render to avoid early nonce calls
+			'html'    => '', // Generated dynamically during render to avoid early nonce calls.
 		);
 
 		self::$settings['regenerate_honeypot'] = array(
@@ -424,7 +413,7 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => '', // Generated dynamically during render
+			'html'    => '', // Generated dynamically during render.
 		);
 
 		self::$settings['allowed_words'] = array(
@@ -455,7 +444,7 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => '', // Generated dynamically during render
+			'html'    => '', // Generated dynamically during render.
 		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings );

@@ -13,56 +13,384 @@ defined( 'ABSPATH' ) || die();
 /**
  * User class.
  *
- * Handles getting user specific information.
+ * Works out the visitor's IP address, including behind CDNs, load balancers
+ * and reverse proxies.
+ *
+ * The address the connection comes from (REMOTE_ADDR) is the only value a
+ * visitor cannot choose. Forwarded headers are read only when that address
+ * is a trusted proxy: one of Cloudflare's published ranges, an entry of the
+ * "Trusted Proxy IPs" setting or of the `zerospam_trusted_proxies` filter.
+ * Otherwise anyone could pick their IP (and dodge blocks or get someone else
+ * blocked) by sending an `X-Forwarded-For` header.
  */
 class User {
 
 	/**
-	 * Gets the current user's IP.
+	 * Single-address headers tried after X-Forwarded-For, in order ($_SERVER keys).
+	 *
+	 * @var string[]
+	 */
+	const FALLBACK_HEADERS = array( 'HTTP_X_REAL_IP', 'HTTP_TRUE_CLIENT_IP' );
+
+	/**
+	 * Headers the detected IP depends on ($_SERVER keys).
+	 *
+	 * @var string[]
+	 */
+	const FORWARDED_HEADERS = array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_TRUE_CLIENT_IP' );
+
+	/**
+	 * Trusted proxies for this request: Cloudflare's ranges and the configured
+	 * ones (setting and filter). Built on first use.
+	 *
+	 * @var array{cloudflare: string[], configured: string[]}|null
+	 */
+	private static $trusted_proxies = null;
+
+	/**
+	 * Whether the trusted-proxy list is being built, so a settings filter that
+	 * asks for the visitor IP does not recurse.
+	 *
+	 * @var bool
+	 */
+	private static $building = false;
+
+	/**
+	 * The IP detected for this request (before the `zerospam_get_ip` filter),
+	 * with the request data it was detected from.
+	 *
+	 * @var array{key: string, ip: string|false}|null
+	 */
+	private static $detected = null;
+
+	/**
+	 * Gets the current visitor's IP address.
+	 *
+	 * 1. REMOTE_ADDR must be a valid IP address, or there is no IP (false).
+	 * 2. If REMOTE_ADDR is not a trusted proxy, it is the visitor: no header
+	 *    is read.
+	 * 3. If it is a trusted proxy, the first usable value of:
+	 *    - `CF-Connecting-IP`, only when REMOTE_ADDR is a Cloudflare address;
+	 *    - `X-Forwarded-For`, walked from the right (see from_forwarded_for());
+	 *    - `X-Real-IP`, then `True-Client-IP`.
+	 *    Forwarded values must be valid, public addresses (see
+	 *    `zerospam_allow_private_forwarded_ip`). When none is usable,
+	 *    REMOTE_ADDR is used.
+	 * 4. The `zerospam_get_ip` filter has the last word (the Debug module's IP
+	 *    mock uses it).
+	 *
+	 * The detection is cached for the request; the filter runs on every call.
+	 *
+	 * @return string|false IP address, or false when the request has none.
 	 */
 	public static function get_ip() {
-		$trusted_proxies = apply_filters( 'zerospam_trusted_proxies', array() );
+		$ip = self::detect_ip();
 
-		$ip_sources = [
-			'REMOTE_ADDR',
-			'HTTP_CF_CONNECTING_IP',
-			'HTTP_CLIENT_IP',
-			'HTTP_X_FORWARDED_FOR',
-			'HTTP_X_FORWARDED',
-			'HTTP_X_CLUSTER_CLIENT_IP',
-			'HTTP_FORWARDED_FOR',
-			'HTTP_FORWARDED',
-		];
+		if ( false === $ip ) {
+			return false;
+		}
 
-		foreach ( $ip_sources as $source ) {
-			if ( ! empty( $_SERVER[ $source ] ) ) {
-				$ip = sanitize_text_field( wp_unslash( $_SERVER[ $source ] ) );
+		/**
+		 * Filters the visitor's IP address.
+		 *
+		 * @param string $ip IP address detected from the request.
+		 */
+		return apply_filters( 'zerospam_get_ip', $ip );
+	}
 
-				// Handle multiple IP addresses in headers by taking the first valid IP.
-				if ( strpos( $ip, ',' ) !== false ) {
-					$ip_list = explode( ',', $ip );
-					foreach ( $ip_list as $potential_ip ) {
-						$potential_ip = trim( $potential_ip );
-						if ( rest_is_ip_address( $potential_ip ) ) {
-							// Validate IP only if it's from a trusted proxy or it's directly from REMOTE_ADDR.
-							if ( in_array( $_SERVER['REMOTE_ADDR'], $trusted_proxies ) || $source === 'REMOTE_ADDR' ) {
-								return apply_filters( 'zerospam_get_ip', $potential_ip );
-							}
-						}
-					}
-				} else {
-					// Validate single IP address.
-					if ( rest_is_ip_address( $ip ) ) {
-						// Directly return the IP if it's from REMOTE_ADDR or a trusted proxy.
-						if ( in_array( $_SERVER['REMOTE_ADDR'], $trusted_proxies ) || $source === 'REMOTE_ADDR' ) {
-							return apply_filters( 'zerospam_get_ip', $ip );
-						}
-					}
-				}
+	/**
+	 * Clears the per-request caches (the trusted-proxy list and the detected IP).
+	 *
+	 * For tests, and for code that changes the trusted proxies or the request
+	 * mid-request.
+	 */
+	public static function reset_cache(): void {
+		self::$trusted_proxies = null;
+		self::$detected        = null;
+	}
+
+	/**
+	 * The address the connection comes from, if it is a valid IP address.
+	 *
+	 * @return string IP address, or '' when REMOTE_ADDR is missing or invalid.
+	 */
+	public static function get_remote_addr(): string {
+		$remote = self::server_value( 'REMOTE_ADDR' );
+
+		return '' !== $remote && rest_is_ip_address( $remote ) ? $remote : '';
+	}
+
+	/**
+	 * Whether an address belongs to Cloudflare's published ranges.
+	 *
+	 * @param string $ip IP address.
+	 * @return bool
+	 */
+	public static function is_cloudflare_ip( string $ip ): bool {
+		return self::in_ranges( $ip, self::trusted_proxies()['cloudflare'] );
+	}
+
+	/**
+	 * Whether an address is a proxy from the "Trusted Proxy IPs" setting or
+	 * the `zerospam_trusted_proxies` filter.
+	 *
+	 * @param string $ip IP address.
+	 * @return bool
+	 */
+	public static function is_configured_proxy( string $ip ): bool {
+		return self::in_ranges( $ip, self::trusted_proxies()['configured'] );
+	}
+
+	/**
+	 * Whether an address is a trusted proxy (Cloudflare or configured).
+	 *
+	 * @param string $ip IP address.
+	 * @return bool
+	 */
+	public static function is_trusted_proxy( string $ip ): bool {
+		return self::is_cloudflare_ip( $ip ) || self::is_configured_proxy( $ip );
+	}
+
+	/**
+	 * Detects the visitor IP, once per request.
+	 *
+	 * @return string|false
+	 */
+	private static function detect_ip() {
+		$remote = self::get_remote_addr();
+		if ( '' === $remote ) {
+			return false;
+		}
+
+		$key = $remote;
+		foreach ( self::FORWARDED_HEADERS as $header ) {
+			$key .= '|' . self::server_value( $header );
+		}
+
+		if ( null !== self::$detected && self::$detected['key'] === $key ) {
+			return self::$detected['ip'];
+		}
+
+		$forwarded = self::is_trusted_proxy( $remote ) ? self::forwarded_ip( $remote ) : '';
+		$ip        = '' !== $forwarded ? $forwarded : $remote;
+
+		self::$detected = array(
+			'key' => $key,
+			'ip'  => $ip,
+		);
+
+		return $ip;
+	}
+
+	/**
+	 * The visitor address a trusted proxy forwarded.
+	 *
+	 * @param string $remote The proxy's address (REMOTE_ADDR).
+	 * @return string IP address, or '' when the proxy forwarded none that is usable.
+	 */
+	private static function forwarded_ip( string $remote ): string {
+		$allow_private = self::allow_private_forwarded_ip();
+
+		// Cloudflare sets CF-Connecting-IP itself, replacing any sent by the visitor.
+		if ( self::is_cloudflare_ip( $remote ) ) {
+			$ip = self::usable_forwarded_ip( self::server_value( 'HTTP_CF_CONNECTING_IP' ), $allow_private );
+			if ( '' !== $ip ) {
+				return $ip;
 			}
 		}
 
-		// Return false if no valid IP address is found.
+		$ip = self::from_forwarded_for( self::server_value( 'HTTP_X_FORWARDED_FOR' ), $allow_private );
+		if ( '' !== $ip ) {
+			return $ip;
+		}
+
+		foreach ( self::FALLBACK_HEADERS as $header ) {
+			$ip = self::usable_forwarded_ip( self::server_value( $header ), $allow_private );
+			if ( '' !== $ip ) {
+				return $ip;
+			}
+		}
+
+		return '';
+	}
+
+	/**
+	 * The visitor address in an X-Forwarded-For header ("rightmost untrusted").
+	 *
+	 * Each proxy appends the address it received the request from, so the
+	 * header reads "what the visitor sent, …, visitor, proxy 1, proxy 2". The
+	 * leftmost entries are whatever the visitor put in its own header and are
+	 * spoofable: only the entries added by trusted proxies can be believed.
+	 * Walking from the right, trusted proxies (and private or reserved
+	 * addresses, which are internal hops such as a load balancer or a
+	 * Kubernetes ingress) are skipped; the first other address is the visitor.
+	 * An entry that is not an IP address stops the walk, since nothing to its
+	 * left can be trusted.
+	 *
+	 * @param string $header        Header value.
+	 * @param bool   $allow_private Whether private and reserved addresses are visitor addresses.
+	 * @return string IP address, or '' when none is usable.
+	 */
+	private static function from_forwarded_for( string $header, bool $allow_private ): string {
+		if ( '' === $header ) {
+			return '';
+		}
+
+		foreach ( array_reverse( explode( ',', $header ) ) as $hop ) {
+			$hop = self::strip_port( trim( $hop ) );
+
+			if ( ! rest_is_ip_address( $hop ) ) {
+				return '';
+			}
+
+			if ( self::is_trusted_proxy( $hop ) || ( ! $allow_private && self::is_private_ip( $hop ) ) ) {
+				continue;
+			}
+
+			return $hop;
+		}
+
+		return '';
+	}
+
+	/**
+	 * A single forwarded address, if it is usable as the visitor IP.
+	 *
+	 * @param string $value         Header value.
+	 * @param bool   $allow_private Whether private and reserved addresses are accepted.
+	 * @return string IP address, or ''.
+	 */
+	private static function usable_forwarded_ip( string $value, bool $allow_private ): string {
+		$ip = self::strip_port( trim( $value ) );
+
+		if ( '' === $ip || ! rest_is_ip_address( $ip ) || ( ! $allow_private && self::is_private_ip( $ip ) ) ) {
+			return '';
+		}
+
+		return $ip;
+	}
+
+	/**
+	 * Removes the port some proxies add to forwarded addresses
+	 * (`203.0.113.9:4711`, `[2001:db8::9]:443`).
+	 *
+	 * @param string $value Address, possibly with a port.
+	 * @return string
+	 */
+	private static function strip_port( string $value ): string {
+		if ( preg_match( '/^\[([0-9a-fA-F:.]+)\](?::\d+)?$/', $value, $matches ) ) {
+			return $matches[1];
+		}
+
+		if ( preg_match( '/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/', $value, $matches ) ) {
+			return $matches[1];
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Whether an address is private or reserved (10.0.0.0/8, 127.0.0.0/8,
+	 * 192.168.0.0/16, fc00::/7, ::1, …), as PHP's filter defines them (recent
+	 * PHP versions also count 2001:db8::/32, the IPv6 documentation range).
+	 *
+	 * @param string $ip IP address.
+	 * @return bool
+	 */
+	private static function is_private_ip( string $ip ): bool {
+		return false === filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE );
+	}
+
+	/**
+	 * Whether private and reserved forwarded addresses may be the visitor IP.
+	 *
+	 * @return bool
+	 */
+	private static function allow_private_forwarded_ip(): bool {
+		/**
+		 * Filters whether a private or reserved address (10.0.0.0/8,
+		 * 192.168.0.0/16, fc00::/7, 127.0.0.1, …) forwarded by a trusted proxy
+		 * can be the visitor IP. Only enable this for sites whose visitors
+		 * really reach the proxy from a private network, such as an intranet.
+		 *
+		 * @param bool $allow Whether to accept private forwarded addresses. Default false.
+		 */
+		return (bool) apply_filters( 'zerospam_allow_private_forwarded_ip', false );
+	}
+
+	/**
+	 * The trusted proxies, built once per request.
+	 *
+	 * @return array{cloudflare: string[], configured: string[]}
+	 */
+	private static function trusted_proxies(): array {
+		if ( null !== self::$trusted_proxies ) {
+			return self::$trusted_proxies;
+		}
+
+		if ( self::$building ) {
+			return array(
+				'cloudflare' => array(),
+				'configured' => array(),
+			);
+		}
+
+		self::$building = true;
+
+		try {
+			$configured = Utilities::parse_ip_ranges( Settings::get_settings( 'trusted_proxies' ) )['valid'];
+
+			/**
+			 * Filters the proxies whose forwarded headers are trusted, in
+			 * addition to Cloudflare's ranges (see `zerospam_cloudflare_ip_ranges`).
+			 *
+			 * Add to the array rather than replacing it, so the entries of the
+			 * "Trusted Proxy IPs" setting are kept. Entries may be IP addresses
+			 * or CIDR ranges, IPv4 or IPv6; invalid entries are ignored.
+			 *
+			 * @param string[] $proxies IP addresses and CIDR ranges from the Trusted Proxy IPs setting.
+			 */
+			$filtered = apply_filters( 'zerospam_trusted_proxies', $configured );
+
+			self::$trusted_proxies = array(
+				'cloudflare' => Utilities::parse_ip_ranges( Utilities::cloudflare_ip_ranges() )['valid'],
+				'configured' => Utilities::parse_ip_ranges( (array) $filtered )['valid'],
+			);
+		} finally {
+			self::$building = false;
+		}
+
+		return self::$trusted_proxies;
+	}
+
+	/**
+	 * Whether an address is inside any of the given addresses or ranges.
+	 *
+	 * @param string   $ip     IP address.
+	 * @param string[] $ranges IP addresses and CIDR ranges.
+	 * @return bool
+	 */
+	private static function in_ranges( string $ip, array $ranges ): bool {
+		foreach ( $ranges as $range ) {
+			if ( Utilities::ip_in_range( $ip, $range ) ) {
+				return true;
+			}
+		}
+
 		return false;
+	}
+
+	/**
+	 * A $_SERVER value as a sanitized string.
+	 *
+	 * @param string $key $_SERVER key.
+	 * @return string Value, or '' when missing.
+	 */
+	private static function server_value( string $key ): string {
+		if ( ! isset( $_SERVER[ $key ] ) || ! is_string( $_SERVER[ $key ] ) ) {
+			return '';
+		}
+
+		return trim( sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) ) );
 	}
 }

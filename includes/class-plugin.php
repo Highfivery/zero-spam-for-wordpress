@@ -77,6 +77,9 @@ class Plugin {
 		if ( is_admin() ) {
 			// Plugin admin module.
 			new \ZeroSpam\Core\Admin\Admin();
+
+			// Warns when visitors appear to share one IP address (unknown proxy or CDN).
+			new \ZeroSpam\Core\Admin\Shared_IP_Warning();
 		}
 
 		// Register REST API routes.

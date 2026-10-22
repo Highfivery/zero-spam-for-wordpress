@@ -449,6 +449,27 @@ class Settings {
 			}
 		}
 
+		// Keep only valid IP addresses and CIDR ranges as trusted proxies, and say which lines were dropped.
+		if ( isset( $input['trusted_proxies'] ) ) {
+			$proxies                  = \ZeroSpam\Core\Utilities::parse_ip_ranges( $input['trusted_proxies'] );
+			$input['trusted_proxies'] = implode( "\n", $proxies['valid'] );
+
+			if ( $proxies['invalid'] ) {
+				add_settings_error(
+					'zero-spam',
+					'zerospam_trusted_proxies_invalid',
+					sprintf(
+						/* translators: %s: comma-separated list of the entries that were removed */
+						esc_html__( 'These Trusted Proxy IPs entries are not IP addresses or ranges (like 203.0.113.5 or 203.0.113.0/24) and were not saved: %s', 'zero-spam' ),
+						esc_html( implode( ', ', $proxies['invalid'] ) )
+					),
+					'warning'
+				);
+			}
+
+			\ZeroSpam\Core\User::reset_cache();
+		}
+
 		// Handle blocked email domains separate option to prevent autoloading.
 		if ( isset( $input['blocked_email_domains'] ) ) {
 			// Never autoload this large option (see https://10up.github.io/Engineering-Best-Practices/php/#performance).
