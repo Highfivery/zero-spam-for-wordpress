@@ -1,9 +1,10 @@
 <?xml version="1.0"?>
 <ruleset name="Zero Spam for WordPress tests">
-	<description>WordPress Coding Standards for the PHPUnit test code (composer lint:tests).</description>
+	<description>WordPress Coding Standards for the test code: the PHPUnit suite and the e2e mu-plugin (composer lint:tests).</description>
 
 	<rule ref="WordPress">
-		<!-- Test classes and helpers use PSR-4 file names (TestCase.php) and test-*.php. -->
+		<!-- Test classes and helpers use PSR-4 file names (TestCase.php) and test-*.php;
+		     the e2e mu-plugin is named after what it is (zero-spam-e2e.php). -->
 		<exclude name="WordPress.Files.FileName"/>
 		<!-- Tests inspect the database directly; that is the point. -->
 		<exclude name="WordPress.DB.DirectDatabaseQuery"/>
@@ -13,6 +14,7 @@
 	</rule>
 
 	<file>tests/phpunit</file>
+	<file>tests/e2e/mu-plugins</file>
 
 	<arg value="sp"/>
 	<arg name="colors"/>
