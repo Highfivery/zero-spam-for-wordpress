@@ -21,7 +21,8 @@
 		"WP_AUTO_UPDATE_CORE": false,
 		"ZEROSPAM_E2E_TOKEN": "wp-env-only-not-secret",
 		"ZEROSPAM_E2E_DISPOSABLE": true,
-		"ZEROSPAM_RESCUE_KEY": "wp-env-rescue-key"
+		"ZEROSPAM_RESCUE_KEY": "wp-env-rescue-key",
+		"DISABLE_WP_CRON": true
 	},
 	"lifecycleScripts": {
 		"afterStart": "node tests/e2e/bin/wp-env-after-start.mjs --config=.wp-env.multisite.json"
