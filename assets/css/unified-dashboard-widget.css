@@ -515,3 +515,18 @@ h4.zerospam-toggle-trigger {
 		font-size: 20px;
 	}
 }
+
+/* Reduced motion: no transitions or decorative animations in the widget; the Refresh icon keeps a slow spin so progress stays visible. */
+@media (prefers-reduced-motion: reduce) {
+	.zerospam-dashboard-widget,
+	.zerospam-dashboard-widget *,
+	.zerospam-dashboard-widget *::before,
+	.zerospam-dashboard-widget *::after {
+		animation: none !important;
+		transition: none !important;
+	}
+
+	.zerospam-dashboard-widget .zerospam-refresh-btn.is-loading .dashicons {
+		animation: zerospam-spin 2s linear infinite !important;
+	}
+}

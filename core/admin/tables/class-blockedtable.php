@@ -245,7 +245,7 @@ class BlockedTable extends WP_List_Table {
 		}
 		?>
 		<div class="alignleft actions">
-			<button class="button zerospam-block-trigger"><?php esc_html_e( 'Add Blocked IP Address →', 'zero-spam' ); ?></button>
+			<button class="button button-primary zerospam-block-trigger"><?php esc_html_e( 'Add Blocked IP Address →', 'zero-spam' ); ?></button>
 			<?php
 			$settings = \ZeroSpam\Core\Settings::get_settings( 'block_method' );
 

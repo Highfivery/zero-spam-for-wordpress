@@ -377,7 +377,7 @@ class Network_Settings_Page {
 										</button>
 									</td>
 									<td>
-										<button type="button" class="button button-primary button-small save-setting">
+										<button type="button" class="button button-small save-setting">
 											<?php esc_html_e( 'Save', 'zero-spam' ); ?>
 										</button>
 									</td>

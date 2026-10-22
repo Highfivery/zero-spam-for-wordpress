@@ -1022,3 +1022,23 @@
 .fade-in {
 	animation: fadeIn 0.3s ease-in-out;
 }
+
+/* Reduced motion: no transitions, decorative animations or hover lifts on the page; the "Saving All…" spinner keeps a slow spin so progress stays visible. */
+@media (prefers-reduced-motion: reduce) {
+	.zerospam-network-settings,
+	.zerospam-network-settings *,
+	.zerospam-network-settings *::before,
+	.zerospam-network-settings *::after {
+		animation: none !important;
+		transition: none !important;
+	}
+
+	.zerospam-network-settings .dashicons-spin {
+		animation: rotation 2s linear infinite !important;
+	}
+
+	.zerospam-stat-card:hover,
+	.template-card:hover {
+		transform: none;
+	}
+}
