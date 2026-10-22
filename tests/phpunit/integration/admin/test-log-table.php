@@ -348,4 +348,67 @@ class Test_Log_Table extends TestCase {
 		$this->assertSame( 0, $this->count_log_rows( array( 'log_id' => (string) $target ) ) );
 		$this->assertSame( 149, $this->count_log_rows() );
 	}
+
+	/**
+	 * A nested ids value (ids[][]=x) is dropped instead of becoming absint( array ) = 1.
+	 */
+	public function test_bulk_delete_ignores_non_scalar_ids(): void {
+		$queries = $this->capture_queries(
+			function () {
+				$this->prepared_table(
+					array(
+						'action'         => 'delete',
+						'ids'            => array( array( 'x' ) ),
+						'zerospam_nonce' => wp_create_nonce( 'zerospam_nonce' ),
+					)
+				);
+			}
+		);
+
+		$this->assertSame( array(), array_values( preg_grep( '/^DELETE /i', $queries ) ) );
+		$this->assertSame( 150, $this->count_log_rows() );
+	}
+
+	/**
+	 * Renders the Actions cell for a log row from the database.
+	 *
+	 * @param string $user_ip IP address of the row.
+	 */
+	private function actions_cell( string $user_ip ): string {
+		global $wpdb;
+
+		$this->insert_log_rows( 1, array( 'user_ip' => $user_ip ) );
+		$item = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM %i WHERE user_ip = %s', $this->log_table(), $user_ip ),
+			ARRAY_A
+		);
+
+		return ( new LogTable() )->column_default( $item, 'actions' );
+	}
+
+	/**
+	 * A permanent block has no end date: the Update Block button carries an
+	 * empty data-end instead of 1970-01-01T00:00 (and strtotime( null )).
+	 */
+	public function test_permanent_block_renders_an_empty_end_date(): void {
+		$this->block( '203.0.113.21', 'permanent', '2026-10-01 08:30:00' );
+
+		$html = $this->actions_cell( '203.0.113.21' );
+
+		$this->assertStringContainsString( 'data-start="2026-10-01T08:30"', $html );
+		$this->assertStringContainsString( 'data-end=""', $html );
+		$this->assertStringNotContainsString( '1970-01-01', $html );
+	}
+
+	/**
+	 * A temporary block keeps its end date.
+	 */
+	public function test_temporary_block_renders_its_end_date(): void {
+		$this->block( '203.0.113.22', 'temporary', '2026-10-01 08:30:00', '2026-10-08 17:45:00' );
+
+		$html = $this->actions_cell( '203.0.113.22' );
+
+		$this->assertStringContainsString( 'data-start="2026-10-01T08:30"', $html );
+		$this->assertStringContainsString( 'data-end="2026-10-08T17:45"', $html );
+	}
 }

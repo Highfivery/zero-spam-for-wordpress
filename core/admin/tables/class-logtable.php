@@ -23,7 +23,7 @@ class LogTable extends WP_List_Table {
 	 *
 	 * @var int
 	 */
-	const PER_PAGE = 50;
+	public const PER_PAGE = 50;
 
 	/**
 	 * Constructor
@@ -41,7 +41,7 @@ class LogTable extends WP_List_Table {
 	 *
 	 * @return array<string, string> Column key => header.
 	 */
-	public function get_columns() {
+	public function get_columns(): array {
 		$columns = array(
 			'cb'            => '<input type="checkbox" />',
 			'date_recorded' => __( 'Date', 'zero-spam' ),
@@ -63,7 +63,7 @@ class LogTable extends WP_List_Table {
 	 *
 	 * @return array<string, array{0: string, 1: bool}> Column key => [ column, initially descending ].
 	 */
-	public function get_sortable_columns() {
+	public function get_sortable_columns(): array {
 		$sortable_columns = array(
 			'date_recorded' => array( 'date_recorded', false ),
 			'log_type'      => array( 'log_type', false ),
@@ -81,7 +81,7 @@ class LogTable extends WP_List_Table {
 	 * @param array<string, mixed> $item Log row.
 	 * @return string Checkbox markup.
 	 */
-	public function column_cb( $item ) {
+	public function column_cb( $item ): string {
 		return sprintf(
 			'<input type="checkbox" name="%1$s[]" value="%2$s" />',
 			'ids',
@@ -99,7 +99,7 @@ class LogTable extends WP_List_Table {
 	 * @param string               $column_name Column key.
 	 * @return string Escaped cell markup.
 	 */
-	public function column_default( $item, $column_name ) {
+	public function column_default( $item, $column_name ): string {
 		switch ( $column_name ) {
 			case 'log_type':
 				$value = ! empty( $item[ $column_name ] ) ? (string) $item[ $column_name ] : '';
@@ -143,8 +143,8 @@ class LogTable extends WP_List_Table {
 						class="button zerospam-block-trigger"
 						data-ip="<?php echo esc_attr( $item['user_ip'] ); ?>"
 						data-reason="<?php echo esc_attr( $blocked['reason'] ); ?>"
-						data-start="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $blocked['start_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $blocked['start_block'] ) ) ); ?>"
-						data-end="<?php echo esc_attr( gmdate( 'Y-m-d', strtotime( $blocked['end_block'] ) ) ); ?>T<?php echo esc_attr( gmdate( 'H:i', strtotime( $blocked['end_block'] ) ) ); ?>"
+						data-start="<?php echo esc_attr( $this->datetime_local( $blocked['start_block'] ) ); ?>"
+						data-end="<?php echo esc_attr( $this->datetime_local( $blocked['end_block'] ) ); ?>"
 						data-type="<?php echo esc_attr( $blocked['blocked_type'] ); ?>"
 						aria-label="<?php esc_attr_e( 'Update Block', 'zero-spam' ); ?>"
 					>
@@ -183,7 +183,7 @@ class LogTable extends WP_List_Table {
 	 *
 	 * @return array<string, string> Action key => label.
 	 */
-	public function get_bulk_actions() {
+	public function get_bulk_actions(): array {
 		$actions = array(
 			'delete'     => __( 'Delete Selected', 'zero-spam' ),
 			'delete_all' => __( 'Delete All Logs', 'zero-spam' ),
@@ -197,8 +197,23 @@ class LogTable extends WP_List_Table {
 	 *
 	 * @return string[] Hidden column keys.
 	 */
-	public function get_hidden_columns() {
+	public function get_hidden_columns(): array {
 		return array();
+	}
+
+	/**
+	 * Formats a stored block date for a datetime-local field.
+	 *
+	 * Permanent blocks have no end date: they get an empty value, which the
+	 * block form leaves blank, instead of 1970-01-01T00:00.
+	 *
+	 * @param string|null $value Stored date (Y-m-d H:i:s), or null.
+	 * @return string Y-m-d\TH:i, or an empty string.
+	 */
+	private function datetime_local( ?string $value ): string {
+		$timestamp = ! empty( $value ) ? strtotime( $value ) : false;
+
+		return false === $timestamp ? '' : gmdate( 'Y-m-d\TH:i', $timestamp );
 	}
 
 	/**
@@ -220,7 +235,7 @@ class LogTable extends WP_List_Table {
 	/**
 	 * Get the data
 	 */
-	public function prepare_items() {
+	public function prepare_items(): void {
 		global $wpdb;
 
 		$this->process_bulk_action();
@@ -332,7 +347,7 @@ class LogTable extends WP_List_Table {
 	 *
 	 * @param string $which Table navigation position (top or bottom).
 	 */
-	public function extra_tablenav( $which ) {
+	public function extra_tablenav( $which ): void {
 		if ( 'top' !== $which ) {
 			return;
 		}
@@ -368,7 +383,7 @@ class LogTable extends WP_List_Table {
 	 * Both actions need the form nonce, the manage_options capability and at
 	 * least one selected row.
 	 */
-	public function process_bulk_action() {
+	public function process_bulk_action(): void {
 		$action = $this->current_action();
 		if ( 'delete' !== $action && 'delete_all' !== $action ) {
 			return;
@@ -379,7 +394,10 @@ class LogTable extends WP_List_Table {
 			return;
 		}
 
-		$ids = isset( $_REQUEST['ids'] ) && is_array( $_REQUEST['ids'] ) ? array_filter( array_map( 'absint', wp_unslash( $_REQUEST['ids'] ) ) ) : array();
+		// sanitize_text_field() turns non-scalar entries (ids[][]=x) into '', which
+		// absint() makes 0 and array_filter() drops; absint() alone would turn an
+		// array into 1.
+		$ids = isset( $_REQUEST['ids'] ) && is_array( $_REQUEST['ids'] ) ? array_filter( array_map( 'absint', array_map( 'sanitize_text_field', wp_unslash( $_REQUEST['ids'] ) ) ) ) : array();
 		if ( ! $ids ) {
 			return;
 		}

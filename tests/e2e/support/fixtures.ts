@@ -32,11 +32,12 @@ export { expect };
 const BUNDLED_CHARTJS = join( ROOT, 'assets/js/vendor/chart.umd.min.js' );
 /**
  * Plugin PHP errors that are confirmed defects (AGENTS.md section 8). The
- * automatic check reports them as annotations instead of failing every test
- * that opens the screen. smoke.spec asserts there are none, as an expected
- * failure: fixing the bug makes that test pass, which fails the run until its
- * test.fail marker is removed. Nothing enforces removing the entry here, so
- * delete it in the same change.
+ * automatic check reports a matching error as an annotation instead of
+ * failing every test that opens the screen. Empty while no such defect is
+ * known. When adding an entry, also add a test that asserts the error is gone,
+ * marked test.fail( true, '<reason, AGENTS.md §8>' ) (as smoke.spec did for
+ * the LogTable wpdb::prepare() notice), and delete the entry in the change
+ * that fixes the bug: nothing enforces its removal.
  */
 export const KNOWN_PHP_ERRORS: Array< { match: RegExp; reason: string } > = [];
 
