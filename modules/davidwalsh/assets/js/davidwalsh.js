@@ -86,6 +86,13 @@
 	let refreshing = null;
 
 	/**
+	 * Forms being resubmitted after a held submission.
+	 *
+	 * @type {WeakSet<HTMLFormElement>}
+	 */
+	const resubmitting = new WeakSet();
+
+	/**
 	 * Whether a key has already been fetched for this page view.
 	 *
 	 * @type {boolean}
@@ -152,16 +159,33 @@
 	 * Hold a form submission while a key refresh is in flight, then submit
 	 * again with the new key (submit event listener, capture phase).
 	 *
-	 * Gives up waiting after REFRESH_WAIT_MS so a stalled request never
-	 * blocks the form. Only used where requestSubmit() exists, since it
-	 * re-runs the form's submit handlers and keeps the submit button.
+	 * While a submission is held, further submits (double clicks, Enter)
+	 * are swallowed, so the old key is never sent and the form is sent once;
+	 * the programmatic resubmission is let through by the `resubmitting`
+	 * set. Gives up waiting after REFRESH_WAIT_MS so a stalled request never
+	 * blocks the form, and always clears the hold, even if the refresh
+	 * rejects or requestSubmit() throws. Only used where requestSubmit()
+	 * exists, since it re-runs the form's submit handlers and keeps the
+	 * submit button.
 	 *
 	 * @param {SubmitEvent} event - The submit event.
 	 */
 	function waitForRefresh( event ) {
 		const form = event.currentTarget;
 
-		if ( ! refreshing || form.hasAttribute( HOLD_ATTR ) || typeof form.requestSubmit !== 'function' ) {
+		// The resubmission below: let it through.
+		if ( resubmitting.has( form ) ) {
+			return;
+		}
+
+		// A repeat submit while held: swallow it.
+		if ( form.hasAttribute( HOLD_ATTR ) ) {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			return;
+		}
+
+		if ( ! refreshing || typeof form.requestSubmit !== 'function' ) {
 			return;
 		}
 
@@ -174,15 +198,31 @@
 			setTimeout( resolve, REFRESH_WAIT_MS );
 		} );
 
-		Promise.race( [ refreshing, timeout ] ).then( function() {
-			// Resubmit once; the hold attribute lets this submission through.
-			if ( submitter && submitter.form === form ) {
-				form.requestSubmit( submitter );
-			} else {
-				form.requestSubmit();
-			}
-			form.removeAttribute( HOLD_ATTR );
-		} );
+		Promise.race( [ refreshing, timeout ] )
+			.catch( function() {
+				// Submit with whatever key the form has.
+			} )
+			.then( function() {
+				form.removeAttribute( HOLD_ATTR );
+				resubmitting.add( form );
+
+				try {
+					if ( submitter && submitter.form === form ) {
+						form.requestSubmit( submitter );
+					} else {
+						form.requestSubmit();
+					}
+				} finally {
+					resubmitting.delete( form );
+				}
+			} )
+			.catch( function( e ) {
+				form.removeAttribute( HOLD_ATTR );
+
+				if ( console && console.warn ) {
+					console.warn( 'Zero Spam: could not resubmit the form', e );
+				}
+			} );
 	}
 
 	/**

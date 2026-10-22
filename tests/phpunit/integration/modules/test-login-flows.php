@@ -355,9 +355,13 @@ class Test_Login_Flows extends TestCase {
 		$_COOKIE['zerospam_david_walsh_key'] = DavidWalsh::generate_token();
 		$this->load_login_page();
 
-		for ( $i = 0; $i < 10; $i++ ) {
-			$this->log_in( $this->stripped_form( 'guess-' . $i ), 'guess-' . $i );
+		$codes = array();
+		for ( $i = 1; $i <= 10; $i++ ) {
+			$codes[ $i ] = $this->log_in( $this->stripped_form( 'guess-' . $i ), 'guess-' . $i )->get_error_code();
 		}
+
+		$this->assertSame( array_fill( 1, Login::INTENT_MAX_USES, 'incorrect_password' ), array_slice( $codes, 0, Login::INTENT_MAX_USES, true ), 'Attempts 1-5 reach the password check.' );
+		$this->assertSame( 'failed_zerospam', $codes[ Login::INTENT_MAX_USES + 1 ], 'Attempt 6 is refused by Zero Spam.' );
 
 		$this->assertRefused( $this->log_in( $this->stripped_form( self::PASSWORD ), self::PASSWORD ) );
 	}
@@ -488,6 +492,30 @@ class Test_Login_Flows extends TestCase {
 
 		$this->load_login_page();
 		$this->assertRefused( $this->check_step( $post ), 'Unverified intent.' );
+	}
+
+	/**
+	 * The verified intent belongs to the user whose password step succeeded:
+	 * it waives nothing for another username (here a subscriber's login
+	 * must not cover attempts against an administrator).
+	 */
+	public function test_verified_intent_is_bound_to_the_user_who_logged_in(): void {
+		$this->enable_davidwalsh();
+		$this->load_login_page();
+		$this->pass_password_step();
+
+		$other = get_userdata( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$_POST = array( 'password' => '123456' );
+		$this->assertRefused( $this->login->process_form( $other ), 'Form-less step naming another user.' );
+
+		$_POST = array(
+			'log' => $other->user_login,
+			'pwd' => 'guess',
+		);
+		$this->assertRefused( $this->login->process_form( $other ), 'Stripped attempt against another user.' );
+
+		$this->assertPasses( $this->check_step( array( 'password' => '123456' ) ), 'The same user still passes.' );
 	}
 
 	/**
@@ -660,7 +688,8 @@ class Test_Login_Flows extends TestCase {
 		clearstatcache();
 		$written = (string) file_get_contents( $file, false, null, $before ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reads the local log file the plugin just wrote.
 		$this->assertStringContainsString( 'second_step', $written );
-		$this->assertStringContainsString( $this->user->user_login, $written );
+		$this->assertStringNotContainsString( $this->user->user_login, $written, 'No username: the file may be web-readable.' );
+		$this->assertStringNotContainsString( self::DEFAULT_IP, $written, 'No IP address.' );
 		$this->assertStringNotContainsString( 'otp-123456', $written );
 	}
 

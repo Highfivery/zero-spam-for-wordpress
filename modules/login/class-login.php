@@ -129,6 +129,7 @@ class Login {
 				'created'  => time(),
 				'expires'  => 0,
 				'verified' => false,
+				'user_id'  => 0,
 				'uses'     => 0,
 			);
 		}
@@ -182,7 +183,7 @@ class Login {
 			return $user;
 		}
 
-		$later_step = $this->is_later_auth_step( $post );
+		$later_step = $this->is_later_auth_step( $post, $user );
 
 		/**
 		 * Filters whether the login honeypot and David Walsh checks are skipped
@@ -264,7 +265,7 @@ class Login {
 
 		// Failed only because a field is missing or lapsed: accept a valid login
 		// intent token instead.
-		if ( $missing_keys && ! $spam_signal && $this->validate_login_intent() ) {
+		if ( $missing_keys && ! $spam_signal && $this->validate_login_intent( $user ) ) {
 			$this->checks_waived( 'bypassed_by_intent', $user, $post );
 
 			return $user;
@@ -306,7 +307,10 @@ class Login {
 	 * maybe_show_otp_form() at 30 renders its code form and exits, so
 	 * `wp_login` and later priorities never run on its first step). A
 	 * `WP_User` here with a non-empty password means the password was
-	 * accepted; a failed attempt never verifies or renews the token.
+	 * accepted; a failed attempt never verifies or renews the token. A plugin
+	 * that returns a `WP_User` on `authenticate` below priority 25 (an OTP or
+	 * magic-link login, say) also verifies it, by design: that plugin has
+	 * authenticated the user. The token is verified for that user only.
 	 *
 	 * @since 5.7.14
 	 *
@@ -325,10 +329,23 @@ class Login {
 
 		if ( null !== $intent ) {
 			$intent['verified'] = true;
+			$intent['user_id']  = (int) $user->ID;
 			self::store_intent( $token, $intent, true );
 		}
 
 		return $user;
+	}
+
+	/**
+	 * Whether an intent was verified by a successful password step of the
+	 * user now being authenticated.
+	 *
+	 * @param array{verified: bool, user_id: int} $intent Intent data.
+	 * @param \WP_User|\WP_Error|null             $user   The user being authenticated, or an error.
+	 * @return bool
+	 */
+	private static function is_verified_for( $intent, $user ) {
+		return $intent['verified'] && $user instanceof \WP_User && $intent['user_id'] > 0 && (int) $user->ID === $intent['user_id'];
 	}
 
 	/**
@@ -340,9 +357,9 @@ class Login {
 	 *
 	 * 1. The request carries none of the login form's fields: no `pwd`, no
 	 *    Zero Spam honeypot field and no David Walsh key.
-	 * 2. It carries a valid intent token for this client that a successful
-	 *    password step verified (see verify_intent_after_password()), with
-	 *    uses left.
+	 * 2. It carries a valid intent token for this client, with uses left,
+	 *    that a successful password step of the same user verified (see
+	 *    verify_intent_after_password()).
 	 *
 	 * Anything else, including custom login endpoints and XML-RPC, gets the
 	 * normal checks; integrators can exempt their flows with the
@@ -358,10 +375,11 @@ class Login {
 	 *
 	 * @since 5.7.14
 	 *
-	 * @param array $post Sanitized POST data.
+	 * @param array                   $post Sanitized POST data.
+	 * @param \WP_User|\WP_Error|null $user The user being authenticated, or an error.
 	 * @return bool
 	 */
-	public function is_later_auth_step( $post ) {
+	public function is_later_auth_step( $post, $user = null ) {
 		$form_fields = array( 'pwd', \ZeroSpam\Core\Utilities::get_honeypot(), 'zerospam_david_walsh_key' );
 
 		if ( array() !== array_intersect( $form_fields, array_keys( (array) $post ) ) ) {
@@ -375,15 +393,15 @@ class Login {
 
 		$intent = self::get_intent( $token );
 
-		return null !== $intent && $intent['verified'];
+		return null !== $intent && self::is_verified_for( $intent, $user );
 	}
 
 	/**
 	 * Reports a login whose checks were waived.
 	 *
-	 * Fires zerospam_login_checks_waived, and writes a line to the plugin's
-	 * debug log (Utilities::log()) when WP_DEBUG is on. Never written to the
-	 * detection log, which records blocked attempts.
+	 * Fires zerospam_login_checks_waived, and writes the reason (nothing
+	 * else) to the plugin's debug log (Utilities::log()) when WP_DEBUG is on.
+	 * Never written to the detection log, which records blocked attempts.
 	 *
 	 * @param string             $reason second_step, skipped_by_filter or bypassed_by_intent.
 	 * @param \WP_User|\WP_Error $user   The user being authenticated, or an error.
@@ -405,15 +423,10 @@ class Login {
 		 */
 		do_action( 'zerospam_login_checks_waived', $reason, $user, $post );
 
+		// The reason only: the log file sits in uploads and may be readable from
+		// the web, so no username or IP address goes in it.
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			\ZeroSpam\Core\Utilities::log(
-				sprintf(
-					'Login checks waived (%1$s) for user "%2$s" from %3$s',
-					$reason,
-					$user instanceof \WP_User ? $user->user_login : '',
-					\ZeroSpam\Core\User::get_ip()
-				)
-			);
+			\ZeroSpam\Core\Utilities::log( 'Login checks waived: ' . $reason );
 		}
 	}
 
@@ -541,22 +554,24 @@ class Login {
 	 *
 	 * Requires a valid token for this client (see get_intent()) with uses
 	 * left. When the David Walsh technique is enabled, the token must also
-	 * have been verified by a successful password step of this login, or the
-	 * request must carry a valid key cookie set by the login page's script
-	 * (as since 5.7.12). The key cookie never verifies the token: any client
-	 * can set it.
+	 * have been verified by a successful password step of the same user, or
+	 * the request must carry a valid key cookie set by the login page's
+	 * script (as since 5.7.12). The key cookie never verifies the token: any
+	 * client can set it.
 	 *
 	 * The token is not one-time, so a login that runs the check more than
 	 * once (a plugin that resubmits the login, a retry after a lapsed key)
 	 * still works. What bounds it: it is random and HttpOnly; bound to the
-	 * client's network (/24 or /64) and user agent; usable INTENT_MAX_USES
-	 * times; renewed only when the login page loads or a password step
-	 * succeeds, never by a use; and never older than INTENT_MAX_LIFETIME. It
-	 * never waives a filled honeypot or a forged key.
+	 * client's network (/24 or /64) and user agent, and once verified to
+	 * that user; usable INTENT_MAX_USES times; renewed only when the login
+	 * page loads or a password step succeeds, never by a use; and never
+	 * older than INTENT_MAX_LIFETIME. It never waives a filled honeypot or a
+	 * forged key.
 	 *
+	 * @param \WP_User|\WP_Error|null $user The user being authenticated, or an error.
 	 * @return bool True if intent is valid, false otherwise.
 	 */
-	public function validate_login_intent() {
+	public function validate_login_intent( $user = null ) {
 		$token = self::get_intent_cookie();
 		if ( '' === $token ) {
 			return false;
@@ -567,7 +582,7 @@ class Login {
 			return false;
 		}
 
-		if ( ! $intent['verified'] && 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
+		if ( ! self::is_verified_for( $intent, $user ) && 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			$dw_key = isset( $_COOKIE['zerospam_david_walsh_key'] ) && is_string( $_COOKIE['zerospam_david_walsh_key'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['zerospam_david_walsh_key'] ) ) : '';
 
 			if ( ! DavidWalsh::validate_token( $dw_key ) ) {
@@ -646,7 +661,7 @@ class Login {
 	 * client and are not accepted.
 	 *
 	 * @param string $token Intent token.
-	 * @return array{client: string, created: int, expires: int, verified: bool, uses: int}|null
+	 * @return array{client: string, created: int, expires: int, verified: bool, user_id: int, uses: int}|null
 	 */
 	private static function get_intent( $token ) {
 		$intent = get_transient( self::INTENT_TRANSIENT_PREFIX . $token );
@@ -660,6 +675,7 @@ class Login {
 			'created'  => (int) $intent['created'],
 			'expires'  => isset( $intent['expires'] ) ? (int) $intent['expires'] : 0,
 			'verified' => ! empty( $intent['verified'] ),
+			'user_id'  => isset( $intent['user_id'] ) ? (int) $intent['user_id'] : 0,
 			'uses'     => isset( $intent['uses'] ) ? (int) $intent['uses'] : 0,
 		);
 
@@ -684,9 +700,9 @@ class Login {
 	 * than INTENT_MAX_LIFETIME after the token was created. Without renewal
 	 * the expiry is kept.
 	 *
-	 * @param string                                                                       $token  Intent token.
-	 * @param array{client: string, created: int, expires: int, verified: bool, uses: int} $intent Intent data.
-	 * @param bool                                                                         $renew  Whether to renew it.
+	 * @param string                                                                                     $token  Intent token.
+	 * @param array{client: string, created: int, expires: int, verified: bool, user_id: int, uses: int} $intent Intent data.
+	 * @param bool                                                                                       $renew  Whether to renew it.
 	 */
 	private static function store_intent( $token, $intent, $renew ) {
 		$now = time();
