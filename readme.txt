@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 5.7.12
+Stable tag: 5.7.13
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -36,7 +36,7 @@ Rest easy knowing that we utilize multiple detection methods to swiftly identify
 * [GiveWP](https://givewp.com/ref/1118/) — Prevents attempts to test stolen credit cards.
 * [ProfilePress](https://wordpress.org/plugins/wp-user-avatar/) — Keeps registrations safe & secure.
 * [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) — Protects sign-ups from abuse.
-* [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/), [Fluent Forms](https://wordpress.org/plugins/fluentform/), [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/) — Versatile form protection.
+* [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/), [Fluent Forms](https://wordpress.org/plugins/fluentform/), [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/), [Elementor Pro](https://elementor.com/) forms — Versatile form protection.
 
 With Zero Spam for WordPress, you not only get exceptional protection but also a reliable support that ensures your peace of mind.
 
@@ -131,6 +131,25 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.13 =
+
+* **fix(uninstall):** deleting the plugin now removes all of its data: every module's settings, the blocked email domains list, API notices, the settings audit log, network settings, the network templates and audit tables, scheduled tasks (including the network weekly summary and events left by older versions), cached data, dismissed-notice user meta and the error log file. Previously most of it was left behind.
+* **fix(uninstall):** on multisite, deleting the plugin now cleans every site and returns to the original site, so the network-wide clean-up runs on the right site.
+* **fix(log):** the Detection Log now shows 50 entries per page with no repeated or missing rows. Page 2 used to repeat and overflow rows and later pages were empty.
+* **fix(log):** searching or filtering the Detection Log now reports the matching number of entries instead of the total, moving between pages keeps the type filter, and sorting by Region sorts by region instead of country.
+* **fix(log):** removed the "wpdb::prepare was called incorrectly" debug notice on the Detection Log screen.
+* **fix(log):** the Detection Log now keeps at most "Maximum Log Entries" rows (it used to keep one extra), deleting the oldest entries first.
+* **fix(dashboard):** editing a permanent block from the Detection Log or Blocked IPs screens no longer pre-fills an end date of January 1, 1970.
+* **security(dashboard):** refreshing the .htaccess block rules now requires an administrator and a valid security token, and the "Refresh .htaccess" button shows whether the refresh worked. Previously any admin request carrying the refresh flag rewrote .htaccess. Adding a blocked IP or location now also requires the manage_options capability, and dashboard notices are escaped.
+* **fix(security):** the "Remove Resource Query Parameters" and "Disable WordPress Emoji's" settings each now do what their label says. Before, enabling one applied the other's behaviour, so sites that had either setting enabled will notice the change after updating.
+* **fix(stopforumspam):** Stop Forum Spam results are now reused from the object cache instead of calling the API on every check; different IPs and emails no longer share a cached result, and error or rate-limit answers are no longer cached. The "Cache Expiration" field now shows a days placeholder.
+* **fix(login):** the login intent cookie is no longer set once headers have been sent, which stops "Cannot modify header information" warnings under WP-CLI and when output has started.
+* **fix(elementor):** the Elementor Pro forms integration is now actually loaded when Elementor Pro is active (it was never loaded before). Missing or invalid David Walsh tokens now block the submission, blocked email domains are logged, and spam messages are escaped.
+* **fix(multisite):** on a network site's Zero Spam settings page, settings locked by the network administrator now show a "Locked by Network Admin" badge, cannot be edited, and are announced as locked to screen readers, with a summary notice of network-managed settings at the top of the page.
+* **fix(multisite):** saving a network site's Zero Spam settings no longer turns every setting into a site override. Only settings changed from the network value are kept as the site's own, so later network default changes still reach the site, and a save can no longer store a value for a locked setting. The network's "Apply to All Sites" action no longer creates overrides on the target sites either.
+* **fix(multisite):** on a network site, the REST settings endpoint now refuses changes to locked settings with a clear 403 that lists them and accepts a value equal to the network default instead of returning an error; `wp zerospam set` warns, instead of reporting success, when a setting is locked.
+* **chore(dev):** development tooling only: GitHub Actions replaced by a committed local quality gate (WPCS, PHP compatibility, PHPStan, version guard, pre-push hook), a PHPUnit integration suite (single site and multisite, PHP 8.2 and 8.4, WordPress 6.9 and 7.1) and Playwright end-to-end, accessibility and visual-regression suites; `AGENTS.md` documents the conventions.
 
 = v5.7.12 =
 

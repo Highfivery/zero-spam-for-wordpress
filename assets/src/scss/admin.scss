@@ -822,6 +822,29 @@ a.zerospam-dashboard__menu-link {
         }
       }
     }
+
+    // Locked by the network administrator (zerospam_setting_field_disabled).
+    &:disabled + label {
+      cursor: not-allowed;
+
+      &::before,
+      &::after {
+        cursor: not-allowed;
+      }
+
+      &::before {
+        opacity: 0.6;
+      }
+    }
+  }
+
+  select,
+  input,
+  textarea {
+    &:disabled {
+      background-color: #f0f0f1;
+      cursor: not-allowed;
+    }
   }
 }
 
@@ -972,7 +995,8 @@ a.zerospam-dashboard__menu-link {
   &woocommerce_registration,
   &gravityforms,
   &formidable,
-  &wp_user_avatar {
+  &wp_user_avatar,
+  &elementor {
     &::before {
       background-position: center;
       background-repeat: no-repeat;
@@ -1053,6 +1077,12 @@ a.zerospam-dashboard__menu-link {
   &gravityforms {
     &::before {
       background-image: url("../../modules/gravityforms/icon-gravity-forms.svg");
+    }
+  }
+
+  &elementor {
+    &::before {
+      background-image: url("../../modules/elementor/icon-elementor.svg");
     }
   }
 }

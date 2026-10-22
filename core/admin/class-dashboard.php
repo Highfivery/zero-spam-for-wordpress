@@ -28,34 +28,65 @@ class Dashboard {
 	 * Constructor
 	 */
 	public function __construct() {
-		add_action( 'admin_init', array( $this, 'admin_init' ) );
 		add_action( 'admin_menu', array( $this, 'admin_menu' ) );
 		add_action( 'admin_action_add_blocked_ip', array( $this, 'block_ip' ) );
+		add_action( 'admin_post_zerospam_refresh_htaccess', array( $this, 'refresh_htaccess' ) );
 	}
 
-	public function admin_init() {
-		if ( ! empty( $_REQUEST['zerospam-refresh-htaccess'] ) ) {
-			\ZeroSpam\Core\Utilities::refresh_htaccess();
+	/**
+	 * Refreshes the .htaccess block rules when an administrator asks for it.
+	 *
+	 * Handles admin-post.php?action=zerospam_refresh_htaccess (the "Refresh
+	 * .htaccess" button on the Blocked IPs screen). Requires `manage_options`
+	 * and a valid `zerospam-refresh-htaccess` nonce in `_wpnonce`; a failed
+	 * check ends the request with wp_die(). Redirects back to the Blocked IPs
+	 * screen with a notice, so the nonce never stays in the page URL.
+	 */
+	public function refresh_htaccess() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die(
+				esc_html__( 'Sorry, you are not allowed to refresh the .htaccess file.', 'zero-spam' ),
+				esc_html__( 'Forbidden', 'zero-spam' ),
+				array( 'response' => 403 )
+			);
 		}
+
+		check_admin_referer( 'zerospam-refresh-htaccess' );
+
+		if ( \ZeroSpam\Core\Utilities::refresh_htaccess() ) {
+			self::redirect_with_message( 'blocked-ips', 'success', __( '.htaccess refreshed.', 'zero-spam' ) );
+		}
+
+		self::redirect_with_message( 'blocked-ips', 'error', __( 'The .htaccess file was not updated. Check that the IP block method is an .htaccess option, that the file is writable, and that at least one IP is blocked.', 'zero-spam' ) );
 	}
 
 	/**
 	 * Block IP handler
+	 *
+	 * Handles the add/update block form (admin.php?action=add_blocked_ip).
+	 * Requires `manage_options` and a valid `zerospam` nonce.
 	 */
 	public function block_ip() {
-		$base_admin_link = self::$base_admin_link;
-		$subview         = 'blocked-ips';
+		$subview = 'blocked-ips';
 
-		if ( ! isset( $_POST['zerospam'] ) || ! wp_verify_nonce( $_POST['zerospam'], 'zerospam' ) ) {
-			wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=Link expired, please try again.' );
-			exit;
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die(
+				esc_html__( 'Sorry, you are not allowed to block IP addresses or locations.', 'zero-spam' ),
+				esc_html__( 'Forbidden', 'zero-spam' ),
+				array( 'response' => 403 )
+			);
+		}
+
+		$nonce = isset( $_POST['zerospam'] ) ? sanitize_text_field( wp_unslash( $_POST['zerospam'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, 'zerospam' ) ) {
+			self::redirect_with_message( $subview, 'error', __( 'Link expired, please try again.', 'zero-spam' ) );
 		}
 
 		$record = array();
 
 		// Blocking by IP.
 		if ( ! empty( $_POST['blocked_ip'] ) ) {
-			$record['user_ip'] = sanitize_text_field( $_POST['blocked_ip'] );
+			$record['user_ip'] = sanitize_text_field( wp_unslash( $_POST['blocked_ip'] ) );
 		}
 
 		// Blocking by custom key.
@@ -63,37 +94,33 @@ class Dashboard {
 			$subview = 'blocked-locations';
 
 			if ( empty( $_POST['blocked_key'] ) ) {
-				wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=Missing block record key.' );
-				exit;
+				self::redirect_with_message( $subview, 'error', __( 'Missing block record key.', 'zero-spam' ) );
 			}
 
-			$record['key_type']    = sanitize_text_field( $_POST['key_type'] );
-			$record['blocked_key'] = sanitize_text_field( $_POST['blocked_key'] );
+			$record['key_type']    = sanitize_text_field( wp_unslash( $_POST['key_type'] ) );
+			$record['blocked_key'] = isset( $_POST['blocked_key'] ) ? sanitize_text_field( wp_unslash( $_POST['blocked_key'] ) ) : '';
 		}
 
 		if ( empty( $record['user_ip'] ) && empty( $record['key_type'] ) ) {
-			wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=Missing record key.' );
-			exit;
+			self::redirect_with_message( $subview, 'error', __( 'Missing record key.', 'zero-spam' ) );
 		}
 
-		$record['blocked_type'] = in_array( sanitize_text_field( $_POST['blocked_type'] ), [ 'permanent', 'temporary' ] ) ? sanitize_text_field( $_POST['blocked_type'] ) : false;
-		$record['reason']       = sanitize_text_field( $_POST['blocked_reason'] );
-		$record['start_block']  = sanitize_text_field( $_POST['blocked_start_date'] );
-		$record['end_block']    = sanitize_text_field( $_POST['blocked_end_date'] );
+		$blocked_type           = isset( $_POST['blocked_type'] ) ? sanitize_text_field( wp_unslash( $_POST['blocked_type'] ) ) : '';
+		$record['blocked_type'] = in_array( $blocked_type, array( 'permanent', 'temporary' ), true ) ? $blocked_type : false;
+		$record['reason']       = isset( $_POST['blocked_reason'] ) ? sanitize_text_field( wp_unslash( $_POST['blocked_reason'] ) ) : '';
+		$record['start_block']  = isset( $_POST['blocked_start_date'] ) ? sanitize_text_field( wp_unslash( $_POST['blocked_start_date'] ) ) : '';
+		$record['end_block']    = isset( $_POST['blocked_end_date'] ) ? sanitize_text_field( wp_unslash( $_POST['blocked_end_date'] ) ) : '';
 
 		if ( ! empty( $record['user_ip'] ) && ! rest_is_ip_address( $record['user_ip'] ) ) {
-			wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=Invalid IP address.' );
-			exit;
+			self::redirect_with_message( $subview, 'error', __( 'Invalid IP address.', 'zero-spam' ) );
 		}
 
 		if ( ! $record['blocked_type'] ) {
-			wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=Missing block type.' );
-			exit;
+			self::redirect_with_message( $subview, 'error', __( 'Missing block type.', 'zero-spam' ) );
 		}
 
 		if ( 'temporary' === $record['blocked_type'] && ! $record['end_block'] ) {
-			wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=Missing block end date.' );
-			exit;
+			self::redirect_with_message( $subview, 'error', __( 'Missing block end date.', 'zero-spam' ) );
 		}
 
 		if ( $record['start_block'] ) {
@@ -107,19 +134,38 @@ class Dashboard {
 		}
 
 		if ( 'temporary' === $record['blocked_type'] && ! $record['end_block'] ) {
-			wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=Missing block end date.' );
-			exit;
+			self::redirect_with_message( $subview, 'error', __( 'Missing block end date.', 'zero-spam' ) );
 		}
 
 		if ( ! \ZeroSpam\Includes\DB::blocked( $record ) ) {
-			wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=error&zerospam-msg=There was a problem adding the record, please try again.' );
-			exit;
+			self::redirect_with_message( $subview, 'error', __( 'There was a problem adding the record, please try again.', 'zero-spam' ) );
 		}
 
 		// Add the the .htaccess file.
 		\ZeroSpam\Core\Utilities::refresh_htaccess();
 
-		wp_redirect( $base_admin_link . '&subview=' . $subview . '&zerospam-type=success&zerospam-msg=Record has been successfully added/updated.' );
+		self::redirect_with_message( $subview, 'success', __( 'Record has been successfully added/updated.', 'zero-spam' ) );
+	}
+
+	/**
+	 * Redirects to a dashboard subview with a notice and ends the request.
+	 *
+	 * @param string $subview Dashboard subview (blocked-ips, blocked-locations, ...).
+	 * @param string $type    Notice type (success or error).
+	 * @param string $message Notice text, shown escaped by dashboard_page().
+	 * @return never
+	 */
+	private static function redirect_with_message( string $subview, string $type, string $message ): never {
+		wp_safe_redirect(
+			add_query_arg(
+				array(
+					'subview'       => $subview,
+					'zerospam-type' => $type,
+					'zerospam-msg'  => rawurlencode( $message ),
+				),
+				admin_url( self::$base_admin_link )
+			)
+		);
 		exit;
 	}
 
@@ -147,8 +193,13 @@ class Dashboard {
 
 		$base_admin_link = self::$base_admin_link;
 
-		// @codingStandardsIgnoreLine
-		$subview = ! empty( $_REQUEST['subview'] ) ? sanitize_text_field( $_REQUEST['subview'] ) : 'reports';
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only navigation parameter; it only picks which view to render.
+		$subview = ! empty( $_REQUEST['subview'] ) ? sanitize_key( wp_unslash( $_REQUEST['subview'] ) ) : 'reports';
+
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only notice parameters set by block_ip()'s redirect; they are escaped on output and change nothing.
+		$notice_message = ! empty( $_REQUEST['zerospam-msg'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ) : '';
+		$notice_type    = ! empty( $_REQUEST['zerospam-type'] ) ? sanitize_key( wp_unslash( $_REQUEST['zerospam-type'] ) ) : 'default';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		?>
 		<?php require ZEROSPAM_PATH . 'includes/templates/admin-header.php'; ?>
@@ -164,7 +215,7 @@ class Dashboard {
 endif;
 												?>
 							">
-								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-reports.svg" class="zerospam-dashboard__menu-icon" />
+								<img src="<?php echo esc_url( plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-reports.svg' ); ?>" class="zerospam-dashboard__menu-icon" />
 								<?php esc_html_e( 'Dashboard', 'zero-spam' ); ?>
 							</a>
 						</li>
@@ -176,7 +227,7 @@ endif;
 endif;
 												?>
 							">
-								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-log.svg" class="zerospam-dashboard__menu-icon" />
+								<img src="<?php echo esc_url( plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-log.svg' ); ?>" class="zerospam-dashboard__menu-icon" />
 								<?php esc_html_e( 'Log', 'zero-spam' ); ?>
 							</a>
 						</li>
@@ -188,7 +239,7 @@ endif;
 endif;
 												?>
 							">
-								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-blocked.svg" class="zerospam-dashboard__menu-icon" />
+								<img src="<?php echo esc_url( plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-blocked.svg' ); ?>" class="zerospam-dashboard__menu-icon" />
 								<?php esc_html_e( 'Blocked IPs', 'zero-spam' ); ?>
 							</a>
 						</li>
@@ -200,7 +251,7 @@ endif;
 endif;
 												?>
 							">
-								<img src="<?php echo plugin_dir_url( ZEROSPAM ); ?>assets/img/icon-location.svg" class="zerospam-dashboard__menu-icon" />
+								<img src="<?php echo esc_url( plugin_dir_url( ZEROSPAM ) . 'assets/img/icon-location.svg' ); ?>" class="zerospam-dashboard__menu-icon" />
 							<?php esc_html_e( 'Blocked Locations', 'zero-spam' ); ?>
 							</a>
 						</li>
@@ -208,13 +259,25 @@ endif;
 
 					<iframe src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2Fzerospamorg&tabs=timeline&width=300&height=635&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true&appId=2704301689814493" width="300" height="635" style="border:none;overflow:hidden;margin-bottom:40px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
 
-					<a class="twitter-timeline" data-height="604" href="https://twitter.com/ZeroSpamOrg?ref_src=twsrc%5Etfw">Tweets by ZeroSpamOrg</a> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+					<a class="twitter-timeline" data-height="604" href="https://twitter.com/ZeroSpamOrg?ref_src=twsrc%5Etfw">Tweets by ZeroSpamOrg</a>
+					<?php
+					wp_enqueue_script(
+						'zerospam-twitter-widgets',
+						'https://platform.twitter.com/widgets.js',
+						array(),
+						ZEROSPAM_VERSION,
+						array(
+							'in_footer' => true,
+							'strategy'  => 'async',
+						)
+					);
+					?>
 				</div>
 				<div class="zerospam-dashboard__col">
-					<?php if ( ! empty( $_REQUEST['zerospam-msg'] ) ) : ?>
-						<div class="zerospam-block zerospam-block--notice zerospam-block--<?php echo ! empty( $_REQUEST['zerospam-type'] ) ? esc_attr( $_REQUEST['zerospam-type'] ) : 'default'; ?>">
+					<?php if ( '' !== $notice_message ) : ?>
+						<div class="zerospam-block zerospam-block--notice zerospam-block--<?php echo esc_attr( $notice_type ); ?>">
 							<div class="zerospam-block__content">
-								<?php echo sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ); ?>
+								<?php echo esc_html( $notice_message ); ?>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -254,7 +317,7 @@ endif;
 												);
 												?>
 											</p>
-											<p><a href="https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php _e( 'Submit Review', 'zero-spam' ); ?> &#8594;</a></p>
+											<p><a href="https://wordpress.org/support/plugin/zero-spam/reviews/?filter=5" target="_blank" rel="noreferrer noopener" class="button button-primary"><?php esc_html_e( 'Submit Review', 'zero-spam' ); ?> &#8594;</a></p>
 										</div>
 									</div>
 								</div>
@@ -271,7 +334,7 @@ endif;
 									<div class="zerospam-block__content">
 										<?php require ZEROSPAM_PATH . 'includes/templates/admin-ips.php'; ?>
 										<p style="margin-top: 25px;">
-											<strong><?php _e( 'Still seeing spam/malicious activity?', 'zero-spam' ); ?></strong><br />
+											<strong><?php esc_html_e( 'Still seeing spam/malicious activity?', 'zero-spam' ); ?></strong><br />
 											<?php
 											printf(
 												wp_kses(
@@ -329,7 +392,7 @@ endif;
 								printf(
 									wp_kses(
 										/* translators: %s: url */
-										__( '<p>When using .htaccess &amp; due to <a href="%s" target="_blank" rel="noreferrer noopener">character limit restrictions</a>, <strong>no more than 170 blocked IP addresses recommended</strong>.</p>', 'zero-spam' ),
+										__( 'When using .htaccess &amp; due to <a href="%s" target="_blank" rel="noreferrer noopener">character limit restrictions</a>, <strong>no more than 170 blocked IP addresses recommended</strong>.', 'zero-spam' ),
 										array(
 											'strong' => array(),
 											'a'      => array(
@@ -362,7 +425,7 @@ endif;
 								?>
 									<div class="zerospam-block zerospam-block--error">
 										<div class="zerospam-block__content">
-										<?php _e( '<strong>Blocking locations is currently disabled.</strong> A valid ipstack API key or IPinfo access token is required.', 'zero-spam' ); ?>
+										<?php echo wp_kses( __( '<strong>Blocking locations is currently disabled.</strong> A valid ipstack API key or IPinfo access token is required.', 'zero-spam' ), array( 'strong' => array() ) ); ?>
 										</div>
 									</div>
 								<?php endif; ?>
@@ -388,7 +451,7 @@ endif;
 			<button class="zerospam-close-modal" aria-label="<?php echo esc_attr( __( 'Close Modal', 'zero-spam' ) ); ?>"></button>
 
 			<div class="zerospam-block">
-				<h3 class="zerospam-block__headline"><?php echo __( 'Add/Update Blocked IP', 'zero-spam' ); ?></h3>
+				<h3 class="zerospam-block__headline"><?php esc_html_e( 'Add/Update Blocked IP', 'zero-spam' ); ?></h3>
 				<div class="zerospam-block__content">
 					<?php require ZEROSPAM_PATH . 'includes/templates/admin-block-ip.php'; ?>
 				</div>
@@ -399,7 +462,7 @@ endif;
 			<button class="zerospam-close-modal" aria-label="<?php echo esc_attr( __( 'Close Modal', 'zero-spam' ) ); ?>"></button>
 
 			<div class="zerospam-block">
-				<h3 class="zerospam-block__headline"><?php echo __( 'Add/Update Blocked Location', 'zero-spam' ); ?></h3>
+				<h3 class="zerospam-block__headline"><?php esc_html_e( 'Add/Update Blocked Location', 'zero-spam' ); ?></h3>
 				<div class="zerospam-block__content">
 					<?php
 					$location_form = true;

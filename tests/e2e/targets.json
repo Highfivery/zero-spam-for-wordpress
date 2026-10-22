@@ -1,0 +1,7 @@
+{
+	"_comment": "The e2e targets. Read by support/targets.ts (Playwright) and bin/*.mjs (runner, preflight, Local setup). Ports match .wp-env.json / .wp-env.multisite.json; the Local site ids are the directories under ~/Library/Application Support/Local/run/.",
+	"wp-env": { "kind": "wp-env", "baseURL": "http://localhost:8900/", "config": ".wp-env.json", "multisite": false, "subsitePath": null },
+	"wp-env-ms": { "kind": "wp-env", "baseURL": "http://localhost:8910/", "config": ".wp-env.multisite.json", "multisite": true, "subsitePath": "/site2/" },
+	"local": { "kind": "local", "baseURL": "http://wordpress-zero-spam.local/", "siteId": "4FM3w-ULR", "path": "~/Local Sites/wordpress-zero-spam/app/public", "multisite": false, "subsitePath": null, "envPrefix": "E2E_LOCAL", "localName": "WordPress Zero Spam" },
+	"network": { "kind": "local", "baseURL": "http://zero-spam-network.local/", "siteId": "gfpR6AnCn", "path": "~/Local Sites/zero-spam-network/app/public", "multisite": true, "subsitePath": "/test-site-1/", "envPrefix": "E2E_NETWORK", "localName": "Zero Spam Network" }
+}

@@ -71,7 +71,7 @@ class Plugin {
 	 * Initializes modules
 	 */
 	private function init_modules() {
-		// Debug module
+		// Debug module.
 		new \ZeroSpam\Modules\Debug();
 
 		if ( is_admin() ) {
@@ -91,7 +91,7 @@ class Plugin {
 		// Migrations — runs one-time data migrations on plugin update.
 		new \ZeroSpam\Includes\Migrations();
 
-		// Site security
+		// Site security.
 		new \ZeroSpam\Modules\Security\Security();
 
 		// Zero Spam module.
@@ -118,8 +118,8 @@ class Plugin {
 			new \ZeroSpam\Includes\Admin\Network_Settings_Page();
 		}
 
-		// Site Admin Overrides (multisite only).
-		if ( is_admin() && is_multisite() && ! is_network_admin() ) {
+		// Site Admin Overrides (network sites): save filters on every request, settings page UI in the admin.
+		if ( is_multisite() && ! is_network_admin() ) {
 			new \ZeroSpam\Includes\Admin\Site_Admin_Overrides();
 		}
 
@@ -140,7 +140,7 @@ class Plugin {
 		// Project Honeypot module.
 		new \ZeroSpam\Modules\ProjectHoneypot();
 
-		// ipbase module
+		// ipbase module.
 		new \ZeroSpam\Modules\ipbase\ipbase();
 
 		// IPinfo module.
@@ -212,9 +212,14 @@ class Plugin {
 			new \ZeroSpam\Modules\GravityForms\GravityForms();
 		}
 
-		// Zero Spam Gravity Forms module.
+		// ProfilePress (formerly WP User Avatar) module.
 		if ( is_plugin_active( 'wp-user-avatar/wp-user-avatar.php' ) ) {
 			new \ZeroSpam\Modules\WPUserAvatar\WPUserAvatar();
+		}
+
+		// Elementor Pro forms module (forms are an Elementor Pro feature).
+		if ( is_plugin_active( 'elementor-pro/elementor-pro.php' ) ) {
+			new \ZeroSpam\Modules\Elementor\Elementor();
 		}
 	}
 

@@ -1,0 +1,37 @@
+# Files that must never ship in the WordPress.org release (see CONTRIBUTING.md).
+# Apply with: rsync -a --delete --exclude-from=.distignore <checkout>/ <svn>/trunk/
+.git
+.github
+.githooks
+.gitignore
+.distignore
+.DS_Store
+bin
+tests
+vendor
+node_modules
+composer.json
+composer.lock
+phpcs.xml.dist
+phpcs.tests.xml.dist
+phpunit.xml.dist
+phpunit-multisite.xml.dist
+phpstan.neon.dist
+phpstan-baseline.neon
+build
+assets/src
+NETWORK_SETTINGS_DEVELOPER_GUIDE.md
+package.json
+package-lock.json
+.nvmrc
+.wp-env.json
+.wp-env.multisite.json
+.wp-env.override.json
+.wp-env.multisite.override.json
+artifacts
+test-results
+playwright-report
+blob-report
+AGENTS.md
+CLAUDE.md
+.claude

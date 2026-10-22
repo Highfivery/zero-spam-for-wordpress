@@ -1,6 +1,4 @@
 <?php
-declare( strict_types=1 );
-
 /**
  * Zero Spam for WordPress Plugin
  *
@@ -15,7 +13,7 @@ declare( strict_types=1 );
  * Plugin Name:       Zero Spam for WordPress
  * Plugin URI:        https://wordpress.com/plugins/zero-spam/
  * Description:       Tired of all the ineffective WordPress anti-spam & security plugins? Zero Spam for WordPress makes blocking spam &amp; malicious activity a cinch. <strong>Just activate, configure, and say goodbye to spam.</strong>
- * Version:           5.7.12
+ * Version:           5.7.13
  * Requires at least: 6.9
  * Requires PHP:      8.2
  * Author:            Highfivery Studio
@@ -26,6 +24,8 @@ declare( strict_types=1 );
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  */
 
+declare( strict_types=1 );
+
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -33,7 +33,7 @@ defined( 'ABSPATH' ) || die();
 define( 'ZEROSPAM', __FILE__ );
 define( 'ZEROSPAM_PATH', plugin_dir_path( ZEROSPAM ) );
 define( 'ZEROSPAM_PLUGIN_BASE', plugin_basename( ZEROSPAM ) );
-define( 'ZEROSPAM_VERSION', '5.7.12' );
+define( 'ZEROSPAM_VERSION', '5.7.13' );
 
 if ( defined( 'ZEROSPAM_DEVELOPMENT_URL' ) ) {
 	define( 'ZEROSPAM_URL', ZEROSPAM_DEVELOPMENT_URL );

@@ -1,0 +1,36 @@
+/*
+ * Applied to every visual baseline (toHaveScreenshot stylePath): hides parts
+ * that change between runs or WordPress builds without saying anything about
+ * Zero Spam.
+ */
+#footer-upgrade,
+#wp-admin-bar-my-account,
+.notice.update-nag,
+.wp-tooltip__bubble {
+	visibility: hidden !important;
+}
+
+*,
+*::before,
+*::after {
+	caret-color: transparent !important;
+	transition: none !important;
+	animation: none !important;
+}
+
+/* Seeded rows are dated relative to "now"; hide the dates instead of masking
+   them, because the responsive list table (782px) moves them between cells. */
+.wp-list-table .column-date_recorded,
+.wp-list-table .column-date_added,
+.wp-list-table .column-start_block,
+.wp-list-table .column-end_block {
+	color: transparent !important;
+}
+
+/* On the WordPress dashboards, other widgets (At a Glance counts, Events and
+   News) change height between runs and shift the Zero Spam widget by
+   sub-pixels; hide them so the widget always sits at the top of its column. */
+#dashboard-widgets .postbox:not(#zerospam_unified_widget),
+#welcome-panel {
+	display: none !important;
+}

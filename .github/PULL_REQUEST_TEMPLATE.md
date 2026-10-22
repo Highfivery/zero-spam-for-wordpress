@@ -21,7 +21,7 @@ Closes #
 
 ### Changelog Entry
 <!--
-Please include a summary for this PR, noting whether this is something being Added / Changed / Deprecated / Removed / Fixed / or Security related.  You can replace the sample entries after this comment block with the single changelog entry line for this PR. -->
+Please include a summary for this PR, noting whether this is something being Added / Changed / Deprecated / Removed / Fixed / or Security related.  You can replace the sample entries after this comment block with the single changelog entry line for this PR. The same entry must be added to the `== Changelog ==` section of `readme.txt`. -->
 > Added - New feature
 > Changed - Existing functionality
 > Deprecated - Soon-to-be removed feature
@@ -31,7 +31,7 @@ Please include a summary for this PR, noting whether this is something being Add
 
 
 ### Credits
-<!-- Please list any and all contributors on this PR so that they can be added to this projects CREDITS.md file. -->
+<!-- Please list any and all contributors on this PR so that they can be credited in the release notes. -->
 Props @username, @username2, ...
 
 
@@ -39,6 +39,8 @@ Props @username, @username2, ...
 <!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
 <!--- If you are unsure about any of these, please ask for clarification.  We are here to help! -->
 - [ ] I agree to follow this project's [**Code of Conduct**](./CODE_OF_CONDUCT.md).
-- [ ] I have updated the documentation accordingly.
+- [ ] `composer check` passes locally (including `composer test`, the PHPUnit suite on single site and multisite) and its summary is included above.
+- [ ] E2E summary pasted (targets: …), from `npm run test:e2e:wp-env` and/or `npm run test:e2e`; no new accessibility allowlist entries or visual baseline changes without a reason.
+- [ ] I have updated the documentation accordingly (including `AGENTS.md` if a convention, tool or process changed).
 - [ ] I have added tests to cover my change.
-- [ ] All new and existing tests pass.
+- [ ] All new and existing tests pass (`composer test`); any `@group known-defect` test this PR fixes is untagged.

@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+#
+# Zero Spam for WordPress: pre-push quality gate.
+#
+# Runs before every `git push` once `composer install` has pointed git at this
+# directory (core.hooksPath = .githooks). It refuses the push when any check
+# fails so that nothing unchecked reaches GitHub. There is no CI service.
+#
+#   1. version:check   plugin header, ZEROSPAM_VERSION and Stable tag agree
+#   2. lint:changed    full WPCS ruleset on PHP files changed vs origin/develop
+#   3. lint:tests      WPCS on the test code (phpcs.tests.xml.dist)
+#   4. compat          PHP 8.2+ compatibility on the changed files
+#   5. analyse         PHPStan (level 5) against phpstan-baseline.neon
+#   6. test            PHPUnit on single site and multisite (bin/test.sh --mode=all;
+#                      needs MySQL: brew services start mysql)
+#
+# Pushes that only delete branches or only push tags carry no new code, so the
+# gate is skipped for them (git lists the refs on stdin; a deletion has an
+# all-zero local SHA).
+#
+# Escape hatch for a genuine emergency only: SKIP_QUALITY_GATE=1 git push
+# (say so in the PR description).
+
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Read the refs git is about to push: "<local ref> <local sha> <remote ref> <remote sha>".
+zero_sha='0000000000000000000000000000000000000000'
+code_push=0
+refs_seen=0
+if [[ ! -t 0 ]]; then
+	while read -r local_ref local_sha _remote_ref _remote_sha; do
+		[[ -z "${local_ref:-}" ]] && continue
+		refs_seen=1
+		if [[ "$local_sha" != "$zero_sha" && "$local_ref" != refs/tags/* ]]; then
+			code_push=1
+		fi
+	done
+fi
+if [[ $refs_seen -eq 1 && $code_push -eq 0 ]]; then
+	echo "pre-push: only branch deletions and/or tags are being pushed; nothing to check." >&2
+	exit 0
+fi
+
+if [[ "${SKIP_QUALITY_GATE:-0}" == "1" ]]; then
+	echo "pre-push: SKIP_QUALITY_GATE=1 set, skipping the quality gate." >&2
+	exit 0
+fi
+
+if [[ ! -x vendor/bin/phpcs || ! -x vendor/bin/phpstan || ! -x vendor/bin/phpunit || ! -f vendor/composer/installed.json ]]; then
+	echo "pre-push: dev tooling missing or the Composer autoloader is stale (this happens after" >&2
+	echo "          checking out a branch that still tracks vendor/). Run: composer install" >&2
+	exit 1
+fi
+
+step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
+
+step "1/6 Version consistency"
+bin/check-version.sh
+
+step "2/6 WordPress Coding Standards (changed PHP files)"
+bin/lint-changed.sh
+
+step "3/6 WordPress Coding Standards (test code)"
+vendor/bin/phpcs --standard=phpcs.tests.xml.dist -q
+echo "lint:tests: tests/phpunit and tests/e2e/mu-plugins are clean."
+
+step "4/6 PHP 8.2+ compatibility (changed PHP files)"
+PHPCS_STANDARD=PHPCompatibilityWP bin/lint-changed.sh
+
+step "5/6 PHPStan"
+vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+wp_latest="$(sed -nE 's/^WP_LATEST=(.*)$/\1/p' tests/phpunit/versions.env)"
+step "6/6 PHPUnit (PHP $(php -r 'echo PHP_VERSION;'), WordPress ${wp_latest}, single site and multisite)"
+bin/test.sh --mode=all
+
+printf '\n\033[32mpre-push: all checks passed.\033[0m\n'
