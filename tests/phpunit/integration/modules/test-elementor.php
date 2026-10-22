@@ -88,6 +88,19 @@ class Test_Elementor extends TestCase {
 	}
 
 	/**
+	 * The submission data of the newest Elementor log row, decoded.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function last_elementor_log(): array {
+		global $wpdb;
+
+		$json = $wpdb->get_var( $wpdb->prepare( 'SELECT submission_data FROM `' . $this->log_table() . '` WHERE log_type = %s ORDER BY log_id DESC LIMIT 1', 'elementor' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed table name.
+
+		return (array) json_decode( (string) $json, true );
+	}
+
+	/**
 	 * Enables the module's protection.
 	 */
 	private function enable(): void {
@@ -263,32 +276,82 @@ class Test_Elementor extends TestCase {
 	/**
 	 * An email on a blocked domain is rejected; others pass.
 	 */
-	public function test_blocked_email_domain_is_rejected(): void {
+	public function test_blocked_email_domain_is_rejected_and_logged(): void {
 		update_option( 'zerospam_blocked_email_domains', "spam.test\n" );
-		self::reset_static_caches();
+		$this->set_setting( 'elementor_flagged_msg', 'Spam & <i>bots</i>', 'elementor' );
+		$this->set_setting( 'elementor_log_flagged_attempts', 'enabled', 'elementor' );
+		$module  = $this->init_module();
 		$handler = $this->ajax_handler();
-		$module  = new Elementor();
 
 		$module->validate_email( $this->field( 'email', 'someone@example.org' ), $this->record(), $handler );
 		$this->assertSame( array(), $handler->errors );
+		$this->assertSame( 0, $this->count_log_rows( array( 'log_type' => 'elementor' ) ) );
 
 		$module->validate_email( $this->field( 'email', 'bot@spam.test' ), $this->record(), $handler );
-		$this->assertArrayHasKey( 'field_email', $handler->errors );
+		$this->assertSame( array( 'field_email' => 'Spam &amp; &lt;i&gt;bots&lt;/i&gt;' ), $handler->errors );
+
+		$this->assertSame( 1, $this->count_log_rows( array( 'log_type' => 'elementor' ) ) );
+		$logged = $this->last_elementor_log();
+		$this->assertSame( 'blocked_email_domain', $logged['failed'] ?? null );
+		$this->assertSame(
+			array(
+				'form'  => 'Contact',
+				'field' => 'field_email',
+				'value' => 'bot@spam.test',
+			),
+			$logged['data'] ?? null
+		);
 	}
 
 	/**
-	 * A submission without a valid David Walsh token is stopped, not just given a message.
+	 * A submission without a valid David Walsh token is stopped, not just given a message, and logged.
 	 */
 	public function test_missing_david_walsh_token_stops_submission(): void {
+		$this->set_setting( 'elementor_log_flagged_attempts', 'enabled', 'elementor' );
+		$module     = $this->init_module();
 		$davidwalsh = ( new ReflectionClass( DavidWalsh::class ) )->newInstanceWithoutConstructor();
 		add_filter( 'zerospam_preprocess_elementor_submission', array( $davidwalsh, 'validate_post' ), 10, 3 );
 		$handler = $this->ajax_handler();
 
 		$_POST = array( 'form_fields' => array( 'name' => 'Bot' ) );
-		( new Elementor() )->validate_davidwalsh( $this->record(), $handler );
+		$module->validate_davidwalsh( $this->record(), $handler );
 
 		$this->assertNotSame( array(), $handler->errors, 'Elementor Pro only stops a submission that has errors.' );
 		$this->assertCount( 1, $handler->messages );
+
+		$this->assertSame( 1, $this->count_log_rows( array( 'log_type' => 'elementor' ) ) );
+		$logged = $this->last_elementor_log();
+		$this->assertSame( 'david_walsh', $logged['failed'] ?? null );
+		$this->assertSame( 'Contact', $logged['data']['form'] ?? null );
+		$this->assertSame( array( 'name' => 'Bot' ), $logged['data']['post']['form_fields'] ?? null );
+	}
+
+	/**
+	 * On Elementor pages, the module asks the David Walsh module to enqueue its script.
+	 */
+	public function test_add_scripts_enqueues_david_walsh_script(): void {
+		global $wp_scripts;
+
+		$saved_scripts = $wp_scripts;
+		$wp_scripts    = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Fresh registry for this test; restored below.
+
+		try {
+			$this->set_setting( 'davidwalsh', 'enabled', 'davidwalsh' );
+			$this->enable();
+
+			$davidwalsh = ( new ReflectionClass( DavidWalsh::class ) )->newInstanceWithoutConstructor();
+			$davidwalsh->init();
+			$davidwalsh->scripts();
+			$this->init_module();
+
+			$this->assertFalse( wp_script_is( 'zerospam-davidwalsh', 'enqueued' ) );
+
+			do_action( 'elementor/frontend/after_enqueue_scripts' ); // phpcs:ignore WordPress.NamingConventions.ValidHookName.UseUnderscores -- Elementor's own hook name.
+
+			$this->assertTrue( wp_script_is( 'zerospam-davidwalsh', 'enqueued' ) );
+		} finally {
+			$wp_scripts = $saved_scripts; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the registry saved above.
+		}
 	}
 
 	/**

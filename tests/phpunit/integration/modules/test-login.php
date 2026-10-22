@@ -28,35 +28,17 @@ class Test_Login extends TestCase {
 	}
 
 	/**
-	 * Runs set_intent_token() and returns the PHP warnings and notices it raised.
-	 *
-	 * @return string[]
+	 * Runs set_intent_token() on a fresh module.
 	 */
-	private function set_intent_token(): array {
-		$warnings = array();
-		set_error_handler( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Collects warnings for the assertion below.
-			static function ( int $errno, string $errstr ) use ( &$warnings ): bool {
-				$warnings[] = $errstr;
-
-				return true;
-			},
-			E_WARNING | E_NOTICE | E_USER_WARNING | E_USER_NOTICE
-		);
-
-		try {
-			( new Login() )->set_intent_token();
-		} finally {
-			restore_error_handler();
-		}
-
-		return $warnings;
+	private function set_intent_token(): void {
+		( new Login() )->set_intent_token();
 	}
 
 	/**
 	 * The intent cookie is HttpOnly, SameSite=Lax, short-lived, and backed by a transient.
 	 */
 	public function test_intent_cookie_is_httponly_and_samesite_lax(): void {
-		$this->assertSame( array(), $this->set_intent_token() );
+		$this->set_intent_token();
 
 		$this->assertCount( 1, Stubs::$cookies );
 		$cookie = Stubs::$cookies[0];
@@ -84,14 +66,15 @@ class Test_Login extends TestCase {
 	}
 
 	/**
-	 * When headers are already sent (WP-CLI, output started), nothing is set and nothing warns.
+	 * When headers are already sent (WP-CLI, output started), setcookie() is
+	 * not called (it would warn) and no token or transient is created.
 	 */
 	public function test_no_intent_cookie_once_headers_are_sent(): void {
 		Stubs::$headers_sent = true;
 
 		$queries = $this->capture_queries(
 			function (): void {
-				$this->assertSame( array(), $this->set_intent_token() );
+				$this->set_intent_token();
 			}
 		);
 

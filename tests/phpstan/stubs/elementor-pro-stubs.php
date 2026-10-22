@@ -8,6 +8,8 @@
  * @package ZeroSpam
  */
 
+declare( strict_types=1 );
+
 namespace ElementorPro\Modules\Forms\Classes;
 
 /**

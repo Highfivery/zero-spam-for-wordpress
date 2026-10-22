@@ -154,7 +154,7 @@ class Elementor {
 		}
 
 		$this->flag( 'blocked_email_domain', self::field_details( $field, $record ) );
-		$ajax_handler->add_error( (string) $field['id'], self::message() );
+		$ajax_handler->add_error( self::field_id( $field ), self::message() );
 	}
 
 	/**
@@ -173,7 +173,7 @@ class Elementor {
 		}
 
 		$this->flag( 'disallowed_list', self::field_details( $field, $record ) );
-		$ajax_handler->add_error( (string) $field['id'], self::message() );
+		$ajax_handler->add_error( self::field_id( $field ), self::message() );
 	}
 
 	/**
@@ -224,52 +224,57 @@ class Elementor {
 	 * @param string $failed  Failed check (a key of the zerospam_failed_types filter).
 	 * @param array  $details Submission details.
 	 */
-	private function flag( $failed, $details ) {
+	private function flag( string $failed, array $details ): void {
 		do_action( 'zero_spam_flagged_attempt', 'elementor', $failed, $details );
 	}
 
 	/**
 	 * The flagged message, escaped: Elementor Pro inserts error messages into
 	 * the page as HTML.
-	 *
-	 * @return string
 	 */
-	private static function message() {
+	private static function message(): string {
 		return esc_html( \ZeroSpam\Core\Utilities::detection_message( 'elementor_flagged_msg' ) );
+	}
+
+	/**
+	 * The ID of a field, or '' when it has none.
+	 *
+	 * @param mixed $field Form field (an array from Elementor Pro).
+	 */
+	private static function field_id( mixed $field ): string {
+		return is_array( $field ) && isset( $field['id'] ) && is_scalar( $field['id'] ) ? (string) $field['id'] : '';
 	}
 
 	/**
 	 * The submitted value of a field, trimmed, or '' when it is not a string.
 	 *
-	 * @param array $field Form field.
-	 * @return string
+	 * @param mixed $field Form field (an array from Elementor Pro).
 	 */
-	private static function field_value( $field ) {
-		return isset( $field['value'] ) && is_string( $field['value'] ) ? trim( $field['value'] ) : '';
+	private static function field_value( mixed $field ): string {
+		return is_array( $field ) && isset( $field['value'] ) && is_string( $field['value'] ) ? trim( $field['value'] ) : '';
 	}
 
 	/**
 	 * Details of a flagged field for the log.
 	 *
-	 * @param array                                           $field  Form field.
-	 * @param \ElementorPro\Modules\Forms\Classes\Form_Record $record Form record.
-	 * @return array
+	 * @param mixed $field  Form field (an array from Elementor Pro).
+	 * @param mixed $record Form record (an ElementorPro\Modules\Forms\Classes\Form_Record).
+	 * @return array{form: string, field: string, value: string}
 	 */
-	private static function field_details( $field, $record ) {
+	private static function field_details( mixed $field, mixed $record ): array {
 		return array(
 			'form'  => self::form_name( $record ),
-			'field' => isset( $field['id'] ) ? (string) $field['id'] : '',
+			'field' => self::field_id( $field ),
 			'value' => self::field_value( $field ),
 		);
 	}
 
 	/**
-	 * The form name from the form record's settings.
+	 * The form name from the form record's settings, or '' when unavailable.
 	 *
-	 * @param \ElementorPro\Modules\Forms\Classes\Form_Record $record Form record.
-	 * @return string
+	 * @param mixed $record Form record (an ElementorPro\Modules\Forms\Classes\Form_Record).
 	 */
-	private static function form_name( $record ) {
+	private static function form_name( mixed $record ): string {
 		$name = is_object( $record ) && method_exists( $record, 'get_form_settings' ) ? $record->get_form_settings( 'form_name' ) : '';
 
 		return is_string( $name ) ? $name : '';
