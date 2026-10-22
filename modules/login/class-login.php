@@ -12,6 +12,8 @@
 
 namespace ZeroSpam\Modules\Login;
 
+use ZeroSpam\Modules\DavidWalsh\DavidWalsh;
+
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -36,8 +38,8 @@ class Login {
 	/**
 	 * Default lifetime of a login intent token, in seconds (10 minutes).
 	 *
-	 * Renewed on each successful use, see validate_login_intent(); change it
-	 * with the zerospam_login_intent_ttl filter.
+	 * Renewed when the login page loads and after a successful password
+	 * step; change it with the zerospam_login_intent_ttl filter.
 	 *
 	 * @var int
 	 */
@@ -50,6 +52,14 @@ class Login {
 	 * @var int
 	 */
 	const INTENT_MAX_LIFETIME = 3600;
+
+	/**
+	 * How many times one intent token can stand in for missing login form
+	 * fields (missing-field fallback and later steps together).
+	 *
+	 * @var int
+	 */
+	const INTENT_MAX_USES = 5;
 
 	/**
 	 * Constructor
@@ -65,7 +75,6 @@ class Login {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
-		add_filter( 'zerospam_failed_types', array( $this, 'failed_types' ), 10, 1 );
 
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_login' ) &&
@@ -76,6 +85,9 @@ class Login {
 
 			// Processes the form.
 			add_filter( 'wp_authenticate_user', array( $this, 'process_form' ), 10, 1 );
+
+			// Verifies the intent token once the password was accepted.
+			add_filter( 'authenticate', array( $this, 'verify_intent_after_password' ), 25, 3 );
 
 			// Load scripts.
 			add_action( 'login_enqueue_scripts', array( $this, 'add_scripts' ), 10 );
@@ -88,12 +100,14 @@ class Login {
 	/**
 	 * Sets a login intent token cookie and transient.
 	 *
-	 * The token proves the client loaded the login page, even if the POST
-	 * payload is scrubbed by an intermediate plugin (e.g. math captcha) or a
-	 * later step of the login posts without the login form's fields. It is
-	 * bound to the client (IP address and user agent). When the client
-	 * already holds a valid token it is kept and renewed instead of replaced,
-	 * so every step of one login sees the same token.
+	 * The token proves the client loaded the login page. It lets a login
+	 * through when another plugin strips the honeypot and key from the form
+	 * (subject to validate_login_intent()), and, once a password step with
+	 * it succeeded, lets later steps of that login through (see
+	 * is_later_auth_step()). It is bound to the client's network and user
+	 * agent. When the client already holds a valid token it is kept and
+	 * renewed instead of replaced, so every step of one login sees the same
+	 * token.
 	 *
 	 * Nothing is set once headers have been sent (WP-CLI, or output already
 	 * started), since the cookie could not reach the browser.
@@ -113,11 +127,13 @@ class Login {
 			$intent = array(
 				'client'   => self::get_client_fingerprint(),
 				'created'  => time(),
+				'expires'  => 0,
 				'verified' => false,
+				'uses'     => 0,
 			);
 		}
 
-		self::store_intent( $token, $intent );
+		self::store_intent( $token, $intent, true );
 	}
 
 	/**
@@ -143,15 +159,17 @@ class Login {
 	/**
 	 * Processes a login attempt.
 	 *
-	 * Runs on `wp_authenticate_user`, i.e. for every password authentication,
-	 * including ones that never came from a login form (XML-RPC, custom login
-	 * endpoints) and later steps of multi-step logins. Those carry none of the
-	 * login form's fields and are not checked here, see is_later_auth_step();
-	 * the IP block checks in Access still apply to them.
+	 * Runs on `wp_authenticate_user`, inside core's password authentication
+	 * and before core checks the password, so nothing here may treat the
+	 * attempt as successful.
 	 *
-	 * A filled honeypot or an invalid David Walsh key always blocks. A missing
-	 * honeypot or key (stripped by another plugin) is accepted with a valid
-	 * login intent token, see validate_login_intent().
+	 * - A filled honeypot or a forged/malformed David Walsh key blocks.
+	 * - A missing honeypot or key, or a key this site signed that has expired
+	 *   or been used up, is accepted with a valid login intent token (see
+	 *   validate_login_intent()); otherwise "Verification missing".
+	 * - A request with none of the login form's fields is skipped only when
+	 *   it is a later step of a login whose password step succeeded (see
+	 *   is_later_auth_step()), or when zerospam_login_skip_check says so.
 	 *
 	 * @param \WP_User|\WP_Error $user WP_User or WP_Error object if a previous callback failed authentication.
 	 * @return \WP_User|\WP_Error
@@ -164,7 +182,7 @@ class Login {
 			return $user;
 		}
 
-		$later_step = $this->is_later_auth_step( $post, $user );
+		$later_step = $this->is_later_auth_step( $post );
 
 		/**
 		 * Filters whether the login honeypot and David Walsh checks are skipped
@@ -173,20 +191,23 @@ class Login {
 		 * Lets integrators exempt their own login flows (SSO, custom login
 		 * endpoints, multi-step logins) without turning login protection off.
 		 * Return false to force the checks on a request Zero Spam detected as
-		 * a later step. IP block checks are not affected. Skips are logged as
-		 * `login_bypass` when "Log Blocked Login Attempts" is on.
+		 * a later step. IP block checks are not affected. Skips fire the
+		 * zerospam_login_checks_waived action.
 		 *
 		 * @since 5.7.14
 		 *
 		 * @param bool               $skip True when the request was detected as a later
-		 *                                 authentication step (no login form fields, or
-		 *                                 the user is already logged in).
+		 *                                 step of a login whose password step succeeded.
 		 * @param array              $post Sanitized POST data.
 		 * @param \WP_User|\WP_Error $user The user being authenticated, or the error
 		 *                                 from an earlier callback.
 		 */
 		if ( apply_filters( 'zerospam_login_skip_check', $later_step, $post, $user ) ) {
-			$this->log_bypass( $user, $later_step ? 'second_step' : 'skipped_by_filter' );
+			if ( $later_step ) {
+				self::use_intent();
+			}
+
+			$this->checks_waived( $later_step ? 'second_step' : 'skipped_by_filter', $user, $post );
 
 			return $user;
 		}
@@ -208,7 +229,7 @@ class Login {
 		$missing_keys      = false;
 
 		// Set when a check failed on a submitted value (e.g. a filled honeypot or
-		// an invalid key), not just a missing field. These are never waived.
+		// a forged key), not just a missing or lapsed one. These are never waived.
 		$spam_signal = false;
 
 		if ( ! empty( $post[ $honeypot_field_name ] ) ) {
@@ -225,8 +246,10 @@ class Login {
 
 		if ( ! empty( $errors ) ) {
 			foreach ( $errors as $key => $message ) {
-				// Check if this error is due to a missing key (David Walsh).
-				if ( 'zerospam_david_walsh' === $key && empty( $post['zerospam_david_walsh_key'] ) ) {
+				// A missing key, or one this site signed that expired or was used
+				// up (cached page, back/forward cache, resubmission), is treated
+				// like a missing field. Anything else is a spam signal.
+				if ( DavidWalsh::is_lapsed_error( $key ) ) {
 					$missing_keys = true;
 				} else {
 					$spam_signal = true;
@@ -236,17 +259,13 @@ class Login {
 		}
 
 		if ( empty( $validation_errors ) ) {
-			// Passed the full checks: later steps of this login can rely on the
-			// intent token alone.
-			$this->mark_intent_verified();
-
 			return $user;
 		}
 
-		// Failed solely because the honeypot or key is missing (stripped by
-		// another plugin): accept a valid login intent token instead.
+		// Failed only because a field is missing or lapsed: accept a valid login
+		// intent token instead.
 		if ( $missing_keys && ! $spam_signal && $this->validate_login_intent() ) {
-			$this->log_bypass( $user, 'bypassed_by_intent' );
+			$this->checks_waived( 'bypassed_by_intent', $user, $post );
 
 			return $user;
 		}
@@ -278,80 +297,124 @@ class Login {
 	}
 
 	/**
-	 * Checks whether an authentication is a later step of a login, or not a
-	 * login form submission at all, so the login form checks don't apply.
+	 * Marks the client's intent token as verified once a password step
+	 * succeeded, and renews it.
 	 *
-	 * Generic rule, based only on the request (never on which plugins are
-	 * active): `wp_authenticate_user` ran for a request that carries none of
-	 * the login form's fields, i.e. no `pwd`, no Zero Spam honeypot field and
-	 * no David Walsh key. On wp-login.php core only authenticates with a
-	 * non-empty `pwd` from the POST, so removing fields from a core login POST
-	 * can't reach this. It matches XML-RPC and other API password logins,
-	 * custom login endpoints that call wp_signon() with their own field
-	 * names, and the code step of two-factor plugins, for example:
-	 *
-	 * - Defender / Defender Pro (WPMU DEV): `login_form_defender-verify-otp`
-	 *   posts `login_token`, `requested_user`, `auth_method`, `password` (the
-	 *   code) and `_wpnonce`, then logs in with wp_set_auth_cookie().
-	 *   Source: defender-security trunk, src/controller/class-two-factor.php,
-	 *   verify_otp_login_time().
-	 * - Two Factor (WordPress.org): `login_form_validate_2fa` posts
-	 *   `provider`, `wp-auth-id`, `wp-auth-nonce` and the provider's code
-	 *   field, then logs in with wp_set_auth_cookie(). Source: two-factor
-	 *   trunk, class-two-factor-core.php, login_form_validate_2fa().
-	 *
-	 * Neither posts `pwd`, so the generic rule covers them and there is no
-	 * plugin-specific detection. It also applies when the request carries a
-	 * valid logged-in cookie for the same user (step one already passed).
+	 * Runs on `authenticate` at priority 25: after core's password checks
+	 * (priority 20, which include `wp_authenticate_user`) and before
+	 * two-factor plugins take over the response (Defender's
+	 * maybe_show_otp_form() at 30 renders its code form and exits, so
+	 * `wp_login` and later priorities never run on its first step). A
+	 * `WP_User` here with a non-empty password means the password was
+	 * accepted; a failed attempt never verifies or renews the token.
 	 *
 	 * @since 5.7.14
 	 *
-	 * @param array              $post Sanitized POST data.
-	 * @param \WP_User|\WP_Error $user The user being authenticated, or an error.
-	 * @return bool
+	 * @param \WP_User|\WP_Error|null $user     Result so far.
+	 * @param string                  $username Username or email.
+	 * @param string                  $password Password.
+	 * @return \WP_User|\WP_Error|null Unchanged.
 	 */
-	public function is_later_auth_step( $post, $user ) {
-		$form_fields = array( 'pwd', \ZeroSpam\Core\Utilities::get_honeypot(), 'zerospam_david_walsh_key' );
-
-		if ( array() === array_intersect( $form_fields, array_keys( (array) $post ) ) ) {
-			return true;
+	public function verify_intent_after_password( $user, $username = '', $password = '' ) {
+		if ( ! $user instanceof \WP_User || ! is_string( $password ) || '' === $password ) {
+			return $user;
 		}
 
-		// Only parse the cookie when there is one (a missing cookie fires the
-		// auth_cookie_malformed action, which other security plugins watch).
-		if ( $user instanceof \WP_User && defined( 'LOGGED_IN_COOKIE' ) && ! empty( $_COOKIE[ LOGGED_IN_COOKIE ] ) ) {
-			$cookie_user = wp_validate_auth_cookie( '', 'logged_in' );
+		$token  = self::get_intent_cookie();
+		$intent = '' !== $token ? self::get_intent( $token ) : null;
 
-			if ( $cookie_user && (int) $cookie_user === (int) $user->ID ) {
-				return true;
-			}
+		if ( null !== $intent ) {
+			$intent['verified'] = true;
+			self::store_intent( $token, $intent, true );
 		}
 
-		return false;
+		return $user;
 	}
 
 	/**
-	 * Logs a login whose checks were waived, when "Log Blocked Login
-	 * Attempts" is on, so admins can see what was let through and why.
+	 * Checks whether an authentication is a later step of a login whose
+	 * password step already succeeded, so the login form checks don't apply.
 	 *
-	 * Not shared with Zero Spam: a waived check is not a detection.
+	 * Both must hold, judged from the request only (never from which plugins
+	 * are active):
 	 *
-	 * @param \WP_User|\WP_Error $user   The user being authenticated, or an error.
-	 * @param string             $reason second_step, skipped_by_filter or bypassed_by_intent.
+	 * 1. The request carries none of the login form's fields: no `pwd`, no
+	 *    Zero Spam honeypot field and no David Walsh key.
+	 * 2. It carries a valid intent token for this client that a successful
+	 *    password step verified (see verify_intent_after_password()), with
+	 *    uses left.
+	 *
+	 * Anything else, including custom login endpoints and XML-RPC, gets the
+	 * normal checks; integrators can exempt their flows with the
+	 * zerospam_login_skip_check filter. Two-factor plugins that finish the
+	 * login with wp_set_auth_cookie() don't reach this check on their code
+	 * step at all; this covers flows that authenticate again. For reference,
+	 * the code steps of Defender (`login_form_defender-verify-otp`:
+	 * `login_token`, `requested_user`, `auth_method`, `password`, `_wpnonce`;
+	 * defender-security trunk, src/controller/class-two-factor.php) and Two
+	 * Factor (`login_form_validate_2fa`: `provider`, `wp-auth-id`,
+	 * `wp-auth-nonce`; two-factor trunk, class-two-factor-core.php) post no
+	 * `pwd`, so they would match rule 1.
+	 *
+	 * @since 5.7.14
+	 *
+	 * @param array $post Sanitized POST data.
+	 * @return bool
 	 */
-	private function log_bypass( $user, $reason ) {
-		if ( 'enabled' !== \ZeroSpam\Core\Settings::get_settings( 'log_blocked_logins' ) ) {
-			return;
+	public function is_later_auth_step( $post ) {
+		$form_fields = array( 'pwd', \ZeroSpam\Core\Utilities::get_honeypot(), 'zerospam_david_walsh_key' );
+
+		if ( array() !== array_intersect( $form_fields, array_keys( (array) $post ) ) ) {
+			return false;
 		}
 
-		\ZeroSpam\Includes\DB::log(
-			'login_bypass',
-			array(
-				'type'   => 'login_bypass',
-				'failed' => $reason,
-				'user'   => $user instanceof \WP_User ? $user->user_login : '',
-			)
-		);
+		$token = self::get_intent_cookie();
+		if ( '' === $token ) {
+			return false;
+		}
+
+		$intent = self::get_intent( $token );
+
+		return null !== $intent && $intent['verified'];
+	}
+
+	/**
+	 * Reports a login whose checks were waived.
+	 *
+	 * Fires zerospam_login_checks_waived, and writes a line to the plugin's
+	 * debug log (Utilities::log()) when WP_DEBUG is on. Never written to the
+	 * detection log, which records blocked attempts.
+	 *
+	 * @param string             $reason second_step, skipped_by_filter or bypassed_by_intent.
+	 * @param \WP_User|\WP_Error $user   The user being authenticated, or an error.
+	 * @param array              $post   Sanitized POST data.
+	 */
+	private function checks_waived( $reason, $user, $post ) {
+		/**
+		 * Fires when the login honeypot and David Walsh checks were waived.
+		 *
+		 * @since 5.7.14
+		 *
+		 * @param string             $reason second_step (later step of a login whose
+		 *                                   password step succeeded), skipped_by_filter
+		 *                                   (zerospam_login_skip_check) or
+		 *                                   bypassed_by_intent (missing or lapsed fields,
+		 *                                   valid intent token).
+		 * @param \WP_User|\WP_Error $user   The user being authenticated, or an error.
+		 * @param array              $post   Sanitized POST data.
+		 */
+		do_action( 'zerospam_login_checks_waived', $reason, $user, $post );
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			\ZeroSpam\Core\Utilities::log(
+				sprintf(
+					'Login checks waived (%1$s) for user "%2$s" from %3$s',
+					$reason,
+					$user instanceof \WP_User ? $user->user_login : '',
+					\ZeroSpam\Core\User::get_ip()
+				)
+			);
+		}
 	}
 
 	/**
@@ -402,25 +465,6 @@ class Login {
 			'label' => __( 'Login', 'zero-spam' ),
 			'color' => '#7b90ff',
 		);
-
-		$types['login_bypass'] = array(
-			'label' => __( 'Login (checks waived)', 'zero-spam' ),
-			'color' => '#b4c0ff',
-		);
-
-		return $types;
-	}
-
-	/**
-	 * Add to the failed types array
-	 *
-	 * @param array $types Array of failed types.
-	 * @return array
-	 */
-	public function failed_types( $types ) {
-		$types['second_step']        = __( 'Later login step (no login form fields)', 'zero-spam' );
-		$types['skipped_by_filter']  = __( 'Skipped by the zerospam_login_skip_check filter', 'zero-spam' );
-		$types['bypassed_by_intent'] = __( 'Missing fields, valid login intent', 'zero-spam' );
 
 		return $types;
 	}
@@ -492,24 +536,23 @@ class Login {
 	}
 
 	/**
-	 * Validates the login intent token.
+	 * Validates the login intent token in place of missing or lapsed login
+	 * form fields, and counts one use of it.
 	 *
-	 * Accepts a token that matches a stored, unexpired intent bound to this
-	 * client. When the David Walsh technique is enabled, the token must also
-	 * have been proven: by an earlier step of this login that passed the full
-	 * checks (honeypot and key), or by a valid key cookie set by the login
-	 * page's script. An unproven token only shows that the login page was
-	 * requested, which any client can do.
+	 * Requires a valid token for this client (see get_intent()) with uses
+	 * left. When the David Walsh technique is enabled, the token must also
+	 * have been verified by a successful password step of this login, or the
+	 * request must carry a valid key cookie set by the login page's script
+	 * (as since 5.7.12). The key cookie never verifies the token: any client
+	 * can set it.
 	 *
-	 * The token is valid for its whole lifetime, not once: two-step logins
-	 * and plugins that resubmit the login run this check more than once, and
-	 * a one-time token turned their second request into a block. Replay stays
-	 * bounded: the token is random and HttpOnly, tied to the client's IP
-	 * address and user agent (a salted hash stored server-side), expires one
-	 * intent TTL after it was issued or last used (renewed on each use so an
-	 * active login doesn't expire mid-flow), and never lives longer than
-	 * INTENT_MAX_LIFETIME in total. It never waives a filled honeypot or an
-	 * invalid key.
+	 * The token is not one-time, so a login that runs the check more than
+	 * once (a plugin that resubmits the login, a retry after a lapsed key)
+	 * still works. What bounds it: it is random and HttpOnly; bound to the
+	 * client's network (/24 or /64) and user agent; usable INTENT_MAX_USES
+	 * times; renewed only when the login page loads or a password step
+	 * succeeds, never by a use; and never older than INTENT_MAX_LIFETIME. It
+	 * never waives a filled honeypot or a forged key.
 	 *
 	 * @return bool True if intent is valid, false otherwise.
 	 */
@@ -527,15 +570,12 @@ class Login {
 		if ( ! $intent['verified'] && 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
 			$dw_key = isset( $_COOKIE['zerospam_david_walsh_key'] ) && is_string( $_COOKIE['zerospam_david_walsh_key'] ) ? sanitize_text_field( wp_unslash( $_COOKIE['zerospam_david_walsh_key'] ) ) : '';
 
-			if ( ! \ZeroSpam\Modules\DavidWalsh\DavidWalsh::validate_token( $dw_key ) ) {
+			if ( ! DavidWalsh::validate_token( $dw_key ) ) {
 				return false;
 			}
-
-			$intent['verified'] = true;
 		}
 
-		// Renew the token for the next step of this login.
-		self::store_intent( $token, $intent );
+		self::use_intent();
 
 		return true;
 	}
@@ -549,8 +589,8 @@ class Login {
 	 */
 	public static function get_intent_ttl() {
 		/**
-		 * Filters how long a login intent token stays valid after it was
-		 * issued or last used, in seconds.
+		 * Filters how long a login intent token stays valid after the login
+		 * page was loaded or a password step succeeded, in seconds.
 		 *
 		 * Clamped to between one minute and one hour; a token never lives
 		 * longer than one hour in total, renewals included.
@@ -565,10 +605,9 @@ class Login {
 	}
 
 	/**
-	 * Marks the client's intent token as proven by a step that passed the
-	 * full checks, so later steps of this login can rely on it.
+	 * Counts one use of the client's intent token, without renewing it.
 	 */
-	private function mark_intent_verified() {
+	private static function use_intent() {
 		$token = self::get_intent_cookie();
 		if ( '' === $token ) {
 			return;
@@ -579,8 +618,8 @@ class Login {
 			return;
 		}
 
-		$intent['verified'] = true;
-		self::store_intent( $token, $intent );
+		++$intent['uses'];
+		self::store_intent( $token, $intent, false );
 	}
 
 	/**
@@ -599,13 +638,15 @@ class Login {
 	}
 
 	/**
-	 * Gets the stored intent for a token, if it is valid for this client.
+	 * Gets the stored intent for a token, if it is valid for this client:
+	 * bound to this client, unexpired, not older than INTENT_MAX_LIFETIME and
+	 * with uses left.
 	 *
 	 * Tokens stored before 5.7.14 hold a bare timestamp, are not bound to a
 	 * client and are not accepted.
 	 *
 	 * @param string $token Intent token.
-	 * @return array{client: string, created: int, verified: bool}|null
+	 * @return array{client: string, created: int, expires: int, verified: bool, uses: int}|null
 	 */
 	private static function get_intent( $token ) {
 		$intent = get_transient( self::INTENT_TRANSIENT_PREFIX . $token );
@@ -614,39 +655,53 @@ class Login {
 			return null;
 		}
 
-		if ( ! hash_equals( $intent['client'], self::get_client_fingerprint() ) ) {
-			return null;
-		}
-
-		if ( time() - (int) $intent['created'] >= self::INTENT_MAX_LIFETIME ) {
-			return null;
-		}
-
-		return array(
+		$intent = array(
 			'client'   => $intent['client'],
 			'created'  => (int) $intent['created'],
+			'expires'  => isset( $intent['expires'] ) ? (int) $intent['expires'] : 0,
 			'verified' => ! empty( $intent['verified'] ),
+			'uses'     => isset( $intent['uses'] ) ? (int) $intent['uses'] : 0,
 		);
+
+		$now = time();
+
+		if (
+			! hash_equals( $intent['client'], self::get_client_fingerprint() ) ||
+			$now >= $intent['expires'] ||
+			$now - $intent['created'] >= self::INTENT_MAX_LIFETIME ||
+			$intent['uses'] >= self::INTENT_MAX_USES
+		) {
+			return null;
+		}
+
+		return $intent;
 	}
 
 	/**
-	 * Stores (or renews) an intent and sends its cookie.
+	 * Stores an intent, renewing it (and sending its cookie) when asked.
 	 *
-	 * The new expiry is one intent TTL from now, but never later than
-	 * INTENT_MAX_LIFETIME after the token was created.
+	 * A renewal moves the expiry to one intent TTL from now, but never later
+	 * than INTENT_MAX_LIFETIME after the token was created. Without renewal
+	 * the expiry is kept.
 	 *
-	 * @param string                                              $token  Intent token.
-	 * @param array{client: string, created: int, verified: bool} $intent Intent data.
+	 * @param string                                                                       $token  Intent token.
+	 * @param array{client: string, created: int, expires: int, verified: bool, uses: int} $intent Intent data.
+	 * @param bool                                                                         $renew  Whether to renew it.
 	 */
-	private static function store_intent( $token, $intent ) {
-		$ttl = min( self::get_intent_ttl(), self::INTENT_MAX_LIFETIME - ( time() - $intent['created'] ) );
-		if ( $ttl < 1 ) {
+	private static function store_intent( $token, $intent, $renew ) {
+		$now = time();
+
+		if ( $renew ) {
+			$intent['expires'] = min( $now + self::get_intent_ttl(), $intent['created'] + self::INTENT_MAX_LIFETIME );
+		}
+
+		if ( $intent['expires'] <= $now ) {
 			return;
 		}
 
-		set_transient( self::INTENT_TRANSIENT_PREFIX . $token, $intent, $ttl );
+		set_transient( self::INTENT_TRANSIENT_PREFIX . $token, $intent, $intent['expires'] - $now );
 
-		if ( headers_sent() ) {
+		if ( ! $renew || headers_sent() ) {
 			return;
 		}
 
@@ -654,7 +709,7 @@ class Login {
 			self::INTENT_COOKIE,
 			$token,
 			array(
-				'expires'  => time() + $ttl,
+				'expires'  => $intent['expires'],
 				'path'     => COOKIEPATH,
 				'domain'   => COOKIE_DOMAIN,
 				'secure'   => is_ssl(),
@@ -665,14 +720,38 @@ class Login {
 	}
 
 	/**
-	 * Salted hash identifying the client a token was issued to (IP address
-	 * and user agent).
+	 * Salted hash identifying the client a token was issued to: its network
+	 * (the /24 of an IPv4 address or the /64 of an IPv6 address, so a change
+	 * of address within the provider's range mid-login is tolerated) and its
+	 * user agent.
 	 *
 	 * @return string
 	 */
 	private static function get_client_fingerprint() {
 		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) && is_string( $_SERVER['HTTP_USER_AGENT'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) : '';
 
-		return wp_hash( 'zerospam_login_intent|' . \ZeroSpam\Core\User::get_ip() . '|' . $user_agent );
+		return wp_hash( 'zerospam_login_intent|' . self::get_client_network( (string) \ZeroSpam\Core\User::get_ip() ) . '|' . $user_agent );
+	}
+
+	/**
+	 * Network prefix of an IP address: /24 for IPv4, /64 for IPv6.
+	 *
+	 * @param string $ip IP address.
+	 * @return string The prefix, or the input when it isn't an IP address.
+	 */
+	private static function get_client_network( $ip ) {
+		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
+			return implode( '.', array_slice( explode( '.', $ip ), 0, 3 ) ) . '.0/24';
+		}
+
+		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
+			$packed = inet_pton( $ip );
+
+			if ( false !== $packed ) {
+				return bin2hex( substr( $packed, 0, 8 ) ) . '::/64';
+			}
+		}
+
+		return $ip;
 	}
 }
