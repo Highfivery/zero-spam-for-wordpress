@@ -151,6 +151,27 @@ function runTarget( target, line, dir ) {
 	} );
 }
 
+/**
+ * Waits until a URL answers (after a container restart).
+ *
+ * @param {string} url     URL.
+ * @param {number} seconds Maximum wait.
+ */
+async function waitForHttp( url, seconds = 90 ) {
+	const until = Date.now() + seconds * 1000;
+	while ( Date.now() < until ) {
+		try {
+			const res = await fetch( url, { redirect: 'manual', signal: AbortSignal.timeout( 3000 ) } );
+			if ( res.status < 500 ) {
+				return;
+			}
+		} catch {
+			// Not up yet.
+		}
+		await new Promise( ( r ) => setTimeout( r, 1000 ) );
+	}
+}
+
 const started = Date.now();
 const results = [];
 let switched = false;
@@ -175,6 +196,10 @@ try {
 			switched = switched || 'min' === line;
 			if ( configs.length ) {
 				switchCore( line, configs );
+				// The web container restarts with the new core; give it a minute.
+				for ( const t of wpEnvTargets ) {
+					await waitForHttp( defs[ t ].baseURL );
+				}
 			}
 		}
 
