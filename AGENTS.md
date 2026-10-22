@@ -91,13 +91,15 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   behavioral change adds a bullet under the next `= vX.Y.Z =` heading in the
   existing `**type(scope):** description` style, linking issues or support
   topics. Fill the PR template's "Changelog Entry" too. `CHANGELOG.md` holds
-  the full history (Markdown: `## vX.Y.Z`, `- **type(scope):** text`); add the
-  same entry there. `readme.txt` keeps only the current minor series (5.7.x),
+  the full history (Markdown: `## vX.Y.Z`, `- **type(scope):** text`).
+  `readme.txt` carries the user-facing summary (plain language, benefit
+  first, no hook, class or migration detail); `CHANGELOG.md` the full entry.
+  Release PRs write both. `readme.txt` keeps only the current minor series (5.7.x),
   because WordPress.org truncates the readme changelog at 5,000 words and
   `composer version:check` fails above 4,500. When a new minor series starts
   (for example 5.8.0), move the previous series out of `readme.txt` into
-  `CHANGELOG.md` (it is already there if every release was added to both;
-  confirm before deleting) and keep the "full changelog on GitHub" line below
+  `CHANGELOG.md` (each release's full entry is already there; confirm
+  before deleting) and keep the "full changelog on GitHub" line below
   the last readme entry.
 - **Versions:** `Version:` header, `ZEROSPAM_VERSION` and `Stable tag` must
   agree and never go backwards (`composer version:check`). Bump
