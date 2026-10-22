@@ -294,12 +294,22 @@ add_action('admin_notices', function() {
 **A:** Your code runs BEFORE network settings (priority 100), so network settings will override your changes. Use priority > 100.
 
 ### Q: Can I completely disable network management?
-**A:** Yes, but not recommended. Use priority 999 with a constant check:
+**A:** There is no constant or setting for that. Network management is active whenever the plugin is network-activated on a multisite install. If one site must ignore network values, add a `zerospam_settings` filter after the network layer (priority above 100) that puts that site's own stored values back:
 ```php
-if (defined('DISABLE_ZEROSPAM_NETWORK_MANAGEMENT') && DISABLE_ZEROSPAM_NETWORK_MANAGEMENT) {
-    // Your override code
-}
+add_filter('zerospam_settings', function($settings) {
+    if (get_current_blog_id() !== 5) {
+        return $settings;
+    }
+    foreach ($settings as $key => $setting) {
+        $stored = get_option('zero-spam-' . $setting['module'], []);
+        if (isset($stored[$key])) {
+            $settings[$key]['value'] = $stored[$key];
+        }
+    }
+    return $settings;
+}, 200);
 ```
+Locked values are still enforced on save (settings page, REST and WP-CLI), so this only affects what the site reads.
 
 ### Q: How do I override just for one site?
 **A:** Check `get_current_blog_id()` in your filter:
@@ -336,12 +346,9 @@ For questions or issues with extensibility:
 3. Test with all other plugins disabled
 4. Check error logs for PHP warnings
 
-## Examples Repository
+## More Examples
 
-Find more examples at:
-```
-wp-content/plugins/zero-spam/examples/network-settings-extensions/
-```
+The examples above are the complete set shipped with the plugin. The in-admin documentation (*Settings → Zero Spam → Documentation*, "Network Settings" and "REST API" tabs) covers the network pages, locked settings and the REST responses, including the `rest_setting_locked` error and the `source` field.
 
 ---
 
