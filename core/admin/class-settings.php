@@ -725,20 +725,20 @@ class Settings {
 
 					if ( 'use_recommended_settings' === $label_for ) {
 						$html = sprintf(
-							'<a href="%s" class="button">%s</a>',
+							'<a href="%s" class="button button-primary">%s</a>',
 							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' ) ),
 							esc_html__( 'Override & Update Settings', 'zero-spam' )
 						);
 					} elseif ( 'update_blocked_email_domains' === $label_for && $disabled ) {
 						// Not a link while disabled: the action would change a locked setting.
 						$html = sprintf(
-							'<button type="button" class="button" disabled aria-describedby="%s">%s</button>',
+							'<button type="button" class="button button-primary" disabled aria-describedby="%s">%s</button>',
 							esc_attr( $description_id ),
 							esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
 						);
 					} elseif ( 'update_blocked_email_domains' === $label_for ) {
 						$html = sprintf(
-							'<a href="%s" class="button">%s</a>',
+							'<a href="%s" class="button button-primary">%s</a>',
 							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-emails' ), 'update-blocked-emails', 'zero-spam' ) ),
 							esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
 						);
@@ -750,7 +750,7 @@ class Settings {
 						);
 					} elseif ( 'update_disallowed_words' === $label_for ) {
 						$html = sprintf(
-							'<a href="%s" class="button">%s</a>',
+							'<a href="%s" class="button button-primary">%s</a>',
 							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ), 'update-disallowed-words', 'zero-spam' ) ),
 							esc_html__( 'Override & Update Core Disallowed Words', 'zero-spam' )
 						);
@@ -867,9 +867,25 @@ class Settings {
 
 				echo '<div class="zerospam-form-field-group">';
 
+				// Checkboxes are on/off switches; radios keep WordPress's own control.
+				$is_switch          = 'checkbox' === $args['type'];
+				$input_class        = trim( ( $is_switch ? 'zerospam-switch__input ' : '' ) . $args['field_class'] );
+				$allowed_label_html = array(
+					'a'      => array(
+						'target' => array(),
+						'href'   => array(),
+						'class'  => array(),
+						'rel'    => array(),
+					),
+					'strong' => array(),
+					'b'      => array(),
+					'code'   => array(),
+				);
+
 				foreach ( $args['options'] as $key => $label ) {
 					$field_name = $setting_name;
 					$selected   = false;
+					$label      = (string) $label;
 
 					if ( count( $args['options'] ) > 1 && 'checkbox' === $args['type'] ) {
 						$field_name .= '[' . $key . ']';
@@ -878,14 +894,21 @@ class Settings {
 					if ( ! empty( $args['value'] ) && $args['value'] == $key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- Option keys can be integers while stored values are strings.
 						$selected = true;
 					}
+
+					if ( $is_switch ) {
+						echo '<div class="zerospam-switch">';
+					}
 					?>
 					<input
 						type="<?php echo esc_attr( $args['type'] ); ?>"
 						id="<?php echo esc_attr( $field_key . $key ); ?>"
 						name="<?php echo esc_attr( $field_name ); ?>"
 						value="<?php echo esc_attr( $key ); ?>"
-						<?php if ( ! empty( $args['field_class'] ) ) : ?>
-							class="<?php echo esc_attr( $args['field_class'] ); ?>"
+						<?php if ( '' !== $input_class ) : ?>
+							class="<?php echo esc_attr( $input_class ); ?>"
+						<?php endif; ?>
+						<?php if ( $is_switch ) : ?>
+							role="switch"
 						<?php endif; ?>
 						<?php if ( $disabled ) : ?>
 							disabled
@@ -894,26 +917,23 @@ class Settings {
 						<?php checked( $selected ); ?>
 					/>
 
-					<label for="<?php echo esc_attr( $field_key . $key ); ?>">
+					<?php if ( $is_switch ) : ?>
+						<label for="<?php echo esc_attr( $field_key . $key ); ?>" class="zerospam-switch__label">
+							<?php if ( '' !== trim( wp_strip_all_tags( $label ) ) ) : ?>
+								<span class="zerospam-switch__text"><?php echo wp_kses( $label, $allowed_label_html ); ?></span>
+							<?php else : ?>
+								<?php // A switch without option text is named after its setting. ?>
+								<span class="screen-reader-text"><?php echo esc_html( (string) ( $args['title'] ?? '' ) ); ?></span>
+							<?php endif; ?>
+						</label>
+					</div>
+					<?php else : ?>
+						<label for="<?php echo esc_attr( $field_key . $key ); ?>">
+							<?php echo wp_kses( $label, $allowed_label_html ); ?>
+						</label>
+						<br />
 						<?php
-						echo wp_kses(
-							$label,
-							array(
-								'a'      => array(
-									'target' => array(),
-									'href'   => array(),
-									'class'  => array(),
-									'rel'    => array(),
-								),
-								'strong' => array(),
-								'b'      => array(),
-								'code'   => array(),
-							)
-						);
-						?>
-					</label>
-					<br />
-					<?php
+					endif;
 				}
 
 				echo '</div>';

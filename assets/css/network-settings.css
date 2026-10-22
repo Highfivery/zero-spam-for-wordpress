@@ -1022,3 +1022,19 @@
 .fade-in {
 	animation: fadeIn 0.3s ease-in-out;
 }
+
+/* Reduced motion: no transitions, animations or hover lifts on the page. */
+@media (prefers-reduced-motion: reduce) {
+	.zerospam-network-settings,
+	.zerospam-network-settings *,
+	.zerospam-network-settings *::before,
+	.zerospam-network-settings *::after {
+		animation: none !important;
+		transition: none !important;
+	}
+
+	.zerospam-stat-card:hover,
+	.template-card:hover {
+		transform: none;
+	}
+}

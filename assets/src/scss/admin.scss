@@ -154,26 +154,23 @@ $breakpoints: (
 
   &__cta {
     display: inline-block;
-    background: var(--zerospam-accent);
+    background: var(--zerospam-trinary);
     color: #fff;
     padding: 12px 24px;
     border-radius: 4px;
     text-decoration: none;
     font-size: 15px;
     font-weight: 600;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(255, 41, 41, 0.2);
+    transition: background-color 0.15s ease-in-out;
 
     &:hover {
-      background: var(--zerospam-trinary);
+      background: var(--zerospam-secondary);
       color: #fff;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(255, 41, 41, 0.3);
     }
 
     &:focus {
       color: #fff;
-      outline: 2px solid var(--zerospam-accent);
+      outline: 2px solid var(--zerospam-primary);
       outline-offset: 2px;
     }
   }
@@ -319,51 +316,132 @@ $breakpoints: (
   margin: 0 0 0.5625rem 0;
 }
 
-%button {
-  backface-visibility: hidden;
-  background: var(--zerospam-trinary);
+// Buttons: two variants.
+// Primary (brand red, white text, 6.6:1) is for the single main action of a
+// screen; secondary (white, bordered, dark text) is for everything else.
+// Inside the plugin's containers WordPress markup maps onto them:
+// .button-primary is primary, any other .button is secondary. Outside them,
+// use .zerospam-button with a --primary or --secondary modifier.
+// 32px high like WordPress's own controls (40px on small screens).
+%zerospam-button {
+  align-items: center;
   border: 1px solid transparent;
   border-radius: 3px;
-  box-shadow: 0 2px 1px rgb(28 31 63 / 6%);
-  color: #fff;
-  display: inline-block;
-  font-size: 0.875rem;
+  box-shadow: none;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1;
-  min-height: 0;
-  outline: none;
-  padding: 0.875rem 2rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease,
-    background-color 0.3s ease;
+  gap: 0.25rem;
+  justify-content: center;
+  line-height: 20px;
+  min-height: 32px;
+  padding: 0.3125rem 1rem;
+  text-decoration: none;
+  transition: background-color 0.15s ease-in-out,
+    border-color 0.15s ease-in-out, color 0.15s ease-in-out;
+  vertical-align: middle;
 
-  &:active,
   &:focus {
-    background-color: var(--zerospam-accent);
-    box-shadow: 0 4px 6px rgb(28 31 63 / 8%);
-    border-color: var(--zerospam-accent);
-    color: #fff;
+    box-shadow: none;
+    outline: none;
   }
 
-  &:hover {
-    background-color: var(--zerospam-trinary);
-    border: 1px solid transparent;
-    box-shadow: 0 4px 6px rgb(28 31 63 / 8%);
-    color: #fff;
-    transform: translate(0, -2px);
+  &:focus-visible {
+    box-shadow: 0 0 0 1px #fff;
+    outline: 2px solid var(--zerospam-primary);
+    outline-offset: 2px;
   }
 
-  &.button-primary {
-    background: var(--zerospam-accent);
-
-    &:focus {
-      color: #fff;
-    }
+  @media screen and (max-width: 782px) {
+    min-height: 40px;
+    padding: 0.5625rem 1rem;
   }
 }
 
-%button-small {
-  font-size: 11px;
-  padding: 0.4rem 0.5rem;
+%zerospam-button--secondary {
+  background-color: #fff;
+  border-color: #8c8f94;
+  color: #1d2327;
+
+  &:focus {
+    background-color: #fff;
+    border-color: #8c8f94;
+    color: #1d2327;
+  }
+
+  &:hover {
+    background-color: #f0f0f1;
+    border-color: #8c8f94;
+    color: #1d2327;
+  }
+
+  &:active {
+    background-color: #dcdcde;
+    border-color: #8c8f94;
+    color: #1d2327;
+  }
+
+  &:disabled,
+  &.disabled {
+    background-color: #f6f7f7;
+    border-color: #dcdcde;
+    color: #a7aaad;
+    cursor: not-allowed;
+  }
+}
+
+%zerospam-button--primary {
+  background-color: var(--zerospam-trinary);
+  border-color: var(--zerospam-trinary);
+  color: #fff;
+
+  &:focus {
+    background-color: var(--zerospam-trinary);
+    border-color: var(--zerospam-trinary);
+    color: #fff;
+  }
+
+  &:hover,
+  &:active {
+    background-color: var(--zerospam-secondary);
+    border-color: var(--zerospam-secondary);
+    color: #fff;
+  }
+
+  &:disabled,
+  &.disabled {
+    background-color: #f6f7f7;
+    border-color: #dcdcde;
+    color: #a7aaad;
+    cursor: not-allowed;
+  }
+}
+
+// Compact size for row actions and lists (28px, above the 24px target size).
+%zerospam-button--small {
+  font-size: 12px;
+  line-height: 16px;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0.3125rem 0.5rem;
+
+  img {
+    display: block;
+  }
+}
+
+.zerospam-button {
+  @extend %zerospam-button;
+}
+
+.zerospam-button--secondary {
+  @extend %zerospam-button--secondary;
+}
+
+.zerospam-button--primary {
+  @extend %zerospam-button--primary;
 }
 
 #wpcontent {
@@ -481,7 +559,12 @@ a.zerospam-dashboard__menu-link {
   width: 100%;
 
   .button {
-    @extend %button;
+    @extend %zerospam-button;
+    @extend %zerospam-button--secondary;
+  }
+
+  .button-primary {
+    @extend %zerospam-button--primary;
   }
 
   &__content {
@@ -651,19 +734,17 @@ a.zerospam-dashboard__menu-link {
   }
 }
 
+// List tables keep WordPress's toolbar: bulk actions and filters on the
+// left, pagination on the right, the search box floated right above them,
+// and WordPress's own controls.
 .zerospam-table-form {
-  .column-actions {
-    column-gap: 5px;
-    display: flex;
+  // A table cell, not a flex box, so the column lines up with its header.
+  td.column-actions {
+    white-space: nowrap;
 
     .button {
-      @extend %button-small;
-    }
-  }
-
-  .tablenav-pages {
-    .current-page {
-      width: auto;
+      @extend %zerospam-button--small;
+      margin: 0 4px 4px 0;
     }
   }
 
@@ -671,27 +752,42 @@ a.zerospam-dashboard__menu-link {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
+    gap: 0.5rem;
     height: auto;
     margin: 0 0 1rem 0;
     padding-top: 0;
 
     .actions {
       align-items: center;
-      column-gap: 5px;
       display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
       padding: 0;
 
       select {
-        float: none;
-        margin-right: 0;
+        margin: 0;
       }
     }
 
     .tablenav-pages {
       flex-grow: 1;
-      float: none;
       margin: 0;
       text-align: right;
+
+      // WordPress's square pagination buttons, in the secondary colours.
+      .button {
+        font-size: 16px;
+        line-height: 30px;
+        min-width: 32px;
+        padding: 0 4px;
+
+        @media screen and (max-width: 782px) {
+          font-size: 18px;
+          line-height: 1;
+          min-width: 40px;
+          padding: 10px 8px;
+        }
+      }
     }
 
     &.bottom {
@@ -699,24 +795,32 @@ a.zerospam-dashboard__menu-link {
     }
   }
 
-  p.search-box {
-    align-items: center;
-    column-gap: 5px;
-    display: flex;
-    margin-bottom: 5px;
-    float: none;
-  }
+  // WordPress sizes this button for 13px text; keep it level with the input.
+  p.search-box .button {
+    line-height: 20px;
+    padding: 0.3125rem 1rem;
 
-  .search-box {
-    input[name="s"] {
-      float: none;
-      margin: 0;
+    @media screen and (max-width: 782px) {
+      padding: 0.5625rem 1rem;
     }
   }
 }
 
 .zerospam-table-form,
 .zerospam-form {
+  .button {
+    @extend %zerospam-button;
+    @extend %zerospam-button--secondary;
+  }
+
+  .button-primary {
+    @extend %zerospam-button--primary;
+  }
+}
+
+// Plugin form fields: the settings cards and the block IP/location modals.
+.zerospam-form,
+.zerospam-form-field {
   .regular-text {
     width: 100%;
   }
@@ -752,92 +856,6 @@ a.zerospam-dashboard__menu-link {
     padding-right: 33px;
   }
 
-  .button {
-    @extend %button;
-  }
-
-  input[type="radio"],
-  input[type="checkbox"] {
-    display: none;
-
-    + label {
-      display: inline-block;
-      margin-bottom: 0.2rem;
-      position: relative;
-
-      &::before,
-      &::after {
-        content: "";
-        cursor: pointer;
-      }
-
-      &::before {
-        background: var(--zerospam-trinary);
-        border: 2px solid transparent;
-        border-radius: 15px;
-        box-shadow: inset 0 1px 2px rgb(90 97 105 / 15%);
-        display: inline-block;
-        height: 1.125rem;
-        margin-right: 0.5rem;
-        padding: 0.1275rem;
-        position: relative;
-        vertical-align: middle;
-        transition: all 0.25s ease;
-        transition-duration: 0.2s;
-        transition-property: background-color, border-color, color, fill, stroke;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.1, 1);
-        width: 2.625rem;
-      }
-
-      &::after {
-        background: #fff center no-repeat
-          url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yLjQ3NDkgMi41MjUxYS41ODMzLjU4MzMgMCAwMDAgLjgyNUw0LjEyNDggNWwtMS42NSAxLjY1YS41ODMzLjU4MzMgMCAxMC44MjUuODI0OWwxLjY1LTEuNjUgMS42NDk5IDEuNjVhLjU4MzMuNTgzMyAwIDEwLjgyNS0uODI1TDUuNzc0NiA1bDEuNjUtMS42NWEuNTgzMy41ODMzIDAgMTAtLjgyNS0uODI0OWwtMS42NSAxLjY1LTEuNjQ5OS0xLjY1YS41ODMzLjU4MzMgMCAwMC0uODI1IDB6IiBmaWxsPSIjOTA5MkIyIi8+PC9zdmc+);
-        background-size: 0.625rem;
-        border-radius: 50%;
-        box-shadow: 0 1px 4px rgb(24 24 72 / 12%);
-        display: block;
-        height: 1.125rem;
-        left: 4px;
-        position: absolute;
-        top: 4px;
-        transition: all 0.25s ease;
-        transition-duration: 0.2s;
-        transition-property: background, left;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        width: 1.125rem;
-        z-index: 1;
-      }
-    }
-
-    &:checked {
-      + label {
-        &::before {
-          background: var(--zerospam-accent);
-        }
-
-        &::after {
-          background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI3IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0yLjY2NjcgNC4zOTA1TDYuODYxOS4xOTUzYS42NjY3LjY2NjcgMCAwMS45NDI4Ljk0MjhsLTUuMTM4IDUuMTM4TC4xOTUzIDMuODA0N2EuNjY2Ny42NjY3IDAgMDEuOTQyOC0uOTQyOGwxLjUyODYgMS41Mjg2eiIgZmlsbD0iIzNFN0RBNiIvPjwvc3ZnPg==);
-          background-size: 0.5rem;
-          left: 1.7rem;
-        }
-      }
-    }
-
-    // Locked by the network administrator (zerospam_setting_field_disabled).
-    &:disabled + label {
-      cursor: not-allowed;
-
-      &::before,
-      &::after {
-        cursor: not-allowed;
-      }
-
-      &::before {
-        opacity: 0.6;
-      }
-    }
-  }
-
   select,
   input,
   textarea {
@@ -848,9 +866,106 @@ a.zerospam-dashboard__menu-link {
   }
 }
 
-.check-column {
-  input[type="checkbox"] {
-    display: block;
+// Switch: an opt-in on/off control, used for the settings checkboxes. The
+// input is only visually hidden, so it stays focusable and is announced; the
+// label draws the track and thumb. State is shown by position and icon, not
+// colour alone. Every other checkbox and radio keeps WordPress's control.
+.zerospam-switch {
+  display: block;
+  margin-bottom: 0.25rem;
+  position: relative;
+
+  &__input {
+    border: 0;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
+  &__label {
+    align-items: flex-start;
+    cursor: pointer;
+    display: inline-flex;
+    gap: 0.5rem;
+    line-height: 22px;
+    position: relative;
+
+    // Track.
+    &::before {
+      background-color: #8c8f94;
+      border-radius: 11px;
+      content: "";
+      flex-shrink: 0;
+      height: 22px;
+      transition: background-color 0.15s ease-in-out;
+      width: 40px;
+    }
+
+    // Thumb.
+    &::after {
+      background: #fff center / 8px no-repeat
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 2l6 6M8 2L2 8' stroke='%23646970' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgb(0 0 0 / 20%);
+      content: "";
+      height: 16px;
+      left: 3px;
+      position: absolute;
+      top: 3px;
+      transition: transform 0.15s ease-in-out;
+      width: 16px;
+    }
+
+    &:hover::before {
+      background-color: #646970;
+    }
+  }
+
+  &__text {
+    min-width: 0;
+  }
+
+  &__input:checked + &__label {
+    &::before {
+      background-color: var(--zerospam-trinary);
+    }
+
+    &::after {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 5.5l2.5 2.5 4.5-6' fill='none' stroke='%23be0000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      transform: translateX(18px);
+    }
+
+    &:hover::before {
+      background-color: var(--zerospam-secondary);
+    }
+  }
+
+  &__input:focus-visible + &__label::before {
+    outline: 2px solid var(--zerospam-primary);
+    outline-offset: 2px;
+  }
+
+  // Locked by the network administrator (zerospam_setting_field_disabled).
+  &__input:disabled + &__label {
+    cursor: not-allowed;
+
+    &::before {
+      opacity: 0.6;
+    }
+
+    &:hover::before {
+      background-color: #8c8f94;
+    }
+  }
+
+  &__input:checked:disabled + &__label:hover::before {
+    background-color: var(--zerospam-trinary);
   }
 }
 
@@ -1149,7 +1264,7 @@ a.zerospam-dashboard__menu-link {
     }
 
     .button {
-      @extend %button-small;
+      @extend %zerospam-button--small;
     }
 
     .zerospam-list__value {
@@ -1199,7 +1314,7 @@ a.zerospam-dashboard__menu-link {
     line-height: 1.2;
 
     .button {
-      @extend %button-small;
+      @extend %zerospam-button--small;
     }
 
     .zerospam-list__value {
@@ -1348,4 +1463,27 @@ a.zerospam-dashboard__menu-link {
   column-gap: 12px;
   display: grid;
   grid-template-columns: 1fr 1fr;
+}
+
+// Reduced motion: turn off every transition and animation on the plugin's
+// own elements (fades, hovers, the switch thumb, the top-IP highlights) and
+// the smooth scrolling of the documentation anchors.
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  [class*="zerospam"],
+  [class*="zerospam"] *,
+  [class*="zerospam"]::before,
+  [class*="zerospam"]::after,
+  [class*="zerospam"] *::before,
+  [class*="zerospam"] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .zerospam-docs-toc-list a:hover {
+    transform: none;
+  }
 }

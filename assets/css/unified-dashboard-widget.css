@@ -515,3 +515,14 @@ h4.zerospam-toggle-trigger {
 		font-size: 20px;
 	}
 }
+
+/* Reduced motion: no transitions or animations in the widget (the Refresh icon stops spinning). */
+@media (prefers-reduced-motion: reduce) {
+	.zerospam-dashboard-widget,
+	.zerospam-dashboard-widget *,
+	.zerospam-dashboard-widget *::before,
+	.zerospam-dashboard-widget *::after {
+		animation: none !important;
+		transition: none !important;
+	}
+}
