@@ -46,6 +46,7 @@ class ZeroSpamCLI {
 	 */
 	public function set( $args, $assoc_args ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$locked   = false;
 
 		if ( $assoc_args ) {
 			foreach ( $assoc_args as $key => $value ) {
@@ -60,6 +61,7 @@ class ZeroSpamCLI {
 				if ( 'update_blocked_email_domains' === $key ) {
 					if ( self::is_locked_by_network( 'blocked_email_domains' ) ) {
 						WP_CLI::warning( '\'blocked_email_domains\' is locked by the network administrator and cannot be changed on this site. Nothing was stored.' );
+						$locked = true;
 						continue;
 					}
 					\ZeroSpam\Core\Settings::update_blocked_email_domains();
@@ -77,11 +79,17 @@ class ZeroSpamCLI {
 					WP_CLI::error( $key . ' is not a valid setting.' );
 				} elseif ( self::is_locked_by_network( $key ) ) {
 					WP_CLI::warning( '\'' . $key . '\' is locked by the network administrator and cannot be changed on this site. Nothing was stored.' );
+					$locked = true;
 				} elseif ( \ZeroSpam\Core\Utilities::update_setting( $key, $value ) ) {
 						WP_CLI::success( '\'' . $key . '\' has been successfully updated to \'' . $value . '\'.' );
 				} else {
 					WP_CLI::error( 'There was a problem updating ' . $key . '. See the zerospam.log for more details.' );
 				}
+			}
+
+			// The other settings were still applied; report the locked ones through the exit code.
+			if ( $locked ) {
+				WP_CLI::halt( 1 );
 			}
 		} else {
 			WP_CLI::error( __( 'Oops! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zero-spam' ) );
@@ -89,12 +97,27 @@ class ZeroSpamCLI {
 	}
 
 	/**
+	 * Network settings lookup, shared by every lock check of the command.
+	 *
+	 * @var \ZeroSpam\Includes\Network_Settings|null
+	 */
+	private static ?\ZeroSpam\Includes\Network_Settings $network_settings = null;
+
+	/**
 	 * Whether the network administrator has locked a setting for this site.
 	 *
 	 * @param string $key Setting key.
 	 */
 	private static function is_locked_by_network( string $key ): bool {
-		return is_multisite() && ( new \ZeroSpam\Includes\Network_Settings() )->is_locked( $key );
+		if ( ! is_multisite() ) {
+			return false;
+		}
+
+		if ( null === self::$network_settings ) {
+			self::$network_settings = new \ZeroSpam\Includes\Network_Settings();
+		}
+
+		return self::$network_settings->is_locked( $key );
 	}
 
 	/**
@@ -147,7 +170,7 @@ class ZeroSpamCLI {
 	public function update_blocked_domains( $args, $assoc_args ) {
 		if ( self::is_locked_by_network( 'blocked_email_domains' ) ) {
 			WP_CLI::warning( '\'blocked_email_domains\' is locked by the network administrator and cannot be changed on this site. Nothing was stored.' );
-			return;
+			WP_CLI::halt( 1 );
 		}
 
 		$domains = '';

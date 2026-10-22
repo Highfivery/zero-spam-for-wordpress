@@ -498,28 +498,33 @@ class Test_Site_Admin_Overrides extends TestCase {
 	}
 
 	/**
-	 * While blocked_email_domains is locked, its update button is disabled and not a link.
+	 * While blocked_email_domains is locked, its update control is a disabled, described button with the lock badge.
 	 */
 	public function test_blocked_email_domains_button_is_disabled_while_locked(): void {
 		$this->set_network_setting( 'blocked_email_domains', 'network.example', true );
 
 		$xpath = $this->xpath( $this->render_comments_view( 'settings' ) );
 
-		$this->assertSame( 0, $xpath->query( '//a[contains(@href, "zerospam-action=update-blocked-emails")]' )->length );
-		$button = $xpath->query( '//span[contains(@class, "button") and contains(@class, "disabled")]' )->item( 0 );
+		$this->assertSame( 0, $xpath->query( '//a[contains(@href, "zerospam-action=update-blocked-emails")]' )->length, 'Not a link.' );
+		$button = $xpath->query( '//button[@type="button" and contains(@class, "button")]' )->item( 0 );
 		$this->assertInstanceOf( DOMElement::class, $button );
-		$this->assertSame( 'true', $button->getAttribute( 'aria-disabled' ) );
+		$this->assertTrue( $button->hasAttribute( 'disabled' ) );
+		$this->assertStringContainsString( 'Override & Update Blocked Email Domains', self::text_of( $button ) );
 		$description = $xpath->query( '//*[@id="' . $button->getAttribute( 'aria-describedby' ) . '"]' )->item( 0 );
 		$this->assertStringContainsString( 'Locked by the network administrator', self::text_of( $description ) );
+		$badge = $xpath->query( '//tr[.//button]//*[contains(@class, "zerospam-locked-badge")]' );
+		$this->assertSame( 1, $badge->length, 'The row shows the lock badge.' );
 	}
 
 	/**
-	 * Unlocked, the update button is a normal link.
+	 * Unlocked, the update control is a normal link without a lock badge.
 	 */
 	public function test_blocked_email_domains_button_is_a_link_while_unlocked(): void {
 		$xpath = $this->xpath( $this->render_comments_view( 'settings' ) );
 
 		$this->assertSame( 1, $xpath->query( '//a[contains(@href, "zerospam-action=update-blocked-emails")]' )->length );
+		$this->assertSame( 0, $xpath->query( '//button[@disabled]' )->length );
+		$this->assertSame( 0, $xpath->query( '//*[contains(@class, "zerospam-locked-badge")]' )->length );
 	}
 
 	/**

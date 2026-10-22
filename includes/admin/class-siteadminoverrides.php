@@ -181,7 +181,7 @@ class Site_Admin_Overrides {
 	 * @param string $field_key Setting key.
 	 */
 	public function render_lock_indicator( $field_key ) {
-		if ( ! $this->network_settings()->is_locked( $field_key ) ) {
+		if ( ! $this->network_settings()->is_locked( self::lock_key( (string) $field_key ) ) ) {
 			return;
 		}
 
@@ -279,16 +279,23 @@ class Site_Admin_Overrides {
 	 * @return bool True if should be disabled.
 	 */
 	public function disable_locked_field( $disabled, $field_key ) {
-		if ( $this->network_settings()->is_locked( $field_key ) ) {
-			return true;
-		}
-
-		// The "Override & Update Blocked Email Domains" button rewrites blocked_email_domains.
-		if ( 'update_blocked_email_domains' === $field_key && $this->network_settings()->is_locked( 'blocked_email_domains' ) ) {
+		if ( $this->network_settings()->is_locked( self::lock_key( (string) $field_key ) ) ) {
 			return true;
 		}
 
 		return $disabled;
+	}
+
+	/**
+	 * Setting whose lock applies to a settings page field.
+	 *
+	 * The "Override & Update Blocked Email Domains" button rewrites
+	 * blocked_email_domains; every other field is its own setting.
+	 *
+	 * @param string $field_key Field (setting) key.
+	 */
+	private static function lock_key( string $field_key ): string {
+		return 'update_blocked_email_domains' === $field_key ? 'blocked_email_domains' : $field_key;
 	}
 
 	/**

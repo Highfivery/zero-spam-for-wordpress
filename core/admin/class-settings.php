@@ -626,10 +626,14 @@ class Settings {
 				'style' => array(),
 			),
 			'span'   => array(
-				'id'               => array(),
+				'id'    => array(),
+				'class' => array(),
+				'style' => array(),
+			),
+			'button' => array(
+				'type'             => array(),
 				'class'            => array(),
-				'style'            => array(),
-				'aria-disabled'    => array(),
+				'disabled'         => array(),
 				'aria-describedby' => array(),
 			),
 			'ul'     => array(
@@ -728,7 +732,7 @@ class Settings {
 					} elseif ( 'update_blocked_email_domains' === $label_for && $disabled ) {
 						// Not a link while disabled: the action would change a locked setting.
 						$html = sprintf(
-							'<span class="button disabled" aria-disabled="true" aria-describedby="%s">%s</span>',
+							'<button type="button" class="button" disabled aria-describedby="%s">%s</button>',
 							esc_attr( $description_id ),
 							esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
 						);

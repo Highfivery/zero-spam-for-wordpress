@@ -149,59 +149,91 @@ class Test_Network_Locks_Rest_Cli extends TestCase {
 	}
 
 	/**
-	 * Runs `wp zerospam set` with the stand-in WP_CLI.
+	 * Runs a `wp zerospam` command method with the stand-in WP_CLI.
 	 *
-	 * @param array<string, string> $assoc_args Settings to set.
+	 * WP_CLI::halt() and WP_CLI::error() throw in the stand-in; the exit code
+	 * is in WP_CLI::$exit_code.
+	 *
+	 * @param string                $method     ZeroSpamCLI method.
+	 * @param array<string, string> $assoc_args Associative arguments.
 	 */
-	private function cli_set( array $assoc_args ): void {
+	private function cli( string $method, array $assoc_args ): void {
 		require_once dirname( __DIR__ ) . '/includes/stubs/wp-cli.php';
 		require_once ZEROSPAM_PATH . 'includes/class-cli.php';
 
 		WP_CLI::reset();
-		( new ZeroSpamCLI() )->set( array(), $assoc_args );
+		try {
+			( new ZeroSpamCLI() )->$method( array(), $assoc_args );
+		} catch ( RuntimeException $e ) {
+			// The command stopped; WP_CLI::$exit_code says how.
+			unset( $e );
+		}
 	}
 
 	/**
-	 * `wp zerospam set` warns, instead of claiming success, when the key is locked.
+	 * `wp zerospam set` warns and exits non-zero, instead of claiming success, when the key is locked.
 	 */
 	public function test_cli_set_warns_on_a_locked_key(): void {
 		$this->set_network_setting( 'comment_spam_message', 'Network locked message.', true );
 
-		$this->cli_set( array( 'comment_spam_message' => 'CLI message.' ) );
+		$this->cli( 'set', array( 'comment_spam_message' => 'CLI message.' ) );
 
 		$this->assertSame( array(), WP_CLI::of( 'success' ) );
 		$this->assertCount( 1, WP_CLI::of( 'warning' ) );
 		$this->assertStringContainsString( 'locked by the network administrator', WP_CLI::of( 'warning' )[0] );
+		$this->assertSame( 1, WP_CLI::$exit_code );
 		$stored = get_option( 'zero-spam-comments' );
 		$this->assertFalse( is_array( $stored ) && array_key_exists( 'comment_spam_message', $stored ) );
 	}
 
 	/**
-	 * Locked blocked email domains: both CLI paths warn and change nothing.
+	 * With a locked and an unlocked key, the unlocked one is still set, and the command exits non-zero.
+	 */
+	public function test_cli_set_mixed_keys_applies_the_unlocked_one_and_exits_non_zero(): void {
+		$this->set_network_setting( 'comment_spam_message', 'Network locked message.', true );
+
+		$this->cli(
+			'set',
+			array(
+				'comment_spam_message' => 'CLI message.',
+				'log_blocked_comments' => 'enabled',
+			)
+		);
+
+		$this->assertCount( 1, WP_CLI::of( 'success' ) );
+		$this->assertCount( 1, WP_CLI::of( 'warning' ) );
+		$this->assertSame( 1, WP_CLI::$exit_code );
+		$this->assertSame( 'enabled', get_option( 'zero-spam-comments' )['log_blocked_comments'] );
+	}
+
+	/**
+	 * Locked blocked email domains: both CLI paths warn, exit non-zero and change nothing.
 	 */
 	public function test_cli_warns_on_locked_blocked_email_domains(): void {
 		update_option( 'zerospam_blocked_email_domains', 'site.example' );
 		$this->set_network_setting( 'blocked_email_domains', 'network.example', true );
 
-		$this->cli_set( array( 'blocked_email_domains' => 'cli.example' ) );
+		$this->cli( 'set', array( 'blocked_email_domains' => 'cli.example' ) );
 		$this->assertCount( 1, WP_CLI::of( 'warning' ) );
+		$this->assertSame( 1, WP_CLI::$exit_code );
 
-		WP_CLI::reset();
-		( new ZeroSpamCLI() )->update_blocked_domains( array(), array( 'domains' => 'cli.example' ) );
+		$this->cli( 'update_blocked_domains', array( 'domains' => 'cli.example' ) );
 		$this->assertSame( array(), WP_CLI::of( 'success' ) );
 		$this->assertCount( 1, WP_CLI::of( 'warning' ) );
+		$this->assertSame( 1, WP_CLI::$exit_code );
 
 		$this->assertSame( 'site.example', get_option( 'zerospam_blocked_email_domains' ) );
 	}
 
 	/**
-	 * An unlocked key is still set, with a success message.
+	 * An unlocked key is still set, with a success message and no non-zero exit.
 	 */
 	public function test_cli_set_succeeds_on_an_unlocked_key(): void {
-		$this->cli_set( array( 'comment_spam_message' => 'CLI message.' ) );
+		$this->cli( 'set', array( 'comment_spam_message' => 'CLI message.' ) );
 
 		$this->assertCount( 1, WP_CLI::of( 'success' ) );
 		$this->assertSame( array(), WP_CLI::of( 'warning' ) );
+		$this->assertNull( WP_CLI::$exit_code );
 		$this->assertSame( 'CLI message.', get_option( 'zero-spam-comments' )['comment_spam_message'] );
 	}
 }
