@@ -250,7 +250,7 @@ class Test_Login_Flows extends TestCase {
 		$this->load_login_page();
 		$this->assertPasses( $this->authenticate( $this->full_form( DavidWalsh::generate_token() ) ) );
 
-		$post                               = $this->full_form( DavidWalsh::generate_token() );
+		$post                              = $this->full_form( DavidWalsh::generate_token() );
 		$post[ Utilities::get_honeypot() ] = 'spam';
 
 		$result = $this->authenticate( $post );
