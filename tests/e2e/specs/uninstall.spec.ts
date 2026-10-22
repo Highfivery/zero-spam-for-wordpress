@@ -9,7 +9,6 @@ test.describe( 'Uninstall', { tag: '@destructive' }, () => {
 
 	test( 'wp plugin uninstall zero-spam --skip-delete removes every zero-spam-*/zerospam_*/wpzerospam* option, table, transient and cron event', async ( { wpcli, zs, target } ) => {
 		test.skip( ! target.allowDestructive, 'Uninstall on a Local site needs E2E_ALLOW_DESTRUCTIVE=1 (the run snapshots and restores the plugin data).' );
-		test.fail( true, 'AGENTS.md §8: uninstall.php leaves module options (zero-spam-settings and others), zerospam_blocked_email_domains, the network_* tables and the network site options behind' );
 		const network = target.multisite ? [ '--network' ] : [];
 
 		await test.step( 'create data in every store', async () => {
