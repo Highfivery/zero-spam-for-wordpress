@@ -11,7 +11,7 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { E2E_DIR, ROOT, checkNode, fail, localPaths, readEnvFile, repoVersion, run, targetDefs, wpVersions } from './lib.mjs';
+import { E2E_DIR, ROOT, checkNode, currentRunMarker, fail, localPaths, readEnvFile, repoVersion, run, targetDefs, wpVersions } from './lib.mjs';
 
 /**
  * GET with a timeout.
@@ -32,11 +32,12 @@ async function get( url, headers = {}, ms = 3000 ) {
 /**
  * Checks one target.
  *
- * @param {string} name Target name.
- * @param {string} wp   latest|min (wp-env only).
+ * @param {string} name   Target name.
+ * @param {string} wp     latest|min (wp-env only).
+ * @param {string} marker Run marker the runner wrote into this checkout (tests/e2e/.run-marker).
  * @return {Promise<{ok: boolean, reason?: string, ping?: Object}>}
  */
-export async function preflight( name, wp = 'latest' ) {
+export async function preflight( name, wp = 'latest', marker = currentRunMarker() ) {
 	const defs = targetDefs();
 	const def = defs[ name ];
 	if ( ! def ) {
@@ -91,6 +92,15 @@ export async function preflight( name, wp = 'latest' ) {
 	}
 	if ( 'local' === def.kind && ping.pluginPath && realpathSync( ping.pluginPath ) !== realpathSync( ROOT ) ) {
 		return { ok: false, reason: `${ name }: the site loads Zero Spam from ${ ping.pluginPath }, not ${ ROOT }; see AGENTS.md section 6.` };
+	}
+	// The same version and URL can belong to another checkout (another wp-env
+	// project on these ports, or a Local site loading a different copy); only
+	// this checkout's plugin directory holds the marker just written.
+	if ( ping.runMarker !== marker ) {
+		return {
+			ok: false,
+			reason: `${ name }: the site at ${ baseURL } does not load this checkout (${ ROOT }): its run marker is ${ ping.runMarker ? `"${ ping.runMarker }"` : 'missing' }, expected "${ marker }" from tests/e2e/.run-marker${ 'wp-env' === def.kind ? `; another checkout's wp-env may be using port ${ new URL( baseURL ).port } (stop it, then npm run env:start${ def.multisite ? ':ms' : '' } here)` : '; see AGENTS.md section 6' }.`,
+		};
 	}
 	if ( 'wp-env' === def.kind ) {
 		const expected = wpVersions()[ wp ];

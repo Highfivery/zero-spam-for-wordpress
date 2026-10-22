@@ -12,5 +12,6 @@
 /artifacts/
 /tests/e2e/.env
 /tests/e2e/.auth/
+/tests/e2e/.run-marker
 /.wp-env.override.json
 /.wp-env.multisite.override.json

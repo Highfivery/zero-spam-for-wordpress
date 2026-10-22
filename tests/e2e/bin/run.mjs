@@ -14,7 +14,11 @@
  * - Output: artifacts/e2e/<timestamp>-<sha>/<target>[-min]/ plus a combined
  *   summary.md, and artifacts/e2e/latest pointing at the run.
  * - --wp=min switches wp-env to the minimum WordPress (WP_ENV_CORE +
- *   `wp-env start --update`) and back to the latest at the end.
+ *   `wp-env start --update`) and back to the latest at the end, also after
+ *   Ctrl-C (a second Ctrl-C exits at once).
+ * - Writes a fresh tests/e2e/.run-marker that the preflight expects back from
+ *   each site, so a run cannot pass against another checkout's site.
+ * - The visual baselines must stay within their 15 MB budget.
  * - The last line is always `E2E RESULT: PASS|FAIL …`; the exit code matches.
  */
 
@@ -23,7 +27,7 @@ import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:
 import { join } from 'node:path';
 
 import { preflight } from './preflight.mjs';
-import { ROOT, WP_ENV_BIN, checkNode, fail, run, targetDefs, wpVersions } from './lib.mjs';
+import { ROOT, WP_ENV_BIN, checkNode, fail, run, targetDefs, wpVersions, writeRunMarker } from './lib.mjs';
 import { summarizeRun } from './summarize.mjs';
 
 checkNode();
@@ -120,6 +124,33 @@ if ( flag( 'update-snapshots' ) ) {
 }
 playwrightArgs.push( ...passthrough );
 
+const children = new Set();
+let interrupted = false;
+let switched = false;
+
+// Ctrl-C reaches the Playwright children too (same process group); stay alive
+// long enough to switch wp-env back to the latest WordPress after a min run.
+process.on( 'SIGINT', () => {
+	if ( interrupted ) {
+		process.stderr.write( `\nE2E RESULT: FAIL interrupted twice; wp-env may still run WordPress ${ versions.min } (npm run env:core:latest).\n` );
+		process.exit( 130 );
+	}
+	interrupted = true;
+	process.stderr.write( `\nInterrupted: stopping Playwright${ switched ? ` and switching wp-env back to WordPress ${ versions.latest }` : '' } (Ctrl-C again to exit at once).\n` );
+	for ( const child of children ) {
+		child.kill( 'SIGINT' );
+	}
+} );
+
+/**
+ * Throws when the run was interrupted, so the finally block can clean up.
+ */
+function stopIfInterrupted() {
+	if ( interrupted ) {
+		throw new Error( 'interrupted (Ctrl-C)' );
+	}
+}
+
 /**
  * Runs Playwright for one target and prefixes its output.
  *
@@ -132,6 +163,8 @@ function runTarget( target, line, dir ) {
 	return new Promise( ( resolve ) => {
 		const env = { ...process.env, E2E_TARGET: target, E2E_WP: line, E2E_ARTIFACTS: dir, WP_BASE_URL: defs[ target ].baseURL, FORCE_COLOR: '0' };
 		const child = spawn( join( ROOT, 'node_modules/.bin/playwright' ), playwrightArgs, { cwd: ROOT, env } );
+		children.add( child );
+		child.on( 'close', () => children.delete( child ) );
 		const prefix = `[${ target }${ 'min' === line ? '@min' : '' }] `;
 		const pipe = ( stream, out ) => {
 			let buffer = '';
@@ -174,11 +207,13 @@ async function waitForHttp( url, seconds = 90 ) {
 
 const started = Date.now();
 const results = [];
-let switched = false;
 let aborted = null;
+let switchedBack = false;
+const marker = writeRunMarker();
 
 try {
 	for ( const line of lines ) {
+		stopIfInterrupted();
 		const wpEnvTargets = targets.filter( ( t ) => 'wp-env' === defs[ t ].kind );
 		const localTargets = targets.filter( ( t ) => 'local' === defs[ t ].kind );
 
@@ -186,7 +221,7 @@ try {
 			// Make sure the environments run the WordPress line under test.
 			const configs = [];
 			for ( const t of wpEnvTargets ) {
-				const check = await preflight( t, line );
+				const check = await preflight( t, line, marker );
 				if ( ! check.ok && /WordPress .* is running, expected/.test( check.reason ) ) {
 					configs.push( defs[ t ].config );
 				}
@@ -202,9 +237,10 @@ try {
 				}
 			}
 		}
+		stopIfInterrupted();
 
 		for ( const t of [ ...wpEnvTargets, ...localTargets ] ) {
-			const check = await preflight( t, line );
+			const check = await preflight( t, line, marker );
 			if ( ! check.ok ) {
 				throw new Error( check.reason );
 			}
@@ -216,21 +252,29 @@ try {
 		const codes = await Promise.all( wpEnvTargets.map( ( t ) => runTarget( t, line, dirFor( t ) ).then( ( code ) => ( { target: t, line, code } ) ) ) );
 		results.push( ...codes );
 		for ( const t of localTargets ) {
+			stopIfInterrupted();
 			results.push( { target: t, line, code: await runTarget( t, line, dirFor( t ) ) } );
 		}
+		stopIfInterrupted();
 	}
 } catch ( error ) {
 	aborted = error.message;
 } finally {
 	if ( switched ) {
+		// Let a pending Ctrl-C handler run first, so its message comes before the switch.
+		await new Promise( ( r ) => setImmediate( r ) );
 		try {
 			switchCore( 'latest', [ ...new Set( targets.filter( ( t ) => 'wp-env' === defs[ t ].kind ).map( ( t ) => defs[ t ].config ) ) ] );
+			switchedBack = true;
 		} catch ( error ) {
-			aborted = aborted || error.message;
+			aborted = aborted && ! /^interrupted/.test( aborted ) ? aborted : error.message;
 		}
 	}
 }
 
+if ( interrupted ) {
+	fail( `interrupted (Ctrl-C)${ switchedBack ? `; wp-env switched back to WordPress ${ versions.latest }` : '' }${ aborted && ! /^interrupted/.test( aborted ) ? `; ${ aborted }` : '' }.` );
+}
 if ( aborted ) {
 	fail( aborted );
 }
@@ -242,6 +286,10 @@ process.stdout.write( `Artifacts: ${ runDir }${ existsSync( latest ) ? ' (artifa
 
 const failed = results.filter( ( r ) => 0 !== r.code );
 const minutes = ( ( Date.now() - started ) / 60000 ).toFixed( 1 );
-const label = results.map( ( r ) => `${ r.target }${ 'min' === r.line ? '@min' : '' }=${ 0 === r.code ? 'pass' : 'fail' }` ).join( ' ' );
-process.stdout.write( `E2E RESULT: ${ failed.length ? 'FAIL' : 'PASS' } ${ label } (${ summary.totals }; ${ minutes } min)\n` );
-process.exit( failed.length ? 1 : 0 );
+const label = [
+	...results.map( ( r ) => `${ r.target }${ 'min' === r.line ? '@min' : '' }=${ 0 === r.code ? 'pass' : 'fail' }` ),
+	...( summary.overBudget ? [ `visual-baselines=over-budget (${ summary.baselineMB } MB > ${ summary.budgetMB } MB)` ] : [] ),
+].join( ' ' );
+const pass = ! failed.length && ! summary.overBudget;
+process.stdout.write( `E2E RESULT: ${ pass ? 'PASS' : 'FAIL' } ${ label } (${ summary.totals }; ${ minutes } min)\n` );
+process.exit( pass ? 0 : 1 );

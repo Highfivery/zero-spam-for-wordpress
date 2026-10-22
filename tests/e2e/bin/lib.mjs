@@ -8,15 +8,49 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { guardDestructive, guardShellScript } from '../support/cli-guard.cjs';
 
 export const ROOT = resolve( dirname( fileURLToPath( import.meta.url ) ), '../../..' );
 export const E2E_DIR = join( ROOT, 'tests/e2e' );
 export const WP_ENV_BIN = join( ROOT, 'node_modules/.bin/wp-env' );
 export const MIN_NODE = [ 22, 19 ];
+/** Git-ignored file the test mu-plugin's /ping returns (see writeRunMarker()). */
+export const RUN_MARKER_FILE = join( E2E_DIR, '.run-marker' );
+
+/**
+ * Writes a new random marker into the checkout. The test mu-plugin reads it
+ * from the plugin directory of the site under test and returns it from /ping,
+ * so the preflight can tell this checkout's site from another checkout's
+ * wp-env (or Local site) answering on the same URL.
+ *
+ * @return {string} The marker.
+ */
+export function writeRunMarker() {
+	const marker = randomBytes( 12 ).toString( 'hex' );
+	writeFileSync( RUN_MARKER_FILE, `${ marker }\n` );
+	return marker;
+}
+
+/**
+ * The current run marker, writing one if there is none yet.
+ *
+ * @return {string}
+ */
+export function currentRunMarker() {
+	if ( existsSync( RUN_MARKER_FILE ) ) {
+		const marker = readFileSync( RUN_MARKER_FILE, 'utf8' ).trim();
+		if ( marker ) {
+			return marker;
+		}
+	}
+	return writeRunMarker();
+}
 
 /**
  * Exits with one line when the running Node is too old (the dependencies need 22.19+).
@@ -91,23 +125,6 @@ export function run( cmd, args, opts = {} ) {
 	};
 }
 
-/**
- * Refuses WP-CLI invocations that would delete the plugin directory.
- *
- * Both Local and wp-env point at this checkout, so `wp plugin uninstall`
- * without --skip-delete (or `wp plugin delete`) would delete the repository.
- *
- * @param {string[]} args WP-CLI arguments (without the leading "wp").
- */
-export function guardDestructive( args ) {
-	const words = args.filter( ( a ) => ! a.startsWith( '--' ) );
-	if ( 'plugin' === words[ 0 ] && 'delete' === words[ 1 ] ) {
-		throw new Error( 'Refusing `wp plugin delete`: the plugin directory is this repository.' );
-	}
-	if ( 'plugin' === words[ 0 ] && 'uninstall' === words[ 1 ] && ! args.includes( '--skip-delete' ) ) {
-		throw new Error( 'Refusing `wp plugin uninstall` without --skip-delete: the plugin directory is this repository.' );
-	}
-}
 
 /**
  * The docker-compose file wp-env generated for a config file.
@@ -149,6 +166,7 @@ export function wpEnvCli( composeFile, args ) {
  * @return {{status: number, stdout: string, stderr: string}}
  */
 export function wpEnvSh( composeFile, script ) {
+	guardShellScript( script );
 	return run( 'docker', [ 'compose', '-f', composeFile, 'exec', '-T', '-w', '/var/www/html', 'cli', 'sh', '-c', script ] );
 }
 
@@ -185,18 +203,19 @@ export function localPaths( siteId ) {
 /**
  * Runs WP-CLI against a LocalWP site.
  *
- * @param {{siteId: string, path: string, url?: string}} site Local site.
- * @param {string[]}                                     args WP-CLI arguments without "wp".
+ * @param {{siteId: string, path: string, url?: string}} site  Local site.
+ * @param {string[]}                                     args  WP-CLI arguments without "wp".
+ * @param {string}                                       input Optional stdin (answers for --prompt, so secrets stay out of the process list).
  * @return {{status: number, stdout: string, stderr: string}}
  */
-export function localCli( site, args ) {
+export function localCli( site, args, input = undefined ) {
 	guardDestructive( args );
 	const { socket, php } = localPaths( site.siteId );
 	if ( ! php ) {
 		throw new Error( 'LocalWP PHP 8.2 binary not found under ~/Library/Application Support/Local/lightning-services/.' );
 	}
 	const wp = existsSync( '/opt/homebrew/bin/wp' ) ? '/opt/homebrew/bin/wp' : 'wp';
-	return run( php, [ '-d', `mysqli.default_socket=${ socket }`, '-d', 'memory_limit=512M', wp, '--skip-packages', `--path=${ site.path }`, ...args ] );
+	return run( php, [ '-d', `mysqli.default_socket=${ socket }`, '-d', 'memory_limit=512M', wp, '--skip-packages', `--path=${ site.path }`, ...args ], undefined === input ? {} : { input } );
 }
 
 /**

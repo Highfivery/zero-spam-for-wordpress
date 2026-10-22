@@ -8,8 +8,9 @@
  *   Homebrew's wp, with --skip-packages so global packages can't print
  *   deprecation noise into JSON output.
  *
- * Refuses `wp plugin delete` and `wp plugin uninstall` without --skip-delete,
- * because the plugin directory on every target is this repository.
+ * Refuses `wp plugin delete` and `wp plugin uninstall` without --skip-delete
+ * (support/cli-guard.cjs, shared with the runner scripts), because the plugin
+ * directory on every target is this repository.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -17,27 +18,13 @@ import { existsSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+import { guardDestructive } from './cli-guard.cjs';
 import { ROOT, type Target } from './targets';
 
 export interface CliResult {
 	status: number;
 	stdout: string;
 	stderr: string;
-}
-
-/**
- * Throws for commands that would delete the repository.
- *
- * @param args WP-CLI arguments without "wp".
- */
-export function guardDestructive( args: string[] ): void {
-	const words = args.filter( ( a ) => ! a.startsWith( '--' ) );
-	if ( 'plugin' === words[ 0 ] && 'delete' === words[ 1 ] ) {
-		throw new Error( 'Refusing `wp plugin delete`: the plugin directory is this repository.' );
-	}
-	if ( 'plugin' === words[ 0 ] && 'uninstall' === words[ 1 ] && ! args.includes( '--skip-delete' ) ) {
-		throw new Error( 'Refusing `wp plugin uninstall` without --skip-delete: the plugin directory is this repository.' );
-	}
 }
 
 const composeFiles = new Map< string, string >();
