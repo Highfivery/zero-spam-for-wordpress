@@ -4,3 +4,13 @@
 /phpcs-report.json
 /.phpunit.result.cache
 /build/
+
+# Playwright e2e (tests/e2e). Visual baselines in tests/e2e/__screenshots__/ are committed.
+/test-results/
+/playwright-report/
+/blob-report/
+/artifacts/
+/tests/e2e/.env
+/tests/e2e/.auth/
+/.wp-env.override.json
+/.wp-env.multisite.override.json

@@ -1,0 +1,27 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/wp-env.json",
+	"core": "https://wordpress.org/wordpress-7.1.3.zip",
+	"phpVersion": "8.2",
+	"port": 8900,
+	"testsPort": 8901,
+	"testsEnvironment": false,
+	"plugins": [],
+	"mappings": {
+		"wp-content/plugins/zero-spam": ".",
+		"wp-content/mu-plugins": "./tests/e2e/mu-plugins"
+	},
+	"config": {
+		"WP_DEBUG": true,
+		"WP_DEBUG_DISPLAY": true,
+		"WP_DEBUG_LOG": true,
+		"SCRIPT_DEBUG": true,
+		"WP_HTTP_BLOCK_EXTERNAL": true,
+		"AUTOMATIC_UPDATER_DISABLED": true,
+		"WP_AUTO_UPDATE_CORE": false,
+		"ZEROSPAM_E2E_TOKEN": "wp-env-only-not-secret",
+		"ZEROSPAM_RESCUE_KEY": "wp-env-rescue-key"
+	},
+	"lifecycleScripts": {
+		"afterStart": "node tests/e2e/bin/wp-env-after-start.mjs --config=.wp-env.json"
+	}
+}
