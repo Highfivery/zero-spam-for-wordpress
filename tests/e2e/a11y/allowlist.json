@@ -1,0 +1,764 @@
+[
+	{
+		"screen": "dashboard-block-ip-modal",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php); the sortable list-table column headers, recoloured by assets/css/admin.css; the IP address links in the list table (assets/css/admin.css link colour).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-block-ip-modal",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-block-ip-modal",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\"); the icon-only action buttons' <img width=\"13\"> in core/admin/tables/class-logtable.php / class-blockedtable.php (the buttons have aria-labels, the images need alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-block-ip-modal",
+		"rule": "label",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Form controls without an accessible name: the row-selection checkboxes (column_cb() in core/admin/tables/class-logtable.php / class-blockedtable.php) have no label.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-block-location-modal",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php); the modal headline (.zerospam-block__headline, assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-block-location-modal",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-block-location-modal",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-ips-empty",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-ips-empty",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-ips-empty",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-ips-seeded",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php); the sortable list-table column headers, recoloured by assets/css/admin.css; the IP address links in the list table (assets/css/admin.css link colour).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-ips-seeded",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-ips-seeded",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\"); the icon-only action buttons' <img width=\"13\"> in core/admin/tables/class-logtable.php / class-blockedtable.php (the buttons have aria-labels, the images need alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-ips-seeded",
+		"rule": "label",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Form controls without an accessible name: the row-selection checkboxes (column_cb() in core/admin/tables/class-logtable.php / class-blockedtable.php) have no label.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-locations-empty",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-locations-empty",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-blocked-locations-empty",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-details-modal",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php); the sortable list-table column headers, recoloured by assets/css/admin.css; the IP address links in the list table (assets/css/admin.css link colour); the external links in the detection details modal (includes/templates/admin-modal-details.php); links in the content column (assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-details-modal",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-details-modal",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\"); the icon-only action buttons' <img width=\"13\"> in core/admin/tables/class-logtable.php / class-blockedtable.php (the buttons have aria-labels, the images need alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-details-modal",
+		"rule": "label",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Form controls without an accessible name: the row-selection checkboxes (column_cb() in core/admin/tables/class-logtable.php / class-blockedtable.php) have no label.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-empty",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php); links in the content column (assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-empty",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-empty",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-seeded",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php); the sortable list-table column headers, recoloured by assets/css/admin.css; the IP address links in the list table (assets/css/admin.css link colour); links in the content column (assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-seeded",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-seeded",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\"); the icon-only action buttons' <img width=\"13\"> in core/admin/tables/class-logtable.php / class-blockedtable.php (the buttons have aria-labels, the images need alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-log-seeded",
+		"rule": "label",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Form controls without an accessible name: the row-selection checkboxes (column_cb() in core/admin/tables/class-logtable.php / class-blockedtable.php) have no label.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-reports-empty",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php); plugin-styled .button / .button-primary links (assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-reports-empty",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-reports-empty",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-reports-seeded",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Tweets by ZeroSpamOrg\" link in the dashboard sidebar (core/admin/class-dashboard.php); plugin-styled .button / .button-primary links (assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-reports-seeded",
+		"rule": "frame-title",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The Facebook page <iframe> in the dashboard sidebar (core/admin/class-dashboard.php) has no title attribute.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "dashboard-reports-seeded",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php; the left-menu icons .zerospam-dashboard__menu-icon in core/admin/class-dashboard.php (the settings page already uses alt=\"\").",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "network-import-export",
+		"rule": "label",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Form controls without an accessible name: the settings file input #import-file in render_import_export_tab() (includes/admin/class-networksettingspage.php) has no label.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22",
+		"targets": [
+			"wp-env-ms"
+		]
+	},
+	{
+		"screen": "network-settings-group-expanded",
+		"rule": "label",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Form controls without an accessible name: the <textarea> value controls (allowed_words, blocked_email_domains, ip_whitelist) rendered by render_setting_field() in includes/admin/class-networksettingspage.php have no label.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22",
+		"targets": [
+			"wp-env-ms"
+		]
+	},
+	{
+		"screen": "network-settings-group-expanded",
+		"rule": "select-name",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The multi-select value control (Dashboard Widget Visibility) rendered by render_setting_field() in includes/admin/class-networksettingspage.php has no label.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22",
+		"targets": [
+			"wp-env-ms"
+		]
+	},
+	{
+		"screen": "network-stats",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the trend badge .trend-badge.up and the .recommendation.medium pill on the Network Stats page (assets/css/network-stats.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22",
+		"targets": [
+			"wp-env-ms"
+		]
+	},
+	{
+		"screen": "network-stats",
+		"rule": "select-name",
+		"target": "*",
+		"kind": "debt",
+		"reason": "The period <select id=\"period-select\"> in includes/admin/class-networkstatspage.php has no label.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22",
+		"targets": [
+			"wp-env-ms"
+		]
+	},
+	{
+		"screen": "settings-api-monitoring",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-api-monitoring",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-comments",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-comments",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-davidwalsh",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css; <code> in the David Walsh help text (assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-davidwalsh",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-debug",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-debug",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-documentation",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-documentation",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-errors",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-errors",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-errors-with-entries",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); plugin-styled .button / .button-primary links (assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-errors-with-entries",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-errors-with-entries",
+		"rule": "label",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Form controls without an accessible name: the Error Log <textarea readonly> in core/admin/class-settings.php has no label.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-export",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); plugin-styled .button / .button-primary links (assets/css/admin.css).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-export",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-export",
+		"rule": "label",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Form controls without an accessible name: the Export (readonly) and Import <textarea>s in core/admin/class-settings.php have no label (only a visual <h4>).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-google",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-google",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-ipbase",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-ipbase",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-ipinfo",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-ipinfo",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-ipstack",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-ipstack",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-login",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-login",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-project_honeypot",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-project_honeypot",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-registration",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-registration",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-security",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-security",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-settings",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-settings",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-stop_forum_spam",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-stop_forum_spam",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-zerospam",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "settings-zerospam",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22"
+	},
+	{
+		"screen": "subsite-settings-locked",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the header status link \"Enhanced Protection is DISABLED\" (includes/templates/admin-header.php, colours in assets/css/admin.css); the \"Save Settings →\" button restyled by assets/css/admin.css.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22",
+		"targets": [
+			"wp-env-ms"
+		]
+	},
+	{
+		"screen": "subsite-settings-locked",
+		"rule": "image-alt",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Images without an alt attribute: the \"Zero Spam\" logo <img width=\"250\"> in includes/templates/admin-header.php; the status icon .zerospam-small-icon in includes/templates/admin-header.php.",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22",
+		"targets": [
+			"wp-env-ms"
+		]
+	},
+	{
+		"screen": "wp-dashboard-promo-notice",
+		"rule": "color-contrast",
+		"target": "*",
+		"kind": "debt",
+		"reason": "Text below the 4.5:1 contrast minimum: the promo notice's call-to-action, discount and \"(Enhanced Protection: Disabled)\" status text (.zerospam-promo-notice__cta, __discount, __status in assets/css/admin.css; markup in core/admin/class-admin.php).",
+		"issue": "AGENTS.md §8",
+		"added": "2026-10-22",
+		"targets": [
+			"wp-env"
+		]
+	}
+]
