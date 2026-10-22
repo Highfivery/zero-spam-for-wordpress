@@ -15,6 +15,11 @@ defined( 'ABSPATH' ) || die();
  */
 class StopForumSpam {
 	/**
+	 * Object cache group for API responses.
+	 */
+	const CACHE_GROUP = 'zerospam';
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -34,7 +39,7 @@ class StopForumSpam {
 		) {
 			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 2 );
 			add_filter( 'zerospam_preprocess_registration_submission', array( $this, 'preprocess_registrations' ), 10, 3 );
-			add_filter( 'zerospam_preprocess_comment_submission', array( $this, 'preprocess_comments' ), 10, 3 );
+			add_filter( 'zerospam_preprocess_comment_submission', array( $this, 'preprocess_comments' ), 10, 2 );
 		}
 	}
 
@@ -94,7 +99,7 @@ class StopForumSpam {
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
-			'placeholder' => WEEK_IN_SECONDS,
+			'placeholder' => __( '14', 'zero-spam' ),
 			'min'         => 0,
 			'desc'        => __( 'How long to remember spam check results. Recommended: 14 days.', 'zero-spam' ),
 			'value'       => ! empty( $options['stop_forum_spam_cache'] ) ? $options['stop_forum_spam_cache'] : 14,
@@ -123,23 +128,23 @@ class StopForumSpam {
 	/**
 	 * Processes comments
 	 *
-	 * @param array  $errors                Array of errors.
-	 * @param array  $post                  Post array.
-	 * @param string $detection_message_key Detection message key.
+	 * @param array $errors Array of errors.
+	 * @param array $post   Post array.
+	 * @return array
 	 */
-	public function preprocess_comments( $errors, $post, $detection_message_key ) {
+	public function preprocess_comments( $errors, $post ) {
 		if ( empty( $post['comment_author_email'] ) ) {
 			return $errors;
 		}
 
-		$response = self::query(
+		$response = $this->query(
 			array(
 				'email' => $post['comment_author_email'],
 			)
 		);
 		if ( $response ) {
 			$response = json_decode( $response, true );
-			if ( ! empty( $response['success'] ) && $response['success'] ) {
+			if ( ! empty( $response['success'] ) ) {
 				$settings = \ZeroSpam\Core\Settings::get_settings();
 
 				// Check email.
@@ -160,9 +165,10 @@ class StopForumSpam {
 	/**
 	 * Processes registrations
 	 *
-	 * @param WP_Error $errors               A WP_Error object containing any errors encountered during registration.
-	 * @param string   $sanitized_user_login User's username after it has been sanitized.
-	 * @param string   $user_email           User's email.
+	 * @param \WP_Error $errors               A WP_Error object containing any errors encountered during registration.
+	 * @param string    $sanitized_user_login User's username after it has been sanitized.
+	 * @param string    $user_email           User's email.
+	 * @return \WP_Error
 	 */
 	public function preprocess_registrations( $errors, $sanitized_user_login, $user_email ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
@@ -171,7 +177,7 @@ class StopForumSpam {
 			return $errors;
 		}
 
-		$response = self::query(
+		$response = $this->query(
 			array(
 				'username' => $sanitized_user_login,
 				'email'    => $user_email,
@@ -179,7 +185,7 @@ class StopForumSpam {
 		);
 		if ( $response ) {
 			$response = json_decode( $response, true );
-			if ( ! empty( $response['success'] ) && $response['success'] ) {
+			if ( ! empty( $response['success'] ) ) {
 				$message = \ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
 
 				// Check username.
@@ -214,7 +220,7 @@ class StopForumSpam {
 					! empty( $settings['stop_forum_spam_confidence_min']['value'] ) &&
 					floatval( $response['email']['confidence'] ) >= floatval( $settings['stop_forum_spam_confidence_min']['value'] )
 				) {
-					if ( count( $errors->errors ) == 0 ) {
+					if ( ! $errors->has_errors() ) {
 						$errors->add( 'zerospam_error_stopformspam_email', $message );
 					}
 
@@ -236,35 +242,44 @@ class StopForumSpam {
 	/**
 	 * Query the Stop Forum Spam API
 	 *
+	 * Successful answers are cached in the object cache for the configured
+	 * number of days; errors are not cached so the next lookup retries.
+	 *
 	 * @param array $params Array of query parameters.
+	 * @return string|false Response body, or false when the request failed.
 	 */
 	public function query( $params ) {
+		// Hash names and values: a key built from the values alone, run
+		// through sanitize_title(), maps different IPs and emails to one entry.
+		$cache_key = 'stop_forum_spam_' . md5( (string) wp_json_encode( $params ) );
+
+		$response = wp_cache_get( $cache_key, self::CACHE_GROUP );
+		if ( false !== $response ) {
+			return $response;
+		}
+
 		$settings = \ZeroSpam\Core\Settings::get_settings();
 
-		$cache_array = array( 'stop_forum_spam' );
-		$cache_array = array_merge( $cache_array, $params );
-		$cache_key   = \ZeroSpam\Core\Utilities::cache_key( $cache_array );
+		$timeout = 5;
+		if ( ! empty( $settings['stop_forum_spam_timeout']['value'] ) ) {
+			$timeout = absint( $settings['stop_forum_spam_timeout']['value'] );
+		}
 
-		$response = wp_cache_get( $cache_key );
-		if ( false === $response ) {
-			$endpoint = 'https://api.stopforumspam.org/api?';
-			$params   = array( 'json' => '' );
-			$params   = array_merge( $cache_array, $params );
-			$endpoint = $endpoint . http_build_query( $params );
+		$endpoint = 'https://api.stopforumspam.org/api?' . http_build_query( array_merge( $params, array( 'json' => '' ) ) );
+		$response = \ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
+		if ( ! $response ) {
+			return $response;
+		}
 
-			$timeout = 5;
-			if ( ! empty( $settings['stop_forum_spam_timeout'] ) ) {
-				$timeout = intval( $settings['stop_forum_spam_timeout']['value'] );
+		$decoded = json_decode( $response, true );
+		if ( is_array( $decoded ) && ! empty( $decoded['success'] ) ) {
+			$expiration = 14 * DAY_IN_SECONDS;
+			$days       = ! empty( $settings['stop_forum_spam_cache']['value'] ) ? absint( $settings['stop_forum_spam_cache']['value'] ) : 0;
+			if ( $days > 0 ) {
+				$expiration = $days * DAY_IN_SECONDS;
 			}
 
-			$response = \ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $timeout ) );
-			if ( $response ) {
-				$expiration = 14 * DAY_IN_SECONDS;
-				if ( ! empty( $settings['stop_forum_spam_cache']['value'] ) ) {
-					$expiration = $settings['stop_forum_spam_cache']['value'] * DAY_IN_SECONDS;
-				}
-				wp_cache_set( $cache_key, $response, 'zerospam', $expiration );
-			}
+			wp_cache_set( $cache_key, $response, self::CACHE_GROUP, $expiration );
 		}
 
 		return $response;
@@ -275,6 +290,7 @@ class StopForumSpam {
 	 *
 	 * @param array  $access_checks Access checks.
 	 * @param string $user_ip       User IP.
+	 * @return array
 	 */
 	public function access_check( $access_checks, $user_ip ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
@@ -287,12 +303,11 @@ class StopForumSpam {
 			return $access_checks;
 		}
 
-		$response = self::query( array( 'ip' => $user_ip ) );
+		$response = $this->query( array( 'ip' => $user_ip ) );
 		if ( $response ) {
 			$response = json_decode( $response, true );
 			if (
 				! empty( $response['success'] ) &&
-				$response['success'] &&
 				! empty( $response['ip'] ) &&
 				! empty( $response['ip']['appears'] )
 			) {
