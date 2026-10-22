@@ -77,7 +77,10 @@ export class ZsApi {
 		if ( ! requestUtils.storageState?.nonce ) {
 			await requestUtils.setupRest();
 		}
-		const base = this.sitePath ? this.sitePath.replace( /^\//, '' ) : '';
+		// Go through index.php explicitly: on nginx hosts such as LocalWP a DELETE
+		// to the site root (`/?rest_route=…`) is answered by nginx with 405 before
+		// WordPress sees it, while `index.php?rest_route=…` accepts every method.
+		const base = ( this.sitePath ? this.sitePath.replace( /^\//, '' ) : '' ) + 'index.php';
 		const params = new URLSearchParams( { rest_route: `/zero-spam-e2e/v1/${ route }` } );
 		if ( 'GET' === method && data ) {
 			for ( const [ k, v ] of Object.entries( data ) ) {
