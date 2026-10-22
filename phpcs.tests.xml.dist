@@ -30,7 +30,7 @@
 	</rule>
 
 	<config name="testVersion" value="8.2-"/>
-	<exclude-pattern>/.claude/</exclude-pattern>
+	<exclude-pattern type="relative">^\.claude/</exclude-pattern>
 	<exclude-pattern>/node_modules/</exclude-pattern>
 	<exclude-pattern>/vendor/</exclude-pattern>
 </ruleset>
