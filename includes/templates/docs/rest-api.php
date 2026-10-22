@@ -275,6 +275,35 @@ $site_url = esc_url( get_site_url() );
 	}
 }</code></pre>
 			</div>
+
+			<h4><?php esc_html_e( 'Multisite: the "source" Field', 'zero-spam' ); ?></h4>
+			<p><?php esc_html_e( 'On a network site, each entry in "changes" also carries a "source" field. "site" means the value is now stored as this site\'s own override. "network_default" means the value you sent equals the network value, so nothing is stored and the site keeps following the network default (and any later change to it).', 'zero-spam' ); ?></p>
+			<div class="zerospam-docs-code-block">
+				<pre><code>{
+	"success": true,
+	"changes": {
+	"zerospam_confidence_min": {
+		"old": 30,
+		"new": 40,
+		"source": "network_default"
+	}
+	}
+}</code></pre>
+			</div>
+
+			<h4><?php esc_html_e( 'Multisite: Locked Settings (403)', 'zero-spam' ); ?></h4>
+			<p><?php esc_html_e( 'Settings locked by the Network Administrator cannot be changed with scope=site. If the request includes any locked key, the whole request is refused and nothing is saved. The response lists the locked keys so your script can drop them and retry.', 'zero-spam' ); ?></p>
+			<div class="zerospam-docs-code-block">
+				<pre><code>HTTP/1.1 403 Forbidden
+{
+	"code": "rest_setting_locked",
+	"message": "These settings are locked by the network administrator: zerospam_confidence_min.",
+	"data": {
+	"status": 403,
+	"locked_keys": ["zerospam_confidence_min"]
+	}
+}</code></pre>
+			</div>
 		</div>
 	</div>
 
@@ -419,6 +448,9 @@ console.log(result);</code></pre>
 	-d '{"zerospam_confidence_min":60}' \
 	"<?php echo esc_url( $site_url ); ?>/wp-json/zero-spam/v1/settings?scope=site"</code></pre>
 			</div>
+
+			<h3><?php esc_html_e( 'Locked Settings', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'A Super Admin can lock a setting on the Network Settings page. Locked settings are shown as locked on every site\'s settings page, the settings page never saves them, and a scope=site REST request that includes one is refused with a 403 "rest_setting_locked" error (see the PATCH section above). WP-CLI "wp zerospam set" warns and exits with an error for a locked setting.', 'zero-spam' ); ?></p>
 
 			<h3><?php esc_html_e( 'Checking Where Settings Come From', 'zero-spam' ); ?></h3>
 			<p><?php esc_html_e( 'Use the "sources" field in the response:', 'zero-spam' ); ?></p>
