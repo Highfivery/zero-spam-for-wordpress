@@ -38,7 +38,7 @@ in the same PR.
 | `modules/` | One directory or file per detection technique or integrated plugin. Third-party modules are only instantiated when that plugin is active (`includes/class-plugin.php`). |
 | `assets/` | Hand-written CSS/JS (jQuery), `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand, vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. No build tooling exists. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
-| `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs.xml.dist` | Quality gate (section 5). Never shipped: see `.distignore`. |
+| `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs. Never shipped: see `.distignore`. |
 
 ### How a module works
 Constructor hooks `init`; adds its sections, settings and types through the
@@ -142,25 +142,78 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 
 ```bash
 composer install     # installs tooling and points git at .githooks/
-composer check       # version check, WPCS on changed files, PHP 8.2+ compat, PHPStan
-composer check:all   # same with WPCS on every file (red until the backlog is cleared)
+composer check       # version check, WPCS on changed files, PHP 8.2+ compat, PHPStan, PHPUnit
+composer check:all   # WPCS on every file and the tests, compat, PHPStan, the PHPUnit matrix
+                     # (red until the WPCS backlog is cleared)
 composer lint:fix    # apply the WPCS fixes phpcbf can make
 ```
 
-- `.githooks/pre-push` runs `composer check` and refuses the push on failure.
+- `.githooks/pre-push` runs the same checks as `composer check` (PHPUnit is
+  step 5/5, `bin/test.sh --mode=all`) and refuses the push on failure.
   `SKIP_QUALITY_GATE=1` is for a genuine emergency only and must be mentioned
   in the PR.
 - `phpstan-baseline.neon` holds pre-existing findings. Fix new findings; never
   regenerate the baseline to hide them. Shrink it when you touch a listed file.
 - **Done means proven:** the PR description contains the `composer check`
-  summary, the manual smoke-test steps and results on both Local sites
-  (single site and multisite), screenshots or recordings for any UI change,
-  the `readme.txt` changelog entry, and a note of anything not verified and
-  why. Do not claim something works without having run it.
-- A PHPUnit and Playwright suite is planned; when it exists, every change
-  comes with tests and the gate includes them.
+  summary (including the PHPUnit result), the manual smoke-test steps and
+  results on both Local sites (single site and multisite), screenshots or
+  recordings for any UI change, the `readme.txt` changelog entry, and a note
+  of anything not verified and why. Do not claim something works without
+  having run it.
 - Do not create markdown process files (`NOTES.md`, `PLAN.md`, "what I did"
   files). Plans and findings go in the PR or in the conversation.
+
+### PHPUnit
+
+```bash
+composer test            # single site + multisite, latest WordPress, the php on PATH
+composer test:unit       # one suite; also test:integration and test:multisite
+composer test:wp         # PHP 8.2/8.4 x WordPress min/latest x single/multisite,
+                         # then checks readme.txt "Tested up to"/"Requires at least"
+composer test:defects    # only the @group known-defect tests (they fail on purpose)
+composer test:coverage   # HTML report in build/coverage/ (needs pcov: pecl install pcov)
+composer lint:tests      # WPCS on tests/phpunit (phpcs.tests.xml.dist)
+bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
+```
+
+- **Every change comes with tests**; a bug fix starts with a failing test.
+  Tests extend `ZeroSpam\Tests\TestCase` (`tests/phpunit/includes/TestCase.php`),
+  live in `unit/`, `integration/` or `multisite/` as `test-*.php` with
+  `Test_*` classes, and use its helpers (`set_setting()`,
+  `set_network_setting()`, `set_request()`, `insert_log_rows()`, `block()`,
+  `mock_http()`, `capture_queries()`, `expect_redirect()`, `as_role()`,
+  `admin_screen()`, `create_site_with_tables()`) instead of ad-hoc set-up.
+  Groups: `ms-required` (network only), `ms-excluded` (single site only),
+  `known-defect`.
+- **Known-defect policy:** a confirmed bug that is not fixed yet gets a test
+  that asserts the correct behaviour, tagged `@group known-defect`. Those tests
+  are excluded from `composer test` and the hook, run with
+  `composer test:defects`, and must fail for the documented reason (not a
+  harness error). The PR that fixes the bug removes the tag so the test joins
+  the gate. Never tag a test `known-defect` to get a red test past the gate.
+- **Database safety:** the suite installs WordPress into `zerospam_tests`
+  (single) and `zerospam_tests_ms` (multisite) on the Homebrew MySQL, never a
+  Local site database. The bootstrap and `tests/phpunit/wp-tests-config.php`
+  refuse any name that does not match `^zerospam_tests(_\w+)?$`, because the
+  WordPress installer drops tables. Do not weaken that check.
+- **Tables:** the plugin tables are created for real while WordPress loads.
+  Inside a test, WordPress rewrites `CREATE/DROP TABLE` to `TEMPORARY` tables,
+  which `SHOW TABLES` (and so `DB::log()`/`DB::query()`) cannot see. Never call
+  `DB::update()` in a test; assert `DROP TABLE` statements with
+  `capture_queries()`; create extra network sites with
+  `create_site_with_tables()` from `wpSetUpBeforeClass()`.
+- **No network:** every WordPress HTTP API request is answered by
+  `tests/phpunit/includes/HttpMock.php`; an unmocked request fails the test
+  (`mock_http()` to answer one). DNS (`checkdnsrr`, `dns_get_record`) and
+  `setcookie()` are stubbed in the plugin namespaces that call them
+  (`tests/phpunit/includes/stubs/`); add a stub when code in another namespace
+  starts calling a network or header function.
+- **Versions:** `tests/phpunit/versions.env` pins the WordPress versions
+  tested (`WP_LATEST`, `WP_MIN`), their checksums, the test library versions
+  and `PHP_MATRIX`. For a new WordPress release: update the pins and
+  `wp-phpunit/wp-phpunit` in `composer.json`, run `composer test:wp`, then
+  bump `Tested up to`.
+- A Playwright (browser) suite is still planned.
 
 ## 6. Local environment
 
@@ -175,6 +228,17 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
   from the site's `app/public`. The site id is the directory under
   `~/Library/Application Support/Local/run/` whose `mysql/` matches the site.
 - Keep WordPress current on all three sites; `Tested up to` must be earned.
+- The PHPUnit suite does not use Local's MySQL. It needs Homebrew MySQL on
+  `127.0.0.1` (`brew services start mysql`; user `root`, no password;
+  override with `WP_TESTS_DB_HOST`, `WP_TESTS_DB_USER`,
+  `WP_TESTS_DB_PASSWORD`). `bin/test.sh` checks the connection first.
+- `--php=8.4` resolves to Homebrew PHP; `--php=8.2` to the newest LocalWP
+  PHP 8.2 binary, which has no `php.ini` (the script passes
+  `memory_limit=512M`).
+- WordPress cores and the test library for the minimum version are downloaded
+  once, checksum-verified, into `~/Library/Caches/zero-spam-tests/`
+  (override with `ZEROSPAM_TESTS_CACHE`). Delete a directory there to force a
+  fresh download.
 - The plugin's email checks reject `.test` addresses; use `@example.com` in
   test data.
 
@@ -199,13 +263,22 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
   auto-fixable); PHPStan level 5 baseline of 168 findings. Clearing them is
   planned work; do it file by file with tests, not in one sweep.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
-  test):
+  test). The first six below, through `DB::log()`, already have that test,
+  tagged `@group known-defect` (`composer test:defects`); the `region` sort
+  and the rest do not yet:
   - `uninstall.php`: the single-site branch loops over array indexes and
     deletes `zero-spam-0`, `zero-spam-1`, … instead of the module options; the
     module list omits `settings`, `ipbase`, `elementor` and uses `fluentforms`
-    for the `fluent_form` key; the two `network_*` tables and the
-    `zerospam_network_settings` site option are never removed; the multisite
-    branch calls `switch_to_blog()` per site but `restore_current_blog()` once.
+    for the `fluent_form` key; the two `network_*` tables are never dropped;
+    the options `zerospam_blocked_email_domains`, `zerospam_api_notices` and
+    `zerospam_settings_audit` and the `zero_spam_circuit_open` /
+    `zero_spam_failure_count` transients (prefix `zero_spam_`, not matched by
+    the cleanup query) are left behind; on a network the site options
+    `zerospam_network_settings`, `zero-spam-network-zerospam`,
+    `zerospam_network_notifications_enabled`,
+    `zerospam_network_settings_notifications_enabled` and
+    `zero_spam_last_api_request` are never removed, and the multisite branch
+    calls `switch_to_blog()` per site but `restore_current_blog()` once.
   - `core/admin/tables/class-logtable.php`: `LIMIT` has count and offset
     swapped, the offset is `per_page * page` instead of `per_page * (page - 1)`,
     `$wpdb->prepare()` is called with no placeholders when no filter is set,
@@ -217,6 +290,9 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
   - `modules/class-stopforumspam.php`: `wp_cache_get()` reads the default
     group while `wp_cache_set()` writes group `zerospam`, so results are never
     served from cache.
+  - `includes/class-db.php`: `DB::log()` prunes only when the table is already
+    above `max_logs` (`>`), then inserts, so the log settles at
+    `max_logs + 1` rows.
   - `modules/elementor/class-elementor.php` exists but `Plugin::init_modules()`
     never instantiates it.
   - `includes/admin/class-siteadminoverrides.php` hooks

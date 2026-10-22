@@ -39,7 +39,7 @@ Props @username, @username2, ...
 <!--- Go over all the following points, and put an `x` in all the boxes that apply. -->
 <!--- If you are unsure about any of these, please ask for clarification.  We are here to help! -->
 - [ ] I agree to follow this project's [**Code of Conduct**](./CODE_OF_CONDUCT.md).
-- [ ] `composer check` passes locally and its summary is included above.
+- [ ] `composer check` passes locally (including `composer test`, the PHPUnit suite on single site and multisite) and its summary is included above.
 - [ ] I have updated the documentation accordingly (including `AGENTS.md` if a convention, tool or process changed).
 - [ ] I have added tests to cover my change.
-- [ ] All new and existing tests pass.
+- [ ] All new and existing tests pass (`composer test`); any `@group known-defect` test this PR fixes is untagged.
