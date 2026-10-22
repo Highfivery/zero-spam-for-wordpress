@@ -15,6 +15,7 @@ use ReflectionProperty;
 use WP_UnitTest_Factory;
 use WP_UnitTestCase;
 use ZeroSpam\Core\Settings;
+use ZeroSpam\Core\User;
 use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Network_Settings;
@@ -113,8 +114,12 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_davidwalsh_data',
 		'zerospam_davidwalsh_secret',
 		'zerospam_db_version',
+		'zerospam_migration_cursor_canonical_blocked_ips',
+		'zerospam_migration_lock_canonical_blocked_ips',
+		'zerospam_proxy_detection_since',
 		'zerospam_settings_audit',
 		'zerospam_share_queue',
+		'zerospam_shared_ip_warning_dismissed',
 		'zerospam_show_settings_review_notice',
 		'zero-spam-last-update',
 		'zero_spam_last_api_report',
@@ -133,6 +138,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_geo_test',
 		'zerospam_ipinfo_test',
 		'zerospam_login_intent_test',
+		'zerospam_shared_ip_warning',
 		'zerospam_woo_options_migrated',
 	);
 
@@ -243,6 +249,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		self::set_static( Settings_Resolver::class, 'cache', array() );
 		Settings::$settings = array();
 		Settings::$sections = array();
+		User::reset_cache();
 	}
 
 	/**

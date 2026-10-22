@@ -62,8 +62,12 @@ $zerospam_site_options = array(
 	'zerospam_davidwalsh_data',
 	'zerospam_davidwalsh_secret',
 	'zerospam_db_version',
+	'zerospam_migration_cursor_canonical_blocked_ips',
+	'zerospam_migration_lock_canonical_blocked_ips',
+	'zerospam_proxy_detection_since',
 	'zerospam_settings_audit',
 	'zerospam_share_queue',
+	'zerospam_shared_ip_warning_dismissed',
 	'zerospam_show_settings_review_notice',
 	'zero-spam-last-update',
 	'zero_spam_last_api_report',
@@ -76,6 +80,7 @@ $zerospam_site_transients = array(
 	'zero_spam_failure_count',
 	'zerospam_dashboard_data_network',
 	'zerospam_dashboard_data_site',
+	'zerospam_shared_ip_warning',
 	'zerospam_woo_options_migrated',
 );
 
