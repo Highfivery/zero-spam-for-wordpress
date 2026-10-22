@@ -42,10 +42,14 @@ test.describe( 'Reflow at 320px (WCAG 1.4.10)', () => {
 	// The plugin header's 250px logo (includes/templates/admin-header.php) makes every
 	// screen that includes it 378px wide at 320px; WordPress's own screens fit.
 	const HEADER_OVERFLOW = 'AGENTS.md §8: the admin header logo (<img width="250"> in includes/templates/admin-header.php) overflows a 320px viewport (page 378px wide); core screens fit';
+	// The Dashboard has more than the logo: without it the page is still 329px wide.
+	const REASONS: Record< string, string > = {
+		'dashboard-reports-seeded': `${ HEADER_OVERFLOW }; with the logo fixed the Dashboard still overflows (329px) through .zerospam-block--review, the pie and line chart blocks and canvas#zerospam-bar-chart`,
+	};
 	const reflowScreens = screens.filter( ( s ) => [ 'settings-comments', 'dashboard-reports-seeded', 'dashboard-log-seeded', 'network-settings' ].includes( s.id ) );
 	for ( const screen of reflowScreens ) {
 		test( `${ screen.title } fits a 320px-wide viewport without horizontal scrolling`, async ( { page, zs, newRoleContext, gallery }, testInfo ) => {
-			test.fail( 'admin' === screen.area, HEADER_OVERFLOW );
+			test.fail( 'admin' === screen.area, REASONS[ screen.id ] ?? HEADER_OVERFLOW );
 			const shown = await openScreen( screen, { page, zs, target, newRoleContext }, testInfo, { width: 320, height: 800 } );
 			await gallery.capture( shown, `${ screen.title } at 320px` );
 			const overflow = await shown.evaluate( () => {

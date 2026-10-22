@@ -19,8 +19,7 @@
  */
 
 import { test as base, expect, type APIRequestContext, type Browser, type BrowserContext, type Locator, type Page, type TestInfo } from '@playwright/test';
-import { createHash } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ZsApi } from './e2e-api';
@@ -34,8 +33,10 @@ const BUNDLED_CHARTJS = join( ROOT, 'assets/js/vendor/chart.umd.min.js' );
 /**
  * Plugin PHP errors that are confirmed defects (AGENTS.md section 8). The
  * automatic check reports them as annotations instead of failing every test
- * that opens the screen; smoke.spec asserts there are none, as an expected
- * failure, so fixing the bug forces this list and the marker to go.
+ * that opens the screen. smoke.spec asserts there are none, as an expected
+ * failure: fixing the bug makes that test pass, which fails the run until its
+ * test.fail marker is removed. Nothing enforces removing the entry here, so
+ * delete it in the same change.
  */
 export const KNOWN_PHP_ERRORS: Array< { match: RegExp; reason: string } > = [
 	{
@@ -73,14 +74,40 @@ export interface Gallery {
 }
 
 /**
- * A TEST-NET-3 address unique to the test (203.0.113.10–249).
+ * Visitor addresses, handed out in order: 203.0.113.10–249 (TEST-NET-3), then
+ * 192.0.2.10–249 (TEST-NET-1). 198.51.100.0/24 (TEST-NET-2) is left for the
+ * fixed addresses the specs block and seed.
+ */
+const VISITOR_POOL = [ '203.0.113.', '192.0.2.' ].flatMap( ( net ) => Array.from( { length: 240 }, ( _, i ) => `${ net }${ i + 10 }` ) );
+const visitorIps = new Map< string, string >();
+
+/**
+ * A TEST-NET address of its own for each (test, attempt, salt). Allocated by
+ * index from VISITOR_POOL, with the next index kept in the target's artifacts
+ * directory so a retry in a new worker continues where the last one stopped;
+ * no two allocations share an address until the 480-address pool wraps.
  *
  * @param testInfo Test info.
  * @param salt     Extra salt for a second address in one test.
  */
 export function visitorIp( testInfo: TestInfo, salt = '' ): string {
-	const n = createHash( 'sha1' ).update( testInfo.testId + salt + testInfo.retry ).digest()[ 0 ];
-	return `203.0.113.${ 10 + ( n % 240 ) }`;
+	const key = `${ testInfo.testId }|${ testInfo.retry }|${ salt }`;
+	const known = visitorIps.get( key );
+	if ( known ) {
+		return known;
+	}
+	const counter = join( resolveTarget().artifacts, 'visitor-ip-index' );
+	let next = 0;
+	try {
+		next = Number.parseInt( readFileSync( counter, 'utf8' ), 10 ) || 0;
+	} catch {
+		// First allocation of this run directory.
+	}
+	const ip = VISITOR_POOL[ next % VISITOR_POOL.length ];
+	mkdirSync( resolveTarget().artifacts, { recursive: true } );
+	writeFileSync( counter, String( next + 1 ) );
+	visitorIps.set( key, ip );
+	return ip;
 }
 
 /**

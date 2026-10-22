@@ -64,6 +64,10 @@ export class ZsApi {
 	/**
 	 * Calls a route. Uses ?rest_route= so it works on subsites without rewrite rules.
 	 *
+	 * A dropped keep-alive connection (ECONNRESET, "socket hang up") is retried
+	 * once: the worker-scoped API context reuses connections that the web
+	 * server may have closed between tests, and Local runs have no retries.
+	 *
 	 * @param method HTTP method.
 	 * @param route  Route below zero-spam-e2e/v1.
 	 * @param data   JSON body or query parameters.
@@ -80,12 +84,22 @@ export class ZsApi {
 				params.set( k, String( v ) );
 			}
 		}
-		const response = await requestUtils.request.fetch( `${ base }?${ params.toString() }`, {
-			method,
-			headers: { 'X-WP-Nonce': requestUtils.storageState!.nonce },
-			data: 'GET' === method ? undefined : data,
-			failOnStatusCode: false,
-		} );
+		const send = () =>
+			requestUtils.request.fetch( `${ base }?${ params.toString() }`, {
+				method,
+				headers: { 'X-WP-Nonce': requestUtils.storageState!.nonce },
+				data: 'GET' === method ? undefined : data,
+				failOnStatusCode: false,
+			} );
+		let response;
+		try {
+			response = await send();
+		} catch ( error ) {
+			if ( ! /ECONNRESET|socket hang up/i.test( String( ( error as Error )?.message ?? error ) ) ) {
+				throw error;
+			}
+			response = await send();
+		}
 		const body = await response.json().catch( async () => ( { raw: await response.text() } ) );
 		if ( ! response.ok() ) {
 			if ( body && 'rest_cookie_invalid_nonce' === body.code ) {

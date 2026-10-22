@@ -18,7 +18,27 @@ interface Row {
 	status: 'passed' | 'failed' | 'expected-fail' | 'flaky' | 'skipped' | 'fixed';
 	reason?: string;
 	error?: string;
+	/** First line of the last attempt's error. */
+	errorLine?: string;
+	/** Error of the first attempt (what made a flaky test retry). */
+	firstError?: string;
 	durationMs: number;
+}
+
+/**
+ * An error message as one line of plain text.
+ *
+ * @param message Error message.
+ * @param lines   How many lines to keep.
+ */
+function oneLine( message: string | undefined, lines: number ): string | undefined {
+	return message
+		?.replace( /\u001b\[[0-9;]*m/g, '' )
+		.split( '\n' )
+		.map( ( l ) => l.trim() )
+		.filter( Boolean )
+		.slice( 0, lines )
+		.join( ' ' );
 }
 
 export default class SummaryReporter implements Reporter {
@@ -96,7 +116,9 @@ export default class SummaryReporter implements Reporter {
 				project,
 				status,
 				reason: failAnnotation?.description,
-				error: last?.error?.message?.split( '\n' ).slice( 0, 4 ).join( ' ' ).replace( /\u001b\[[0-9;]*m/g, '' ),
+				error: oneLine( last?.error?.message, 4 ),
+				errorLine: oneLine( last?.error?.message, 1 ),
+				firstError: oneLine( test.results[ 0 ]?.error?.message, 2 ),
 				durationMs: test.results.reduce( ( s, r ) => s + r.duration, 0 ),
 			} );
 		}
@@ -163,12 +185,22 @@ export function renderTargetMarkdown( s: Record< string, any > ): string {
 		lines.push( '' );
 	}
 
+	const flaky = s.tests.filter( ( r: Row ) => 'flaky' === r.status );
+	if ( flaky.length ) {
+		lines.push( '**Flaky** (failed, then passed on retry; first attempt\'s error)' );
+		lines.push( '' );
+		for ( const r of flaky ) {
+			lines.push( `- [${ r.project }] ${ r.title }: ${ r.firstError ?? '(no error recorded)' }` );
+		}
+		lines.push( '' );
+	}
+
 	const known = s.tests.filter( ( r: Row ) => 'expected-fail' === r.status );
 	if ( known.length ) {
-		lines.push( '**Known defects still reproducing**' );
+		lines.push( '**Known defects still reproducing** (reason — how it failed)' );
 		lines.push( '' );
 		for ( const r of known ) {
-			lines.push( `- ${ r.title } — ${ r.reason ?? '' }` );
+			lines.push( `- ${ r.title } — ${ r.reason ?? '' }${ r.errorLine ? ` — \`${ r.errorLine.replace( /`/g, "'" ) }\`` : '' }` );
 		}
 		lines.push( '' );
 	}
@@ -183,6 +215,15 @@ export function renderTargetMarkdown( s: Record< string, any > ): string {
 			lines.push( `| ${ a.screen } | ${ k.critical } | ${ k.serious } | ${ k.moderate } | ${ k.minor } | ${ k.aaa } | ${ k.bestPractice } | ${ k.allowlisted } | ${ k.incomplete } |` );
 		}
 		lines.push( '' );
+		const lower = ( s.a11y as ScreenA11yResult[] ).flatMap( ( a ) => ( a.lowerCount ?? [] ).map( ( u ) => ( { screen: a.screen, ...u } ) ) );
+		if ( lower.length ) {
+			lines.push( '**Allowlist counts to lower** (fewer nodes than recorded; lower `count` in tests/e2e/a11y/allowlist.json)' );
+			lines.push( '' );
+			for ( const u of lower ) {
+				lines.push( `- ${ u.screen } / ${ u.rule }: ${ u.matched } (count ${ u.count })` );
+			}
+			lines.push( '' );
+		}
 	}
 
 	const blocked = Object.entries( s.blockedRequests || {} );

@@ -4,8 +4,9 @@
  *
  * - activates Zero Spam (network-wide on multisite)
  * - pretty permalinks, UTC, open registration (single site)
- * - users e2e-admin (super admin on multisite), e2e-editor, e2e-author and,
- *   on multisite, e2e-siteadmin (administrator of /site2/ only)
+ * - users e2eadmin (super admin on multisite), e2eeditor, e2eauthor and,
+ *   on multisite, e2esiteadmin (administrator of /site2/ only), from
+ *   tests/e2e/wp-env-users.json (multisite logins cannot contain hyphens)
  * - the "E2E comments" post with comments open
  *
  * Usage (from .wp-env*.json): node tests/e2e/bin/wp-env-after-start.mjs --config=.wp-env.json

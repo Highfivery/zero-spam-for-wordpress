@@ -17,9 +17,11 @@ const target = resolveTarget();
 process.env.WP_BASE_URL = target.baseURL;
 
 // Admin screens: the single-site screens on single site, the network screens on a network.
-const scopeFilter = target.multisite ? /@single-only/ : /@multisite/;
-const localFilter = 'local' === target.kind ? /@wp-env-only/ : undefined;
-const grepInvert = localFilter ? [ scopeFilter, localFilter ] : scopeFilter;
+const grepInvert = target.multisite ? /@single-only/ : /@multisite/;
+
+// Baselines are recorded on macOS (-darwin); other platforms render fonts
+// differently, so they only write the gallery there.
+const compareSnapshots = target.compareSnapshots && 'darwin' === process.platform;
 
 export default defineConfig( {
 	testDir: './specs',
@@ -68,7 +70,7 @@ export default defineConfig( {
 			dependencies: [ 'setup' ],
 			testMatch: /visual\.spec/,
 			grepInvert,
-			ignoreSnapshots: ! target.compareSnapshots,
+			ignoreSnapshots: ! compareSnapshots,
 		},
 		{ name: 'destructive', dependencies: [ 'functional', 'a11y', 'visual' ], testMatch: /uninstall\.spec/, grepInvert },
 	],
