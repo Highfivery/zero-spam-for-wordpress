@@ -77,6 +77,9 @@ class Plugin {
 		if ( is_admin() ) {
 			// Plugin admin module.
 			new \ZeroSpam\Core\Admin\Admin();
+
+			// Notice after the administrator's IP was added to the IP Whitelist.
+			new \ZeroSpam\Core\Admin_Whitelist();
 		}
 
 		// Register REST API routes.
@@ -84,6 +87,9 @@ class Plugin {
 
 		// Preform the firewall access check.
 		new \ZeroSpam\Core\Access();
+
+		// Emailed rescue links for administrators who blocked themselves.
+		new \ZeroSpam\Core\Rescue_Link();
 
 		// Database functionality.
 		new \ZeroSpam\Includes\DB();

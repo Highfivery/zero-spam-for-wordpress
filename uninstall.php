@@ -53,6 +53,7 @@ $zerospam_site_options = array(
 	'wpzerospam',
 	'wpzerospam_honeypot',
 	'zerospam_activation_time',
+	'zerospam_admin_whitelist_notice',
 	'zerospam_api_monitoring_notice_dismissed',
 	'zerospam_api_notices',
 	'zerospam_blocked_email_domains',
@@ -76,6 +77,7 @@ $zerospam_site_transients = array(
 	'zero_spam_failure_count',
 	'zerospam_dashboard_data_network',
 	'zerospam_dashboard_data_site',
+	'zerospam_rescue_site_sends',
 	'zerospam_woo_options_migrated',
 );
 

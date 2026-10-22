@@ -1,0 +1,541 @@
+<?php
+/**
+ * Tests for the emailed rescue link.
+ *
+ * @package ZeroSpam\Tests
+ */
+
+declare( strict_types=1 );
+
+use ZeroSpam\Core\Access;
+use ZeroSpam\Core\Rescue_Link;
+use ZeroSpam\Tests\RedirectException;
+use ZeroSpam\Tests\Stubs;
+use ZeroSpam\Tests\TestCase;
+
+/**
+ * The blocked page's rescue form, the request handler, the email and the link.
+ *
+ * @covers \ZeroSpam\Core\Rescue_Link
+ * @covers \ZeroSpam\Core\Access
+ */
+class Test_Rescue_Link extends TestCase {
+
+	/**
+	 * Second visitor IP (TEST-NET-2).
+	 */
+	const OTHER_IP = '198.51.100.7';
+
+	/**
+	 * Clears the mail spy and the rate limits.
+	 */
+	public function set_up(): void {
+		parent::set_up();
+
+		reset_phpmailer_instance();
+		delete_transient( Rescue_Link::SITE_LIMIT_TRANSIENT );
+		$GLOBALS['pagenow'] = 'index.php';
+	}
+
+	/**
+	 * Restores the request globals the tests change.
+	 */
+	public function tear_down(): void {
+		$_POST              = array();
+		$_REQUEST           = array();
+		$GLOBALS['pagenow'] = 'index.php';
+		reset_phpmailer_instance();
+
+		parent::tear_down();
+	}
+
+	/**
+	 * Submits the blocked page's rescue form and returns the response.
+	 *
+	 * @param string      $email Submitted address.
+	 * @param string      $ip    Visitor IP.
+	 * @param string|null $nonce Nonce; a valid one when null.
+	 * @return array{message: string, code: int}
+	 */
+	private function submit( string $email, string $ip = self::DEFAULT_IP, ?string $nonce = null ): array {
+		$this->set_request( '/wp-admin/admin-post.php', $ip );
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+
+		$_POST    = array(
+			'action'                 => Rescue_Link::ACTION,
+			Rescue_Link::NONCE_FIELD => $nonce ?? wp_create_nonce( Rescue_Link::NONCE_ACTION ),
+			Rescue_Link::EMAIL_FIELD => wp_slash( $email ),
+		);
+		$_REQUEST = $_POST;
+
+		try {
+			Rescue_Link::handle_request();
+		} catch ( WPDieException $e ) {
+			return array(
+				'message' => $e->getMessage(),
+				'code'    => (int) $e->getCode(),
+			);
+		}
+
+		$this->fail( 'The rescue request handler returned instead of ending the request.' );
+	}
+
+	/**
+	 * Emails sent so far.
+	 *
+	 * @return array<int, object>
+	 */
+	private function sent(): array {
+		return array_map(
+			static fn ( array $mail ): object => (object) $mail,
+			tests_retrieve_phpmailer_instance()->mock_sent
+		);
+	}
+
+	/**
+	 * Rescue token from a sent email.
+	 *
+	 * @param int $index Email index.
+	 */
+	private function token_from_email( int $index = 0 ): string {
+		$sent = $this->sent();
+		$this->assertArrayHasKey( $index, $sent, 'No rescue email was sent.' );
+		$this->assertSame( 1, preg_match( '/[?&]' . Rescue_Link::TOKEN_PARAM . '=([a-f0-9]{64})\b/', $sent[ $index ]->body, $matches ), 'The email has no rescue link.' );
+
+		return $matches[1];
+	}
+
+	/**
+	 * Opens a rescue link and returns where it redirected, or null.
+	 *
+	 * @param string $token Token.
+	 * @param string $ip    Visitor IP.
+	 */
+	private function open_link( string $token, string $ip = self::DEFAULT_IP ): ?string {
+		$this->set_request( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token, $ip );
+
+		add_filter(
+			'wp_redirect',
+			static function ( $location, $status ) {
+				throw new RedirectException( (string) $location, (int) $status ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Caught below, never rendered.
+			},
+			1,
+			2
+		);
+
+		try {
+			( new Access() )->init();
+		} catch ( RedirectException $e ) {
+			return $e->getMessage();
+		}
+
+		return null;
+	}
+
+	/**
+	 * Rescue log rows, newest last.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function rescue_log_rows(): array {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name only.
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$this->log_table()}` WHERE log_type = %s ORDER BY log_id ASC", 'rescue' ), ARRAY_A );
+	}
+
+	/**
+	 * The site administrator's address gets one email with a rescue link, in any letter case.
+	 */
+	public function test_admin_email_sends_one_link(): void {
+		$response = $this->submit( strtoupper( (string) get_option( 'admin_email' ) ) );
+
+		$this->assertSame( 200, $response['code'] );
+		$this->assertStringContainsString( 'If that address belongs to a site administrator, a rescue link has been sent.', $response['message'] );
+
+		$sent = $this->sent();
+		$this->assertCount( 1, $sent );
+		$this->assertSame( get_option( 'admin_email' ), $sent[0]->to[0][0] );
+		$this->assertStringContainsString( 'text/plain', $sent[0]->header );
+
+		$token = $this->token_from_email();
+		$this->assertStringContainsString( home_url( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token ), $sent[0]->body );
+		$this->assertStringContainsString( '15 minutes', $sent[0]->body );
+		$this->assertStringContainsString( self::DEFAULT_IP, $sent[0]->body, 'The email does not say which IP asked for it.' );
+		$this->assertStringNotContainsString( '@', home_url( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token ) );
+	}
+
+	/**
+	 * Any user who can manage options (and, on a network, any super admin) can ask.
+	 */
+	public function test_manage_options_user_email_sends_a_link(): void {
+		self::factory()->user->create(
+			array(
+				'role'       => 'administrator',
+				'user_email' => 'owner@example.com',
+			)
+		);
+
+		$this->submit( 'Owner@Example.com' );
+
+		$this->assertCount( 1, $this->sent() );
+		$this->assertSame( 'owner@example.com', $this->sent()[0]->to[0][0] );
+	}
+
+	/**
+	 * Addresses that are not an administrator's get no email and the same answer.
+	 */
+	public function test_other_addresses_send_nothing_and_respond_identically(): void {
+		self::factory()->user->create(
+			array(
+				'role'       => 'editor',
+				'user_email' => 'editor@example.com',
+			)
+		);
+
+		$editor  = $this->submit( 'editor@example.com' );
+		$unknown = $this->submit( 'nobody@example.com', self::OTHER_IP );
+
+		$this->assertSame( array(), $this->sent() );
+
+		$admin = $this->submit( (string) get_option( 'admin_email' ), '192.0.2.44' );
+		$this->assertCount( 1, $this->sent() );
+
+		$this->assertSame( $admin, $editor, 'A non-administrator address gets a different answer, which reveals who the administrators are.' );
+		$this->assertSame( $admin, $unknown );
+	}
+
+	/**
+	 * At most three emails per hour per site.
+	 */
+	public function test_site_send_limit(): void {
+		$admin = (string) get_option( 'admin_email' );
+
+		$first = $this->submit( $admin, '192.0.2.1' );
+		$this->submit( $admin, '192.0.2.2' );
+		$this->submit( $admin, '192.0.2.3' );
+		$this->assertCount( 3, $this->sent() );
+
+		$fourth = $this->submit( $admin, '192.0.2.4' );
+
+		$this->assertCount( 3, $this->sent(), 'A fourth rescue email was sent within the hour.' );
+		$this->assertSame( $first, $fourth );
+	}
+
+	/**
+	 * At most five requests per hour per IP, whatever the address.
+	 */
+	public function test_ip_request_limit(): void {
+		for ( $i = 1; $i <= 5; $i++ ) {
+			$this->submit( "nobody{$i}@example.com" );
+		}
+
+		$sixth = $this->submit( (string) get_option( 'admin_email' ) );
+
+		$this->assertSame( array(), $this->sent(), 'A sixth request from one IP sent an email.' );
+		$this->assertSame( 200, $sixth['code'] );
+		$this->assertStringContainsString( 'If that address belongs to a site administrator, a rescue link has been sent.', $sixth['message'] );
+
+		$this->submit( (string) get_option( 'admin_email' ), self::OTHER_IP );
+		$this->assertCount( 1, $this->sent(), 'The limit of one IP blocked another.' );
+	}
+
+	/**
+	 * A request without a valid nonce sends nothing.
+	 */
+	public function test_invalid_nonce_sends_nothing(): void {
+		$response = $this->submit( (string) get_option( 'admin_email' ), self::DEFAULT_IP, 'not-a-nonce' );
+
+		$this->assertSame( array(), $this->sent() );
+		$this->assertSame( 403, $response['code'] );
+		$this->assertStringContainsString( 'name="' . Rescue_Link::EMAIL_FIELD . '"', $response['message'], 'The form is not shown again.' );
+	}
+
+	/**
+	 * An address that is not an email address gets the form back with an error tied to the field.
+	 */
+	public function test_invalid_address_shows_an_associated_error(): void {
+		$response = $this->submit( 'not an email' );
+
+		$this->assertSame( array(), $this->sent() );
+		$this->assertSame( 400, $response['code'] );
+
+		$xpath = $this->parse( $response['message'] );
+		$input = $xpath->query( '//input[@id="zerospam-rescue-email"]' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $input );
+		$this->assertSame( 'true', $input->getAttribute( 'aria-invalid' ) );
+
+		$error = $xpath->query( '//*[@id="zerospam-rescue-email-error"]' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $error );
+		$this->assertStringContainsString( 'zerospam-rescue-email-error', $input->getAttribute( 'aria-describedby' ) );
+		$this->assertNotSame( '', $xpath->evaluate( 'normalize-space(//*[@id="zerospam-rescue-email-error"])' ) );
+		$this->assertSame( 'not an email', $input->getAttribute( 'value' ) );
+	}
+
+	/**
+	 * Only a hash of the token is stored, for 15 minutes, with the requester's IP.
+	 */
+	public function test_only_the_token_hash_is_stored(): void {
+		global $wpdb;
+
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$token = $this->token_from_email();
+
+		$stored = get_transient( Rescue_Link::TOKEN_TRANSIENT_PREFIX . hash( 'sha256', $token ) );
+		$this->assertIsArray( $stored );
+		$this->assertSame( self::DEFAULT_IP, $stored['ip'] );
+
+		$timeout = (int) get_option( '_transient_timeout_' . Rescue_Link::TOKEN_TRANSIENT_PREFIX . hash( 'sha256', $token ) );
+		if ( ! wp_using_ext_object_cache() ) {
+			$this->assertEqualsWithDelta( time() + 15 * MINUTE_IN_SECONDS, $timeout, 5 );
+		}
+
+		$like = '%' . $wpdb->esc_like( $token ) . '%';
+		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s OR option_value LIKE %s", $like, $like ) ), 'The raw token is stored.' );
+	}
+
+	/**
+	 * A valid link sets the one-hour rescue cookie, logs its use and goes to the login page.
+	 */
+	public function test_valid_link_grants_rescue_and_redirects_to_login(): void {
+		$this->block( self::DEFAULT_IP );
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$token = $this->token_from_email();
+
+		$location = $this->open_link( $token );
+
+		$this->assertSame( wp_login_url(), $location );
+
+		$this->assertCount( 1, Stubs::$cookies );
+		$cookie = Stubs::$cookies[0];
+		$this->assertSame( Access::RESCUE_COOKIE, $cookie['name'] );
+		$this->assertTrue( $cookie['options']['httponly'] );
+		$this->assertSame( 'Lax', $cookie['options']['samesite'] );
+		$this->assertEqualsWithDelta( time() + HOUR_IN_SECONDS, $cookie['options']['expires'], 5 );
+		$this->assertStringNotContainsString( $token, $cookie['value'] );
+
+		// The next request (here: the login page) carries the cookie and is not checked.
+		$this->set_request( '/wp-login.php' );
+		$_COOKIE[ Access::RESCUE_COOKIE ] = $cookie['value'];
+		$this->assertFalse( Access::process( true ) );
+
+		$rows = $this->rescue_log_rows();
+		$this->assertCount( 1, $rows );
+		$this->assertStringNotContainsString( $token, (string) wp_json_encode( $rows[0] ), 'The token was logged.' );
+	}
+
+	/**
+	 * A link works once.
+	 */
+	public function test_link_is_single_use(): void {
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$token = $this->token_from_email();
+
+		$this->assertSame( wp_login_url(), $this->open_link( $token ) );
+		Stubs::$cookies = array();
+		unset( $_COOKIE[ Access::RESCUE_COOKIE ] );
+
+		$this->assertNull( $this->open_link( $token ), 'A used link worked again.' );
+		$this->assertSame( array(), Stubs::$cookies );
+		$this->assertCount( 1, $this->rescue_log_rows() );
+	}
+
+	/**
+	 * A link stops working after 15 minutes.
+	 */
+	public function test_link_expires(): void {
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$token = $this->token_from_email();
+		$key   = Rescue_Link::TOKEN_TRANSIENT_PREFIX . hash( 'sha256', $token );
+
+		// Age the stored token past its 15 minutes: both the transient timeout and the expiry stored with it.
+		$stored            = get_transient( $key );
+		$stored['expires'] = time() - 1;
+		set_transient( $key, $stored, MINUTE_IN_SECONDS );
+
+		$this->assertNull( $this->open_link( $token ), 'An expired link worked.' );
+		$this->assertSame( array(), Stubs::$cookies );
+
+		$this->submit( (string) get_option( 'admin_email' ), self::OTHER_IP );
+		$token = $this->token_from_email( 1 );
+		if ( ! wp_using_ext_object_cache() ) {
+			update_option( '_transient_timeout_' . Rescue_Link::TOKEN_TRANSIENT_PREFIX . hash( 'sha256', $token ), time() - 1 );
+			$this->assertNull( $this->open_link( $token ), 'A link whose transient expired worked.' );
+		}
+	}
+
+	/**
+	 * Links are often opened on another device, so another IP may use one; both IPs are logged.
+	 */
+	public function test_link_from_another_ip_works_and_logs_both_ips(): void {
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$token = $this->token_from_email();
+
+		$this->assertSame( wp_login_url(), $this->open_link( $token, self::OTHER_IP ) );
+
+		$rows = $this->rescue_log_rows();
+		$this->assertCount( 1, $rows );
+		$this->assertSame( self::OTHER_IP, $rows[0]['user_ip'] );
+
+		$details = json_decode( (string) $rows[0]['submission_data'], true );
+		$this->assertSame( self::DEFAULT_IP, $details['requested_ip'] ?? null );
+		$this->assertSame( self::OTHER_IP, $details['used_ip'] ?? null );
+	}
+
+	/**
+	 * Made-up or malformed tokens do nothing.
+	 *
+	 * @dataProvider data_bad_tokens
+	 *
+	 * @param string $token Token.
+	 */
+	public function test_unknown_tokens_are_ignored( string $token ): void {
+		$this->assertNull( $this->open_link( rawurlencode( $token ) ) );
+		$this->assertSame( array(), Stubs::$cookies );
+		$this->assertSame( array(), $this->rescue_log_rows() );
+	}
+
+	/**
+	 * Tokens that were never issued.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function data_bad_tokens(): array {
+		return array(
+			'unknown'   => array( str_repeat( 'ab', 32 ) ),
+			'too short' => array( 'abc123' ),
+			'not hex'   => array( str_repeat( 'zz', 32 ) ),
+			'empty'     => array( '' ),
+		);
+	}
+
+	/**
+	 * A tampered rescue-link cookie is ignored.
+	 */
+	public function test_tampered_link_cookie_is_ignored(): void {
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$this->open_link( $this->token_from_email() );
+		$value = Stubs::$cookies[0]['value'];
+
+		$this->set_request( '/' );
+		$_COOKIE[ Access::RESCUE_COOKIE ] = substr( $value, 0, -1 ) . ( 'a' === substr( $value, -1 ) ? 'b' : 'a' );
+		$this->assertTrue( Access::process() );
+
+		$_COOKIE[ Access::RESCUE_COOKIE ] = $value;
+		$this->assertFalse( Access::process() );
+	}
+
+	/**
+	 * The rescue request is reachable for a blocked IP, and only on admin-post.php.
+	 */
+	public function test_rescue_request_is_reachable_for_a_blocked_ip(): void {
+		$this->block( self::DEFAULT_IP );
+		$this->assertNotFalse( has_action( 'admin_post_nopriv_' . Rescue_Link::ACTION ), 'The rescue request handler is not registered for visitors.' );
+		$this->assertNotFalse( has_action( 'admin_post_' . Rescue_Link::ACTION ) );
+
+		$this->set_request( '/wp-admin/admin-post.php' );
+		$this->admin_screen();
+		$GLOBALS['pagenow']        = 'admin-post.php';
+		$_SERVER['REQUEST_METHOD'] = 'POST';
+		$_POST                     = array(
+			'action'                 => Rescue_Link::ACTION,
+			Rescue_Link::NONCE_FIELD => wp_create_nonce( Rescue_Link::NONCE_ACTION ),
+			Rescue_Link::EMAIL_FIELD => (string) get_option( 'admin_email' ),
+		);
+		$_REQUEST                  = $_POST;
+
+		$this->assertFalse( Access::process() );
+		$this->assertFalse( Access::process( true ) );
+
+		try {
+			do_action( 'admin_post_nopriv_' . Rescue_Link::ACTION );
+			$this->fail( 'The handler did not answer.' );
+		} catch ( WPDieException $e ) {
+			$this->assertSame( 200, (int) $e->getCode() );
+		}
+
+		$this->assertCount( 1, $this->sent() );
+	}
+
+	/**
+	 * The action name alone does not exempt a front-end request.
+	 */
+	public function test_action_parameter_on_the_front_end_is_still_checked(): void {
+		$this->set_request( '/?action=' . Rescue_Link::ACTION );
+
+		$this->assertTrue( Access::process() );
+	}
+
+	/**
+	 * The blocked page keeps the message and 403, with a collapsed, labelled rescue form.
+	 */
+	public function test_blocked_page_has_a_labelled_rescue_form(): void {
+		$this->set_setting( 'blocked_message', 'Custom <strong>blocked</strong> message.', 'settings' );
+		$this->block( self::DEFAULT_IP );
+
+		$access = new Access();
+		add_filter( 'zerospam_access_checks', array( $access, 'check_blocked' ), 0, 3 );
+
+		try {
+			$access->run_block_check();
+			$this->fail( 'A blocked visitor was let through.' );
+		} catch ( WPDieException $e ) {
+			$this->assertSame( 403, (int) $e->getCode() );
+			$html = $e->getMessage();
+		}
+
+		$this->assertStringContainsString( 'Custom <strong>blocked</strong> message.', $html );
+
+		$xpath   = $this->parse( $html );
+		$details = $xpath->query( '//details' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $details );
+		$this->assertFalse( $details->hasAttribute( 'open' ), 'The site owner section is not collapsed.' );
+		$this->assertSame( 1, $xpath->query( '//details/summary' )->length );
+
+		$form = $xpath->query( '//details//form' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $form );
+		$this->assertSame( 'post', strtolower( $form->getAttribute( 'method' ) ) );
+		$this->assertSame( admin_url( 'admin-post.php' ), $form->getAttribute( 'action' ) );
+
+		$input = $xpath->query( '//form//input[@type="email"]' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $input );
+		$this->assertSame( Rescue_Link::EMAIL_FIELD, $input->getAttribute( 'name' ) );
+		$this->assertTrue( $input->hasAttribute( 'required' ) );
+		$label = $xpath->query( '//form//label[@for="' . $input->getAttribute( 'id' ) . '"]' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $label, 'The email field has no label.' );
+		$this->assertNotSame( '', $xpath->evaluate( 'normalize-space(//form//label[@for="' . $input->getAttribute( 'id' ) . '"])' ) );
+
+		$this->assertSame( 1, $xpath->query( '//form//input[@type="hidden"][@name="action"][@value="' . Rescue_Link::ACTION . '"]' )->length );
+		$this->assertSame( 1, $xpath->query( '//form//input[@type="hidden"][@name="' . Rescue_Link::NONCE_FIELD . '"]' )->length );
+		$this->assertSame( 1, $xpath->query( '//form//button[@type="submit"]' )->length );
+		$this->assertSame( 1, $xpath->query( '//details//a[@href="https://wordpress.org/plugins/zero-spam/#faq"]' )->length );
+		$this->assertStringContainsString( 'Site owner? If you administer this site, enter the site', $html );
+	}
+
+	/**
+	 * Other pages that use terminate_execution() (spam detections) have no rescue form.
+	 */
+	public function test_detection_pages_have_no_rescue_form(): void {
+		try {
+			Access::terminate_execution( 'Blocked', 'Spam detected.' );
+			$this->fail( 'terminate_execution() returned.' );
+		} catch ( WPDieException $e ) {
+			$this->assertSame( 403, (int) $e->getCode() );
+			$this->assertStringNotContainsString( '<form', $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Parses an HTML fragment.
+	 *
+	 * @param string $html Markup.
+	 */
+	private function parse( string $html ): DOMXPath {
+		$document = new DOMDocument();
+		libxml_use_internal_errors( true );
+		$document->loadHTML( '<?xml encoding="utf-8"?><body>' . $html . '</body>' );
+		libxml_clear_errors();
+
+		return new DOMXPath( $document );
+	}
+}

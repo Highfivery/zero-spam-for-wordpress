@@ -25,12 +25,16 @@ class Test_Migrations extends TestCase {
 		'share_detection_cron_cleanup',
 		'davidwalsh_signed_tokens',
 		'geolocation_header_cache',
+		'whitelist_admin_ip',
 	);
 
 	/**
 	 * The first run records every migration and fires zerospam_plugin_updated once.
+	 *
+	 * Runs as an administrator: whitelist_admin_ip waits for one (see Test_Admin_Whitelist).
 	 */
 	public function test_first_run_records_every_migration(): void {
+		$this->as_role( 'administrator' );
 		delete_option( Migrations::COMPLETED_OPTION );
 		$updated = new MockAction();
 		add_action( 'zerospam_plugin_updated', array( $updated, 'action' ) );
@@ -47,6 +51,7 @@ class Test_Migrations extends TestCase {
 	 * A second run does nothing and fires nothing.
 	 */
 	public function test_second_run_is_a_no_op(): void {
+		$this->as_role( 'administrator' );
 		delete_option( Migrations::COMPLETED_OPTION );
 		( new Migrations() )->run();
 
