@@ -40,6 +40,6 @@ Props @username, @username2, ...
 <!--- If you are unsure about any of these, please ask for clarification.  We are here to help! -->
 - [ ] I agree to follow this project's [**Code of Conduct**](./CODE_OF_CONDUCT.md).
 - [ ] `composer check` passes locally and its summary is included above.
-- [ ] I have updated the documentation accordingly.
+- [ ] I have updated the documentation accordingly (including `AGENTS.md` if a convention, tool or process changed).
 - [ ] I have added tests to cover my change.
 - [ ] All new and existing tests pass.

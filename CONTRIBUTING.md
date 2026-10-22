@@ -24,6 +24,8 @@ For more on how Highfivery Studio writes and manages code, check out our [WordPr
 
 ## Workflow
 
+Agent and contributor conventions (repository map, standards, quality gate, definition of done) live in [`AGENTS.md`](AGENTS.md). Keep it current whenever a convention changes.
+
 - `develop` is the default branch and the integration branch. It always contains the next release and is kept in sync with `main` (fast-forwarded after every release).
 - `main` always matches the latest release published on WordPress.org. Release tags (`vX.Y.Z`) are cut from `main`.
 - Branch from `develop` using a descriptive prefix (`fix/`, `feature/`, `security/`, `chore/`, `docs/`) and open pull requests against `develop`.
