@@ -84,6 +84,38 @@ class Test_DB_Log extends TestCase {
 	}
 
 	/**
+	 * Rows recorded in the same second are pruned in insertion order, lowest
+	 * log_id first.
+	 */
+	public function test_pruning_breaks_date_ties_by_log_id(): void {
+		$this->set_setting( 'max_logs', 3 );
+		$ids = $this->insert_log_rows( 4, array( 'date_recorded' => '2026-01-01 00:00:00' ) );
+
+		DB::log( 'comment', array() );
+
+		$remaining = array_map( 'intval', $GLOBALS['wpdb']->get_col( 'SELECT log_id FROM `' . $this->log_table() . '` ORDER BY log_id' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Fixed table name.
+		$this->assertCount( 3, $remaining );
+		$this->assertNotContains( $ids[0], $remaining, 'The lowest log_id survived a tie on date_recorded.' );
+		$this->assertNotContains( $ids[1], $remaining, 'The second lowest log_id survived a tie on date_recorded.' );
+		$this->assertSame( array( $ids[2], $ids[3] ), array_slice( $remaining, 0, 2 ) );
+	}
+
+	/**
+	 * A max_logs value that is not a positive number disables pruning instead
+	 * of emptying the table.
+	 */
+	public function test_non_numeric_max_logs_prunes_nothing(): void {
+		$this->set_setting( 'max_logs', 'abc' );
+		$ids = $this->insert_log_rows( 3 );
+
+		$this->assertSame( 1, DB::log( 'comment', array() ) );
+
+		$remaining = array_map( 'intval', $GLOBALS['wpdb']->get_col( 'SELECT log_id FROM `' . $this->log_table() . '` ORDER BY log_id' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Fixed table name.
+		$this->assertCount( 4, $remaining );
+		$this->assertSame( $ids, array_slice( $remaining, 0, 3 ), 'A seeded row was deleted.' );
+	}
+
+	/**
 	 * Empty and zero max_logs values.
 	 *
 	 * @return array<string, array{0: int|string}>

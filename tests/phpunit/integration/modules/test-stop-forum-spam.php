@@ -113,6 +113,39 @@ class Test_Stop_Forum_Spam extends TestCase {
 	}
 
 	/**
+	 * The module's comment check runs through the
+	 * zerospam_preprocess_comment_submission filter, called the way the
+	 * comments module calls it (three arguments, the callback accepts two).
+	 *
+	 * @covers \ZeroSpam\Modules\StopForumSpam::init
+	 * @covers \ZeroSpam\Modules\StopForumSpam::preprocess_comments
+	 */
+	public function test_comment_filter_reports_a_listed_email(): void {
+		$this->mock_http(
+			self::API,
+			array(
+				'success' => 1,
+				'email'   => array(
+					'appears'    => 1,
+					'confidence' => 90,
+				),
+			)
+		);
+
+		( new StopForumSpam() )->init();
+
+		$errors = apply_filters(
+			'zerospam_preprocess_comment_submission',
+			array(),
+			array( 'comment_author_email' => 'spammer@example.com' ),
+			'comment_spam_message'
+		);
+
+		$this->assertContains( 'stop_forum_spam_email', $errors );
+		$this->assertSame( 1, \ZeroSpam\Tests\HttpMock::hits( self::API ) );
+	}
+
+	/**
 	 * A registration whose username Stop Forum Spam reports is rejected.
 	 *
 	 * @covers \ZeroSpam\Modules\StopForumSpam::preprocess_registrations
