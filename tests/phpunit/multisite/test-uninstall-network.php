@@ -27,35 +27,6 @@ class Test_Uninstall_Network extends TestCase {
 	private static array $sites = array();
 
 	/**
-	 * Every module option key used in the source.
-	 */
-	const MODULES = array(
-		'comments',
-		'contactform7',
-		'davidwalsh',
-		'debug',
-		'elementor',
-		'fluent_form',
-		'formidable',
-		'givewp',
-		'google',
-		'gravityforms',
-		'ipbase',
-		'ipinfo',
-		'ipstack',
-		'login',
-		'mailchimp4wp',
-		'project_honeypot',
-		'registration',
-		'security',
-		'settings',
-		'stop_forum_spam',
-		'woocommerce',
-		'wpforms',
-		'zerospam',
-	);
-
-	/**
 	 * Network (site) options the plugin writes.
 	 */
 	const NETWORK_OPTIONS = array(
@@ -95,7 +66,7 @@ class Test_Uninstall_Network extends TestCase {
 	private function seed_sites(): void {
 		foreach ( array_merge( array( get_main_site_id() ), self::$sites ) as $blog_id ) {
 			switch_to_blog( $blog_id );
-			foreach ( self::MODULES as $module ) {
+			foreach ( self::PLUGIN_MODULES as $module ) {
 				update_option( "zero-spam-{$module}", array( 'seeded' => 'yes' ) );
 			}
 			update_option( 'zerospam_db_version', 'seeded' );
@@ -117,7 +88,7 @@ class Test_Uninstall_Network extends TestCase {
 
 		$left = array();
 		foreach ( array_merge( array( get_main_site_id() ), self::$sites ) as $blog_id ) {
-			foreach ( array_merge( self::MODULES, array( 'db_version' ) ) as $module ) {
+			foreach ( array_merge( self::PLUGIN_MODULES, array( 'db_version' ) ) as $module ) {
 				$option = 'db_version' === $module ? 'zerospam_db_version' : "zero-spam-{$module}";
 				if ( false !== get_blog_option( $blog_id, $option ) ) {
 					$left[] = "site {$blog_id}: {$option}";
@@ -150,6 +121,38 @@ class Test_Uninstall_Network extends TestCase {
 		}
 
 		$this->assertSame( array(), $left, 'uninstall.php left these network options behind.' );
+	}
+
+	/**
+	 * Cron events are cleared on every site.
+	 */
+	public function test_removes_cron_events_on_every_site(): void {
+		$sites = array_merge( array( get_main_site_id() ), self::$sites );
+		foreach ( $sites as $blog_id ) {
+			switch_to_blog( $blog_id );
+			foreach ( self::PLUGIN_CRON_HOOKS as $hook ) {
+				wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', $hook );
+			}
+			restore_current_blog();
+		}
+
+		$this->uninstall();
+		while ( ms_is_switched() ) {
+			restore_current_blog();
+		}
+
+		$left = array();
+		foreach ( $sites as $blog_id ) {
+			switch_to_blog( $blog_id );
+			foreach ( self::PLUGIN_CRON_HOOKS as $hook ) {
+				if ( false !== wp_next_scheduled( $hook ) ) {
+					$left[] = "site {$blog_id}: {$hook}";
+				}
+			}
+			restore_current_blog();
+		}
+
+		$this->assertSame( array(), $left, 'uninstall.php left these cron events behind.' );
 	}
 
 	/**

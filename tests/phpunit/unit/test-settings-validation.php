@@ -23,7 +23,7 @@ class Test_Settings_Validation extends TestCase {
 	 *
 	 * @return array<string, array{0: mixed, 1: bool}>
 	 */
-	public function data_setting_definitions(): array {
+	public static function data_setting_definitions(): array {
 		return array(
 			'type and module'       => array(
 				array(

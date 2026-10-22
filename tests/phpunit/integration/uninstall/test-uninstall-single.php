@@ -20,35 +20,6 @@ use ZeroSpam\Tests\TestCase;
 class Test_Uninstall_Single extends TestCase {
 
 	/**
-	 * Every module option key used in the source (`'module' => '…'`).
-	 */
-	const MODULES = array(
-		'comments',
-		'contactform7',
-		'davidwalsh',
-		'debug',
-		'elementor',
-		'fluent_form',
-		'formidable',
-		'givewp',
-		'google',
-		'gravityforms',
-		'ipbase',
-		'ipinfo',
-		'ipstack',
-		'login',
-		'mailchimp4wp',
-		'project_honeypot',
-		'registration',
-		'security',
-		'settings',
-		'stop_forum_spam',
-		'woocommerce',
-		'wpforms',
-		'zerospam',
-	);
-
-	/**
 	 * Site options the plugin writes besides the module options.
 	 */
 	const OPTIONS = array(
@@ -82,17 +53,6 @@ class Test_Uninstall_Single extends TestCase {
 	);
 
 	/**
-	 * Cron hooks the plugin schedules.
-	 */
-	const CRON_HOOKS = array(
-		'zerospam_davidwalsh_rotate_key',
-		'zerospam_aggregate_daily_stats',
-		'zerospam_check_api_anomalies',
-		'zerospam_aggregate_api_data',
-		'zerospam_async_share_detection',
-	);
-
-	/**
 	 * Runs uninstall.php as WordPress does.
 	 */
 	private function uninstall(): void {
@@ -109,7 +69,7 @@ class Test_Uninstall_Single extends TestCase {
 	public function test_removes_options_transients_and_cron_events(): void {
 		global $wpdb;
 
-		foreach ( self::MODULES as $module ) {
+		foreach ( self::PLUGIN_MODULES as $module ) {
 			update_option( "zero-spam-{$module}", array( 'seeded' => 'yes' ) );
 		}
 		foreach ( self::OPTIONS as $option ) {
@@ -118,7 +78,7 @@ class Test_Uninstall_Single extends TestCase {
 		foreach ( self::TRANSIENTS as $transient ) {
 			set_transient( $transient, 'seeded', HOUR_IN_SECONDS );
 		}
-		foreach ( self::CRON_HOOKS as $hook ) {
+		foreach ( self::PLUGIN_CRON_HOOKS as $hook ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', $hook );
 		}
 
@@ -130,7 +90,7 @@ class Test_Uninstall_Single extends TestCase {
 				static function ( string $module ): string {
 					return "zero-spam-{$module}";
 				},
-				self::MODULES
+				self::PLUGIN_MODULES
 			),
 			self::OPTIONS
 		);
@@ -146,7 +106,7 @@ class Test_Uninstall_Single extends TestCase {
 				$left[] = "transient {$transient}";
 			}
 		}
-		foreach ( self::CRON_HOOKS as $hook ) {
+		foreach ( self::PLUGIN_CRON_HOOKS as $hook ) {
 			if ( false !== wp_next_scheduled( $hook ) ) {
 				$left[] = "cron {$hook}";
 			}
@@ -170,9 +130,10 @@ class Test_Uninstall_Single extends TestCase {
 
 		$missing = array();
 		foreach ( DB::$tables as $table ) {
-			$drop = "DROP TABLE IF EXISTS {$wpdb->prefix}{$table}";
-			if ( ! in_array( $drop, $queries, true ) ) {
-				$missing[] = $drop;
+			$name    = $wpdb->prefix . $table;
+			$pattern = '/^DROP TABLE IF EXISTS\s+`?' . preg_quote( $name, '/' ) . '`?\s*;?$/i';
+			if ( ! preg_grep( $pattern, array_map( 'trim', $queries ) ) ) {
+				$missing[] = $name;
 			}
 		}
 

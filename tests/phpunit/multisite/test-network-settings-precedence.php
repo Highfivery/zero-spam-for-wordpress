@@ -57,7 +57,7 @@ class Test_Network_Settings_Precedence extends TestCase {
 	 *
 	 * @return array<string, array{0: int|null, 1: bool, 2: int|null, 3: int}>
 	 */
-	public function data_precedence(): array {
+	public static function data_precedence(): array {
 		return array(
 			'plugin default'                  => array( null, false, null, 10000 ),
 			'network default'                 => array( 500, false, null, 500 ),

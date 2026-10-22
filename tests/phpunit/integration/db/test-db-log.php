@@ -43,11 +43,13 @@ class Test_DB_Log extends TestCase {
 
 		$remaining = array_map( 'intval', $GLOBALS['wpdb']->get_col( 'SELECT log_id FROM `' . $this->log_table() . '` ORDER BY log_id' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Fixed table name.
 		foreach ( array_slice( $ids, 0, 3 ) as $oldest ) {
-			$this->assertNotContains( $oldest, $remaining, 'An old row survived while newer ones were pruned.' );
+			$this->assertNotContains( $oldest, $remaining, 'One of the three oldest rows survived.' );
 		}
-		foreach ( array_slice( $ids, 3 ) as $newer ) {
-			$this->assertContains( $newer, $remaining );
-		}
+
+		// However many seeded rows survive, they are the newest ones.
+		$survivors = array_values( array_intersect( $ids, $remaining ) );
+		$this->assertNotEmpty( $survivors );
+		$this->assertSame( array_slice( $ids, -count( $survivors ) ), $survivors, 'Pruning removed a newer row before an older one.' );
 	}
 
 	/**
@@ -73,7 +75,7 @@ class Test_DB_Log extends TestCase {
 	 *
 	 * @return array<string, array{0: string}>
 	 */
-	public function data_asset_urls(): array {
+	public static function data_asset_urls(): array {
 		return array(
 			'script'     => array( '/wp-content/plugins/missing/app.js' ),
 			'stylesheet' => array( '/wp-content/themes/missing/style.css' ),

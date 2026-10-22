@@ -92,5 +92,6 @@ class Test_Stop_Forum_Spam extends TestCase {
 		$errors = ( new StopForumSpam() )->preprocess_registrations( new WP_Error(), 'jane', 'jane@example.com' );
 
 		$this->assertFalse( $errors->has_errors() );
+		$this->assertSame( 1, \ZeroSpam\Tests\HttpMock::hits( self::API ), 'The registration was not checked against the API.' );
 	}
 }
