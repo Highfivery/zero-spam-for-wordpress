@@ -43,6 +43,20 @@
 	const REFRESH_THRESHOLD = 300;
 
 	/**
+	 * Longest a submission waits for an in-flight key refresh, in ms.
+	 *
+	 * @type {number}
+	 */
+	const REFRESH_WAIT_MS = 3000;
+
+	/**
+	 * Attribute marking a form whose submission is being held for a refresh.
+	 *
+	 * @type {string}
+	 */
+	const HOLD_ATTR = 'data-zerospam-davidwalsh-hold';
+
+	/**
 	 * Cookie carrying the key on login pages, so the login check still has it
 	 * when another plugin strips unknown fields from the login POST.
 	 *
@@ -70,6 +84,13 @@
 	 * @type {Promise<void>|null}
 	 */
 	let refreshing = null;
+
+	/**
+	 * Forms being resubmitted after a held submission.
+	 *
+	 * @type {WeakSet<HTMLFormElement>}
+	 */
+	const resubmitting = new WeakSet();
 
 	/**
 	 * Whether a key has already been fetched for this page view.
@@ -102,6 +123,14 @@
 		// submission (AJAX forms can be resubmitted without a reload).
 		form.addEventListener( 'focusin', refreshOnce );
 		form.addEventListener( 'pointerdown', refreshOnce );
+
+		// If a refresh is still in flight when the form is submitted (e.g. it
+		// started on pointerdown of the submit button), hold the submission
+		// until the new key is in the form, so the old one isn't sent. Runs in
+		// the capture phase so other submit handlers (AJAX forms) only see
+		// the resubmitted event.
+		form.addEventListener( 'submit', waitForRefresh, true );
+
 		form.addEventListener( 'submit', function() {
 			setTimeout( refreshKey, 1000 );
 		} );
@@ -123,6 +152,94 @@
 			input.name = INPUT_NAME;
 			input.value = currentKey;
 			form.appendChild( input );
+		}
+	}
+
+	/**
+	 * Hold a form submission while a key refresh is in flight, then submit
+	 * again with the new key (submit event listener, capture phase).
+	 *
+	 * While a submission is held, further submits (double clicks, Enter)
+	 * are swallowed, so the old key is never sent and the form is sent once;
+	 * the programmatic resubmission is let through by the `resubmitting`
+	 * set. Gives up waiting after REFRESH_WAIT_MS so a stalled request never
+	 * blocks the form, and always clears the hold, even if the refresh
+	 * rejects or requestSubmit() throws. Only used where requestSubmit()
+	 * exists, since it re-runs the form's submit handlers and keeps the
+	 * submit button.
+	 *
+	 * @param {SubmitEvent} event - The submit event.
+	 */
+	function waitForRefresh( event ) {
+		const form = event.currentTarget;
+
+		// The resubmission below: let it through.
+		if ( resubmitting.has( form ) ) {
+			return;
+		}
+
+		// A repeat submit while held: swallow it.
+		if ( form.hasAttribute( HOLD_ATTR ) ) {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			return;
+		}
+
+		if ( ! refreshing || typeof form.requestSubmit !== 'function' ) {
+			return;
+		}
+
+		event.preventDefault();
+		event.stopImmediatePropagation();
+		form.setAttribute( HOLD_ATTR, '' );
+
+		const submitter = event.submitter || null;
+		const timeout = new Promise( function( resolve ) {
+			setTimeout( resolve, REFRESH_WAIT_MS );
+		} );
+
+		Promise.race( [ refreshing, timeout ] )
+			.catch( function() {
+				// Submit with whatever key the form has.
+			} )
+			.then( function() {
+				form.removeAttribute( HOLD_ATTR );
+				resubmitting.add( form );
+
+				try {
+					if ( submitter && submitter.form === form ) {
+						form.requestSubmit( submitter );
+					} else {
+						form.requestSubmit();
+					}
+				} finally {
+					resubmitting.delete( form );
+				}
+			} )
+			.catch( function( e ) {
+				form.removeAttribute( HOLD_ATTR );
+
+				if ( console && console.warn ) {
+					console.warn( 'Zero Spam: could not resubmit the form', e );
+				}
+			} );
+	}
+
+	/**
+	 * Add a cache-busting parameter to a key endpoint URL, so no page,
+	 * proxy or CDN cache can serve an old (expired or used-up) key.
+	 *
+	 * @param {string} url Endpoint URL.
+	 * @return {string} URL with a unique query parameter.
+	 */
+	function noCacheUrl( url ) {
+		try {
+			const parsed = new URL( url, window.location.href );
+			parsed.searchParams.set( '_zs', Date.now().toString( 36 ) + Math.random().toString( 36 ).slice( 2, 8 ) );
+
+			return parsed.toString();
+		} catch ( e ) {
+			return url;
 		}
 	}
 
@@ -153,7 +270,7 @@
 	 */
 	async function fetchKey( url ) {
 		try {
-			const response = await fetch( url, {
+			const response = await fetch( noCacheUrl( url ), {
 				method: 'GET',
 				cache: 'no-store',
 				credentials: 'same-origin',
@@ -306,6 +423,14 @@
 
 		// Attempt key refresh if page might be cached.
 		maybeRefreshKey();
+
+		// A page restored from the back/forward cache still holds the key it
+		// was first shown with, which may since have expired or been used.
+		window.addEventListener( 'pageshow', function( event ) {
+			if ( event.persisted ) {
+				refreshKey();
+			}
+		} );
 	}
 
 	// Initialize when DOM is ready.
