@@ -31,7 +31,7 @@ Agent and contributor conventions (repository map, standards, quality gate, defi
 - Branch from `develop` using a descriptive prefix (`fix/`, `feature/`, `security/`, `chore/`, `docs/`) and open pull requests against `develop`.
 - Both `develop` and `main` are protected: changes land only through pull requests, and force pushes and branch deletion are disabled. There is no hosted CI; the quality gate below runs locally before every push and its results are posted on the PR.
 - Commit messages follow the conventional style already used in the history: `fix(scope): …`, `feat(scope): …`, `security(scope): …`, `perf(scope): …`, `docs: …`, `chore: …`.
-- Every PR must include a `readme.txt` changelog entry (see the PR template). `readme.txt` is the single changelog for this project; there is no separate `CHANGELOG.md`.
+- Every PR must include a `readme.txt` changelog entry (see the PR template). `readme.txt` carries the changelog for the current minor series and `CHANGELOG.md` the full history; release PRs add each version to both (see the release instructions below).
 
 ## Quality gate
 
