@@ -39,6 +39,8 @@ class Access {
 	 * request should be blocked.
 	 */
 	public function init() {
+		$this->redeem_rescue_link();
+
 		if ( ! is_admin() && self::process() ) {
 			add_action( 'template_redirect', array( $this, 'access_check' ), 0 );
 			add_filter( 'zerospam_access_checks', array( $this, 'check_blocked' ), 0, 3 );
@@ -65,19 +67,26 @@ class Access {
 	 *                        to ensure only safe HTML is included.
 	 * @param int    $code    Optional. The HTTP status code to be sent in the header.
 	 *                        Defaults to 403 to indicate a Forbidden error.
+	 * @param bool   $rescue  Optional. Whether to add the "Help for site owners"
+	 *                        section with the rescue link form (the blocked
+	 *                        page only), unless the zerospam_rescue_form_enabled
+	 *                        filter turns it off. Default false.
 	 */
-	public static function terminate_execution( $title, $message, $code = 403 ) {
+	public static function terminate_execution( $title, $message, $code = 403, $rescue = false ) {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 			define( 'DONOTCACHEPAGE', true );
 		}
 		nocache_headers();
 
+		$rescue = $rescue && Rescue_Link::form_enabled();
+
+		// The administrator's message keeps the post allowlist; only the plugin's own form markup may add form controls and styles.
 		wp_die(
-			wp_kses_post( $message ),
+			$rescue ? '<h1>' . esc_html( $title ) . '</h1>' . wp_kses_post( $message ) . wp_kses( Rescue_Link::form_html(), Rescue_Link::allowed_html() ) : wp_kses_post( $message ),
 			esc_html( $title ),
-			[
-				'response' => esc_html( $code ),
-			]
+			array(
+				'response' => absint( $code ),
+			)
 		);
 	}
 
@@ -87,47 +96,144 @@ class Access {
 	 * A valid `?zerospam_rescue={ZEROSPAM_RESCUE_KEY}` also sets a cookie that
 	 * bypasses checks for an hour, because the key isn't carried through
 	 * redirects or the login form (e.g. /wp-admin/ → wp-login.php → POST).
+	 * The cookie set by an emailed rescue link (see redeem_rescue_link()) is
+	 * accepted too, with or without the constant.
 	 *
 	 * @return bool
 	 */
 	private static function is_rescue_request() {
-		if ( ! defined( 'ZEROSPAM_RESCUE_KEY' ) || ! is_string( ZEROSPAM_RESCUE_KEY ) || '' === ZEROSPAM_RESCUE_KEY ) {
-			return false;
-		}
+		$key = defined( 'ZEROSPAM_RESCUE_KEY' ) && is_string( ZEROSPAM_RESCUE_KEY ) ? ZEROSPAM_RESCUE_KEY : '';
 
-		$token = hash_hmac( 'sha256', 'zerospam_rescue', ZEROSPAM_RESCUE_KEY );
-
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput -- Compared with hash_equals() against the secret key only.
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput -- Compared with hash_equals() against secrets only.
 		if (
+			'' !== $key &&
 			isset( $_GET['zerospam_rescue'] ) &&
 			is_string( $_GET['zerospam_rescue'] ) &&
-			hash_equals( ZEROSPAM_RESCUE_KEY, wp_unslash( $_GET['zerospam_rescue'] ) )
+			hash_equals( $key, wp_unslash( $_GET['zerospam_rescue'] ) )
 		) {
-			if ( ! headers_sent() ) {
-				setcookie(
-					self::RESCUE_COOKIE,
-					$token,
-					array(
-						'expires'  => time() + HOUR_IN_SECONDS,
-						'path'     => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
-						'domain'   => defined( 'COOKIE_DOMAIN' ) && COOKIE_DOMAIN ? COOKIE_DOMAIN : '',
-						'secure'   => is_ssl(),
-						'httponly' => true,
-						'samesite' => 'Lax',
-					)
-				);
-			}
-			$_COOKIE[ self::RESCUE_COOKIE ] = $token;
+			self::grant_rescue_cookie( self::rescue_key_token( $key ), time() + HOUR_IN_SECONDS );
 
 			return true;
 		}
 
-		$has_cookie = isset( $_COOKIE[ self::RESCUE_COOKIE ] ) &&
-			is_string( $_COOKIE[ self::RESCUE_COOKIE ] ) &&
-			hash_equals( $token, $_COOKIE[ self::RESCUE_COOKIE ] );
+		if ( ! isset( $_COOKIE[ self::RESCUE_COOKIE ] ) || ! is_string( $_COOKIE[ self::RESCUE_COOKIE ] ) ) {
+			return false;
+		}
+
+		$cookie = wp_unslash( $_COOKIE[ self::RESCUE_COOKIE ] );
 		// phpcs:enable
 
-		return $has_cookie;
+		if ( '' !== $key && hash_equals( self::rescue_key_token( $key ), $cookie ) ) {
+			return true;
+		}
+
+		return self::is_valid_link_cookie( $cookie );
+	}
+
+	/**
+	 * Rescue cookie value for the ZEROSPAM_RESCUE_KEY constant.
+	 *
+	 * @param string $key Rescue key.
+	 */
+	private static function rescue_key_token( string $key ): string {
+		return hash_hmac( 'sha256', 'zerospam_rescue', $key );
+	}
+
+	/**
+	 * Rescue cookie value for an emailed rescue link.
+	 *
+	 * Carries its own expiry, signed with the site's auth salt, so the hour is
+	 * enforced by the server and not only by the browser. The signature also
+	 * covers the site and network IDs: on a network every site shares the
+	 * cookie path and domain, and a link used on one site must not open the
+	 * others.
+	 *
+	 * @param int $expires Expiry timestamp.
+	 */
+	private static function link_cookie_value( int $expires ): string {
+		$scope = 'zerospam_rescue_link|' . $expires . '|' . get_current_blog_id() . '|' . get_current_network_id();
+
+		return $expires . '.' . hash_hmac( 'sha256', $scope, wp_salt( 'auth' ) );
+	}
+
+	/**
+	 * Whether a rescue cookie value comes from an emailed link and is still valid.
+	 *
+	 * @param string $value Cookie value.
+	 */
+	private static function is_valid_link_cookie( string $value ): bool {
+		$parts = explode( '.', $value, 2 );
+		if ( 2 !== count( $parts ) || ! ctype_digit( $parts[0] ) || (int) $parts[0] < time() ) {
+			return false;
+		}
+
+		return hash_equals( self::link_cookie_value( (int) $parts[0] ), $value );
+	}
+
+	/**
+	 * Sets the rescue cookie, which bypasses checks in this browser until it expires.
+	 *
+	 * Used by the ZEROSPAM_RESCUE_KEY constant and by emailed rescue links.
+	 *
+	 * @param string $value   Cookie value.
+	 * @param int    $expires Expiry timestamp.
+	 */
+	private static function grant_rescue_cookie( string $value, int $expires ): void {
+		if ( ! headers_sent() ) {
+			setcookie(
+				self::RESCUE_COOKIE,
+				$value,
+				array(
+					'expires'  => $expires,
+					'path'     => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
+					'domain'   => defined( 'COOKIE_DOMAIN' ) && COOKIE_DOMAIN ? COOKIE_DOMAIN : '',
+					'secure'   => is_ssl(),
+					'httponly' => true,
+					'samesite' => 'Lax',
+				)
+			);
+		}
+		$_COOKIE[ self::RESCUE_COOKIE ] = $value;
+	}
+
+	/**
+	 * Handles an emailed rescue link before any block check (runs on `init`).
+	 *
+	 * Opening the link (GET) only shows a "Let me back in" button and leaves
+	 * the token unused, because email scanners open links on their own. The
+	 * button's POST uses the token: it sets the rescue cookie, logs it and
+	 * sends the visitor to log in. Only requests carrying the token do any
+	 * work; invalid, used and expired tokens are ignored, so the request
+	 * continues as usual.
+	 */
+	private function redeem_rescue_link(): void {
+		// phpcs:disable WordPress.Security.NonceVerification -- The single-use token is the credential; see Rescue_Link.
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
+
+		if ( 'POST' === $method && isset( $_POST[ Rescue_Link::TOKEN_PARAM ] ) && is_string( $_POST[ Rescue_Link::TOKEN_PARAM ] ) ) {
+			$grant = Rescue_Link::redeem_token( sanitize_text_field( wp_unslash( $_POST[ Rescue_Link::TOKEN_PARAM ] ) ) );
+		} elseif ( isset( $_GET[ Rescue_Link::TOKEN_PARAM ] ) && is_string( $_GET[ Rescue_Link::TOKEN_PARAM ] ) ) {
+			$token = sanitize_text_field( wp_unslash( $_GET[ Rescue_Link::TOKEN_PARAM ] ) );
+			if ( Rescue_Link::peek_token( $token ) ) {
+				Rescue_Link::show_confirm_page( $token );
+			}
+
+			return;
+		} else {
+			return;
+		}
+		// phpcs:enable
+
+		if ( null === $grant ) {
+			return;
+		}
+
+		$expires = time() + HOUR_IN_SECONDS;
+		self::grant_rescue_cookie( self::link_cookie_value( $expires ), $expires );
+		Rescue_Link::log_use( $grant['ip'] );
+
+		wp_safe_redirect( wp_login_url() );
+		exit;
 	}
 
 	/**
@@ -144,6 +250,12 @@ class Access {
 
 		// Check for rescue mode.
 		if ( self::is_rescue_request() ) {
+			return false;
+		}
+
+		// Never check the blocked page's rescue form request (admin-post.php only):
+		// it can only email a site administrator and is rate limited, see Rescue_Link.
+		if ( Rescue_Link::is_rescue_post() ) {
 			return false;
 		}
 
@@ -224,7 +336,10 @@ class Access {
 				wp_die(
 					'<?xml version="1.0"?><methodResponse><fault><value><struct><member><name>faultCode</name><value><int>403</int></value></member><member><name>faultString</name><value><string>' . esc_html__( 'Access Denied: Your IP address has been blocked due to suspected malicious activity.', 'zero-spam' ) . '</string></value></member></struct></value></fault></methodResponse>',
 					'XML-RPC Access Denied',
-					array( 'response' => 403, 'Content-Type' => 'text/xml' )
+					array(
+						'response'     => 403,
+						'Content-Type' => 'text/xml',
+					)
 				);
 			}
 
@@ -236,16 +351,16 @@ class Access {
 							$message = $settings['blocked_message']['value'];
 						}
 
-						self::terminate_execution( __( 'Blocked', 'zero-spam' ), $message );
+						self::terminate_execution( __( 'Blocked', 'zero-spam' ), $message, 403, true );
 						break;
 					case 'redirect':
 						$url = 'https://wordpress.org/plugins/zero-spam/';
 						if ( ! empty( $settings['blocked_redirect_url']['value'] ) ) {
 							$url = esc_url( $settings['blocked_redirect_url']['value'] );
 						}
+						// phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- The administrator chooses this URL, usually on another site.
 						wp_redirect( $url );
 						exit;
-						break;
 				}
 			}
 		}
@@ -253,6 +368,9 @@ class Access {
 
 	/**
 	 * Helper to get blocked record details.
+	 *
+	 * @param array|false|null $blocked_record Blocked record from DB::blocked().
+	 * @param string|false     $failed         Failed check key, such as `blocked_ip`.
 	 */
 	public static function get_blocked_details( $blocked_record, $failed = false ) {
 		$access_check = array(
@@ -309,7 +427,7 @@ class Access {
 	 * @param string $user_ip The user's IP address.
 	 * @param array  $settings The plugin settings.
 	 */
-	public function check_blocked( $access_checks, $user_ip, $settings ) {
+	public function check_blocked( $access_checks, $user_ip, $settings ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed -- Signature of the zerospam_access_checks filter.
 		$access_checks['blocked'] = false;
 
 		// Check if geolocation information is available, if so, check if blocked.
@@ -377,6 +495,14 @@ class Access {
 					$access['blocked'] = true;
 					break;
 				}
+			}
+
+			// An address saved when an administrator activated or updated the
+			// plugin is never locked out. Only lockouts: detections still apply
+			// (Access::process() is unaffected). Read only when a block applies.
+			if ( $access['blocked'] && Admin_Safe_IPs::contains( (string) $user_ip ) ) {
+				$access['blocked']    = false;
+				$access['admin_safe'] = true;
 			}
 
 			$access['details'] = $access_checks;

@@ -40,6 +40,31 @@ class User {
 	const FORWARDED_HEADERS = array( 'HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_TRUE_CLIENT_IP' );
 
 	/**
+	 * Every header a proxy, load balancer or CDN may use to pass on the
+	 * visitor's address ($_SERVER keys), whether or not get_ip() reads it.
+	 *
+	 * A request that carries one of them came through a proxy. Admin_Safe_IPs
+	 * uses the list to recognise a proxy that is not trusted.
+	 *
+	 * @var string[]
+	 */
+	const PROXY_HEADERS = array(
+		'HTTP_X_FORWARDED_FOR',
+		'HTTP_X_REAL_IP',
+		'HTTP_TRUE_CLIENT_IP',
+		'HTTP_CF_CONNECTING_IP',
+		'HTTP_CLIENT_IP',
+		'HTTP_X_FORWARDED',
+		'HTTP_X_CLUSTER_CLIENT_IP',
+		'HTTP_FORWARDED_FOR',
+		'HTTP_FORWARDED',
+		'HTTP_FASTLY_CLIENT_IP',
+		'HTTP_X_SUCURI_CLIENTIP',
+		'HTTP_INCAP_CLIENT_IP',
+		'HTTP_X_AZURE_CLIENTIP',
+	);
+
+	/**
 	 * Trusted proxies for this request: Cloudflare's ranges and the configured
 	 * ones (setting and filter). Built on first use.
 	 *

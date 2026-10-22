@@ -224,31 +224,20 @@ class Utilities {
 			return false;
 		}
 
-		$denied_ips    = array();
-		$htaccess_file = get_home_path() . '.htaccess';
+		// Also called outside wp-admin (the update migration runs on any request).
+		if ( ! function_exists( 'get_home_path' ) || ! function_exists( 'insert_with_markers' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/misc.php';
+		}
+
+		/**
+		 * Filters the path of the .htaccess file Zero Spam writes its deny rules to.
+		 *
+		 * @param string $htaccess_file Full path. Default: .htaccess in the WordPress home directory.
+		 */
+		$htaccess_file = (string) apply_filters( 'zerospam_htaccess_file', get_home_path() . '.htaccess' );
 		if ( wp_is_writable( $htaccess_file ) ) {
-			$blocked_ips = \ZeroSpam\Includes\DB::get_blocked();
-			if ( $blocked_ips ) {
-				foreach ( $blocked_ips as $key => $record ) {
-					$details = \ZeroSpam\Core\Access::get_blocked_details( $record );
-					if ( $details['blocked'] ) {
-						$denied_ips[] = $details['details']['user_ip'];
-					}
-				}
-			}
-
-			if ( $denied_ips ) {
-				$lines = array();
-
-				if ( 'htaccess_legacy' === $settings ) {
-					$lines[] = 'Deny from ' . implode( ' ', $denied_ips );
-				} elseif ( 'htaccess_modern' === $settings ) {
-					$lines[] = '<RequireAll>';
-					$lines[] = 'Require all granted';
-					$lines[] = 'Require not ip ' . implode( ' ', $denied_ips );
-					$lines[] = '</RequireAll>';
-				}
-			}
+			$lines = self::htaccess_rules( (string) $settings );
 
 			if ( empty( $lines ) ) {
 				return false;
@@ -264,6 +253,46 @@ class Utilities {
 		}
 
 		return false;
+	}
+
+	/**
+	 * The .htaccess deny rules for the IPs blocked now.
+	 *
+	 * Administrator addresses that are never locked out (Admin_Safe_IPs) are
+	 * left out, as they are in the PHP block check.
+	 *
+	 * @param string $method Block method: `htaccess_legacy` or `htaccess_modern`.
+	 * @return string[] Rule lines, empty when no IP is denied.
+	 */
+	public static function htaccess_rules( string $method ): array {
+		$denied_ips = array();
+		$safe_ips   = \ZeroSpam\Core\Admin_Safe_IPs::get_ips();
+
+		foreach ( (array) \ZeroSpam\Includes\DB::get_blocked() as $record ) {
+			$details = \ZeroSpam\Core\Access::get_blocked_details( $record );
+			if ( $details['blocked'] && ! in_array( (string) $details['details']['user_ip'], $safe_ips, true ) ) {
+				$denied_ips[] = $details['details']['user_ip'];
+			}
+		}
+
+		if ( ! $denied_ips ) {
+			return array();
+		}
+
+		if ( 'htaccess_legacy' === $method ) {
+			return array( 'Deny from ' . implode( ' ', $denied_ips ) );
+		}
+
+		if ( 'htaccess_modern' === $method ) {
+			return array(
+				'<RequireAll>',
+				'Require all granted',
+				'Require not ip ' . implode( ' ', $denied_ips ),
+				'</RequireAll>',
+			);
+		}
+
+		return array();
 	}
 
 	/**

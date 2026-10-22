@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Network_Stats_Tracker to this file name.
 /**
  * Network Statistics Tracker
  *
@@ -60,7 +60,7 @@ class Network_Stats_Tracker {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$aggregated = $wpdb->get_results(
 					$wpdb->prepare(
-						"SELECT 
+						"SELECT
 							site_id,
 							SUM(total_spam_blocked) as total_spam,
 							SUM(unique_ips) as unique_ips,
@@ -194,17 +194,18 @@ class Network_Stats_Tracker {
 			foreach ( $sites as $site ) {
 				switch_to_blog( $site->blog_id );
 
-				$date_filter = self::get_date_filter( $period, $start_date, $end_date );
+				$date_filter = self::log_filter( self::get_date_filter( $period, $start_date, $end_date ) );
 				$log_table   = $wpdb->prefix . DB::$tables['log'];
 
 				// Get site data.
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- $log_table is the plugin's table; the filter comes from log_filter() (esc_sql() dates and DB::detections_sql()). Results are cached in transients by the callers.
 				$site_logs = $wpdb->get_results(
 					"SELECT log_type, user_ip, country, country_name
 					FROM {$log_table}
 					WHERE {$date_filter}",
 					ARRAY_A
 				);
+				// phpcs:enable
 
 				foreach ( $site_logs as $log ) {
 					++$total_spam;
@@ -381,13 +382,14 @@ class Network_Stats_Tracker {
 
 		global $wpdb;
 
-		$date_filter = self::get_date_filter( $period, $start_date, $end_date );
+		$date_filter = self::log_filter( self::get_date_filter( $period, $start_date, $end_date ) );
 		$log_table   = $wpdb->prefix . DB::$tables['log'];
 
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- $log_table is the plugin's table; the filter comes from log_filter() (esc_sql() dates and DB::detections_sql()). Results are cached in transients by the callers.
+
 		// Get site totals.
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$totals = $wpdb->get_row(
-			"SELECT 
+			"SELECT
 				COUNT(*) as total_spam,
 				COUNT(DISTINCT user_ip) as unique_ips
 			FROM {$log_table}
@@ -396,7 +398,6 @@ class Network_Stats_Tracker {
 		);
 
 		// Get top spam type for this site.
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$top_type = $wpdb->get_var(
 			"SELECT log_type
 			FROM {$log_table}
@@ -407,7 +408,6 @@ class Network_Stats_Tracker {
 		);
 
 		// Get top country for this site.
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$top_country = $wpdb->get_row(
 			"SELECT country, country_name, COUNT(*) as count
 			FROM {$log_table}
@@ -417,6 +417,8 @@ class Network_Stats_Tracker {
 			LIMIT 1",
 			ARRAY_A
 		);
+
+		// phpcs:enable
 
 		$result = array(
 			'total_spam'       => absint( $totals['total_spam'] ?? 0 ),
@@ -454,19 +456,20 @@ class Network_Stats_Tracker {
 
 		$log_table = $wpdb->prefix . DB::$tables['log'];
 
+		$current_filter  = self::log_filter( self::get_date_filter( $period, $start_date, $end_date ) );
+		$previous_filter = self::log_filter( self::get_previous_period_filter( $period, $start_date, $end_date ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- $log_table is the plugin's table; the filter comes from log_filter() (esc_sql() dates and DB::detections_sql()). Results are cached in transients by the callers.
 		// Get current period count.
-		$current_filter = self::get_date_filter( $period, $start_date, $end_date );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$current_count = $wpdb->get_var(
 			"SELECT COUNT(*) FROM {$log_table} WHERE {$current_filter}"
 		);
 
 		// Get previous period count.
-		$previous_filter = self::get_previous_period_filter( $period, $start_date, $end_date );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$previous_count = $wpdb->get_var(
 			"SELECT COUNT(*) FROM {$log_table} WHERE {$previous_filter}"
 		);
+		// phpcs:enable
 
 		$current_count  = absint( $current_count );
 		$previous_count = absint( $previous_count );
@@ -517,6 +520,19 @@ class Network_Stats_Tracker {
 			default:
 				return '1=1'; // All time.
 		}
+	}
+
+	/**
+	 * Limits a log query's date filter to detections.
+	 *
+	 * Rescue-link entries and other non-detections (DB::NON_DETECTION_TYPES)
+	 * are left out of every statistic.
+	 *
+	 * @param string $date_filter SQL date condition from get_date_filter() or get_previous_period_filter().
+	 * @return string SQL condition.
+	 */
+	private static function log_filter( string $date_filter ): string {
+		return '(' . $date_filter . ') AND ' . DB::detections_sql();
 	}
 
 	/**
@@ -573,7 +589,7 @@ class Network_Stats_Tracker {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->options} 
+				"DELETE FROM {$wpdb->options}
 				WHERE option_name LIKE %s",
 				'_transient_zerospam_network_stats_%'
 			)
@@ -582,7 +598,7 @@ class Network_Stats_Tracker {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->options} 
+				"DELETE FROM {$wpdb->options}
 				WHERE option_name LIKE %s",
 				'_transient_timeout_zerospam_network_stats_%'
 			)
@@ -592,7 +608,7 @@ class Network_Stats_Tracker {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->options} 
+				"DELETE FROM {$wpdb->options}
 				WHERE option_name LIKE %s",
 				'_transient_zerospam_site_breakdown_%'
 			)
@@ -601,7 +617,7 @@ class Network_Stats_Tracker {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->options} 
+				"DELETE FROM {$wpdb->options}
 				WHERE option_name LIKE %s",
 				'_transient_timeout_zerospam_site_breakdown_%'
 			)
@@ -633,18 +649,22 @@ class Network_Stats_Tracker {
 				switch_to_blog( $site->blog_id );
 
 				global $wpdb;
-				$log_table = $wpdb->prefix . DB::$tables['log'];
+				$log_table  = $wpdb->prefix . DB::$tables['log'];
+				$detections = DB::detections_sql();
 
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- $detections is prepared by DB::detections_sql(); the result is cached in a transient.
 				$site_ips = $wpdb->get_results(
 					$wpdb->prepare(
 						"SELECT DISTINCT user_ip, country, country_name
-						FROM {$log_table}
-						WHERE date_recorded >= DATE_SUB(NOW(), INTERVAL %d DAY)",
+						FROM %i
+						WHERE date_recorded >= DATE_SUB(NOW(), INTERVAL %d DAY)
+						AND {$detections}",
+						$log_table,
 						$period_days
 					),
 					ARRAY_A
 				);
+				// phpcs:enable
 
 				foreach ( $site_ips as $ip_data ) {
 					$ip = $ip_data['user_ip'];

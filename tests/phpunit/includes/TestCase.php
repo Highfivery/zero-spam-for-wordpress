@@ -78,6 +78,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_aggregate_api_data',
 		'zerospam_async_share_detection',
 		'zerospam_network_weekly_summary',
+		'zerospam_send_rescue_link',
 	);
 
 	/**
@@ -105,6 +106,8 @@ abstract class TestCase extends WP_UnitTestCase {
 		'wpzerospam',
 		'wpzerospam_honeypot',
 		'zerospam_activation_time',
+		'zerospam_admin_safe_ip_notice',
+		'zerospam_admin_safe_ips',
 		'zerospam_api_monitoring_notice_dismissed',
 		'zerospam_api_notices',
 		'zerospam_blocked_email_domains',
@@ -138,6 +141,11 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_geo_test',
 		'zerospam_ipinfo_test',
 		'zerospam_login_intent_test',
+		'zerospam_rescue_ip_test',
+		'zerospam_rescue_job_test',
+		'zerospam_rescue_site_sends',
+		'zerospam_rescue_to_test',
+		'zerospam_rescue_token_test',
 		'zerospam_shared_ip_warning',
 		'zerospam_woo_options_migrated',
 	);

@@ -99,13 +99,18 @@ function zerospam_fail_wp_version() {
 
 /**
  * Plugin activation hook
+ *
+ * @param bool $network_wide Whether the plugin is being network activated.
  */
-function zerospam_plugin_activation() {
+function zerospam_plugin_activation( $network_wide = false ) {
 	// Set activation time for new installations.
 	// This will only be set if it doesn't already exist.
 	if ( ! get_option( 'zerospam_activation_time' ) ) {
 		update_option( 'zerospam_activation_time', time() );
 	}
+
+	// Save the activating administrator's IP so Zero Spam never locks them out (it is still checked for spam).
+	\ZeroSpam\Core\Admin_Safe_IPs::on_activation( (bool) $network_wide );
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {
