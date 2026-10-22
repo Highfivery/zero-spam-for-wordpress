@@ -38,6 +38,8 @@
 	</groups>
 
 	<php>
+		<!-- What this configuration tests; the bootstrap refuses a mismatch. -->
+		<const name="ZEROSPAM_TESTS_EXPECT_MULTISITE" value="true"/>
 		<env name="WP_MULTISITE" value="1" force="true"/>
 		<env name="WP_TESTS_DB_NAME" value="zerospam_tests_ms"/>
 	</php>

@@ -9,6 +9,8 @@
  * @package ZeroSpam\Tests
  */
 
+declare( strict_types=1 );
+
 $zerospam_tests_config = require __DIR__ . '/includes/env.php';
 
 if ( ! preg_match( $zerospam_tests_config['db_name_pattern'], $zerospam_tests_config['db_name'] ) ) {
@@ -18,9 +20,10 @@ if ( ! preg_match( $zerospam_tests_config['db_name_pattern'], $zerospam_tests_co
 
 define( 'ABSPATH', $zerospam_tests_config['wp_core_dir'] . '/' );
 
-// The plugin directory is the one that contains this repository, so that
-// plugin_basename() returns zero-spam/wordpress-zero-spam.php as in production.
-define( 'WP_PLUGIN_DIR', dirname( $zerospam_tests_config['root'] ) );
+// A plugins directory outside any real site, holding only a zero-spam symlink
+// to this checkout, so plugin_basename() returns
+// zero-spam/wordpress-zero-spam.php as in production.
+define( 'WP_PLUGIN_DIR', $zerospam_tests_config['wp_plugin_dir'] );
 
 define( 'WP_DEFAULT_THEME', 'default' );
 define( 'WP_DEBUG', true );

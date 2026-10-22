@@ -78,9 +78,19 @@ class Test_Environment extends TestCase {
 	}
 
 	/**
-	 * The install type matches the configuration being run.
+	 * The install type is the one the PHPUnit configuration declares.
 	 */
 	public function test_multisite_matches_the_configuration(): void {
-		$this->assertSame( '1' === getenv( 'WP_MULTISITE' ), is_multisite() );
+		$this->assertTrue( defined( 'ZEROSPAM_TESTS_EXPECT_MULTISITE' ) );
+		$this->assertSame( ZEROSPAM_TESTS_EXPECT_MULTISITE, is_multisite() );
+	}
+
+	/**
+	 * WordPress sees the plugin as zero-spam/, whatever the checkout is called.
+	 */
+	public function test_plugin_loads_from_the_test_plugins_directory(): void {
+		$this->assertSame( WP_PLUGIN_DIR . '/zero-spam/', plugin_dir_path( WP_PLUGIN_DIR . '/zero-spam/wordpress-zero-spam.php' ) );
+		$this->assertSame( realpath( dirname( __DIR__, 3 ) ), realpath( WP_PLUGIN_DIR . '/zero-spam' ) );
+		$this->assertSame( 'zero-spam/wordpress-zero-spam.php', plugin_basename( ZEROSPAM ) );
 	}
 }

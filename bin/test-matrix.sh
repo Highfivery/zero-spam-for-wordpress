@@ -48,7 +48,7 @@ done
 
 echo
 printf '%-6s %-9s %-10s %-9s %-5s %6s  %s\n' "PHP" "WordPress" "Target" "Mode" "Result" "Time" "Summary"
-for row in "${rows[@]}"; do
+for row in ${rows[@]+"${rows[@]}"}; do
 	echo "$row"
 done
 echo "test-matrix: ${#rows[@]} runs in $(( $(date +%s) - started_all ))s; logs in $log_dir/"

@@ -17,7 +17,8 @@ namespace ZeroSpam\Tests;
  * functions with the same names in the plugin namespaces that call them
  * (ZeroSpam\Core, ZeroSpam\Modules, ZeroSpam\Modules\Login); PHP resolves an
  * unqualified call to the namespaced function first, so these run instead of
- * the real network and header functions.
+ * the real network and header functions. headers_sent() is stubbed in
+ * ZeroSpam\Core so Access reaches its setcookie() call under the CLI.
  */
 final class Stubs {
 
@@ -27,6 +28,13 @@ final class Stubs {
 	 * @var array<int, array{name: string, value: string, options: mixed}>
 	 */
 	public static array $cookies = array();
+
+	/**
+	 * Answer for headers_sent() in ZeroSpam\Core.
+	 *
+	 * @var bool
+	 */
+	public static bool $headers_sent = false;
 
 	/**
 	 * Answers for checkdnsrr(), keyed by "host|TYPE". Unlisted lookups succeed.
@@ -71,9 +79,10 @@ final class Stubs {
 	 * Clears all recorded calls and configured answers.
 	 */
 	public static function reset(): void {
-		self::$cookies     = array();
-		self::$dns_checks  = array();
-		self::$dns_records = array();
-		self::$dns_lookups = array();
+		self::$headers_sent = false;
+		self::$cookies      = array();
+		self::$dns_checks   = array();
+		self::$dns_records  = array();
+		self::$dns_lookups  = array();
 	}
 }

@@ -21,11 +21,12 @@ use ZeroSpam\Includes\DB;
 final class Database {
 
 	/**
-	 * Creates the test database and drops plugin tables left by a previous run.
+	 * Recreates the test database from scratch.
 	 *
 	 * Refuses any database whose name does not match the test pattern: the
-	 * WordPress test installer drops tables, so pointing it at a site database
-	 * would destroy that site.
+	 * database is dropped (so no table of a crashed run, such as a multisite
+	 * site's tables, survives), and pointing this at a site database would
+	 * destroy that site.
 	 *
 	 * @param array<string, mixed> $env Environment from includes/env.php.
 	 * @throws RuntimeException When the name is not a test database or MySQL fails.
@@ -61,15 +62,11 @@ final class Database {
 		}
 
 		// The name matched the pattern above, so it is safe to quote as an identifier.
-		if ( ! $link->query( "CREATE DATABASE IF NOT EXISTS `{$name}` DEFAULT CHARACTER SET utf8mb4" ) || ! $link->select_db( $name ) ) {
-			throw new RuntimeException( sprintf( 'Cannot create or select database %s: %s', $name, $link->error ) );
-		}
-
-		$result = $link->query( "SHOW TABLES LIKE '%wpzerospam%'" );
-		if ( $result instanceof \mysqli_result ) {
-			foreach ( $result->fetch_all() as $row ) {
-				$link->query( 'DROP TABLE IF EXISTS `' . str_replace( '`', '', (string) $row[0] ) . '`' );
-			}
+		if (
+			! $link->query( "DROP DATABASE IF EXISTS `{$name}`" ) ||
+			! $link->query( "CREATE DATABASE `{$name}` DEFAULT CHARACTER SET utf8mb4" )
+		) {
+			throw new RuntimeException( sprintf( 'Cannot recreate database %s: %s', $name, $link->error ) );
 		}
 
 		$link->close();

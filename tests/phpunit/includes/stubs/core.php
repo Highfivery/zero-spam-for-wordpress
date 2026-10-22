@@ -1,7 +1,8 @@
 <?php
 /**
- * Stubs for ZeroSpam\Core: checkdnsrr() in Utilities::is_email() and
- * setcookie() in Access rescue mode.
+ * Stubs for ZeroSpam\Core: checkdnsrr() in Utilities::is_email(), and
+ * headers_sent() and setcookie() in Access rescue mode (under the CLI,
+ * headers_sent() is true once PHPUnit prints, which would skip the cookie).
  *
  * DNS lookups and cookies do not go through the WordPress HTTP API, so the
  * HTTP mock cannot catch them. PHP resolves an unqualified function call to
@@ -27,6 +28,13 @@ function checkdnsrr( string $hostname, string $type = 'MX' ): bool {
 	Stubs::$dns_lookups[] = 'checkdnsrr ' . $hostname . ' ' . $type;
 
 	return Stubs::$dns_checks[ $hostname . '|' . strtoupper( $type ) ] ?? true;
+}
+
+/**
+ * Stub for headers_sent(): answers Stubs::$headers_sent, false by default.
+ */
+function headers_sent(): bool {
+	return Stubs::$headers_sent;
 }
 
 /**

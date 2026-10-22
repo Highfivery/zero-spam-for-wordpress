@@ -18,8 +18,9 @@
 # ~/Library/Caches/zero-spam-tests/ (override with ZEROSPAM_TESTS_CACHE).
 # Database settings come from WP_TESTS_DB_HOST, WP_TESTS_DB_USER,
 # WP_TESTS_DB_PASSWORD and WP_TESTS_DB_NAME. The bootstrap refuses any database
-# whose name does not start with zerospam_tests, because installing WordPress
-# for the tests drops tables.
+# whose name does not match ^zerospam_tests(_\w+)?$, because installing
+# WordPress for the tests drops tables. Choose single site or multisite with
+# --mode, not with WP_MULTISITE.
 
 set -euo pipefail
 
@@ -56,6 +57,11 @@ case "$mode" in
 	single | multisite | all) ;;
 	*) echo "test.sh: --mode must be single, multisite or all." >&2; exit 2 ;;
 esac
+
+if [[ -n "${WP_MULTISITE:-}" ]]; then
+	echo "test.sh: WP_MULTISITE is set in your environment (${WP_MULTISITE}). Unset it and use --mode=single|multisite|all." >&2
+	exit 2
+fi
 
 # shellcheck source=../tests/phpunit/versions.env
 . tests/phpunit/versions.env
@@ -107,9 +113,13 @@ resolve_php() {
 	return 1
 }
 
-php_bin="$(resolve_php "$php_arg")"
+php_bin="$(resolve_php "$php_arg")" || exit 1
 php_cmd=("$php_bin" -d memory_limit=512M)
 php_version="$("$php_bin" -r 'echo PHP_VERSION;')"
+if ! "$php_bin" -r 'exit( PHP_VERSION_ID >= 80200 ? 0 : 1 );'; then
+	echo "test.sh: PHP ${php_version} (${php_bin}) is too old; the plugin and the test tooling need PHP 8.2 or newer." >&2
+	exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # MySQL.
@@ -151,10 +161,11 @@ ensure_core() {
 		return 0
 	fi
 	local url="https://wordpress.org/wordpress-${version}.tar.gz" tmp published
-	tmp="$(mktemp -d "$cache_dir/.download.XXXXXX")"
+	tmp="$(mktemp -d "$cache_dir/.download.XXXXXX")" || return 1
 	echo "test.sh: downloading WordPress ${version}..." >&2
-	download "$url" "$tmp/wordpress.tar.gz"
-	published="$(curl --fail --silent --show-error --location "${url}.sha1" | tr -d '[:space:]')"
+	download "$url" "$tmp/wordpress.tar.gz" || { echo "test.sh: cannot download ${url}." >&2; rm -rf "$tmp"; return 1; }
+	published="$(curl --fail --silent --show-error --location "${url}.sha1")" || { echo "test.sh: cannot download ${url}.sha1." >&2; rm -rf "$tmp"; return 1; }
+	published="$(printf '%s' "$published" | tr -d '[:space:]')"
 	if [[ "$published" != "$sha1" ]]; then
 		echo "test.sh: the published sha1 for WordPress ${version} (${published}) does not match versions.env (${sha1})." >&2
 		rm -rf "$tmp"
@@ -165,9 +176,9 @@ ensure_core() {
 		rm -rf "$tmp"
 		return 1
 	fi
-	tar -xzf "$tmp/wordpress.tar.gz" -C "$tmp"
+	tar -xzf "$tmp/wordpress.tar.gz" -C "$tmp" || { echo "test.sh: cannot unpack WordPress ${version}." >&2; rm -rf "$tmp"; return 1; }
 	rm -rf "$dir"
-	mv "$tmp/wordpress" "$dir"
+	mv "$tmp/wordpress" "$dir" || { echo "test.sh: cannot move WordPress ${version} into ${dir}." >&2; rm -rf "$tmp"; return 1; }
 	rm -rf "$tmp"
 	echo "$dir"
 }
@@ -178,18 +189,21 @@ ensure_testlib_release() {
 		echo "$dir"
 		return 0
 	fi
+	# GitHub does not guarantee that generated archive tarballs stay
+	# byte-identical; if the pinned sha256 stops matching, re-check the tag
+	# and re-pin (a release asset would be safer, but wp-phpunit has none).
 	local url="https://github.com/wp-phpunit/wp-phpunit/archive/refs/tags/${version}.tar.gz" tmp
-	tmp="$(mktemp -d "$cache_dir/.download.XXXXXX")"
+	tmp="$(mktemp -d "$cache_dir/.download.XXXXXX")" || return 1
 	echo "test.sh: downloading the WordPress test library ${version}..." >&2
-	download "$url" "$tmp/wp-phpunit.tar.gz"
+	download "$url" "$tmp/wp-phpunit.tar.gz" || { echo "test.sh: cannot download ${url}." >&2; rm -rf "$tmp"; return 1; }
 	if [[ "$(sha_of 256 "$tmp/wp-phpunit.tar.gz")" != "$sha256" ]]; then
 		echo "test.sh: checksum mismatch for wp-phpunit ${version}; refusing to use it." >&2
 		rm -rf "$tmp"
 		return 1
 	fi
-	tar -xzf "$tmp/wp-phpunit.tar.gz" -C "$tmp"
+	tar -xzf "$tmp/wp-phpunit.tar.gz" -C "$tmp" || { echo "test.sh: cannot unpack wp-phpunit ${version}." >&2; rm -rf "$tmp"; return 1; }
 	rm -rf "$dir"
-	mv "$tmp/wp-phpunit-${version}" "$dir"
+	mv "$tmp/wp-phpunit-${version}" "$dir" || { echo "test.sh: cannot move wp-phpunit ${version} into ${dir}." >&2; rm -rf "$tmp"; return 1; }
 	rm -rf "$tmp"
 	echo "$dir"
 }
@@ -212,15 +226,15 @@ fi
 case "$wp_arg" in
 	latest)
 		wp_version="$WP_LATEST"
-		core_dir="$(ensure_core "$WP_LATEST" "$WP_LATEST_SHA1")"
+		core_dir="$(ensure_core "$WP_LATEST" "$WP_LATEST_SHA1")" || exit 1
 		testlib_version="$WP_LATEST_TESTLIB"
-		testlib_dir="$(ensure_testlib_vendor "$WP_LATEST_TESTLIB")"
+		testlib_dir="$(ensure_testlib_vendor "$WP_LATEST_TESTLIB")" || exit 1
 		;;
 	min)
 		wp_version="$WP_MIN"
-		core_dir="$(ensure_core "$WP_MIN" "$WP_MIN_SHA1")"
+		core_dir="$(ensure_core "$WP_MIN" "$WP_MIN_SHA1")" || exit 1
 		testlib_version="$WP_MIN_TESTLIB"
-		testlib_dir="$(ensure_testlib_release "$WP_MIN_TESTLIB" "$WP_MIN_TESTLIB_SHA256")"
+		testlib_dir="$(ensure_testlib_release "$WP_MIN_TESTLIB" "$WP_MIN_TESTLIB_SHA256")" || exit 1
 		;;
 	*)
 		echo "test.sh: --wp must be latest or min." >&2
@@ -228,7 +242,15 @@ case "$wp_arg" in
 		;;
 esac
 
+# WordPress loads plugins from a plugins directory of its own, in which the
+# plugin is always called zero-spam (as on WordPress.org) whatever this
+# checkout's directory is called.
+plugins_dir="$cache_dir/plugins"
+mkdir -p "$plugins_dir"
+ln -sfn "$PWD" "$plugins_dir/zero-spam"
+
 export ZEROSPAM_TESTS_CACHE="$cache_dir"
+export ZEROSPAM_WP_PLUGIN_DIR="$plugins_dir"
 export ZEROSPAM_WP_VERSION="$wp_version"
 export ZEROSPAM_WP_CORE_DIR="$core_dir"
 export ZEROSPAM_WP_TESTS_DIR="$testlib_dir"

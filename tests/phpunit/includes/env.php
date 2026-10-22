@@ -45,12 +45,15 @@ return ( static function (): array {
 		'wp_version'      => $wp,
 		'wp_core_dir'     => rtrim( $env( 'ZEROSPAM_WP_CORE_DIR', $cache . '/wordpress-' . $wp ), '/' ),
 		'wp_tests_dir'    => rtrim( $env( 'ZEROSPAM_WP_TESTS_DIR', $root . '/vendor/wp-phpunit/wp-phpunit' ), '/' ),
+		// Holds a zero-spam symlink to this checkout (made by bin/test.sh), so
+		// the plugin is zero-spam/ whatever the checkout directory is called.
+		'wp_plugin_dir'   => rtrim( $env( 'ZEROSPAM_WP_PLUGIN_DIR', $cache . '/plugins' ), '/' ),
 		'db_host'         => $env( 'WP_TESTS_DB_HOST', '127.0.0.1' ),
 		'db_user'         => $env( 'WP_TESTS_DB_USER', 'root' ),
 		'db_password'     => (string) getenv( 'WP_TESTS_DB_PASSWORD' ),
 		'db_name'         => $env( 'WP_TESTS_DB_NAME', 'zerospam_tests' ),
 		// Installing WordPress for the tests drops tables, so only these names are accepted.
-		'db_name_pattern' => '/^zerospam_tests(_\w+)?$/',
+		'db_name_pattern' => '/^zerospam_tests(_\w+)?\z/',
 		'multisite'       => '1' === getenv( 'WP_MULTISITE' ),
 	);
 } )();

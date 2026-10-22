@@ -36,6 +36,48 @@ abstract class TestCase extends WP_UnitTestCase {
 	const DEFAULT_IP = '203.0.113.10';
 
 	/**
+	 * Every module key used in the source (`'module' => '…'`); each stores its
+	 * settings in the option `zero-spam-{module}`.
+	 */
+	const PLUGIN_MODULES = array(
+		'comments',
+		'contactform7',
+		'davidwalsh',
+		'debug',
+		'elementor',
+		'fluent_form',
+		'formidable',
+		'givewp',
+		'google',
+		'gravityforms',
+		'ipbase',
+		'ipinfo',
+		'ipstack',
+		'login',
+		'mailchimp4wp',
+		'project_honeypot',
+		'registration',
+		'security',
+		'settings',
+		'stop_forum_spam',
+		'woocommerce',
+		'wpforms',
+		'zerospam',
+	);
+
+	/**
+	 * Every cron hook the plugin schedules.
+	 */
+	const PLUGIN_CRON_HOOKS = array(
+		'zerospam_davidwalsh_rotate_key',
+		'zerospam_aggregate_daily_stats',
+		'zerospam_check_api_anomalies',
+		'zerospam_aggregate_api_data',
+		'zerospam_async_share_detection',
+		'zerospam_network_weekly_summary',
+	);
+
+	/**
 	 * Sites created by create_site_with_tables(), deleted after the class.
 	 *
 	 * @var int[]
@@ -65,6 +107,9 @@ abstract class TestCase extends WP_UnitTestCase {
 		$this->server_backup = $_SERVER;
 		$this->cookie_backup = $_COOKIE;
 
+		// Requests made since the last test ended came from wpSetUpBeforeClass()
+		// or a class tear-down, outside any test.
+		$outside_tests = HttpMock::take_unmocked();
 		HttpMock::reset();
 		Stubs::reset();
 		self::reset_static_caches();
@@ -73,6 +118,10 @@ abstract class TestCase extends WP_UnitTestCase {
 		delete_option( 'zero-spam-debug' );
 
 		$this->set_request( '/' );
+
+		if ( $outside_tests ) {
+			$this->fail( "Outbound HTTP requests were made outside a test (wpSetUpBeforeClass or a class tear-down):\n" . implode( "\n", $outside_tests ) );
+		}
 	}
 
 	/**
@@ -112,6 +161,11 @@ abstract class TestCase extends WP_UnitTestCase {
 
 	/**
 	 * Clears the per-request static caches in the plugin.
+	 *
+	 * DavidWalsh::validate_token() also keeps a function-level
+	 * `static $accepted`, which cannot be reset from outside: a token accepted
+	 * in one test stays accepted for the rest of the run. Use a fresh token per
+	 * test until that cache moves to a resettable property.
 	 */
 	protected static function reset_static_caches(): void {
 		self::set_static( Utilities::class, 'allowed_words_cache', null );
@@ -227,7 +281,8 @@ abstract class TestCase extends WP_UnitTestCase {
 				array(
 					'log_type'        => 'comment',
 					'user_ip'         => '198.51.100.' . ( ( $i % 250 ) + 1 ),
-					'date_recorded'   => gmdate( 'Y-m-d H:i:s', $now - ( $count - $i ) * MINUTE_IN_SECONDS ),
+					// Same clock as DB::log(), which stores current_time( 'mysql' ).
+					'date_recorded'   => wp_date( 'Y-m-d H:i:s', $now - ( $count - $i ) * MINUTE_IN_SECONDS ),
 					'page_url'        => 'http://example.org/',
 					'submission_data' => '{}',
 				),
@@ -268,8 +323,8 @@ abstract class TestCase extends WP_UnitTestCase {
 	 *
 	 * @param string      $ip          IP address.
 	 * @param string      $type        permanent or temporary.
-	 * @param string|null $start_block Start (Y-m-d H:i:s, UTC); now when null.
-	 * @param string|null $end_block   End (Y-m-d H:i:s, UTC).
+	 * @param string|null $start_block Start (Y-m-d H:i:s, site time); an hour ago when null.
+	 * @param string|null $end_block   End (Y-m-d H:i:s, site time).
 	 * @return int Block ID.
 	 */
 	protected function block( string $ip, string $type = 'permanent', ?string $start_block = null, ?string $end_block = null ): int {
@@ -282,7 +337,7 @@ abstract class TestCase extends WP_UnitTestCase {
 				'user_ip'      => $ip,
 				'key_type'     => 'ip',
 				'date_added'   => current_time( 'mysql' ),
-				'start_block'  => $start_block ?? gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ),
+				'start_block'  => $start_block ?? wp_date( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ),
 				'end_block'    => $end_block,
 				'reason'       => 'Test block',
 			)
