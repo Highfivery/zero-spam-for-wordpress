@@ -49,26 +49,8 @@ parameters:
 			path: core/class-access.php
 
 		-
-			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: core/class-access.php
-
-		-
-			message: '#^Parameter \#3 \$args of function wp_die expects array\{response\?\: int, link_url\?\: string, link_text\?\: string, back_link\?\: bool, text_direction\?\: string, charset\?\: string, code\?\: string, exit\?\: bool\}\|int, array\{response\: string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: core/class-access.php
-
-		-
 			message: '#^Right side of \|\| is always false\.$#'
 			identifier: booleanOr.rightAlwaysFalse
-			count: 1
-			path: core/class-access.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
 			count: 1
 			path: core/class-access.php
 

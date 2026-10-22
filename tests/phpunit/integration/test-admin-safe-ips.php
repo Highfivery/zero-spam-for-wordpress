@@ -119,18 +119,18 @@ class Test_Admin_Safe_IPs extends TestCase {
 	 */
 	public static function data_non_public_ips(): array {
 		return array(
-			'IPv4 loopback'       => array( '127.0.0.1' ),
-			'10/8'                => array( '10.1.2.3' ),
-			'172.16/12'           => array( '172.16.5.4' ),
-			'192.168/16'          => array( '192.168.1.20' ),
-			'link-local'          => array( '169.254.10.10' ),
-			'CGNAT 100.64/10'     => array( '100.64.0.1' ),
-			'TEST-NET-1'          => array( '192.0.2.10' ),
-			'TEST-NET-3'          => array( '203.0.113.10' ),
-			'IPv6 loopback'       => array( '::1' ),
-			'IPv6 unique'         => array( 'fd00::1' ),
-			'IPv6 link-local'     => array( 'fe80::1' ),
-			'IPv6 documentation'  => array( '2001:db8::1' ),
+			'IPv4 loopback'      => array( '127.0.0.1' ),
+			'10/8'               => array( '10.1.2.3' ),
+			'172.16/12'          => array( '172.16.5.4' ),
+			'192.168/16'         => array( '192.168.1.20' ),
+			'link-local'         => array( '169.254.10.10' ),
+			'CGNAT 100.64/10'    => array( '100.64.0.1' ),
+			'TEST-NET-1'         => array( '192.0.2.10' ),
+			'TEST-NET-3'         => array( '203.0.113.10' ),
+			'IPv6 loopback'      => array( '::1' ),
+			'IPv6 unique'        => array( 'fd00::1' ),
+			'IPv6 link-local'    => array( 'fe80::1' ),
+			'IPv6 documentation' => array( '2001:db8::1' ),
 		);
 	}
 

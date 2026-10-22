@@ -469,7 +469,10 @@ class Test_Rescue_Link extends TestCase {
 		$ip    = 0;
 		$first = null;
 		foreach ( $addresses as $address ) {
-			for ( $n = 0; $n < 3 && count( $this->sent() ) < Rescue_Link::SITE_LIMIT; $n++ ) {
+			for ( $n = 0; $n < Rescue_Link::RECIPIENT_LIMIT; $n++ ) {
+				if ( $ip >= Rescue_Link::SITE_LIMIT ) {
+					break 2;
+				}
 				$response = $this->submit( $address, '192.0.2.' . ( ++$ip ) );
 				$first    = $first ?? $response;
 			}
