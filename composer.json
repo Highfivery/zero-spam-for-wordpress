@@ -2,7 +2,12 @@
 	"name": "highfivery/zero-spam-for-wordpress",
 	"description": "No spam, no scams, just seamless experiences with Zero Spam for WordPress - the shield your site deserves.",
 	"type": "wordpress-plugin",
-	"keywords": ["wordpress", "plugin", "zerospam", "spam"],
+	"keywords": [
+		"wordpress",
+		"plugin",
+		"zerospam",
+		"spam"
+	],
 	"license": "GPL-2.0-or-later",
 	"minimum-stability": "dev",
 	"prefer-stable": true,
@@ -18,26 +23,59 @@
 			"homepage": "https://studio.highfivery.com"
 		}
 	],
-	"repositories": [
-		{
-		  "type":"composer",
-		  "url":"https://wpackagist.org"
-		}
-	],
 	"require": {
-		"php" : ">=8.2"
+		"php": ">=8.2"
 	},
 	"require-dev": {
-		"10up/phpcs-composer": "*"
-	},
-	"extra": {
-		"installer-paths": {
-			"vendor/{$name}/": ["type:wordpress-plugin"]
-		}
+		"wp-coding-standards/wpcs": "^3.4",
+		"phpcompatibility/phpcompatibility-wp": "^2.1",
+		"automattic/vipwpcs": "^3.0",
+		"phpstan/phpstan": "^2.3",
+		"szepeviktor/phpstan-wordpress": "^2.0",
+		"php-stubs/wordpress-stubs": "^7.1",
+		"phpstan/extension-installer": "^1.4"
 	},
 	"config": {
 		"allow-plugins": {
-			"dealerdirect/phpcodesniffer-composer-installer": true
-		}
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"phpstan/extension-installer": true
+		},
+		"sort-packages": true
+	},
+	"scripts": {
+		"lint": "phpcs --standard=phpcs.xml.dist",
+		"lint:fix": "phpcbf --standard=phpcs.xml.dist",
+		"lint:changed": "bin/lint-changed.sh",
+		"compat": "phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.2- --extensions=php --ignore=*/vendor/*,*/tests/*,*/node_modules/* .",
+		"analyse": "phpstan analyse --memory-limit=1G",
+		"analyse:baseline": "phpstan analyse --memory-limit=1G --generate-baseline phpstan-baseline.neon --allow-empty-baseline",
+		"version:check": "bin/check-version.sh",
+		"check": [
+			"@version:check",
+			"@lint:changed",
+			"@compat",
+			"@analyse"
+		],
+		"check:all": [
+			"@version:check",
+			"@lint",
+			"@compat",
+			"@analyse"
+		],
+		"hooks:install": "git config core.hooksPath .githooks && echo 'Git hooks installed from .githooks/'",
+		"post-install-cmd": "@hooks:install",
+		"post-update-cmd": "@hooks:install"
+	},
+	"scripts-descriptions": {
+		"lint": "Run the full WordPress Coding Standards ruleset on every PHP file.",
+		"lint:fix": "Auto-fix the WPCS violations phpcbf can handle.",
+		"lint:changed": "Run WPCS only on PHP files changed against origin/develop (what the pre-push hook runs).",
+		"compat": "Check PHP 8.2+ compatibility with PHPCompatibilityWP.",
+		"analyse": "Run PHPStan (level 5, WordPress + WP-CLI stubs) against the baseline.",
+		"analyse:baseline": "Regenerate phpstan-baseline.neon. Only do this when intentionally accepting new debt.",
+		"version:check": "Verify the plugin header, ZEROSPAM_VERSION and readme.txt Stable tag agree and never go backwards.",
+		"check": "The quality gate the pre-push hook enforces: version check, WPCS on changed files, PHP compatibility, PHPStan.",
+		"check:all": "The same gate with WPCS on every file. Fails until the pre-existing WPCS backlog is cleared.",
+		"hooks:install": "Point git at the committed .githooks/ directory (runs automatically after composer install/update)."
 	}
 }

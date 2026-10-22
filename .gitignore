@@ -1,1 +1,5 @@
 .DS_Store
+/vendor/
+/node_modules/
+/phpcs-report.json
+/.phpunit.result.cache

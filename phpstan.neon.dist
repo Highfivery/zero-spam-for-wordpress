@@ -1,0 +1,23 @@
+# PHPStan configuration for Zero Spam for WordPress.
+# Run: composer analyse   (baseline: composer analyse:baseline)
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    phpVersion: 80200
+    paths:
+        - wordpress-zero-spam.php
+        - uninstall.php
+        - core
+        - includes
+        - modules
+    excludePaths:
+        - vendor
+    scanFiles:
+        - vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+        - tests/phpstan/stubs/wp-cli-stubs.php
+    bootstrapFiles:
+        - tests/phpstan/bootstrap.php
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: false
