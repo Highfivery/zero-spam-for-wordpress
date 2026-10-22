@@ -109,8 +109,8 @@ function zerospam_plugin_activation( $network_wide = false ) {
 		update_option( 'zerospam_activation_time', time() );
 	}
 
-	// Add the activating administrator's IP to the IP Whitelist so they can't lock themselves out.
-	\ZeroSpam\Core\Admin_Whitelist::on_activation( (bool) $network_wide );
+	// Save the activating administrator's IP so Zero Spam never locks them out (it is still checked for spam).
+	\ZeroSpam\Core\Admin_Safe_IPs::on_activation( (bool) $network_wide );
 }
 
 if ( defined( 'WP_CLI' ) && WP_CLI ) {

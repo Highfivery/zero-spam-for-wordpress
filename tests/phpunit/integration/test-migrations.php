@@ -25,13 +25,13 @@ class Test_Migrations extends TestCase {
 		'share_detection_cron_cleanup',
 		'davidwalsh_signed_tokens',
 		'geolocation_header_cache',
-		'whitelist_admin_ip',
+		'admin_safe_ip',
 	);
 
 	/**
 	 * The first run records every migration and fires zerospam_plugin_updated once.
 	 *
-	 * Runs as an administrator: whitelist_admin_ip waits for one (see Test_Admin_Whitelist).
+	 * Runs as an administrator: admin_safe_ip waits for one (see Test_Admin_Safe_IPs).
 	 */
 	public function test_first_run_records_every_migration(): void {
 		$this->as_role( 'administrator' );

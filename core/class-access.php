@@ -80,8 +80,9 @@ class Access {
 
 		$rescue = $rescue && Rescue_Link::form_enabled();
 
+		// The administrator's message keeps the post allowlist; only the plugin's own form markup may add form controls and styles.
 		wp_die(
-			$rescue ? wp_kses( $message . Rescue_Link::form_html(), Rescue_Link::allowed_html() ) : wp_kses_post( $message ),
+			$rescue ? '<h1>' . esc_html( $title ) . '</h1>' . wp_kses_post( $message ) . wp_kses( Rescue_Link::form_html(), Rescue_Link::allowed_html() ) : wp_kses_post( $message ),
 			esc_html( $title ),
 			array(
 				'response' => absint( $code ),
@@ -142,12 +143,17 @@ class Access {
 	 * Rescue cookie value for an emailed rescue link.
 	 *
 	 * Carries its own expiry, signed with the site's auth salt, so the hour is
-	 * enforced by the server and not only by the browser.
+	 * enforced by the server and not only by the browser. The signature also
+	 * covers the site and network IDs: on a network every site shares the
+	 * cookie path and domain, and a link used on one site must not open the
+	 * others.
 	 *
 	 * @param int $expires Expiry timestamp.
 	 */
 	private static function link_cookie_value( int $expires ): string {
-		return $expires . '.' . hash_hmac( 'sha256', 'zerospam_rescue_link|' . $expires, wp_salt( 'auth' ) );
+		$scope = 'zerospam_rescue_link|' . $expires . '|' . get_current_blog_id() . '|' . get_current_network_id();
+
+		return $expires . '.' . hash_hmac( 'sha256', $scope, wp_salt( 'auth' ) );
 	}
 
 	/**
@@ -489,6 +495,14 @@ class Access {
 					$access['blocked'] = true;
 					break;
 				}
+			}
+
+			// An address saved when an administrator activated or updated the
+			// plugin is never locked out. Only lockouts: detections still apply
+			// (Access::process() is unaffected). Read only when a block applies.
+			if ( $access['blocked'] && Admin_Safe_IPs::contains( (string) $user_ip ) ) {
+				$access['blocked']    = false;
+				$access['admin_safe'] = true;
 			}
 
 			$access['details'] = $access_checks;

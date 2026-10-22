@@ -78,8 +78,8 @@ class Plugin {
 			// Plugin admin module.
 			new \ZeroSpam\Core\Admin\Admin();
 
-			// Notice after the administrator's IP was added to the IP Whitelist.
-			new \ZeroSpam\Core\Admin_Whitelist();
+			// Administrator addresses that are never locked out: notice and Settings page list.
+			new \ZeroSpam\Core\Admin_Safe_IPs();
 		}
 
 		// Register REST API routes.

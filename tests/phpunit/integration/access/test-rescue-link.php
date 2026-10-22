@@ -35,6 +35,12 @@ class Test_Rescue_Link extends TestCase {
 		reset_phpmailer_instance();
 		delete_transient( Rescue_Link::SITE_LIMIT_TRANSIENT );
 		$GLOBALS['pagenow'] = 'index.php';
+
+		// The test framework defines DISABLE_WP_CRON; send through WP-Cron as a normal site does.
+		add_filter( 'zerospam_rescue_email_via_cron', '__return_true' );
+
+		// Scheduling the email spawns WP-Cron with a non-blocking loopback request.
+		$this->mock_http( '#wp-cron\.php#', '' );
 	}
 
 	/**
@@ -52,16 +58,16 @@ class Test_Rescue_Link extends TestCase {
 	/**
 	 * Submits the blocked page's rescue form and returns the response.
 	 *
-	 * The email is sent on `shutdown`; unless $shutdown is false, this runs
-	 * the plugin's shutdown sender afterwards, as the end of the request would.
+	 * The email is sent by a WP-Cron event; unless $run_cron is false, this
+	 * runs the scheduled rescue events afterwards, as WP-Cron would.
 	 *
 	 * @param string      $email    Submitted address.
 	 * @param string      $ip       Visitor IP.
 	 * @param string|null $nonce    Nonce; a valid one when null.
-	 * @param bool        $shutdown Whether to run the shutdown sender.
+	 * @param bool        $run_cron Whether to run the scheduled rescue events.
 	 * @return array{message: string, code: int}
 	 */
-	private function submit( string $email, string $ip = self::DEFAULT_IP, ?string $nonce = null, bool $shutdown = true ): array {
+	private function submit( string $email, string $ip = self::DEFAULT_IP, ?string $nonce = null, bool $run_cron = true ): array {
 		$this->set_request( '/wp-admin/admin-post.php', $ip );
 		$_SERVER['REQUEST_METHOD'] = 'POST';
 
@@ -75,8 +81,8 @@ class Test_Rescue_Link extends TestCase {
 		try {
 			Rescue_Link::handle_request();
 		} catch ( WPDieException $e ) {
-			if ( $shutdown ) {
-				Rescue_Link::send_queued();
+			if ( $run_cron ) {
+				$this->run_rescue_events();
 			}
 
 			return array(
@@ -86,6 +92,35 @@ class Test_Rescue_Link extends TestCase {
 		}
 
 		$this->fail( 'The rescue request handler returned instead of ending the request.' );
+	}
+
+	/**
+	 * Scheduled rescue email events.
+	 *
+	 * @return array<int, array{timestamp: int, args: array}>
+	 */
+	private function rescue_events(): array {
+		$events = array();
+		foreach ( (array) _get_cron_array() as $timestamp => $hooks ) {
+			foreach ( $hooks[ Rescue_Link::SEND_HOOK ] ?? array() as $event ) {
+				$events[] = array(
+					'timestamp' => (int) $timestamp,
+					'args'      => $event['args'],
+				);
+			}
+		}
+
+		return $events;
+	}
+
+	/**
+	 * Runs and unschedules the scheduled rescue email events, as WP-Cron would.
+	 */
+	private function run_rescue_events(): void {
+		foreach ( $this->rescue_events() as $event ) {
+			wp_unschedule_event( $event['timestamp'], Rescue_Link::SEND_HOOK, $event['args'] );
+			do_action_ref_array( Rescue_Link::SEND_HOOK, $event['args'] );
+		}
 	}
 
 	/**
@@ -198,6 +233,7 @@ class Test_Rescue_Link extends TestCase {
 
 		$this->assertSame( 200, $response['code'] );
 		$this->assertStringContainsString( 'If that address belongs to a site administrator, a rescue link has been sent.', $response['message'] );
+		$this->assertSame( 'Check your email', $this->parse( $response['message'] )->evaluate( 'normalize-space(//h1)' ) );
 
 		$sent = $this->sent();
 		$this->assertCount( 1, $sent );
@@ -207,17 +243,51 @@ class Test_Rescue_Link extends TestCase {
 		$token = $this->token_from_email();
 		$this->assertStringContainsString( home_url( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token ), $sent[0]->body );
 		$this->assertStringContainsString( '15 minutes', $sent[0]->body );
+		$this->assertStringContainsString( 'Settings → Zero Spam → Settings', $sent[0]->body );
 		$this->assertStringContainsString( self::DEFAULT_IP, $sent[0]->body, 'The email does not say which IP asked for it.' );
 		$this->assertStringNotContainsString( '@', home_url( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token ) );
 	}
 
 	/**
-	 * The email is sent on shutdown, after the answer, so sending takes no visible time.
+	 * The email is sent by a WP-Cron event, never during the request, so the answer takes no mail-server time.
+	 *
+	 * Requests for other addresses schedule the same kind of event, which sends nothing.
 	 */
-	public function test_email_is_sent_on_shutdown(): void {
+	public function test_email_is_sent_by_cron_not_during_the_request(): void {
 		$sent_answer = $this->submit( (string) get_option( 'admin_email' ), self::DEFAULT_IP, null, false );
 
-		$this->assertSame( array(), $this->sent(), 'The email was sent before the answer.' );
+		$this->assertSame( array(), $this->sent(), 'The email was sent during the request.' );
+		$this->assertCount( 1, $this->rescue_events() );
+
+		$other_answer = $this->submit( 'nobody@example.com', self::OTHER_IP, null, false );
+		$this->assertSame( $sent_answer, $other_answer );
+		$this->assertCount( 2, $this->rescue_events(), 'A non-administrator address does different work, which shows in the response time.' );
+		$this->assertSame( array(), $this->sent() );
+
+		$this->run_rescue_events();
+		$this->assertCount( 1, $this->sent() );
+		$this->assertSame( get_option( 'admin_email' ), $this->sent()[0]->to[0][0] );
+
+		// An event runs once: its payload is gone.
+		$this->assertSame( array(), $this->rescue_events() );
+		do_action( Rescue_Link::SEND_HOOK, str_repeat( 'a', 64 ) );
+		$this->assertCount( 1, $this->sent() );
+
+		// The scheduled payload never holds the token.
+		global $wpdb;
+		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s", $wpdb->esc_like( '_transient_' . Rescue_Link::JOB_TRANSIENT_PREFIX ) . '%' ) ) );
+	}
+
+	/**
+	 * Without WP-Cron the email is sent on `shutdown`, never during the request.
+	 */
+	public function test_email_is_sent_on_shutdown_without_cron(): void {
+		add_filter( 'zerospam_rescue_email_via_cron', '__return_false', 20 );
+
+		$this->submit( (string) get_option( 'admin_email' ), self::DEFAULT_IP, null, false );
+
+		$this->assertSame( array(), $this->sent(), 'The email was sent during the request.' );
+		$this->assertSame( array(), $this->rescue_events() );
 		$this->assertNotFalse( has_action( 'shutdown', array( Rescue_Link::class, 'send_queued' ) ) );
 
 		Rescue_Link::send_queued();
@@ -225,11 +295,42 @@ class Test_Rescue_Link extends TestCase {
 
 		Rescue_Link::send_queued();
 		$this->assertCount( 1, $this->sent(), 'The queue sent twice.' );
+	}
 
-		$other_answer = $this->submit( 'nobody@example.com', self::OTHER_IP, null, false );
-		Rescue_Link::send_queued();
-		$this->assertCount( 1, $this->sent() );
-		$this->assertSame( $sent_answer, $other_answer );
+	/**
+	 * A request without a usable visitor IP is refused (no shared "unknown" bucket).
+	 */
+	public function test_request_without_an_ip_is_refused(): void {
+		$response = $this->submit( (string) get_option( 'admin_email' ), '' );
+
+		$this->assertSame( 200, $response['code'] );
+		$this->assertSame( array(), $this->rescue_events() );
+		$this->assertSame( array(), $this->sent() );
+	}
+
+	/**
+	 * At most three emails per hour to one address, so one inbox cannot use up the site's quota.
+	 */
+	public function test_recipient_limit(): void {
+		$admin = (string) get_option( 'admin_email' );
+		self::factory()->user->create(
+			array(
+				'role'       => 'administrator',
+				'user_email' => 'second-admin@example.com',
+			)
+		);
+
+		$first = $this->submit( $admin, '192.0.2.1' );
+		$this->submit( strtoupper( $admin ), '192.0.2.2' );
+		$this->submit( $admin, '192.0.2.3' );
+		$this->assertCount( 3, $this->sent() );
+
+		$fourth = $this->submit( $admin, '192.0.2.4' );
+		$this->assertCount( 3, $this->sent(), 'A fourth email to one address was sent within the hour.' );
+		$this->assertSame( $first, $fourth );
+
+		$this->submit( 'second-admin@example.com', '192.0.2.5' );
+		$this->assertCount( 4, $this->sent(), 'The limit of one address blocked another administrator.' );
 	}
 
 	/**
@@ -281,6 +382,7 @@ class Test_Rescue_Link extends TestCase {
 		$this->assertSame( home_url( '/' ), $form->getAttribute( 'action' ) );
 		$this->assertSame( 1, $xpath->query( '//form//input[@type="hidden"][@name="' . Rescue_Link::TOKEN_PARAM . '"][@value="' . $token . '"]' )->length );
 		$this->assertSame( 'Let me back in', $xpath->evaluate( 'normalize-space(//form//button[@type="submit"])' ) );
+		$this->assertSame( 'Let me back in', $xpath->evaluate( 'normalize-space(//h1)' ) );
 		$this->assertStringContainsString( 'outline: 2px solid', $first['message'] );
 
 		$this->assertSame( wp_login_url(), $this->confirm_link( $token ) );
@@ -350,20 +452,34 @@ class Test_Rescue_Link extends TestCase {
 	}
 
 	/**
-	 * At most three emails per hour per site.
+	 * At most ten emails per hour per site, whichever administrators they go to.
 	 */
 	public function test_site_send_limit(): void {
-		$admin = (string) get_option( 'admin_email' );
+		$addresses = array( (string) get_option( 'admin_email' ) );
+		for ( $i = 1; $i <= 3; $i++ ) {
+			$addresses[] = "admin{$i}@example.com";
+			self::factory()->user->create(
+				array(
+					'role'       => 'administrator',
+					'user_email' => "admin{$i}@example.com",
+				)
+			);
+		}
 
-		$first = $this->submit( $admin, '192.0.2.1' );
-		$this->submit( $admin, '192.0.2.2' );
-		$this->submit( $admin, '192.0.2.3' );
-		$this->assertCount( 3, $this->sent() );
+		$ip    = 0;
+		$first = null;
+		foreach ( $addresses as $address ) {
+			for ( $n = 0; $n < 3 && count( $this->sent() ) < Rescue_Link::SITE_LIMIT; $n++ ) {
+				$response = $this->submit( $address, '192.0.2.' . ( ++$ip ) );
+				$first    = $first ?? $response;
+			}
+		}
+		$this->assertCount( 10, $this->sent() );
 
-		$fourth = $this->submit( $admin, '192.0.2.4' );
+		$eleventh = $this->submit( 'admin3@example.com', '192.0.2.' . ( ++$ip ) );
 
-		$this->assertCount( 3, $this->sent(), 'A fourth rescue email was sent within the hour.' );
-		$this->assertSame( $first, $fourth );
+		$this->assertCount( 10, $this->sent(), 'An eleventh rescue email was sent within the hour.' );
+		$this->assertSame( $first, $eleventh );
 	}
 
 	/**
@@ -411,6 +527,9 @@ class Test_Rescue_Link extends TestCase {
 
 		$error = $xpath->query( '//*[@id="zerospam-rescue-email-error"]' )->item( 0 );
 		$this->assertInstanceOf( DOMElement::class, $error );
+		$this->assertSame( 'alert', $error->getAttribute( 'role' ) );
+		$this->assertTrue( $input->hasAttribute( 'autofocus' ), 'Focus is not moved to the field with the error.' );
+		$this->assertSame( 1, $xpath->query( '//h1' )->length );
 		$this->assertStringContainsString( 'zerospam-rescue-email-error', $input->getAttribute( 'aria-describedby' ) );
 		$this->assertNotSame( '', $xpath->evaluate( 'normalize-space(//*[@id="zerospam-rescue-email-error"])' ) );
 		$this->assertSame( 'not an email', $input->getAttribute( 'value' ) );
@@ -557,6 +676,19 @@ class Test_Rescue_Link extends TestCase {
 	}
 
 	/**
+	 * A correctly signed link cookie stops working once its hour is over, whatever the browser does.
+	 */
+	public function test_expired_link_cookie_is_ignored(): void {
+		$sign = new ReflectionMethod( Access::class, 'link_cookie_value' );
+
+		$_COOKIE[ Access::RESCUE_COOKIE ] = $sign->invoke( null, time() + MINUTE_IN_SECONDS );
+		$this->assertFalse( Access::process(), 'A valid link cookie was refused.' );
+
+		$_COOKIE[ Access::RESCUE_COOKIE ] = $sign->invoke( null, time() - 1 );
+		$this->assertTrue( Access::process(), 'An expired link cookie still bypasses the checks.' );
+	}
+
+	/**
 	 * A tampered rescue-link cookie is ignored.
 	 */
 	public function test_tampered_link_cookie_is_ignored(): void {
@@ -601,7 +733,7 @@ class Test_Rescue_Link extends TestCase {
 			$this->assertSame( 200, (int) $e->getCode() );
 		}
 
-		Rescue_Link::send_queued();
+		$this->run_rescue_events();
 		$this->assertCount( 1, $this->sent() );
 	}
 
@@ -618,7 +750,7 @@ class Test_Rescue_Link extends TestCase {
 	 * The blocked page keeps the message and 403, with a collapsed, labelled rescue form.
 	 */
 	public function test_blocked_page_has_a_labelled_rescue_form(): void {
-		$this->set_setting( 'blocked_message', 'Custom <strong>blocked</strong> message.', 'settings' );
+		$this->set_setting( 'blocked_message', '<style>body { display: none; }</style>Custom <strong>blocked</strong> message.<input type="text" name="injected">', 'settings' );
 		$this->block( self::DEFAULT_IP );
 
 		$access = new Access();
@@ -633,6 +765,8 @@ class Test_Rescue_Link extends TestCase {
 		}
 
 		$this->assertStringContainsString( 'Custom <strong>blocked</strong> message.', $html );
+		$this->assertStringNotContainsString( '<style>body', $html, 'The blocked message may now carry <style>.' );
+		$this->assertStringNotContainsString( 'name="injected"', $html, 'The blocked message may now carry form controls.' );
 
 		$xpath   = $this->parse( $html );
 		$details = $xpath->query( '//details' )->item( 0 );
@@ -657,7 +791,8 @@ class Test_Rescue_Link extends TestCase {
 		$this->assertSame( 1, $xpath->query( '//form//input[@type="hidden"][@name="' . Rescue_Link::NONCE_FIELD . '"]' )->length );
 		$this->assertSame( 1, $xpath->query( '//form//button[@type="submit"]' )->length );
 		$this->assertSame( 1, $xpath->query( '//details//a[@href="https://wordpress.org/plugins/zero-spam/#faq"]' )->length );
-		$this->assertStringContainsString( 'Site owner? If you administer this site, enter the site', $html );
+		$this->assertStringContainsString( 'Site owner? If you administer this site, enter the email address of an administrator account on this site', $html );
+		$this->assertSame( 'Blocked', $xpath->evaluate( 'normalize-space(//h1)' ) );
 
 		// A 2px focus outline with an offset for the form controls.
 		$this->assertMatchesRegularExpression( '/<style>[^<]*\.zerospam-rescue input:focus-visible[^<]*outline: 2px solid #2271b1; outline-offset: 2px;/', $html );

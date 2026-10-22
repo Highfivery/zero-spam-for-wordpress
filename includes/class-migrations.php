@@ -100,8 +100,8 @@ class Migrations {
 			'share_detection_cron_cleanup' => array( $this, 'remove_share_detection_cron_events' ),
 			'davidwalsh_signed_tokens'     => array( '\\ZeroSpam\\Modules\\DavidWalsh\\DavidWalsh', 'start_legacy_grace_period' ),
 			'geolocation_header_cache'     => array( $this, 'clear_geolocation_cache' ),
-			// Stays pending until an administrator loads the site, see Admin_Whitelist::migrate().
-			'whitelist_admin_ip'           => array( \ZeroSpam\Core\Admin_Whitelist::class, 'migrate' ),
+			// Stays pending until an administrator loads the site, see Admin_Safe_IPs::migrate().
+			'admin_safe_ip'                => array( \ZeroSpam\Core\Admin_Safe_IPs::class, 'migrate' ),
 		);
 	}
 

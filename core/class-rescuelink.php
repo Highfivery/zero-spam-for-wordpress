@@ -20,11 +20,18 @@ defined( 'ABSPATH' ) || die();
  * checks for this action (see is_rescue_post()). That is safe because the
  * handler can only ever email an address that already belongs to a site
  * administrator, it answers every request the same way, and it is rate
- * limited per site and per IP before it does anything else.
+ * limited per IP before it does anything else, then per address and per
+ * site.
  *
- * The email is sent on `shutdown`, after the answer has been generated (and,
- * under PHP-FPM or LiteSpeed, sent), so a request that sends an email takes
- * as long as one that does not.
+ * The email is never sent during the request. Every valid request (for an
+ * administrator's address or not) does the same work: it updates the same
+ * limit counters and schedules one WP-Cron event, whose payload names the
+ * recipient (empty when nothing is to be sent). The event creates the token
+ * and sends the email. When WP-Cron is disabled (DISABLE_WP_CRON, unless
+ * the `zerospam_rescue_email_via_cron` filter says otherwise), the payload is
+ * handled on `shutdown` instead, after the response is finished where the
+ * server allows it (PHP-FPM, LiteSpeed); on other servers that fallback
+ * makes a request that sends an email take longer.
  *
  * The emailed link carries a random single-use token that expires after
  * 15 minutes; only its SHA-256 hash is stored. Opening the link (a GET,
@@ -97,7 +104,35 @@ final class Rescue_Link {
 	 *
 	 * @var int
 	 */
-	const SITE_LIMIT = 3;
+	const SITE_LIMIT = 10;
+
+	/**
+	 * Emails sent to one address per hour, so one inbox cannot use up the site's quota.
+	 *
+	 * @var int
+	 */
+	const RECIPIENT_LIMIT = 3;
+
+	/**
+	 * Transient name prefix that counts the emails to one address this hour, followed by the address's SHA-256 hash.
+	 *
+	 * @var string
+	 */
+	const RECIPIENT_LIMIT_TRANSIENT_PREFIX = 'zerospam_rescue_to_';
+
+	/**
+	 * WP-Cron hook that sends a rescue email.
+	 *
+	 * @var string
+	 */
+	const SEND_HOOK = 'zerospam_send_rescue_link';
+
+	/**
+	 * Transient name prefix for a scheduled email's payload, followed by its random job key.
+	 *
+	 * @var string
+	 */
+	const JOB_TRANSIENT_PREFIX = 'zerospam_rescue_job_';
 
 	/**
 	 * Transient that counts the emails sent this hour.
@@ -135,9 +170,9 @@ final class Rescue_Link {
 	const FIELD_ID = 'zerospam-rescue-email';
 
 	/**
-	 * Emails waiting for `shutdown`, as recipient and requester IP.
+	 * Job keys waiting for `shutdown` (only when WP-Cron is disabled).
 	 *
-	 * @var array<int, array{0: string, 1: string}>
+	 * @var string[]
 	 */
 	private static array $queue = array();
 
@@ -147,6 +182,7 @@ final class Rescue_Link {
 	public function __construct() {
 		add_action( 'admin_post_nopriv_' . self::ACTION, array( self::class, 'handle_request' ) );
 		add_action( 'admin_post_' . self::ACTION, array( self::class, 'handle_request' ) );
+		add_action( self::SEND_HOOK, array( self::class, 'run_job' ) );
 		add_filter( 'zerospam_types', array( self::class, 'types' ) );
 	}
 
@@ -208,8 +244,9 @@ final class Rescue_Link {
 
 		$ip = self::visitor_ip();
 
-		// Rate limits first: a flood costs one transient read and write per request.
-		if ( ! self::take( self::IP_LIMIT_TRANSIENT_PREFIX . md5( '' === $ip ? 'unknown' : $ip ), self::IP_LIMIT ) ) {
+		// No usable visitor IP, no shared bucket: refuse. Then the per-IP limit,
+		// before any other work: a flood costs one transient read and write per request.
+		if ( '' === $ip || ! self::take( self::IP_LIMIT_TRANSIENT_PREFIX . md5( $ip ), self::IP_LIMIT ) ) {
 			self::respond_sent();
 			return;
 		}
@@ -228,21 +265,91 @@ final class Rescue_Link {
 		}
 
 		$recipient = self::administrator_email( $email );
-		if ( null !== $recipient && self::take( self::SITE_LIMIT_TRANSIENT, self::SITE_LIMIT ) ) {
-			self::$queue[] = array( $recipient, $ip );
-			if ( false === has_action( 'shutdown', array( self::class, 'send_queued' ) ) ) {
-				add_action( 'shutdown', array( self::class, 'send_queued' ) );
-			}
-		}
+
+		// The same reads and writes for every address; only an email that will be sent is counted.
+		$address_key    = self::RECIPIENT_LIMIT_TRANSIENT_PREFIX . hash( 'sha256', strtolower( $email ) );
+		$address_window = self::window( $address_key );
+		$site_window    = self::window( self::SITE_LIMIT_TRANSIENT );
+		$send           = null !== $recipient && $address_window['count'] < self::RECIPIENT_LIMIT && $site_window['count'] < self::SITE_LIMIT;
+
+		self::save_window( $address_key, $address_window, $send );
+		self::save_window( self::SITE_LIMIT_TRANSIENT, $site_window, $send );
+
+		self::schedule( $send ? (string) $recipient : '', $ip );
 
 		self::respond_sent();
 	}
 
 	/**
-	 * Sends the queued rescue emails, on `shutdown`.
+	 * Schedules the email (or, for addresses that get none, the same empty job).
 	 *
-	 * Finishes the response first where the server allows it (as wp-cron.php
-	 * does), so the visitor never waits for the mail server.
+	 * The payload never holds the token: run_job() creates it.
+	 *
+	 * @param string $recipient Address to send to, or '' to send nothing.
+	 * @param string $ip        IP that asked for the link.
+	 */
+	private static function schedule( string $recipient, string $ip ): void {
+		$job = bin2hex( random_bytes( 16 ) );
+
+		set_transient(
+			self::JOB_TRANSIENT_PREFIX . $job,
+			array(
+				'to' => $recipient,
+				'ip' => $ip,
+			),
+			HOUR_IN_SECONDS
+		);
+
+		$cron_disabled = defined( 'DISABLE_WP_CRON' ) && true === constant( 'DISABLE_WP_CRON' );
+
+		/**
+		 * Filters whether rescue emails are sent by a WP-Cron event (true) or on `shutdown` (false).
+		 *
+		 * Default: WP-Cron unless DISABLE_WP_CRON is true. A site that runs
+		 * wp-cron.php from a system cron can return true; the link is created
+		 * when the event runs, so its 15 minutes start then.
+		 *
+		 * @param bool $use_cron Whether to use WP-Cron.
+		 */
+		if ( ! apply_filters( 'zerospam_rescue_email_via_cron', ! $cron_disabled ) ) {
+			self::$queue[] = $job;
+			if ( false === has_action( 'shutdown', array( self::class, 'send_queued' ) ) ) {
+				add_action( 'shutdown', array( self::class, 'send_queued' ) );
+			}
+
+			return;
+		}
+
+		wp_schedule_single_event( time(), self::SEND_HOOK, array( $job ) );
+		spawn_cron();
+	}
+
+	/**
+	 * Runs a scheduled rescue email job once (the WP-Cron event).
+	 *
+	 * @param string $job Job key.
+	 */
+	public static function run_job( $job ): void {
+		if ( ! is_string( $job ) || 1 !== preg_match( '/\A[a-f0-9]{32}\z/', $job ) ) {
+			return;
+		}
+
+		$payload = get_transient( self::JOB_TRANSIENT_PREFIX . $job );
+		delete_transient( self::JOB_TRANSIENT_PREFIX . $job );
+
+		if ( ! is_array( $payload ) || empty( $payload['to'] ) || ! is_string( $payload['to'] ) ) {
+			return;
+		}
+
+		self::send( $payload['to'], isset( $payload['ip'] ) ? (string) $payload['ip'] : '' );
+	}
+
+	/**
+	 * Runs the jobs queued for `shutdown` (only when WP-Cron is disabled).
+	 *
+	 * Finishes the response first where the server allows it (PHP-FPM,
+	 * LiteSpeed), as wp-cron.php does. Elsewhere the visitor waits for the
+	 * mail server, which is why WP-Cron is preferred.
 	 */
 	public static function send_queued(): void {
 		$queue       = self::$queue;
@@ -258,8 +365,8 @@ final class Rescue_Link {
 			litespeed_finish_request();
 		}
 
-		foreach ( $queue as $item ) {
-			self::send( $item[0], $item[1] );
+		foreach ( $queue as $job ) {
+			self::run_job( $job );
 		}
 	}
 
@@ -334,6 +441,7 @@ final class Rescue_Link {
 	 */
 	public static function show_confirm_page( string $token ): void {
 		$html  = self::focus_style();
+		$html .= '<h1>' . esc_html__( 'Let me back in', 'zero-spam' ) . '</h1>';
 		$html .= '<div class="zerospam-rescue">';
 		$html .= '<p>' . sprintf(
 			/* translators: %s: site name */
@@ -347,7 +455,7 @@ final class Rescue_Link {
 		$html .= '<p>' . esc_html__( 'The link works once and expires 15 minutes after it was sent.', 'zero-spam' ) . '</p>';
 		$html .= '</div>';
 
-		self::render( __( 'Let me back in', 'zero-spam' ), $html, 200 );
+		self::render( __( 'Let me back in', 'zero-spam' ), $html, 200, false );
 	}
 
 	/**
@@ -395,12 +503,12 @@ final class Rescue_Link {
 		$html .= '<details class="zerospam-rescue"' . ( $open ? ' open' : '' ) . ' style="margin-top: 24px; border-top: 1px solid #dcdcde; padding-top: 16px;">';
 		$html .= '<summary style="font-size: 14px; font-weight: 600;">' . esc_html__( 'Help for site owners', 'zero-spam' ) . '</summary>';
 		$html .= '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		$html .= '<p id="' . esc_attr( $help_id ) . '">' . esc_html__( 'Site owner? If you administer this site, enter the site\'s administrator email address and we\'ll email you a link that lets you in for one hour.', 'zero-spam' ) . '</p>';
+		$html .= '<p id="' . esc_attr( $help_id ) . '">' . esc_html__( 'Site owner? If you administer this site, enter the email address of an administrator account on this site and we\'ll email you a link that lets you in for one hour.', 'zero-spam' ) . '</p>';
 		$html .= '<p>';
 		$html .= '<label for="' . esc_attr( self::FIELD_ID ) . '" style="display: block; font-weight: 600; margin-bottom: 4px;">' . esc_html__( 'Administrator email address', 'zero-spam' ) . '</label>';
-		$html .= '<input type="email" id="' . esc_attr( self::FIELD_ID ) . '" name="' . esc_attr( self::EMAIL_FIELD ) . '" value="' . esc_attr( $value ) . '" required autocomplete="email" spellcheck="false" aria-describedby="' . esc_attr( $described ) . '"' . ( '' !== $error ? ' aria-invalid="true"' : '' ) . ' style="width: 100%; max-width: 320px; padding: 4px 8px; font-size: 14px; line-height: 2; border: 1px solid ' . ( '' !== $error ? '#d63638' : '#8c8f94' ) . '; border-radius: 4px;">';
+		$html .= '<input type="email" id="' . esc_attr( self::FIELD_ID ) . '" name="' . esc_attr( self::EMAIL_FIELD ) . '" value="' . esc_attr( $value ) . '" required autocomplete="email" spellcheck="false" aria-describedby="' . esc_attr( $described ) . '"' . ( '' !== $error ? ' aria-invalid="true"' : '' ) . ( '' !== $error ? ' autofocus' : '' ) . ' style="width: 100%; max-width: 320px; padding: 4px 8px; font-size: 14px; line-height: 2; border: 1px solid ' . ( '' !== $error ? '#d63638' : '#8c8f94' ) . '; border-radius: 4px;">';
 		if ( '' !== $error ) {
-			$html .= '<span id="' . esc_attr( $error_id ) . '" style="display: block; margin-top: 4px; color: #d63638; font-weight: 600;">' . esc_html( $error ) . '</span>';
+			$html .= '<span id="' . esc_attr( $error_id ) . '" role="alert" style="display: block; margin-top: 4px; color: #d63638; font-weight: 600;">' . esc_html( $error ) . '</span>';
 		}
 		$html .= '</p>';
 		$html .= '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
@@ -429,50 +537,54 @@ final class Rescue_Link {
 	}
 
 	/**
-	 * Tags and attributes allowed on pages that include the rescue form.
+	 * Tags and attributes of the rescue markup (form, confirm and answer pages).
 	 *
-	 * The post allowlist (for the configured blocked message) plus the form
-	 * controls form_html() uses.
+	 * Only for markup this class builds. The administrator's blocked message
+	 * is filtered with wp_kses_post() on its own (Access::terminate_execution()).
 	 *
 	 * @return array<string, array<string, bool>>
 	 */
 	public static function allowed_html(): array {
-		$allowed = wp_kses_allowed_html( 'post' );
-		$global  = array(
+		$global = array(
 			'id'    => true,
 			'class' => true,
 			'style' => true,
 		);
 
-		$allowed['style']   = array();
-		$allowed['div']     = array_merge( $allowed['div'] ?? array(), $global );
-		$allowed['details'] = array_merge( $allowed['details'] ?? array(), $global, array( 'open' => true ) );
-		$allowed['summary'] = array_merge( $allowed['summary'] ?? array(), $global );
-		$allowed['form']    = array_merge(
-			$allowed['form'] ?? array(),
-			$global,
-			array(
-				'method' => true,
-				'action' => true,
-			)
+		return array(
+			'style'   => array(),
+			'h1'      => $global,
+			'p'       => $global,
+			'div'     => $global,
+			'strong'  => array(),
+			'a'       => array( 'href' => true ),
+			'span'    => array_merge( $global, array( 'role' => true ) ),
+			'details' => array_merge( $global, array( 'open' => true ) ),
+			'summary' => $global,
+			'form'    => array_merge(
+				$global,
+				array(
+					'method' => true,
+					'action' => true,
+				)
+			),
+			'label'   => array_merge( $global, array( 'for' => true ) ),
+			'button'  => array_merge( $global, array( 'type' => true ) ),
+			'input'   => array_merge(
+				$global,
+				array(
+					'type'             => true,
+					'name'             => true,
+					'value'            => true,
+					'required'         => true,
+					'autocomplete'     => true,
+					'spellcheck'       => true,
+					'autofocus'        => true,
+					'aria-describedby' => true,
+					'aria-invalid'     => true,
+				)
+			),
 		);
-		$allowed['label']   = array_merge( $allowed['label'] ?? array(), $global, array( 'for' => true ) );
-		$allowed['button']  = array_merge( $allowed['button'] ?? array(), $global, array( 'type' => true ) );
-		$allowed['input']   = array_merge(
-			$global,
-			array(
-				'type'             => true,
-				'name'             => true,
-				'value'            => true,
-				'required'         => true,
-				'autocomplete'     => true,
-				'spellcheck'       => true,
-				'aria-describedby' => true,
-				'aria-invalid'     => true,
-			)
-		);
-
-		return $allowed;
 	}
 
 	/**
@@ -541,7 +653,7 @@ final class Rescue_Link {
 			__( 'Open this link to let your browser in for one hour, then log in:', 'zero-spam' ),
 			home_url( '/?' . self::TOKEN_PARAM . '=' . $token ),
 			__( 'The link works once and expires in 15 minutes. It works on any device, not only the one that asked for it.', 'zero-spam' ),
-			__( 'After you log in, add your IP address to the IP Whitelist under Settings → Zero Spam so you are not blocked again.', 'zero-spam' ),
+			__( 'After you log in, add your IP address to the IP Whitelist under Settings → Zero Spam → Settings so you are not blocked again.', 'zero-spam' ),
 			__( 'If you did not ask for this, you can ignore this email. Nobody can use the link without access to this email.', 'zero-spam' ),
 		);
 
@@ -564,24 +676,53 @@ final class Rescue_Link {
 	 * @return bool False when the limit is already reached.
 	 */
 	private static function take( string $key, int $limit ): bool {
+		$window = self::window( $key );
+
+		if ( $window['count'] >= $limit ) {
+			return false;
+		}
+
+		self::save_window( $key, $window, true );
+
+		return true;
+	}
+
+	/**
+	 * Reads an hourly counter.
+	 *
+	 * @param string $key Transient name.
+	 * @return array{count: int, start: int}
+	 */
+	private static function window( string $key ): array {
 		$now    = time();
 		$window = get_transient( $key );
 
 		if ( ! is_array( $window ) || ! isset( $window['count'], $window['start'] ) || (int) $window['start'] + HOUR_IN_SECONDS <= $now ) {
-			$window = array(
+			return array(
 				'count' => 0,
 				'start' => $now,
 			);
 		}
 
-		if ( (int) $window['count'] >= $limit ) {
-			return false;
+		return array(
+			'count' => (int) $window['count'],
+			'start' => (int) $window['start'],
+		);
+	}
+
+	/**
+	 * Writes an hourly counter back, counting one more use or not.
+	 *
+	 * @param string                        $key       Transient name.
+	 * @param array{count: int, start: int} $window    Counter from window().
+	 * @param bool                          $increment Whether to count one more use.
+	 */
+	private static function save_window( string $key, array $window, bool $increment ): void {
+		if ( $increment ) {
+			++$window['count'];
 		}
 
-		$window['count'] = (int) $window['count'] + 1;
-		set_transient( $key, $window, max( 1, (int) $window['start'] + HOUR_IN_SECONDS - $now ) );
-
-		return true;
+		set_transient( $key, $window, max( 1, $window['start'] + HOUR_IN_SECONDS - time() ) );
 	}
 
 	/**
@@ -619,15 +760,20 @@ final class Rescue_Link {
 	/**
 	 * Ends the request with an uncached page.
 	 *
-	 * @param string $title Page title.
-	 * @param string $html  Escaped markup.
-	 * @param int    $code  HTTP status.
+	 * @param string $title   Page title.
+	 * @param string $html    Escaped markup.
+	 * @param int    $code    HTTP status.
+	 * @param bool   $heading Whether to start the page with the title as its heading.
 	 */
-	private static function render( string $title, string $html, int $code ): void {
+	private static function render( string $title, string $html, int $code, bool $heading = true ): void {
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 			define( 'DONOTCACHEPAGE', true );
 		}
 		nocache_headers();
+
+		if ( $heading ) {
+			$html = '<h1>' . esc_html( $title ) . '</h1>' . $html;
+		}
 
 		wp_die(
 			wp_kses( $html, self::allowed_html() ),
