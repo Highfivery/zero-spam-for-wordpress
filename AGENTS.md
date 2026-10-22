@@ -152,6 +152,7 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
   step 6/6, `bin/test.sh --mode=all`) and refuses the push on failure.
   `SKIP_QUALITY_GATE=1` is for a genuine emergency only and must be mentioned
   in the PR.
+  Pushes that only delete branches or only push tags skip the gate.
 - `phpstan-baseline.neon` holds pre-existing findings. Fix new findings; never
   regenerate the baseline to hide them. Shrink it when you touch a listed file.
 - **Done means proven:** the PR description contains the `composer check`
