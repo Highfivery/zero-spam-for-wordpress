@@ -233,6 +233,8 @@ class Utilities {
 		/**
 		 * Filters the path of the .htaccess file Zero Spam writes its deny rules to.
 		 *
+		 * @since 5.7.14
+		 *
 		 * @param string $htaccess_file Full path. Default: .htaccess in the WordPress home directory.
 		 */
 		$htaccess_file = (string) apply_filters( 'zerospam_htaccess_file', get_home_path() . '.htaccess' );

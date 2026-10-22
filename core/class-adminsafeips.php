@@ -147,6 +147,8 @@ final class Admin_Safe_IPs {
 		 * Filters whether the activating or updating administrator's address is
 		 * saved as one Zero Spam never locks out (Admin_Safe_IPs).
 		 *
+		 * @since 5.7.14
+		 *
 		 * @param bool   $enabled Whether to save it. Default true.
 		 * @param string $ip      The administrator's IP address.
 		 */

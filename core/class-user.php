@@ -402,6 +402,8 @@ class User {
 		 * can be the visitor IP. Only enable this for sites whose visitors
 		 * really reach the proxy from a private network, such as an intranet.
 		 *
+		 * @since 5.7.14
+		 *
 		 * @param bool $allow Whether to accept private forwarded addresses. Default false.
 		 */
 		return (bool) apply_filters( 'zerospam_allow_private_forwarded_ip', false );
@@ -437,6 +439,10 @@ class User {
 			 * "Trusted Proxy IPs" setting are kept. Entries may be IP addresses
 			 * or CIDR ranges, IPv4 or IPv6; invalid entries and ranges broader
 			 * than /8 (IPv4) or /32 (IPv6) are ignored.
+			 *
+			 * @since 5.7.12
+			 * @since 5.7.14 Applied to the visitor IP as well as country headers;
+			 *               accepts CIDR ranges; receives the Trusted Proxy IPs setting.
 			 *
 			 * @param string[] $proxies IP addresses and CIDR ranges from the Trusted Proxy IPs setting.
 			 */

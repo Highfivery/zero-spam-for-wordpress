@@ -225,6 +225,8 @@ final class Rescue_Link {
 		 *
 		 * When false the form is not shown and form submissions send nothing.
 		 *
+		 * @since 5.7.14
+		 *
 		 * @param bool $enabled Whether the form is offered. Default true.
 		 */
 		return (bool) apply_filters( 'zerospam_rescue_form_enabled', true );
@@ -308,6 +310,8 @@ final class Rescue_Link {
 		 * Default: WP-Cron unless DISABLE_WP_CRON is true. A site that runs
 		 * wp-cron.php from a system cron can return true; the link is created
 		 * when the event runs, so its 15 minutes start then.
+		 *
+		 * @since 5.7.14
 		 *
 		 * @param bool $use_cron Whether to use WP-Cron.
 		 */
