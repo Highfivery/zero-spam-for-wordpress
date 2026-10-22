@@ -114,13 +114,17 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = I blocked myself! How do I get back in? =
 
-If you have defined the `ZEROSPAM_RESCUE_KEY` constant in your `wp-config.php` file (e.g. `define( 'ZEROSPAM_RESCUE_KEY', 'a-long-random-secret' );`), visit any page of your site with `?zerospam_rescue={YOUR_KEY}` appended (e.g., `https://example.com/wp-login.php?zerospam_rescue=a-long-random-secret`). All checks are bypassed in that browser for one hour, so you can log in and add your IP address to **IP Whitelist** under Settings → Zero Spam → Settings. Logged-in users are never blocked.
+On the blocked page, open **Help for site owners**, enter the email address of an administrator account on the site and press **Email me a rescue link**. Open the link in that email (on any device) and press **Let me back in**: that browser is let in for one hour, so you can log in and add your IP address to **IP Whitelist** under Settings → Zero Spam → Settings. The link works once, for 15 minutes. If the address isn't an administrator's, nothing is sent; the page says the same either way. Logged-in users are never blocked.
 
-If you haven't defined this key, you must manually rename the plugin folder via FTP (`wp-content/plugins/zero-spam` -> `zero-spam-disabled`) to gain access.
+When you activate or update Zero Spam, it also saves your current IP address (public addresses only) as one it never locks out. Visitors from that address are still checked for spam. You can see and remove these addresses under the IP Whitelist on Settings → Zero Spam → Settings.
+
+You can also define the `ZEROSPAM_RESCUE_KEY` constant in your `wp-config.php` file (e.g. `define( 'ZEROSPAM_RESCUE_KEY', 'a-long-random-secret' );`) and visit any page of your site with `?zerospam_rescue={YOUR_KEY}` appended (e.g., `https://example.com/wp-login.php?zerospam_rescue=a-long-random-secret`). All checks are bypassed in that browser for one hour.
+
+If none of these work (for example, you use an `.htaccess` block method, or your site can't send email), rename the plugin folder via FTP (`wp-content/plugins/zero-spam` -> `zero-spam-disabled`) to gain access.
 
 = Why can't I access `wp-login.php` or XML-RPC anymore? =
 
-As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation or use the Rescue Mode key to log in and whitelist your IP.
+As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation, or use the emailed rescue link on the blocked page (or the Rescue Mode key) to log in and whitelist your IP.
 
 == Screenshots ==
 

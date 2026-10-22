@@ -152,6 +152,8 @@ class Migrations {
 			'geolocation_header_cache'     => array( $this, 'clear_geolocation_cache' ),
 			'proxy_detection_since'        => array( $this, 'record_proxy_detection_since' ),
 			'canonical_blocked_ips'        => array( $this, 'canonicalize_blocked_ips' ),
+			// Stays pending until an administrator loads the site, see Admin_Safe_IPs::migrate().
+			'admin_safe_ip'                => array( \ZeroSpam\Core\Admin_Safe_IPs::class, 'migrate' ),
 		);
 	}
 

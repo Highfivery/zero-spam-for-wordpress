@@ -27,12 +27,16 @@ class Test_Migrations extends TestCase {
 		'geolocation_header_cache',
 		'proxy_detection_since',
 		'canonical_blocked_ips',
+		'admin_safe_ip',
 	);
 
 	/**
 	 * The first run records every migration and fires zerospam_plugin_updated once.
+	 *
+	 * Runs as an administrator: admin_safe_ip waits for one (see Test_Admin_Safe_IPs).
 	 */
 	public function test_first_run_records_every_migration(): void {
+		$this->as_role( 'administrator' );
 		delete_option( Migrations::COMPLETED_OPTION );
 		$updated = new MockAction();
 		add_action( 'zerospam_plugin_updated', array( $updated, 'action' ) );
@@ -49,6 +53,7 @@ class Test_Migrations extends TestCase {
 	 * A second run does nothing and fires nothing.
 	 */
 	public function test_second_run_is_a_no_op(): void {
+		$this->as_role( 'administrator' );
 		delete_option( Migrations::COMPLETED_OPTION );
 		( new Migrations() )->run();
 

@@ -53,6 +53,8 @@ $zerospam_site_options = array(
 	'wpzerospam',
 	'wpzerospam_honeypot',
 	'zerospam_activation_time',
+	'zerospam_admin_safe_ip_notice',
+	'zerospam_admin_safe_ips',
 	'zerospam_api_monitoring_notice_dismissed',
 	'zerospam_api_notices',
 	'zerospam_blocked_email_domains',
@@ -80,6 +82,7 @@ $zerospam_site_transients = array(
 	'zero_spam_failure_count',
 	'zerospam_dashboard_data_network',
 	'zerospam_dashboard_data_site',
+	'zerospam_rescue_site_sends',
 	'zerospam_shared_ip_warning',
 	'zerospam_woo_options_migrated',
 );
@@ -93,6 +96,7 @@ $zerospam_cron_hooks = array(
 	'zerospam_check_api_anomalies',
 	'zerospam_davidwalsh_rotate_key',
 	'zerospam_network_weekly_summary',
+	'zerospam_send_rescue_link',
 	'zerospam_update_blacklist_terms',
 );
 

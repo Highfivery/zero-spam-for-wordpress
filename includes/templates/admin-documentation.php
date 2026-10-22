@@ -28,12 +28,12 @@ defined( 'ABSPATH' ) || die();
 $sections = apply_filters(
 	'zerospam_documentation_sections',
 	array(
-		'rest-api'       => array(
+		'rest-api'           => array(
 			'title'    => __( 'REST API', 'zero-spam' ),
 			'template' => ZEROSPAM_PATH . 'includes/templates/docs/rest-api.php',
 			'priority' => 10,
 		),
-		'api-monitoring' => array(
+		'api-monitoring'     => array(
 			'title'    => __( 'API Monitoring & Alerts', 'zero-spam' ),
 			'template' => ZEROSPAM_PATH . 'includes/templates/docs/api-monitoring.php',
 			'priority' => 20,
@@ -42,6 +42,11 @@ $sections = apply_filters(
 			'title'    => __( 'Network Statistics & Insights', 'zero-spam' ),
 			'template' => ZEROSPAM_PATH . 'includes/templates/docs/network-statistics.php',
 			'priority' => 30,
+		),
+		'lockout-rescue'     => array(
+			'title'    => __( 'Getting Back In After a Lockout', 'zero-spam' ),
+			'template' => ZEROSPAM_PATH . 'includes/templates/docs/lockout-rescue.php',
+			'priority' => 40,
 		),
 	)
 );
