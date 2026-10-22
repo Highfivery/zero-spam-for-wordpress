@@ -100,15 +100,16 @@ class Test_Site_Admin_Overrides extends TestCase {
 	}
 
 	/**
-	 * Renders the Comments view of the settings page.
+	 * Renders a view of the settings page.
 	 *
+	 * @param string $subview View (section key).
 	 * @return string HTML.
 	 */
-	private function render_comments_view(): string {
+	private function render_comments_view( string $subview = 'comments' ): string {
 		// Fields capture their resolved value when registered, as on admin_init.
 		self::reset_static_caches();
 		$this->page->register_settings();
-		$this->set_request( '/wp-admin/options-general.php?page=wordpress-zero-spam-settings&subview=comments' );
+		$this->set_request( '/wp-admin/options-general.php?page=wordpress-zero-spam-settings&subview=' . $subview );
 
 		ob_start();
 		$this->page->settings_page();
@@ -494,6 +495,31 @@ class Test_Site_Admin_Overrides extends TestCase {
 		Settings::update_blocked_email_domains();
 
 		$this->assertNotSame( 'site.example', get_option( 'zerospam_blocked_email_domains' ) );
+	}
+
+	/**
+	 * While blocked_email_domains is locked, its update button is disabled and not a link.
+	 */
+	public function test_blocked_email_domains_button_is_disabled_while_locked(): void {
+		$this->set_network_setting( 'blocked_email_domains', 'network.example', true );
+
+		$xpath = $this->xpath( $this->render_comments_view( 'settings' ) );
+
+		$this->assertSame( 0, $xpath->query( '//a[contains(@href, "zerospam-action=update-blocked-emails")]' )->length );
+		$button = $xpath->query( '//span[contains(@class, "button") and contains(@class, "disabled")]' )->item( 0 );
+		$this->assertInstanceOf( DOMElement::class, $button );
+		$this->assertSame( 'true', $button->getAttribute( 'aria-disabled' ) );
+		$description = $xpath->query( '//*[@id="' . $button->getAttribute( 'aria-describedby' ) . '"]' )->item( 0 );
+		$this->assertStringContainsString( 'Locked by the network administrator', self::text_of( $description ) );
+	}
+
+	/**
+	 * Unlocked, the update button is a normal link.
+	 */
+	public function test_blocked_email_domains_button_is_a_link_while_unlocked(): void {
+		$xpath = $this->xpath( $this->render_comments_view( 'settings' ) );
+
+		$this->assertSame( 1, $xpath->query( '//a[contains(@href, "zerospam-action=update-blocked-emails")]' )->length );
 	}
 
 	/**

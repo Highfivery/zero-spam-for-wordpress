@@ -166,6 +166,8 @@ Because `resolve_all_settings()` treats any key stored in a site's `zero-spam-{m
 
 Writes made inside `switch_to_blog()` (for example "Apply to All Sites") are not filtered.
 
+On a network site, a site-scope `PATCH zero-spam/v1/settings` that includes a locked key is refused as a whole with `403 rest_setting_locked` (`data.locked_keys` lists them) and writes nothing. A value equal to the network default succeeds and is reported as `changes[key].source = "network_default"` (no override stored); other changes report `source = "site"`. `wp zerospam set` and `wp zerospam update-blocked-domains` print a warning and store nothing for a locked key.
+
 ## Advanced Use Cases
 
 ### 1. Conditional Network Enforcement

@@ -626,9 +626,11 @@ class Settings {
 				'style' => array(),
 			),
 			'span'   => array(
-				'id'    => array(),
-				'class' => array(),
-				'style' => array(),
+				'id'               => array(),
+				'class'            => array(),
+				'style'            => array(),
+				'aria-disabled'    => array(),
+				'aria-describedby' => array(),
 			),
 			'ul'     => array(
 				'id'    => array(),
@@ -722,6 +724,13 @@ class Settings {
 							'<a href="%s" class="button">%s</a>',
 							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' ) ),
 							esc_html__( 'Override & Update Settings', 'zero-spam' )
+						);
+					} elseif ( 'update_blocked_email_domains' === $label_for && $disabled ) {
+						// Not a link while disabled: the action would change a locked setting.
+						$html = sprintf(
+							'<span class="button disabled" aria-disabled="true" aria-describedby="%s">%s</span>',
+							esc_attr( $description_id ),
+							esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
 						);
 					} elseif ( 'update_blocked_email_domains' === $label_for ) {
 						$html = sprintf(

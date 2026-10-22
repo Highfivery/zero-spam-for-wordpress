@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Settings_Controller to this file name.
 /**
  * REST API Settings Controller
  *
@@ -168,6 +168,19 @@ class Settings_Controller extends WP_REST_Controller {
 			return $validated;
 		}
 
+		// A site may not change what the network administrator has locked: refuse the whole request.
+		$locked_keys = 'site' === $scope ? $this->get_locked_keys( array_keys( $validated ) ) : array();
+		if ( $locked_keys ) {
+			return new WP_Error(
+				'rest_setting_locked',
+				__( 'These settings are locked by the network administrator and cannot be changed on this site. Nothing was saved.', 'zero-spam' ),
+				array(
+					'status'      => 403,
+					'locked_keys' => $locked_keys,
+				)
+			);
+		}
+
 		// Get existing settings to compute diff.
 		$existing = array();
 		if ( 'network' === $scope ) {
@@ -210,6 +223,24 @@ class Settings_Controller extends WP_REST_Controller {
 				__( 'Failed to update settings.', 'zero-spam' ),
 				array( 'status' => 500 )
 			);
+		}
+
+		// On a network site, a value equal to the network value is not stored: the site keeps following the network default.
+		if ( 'site' === $scope && is_multisite() ) {
+			$stored = get_option( 'zero-spam-zerospam', array() );
+			$stored = is_array( $stored ) ? $stored : array();
+
+			foreach ( $validated as $key => $new_value ) {
+				if ( ! array_key_exists( $key, $stored ) ) {
+					$changes[ $key ] = array(
+						'old'    => isset( $existing[ $key ] ) ? $existing[ $key ] : null,
+						'new'    => $new_value,
+						'source' => 'network_default',
+					);
+				} elseif ( isset( $changes[ $key ] ) ) {
+					$changes[ $key ]['source'] = 'site';
+				}
+			}
 		}
 
 		// Record audit entry.
@@ -306,6 +337,29 @@ class Settings_Controller extends WP_REST_Controller {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Settings among the given keys that the network administrator has locked.
+	 *
+	 * @param string[] $keys Setting keys.
+	 * @return string[] Locked keys (empty on a single site).
+	 */
+	private function get_locked_keys( array $keys ): array {
+		if ( ! is_multisite() || ! $keys ) {
+			return array();
+		}
+
+		$network_settings = new \ZeroSpam\Includes\Network_Settings();
+
+		return array_values(
+			array_filter(
+				$keys,
+				static function ( $key ) use ( $network_settings ) {
+					return $network_settings->is_locked( (string) $key );
+				}
+			)
+		);
 	}
 
 	/**

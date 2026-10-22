@@ -283,6 +283,11 @@ class Site_Admin_Overrides {
 			return true;
 		}
 
+		// The "Override & Update Blocked Email Domains" button rewrites blocked_email_domains.
+		if ( 'update_blocked_email_domains' === $field_key && $this->network_settings()->is_locked( 'blocked_email_domains' ) ) {
+			return true;
+		}
+
 		return $disabled;
 	}
 
