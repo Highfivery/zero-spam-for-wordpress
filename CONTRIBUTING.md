@@ -62,7 +62,7 @@ composer check:all      # WPCS on every file and the tests, PHPStan and the full
 | `npm run test:e2e` / `test:e2e:local` / `test:e2e:network` | The suite on the Local single site and/or network (after the one-off `npm run e2e:setup:local`; see `AGENTS.md` section 6) |
 | `npm run test:a11y` / `test:visual` / `test:visual:update` | Accessibility scans only / compare the committed visual baselines / re-record them (in a commit of its own) |
 
-The committed `.githooks/pre-push` hook runs the version check, WPCS and PHP compatibility on changed files, WPCS on the test code, PHPStan and the PHPUnit suite (single site and multisite), and refuses the push when any of them fail. `SKIP_QUALITY_GATE=1 git push` bypasses it for a genuine emergency only; say so in the PR.
+The committed `.githooks/pre-push` hook runs the version check, WPCS and PHP compatibility on changed files, WPCS on the test code, PHPStan and the PHPUnit suite (single site and multisite), and refuses the push when any of them fail. Pushes that only delete branches or only push tags skip the gate. `SKIP_QUALITY_GATE=1 git push` bypasses it for a genuine emergency only; say so in the PR.
 
 `phpstan-baseline.neon` records the pre-existing findings so the gate passes today. Do not regenerate it to silence new findings; fix them, and shrink the baseline whenever you touch a file it lists.
 
