@@ -26,3 +26,11 @@
 .wp-list-table .column-end_block {
 	color: transparent !important;
 }
+
+/* On the WordPress dashboards, other widgets (At a Glance counts, Events and
+   News) change height between runs and shift the Zero Spam widget by
+   sub-pixels; hide them so the widget always sits at the top of its column. */
+#dashboard-widgets .postbox:not(#zerospam_unified_widget),
+#welcome-panel {
+	display: none !important;
+}
