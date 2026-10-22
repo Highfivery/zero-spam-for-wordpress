@@ -8,6 +8,9 @@
 declare( strict_types=1 );
 
 use ZeroSpam\Core\Admin\Dashboard;
+use ZeroSpam\Core\Admin\Tables\BlockedTable;
+use ZeroSpam\Includes\DB;
+use ZeroSpam\Tests\RedirectException;
 use ZeroSpam\Tests\TestCase;
 
 /**
@@ -23,7 +26,11 @@ use ZeroSpam\Tests\TestCase;
  * which reads the zero-spam-settings option; a spy on that option shows
  * whether it ran.
  *
+ * block_ip() (admin.php?action=add_blocked_ip) needs manage_options and the
+ * `zerospam` nonce from includes/templates/admin-block-ip.php.
+ *
  * @covers \ZeroSpam\Core\Admin\Dashboard::admin_init
+ * @covers \ZeroSpam\Core\Admin\Dashboard::block_ip
  */
 class Test_Dashboard extends TestCase {
 
@@ -66,8 +73,6 @@ class Test_Dashboard extends TestCase {
 
 	/**
 	 * A subscriber cannot make the plugin rewrite .htaccess with a bare query flag.
-	 *
-	 * @group known-defect
 	 */
 	public function test_refresh_htaccess_requires_capability_and_nonce(): void {
 		$this->as_role( 'subscriber' );
@@ -80,8 +85,6 @@ class Test_Dashboard extends TestCase {
 
 	/**
 	 * An administrator without a nonce cannot trigger it either.
-	 *
-	 * @group known-defect
 	 */
 	public function test_refresh_htaccess_requires_a_nonce_for_admins(): void {
 		$this->as_role( 'administrator' );
@@ -116,5 +119,133 @@ class Test_Dashboard extends TestCase {
 		$this->run_admin_init();
 
 		$this->assertSame( 0, $this->refreshes );
+	}
+
+	/**
+	 * The "Refresh .htaccess" link on the Blocked IPs screen carries a nonce
+	 * that admin_init() accepts.
+	 *
+	 * @covers \ZeroSpam\Core\Admin\Tables\BlockedTable::extra_tablenav
+	 */
+	public function test_refresh_link_carries_a_valid_nonce(): void {
+		$this->as_role( 'administrator' );
+		$this->set_setting( 'block_method', 'htaccess_modern' );
+
+		ob_start();
+		( new BlockedTable() )->extra_tablenav( 'top' );
+		$html = (string) ob_get_clean();
+
+		$this->assertSame( 1, preg_match( '/href="([^"]*zerospam-refresh-htaccess=1[^"]*)"/', $html, $matches ), 'The Refresh .htaccess link is missing.' );
+		$query = array();
+		wp_parse_str( (string) wp_parse_url( html_entity_decode( $matches[1] ), PHP_URL_QUERY ), $query );
+
+		$this->assertSame( 'blocked-ips', $query['subview'] ?? null );
+		$this->assertNotEmpty( $query['_wpnonce'] ?? '', 'The Refresh .htaccess link has no nonce.' );
+		$this->assertNotFalse( wp_verify_nonce( $query['_wpnonce'], 'zerospam-refresh-htaccess' ) );
+	}
+
+	/**
+	 * Runs block_ip() and returns how it ended.
+	 *
+	 * Both wp_die() and wp_safe_redirect() throw in tests (the redirect through
+	 * a wp_redirect filter added here), so the exit() after them never runs.
+	 *
+	 * @return Throwable|null WPDieException, RedirectException or null.
+	 */
+	private function run_block_ip(): ?Throwable {
+		add_filter(
+			'wp_redirect',
+			static function ( $location, $status ) {
+				throw new RedirectException( (string) $location, (int) $status ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Caught below, never rendered.
+			},
+			1,
+			2
+		);
+
+		try {
+			( new Dashboard() )->block_ip();
+		} catch ( WPDieException | RedirectException $e ) {
+			return $e;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Posts the add/update block form for an IP with the current user's nonce.
+	 *
+	 * @param string $ip IP address to block.
+	 */
+	private function post_block_form( string $ip ): void {
+		$_POST = array(
+			'zerospam'           => wp_create_nonce( 'zerospam' ),
+			'action'             => 'add_blocked_ip',
+			'blocked_ip'         => $ip,
+			'blocked_type'       => 'permanent',
+			'blocked_reason'     => 'Test block',
+			'blocked_start_date' => '',
+			'blocked_end_date'   => '',
+		);
+
+		$_REQUEST = $_POST;
+	}
+
+	/**
+	 * Number of block records for an IP.
+	 *
+	 * @param string $ip IP address.
+	 */
+	private function count_blocks( string $ip ): int {
+		global $wpdb;
+
+		$table = $wpdb->prefix . DB::$tables['blocked'];
+
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE user_ip = %s", $ip ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- Fixed plugin table name; test assertion.
+	}
+
+	/**
+	 * A user without manage_options cannot add a block, even with a valid nonce.
+	 */
+	public function test_block_ip_requires_manage_options(): void {
+		$this->as_role( 'editor' );
+		$this->post_block_form( '192.0.2.10' );
+
+		$result = $this->run_block_ip();
+
+		$this->assertInstanceOf( WPDieException::class, $result, 'block_ip() did not stop a user without manage_options.' );
+		$this->assertSame( 403, $result->getCode() );
+		$this->assertSame( 0, $this->count_blocks( '192.0.2.10' ), 'block_ip() added a block for a user without manage_options.' );
+	}
+
+	/**
+	 * An administrator with an invalid nonce is sent back with an error.
+	 */
+	public function test_block_ip_rejects_an_invalid_nonce(): void {
+		$this->as_role( 'administrator' );
+		$this->post_block_form( '192.0.2.11' );
+		$_POST['zerospam']    = 'invalid';
+		$_REQUEST['zerospam'] = 'invalid';
+
+		$result = $this->run_block_ip();
+
+		$this->assertInstanceOf( RedirectException::class, $result );
+		$this->assertStringContainsString( 'zerospam-type=error', $result->location );
+		$this->assertSame( 0, $this->count_blocks( '192.0.2.11' ) );
+	}
+
+	/**
+	 * An administrator with a valid nonce adds the block and is redirected back.
+	 */
+	public function test_block_ip_adds_the_block_for_an_admin_with_a_nonce(): void {
+		$this->as_role( 'administrator' );
+		$this->post_block_form( '192.0.2.12' );
+
+		$result = $this->run_block_ip();
+
+		$this->assertInstanceOf( RedirectException::class, $result );
+		$this->assertStringStartsWith( admin_url( 'index.php?page=wordpress-zero-spam-dashboard' ), $result->location );
+		$this->assertStringContainsString( 'subview=blocked-ips', $result->location );
+		$this->assertStringContainsString( 'zerospam-type=success', $result->location );
+		$this->assertSame( 1, $this->count_blocks( '192.0.2.12' ) );
 	}
 }
