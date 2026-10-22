@@ -2,7 +2,9 @@
  * Logs every role in through the real wp-login.php form (with Zero Spam's
  * login protection in whatever state the site is in) and stores the logins
  * for the other projects. On a Local target it also snapshots the plugin
- * state so the `restore` teardown can put it back.
+ * state so the `restore` teardown can put it back, and marks the run as in
+ * progress, so the test mu-plugin stubs outgoing HTTP for every request
+ * (cron included) until the teardown clears the mark.
  */
 
 import { test as setup, expect } from '@playwright/test';
@@ -50,11 +52,13 @@ setup( 'record the WordPress and PHP versions under test', async ( { playwright 
 } );
 
 setup( 'snapshot the Local site so the run can restore it', async () => {
-	setup.skip( 'local' !== target.kind, 'wp-env sites are disposable.' );
+	setup.skip( 'local' !== target.kind, 'wp-env sites are disposable (and always stubbed).' );
 	const utils = await ZsRequestUtils.setupFor( { user: target.users.admin!, baseURL: target.baseURL, token: target.token, storageStatePath: storageStatePath( target, 'admin' ) } );
-	const snapshot = await new ZsApi( utils ).call( 'GET', 'snapshot' );
+	const api = new ZsApi( utils );
+	const snapshot = await api.call( 'GET', 'snapshot' );
 	const dir = join( target.artifacts, 'local-backup' );
 	mkdirSync( dir, { recursive: true } );
 	writeFileSync( join( dir, 'snapshot.json' ), JSON.stringify( snapshot ) );
+	await api.call( 'POST', 'run', { active: true } );
 	await utils.request.dispose();
 } );

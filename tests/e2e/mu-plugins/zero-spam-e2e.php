@@ -7,17 +7,22 @@
  *
  * What it does when ZEROSPAM_E2E_TOKEN is defined:
  *
- * - Blocks every outgoing HTTP request to a host other than this site and
- *   answers the services Zero Spam talks to with canned JSON, recording each
- *   call (so background cron jobs can never reach live services either).
+ * - While stubs are active (see stubs_active(): every token request, every
+ *   request on a disposable wp-env site, and on Local every request while a
+ *   run is in progress), blocks every outgoing HTTP request to a host other
+ *   than this site, answers the services Zero Spam talks to with canned JSON
+ *   and reports "no updates" for core, plugins and themes. Outside a run a
+ *   Local site behaves normally.
  * - For requests that carry the matching X-ZeroSpam-E2E-Token header only:
- *   uses X-ZeroSpam-E2E-IP as the visitor IP (TEST-NET addresses, so a test
- *   can never block the developer's own IP), lifts the comment flood limit,
- *   skips outgoing mail, and records PHP notices, warnings, deprecations and
+ *   uses X-ZeroSpam-E2E-IP as the visitor IP (TEST-NET addresses only; any
+ *   other address is refused with a 400, so a test can never block the
+ *   developer's own IP), lifts the comment flood limit, skips outgoing mail,
+ *   and records PHP notices, warnings, deprecations, fatal errors and
  *   _doing_it_wrong() calls raised from Zero Spam's own files.
  * - Registers REST routes under zero-spam-e2e/v1 for resets, seeding and
  *   inspection. Every route needs the token header; all but /ping also need
- *   manage_options (network routes manage_network_options).
+ *   manage_options (network routes manage_network_options). Routes that take
+ *   an IP accept TEST-NET addresses only.
  *
  * Its own state lives in options prefixed zs_e2e_ so it never shows up in the
  * uninstall test's search for zero-spam-*, zerospam_* and wpzerospam* data.
@@ -42,7 +47,13 @@ if ( ! defined( 'ZEROSPAM_E2E_TOKEN' ) || ! is_string( ZEROSPAM_E2E_TOKEN ) || '
 const HTTP_CALLS_OPTION = 'zs_e2e_http_calls';
 const ERRORS_OPTION     = 'zs_e2e_errors';
 const MAILS_OPTION      = 'zs_e2e_mails';
+const RUN_OPTION        = 'zs_e2e_run_active';
 const MAX_RECORDS       = 200;
+// A run that never reaches its restore teardown (Ctrl-C, crash) stops stubbing after this long.
+const RUN_MAX_SECONDS = 3 * HOUR_IN_SECONDS;
+// Snapshots refuse tables larger than this instead of silently keeping part of them.
+const SNAPSHOT_MAX_ROWS = 50000;
+const SNAPSHOT_VERSION  = 2;
 
 /**
  * Whether the current request carries the matching token header.
@@ -60,6 +71,57 @@ function is_token_request(): bool {
 	}
 
 	return $result;
+}
+
+/**
+ * Whether an address is in a documentation range (TEST-NET-1/2/3,
+ * 192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, or IPv6 2001:db8::/32).
+ * Only those may be used as fake visitor IPs, blocked or logged, so a test
+ * can never block a real visitor or the developer.
+ *
+ * @param string $ip Address.
+ * @return bool
+ */
+function is_test_net( string $ip ): bool {
+	if ( false === filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+		return false;
+	}
+
+	$packed = inet_pton( $ip );
+	if ( false === $packed ) {
+		return false;
+	}
+
+	if ( 4 === strlen( $packed ) ) {
+		return in_array( substr( $packed, 0, 3 ), array( "\xC0\x00\x02", "\xC6\x33\x64", "\xCB\x00\x71" ), true );
+	}
+
+	return str_starts_with( $packed, "\x20\x01\x0D\xB8" );
+}
+
+/**
+ * Whether the network stubs (canned HTTP answers, "no updates") apply to the
+ * current request: every token request; every request on a disposable wp-env
+ * site (ZEROSPAM_E2E_DISPOSABLE); on Local, every request while a run is in
+ * progress (the setup project sets zs_e2e_run_active, the restore teardown
+ * clears it, and it expires after RUN_MAX_SECONDS). Outside a run a Local site
+ * talks to WordPress.org and Zero Spam's services as usual.
+ *
+ * @return bool
+ */
+function stubs_active(): bool {
+	static $active = null;
+
+	if ( null === $active ) {
+		if ( is_token_request() || ( defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE ) ) {
+			$active = true;
+		} else {
+			$until  = (int) ( is_multisite() ? get_site_option( RUN_OPTION, 0 ) : get_option( RUN_OPTION, 0 ) );
+			$active = $until > time();
+		}
+	}
+
+	return $active;
 }
 
 /**
@@ -184,7 +246,7 @@ function canned_body( string $host, string $path ): ?array {
 add_filter(
 	'pre_http_request',
 	static function ( $preempt, $args, $url ) {
-		if ( false !== $preempt ) {
+		if ( false !== $preempt || ! stubs_active() ) {
 			return $preempt;
 		}
 
@@ -249,7 +311,13 @@ function no_updates(): object {
 }
 
 foreach ( array( 'update_core', 'update_plugins', 'update_themes' ) as $zs_e2e_transient ) {
-	add_filter( 'pre_site_transient_' . $zs_e2e_transient, __NAMESPACE__ . '\no_updates', PHP_INT_MAX );
+	add_filter(
+		'pre_site_transient_' . $zs_e2e_transient,
+		static function ( $pre ) {
+			return stubs_active() ? no_updates() : $pre;
+		},
+		PHP_INT_MAX
+	);
 }
 unset( $zs_e2e_transient );
 
@@ -259,16 +327,36 @@ unset( $zs_e2e_transient );
  * ---------------------------------------------------------------------------
  */
 
+/**
+ * The X-ZeroSpam-E2E-IP header of a token request ('' when absent).
+ *
+ * @return string
+ */
+function fake_ip_header(): string {
+	if ( ! is_token_request() || ! isset( $_SERVER['HTTP_X_ZEROSPAM_E2E_IP'] ) || ! is_string( $_SERVER['HTTP_X_ZEROSPAM_E2E_IP'] ) ) {
+		return '';
+	}
+
+	return trim( sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_ZEROSPAM_E2E_IP'] ) ) );
+}
+
+/*
+ * A token request with a fake IP outside TEST-NET is refused before any
+ * plugin loads, so a test can never act as (and block) a real address.
+ */
+if ( '' !== fake_ip_header() && ! is_test_net( fake_ip_header() ) ) {
+	status_header( 400 );
+	header( 'Content-Type: text/plain; charset=utf-8' );
+	echo esc_html( 'Zero Spam e2e: X-ZeroSpam-E2E-IP must be a TEST-NET address (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 2001:db8::/32).' );
+	exit;
+}
+
 add_filter(
 	'zerospam_get_ip',
 	static function ( $ip ) {
-		if ( ! is_token_request() || empty( $_SERVER['HTTP_X_ZEROSPAM_E2E_IP'] ) || ! is_string( $_SERVER['HTTP_X_ZEROSPAM_E2E_IP'] ) ) {
-			return $ip;
-		}
+		$fake = fake_ip_header();
 
-		$fake = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_ZEROSPAM_E2E_IP'] ) );
-
-		return rest_is_ip_address( $fake ) ? $fake : $ip;
+		return '' !== $fake && is_test_net( $fake ) ? $fake : $ip;
 	},
 	PHP_INT_MAX
 );
@@ -356,8 +444,10 @@ function is_plugin_file( string $file ): bool {
 
 	$real = realpath( $file );
 	$real = false === $real ? $file : $real;
+	$dir  = plugin_dir();
 
-	return str_starts_with( $real, plugin_dir() ) && ! str_contains( $real, '/tests/' ) && ! str_contains( $real, '/vendor/' );
+	// The plugin's own test code and Composer tooling are not the plugin.
+	return str_starts_with( $real, $dir ) && ! str_starts_with( $real, $dir . 'tests/' ) && ! str_starts_with( $real, $dir . 'vendor/' );
 }
 
 /**
@@ -453,6 +543,19 @@ if ( is_token_request() ) {
 	}
 
 	unset( $zs_e2e_hooks, $zs_e2e_hook, $zs_e2e_kind );
+
+	// Fatal errors never reach an error handler; record them on shutdown.
+	register_shutdown_function(
+		static function () {
+			$error = error_get_last();
+			if ( null === $error || ! in_array( $error['type'], array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR ), true ) ) {
+				return;
+			}
+			if ( is_plugin_file( (string) $error['file'] ) ) {
+				record_error( 'fatal', (string) $error['message'], (string) $error['file'], (int) $error['line'] );
+			}
+		}
+	);
 }
 
 /*
@@ -493,29 +596,63 @@ function plugin_option_patterns(): array {
 }
 
 /**
+ * Whether an option name matches one of plugin_option_patterns() (with the
+ * same meaning as SQL LIKE: % is any run of characters, _ any one character).
+ *
+ * @param string $name Option name.
+ * @return bool
+ */
+function is_plugin_option_name( string $name ): bool {
+	foreach ( plugin_option_patterns() as $pattern ) {
+		$regex = '/^' . str_replace( array( '%', '_' ), array( '.*', '.' ), preg_quote( $pattern, '/' ) ) . '$/s';
+		if ( 1 === preg_match( $regex, $name ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Plugin-owned options of the current site with their autoload values.
+ *
+ * @return array<string, array{value: mixed, autoload: string}>
+ */
+function site_plugin_option_rows(): array {
+	global $wpdb;
+
+	$found = array();
+	foreach ( plugin_option_patterns() as $pattern ) {
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( 'SELECT option_name, option_value, autoload FROM %i WHERE option_name LIKE %s', $wpdb->options, $pattern ),
+			ARRAY_A
+		);
+		foreach ( (array) $rows as $row ) {
+			$found[ $row['option_name'] ] = array(
+				'value'    => maybe_unserialize( $row['option_value'] ),
+				'autoload' => (string) $row['autoload'],
+			);
+		}
+	}
+
+	ksort( $found );
+
+	return $found;
+}
+
+/**
  * Plugin-owned options of the current site (names and values).
  *
  * @param string $search Optional substring filter.
  * @return array<string, mixed>
  */
 function site_plugin_options( string $search = '' ): array {
-	global $wpdb;
-
 	$found = array();
-	foreach ( plugin_option_patterns() as $pattern ) {
-		$rows = $wpdb->get_results(
-			$wpdb->prepare( 'SELECT option_name, option_value FROM %i WHERE option_name LIKE %s', $wpdb->options, $pattern ),
-			ARRAY_A
-		);
-		foreach ( (array) $rows as $row ) {
-			if ( '' !== $search && ! str_contains( $row['option_name'], $search ) ) {
-				continue;
-			}
-			$found[ $row['option_name'] ] = maybe_unserialize( $row['option_value'] );
+	foreach ( site_plugin_option_rows() as $name => $row ) {
+		if ( '' === $search || str_contains( $name, $search ) ) {
+			$found[ $name ] = $row['value'];
 		}
 	}
-
-	ksort( $found );
 
 	return $found;
 }
@@ -560,6 +697,52 @@ function plugin_tables(): array {
 	sort( $tables );
 
 	return array_values( (array) $tables );
+}
+
+/**
+ * Whether a table name is one of this install's Zero Spam tables: per-site
+ * {prefix}wpzerospam_* (any site of a network) or network-wide
+ * {base_prefix}wpzerospam_*.
+ *
+ * @param string $table Table name.
+ * @return bool
+ */
+function is_install_plugin_table( string $table ): bool {
+	global $wpdb;
+
+	return 1 === preg_match( '/^' . preg_quote( $wpdb->base_prefix, '/' ) . '(\d+_)?wpzerospam_[a-z0-9_]+$/', $table );
+}
+
+/**
+ * This install's Zero Spam tables (every site and the network ones).
+ *
+ * @return string[]
+ */
+function install_plugin_tables(): array {
+	global $wpdb;
+
+	$tables = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->base_prefix ) . '%wpzerospam\_%' ) );
+	$tables = array_values( array_filter( (array) $tables, __NAMESPACE__ . '\is_install_plugin_table' ) );
+	sort( $tables );
+
+	return $tables;
+}
+
+/**
+ * Maps a stored autoload value to the argument add_option() takes.
+ *
+ * @param string $autoload Stored value (on, off, auto, auto-on, auto-off, yes, no).
+ * @return bool|null
+ */
+function autoload_argument( string $autoload ): ?bool {
+	if ( in_array( $autoload, array( 'yes', 'on', 'auto-on' ), true ) ) {
+		return true;
+	}
+	if ( in_array( $autoload, array( 'no', 'off', 'auto-off' ), true ) ) {
+		return false;
+	}
+
+	return null;
 }
 
 /**
@@ -666,31 +849,44 @@ function touched_core_options(): array {
 }
 
 /**
- * Captures the plugin state of every site (Local runs restore it afterwards).
+ * Captures what a Local run may change, so the restore teardown can put it
+ * back: every site's plugin options (with their autoload values), the core
+ * options in touched_core_options(), the plugin's error log, the network's
+ * plugin options, and every Zero Spam table of the install (schema and rows;
+ * uninstall drops them). A table above SNAPSHOT_MAX_ROWS rows is refused
+ * rather than captured in part.
  *
- * @return array
+ * @return array|WP_Error
  */
-function take_snapshot(): array {
+function take_snapshot() {
 	global $wpdb;
 
-	$capture = static function () use ( $wpdb ): array {
-		$tables = array();
-		foreach ( array( 'wpzerospam_log', 'wpzerospam_blocked' ) as $table ) {
-			$full = $wpdb->prefix . $table;
-			if ( $full === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $full ) ) ) {
-				$tables[ $table ] = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i LIMIT 50000', $full ), ARRAY_A );
-			}
+	$tables = array();
+	foreach ( install_plugin_tables() as $table ) {
+		$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
+		if ( $count > SNAPSHOT_MAX_ROWS ) {
+			return new WP_Error(
+				'zs_e2e_snapshot_too_large',
+				sprintf( 'Table %1$s has %2$d rows, more than the %3$d a snapshot can hold, so this site could not be restored after the run. Empty or prune it first (for example lower "Maximum log entries" in Zero Spam\'s settings).', $table, $count, SNAPSHOT_MAX_ROWS ),
+				array( 'status' => 409 )
+			);
 		}
+		$create           = $wpdb->get_row( $wpdb->prepare( 'SHOW CREATE TABLE %i', $table ), ARRAY_N );
+		$tables[ $table ] = array(
+			'create' => is_array( $create ) ? (string) $create[1] : '',
+			'rows'   => $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i', $table ), ARRAY_A ),
+		);
+	}
 
+	$capture = static function (): array {
 		$core = array();
 		foreach ( touched_core_options() as $name ) {
 			$core[ $name ] = get_option( $name );
 		}
 
 		return array(
-			'options'  => site_plugin_options(),
+			'options'  => site_plugin_option_rows(),
 			'core'     => $core,
-			'tables'   => $tables,
 			'errorLog' => class_exists( '\ZeroSpam\Core\Utilities' ) ? \ZeroSpam\Core\Utilities::get_error_log() : false,
 		);
 	};
@@ -707,13 +903,73 @@ function take_snapshot(): array {
 	}
 
 	return array(
+		'version'  => SNAPSHOT_VERSION,
 		'sites'    => $sites,
 		'sitemeta' => network_plugin_options(),
+		'tables'   => $tables,
 	);
 }
 
 /**
- * Restores a snapshot taken by take_snapshot().
+ * Checks that a snapshot only touches what take_snapshot() captures: the
+ * plugin's options, touched_core_options(), the network's plugin options and
+ * this install's Zero Spam tables.
+ *
+ * @param array $snapshot Snapshot.
+ * @return true|WP_Error
+ */
+function validate_snapshot( array $snapshot ) {
+	$problems = array();
+
+	if ( SNAPSHOT_VERSION !== (int) ( $snapshot['version'] ?? 0 ) ) {
+		$problems[] = 'unsupported snapshot version (take a new one)';
+	}
+
+	foreach ( (array) ( $snapshot['sites'] ?? array() ) as $blog_id => $site ) {
+		foreach ( array_keys( (array) ( $site['options'] ?? array() ) ) as $name ) {
+			if ( ! is_plugin_option_name( (string) $name ) ) {
+				$problems[] = sprintf( 'site %s: option %s is not a Zero Spam option', $blog_id, $name );
+			}
+		}
+		foreach ( array_keys( (array) ( $site['core'] ?? array() ) ) as $name ) {
+			if ( ! in_array( (string) $name, touched_core_options(), true ) ) {
+				$problems[] = sprintf( 'site %s: core option %s is not one the suite changes', $blog_id, $name );
+			}
+		}
+	}
+
+	foreach ( array_keys( (array) ( $snapshot['sitemeta'] ?? array() ) ) as $name ) {
+		if ( ! is_plugin_option_name( (string) $name ) ) {
+			$problems[] = sprintf( 'network option %s is not a Zero Spam option', $name );
+		}
+	}
+
+	foreach ( (array) ( $snapshot['tables'] ?? array() ) as $table => $data ) {
+		$table = (string) $table;
+		if ( ! is_install_plugin_table( $table ) ) {
+			$problems[] = sprintf( 'table %s is not a Zero Spam table of this install', $table );
+			continue;
+		}
+		if ( ! str_starts_with( (string) ( $data['create'] ?? '' ), 'CREATE TABLE `' . $table . '` (' ) ) {
+			$problems[] = sprintf( 'table %s: the saved schema is not a CREATE TABLE for it', $table );
+		}
+		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
+			foreach ( array_keys( (array) $row ) as $column ) {
+				if ( 1 !== preg_match( '/^[A-Za-z0-9_]+$/', (string) $column ) ) {
+					$problems[] = sprintf( 'table %s: invalid column name %s', $table, $column );
+					break 2;
+				}
+			}
+		}
+	}
+
+	return $problems
+		? new WP_Error( 'zs_e2e_snapshot_invalid', 'Refusing to restore: ' . implode( '; ', $problems ), array( 'status' => 400 ) )
+		: true;
+}
+
+/**
+ * Restores a snapshot taken by take_snapshot() (validate it first).
  *
  * @param array $snapshot Snapshot.
  */
@@ -724,21 +980,17 @@ function restore_snapshot( array $snapshot ): void {
 		foreach ( array_keys( site_plugin_options() ) as $name ) {
 			delete_option( $name );
 		}
-		foreach ( (array) ( $site['options'] ?? array() ) as $name => $value ) {
-			update_option( (string) $name, $value );
+		foreach ( (array) ( $site['options'] ?? array() ) as $name => $option ) {
+			$name     = (string) $name;
+			$autoload = (string) ( $option['autoload'] ?? 'auto' );
+			add_option( $name, $option['value'] ?? '', '', autoload_argument( $autoload ) );
+			// add_option() normalises the flag (on/off/auto); keep the exact stored value.
+			if ( in_array( $autoload, array( 'on', 'off', 'auto', 'auto-on', 'auto-off', 'yes', 'no' ), true ) ) {
+				$wpdb->update( $wpdb->options, array( 'autoload' => $autoload ), array( 'option_name' => $name ) );
+			}
 		}
 		foreach ( (array) ( $site['core'] ?? array() ) as $name => $value ) {
 			update_option( (string) $name, $value );
-		}
-		foreach ( (array) ( $site['tables'] ?? array() ) as $table => $rows ) {
-			$full = $wpdb->prefix . $table;
-			if ( $full !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $full ) ) ) {
-				continue;
-			}
-			$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $full ) );
-			foreach ( (array) $rows as $row ) {
-				$wpdb->insert( $full, (array) $row );
-			}
 		}
 		if ( class_exists( '\ZeroSpam\Core\Utilities' ) ) {
 			\ZeroSpam\Core\Utilities::delete_error_log();
@@ -748,6 +1000,7 @@ function restore_snapshot( array $snapshot ): void {
 				file_put_contents( $upload['basedir'] . '/zerospam.log', (string) $site['errorLog'] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Restoring a test backup of the plugin's own log file.
 			}
 		}
+		wp_cache_delete( 'alloptions', 'options' );
 	};
 
 	$sites = (array) ( $snapshot['sites'] ?? array() );
@@ -768,6 +1021,22 @@ function restore_snapshot( array $snapshot ): void {
 		}
 	} elseif ( isset( $sites['1'] ) ) {
 		$restore( (array) $sites['1'] );
+	}
+
+	foreach ( (array) ( $snapshot['tables'] ?? array() ) as $table => $data ) {
+		$table = (string) $table;
+		// A table of a site deleted since the snapshot stays deleted.
+		if ( is_multisite() && 1 === preg_match( '/^' . preg_quote( $wpdb->base_prefix, '/' ) . '(\d+)_/', $table, $m ) && ! get_site( (int) $m[1] ) ) {
+			continue;
+		}
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+			// Dropped during the run (uninstall); recreate it from the saved schema, checked by validate_snapshot().
+			$wpdb->query( (string) $data['create'] ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A CREATE TABLE statement read from this database by take_snapshot() and validated; it has no placeholders.
+		}
+		$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
+		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
+			$wpdb->insert( $table, (array) $row );
+		}
 	}
 
 	wp_cache_flush();
@@ -802,6 +1071,12 @@ add_action(
 				'callback'            => static function () {
 					global $wp_version;
 
+					// The runner writes a random marker into the checkout before each run;
+					// returning it proves this site loads that checkout (and not another
+					// checkout's wp-env answering on the same port).
+					$marker_file = plugin_dir() . 'tests/e2e/.run-marker';
+					$marker      = is_readable( $marker_file ) ? trim( (string) file_get_contents( $marker_file ) ) : null; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- A local file of the checkout under test.
+
 					return new WP_REST_Response(
 						array(
 							'ok'         => true,
@@ -813,6 +1088,8 @@ add_action(
 							'multisite'  => is_multisite(),
 							'debug'      => defined( 'WP_DEBUG' ) && WP_DEBUG,
 							'rescue'     => defined( 'ZEROSPAM_RESCUE_KEY' ),
+							'runMarker'  => $marker,
+							'disposable' => defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE,
 						)
 					);
 				},
@@ -854,7 +1131,12 @@ add_action(
 					}
 
 					$network = is_multisite() && rest_sanitize_boolean( $request->get_param( 'network' ) ?? false );
-					$promo   = rest_sanitize_boolean( $request->get_param( 'promo' ) ?? false );
+					// Every capability check before the first write.
+					if ( $network && ! current_user_can( 'manage_network_options' ) ) {
+						return new WP_Error( 'zs_e2e_forbidden', 'Network reset needs manage_network_options.', array( 'status' => 403 ) );
+					}
+
+					$promo = rest_sanitize_boolean( $request->get_param( 'promo' ) ?? false );
 					if ( is_multisite() ) {
 						update_site_option( 'zs_e2e_show_promo', $promo ? 1 : 0 );
 					} else {
@@ -863,15 +1145,14 @@ add_action(
 					if ( rest_sanitize_boolean( $request->get_param( 'clearErrorLog' ) ?? false ) && class_exists( '\ZeroSpam\Core\Utilities' ) ) {
 						\ZeroSpam\Core\Utilities::delete_error_log();
 					}
-					if ( $network && ! current_user_can( 'manage_network_options' ) ) {
-						return new WP_Error( 'zs_e2e_forbidden', 'Network reset needs manage_network_options.', array( 'status' => 403 ) );
-					}
 
 					if ( $network ) {
 						global $wpdb;
-						// The network audit log grows with every network test; start empty.
+						// The network audit log grows with every network test; start empty on
+						// a disposable site (its screen has a visual baseline). A Local
+						// network keeps its audit history.
 						$audit = $wpdb->base_prefix . 'wpzerospam_network_audit';
-						if ( $audit === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $audit ) ) ) {
+						if ( defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE && $audit === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $audit ) ) ) {
 							$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $audit ) );
 						}
 						delete_site_option( 'zerospam_network_settings' );
@@ -933,6 +1214,14 @@ add_action(
 					$locations = sample_locations();
 					$now       = time();
 
+					$ips = array();
+					for ( $i = 0; $i < $count; $i++ ) {
+						$ips[ $i ] = '' !== $fixed_ip ? $fixed_ip : $ip_prefix . ( ( $i % 250 ) + 1 );
+						if ( ! is_test_net( $ips[ $i ] ) ) {
+							return new WP_Error( 'zs_e2e_ip', sprintf( 'Seeded IPs must be TEST-NET addresses; %s is not (check ip / ipPrefix).', $ips[ $i ] ), array( 'status' => 400 ) );
+						}
+					}
+
 					for ( $i = 0; $i < $count; $i++ ) {
 						$loc = $locations[ $i % count( $locations ) ];
 						$wpdb->insert(
@@ -940,7 +1229,7 @@ add_action(
 							array(
 								'blog_id'         => get_current_blog_id(),
 								'log_type'        => $type,
-								'user_ip'         => '' !== $fixed_ip ? $fixed_ip : $ip_prefix . ( ( $i % 250 ) + 1 ),
+								'user_ip'         => $ips[ $i ],
 								'date_recorded'   => gmdate( 'Y-m-d H:i:s', $now - ( $i * $minutes * MINUTE_IN_SECONDS ) ),
 								'page_url'        => home_url( '/e2e-comments/' ),
 								'submission_data' => wp_json_encode(
@@ -1019,8 +1308,8 @@ add_action(
 				'permission_callback' => permission( 'manage_options' ),
 				'callback'            => static function ( WP_REST_Request $request ) {
 					$ip = (string) $request->get_param( 'ip' );
-					if ( ! rest_is_ip_address( $ip ) ) {
-						return new WP_Error( 'zs_e2e_ip', 'Invalid IP.', array( 'status' => 400 ) );
+					if ( ! is_test_net( $ip ) ) {
+						return new WP_Error( 'zs_e2e_ip', 'Only TEST-NET addresses (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 2001:db8::/32) can be blocked by the e2e suite.', array( 'status' => 400 ) );
 					}
 
 					$ok = \ZeroSpam\Includes\DB::blocked(
@@ -1130,18 +1419,53 @@ add_action(
 					'methods'             => 'GET',
 					'permission_callback' => permission( is_multisite() ? 'manage_network_options' : 'manage_options' ),
 					'callback'            => static function () {
-						return new WP_REST_Response( take_snapshot() );
+						$snapshot = take_snapshot();
+
+						return is_wp_error( $snapshot ) ? $snapshot : new WP_REST_Response( $snapshot );
 					},
 				),
 				array(
 					'methods'             => 'POST',
 					'permission_callback' => permission( is_multisite() ? 'manage_network_options' : 'manage_options' ),
 					'callback'            => static function ( WP_REST_Request $request ) {
-						restore_snapshot( (array) $request->get_json_params() );
+						$snapshot = (array) $request->get_json_params();
+						$valid    = validate_snapshot( $snapshot );
+						if ( is_wp_error( $valid ) ) {
+							return $valid;
+						}
+						restore_snapshot( $snapshot );
 
 						return new WP_REST_Response( array( 'restored' => true ) );
 					},
 				),
+			)
+		);
+
+		// Marks a run as in progress (stubs apply to every request, see
+		// stubs_active()) or over. Set by the setup project, cleared by the
+		// restore teardown; it expires on its own after RUN_MAX_SECONDS.
+		register_rest_route(
+			$ns,
+			'/run',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( is_multisite() ? 'manage_network_options' : 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$active = rest_sanitize_boolean( $request->get_param( 'active' ) ?? false );
+					if ( $active ) {
+						if ( is_multisite() ) {
+							update_site_option( RUN_OPTION, time() + RUN_MAX_SECONDS );
+						} else {
+							update_option( RUN_OPTION, time() + RUN_MAX_SECONDS, false );
+						}
+					} elseif ( is_multisite() ) {
+						delete_site_option( RUN_OPTION );
+					} else {
+						delete_option( RUN_OPTION );
+					}
+
+					return new WP_REST_Response( array( 'active' => $active ) );
+				},
 			)
 		);
 

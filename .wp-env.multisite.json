@@ -20,6 +20,7 @@
 		"AUTOMATIC_UPDATER_DISABLED": true,
 		"WP_AUTO_UPDATE_CORE": false,
 		"ZEROSPAM_E2E_TOKEN": "wp-env-only-not-secret",
+		"ZEROSPAM_E2E_DISPOSABLE": true,
 		"ZEROSPAM_RESCUE_KEY": "wp-env-rescue-key"
 	},
 	"lifecycleScripts": {
