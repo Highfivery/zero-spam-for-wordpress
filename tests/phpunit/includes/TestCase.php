@@ -236,7 +236,7 @@ abstract class TestCase extends WP_UnitTestCase {
 	/**
 	 * Clears the per-request static caches in the plugin.
 	 *
-	 * DavidWalsh::validate_token() also keeps a function-level
+	 * DavidWalsh::get_token_status() (behind validate_token()) also keeps a function-level
 	 * `static $accepted`, which cannot be reset from outside: a token accepted
 	 * in one test stays accepted for the rest of the run. Use a fresh token per
 	 * test until that cache moves to a resettable property.
