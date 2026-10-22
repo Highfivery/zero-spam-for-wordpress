@@ -218,18 +218,13 @@ class BlockedTable extends WP_List_Table {
 
 		$this->_column_headers = array( $columns, $hidden, $sortable );
 
+		// Pagination links keep the filter and the search as typed.
 		$paging_options = array();
-		if ( ! empty( $query_args['where'] ) ) {
-			foreach ( $query_args['where'] as $key => $value ) {
-				switch ( $key ) {
-					case 'blocked_type':
-						$paging_options['type'] = $value['value'];
-						break;
-					case 'user_ip':
-						$paging_options['s'] = $value['value'];
-						break;
-				}
-			}
+		if ( $log_type ) {
+			$paging_options['type'] = $log_type;
+		}
+		if ( $user_ip ) {
+			$paging_options['s'] = $user_ip;
 		}
 
 		$request_uri            = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';

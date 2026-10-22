@@ -20,6 +20,7 @@ use ZeroSpam\Tests\TestCase;
  * @covers \ZeroSpam\Includes\DB::blocked
  * @covers \ZeroSpam\Includes\Migrations::canonicalize_blocked_ips
  * @covers \ZeroSpam\Core\Admin\Tables\LogTable::prepare_items
+ * @covers \ZeroSpam\Core\Admin\Tables\BlockedTable::prepare_items
  */
 class Test_Blocked_IP_Forms extends TestCase {
 
@@ -189,5 +190,34 @@ class Test_Blocked_IP_Forms extends TestCase {
 		}
 
 		$this->assertCount( 2, $table->items, 'The canonical row, and the row logged in the form searched for.' );
+	}
+
+	/**
+	 * Searching Blocked IPs in any form finds the canonical block, and the
+	 * pagination links keep the search as typed.
+	 */
+	public function test_blocked_search_matches_canonical_form(): void {
+		$this->admin_screen( 'dashboard_page_wordpress-zero-spam-dashboard' );
+		$this->as_role( 'administrator' );
+		$this->block( '2001:db8::d' );
+		$this->block( '192.0.2.60' );
+
+		$_GET     = array( 's' => '2001:DB8:0:0:0:0:0:D' );
+		$_REQUEST = $_GET;
+
+		try {
+			$table = new \ZeroSpam\Core\Admin\Tables\BlockedTable();
+			$table->prepare_items();
+			ob_start();
+			$table->pagination( 'top' );
+			$pagination = (string) ob_get_clean();
+		} finally {
+			$_GET     = array();
+			$_REQUEST = array();
+		}
+
+		$this->assertCount( 1, $table->items );
+		$this->assertSame( '2001:db8::d', $table->items[0]['user_ip'] );
+		$this->assertStringNotContainsString( 'Array', $pagination );
 	}
 }
