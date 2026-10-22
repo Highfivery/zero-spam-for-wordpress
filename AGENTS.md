@@ -193,8 +193,10 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
   `composer test:defects`, and must fail for the documented reason (not a
   harness error). The PR that fixes the bug removes the tag so the test joins
   the gate. Never tag a test `known-defect` to get a red test past the gate.
-- **Database safety:** the suite installs WordPress into `zerospam_tests`
-  (single) and `zerospam_tests_ms` (multisite) on the Homebrew MySQL, never a
+- **Database safety:** the suite installs WordPress into
+  `zerospam_tests_<checkout-id>` (single) and `zerospam_tests_<checkout-id>_ms`
+  (multisite) on the Homebrew MySQL, where the id is a hash of the checkout
+  path so parallel worktrees never share a database or plugin link; never a
   Local site database. The bootstrap and `tests/phpunit/wp-tests-config.php`
   refuse any name that does not match `^zerospam_tests(_\w+)?\z`, and drop
   and recreate the database on every run, because the WordPress installer
