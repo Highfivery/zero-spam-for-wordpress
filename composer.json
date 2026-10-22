@@ -73,6 +73,7 @@
 		"check": [
 			"@version:check",
 			"@lint:changed",
+			"@lint:tests",
 			"@compat",
 			"@analyse",
 			"@test"
@@ -105,7 +106,7 @@
 		"test:wp": "Run the suite on PHP 8.2 and 8.4 x minimum and latest WordPress x single site and multisite, then check the readme.txt WordPress headers.",
 		"test:defects": "Run only the @group known-defect tests. They fail until the bug each one documents is fixed.",
 		"test:coverage": "Run the suite with code coverage into build/coverage/ (needs pcov or Xdebug).",
-		"check": "The quality gate the pre-push hook enforces: version check, WPCS on changed files, PHP compatibility, PHPStan, PHPUnit.",
+		"check": "The quality gate the pre-push hook enforces: version check, WPCS on changed files and on the tests, PHP compatibility, PHPStan, PHPUnit.",
 		"check:all": "The full gate: WPCS on every file and on the tests, PHP compatibility, PHPStan and the PHPUnit matrix. Fails until the pre-existing WPCS backlog is cleared.",
 		"hooks:install": "Point git at the committed .githooks/ directory (runs automatically after composer install/update)."
 	}

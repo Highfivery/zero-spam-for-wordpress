@@ -8,9 +8,10 @@
 #
 #   1. version:check   plugin header, ZEROSPAM_VERSION and Stable tag agree
 #   2. lint:changed    full WPCS ruleset on PHP files changed vs origin/develop
-#   3. compat          PHP 8.2+ compatibility on the same files
-#   4. analyse         PHPStan (level 5) against phpstan-baseline.neon
-#   5. test            PHPUnit on single site and multisite (bin/test.sh --mode=all;
+#   3. lint:tests      WPCS on the test code (phpcs.tests.xml.dist)
+#   4. compat          PHP 8.2+ compatibility on the changed files
+#   5. analyse         PHPStan (level 5) against phpstan-baseline.neon
+#   6. test            PHPUnit on single site and multisite (bin/test.sh --mode=all;
 #                      needs MySQL: brew services start mysql)
 #
 # Escape hatch for a genuine emergency only: SKIP_QUALITY_GATE=1 git push
@@ -33,20 +34,24 @@ fi
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
 
-step "1/5 Version consistency"
+step "1/6 Version consistency"
 bin/check-version.sh
 
-step "2/5 WordPress Coding Standards (changed PHP files)"
+step "2/6 WordPress Coding Standards (changed PHP files)"
 bin/lint-changed.sh
 
-step "3/5 PHP 8.2+ compatibility (changed PHP files)"
+step "3/6 WordPress Coding Standards (test code)"
+vendor/bin/phpcs --standard=phpcs.tests.xml.dist -q
+echo "lint:tests: tests/phpunit is clean."
+
+step "4/6 PHP 8.2+ compatibility (changed PHP files)"
 PHPCS_STANDARD=PHPCompatibilityWP bin/lint-changed.sh
 
-step "4/5 PHPStan"
+step "5/6 PHPStan"
 vendor/bin/phpstan analyse --memory-limit=1G --no-progress
 
 wp_latest="$(sed -nE 's/^WP_LATEST=(.*)$/\1/p' tests/phpunit/versions.env)"
-step "5/5 PHPUnit (PHP $(php -r 'echo PHP_VERSION;'), WordPress ${wp_latest}, single site and multisite)"
+step "6/6 PHPUnit (PHP $(php -r 'echo PHP_VERSION;'), WordPress ${wp_latest}, single site and multisite)"
 bin/test.sh --mode=all
 
 printf '\n\033[32mpre-push: all checks passed.\033[0m\n'
