@@ -8,3 +8,7 @@ this plugin analyses against the 7.x stubs.
 
 To refresh them, replace the file with the same-named file from a
 newer tag and update the version above.
+
+`elementor-pro-stubs.php` is hand-written: it declares only the Elementor Pro
+forms classes and methods that `modules/elementor/class-elementor.php` calls.
+Add to it when the module starts using more of that API.
