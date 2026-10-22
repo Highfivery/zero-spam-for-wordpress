@@ -1,6 +1,6 @@
 # AGENTS.md — Zero Spam for WordPress
 
-Instructions for coding agents (Claude Code, Cursor, Copilot, others) and a
+Instructions for coding agents (Claude Code and any other agent) and a
 quick reference for humans. `CLAUDE.md` imports this file. Keep it current:
 when a convention, tool or process in this repository changes, change it here
 in the same PR.
