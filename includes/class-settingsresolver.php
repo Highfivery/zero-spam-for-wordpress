@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Settings_Resolver to this file name.
 /**
  * Settings Resolver class
  *
@@ -161,6 +161,13 @@ class Settings_Resolver {
 			}
 
 			$result = update_option( "zero-spam-$module", $updated, true );
+
+			// update_option() also returns false when the sanitized value equals the stored one, for
+			// example when a network site's save filter drops a value equal to the network default.
+			if ( ! $result ) {
+				$stored = get_option( "zero-spam-$module", array() );
+				$result = maybe_serialize( $stored ) === maybe_serialize( sanitize_option( "zero-spam-$module", $updated ) );
+			}
 		}
 
 		// Invalidate cache on successful update.

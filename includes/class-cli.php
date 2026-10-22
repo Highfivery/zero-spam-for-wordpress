@@ -1,8 +1,12 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- Loaded by path from wordpress-zero-spam.php under WP-CLI, not by the autoloader.
 /**
  * Plugin CLI Commands
  *
  * @package ZeroSpam
+ */
+
+/**
+ * WP-CLI commands under `wp zerospam`.
  */
 class ZeroSpamCLI {
 	/**
@@ -42,6 +46,7 @@ class ZeroSpamCLI {
 	 */
 	public function set( $args, $assoc_args ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$locked   = false;
 
 		if ( $assoc_args ) {
 			foreach ( $assoc_args as $key => $value ) {
@@ -54,6 +59,11 @@ class ZeroSpamCLI {
 				}
 
 				if ( 'update_blocked_email_domains' === $key ) {
+					if ( self::is_locked_by_network( 'blocked_email_domains' ) ) {
+						WP_CLI::warning( '\'blocked_email_domains\' is locked by the network administrator and cannot be changed on this site. Nothing was stored.' );
+						$locked = true;
+						continue;
+					}
 					\ZeroSpam\Core\Settings::update_blocked_email_domains();
 					WP_CLI::success( 'Blocked email domains have been updated to the recommended list.' );
 					continue;
@@ -67,15 +77,47 @@ class ZeroSpamCLI {
 
 				if ( ! isset( $settings[ $key ] ) ) {
 					WP_CLI::error( $key . ' is not a valid setting.' );
+				} elseif ( self::is_locked_by_network( $key ) ) {
+					WP_CLI::warning( '\'' . $key . '\' is locked by the network administrator and cannot be changed on this site. Nothing was stored.' );
+					$locked = true;
 				} elseif ( \ZeroSpam\Core\Utilities::update_setting( $key, $value ) ) {
 						WP_CLI::success( '\'' . $key . '\' has been successfully updated to \'' . $value . '\'.' );
 				} else {
 					WP_CLI::error( 'There was a problem updating ' . $key . '. See the zerospam.log for more details.' );
 				}
 			}
+
+			// The other settings were still applied; report the locked ones through the exit code.
+			if ( $locked ) {
+				WP_CLI::halt( 1 );
+			}
 		} else {
 			WP_CLI::error( __( 'Oops! You didn\'t specify a setting to set (ex. wp zerospam set --share_data=enabled).', 'zero-spam' ) );
 		}
+	}
+
+	/**
+	 * Network settings lookup, shared by every lock check of the command.
+	 *
+	 * @var \ZeroSpam\Includes\Network_Settings|null
+	 */
+	private static ?\ZeroSpam\Includes\Network_Settings $network_settings = null;
+
+	/**
+	 * Whether the network administrator has locked a setting for this site.
+	 *
+	 * @param string $key Setting key.
+	 */
+	private static function is_locked_by_network( string $key ): bool {
+		if ( ! is_multisite() ) {
+			return false;
+		}
+
+		if ( null === self::$network_settings ) {
+			self::$network_settings = new \ZeroSpam\Includes\Network_Settings();
+		}
+
+		return self::$network_settings->is_locked( $key );
 	}
 
 	/**
@@ -87,7 +129,6 @@ class ZeroSpamCLI {
 	 * ## EXAMPLES
 	 *
 	 *     wp zerospam regenerate-honeypot
-	 *
 	 */
 	public function regenerate_honeypot() {
 		\ZeroSpam\Core\Utilities::get_honeypot( true );
@@ -127,6 +168,11 @@ class ZeroSpamCLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function update_blocked_domains( $args, $assoc_args ) {
+		if ( self::is_locked_by_network( 'blocked_email_domains' ) ) {
+			WP_CLI::warning( '\'blocked_email_domains\' is locked by the network administrator and cannot be changed on this site. Nothing was stored.' );
+			WP_CLI::halt( 1 );
+		}
+
 		$domains = '';
 
 		if ( ! empty( $assoc_args['recommended'] ) ) {
@@ -166,17 +212,8 @@ class ZeroSpamCLI {
 		$domain_array = array_unique( $domain_array );
 		$domains      = implode( "\n", $domain_array );
 
-		if ( update_option( 'zerospam_blocked_email_domains', $domains ) ) {
-			wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
-			global $wpdb;
-			$wpdb->query(
-				$wpdb->prepare(
-					"UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s",
-					'no',
-					'zerospam_blocked_email_domains'
-				)
-			);
-		}
+		// Never autoload this large option.
+		update_option( 'zerospam_blocked_email_domains', $domains, false );
 
 		WP_CLI::success( 'Blocked email domains updated. Total domains: ' . count( $domain_array ) );
 	}
@@ -578,7 +615,7 @@ class ZeroSpamCLI {
 // Register network settings commands (multisite only).
 if ( is_multisite() && class_exists( '\ZeroSpam\Includes\CLI\Network_Settings_CLI' ) ) {
 	$network_settings_cli = new \ZeroSpam\Includes\CLI\Network_Settings_CLI();
-	
+
 	WP_CLI::add_command( 'zerospam network-settings list', array( $network_settings_cli, 'list_settings' ) );
 	WP_CLI::add_command( 'zerospam network-settings show', array( $network_settings_cli, 'show' ) );
 	WP_CLI::add_command( 'zerospam network-settings set', array( $network_settings_cli, 'set' ) );

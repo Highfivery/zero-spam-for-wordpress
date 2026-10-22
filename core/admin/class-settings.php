@@ -274,7 +274,7 @@ class Settings {
 			$message = $result ?
 				__( 'Test email alert sent successfully! Check your inbox.', 'zero-spam' ) :
 				__( 'Failed to send test email alert. Please check your email configuration.', 'zero-spam' );
-			$type = $result ? 'success' : 'error';
+			$type    = $result ? 'success' : 'error';
 
 			$redirect_url = add_query_arg(
 				array(
@@ -296,7 +296,7 @@ class Settings {
 			$message = $result ?
 				__( 'Test admin notice created successfully! You should see it on the next page load.', 'zero-spam' ) :
 				__( 'Failed to create test admin notice.', 'zero-spam' );
-			$type = $result ? 'success' : 'error';
+			$type    = $result ? 'success' : 'error';
 
 			$redirect_url = add_query_arg(
 				array(
@@ -318,7 +318,7 @@ class Settings {
 			$message = $result ?
 				__( 'Test webhook sent successfully! Check your webhook endpoint.', 'zero-spam' ) :
 				__( 'Failed to send test webhook. Please check your webhook URL configuration.', 'zero-spam' );
-			$type = $result ? 'success' : 'error';
+			$type    = $result ? 'success' : 'error';
 
 			$redirect_url = add_query_arg(
 				array(
@@ -351,42 +351,65 @@ class Settings {
 	}
 
 	/**
+	 * Module whose settings form this sanitize call is saving, if any.
+	 *
+	 * The settings form posts `option_page` (the group passed to
+	 * settings_fields(), which is also the option name), and options.php
+	 * verifies its nonce before it calls update_option(). Other writes to the same options (the network's "Apply
+	 * to All Sites", imports, the recommended-settings action, WP-CLI, REST)
+	 * have no matching `option_page`.
+	 *
+	 * @return string Module key, or '' when this is not a settings form submission.
+	 */
+	private static function submitted_form_module(): string {
+		$prefix = 'sanitize_option_zero-spam-';
+		$filter = (string) current_filter();
+
+		if ( 0 !== strpos( $filter, $prefix ) ) {
+			return '';
+		}
+
+		$option = substr( $filter, strlen( 'sanitize_option_' ) );
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- options.php verified this option page's nonce before saving; the value is only compared.
+		$option_page = isset( $_POST['option_page'] ) ? sanitize_text_field( wp_unslash( $_POST['option_page'] ) ) : '';
+
+		return $option_page === $option ? substr( $filter, strlen( $prefix ) ) : '';
+	}
+
+	/**
 	 * Validates plugin settings before save
+	 *
+	 * On a settings form submission, the unticked checkboxes and empty
+	 * multi-selects of the module being saved, which browsers do not submit,
+	 * are stored as `false` and an empty array. Other writes are stored as
+	 * given, so on a network they never turn settings they did not mention
+	 * into site overrides.
 	 *
 	 * @param array $input Input array.
 	 * @return array
 	 */
 	public function settings_validation( $input ) {
-		$input = is_array( $input ) ? $input : array();
+		$input  = is_array( $input ) ? $input : array();
+		$module = self::submitted_form_module();
 
-		// Handle unchecked checkboxes for multisite override detection.
-		// WordPress doesn't submit unchecked checkboxes, so explicitly set them to false.
-		$all_settings = \ZeroSpam\Core\Settings::get_settings();
-		
-		foreach ( $all_settings as $setting_key => $setting_config ) {
-			if (
-				isset( $setting_config['type'] ) &&
-				'checkbox' === $setting_config['type'] &&
-				isset( $setting_config['module'] ) &&
-				! isset( $input[ $setting_key ] )
-			) {
-				$input[ $setting_key ] = false;
-			}
-		}
+		if ( '' !== $module ) {
+			foreach ( \ZeroSpam\Core\Settings::get_settings() as $setting_key => $setting_config ) {
+				if (
+					! isset( $setting_config['type'], $setting_config['module'] ) ||
+					$module !== $setting_config['module'] ||
+					isset( $input[ $setting_key ] )
+				) {
+					continue;
+				}
 
-		// Handle empty multi-select fields.
-		// HTML multi-selects don't submit a value when nothing is selected,
-		// so explicitly store an empty array to distinguish "none selected"
-		// from "never configured".
-		foreach ( $all_settings as $setting_key => $setting_config ) {
-			if (
-				isset( $setting_config['type'] ) &&
-				'select' === $setting_config['type'] &&
-				! empty( $setting_config['multiple'] ) &&
-				isset( $setting_config['module'] ) &&
-				! isset( $input[ $setting_key ] )
-			) {
-				$input[ $setting_key ] = array();
+				if ( 'checkbox' === $setting_config['type'] ) {
+					// Browsers don't submit unticked checkboxes.
+					$input[ $setting_key ] = false;
+				} elseif ( 'select' === $setting_config['type'] && ! empty( $setting_config['multiple'] ) ) {
+					// Nor multi-selects with nothing selected: store "none selected", not "never configured".
+					$input[ $setting_key ] = array();
+				}
 			}
 		}
 
@@ -428,19 +451,8 @@ class Settings {
 
 		// Handle blocked email domains separate option to prevent autoloading.
 		if ( isset( $input['blocked_email_domains'] ) ) {
-			if ( update_option( 'zerospam_blocked_email_domains', $input['blocked_email_domains'] ) ) {
-				// Prevent autoloading large options.
-				// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
-				wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
-				global $wpdb;
-				$wpdb->query(
-					$wpdb->prepare(
-						"UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s",
-						'no',
-						'zerospam_blocked_email_domains'
-					)
-				);
-			}
+			// Never autoload this large option (see https://10up.github.io/Engineering-Best-Practices/php/#performance).
+			update_option( 'zerospam_blocked_email_domains', $input['blocked_email_domains'], false );
 			unset( $input['blocked_email_domains'] );
 		}
 
@@ -524,7 +536,38 @@ class Settings {
 			)
 		);
 
-		$setting_name = 'zero-spam-' . $args['module'] . '[' . $args['label_for'] . ']';
+		$field_key    = (string) $args['label_for'];
+		$setting_name = 'zero-spam-' . $args['module'] . '[' . $field_key . ']';
+
+		/**
+		 * Filters whether a setting's control is rendered disabled.
+		 *
+		 * On a network, Site_Admin_Overrides disables the settings the network
+		 * administrator has locked. A disabled control is not submitted, and a
+		 * site save never stores a locked key, so the site's stored value is
+		 * kept as it was. The control is described to assistive technology as
+		 * locked by the network administrator.
+		 *
+		 * @since 5.7.13
+		 *
+		 * @param bool   $disabled  Whether the control is disabled. Default false.
+		 * @param string $field_key Setting key.
+		 * @param array  $args      Field arguments, including the resolved value.
+		 */
+		$disabled       = (bool) apply_filters( 'zerospam_setting_field_disabled', false, $field_key, $args );
+		$description_id = $field_key . '-zerospam-locked';
+
+		/**
+		 * Fires before a setting's description and control are rendered.
+		 *
+		 * Site_Admin_Overrides prints the "Locked by Network Admin" badge here.
+		 *
+		 * @since 5.7.13
+		 *
+		 * @param string $field_key Setting key.
+		 * @param array  $args      Field arguments, including the resolved value.
+		 */
+		do_action( 'zerospam_setting_field_before', $field_key, $args );
 
 		$allowed_desc_html = array(
 			'a'      => array(
@@ -586,6 +629,12 @@ class Settings {
 				'id'    => array(),
 				'class' => array(),
 				'style' => array(),
+			),
+			'button' => array(
+				'type'             => array(),
+				'class'            => array(),
+				'disabled'         => array(),
+				'aria-describedby' => array(),
 			),
 			'ul'     => array(
 				'id'    => array(),
@@ -669,45 +718,52 @@ class Settings {
 		switch ( $args['type'] ) {
 			case 'html':
 				$html = $args['html'];
-				
-				// Generate button HTML dynamically at render time to avoid early nonce calls
+
+				// Generate button HTML dynamically at render time to avoid early nonce calls.
 				if ( empty( $html ) ) {
 					$label_for = $args['label_for'];
-					
-				if ( 'use_recommended_settings' === $label_for ) {
-					$html = sprintf(
-						'<a href="%s" class="button">%s</a>',
-						esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' ) ),
-						esc_html__( 'Override & Update Settings', 'zero-spam' )
-					);
-				} elseif ( 'update_blocked_email_domains' === $label_for ) {
-					$html = sprintf(
-						'<a href="%s" class="button">%s</a>',
-						esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-emails' ), 'update-blocked-emails', 'zero-spam' ) ),
-						esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
-					);
-				} elseif ( 'regenerate_honeypot' === $label_for ) {
-					$html = sprintf(
-						'<a href="%s" class="button">%s</a>',
-						esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=regenerate-honeypot' ), 'regenerate-honeypot', 'zero-spam' ) ),
-						esc_html__( 'Regenerate Honeypot ID', 'zero-spam' )
-					);
-				} elseif ( 'update_disallowed_words' === $label_for ) {
-					$html = sprintf(
-						'<a href="%s" class="button">%s</a>',
-						esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ), 'update-disallowed-words', 'zero-spam' ) ),
-						esc_html__( 'Override & Update Core Disallowed Words', 'zero-spam' )
-					);
+
+					if ( 'use_recommended_settings' === $label_for ) {
+						$html = sprintf(
+							'<a href="%s" class="button">%s</a>',
+							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' ) ),
+							esc_html__( 'Override & Update Settings', 'zero-spam' )
+						);
+					} elseif ( 'update_blocked_email_domains' === $label_for && $disabled ) {
+						// Not a link while disabled: the action would change a locked setting.
+						$html = sprintf(
+							'<button type="button" class="button" disabled aria-describedby="%s">%s</button>',
+							esc_attr( $description_id ),
+							esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
+						);
+					} elseif ( 'update_blocked_email_domains' === $label_for ) {
+						$html = sprintf(
+							'<a href="%s" class="button">%s</a>',
+							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-blocked-emails' ), 'update-blocked-emails', 'zero-spam' ) ),
+							esc_html__( 'Override & Update Blocked Email Domains', 'zero-spam' )
+						);
+					} elseif ( 'regenerate_honeypot' === $label_for ) {
+						$html = sprintf(
+							'<a href="%s" class="button">%s</a>',
+							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=regenerate-honeypot' ), 'regenerate-honeypot', 'zero-spam' ) ),
+							esc_html__( 'Regenerate Honeypot ID', 'zero-spam' )
+						);
+					} elseif ( 'update_disallowed_words' === $label_for ) {
+						$html = sprintf(
+							'<a href="%s" class="button">%s</a>',
+							esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=update-disallowed-words' ), 'update-disallowed-words', 'zero-spam' ) ),
+							esc_html__( 'Override & Update Core Disallowed Words', 'zero-spam' )
+						);
 					}
 				}
-				
+
 				echo wp_kses( $html, $allowed_field_html );
 				break;
 
 			case 'textarea':
 				?>
 				<textarea
-					id="<?php echo esc_attr( $args['label_for'] ); ?>"
+					id="<?php echo esc_attr( $field_key ); ?>"
 					name="<?php echo esc_attr( $setting_name ); ?>"
 					rows="5"
 					<?php if ( ! empty( $args['field_class'] ) ) : ?>
@@ -716,11 +772,11 @@ class Settings {
 					<?php if ( ! empty( $args['placeholder'] ) ) : ?>
 						placeholder="<?php echo esc_attr( $args['placeholder'] ); ?>"
 					<?php endif; ?>
-				><?php
-				if ( ! empty( $args['value'] ) ) :
-					echo trim( esc_textarea( $args['value'] ) );
-				endif;
-				?></textarea>
+					<?php if ( $disabled ) : ?>
+						disabled
+						aria-describedby="<?php echo esc_attr( $description_id ); ?>"
+					<?php endif; ?>
+				><?php echo ! empty( $args['value'] ) ? esc_textarea( trim( (string) $args['value'] ) ) : ''; ?></textarea>
 				<?php
 				break;
 
@@ -731,9 +787,13 @@ class Settings {
 			case 'email':
 				?>
 				<input
-					id="<?php echo esc_attr( $args['label_for'] ); ?>"
+					id="<?php echo esc_attr( $field_key ); ?>"
 					name="<?php echo esc_attr( $setting_name ); ?>"
 					type="<?php echo esc_attr( $args['type'] ); ?>"
+					<?php if ( $disabled ) : ?>
+						disabled
+						aria-describedby="<?php echo esc_attr( $description_id ); ?>"
+					<?php endif; ?>
 					<?php if ( ! empty( $args['value'] ) ) : ?>
 						value="<?php echo esc_attr( $args['value'] ); ?>"
 					<?php endif; ?>
@@ -758,8 +818,7 @@ class Settings {
 
 			case 'select':
 				if ( empty( $args['options'] ) ) {
-					echo '</div>';
-					return;
+					break;
 				}
 
 				if ( ! empty( $args['multiple'] ) ) {
@@ -767,8 +826,12 @@ class Settings {
 				}
 				?>
 				<select
-					id="<?php echo esc_attr( $args['label_for'] ); ?>"
+					id="<?php echo esc_attr( $field_key ); ?>"
 					name="<?php echo esc_attr( $setting_name ); ?>"
+					<?php if ( $disabled ) : ?>
+						disabled
+						aria-describedby="<?php echo esc_attr( $description_id ); ?>"
+					<?php endif; ?>
 					<?php if ( ! empty( $args['multiple'] ) ) : ?>
 						multiple
 					<?php endif; ?>
@@ -784,7 +847,7 @@ class Settings {
 							if ( in_array( $key, $args['value'], true ) ) {
 								$selected = true;
 							}
-						} elseif ( ! empty( $args['value'] ) && $args['value'] == $key ) { // phpcs:ignore WordPress.PHP.StrictComparisons.LooseComparison
+						} elseif ( ! empty( $args['value'] ) && $args['value'] == $key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- Option keys can be integers while stored values are strings.
 							$selected = true;
 						}
 						?>
@@ -799,8 +862,7 @@ class Settings {
 			case 'checkbox':
 			case 'radio':
 				if ( empty( $args['options'] ) ) {
-					echo '</div>';
-					return;
+					break;
 				}
 
 				echo '<div class="zerospam-form-field-group">';
@@ -813,22 +875,26 @@ class Settings {
 						$field_name .= '[' . $key . ']';
 					}
 
-					if ( ! empty( $args['value'] ) && $args['value'] == $key ) { // phpcs:ignore WordPress.PHP.StrictComparisons.LooseComparison
+					if ( ! empty( $args['value'] ) && $args['value'] == $key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- Option keys can be integers while stored values are strings.
 						$selected = true;
 					}
 					?>
 					<input
 						type="<?php echo esc_attr( $args['type'] ); ?>"
-						id="<?php echo esc_attr( $args['label_for'] . $key ); ?>"
+						id="<?php echo esc_attr( $field_key . $key ); ?>"
 						name="<?php echo esc_attr( $field_name ); ?>"
 						value="<?php echo esc_attr( $key ); ?>"
 						<?php if ( ! empty( $args['field_class'] ) ) : ?>
 							class="<?php echo esc_attr( $args['field_class'] ); ?>"
 						<?php endif; ?>
+						<?php if ( $disabled ) : ?>
+							disabled
+							aria-describedby="<?php echo esc_attr( $description_id ); ?>"
+						<?php endif; ?>
 						<?php checked( $selected ); ?>
 					/>
 
-					<label for="<?php echo esc_attr( $args['label_for'] . $key ); ?>">
+					<label for="<?php echo esc_attr( $field_key . $key ); ?>">
 						<?php
 						echo wp_kses(
 							$label,
@@ -871,7 +937,28 @@ class Settings {
 			);
 		}
 
+		if ( $disabled ) {
+			printf(
+				'<span id="%1$s" class="screen-reader-text">%2$s</span>',
+				esc_attr( $description_id ),
+				esc_html__( 'Locked by the network administrator. This setting cannot be changed on this site.', 'zero-spam' )
+			);
+		}
+
 		echo '</div>';
+
+		/**
+		 * Fires after a setting's control is rendered.
+		 *
+		 * Site_Admin_Overrides prints whether the site follows the network
+		 * default or overrides it here.
+		 *
+		 * @since 5.7.13
+		 *
+		 * @param string $field_key Setting key.
+		 * @param array  $args      Field arguments, including the resolved value.
+		 */
+		do_action( 'zerospam_setting_field_after', $field_key, $args );
 	}
 
 	/**
@@ -884,9 +971,14 @@ class Settings {
 
 		$base_admin_link = self::$base_admin_link;
 
-		$subview = ! empty( $_REQUEST['subview'] )
-			? sanitize_key( wp_unslash( $_REQUEST['subview'] ) )
-			: 'settings';
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only view state from links and redirects; nothing is changed.
+		$subview          = ! empty( $_REQUEST['subview'] ) ? sanitize_key( wp_unslash( $_REQUEST['subview'] ) ) : 'settings';
+		$message          = ! empty( $_REQUEST['zerospam-msg'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ) : '';
+		$message_type     = ! empty( $_REQUEST['zerospam-type'] ) ? sanitize_key( wp_unslash( $_REQUEST['zerospam-type'] ) ) : 'default';
+		$import_error     = ! empty( $_GET['zerospam-error'] ) ? absint( $_GET['zerospam-error'] ) : 0;
+		$import_success   = ! empty( $_GET['zerospam-success'] );
+		$is_settings_form = ! in_array( $subview, array( 'documentation', 'export', 'errors' ), true );
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 
 		$sections = apply_filters( 'zerospam_setting_sections', array() );
 		?>
@@ -967,10 +1059,26 @@ class Settings {
 				</div>
 
 				<div class="zerospam-dashboard__col">
-					<?php if ( ! empty( $_REQUEST['zerospam-msg'] ) ) : ?>
-						<div class="zerospam-block zerospam-block--notice zerospam-block--<?php echo ! empty( $_REQUEST['zerospam-type'] ) ? esc_attr( sanitize_key( wp_unslash( $_REQUEST['zerospam-type'] ) ) ) : 'default'; ?>">
+					<?php
+					if ( $is_settings_form ) {
+						/**
+						 * Fires at the top of a settings form on the Zero Spam settings page.
+						 *
+						 * On a network site, Site_Admin_Overrides prints how many settings
+						 * the network administrator has locked here.
+						 *
+						 * @since 5.7.13
+						 *
+						 * @param string $subview Settings view (section key) being shown.
+						 */
+						do_action( 'zerospam_settings_page_top', $subview );
+					}
+					?>
+
+					<?php if ( '' !== $message ) : ?>
+						<div class="zerospam-block zerospam-block--notice zerospam-block--<?php echo esc_attr( $message_type ); ?>">
 							<div class="zerospam-block__content">
-								<?php echo esc_html( sanitize_text_field( wp_unslash( $_REQUEST['zerospam-msg'] ) ) ); ?>
+								<?php echo esc_html( $message ); ?>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -1009,7 +1117,7 @@ class Settings {
 
 					<?php if ( 'documentation' === $subview ) : ?>
 						<?php require ZEROSPAM_PATH . 'includes/templates/admin-documentation.php'; ?>
-					<?php elseif ( ! in_array( $subview, array( 'export', 'errors' ), true ) ) : ?>
+					<?php elseif ( $is_settings_form ) : ?>
 						<?php
 						switch ( $subview ) :
 							case 'zerospam':
@@ -1082,11 +1190,11 @@ class Settings {
 
 					<?php elseif ( 'export' === $subview ) : ?>
 
-						<?php if ( ! empty( $_GET['zerospam-error'] ) ) : ?>
+						<?php if ( $import_error ) : ?>
 							<div class="notice notice-error is-dismissible">
 								<p><strong>
 									<?php
-									switch ( absint( $_GET['zerospam-error'] ) ) :
+									switch ( $import_error ) :
 										case 1:
 											esc_html_e( 'There was a problem importing the settings JSON. Please try again.', 'zero-spam' );
 											break;
@@ -1095,7 +1203,7 @@ class Settings {
 								</strong></p>
 								<button type="button" class="notice-dismiss"><span class="screen-reader-text"><?php esc_html_e( 'Dismiss this notice.', 'zero-spam' ); ?></span></button>
 							</div>
-						<?php elseif ( ! empty( $_GET['zerospam-success'] ) ) : ?>
+						<?php elseif ( $import_success ) : ?>
 							<div class="notice notice-success is-dismissible">
 								<p><strong><?php esc_html_e( 'The settings JSON has been successfully imported.', 'zero-spam' ); ?></strong></p>
 								<button type="button" class="notice-dismiss"><span class="screen-reader-text"><?php esc_html_e( 'Dismiss this notice.', 'zero-spam' ); ?></span></button>
