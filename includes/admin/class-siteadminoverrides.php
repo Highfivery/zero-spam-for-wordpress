@@ -105,7 +105,7 @@ class Site_Admin_Overrides {
 			'zerospam-site-overrides',
 			plugin_dir_url( ZEROSPAM ) . 'assets/css/site-overrides.css',
 			array(),
-			ZEROSPAM_VERSION
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/css/site-overrides.css' )
 		);
 	}
 

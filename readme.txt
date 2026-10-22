@@ -161,6 +161,7 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 * **ui(admin):** clearer buttons: one red primary button for the main action on each screen (Save Settings, Add Blocked IP Address, Add Blocked Location) and neutral white secondary buttons for everything else, all readable (6.6:1 contrast) and the same height as WordPress's controls.
 * **ui(admin):** the plugin's admin screens, network settings page and dashboard widget turn off animations when your device asks for reduced motion; loading spinners slow down instead of stopping.
 * **ui(settings):** the Rescue Mode setting now explains both ways back in: the emailed rescue link and the `ZEROSPAM_RESCUE_KEY` constant.
+* **chore(admin):** admin assets reload automatically on development sites (SCRIPT_DEBUG).
 * **dev(db):** `DB::query( 'log' )` now returns detections only (no `rescue` entries); pass `'include_non_detections' => true` to include them. Detection totals, charts, top lists, the dashboard widget and network statistics leave rescue entries out.
 * **dev(htaccess):** new `Utilities::htaccess_rules()` and `zerospam_htaccess_file` filter (the path of the .htaccess file Zero Spam writes to).
 

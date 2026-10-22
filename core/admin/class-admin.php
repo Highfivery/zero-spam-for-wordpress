@@ -53,10 +53,10 @@ class Admin {
 
 		// Get the Enhanced Protection settings using the Settings API for consistency.
 		$settings = \ZeroSpam\Core\Settings::get_settings();
-		
+
 		// Check if Enhanced Protection is enabled.
 		$zerospam_enabled = isset( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
-		
+
 		// Check for license key - include constant check like the settings definition does.
 		$zerospam_license_key = false;
 		if ( defined( 'ZEROSPAM_LICENSE_KEY' ) && ZEROSPAM_LICENSE_KEY ) {
@@ -76,7 +76,7 @@ class Admin {
 
 		// Check if the plugin has been auto-configured.
 		$configured = get_option( 'zerospam_configured' );
-		
+
 		if ( ! $configured ) {
 			?>
 			<div class="notice notice-info">
@@ -84,7 +84,7 @@ class Admin {
 					<?php
 					printf(
 						wp_kses(
-							/* translators: %1$s: Replaced with the Zero Spam settings page URL */
+							/* translators: %1$s: Zero Spam settings page URL, %2$s: URL that applies the recommended settings */
 							__( '<strong>Thanks for installing Zero Spam for WordPress!</strong> Visit the <a href="%1$s">settings page</a> to configure your site\'s protection level or <strong><a href="%2$s">click here</a> to automatically configure recommended settings</strong>.', 'zero-spam' ),
 							array(
 								'strong' => array(),
@@ -95,7 +95,7 @@ class Admin {
 							)
 						),
 						esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ),
-						wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' )
+						esc_url( wp_nonce_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&zerospam-action=autoconfigure' ), 'autoconfigure', 'zero-spam' ) )
 					);
 					?>
 				</p>
@@ -144,10 +144,10 @@ class Admin {
 	private function display_promo_notice() {
 		$current_user_id = get_current_user_id();
 		$screen          = get_current_screen();
-		
-		$is_zerospam_page = $screen && ( 
-			strpos( $screen->id, 'wordpress-zero-spam' ) !== false || 
-			'dashboard' === $screen->id 
+
+		$is_zerospam_page = $screen && (
+			strpos( $screen->id, 'wordpress-zero-spam' ) !== false ||
+			'dashboard' === $screen->id
 		);
 
 		// Only show on dashboard or Zero Spam pages.
@@ -750,7 +750,9 @@ class Admin {
 	}
 
 	/**
-	 * Scripts
+	 * Enqueues the admin stylesheet and script on Zero Spam's screens.
+	 *
+	 * @param string $hook_suffix The current admin page.
 	 */
 	public function scripts( $hook_suffix ) {
 		if (
@@ -761,14 +763,14 @@ class Admin {
 				'zerospam-admin',
 				plugin_dir_url( ZEROSPAM ) . 'assets/css/admin.css',
 				false,
-				ZEROSPAM_VERSION
+				\ZeroSpam\Core\Utilities::asset_version( 'assets/css/admin.css' )
 			);
 
 			wp_enqueue_script(
 				'zerospam-admin',
 				plugin_dir_url( ZEROSPAM ) . 'assets/js/admin.js',
 				array(),
-				ZEROSPAM_VERSION,
+				\ZeroSpam\Core\Utilities::asset_version( 'assets/js/admin.js' ),
 				true
 			);
 		}

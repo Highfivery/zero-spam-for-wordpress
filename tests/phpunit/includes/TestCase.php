@@ -254,6 +254,7 @@ abstract class TestCase extends WP_UnitTestCase {
 	protected static function reset_static_caches(): void {
 		self::set_static( Utilities::class, 'allowed_words_cache', null );
 		self::set_static( Utilities::class, 'min_length_cache', null );
+		self::set_static( Utilities::class, 'script_debug', null );
 		self::set_static( Settings_Resolver::class, 'cache', array() );
 		Settings::$settings = array();
 		Settings::$sections = array();

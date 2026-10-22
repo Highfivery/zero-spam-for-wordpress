@@ -96,14 +96,14 @@ class Network_Settings_Page {
 			'zerospam-network-settings',
 			plugin_dir_url( ZEROSPAM ) . 'assets/css/network-settings.css',
 			array(),
-			ZEROSPAM_VERSION
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/css/network-settings.css' )
 		);
 
 		wp_enqueue_script(
 			'zerospam-network-settings',
 			plugin_dir_url( ZEROSPAM ) . 'assets/js/network-settings.js',
 			array( 'jquery' ),
-			ZEROSPAM_VERSION,
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/js/network-settings.js' ),
 			true
 		);
 
