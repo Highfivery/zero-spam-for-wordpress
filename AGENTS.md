@@ -38,7 +38,7 @@ in the same PR.
 | `modules/` | One directory or file per detection technique or integrated plugin. Third-party modules are only instantiated when that plugin is active (`includes/class-plugin.php`). |
 | `assets/` | Hand-written CSS/JS (jQuery), `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand, vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. No build tooling exists. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
-| `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs. Never shipped: see `.distignore`. |
+| `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
 
 ### How a module works
 Constructor hooks `init`; adds its sections, settings and types through the
@@ -155,7 +155,8 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
 - `phpstan-baseline.neon` holds pre-existing findings. Fix new findings; never
   regenerate the baseline to hide them. Shrink it when you touch a listed file.
 - **Done means proven:** the PR description contains the `composer check`
-  summary (including the PHPUnit result), the manual smoke-test steps and
+  summary (including the PHPUnit result), the e2e `summary.md` (Playwright
+  section below) with the targets it ran on, the manual smoke-test steps and
   results on both Local sites (single site and multisite), screenshots or
   recordings for any UI change, the `readme.txt` changelog entry, and a note
   of anything not verified and why. Do not claim something works without
@@ -218,7 +219,82 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
   and `PHP_MATRIX`. For a new WordPress release: update the pins and
   `wp-phpunit/wp-phpunit` in `composer.json`, run `composer test:wp`, then
   bump `Tested up to`.
-- A Playwright (browser) suite is still planned.
+
+### Playwright (e2e, accessibility, visual)
+
+Browser tests live in `tests/e2e/` (specs, page objects, the test mu-plugin,
+the runner in `tests/e2e/bin/`). They are **not** part of `composer check` or
+the pre-push hook (they need Docker or the Local sites and take minutes);
+they are required before a PR is opened and their summary goes in the PR.
+
+```bash
+nvm use                          # Node 22 (.nvmrc); the runner refuses older Node
+npm ci && npx playwright install chromium   # or: composer e2e:install
+npm run env:start                # wp-env single site, http://localhost:8900
+npm run env:start:ms             # wp-env subdirectory network, http://localhost:8910
+npm run test:e2e:wp-env          # everything on both wp-env sites (latest WordPress)
+npm run test:e2e:wp-env:min      # the same on the minimum WordPress, then back to latest
+npm run test:e2e                 # both Local sites (after npm run e2e:setup:local, section 6)
+npm run test:a11y                # accessibility only; test:visual / test:visual:update for baselines
+npm run test:e2e:report          # print the summary of the last run again
+npm run env:stop                 # stop both wp-env sites
+```
+
+- Composer delegates for convenience: `composer e2e:install`, `test:e2e`,
+  `test:e2e:wp-env`, `test:e2e:wp-env:min`, `test:e2e:local`,
+  `test:e2e:network`, `test:a11y`, `test:visual`.
+- **Projects:** `setup` (logs every role in through the real `wp-login.php`
+  form), `functional`, `a11y`, `visual`, `destructive` (uninstall, after the
+  rest). One worker per target; the two wp-env targets run in parallel.
+  The `@single-only`, `@multisite` and `@wp-env-only` tags pick the targets.
+- **Output:** `artifacts/e2e/<timestamp>-<sha>/<target>/` (HTML report,
+  traces, `summary.json`, `summary.md`, `gallery/index.html`) and
+  `artifacts/e2e/latest`. The last line printed is always
+  `E2E RESULT: PASS|FAIL …`; the exit code matches. **Done** includes pasting
+  the run's combined `summary.md` into the PR (targets, counts, known defects
+  still reproducing, accessibility per screen, blocked external requests).
+- **Test-only mu-plugin** (`tests/e2e/mu-plugins/zero-spam-e2e.php`, linted
+  by `composer lint:tests`): inert unless `ZEROSPAM_E2E_TOKEN` is defined.
+  It blocks every outgoing HTTP request (canned answers for Zero Spam's
+  services and WordPress.org update checks), uses the `X-ZeroSpam-E2E-IP`
+  header as the visitor IP (TEST-NET addresses, so a test can never block
+  your own IP), records the plugin's PHP notices, warnings, deprecations and
+  `_doing_it_wrong()` calls (they fail the test), and offers REST routes
+  under `zero-spam-e2e/v1` for resets, seeding and inspection. Its own state
+  is prefixed `zs_e2e_` so the uninstall test never mistakes it for plugin
+  data.
+- **Uninstall** always runs `wp plugin uninstall zero-spam --skip-delete`;
+  the plugin directory is this repository. The CLI helpers refuse
+  `plugin uninstall` without `--skip-delete` and `plugin delete`. On Local it
+  only runs with `E2E_ALLOW_DESTRUCTIVE=1`; every Local run snapshots the
+  plugin's options, tables and error log first and restores them at the end.
+- **Known defects:** a confirmed bug gets a test that asserts the correct
+  behaviour, marked `test.fail( true, '<reason, AGENTS.md §8>' )`; the run
+  stays green while the bug exists and fails once it is fixed ("Fixed (remove
+  test.fail)" in the summary), which forces the marker's removal. Check that
+  a new expected failure fails for the documented reason, not a harness error.
+- **Accessibility policy** (`tests/e2e/support/a11y.ts`): axe-core with the
+  WCAG 2.0–2.2 A/AA, AAA and best-practice tags. A critical or serious A/AA
+  violation fails the run unless it is in `tests/e2e/a11y/allowlist.json`;
+  moderate and minor, AAA-only, best-practice and "needs manual review"
+  results are reported only. Every allowlist entry needs a real reason (empty
+  or TODO fails the run); `kind: "debt"` (plugin markup) also needs an issue,
+  `kind: "external"` (WordPress core or third-party markup) a reason. An entry
+  that no longer matches fails the run, so the list only shrinks: fixing debt
+  means deleting its entries in the same PR. `E2E_A11Y_BASELINE=1` writes
+  proposed entries to `artifacts/` instead of failing (first baseline only).
+- **Visual baselines** (`tests/e2e/__screenshots__/`, committed): element
+  screenshots recorded on wp-env with the latest WordPress only (single site
+  for shared screens, the network for network screens), 1280px plus 782px
+  for key screens, with dates, counts, charts and the map masked or hidden
+  (`tests/e2e/support/visual.css`). Other targets only write the gallery.
+  Update them only with `npm run test:visual:update`, in a commit of its own,
+  with Playwright's expected/actual/diff images in the PR. They are recorded
+  on macOS (`-darwin`); re-record after a macOS upgrade changes font
+  rendering. Budget 15 MB; the summary warns about images over 300 KB.
+- **Screens** are listed once in `tests/e2e/support/screens.ts` (smoke crawl,
+  accessibility, visual, gallery). A new settings section must be added
+  there; the settings test fails until it is.
 
 ## 6. Local environment
 
@@ -249,6 +325,40 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
   site's other plugins.
 - The plugin's email checks reject `.test` addresses; use `@example.com` in
   test data.
+
+### e2e environments
+
+- **Node 22** (`.nvmrc`; `nvm use`): `@wordpress/env` 12 needs 22.13+ and
+  `@wordpress/e2e-test-utils-playwright` 22.19+.
+- **wp-env** (Docker Desktop): `.wp-env.json` serves the single site on port
+  **8900**, `.wp-env.multisite.json` the subdirectory network on **8910**
+  (8888 is taken by another project on the maintainer's Mac). Each config is
+  its own Docker Compose project. `afterStart`
+  (`tests/e2e/bin/wp-env-after-start.mjs`) activates the plugin and creates
+  `e2eadmin` (super admin on the network), `e2eeditor`, `e2eauthor`, on the
+  network `/site2/` and `e2esiteadmin` (administrator of `/site2/` only), and
+  the "E2E comments" post. The checkout is mapped to
+  `wp-content/plugins/zero-spam` whatever its directory name. The pinned
+  WordPress versions are in `tests/e2e/wp-versions.json`
+  (`npm run env:core:min` / `env:core:latest` switch). Never run
+  `wp-env destroy` or `stop` for other configs than these two.
+- **Local targets** need a one-off set-up that changes the Local sites
+  (approve it first): make the network site load this checkout as
+  `plugins/zero-spam` (it ran a stale `zero-spam-for-wordpress` 5.7.3 copy;
+  the preflight refuses to run until it is fixed), then
+  `npm run e2e:setup:local`. That asks first, then adds a
+  `ZEROSPAM_E2E_TOKEN` constant to both `wp-config.php` files
+  (`wp config set`), symlinks the test mu-plugin into each site's
+  `wp-content/mu-plugins/`, creates `e2eadmin`, `e2eeditor` and on the
+  network `e2esiteadmin` (administrator of `/test-site-1/`), the "E2E
+  comments" post, sets `users_can_register=1` on the single site, and writes
+  the git-ignored `tests/e2e/.env`. `npm run e2e:teardown:local` undoes it.
+  Local's WP-CLI runs on Local's PHP 8.2 with
+  `-d mysqli.default_socket=<socket> /opt/homebrew/bin/wp --skip-packages`.
+- The preflight (`tests/e2e/bin/preflight.mjs`) checks Node, Docker or the
+  Local site and socket, the mu-plugin, the plugin version and path, the
+  WordPress version and DNS for `example.com`, and stops with one line
+  saying what to do.
 
 ## 7. Working with the maintainer
 
@@ -320,8 +430,38 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
     `modules/class-stopforumspam.php`) resolves to the wrong namespace for
     static analysis; the runtime code uses `\WP_Error` or `use WP_Error`
     correctly. Fix the docblocks and drop the matching baseline entries.
+- Accessibility debt proven by the Playwright suite (each item has an
+  expected-failure test or entries in `tests/e2e/a11y/allowlist.json`;
+  GitHub issues still to be filed):
+  - the dashboard widget's Refresh result is shown by an icon swap only; the
+    "Data refreshed." string is never put in a live region (WCAG 4.1.3);
+  - the add/update block modal (`assets/js/admin.js`) does not move focus
+    into the modal or return it to the button that opened it;
+  - no plugin stylesheet has a `prefers-reduced-motion` rule;
+  - `assets/css/admin.css` hides every settings checkbox and radio with
+    `display: none` and draws the switch on the label, so the settings
+    toggles cannot be reached or switched with the keyboard (WCAG 2.1.1);
+  - the admin header logo (`<img width="250">` in
+    `includes/templates/admin-header.php`) makes the plugin screens 378px wide
+    at a 320px viewport, where WordPress's own screens fit (WCAG 1.4.10);
+  - images without `alt`: the header logo and status icon
+    (`admin-header.php`), the dashboard menu icons
+    (`core/admin/class-dashboard.php`) and the images in the icon-only
+    list-table action buttons (`core/admin/tables/`);
+  - controls without a label: the import/export and error-log textareas
+    (`core/admin/class-settings.php`), the list-table row checkboxes, the
+    network settings value controls (`render_setting_field()`), the network
+    import file input and the Network Stats period select;
+  - the Facebook `<iframe>` in the dashboard sidebar has no `title`;
+  - text below 4.5:1 contrast: the header "Enhanced Protection is DISABLED"
+    link, the restyled "Save Settings" and other buttons, list-table sort
+    headers and IP links, the "Tweets by ZeroSpamOrg" link, the promo notice's
+    call to action and status text, and the Network Stats trend badges.
 - `includes/templates/admin-bar-chart.php` and `admin-line-chart.php` still
-  load Chart.js from a CDN; the dashboard page loads every log row.
+  load Chart.js from a CDN (the e2e browser serves the bundled
+  `assets/js/vendor/chart.umd.min.js` instead and lists the request in the
+  summary); the dashboard sidebar loads Twitter's script and a Facebook
+  iframe; the dashboard page loads every log row.
 - Network settings exist in two storage models (`zerospam_network_settings`
   used by the admin, CLI and most REST; `zero-spam-network-zerospam` used by
   the `zero-spam/v1/settings` resolver). Reconcile before extending either.
