@@ -118,8 +118,8 @@ class Plugin {
 			new \ZeroSpam\Includes\Admin\Network_Settings_Page();
 		}
 
-		// Site Admin Overrides (multisite only).
-		if ( is_admin() && is_multisite() && ! is_network_admin() ) {
+		// Site Admin Overrides (network sites): save filters on every request, settings page UI in the admin.
+		if ( is_multisite() && ! is_network_admin() ) {
 			new \ZeroSpam\Includes\Admin\Site_Admin_Overrides();
 		}
 
