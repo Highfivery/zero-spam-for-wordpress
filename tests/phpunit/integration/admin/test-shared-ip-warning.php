@@ -8,6 +8,7 @@
 declare( strict_types=1 );
 
 use ZeroSpam\Core\Admin\Shared_IP_Warning;
+use ZeroSpam\Includes\Migrations;
 use ZeroSpam\Tests\RedirectException;
 use ZeroSpam\Tests\TestCase;
 
@@ -34,6 +35,9 @@ class Test_Shared_IP_Warning extends TestCase {
 		$this->as_role( 'administrator' );
 		delete_transient( Shared_IP_Warning::TRANSIENT );
 		delete_option( Shared_IP_Warning::DISMISSED_OPTION );
+
+		// Installed a day ago: every row insert_log_rows() adds is newer.
+		update_option( Migrations::PROXY_DETECTION_SINCE_OPTION, wp_date( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
 	}
 
 	/**
@@ -175,6 +179,52 @@ class Test_Shared_IP_Warning extends TestCase {
 	public function test_single_trusted_proxy_detection_is_ignored(): void {
 		$this->insert_log_rows( 3 );
 		$this->insert_log_rows( 1, array( 'user_ip' => '173.245.48.5' ) );
+
+		$this->assertNull( Shared_IP_Warning::get_verdict() );
+	}
+
+	/**
+	 * Detections logged before this version was installed are ignored: they
+	 * hold proxy addresses (for example Cloudflare edges) by design, so a
+	 * Cloudflare site gets no warning from its old rows.
+	 */
+	public function test_detections_from_before_the_update_are_ignored(): void {
+		$this->insert_log_rows( 3, array( 'user_ip' => '173.245.48.5' ) );
+		$this->shared_detections();
+		$this->forwarded_request();
+
+		update_option( Migrations::PROXY_DETECTION_SINCE_OPTION, wp_date( 'Y-m-d H:i:s', time() + MINUTE_IN_SECONDS ) );
+
+		$this->assertNull( Shared_IP_Warning::get_verdict() );
+		$this->assertSame( '', $this->notices() );
+	}
+
+	/**
+	 * Only rows from the update on are counted when old and new rows mix.
+	 */
+	public function test_only_rows_since_the_update_are_sampled(): void {
+		global $wpdb;
+
+		$this->forwarded_request();
+		$old_ids = $this->insert_log_rows( 2, array( 'user_ip' => '173.245.48.5' ) );
+		$this->insert_log_rows( 3 );
+
+		$since = wp_date( 'Y-m-d H:i:s', time() - 30 * MINUTE_IN_SECONDS );
+		update_option( Migrations::PROXY_DETECTION_SINCE_OPTION, $since );
+		foreach ( $old_ids as $id ) {
+			$wpdb->update( $this->log_table(), array( 'date_recorded' => wp_date( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ), array( 'log_id' => $id ) );
+		}
+
+		$this->assertNull( Shared_IP_Warning::get_verdict(), 'The Cloudflare rows are older than the update.' );
+	}
+
+	/**
+	 * Before the migration has recorded the start time, nothing is reported.
+	 */
+	public function test_no_warning_before_the_start_time_is_recorded(): void {
+		delete_option( Migrations::PROXY_DETECTION_SINCE_OPTION );
+		$this->shared_detections();
+		$this->forwarded_request();
 
 		$this->assertNull( Shared_IP_Warning::get_verdict() );
 	}

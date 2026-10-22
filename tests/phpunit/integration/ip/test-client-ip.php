@@ -243,6 +243,38 @@ class Test_Client_IP extends TestCase {
 	}
 
 	/**
+	 * Ranges that would trust (almost) every visitor are ignored when read,
+	 * whether stored without the settings page or added by the filter.
+	 */
+	public function test_too_broad_ranges_are_ignored_on_read(): void {
+		$this->set_setting( 'trusted_proxies', "64.0.0.0/3\n10.0.0.0/4", 'settings' );
+		add_filter(
+			'zerospam_trusted_proxies',
+			static function ( $proxies ) {
+				$proxies[] = '2a00::/12';
+
+				return $proxies;
+			}
+		);
+
+		$this->request_from( '64.0.0.5', array( 'X-Forwarded-For' => self::VISITOR ) );
+		$this->assertSame( '64.0.0.5', User::get_ip() );
+
+		$this->request_from( '2a01:4f8:9::1', array( 'X-Forwarded-For' => self::VISITOR ) );
+		$this->assertSame( '2a01:4f8:9::1', User::get_ip() );
+	}
+
+	/**
+	 * Cloudflare's own list is not subject to the /32 minimum: its
+	 * 2a06:98c0::/29 range is still recognised.
+	 */
+	public function test_cloudflare_wide_ipv6_range_is_still_trusted(): void {
+		$this->request_from( '2a06:98c7::5', array( 'CF-Connecting-IP' => self::VISITOR ) );
+
+		$this->assertSame( self::VISITOR, User::get_ip() );
+	}
+
+	/**
 	 * The zerospam_trusted_proxies filter still adds proxies, now also as ranges.
 	 */
 	public function test_trusted_proxies_filter_is_honoured(): void {

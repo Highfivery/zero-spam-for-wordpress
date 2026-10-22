@@ -160,4 +160,58 @@ class Test_Trusted_Proxies_Setting extends TestCase {
 		$this->assertSame( array( '192.0.2.1' ), Utilities::parse_ip_ranges( array( '192.0.2.1', 42 ) )['valid'] );
 		$this->assertSame( array(), Utilities::parse_ip_ranges( false )['valid'] );
 	}
+
+	/**
+	 * Ranges and whether they are too broad to trust (shorter than /8 for
+	 * IPv4, /32 for IPv6).
+	 *
+	 * @return array<string, array{0: string, 1: bool}>
+	 */
+	public static function data_broad_ranges(): array {
+		return array(
+			'IPv4 everything' => array( '0.0.0.0/0', true ),
+			'IPv4 /4'         => array( '10.0.0.0/4', true ),
+			'IPv4 /7'         => array( '10.0.0.0/7', true ),
+			'IPv4 /8'         => array( '10.0.0.0/8', false ),
+			'IPv6 everything' => array( '::/0', true ),
+			'IPv6 /31'        => array( '2001:db8::/31', true ),
+			'IPv6 /32'        => array( '2001:db8::/32', false ),
+			'single address'  => array( '192.0.2.1', false ),
+		);
+	}
+
+	/**
+	 * Too-broad ranges are neither valid nor invalid: they are reported apart.
+	 *
+	 * @dataProvider data_broad_ranges
+	 *
+	 * @param string $range     Range.
+	 * @param bool   $too_broad Whether it is rejected as too broad.
+	 */
+	public function test_too_broad_ranges_are_rejected( string $range, bool $too_broad ): void {
+		$parsed = Utilities::parse_ip_ranges( $range );
+
+		$this->assertSame( $too_broad ? array( $range ) : array(), $parsed['too_broad'] );
+		$this->assertSame( $too_broad ? array() : array( $range ), $parsed['valid'] );
+		$this->assertSame( array(), $parsed['invalid'] );
+	}
+
+	/**
+	 * Saving drops too-broad ranges and says why.
+	 */
+	public function test_save_drops_too_broad_ranges_with_the_reason(): void {
+		update_option( 'zero-spam-settings', array( 'trusted_proxies' => "0.0.0.0/0\n::/0\n10.0.0.0/4\n10.0.0.0/8\nnope" ) );
+
+		$stored = get_option( 'zero-spam-settings' );
+		$this->assertIsArray( $stored );
+		$this->assertSame( '10.0.0.0/8', $stored['trusted_proxies'] );
+
+		$errors = wp_list_filter( get_settings_errors( 'zero-spam' ), array( 'code' => 'zerospam_trusted_proxies_invalid' ) );
+		$this->assertCount( 1, $errors );
+		$message = array_shift( $errors )['message'];
+		foreach ( array( '0.0.0.0/0', '::/0', '10.0.0.0/4' ) as $range ) {
+			$this->assertStringContainsString( $range . ' (too broad: would trust every visitor&#039;s X-Forwarded-For)', $message );
+		}
+		$this->assertStringContainsString( 'nope', $message );
+	}
 }

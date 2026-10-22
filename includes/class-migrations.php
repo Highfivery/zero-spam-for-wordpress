@@ -37,6 +37,14 @@ class Migrations {
 	const SETTINGS_REVIEW_NOTICE_OPTION = 'zerospam_show_settings_review_notice';
 
 	/**
+	 * Option holding when proxy-aware IP detection started on this site (site
+	 * time, Y-m-d H:i:s, the format of the log's `date_recorded`).
+	 *
+	 * @var string
+	 */
+	const PROXY_DETECTION_SINCE_OPTION = 'zerospam_proxy_detection_since';
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -97,9 +105,10 @@ class Migrations {
 	private function get_migrations() {
 		return array(
 			'legacy_options_to_modules_v5' => array( $this, 'migrate_legacy_options' ),
-			'share_detection_cron_cleanup'  => array( $this, 'remove_share_detection_cron_events' ),
-			'davidwalsh_signed_tokens'      => array( '\\ZeroSpam\\Modules\\DavidWalsh\\DavidWalsh', 'start_legacy_grace_period' ),
-			'geolocation_header_cache'      => array( $this, 'clear_geolocation_cache' ),
+			'share_detection_cron_cleanup' => array( $this, 'remove_share_detection_cron_events' ),
+			'davidwalsh_signed_tokens'     => array( '\\ZeroSpam\\Modules\\DavidWalsh\\DavidWalsh', 'start_legacy_grace_period' ),
+			'geolocation_header_cache'     => array( $this, 'clear_geolocation_cache' ),
+			'proxy_detection_since'        => array( $this, 'record_proxy_detection_since' ),
 		);
 	}
 
@@ -166,6 +175,23 @@ class Migrations {
 		if ( function_exists( 'wp_cache_supports' ) && wp_cache_supports( 'flush_group' ) ) {
 			wp_cache_flush_group( 'transient' );
 		}
+
+		return true;
+	}
+
+	/**
+	 * Record when proxy-aware IP detection started.
+	 *
+	 * Before this version every visitor behind a CDN or proxy was logged with
+	 * the proxy's address. The shared-IP warning (Admin\Shared_IP_Warning)
+	 * only looks at detections logged after this moment, so those older rows
+	 * (for example Cloudflare edge addresses) never trigger it. An existing
+	 * value is kept.
+	 *
+	 * @return true
+	 */
+	public function record_proxy_detection_since() {
+		add_option( self::PROXY_DETECTION_SINCE_OPTION, current_time( 'mysql' ), '', false );
 
 		return true;
 	}

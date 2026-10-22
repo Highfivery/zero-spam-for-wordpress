@@ -454,14 +454,23 @@ class Settings {
 			$proxies                  = \ZeroSpam\Core\Utilities::parse_ip_ranges( $input['trusted_proxies'] );
 			$input['trusted_proxies'] = implode( "\n", $proxies['valid'] );
 
-			if ( $proxies['invalid'] ) {
+			$dropped = $proxies['invalid'];
+			foreach ( $proxies['too_broad'] as $range ) {
+				$dropped[] = sprintf(
+					/* translators: %s: CIDR range, e.g. 0.0.0.0/0 */
+					__( '%s (too broad: would trust every visitor\'s X-Forwarded-For)', 'zero-spam' ),
+					$range
+				);
+			}
+
+			if ( $dropped ) {
 				add_settings_error(
 					'zero-spam',
 					'zerospam_trusted_proxies_invalid',
 					sprintf(
 						/* translators: %s: comma-separated list of the entries that were removed */
-						esc_html__( 'These Trusted Proxy IPs entries are not IP addresses or ranges (like 203.0.113.5 or 203.0.113.0/24) and were not saved: %s', 'zero-spam' ),
-						esc_html( implode( ', ', $proxies['invalid'] ) )
+						esc_html__( 'These Trusted Proxy IPs entries were not saved because they are not IP addresses or ranges (like 203.0.113.5 or 203.0.113.0/24) or are too broad: %s', 'zero-spam' ),
+						esc_html( implode( ', ', $dropped ) )
 					),
 					'warning'
 				);

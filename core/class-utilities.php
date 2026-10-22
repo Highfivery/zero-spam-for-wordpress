@@ -1156,17 +1156,20 @@ class Utilities {
 	 * Parses a list of IP addresses and CIDR ranges (IPv4 and IPv6).
 	 *
 	 * Entries may be separated by new lines, commas or spaces, as admins paste
-	 * them from their host's documentation. Duplicates are dropped.
+	 * them from their host's documentation. Duplicates are dropped. Ranges
+	 * broader than /8 (IPv4) or /32 (IPv6) are rejected as too broad: trusting
+	 * them as proxies would trust almost every visitor's X-Forwarded-For.
 	 *
 	 * @param mixed $value String list, or an array of entries.
-	 * @return array{valid: string[], invalid: string[]} Valid entries, and the
-	 *                                                    entries that are not
-	 *                                                    an IP address or range.
+	 * @return array{valid: string[], invalid: string[], too_broad: string[]} Valid
+	 *         entries, entries that are not an IP address or range, and ranges
+	 *         that are too broad.
 	 */
 	public static function parse_ip_ranges( $value ): array {
 		$parsed = array(
-			'valid'   => array(),
-			'invalid' => array(),
+			'valid'     => array(),
+			'invalid'   => array(),
+			'too_broad' => array(),
 		);
 
 		if ( is_array( $value ) ) {
@@ -1188,7 +1191,14 @@ class Utilities {
 				continue;
 			}
 
-			$key = self::is_ip_range( $entry ) ? 'valid' : 'invalid';
+			if ( ! self::is_ip_range( $entry ) ) {
+				$key = 'invalid';
+			} elseif ( self::is_too_broad_range( $entry ) ) {
+				$key = 'too_broad';
+			} else {
+				$key = 'valid';
+			}
+
 			if ( ! in_array( $entry, $parsed[ $key ], true ) ) {
 				$parsed[ $key ][] = $entry;
 			}
@@ -1216,6 +1226,23 @@ class Utilities {
 		$max_bits = false === strpos( $parts[0], ':' ) ? 32 : 128;
 
 		return 1 === preg_match( '/^\d{1,3}$/', $parts[1] ) && (int) $parts[1] <= $max_bits;
+	}
+
+	/**
+	 * Whether a CIDR range is broader than /8 (IPv4) or /32 (IPv6).
+	 *
+	 * @param string $entry IP address or CIDR range (see is_ip_range()).
+	 * @return bool
+	 */
+	public static function is_too_broad_range( string $entry ): bool {
+		$parts = explode( '/', $entry );
+		if ( 2 !== count( $parts ) ) {
+			return false;
+		}
+
+		$min_prefix = false === strpos( $parts[0], ':' ) ? 8 : 32;
+
+		return (int) $parts[1] < $min_prefix;
 	}
 
 	/**

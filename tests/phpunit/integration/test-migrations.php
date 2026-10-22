@@ -25,6 +25,7 @@ class Test_Migrations extends TestCase {
 		'share_detection_cron_cleanup',
 		'davidwalsh_signed_tokens',
 		'geolocation_header_cache',
+		'proxy_detection_since',
 	);
 
 	/**
@@ -94,5 +95,30 @@ class Test_Migrations extends TestCase {
 
 		$this->assertTrue( ( new Migrations() )->migrate_legacy_options() );
 		$this->assertSame( array( 'max_logs' => 50 ), get_option( 'zero-spam-settings' ) );
+	}
+
+	/**
+	 * The update records when proxy-aware IP detection started, once, without
+	 * autoloading it, and never moves an existing timestamp.
+	 */
+	public function test_record_proxy_detection_since(): void {
+		global $wpdb;
+
+		delete_option( Migrations::PROXY_DETECTION_SINCE_OPTION );
+
+		$this->assertTrue( ( new Migrations() )->record_proxy_detection_since() );
+
+		$since = get_option( Migrations::PROXY_DETECTION_SINCE_OPTION );
+		$this->assertIsString( $since );
+		$this->assertMatchesRegularExpression( '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $since );
+		$this->assertLessThanOrEqual( 5, abs( strtotime( current_time( 'mysql' ) ) - strtotime( $since ) ), 'Site time, like the log.' );
+
+		$autoload = $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", Migrations::PROXY_DETECTION_SINCE_OPTION ) );
+		$this->assertContains( $autoload, array( 'no', 'off' ) );
+
+		update_option( Migrations::PROXY_DETECTION_SINCE_OPTION, '2026-01-01 00:00:00' );
+		( new Migrations() )->record_proxy_detection_since();
+
+		$this->assertSame( '2026-01-01 00:00:00', get_option( Migrations::PROXY_DETECTION_SINCE_OPTION ) );
 	}
 }

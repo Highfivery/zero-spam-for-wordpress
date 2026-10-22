@@ -114,6 +114,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_davidwalsh_data',
 		'zerospam_davidwalsh_secret',
 		'zerospam_db_version',
+		'zerospam_proxy_detection_since',
 		'zerospam_settings_audit',
 		'zerospam_share_queue',
 		'zerospam_shared_ip_warning_dismissed',

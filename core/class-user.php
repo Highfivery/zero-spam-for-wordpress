@@ -346,14 +346,27 @@ class User {
 			 *
 			 * Add to the array rather than replacing it, so the entries of the
 			 * "Trusted Proxy IPs" setting are kept. Entries may be IP addresses
-			 * or CIDR ranges, IPv4 or IPv6; invalid entries are ignored.
+			 * or CIDR ranges, IPv4 or IPv6; invalid entries and ranges broader
+			 * than /8 (IPv4) or /32 (IPv6) are ignored.
 			 *
 			 * @param string[] $proxies IP addresses and CIDR ranges from the Trusted Proxy IPs setting.
 			 */
 			$filtered = apply_filters( 'zerospam_trusted_proxies', $configured );
 
+			// Cloudflare's published list is used as is: it includes 2a06:98c0::/29,
+			// which the /32 minimum for configured ranges would reject.
+			$cloudflare = array_map(
+				'trim',
+				array_filter(
+					Utilities::cloudflare_ip_ranges(),
+					static function ( $range ) {
+						return is_string( $range ) && Utilities::is_ip_range( trim( $range ) );
+					}
+				)
+			);
+
 			self::$trusted_proxies = array(
-				'cloudflare' => Utilities::parse_ip_ranges( Utilities::cloudflare_ip_ranges() )['valid'],
+				'cloudflare' => $cloudflare,
 				'configured' => Utilities::parse_ip_ranges( (array) $filtered )['valid'],
 			);
 		} finally {

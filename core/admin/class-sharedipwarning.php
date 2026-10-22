@@ -11,6 +11,7 @@ namespace ZeroSpam\Core\Admin;
 
 use ZeroSpam\Core\User;
 use ZeroSpam\Includes\DB;
+use ZeroSpam\Includes\Migrations;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -22,7 +23,10 @@ defined( 'ABSPATH' ) || die();
  * gets the proxy's address, so one block or one bad reputation entry locks
  * everyone out. The check looks at the most recent detections only, runs on
  * the Zero Spam settings and dashboard screens only, and caches its verdict
- * for an hour. A verdict says why it was given:
+ * for an hour. Only detections logged since this version was installed
+ * count (Migrations::PROXY_DETECTION_SINCE_OPTION): before, every visitor
+ * behind a proxy was logged with the proxy's address by design. A verdict
+ * says why it was given:
  * - `trusted_proxy`: at least two recent detections were recorded with the
  *   address of a trusted proxy (Cloudflare or the Trusted Proxy IPs
  *   setting), so the proxy's address was recorded instead of the visitor's;
@@ -215,9 +219,22 @@ class Shared_IP_Warning {
 			'reason' => '',
 		);
 
+		// Only detections logged with proxy-aware IP detection count: older rows
+		// hold proxy addresses (for example Cloudflare edges) by design.
+		$since = get_option( Migrations::PROXY_DETECTION_SINCE_OPTION );
+		if ( ! is_string( $since ) || '' === $since ) {
+			return $none;
+		}
+
 		$rows = DB::query(
 			'log',
 			array(
+				'where'   => array(
+					'date_recorded' => array(
+						'value'    => $since,
+						'relation' => '>=',
+					),
+				),
 				'select'  => array( 'user_ip' ),
 				'orderby' => 'log_id',
 				'order'   => 'DESC',
