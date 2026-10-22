@@ -7,7 +7,6 @@ test.describe( 'Log table', () => {
 	} );
 
 	test( 'the log shows 50 rows per page with no gaps or overlaps (120 seeded rows: 50/50/20)', async ( { page, zs } ) => {
-		test.fail( true, 'AGENTS.md §8: LogTable LIMIT has count and offset swapped and the offset is per_page * page, so page 2 shows rows 51-120 (70 rows)' );
 		await zs.seedLog( 120 );
 		const dashboard = new DashboardPage( page );
 		const seen = new Set< string >();
@@ -25,7 +24,6 @@ test.describe( 'Log table', () => {
 	} );
 
 	test( 'searching the log by IP shows the matching count', async ( { page, zs, gallery } ) => {
-		test.fail( true, 'AGENTS.md §8: the LogTable total count ignores the active filters, so a search reports every row' );
 		await zs.seedLog( 60 );
 		await zs.seedLog( 3, { ip: '198.51.100.9' } );
 		const dashboard = new DashboardPage( page );
@@ -39,7 +37,6 @@ test.describe( 'Log table', () => {
 	} );
 
 	test( 'sorting the log by region orders the rows by region', async ( { page, zs } ) => {
-		test.fail( true, 'AGENTS.md §8: LogTable sorts the region column by country' );
 		await zs.seedLog( 5 );
 		const dashboard = new DashboardPage( page );
 		await dashboard.goto( 'log', '&orderby=region&order=asc' );
