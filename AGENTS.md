@@ -219,6 +219,13 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
     served from cache.
   - `modules/elementor/class-elementor.php` exists but `Plugin::init_modules()`
     never instantiates it.
+  - `includes/admin/class-siteadminoverrides.php` hooks
+    `zerospam_setting_field_before/after`, `zerospam_setting_field_disabled`
+    and `zerospam_settings_page_top`, but the settings page never fires them,
+    so site admins on a network get no lock badge and can edit locked fields
+    whose values are then silently overridden. `settings_validation` also
+    stores `false` for every unticked checkbox, so one save on a subsite turns
+    every checkbox into a site override.
   - `modules/login/class-login.php`: `setcookie()` with no `headers_sent()`
     guard and dead PHP < 7.3 branches.
   - Unqualified `WP_Error` in docblocks of namespaced classes (for example
