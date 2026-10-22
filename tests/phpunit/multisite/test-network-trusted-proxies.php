@@ -113,11 +113,14 @@ class Test_Network_Trusted_Proxies extends TestCase {
 		$this->assertFalse( $response['success'] );
 		$this->assertStringContainsString( 'not-an-ip', $response['data']['message'] );
 		$this->assertStringContainsString( '0.0.0.0/0 (too broad', $response['data']['message'] );
-		$this->assertSame( array( 'not-an-ip', '0.0.0.0/0 (too broad: would trust every visitor\'s X-Forwarded-For)' ), $response['data']['invalid'] );
+		$this->assertSame( array( 'not-an-ip', '0.0.0.0/0 (too broad: would trust every visitor&#039;s X-Forwarded-For)' ), $response['data']['invalid'], 'Escaped like the message.' );
 		$this->assertNull( $this->network_value( 'trusted_proxies' ) );
 
-		$response = $this->ajax_set_setting( 'trusted_proxies', '<img src=x onerror=alert(1)>' );
-		$this->assertStringNotContainsString( '<img', $response['data']['message'], 'The rejected entries are escaped for the inline message.' );
+		// Tags are stripped by the sanitiser; quotes and ampersands survive it and are escaped.
+		$response = $this->ajax_set_setting( 'trusted_proxies', 'x"y\'z&' );
+		$this->assertFalse( $response['success'] );
+		$this->assertStringContainsString( 'x&quot;y&#039;z&amp;', $response['data']['message'], 'Escaped for the inline message.' );
+		$this->assertSame( array( 'x&quot;y&#039;z&amp;' ), $response['data']['invalid'] );
 	}
 
 	/**

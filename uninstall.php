@@ -62,6 +62,8 @@ $zerospam_site_options = array(
 	'zerospam_davidwalsh_data',
 	'zerospam_davidwalsh_secret',
 	'zerospam_db_version',
+	'zerospam_migration_cursor_canonical_blocked_ips',
+	'zerospam_migration_lock_canonical_blocked_ips',
 	'zerospam_proxy_detection_since',
 	'zerospam_settings_audit',
 	'zerospam_share_queue',

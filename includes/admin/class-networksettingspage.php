@@ -997,7 +997,7 @@ class Network_Settings_Page {
 							esc_html__( 'Not saved. These Trusted Proxy IPs entries are not IP addresses or ranges (like 203.0.113.5 or 203.0.113.0/24) or are too broad: %s', 'zero-spam' ),
 							esc_html( implode( ', ', $dropped ) )
 						),
-						'invalid' => $dropped,
+						'invalid' => array_map( 'esc_html', $dropped ),
 					)
 				);
 			}
