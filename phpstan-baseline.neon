@@ -43,30 +43,6 @@ parameters:
 			path: core/admin/tables/class-blockedtable.php
 
 		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 3
-			path: core/admin/tables/class-blockedtable.php
-
-		-
-			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: core/admin/tables/class-logtable.php
-
-		-
-			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: mixed, per_page\: 50, total_pages\: float, orderby\: non\-falsy\-string\|false, order\: string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: core/admin/tables/class-logtable.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 5
-			path: core/admin/tables/class-logtable.php
-
-		-
 			message: '#^Parameter \#1 \$record of static method ZeroSpam\\Includes\\DB\:\:blocked\(\) expects array, string given\.$#'
 			identifier: argument.type
 			count: 1
@@ -197,12 +173,6 @@ parameters:
 			identifier: argument.type
 			count: 2
 			path: includes/admin/class-networkstatspage.php
-
-		-
-			message: '#^Parameter \#1 \$text of function esc_html expects string, int\<1, max\> given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/admin/class-siteadminoverrides.php
 
 		-
 			message: '#^Parameter \#1 \$new_blog_id of function switch_to_blog expects int, string given\.$#'
@@ -451,30 +421,6 @@ parameters:
 			path: modules/class-google.php
 
 		-
-			message: '#^Access to property \$errors on an unknown class ZeroSpam\\Modules\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: modules/class-stopforumspam.php
-
-		-
-			message: '#^Call to method add\(\) on an unknown class ZeroSpam\\Modules\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 2
-			path: modules/class-stopforumspam.php
-
-		-
-			message: '#^Parameter \$errors of method ZeroSpam\\Modules\\StopForumSpam\:\:preprocess_registrations\(\) has invalid type ZeroSpam\\Modules\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: modules/class-stopforumspam.php
-
-		-
-			message: '#^Right side of && is always true\.$#'
-			identifier: booleanAnd.rightAlwaysTrue
-			count: 3
-			path: modules/class-stopforumspam.php
-
-		-
 			message: '#^Action callback returns true but should not return anything\.$#'
 			identifier: return.void
 			count: 1
@@ -509,30 +455,6 @@ parameters:
 			identifier: class.notFound
 			count: 1
 			path: modules/contactform7/class-contactform7.php
-
-		-
-			message: '#^Call to method add_error_message\(\) on an unknown class ElementorPro\\Modules\\Forms\\Classes\\Ajax_Handler\.$#'
-			identifier: class.notFound
-			count: 1
-			path: modules/elementor/class-elementor.php
-
-		-
-			message: '#^Parameter \$ajax_handler of method ZeroSpam\\Modules\\Elementor\\Elementor\:\:validate_davidwalsh\(\) has invalid type ElementorPro\\Modules\\Forms\\Classes\\Ajax_Handler\.$#'
-			identifier: class.notFound
-			count: 1
-			path: modules/elementor/class-elementor.php
-
-		-
-			message: '#^Parameter \$form_fields_registrar of method ZeroSpam\\Modules\\Elementor\\Elementor\:\:register_fields\(\) has invalid type ElementorPro\\Modules\\Forms\\Registrars\\Form_Fields_Registrar\.$#'
-			identifier: class.notFound
-			count: 1
-			path: modules/elementor/class-elementor.php
-
-		-
-			message: '#^Parameter \$record of method ZeroSpam\\Modules\\Elementor\\Elementor\:\:validate_davidwalsh\(\) has invalid type ElementorPro\\Modules\\Forms\\Classes\\Form_Record\.$#'
-			identifier: class.notFound
-			count: 1
-			path: modules/elementor/class-elementor.php
 
 		-
 			message: '#^Function give_clean not found\.$#'
@@ -597,18 +519,6 @@ parameters:
 		-
 			message: '#^Constant COOKIEPATH not found\.$#'
 			identifier: constant.notFound
-			count: 2
-			path: modules/login/class-login.php
-
-		-
-			message: '#^Parameter \$user of method ZeroSpam\\Modules\\Login\\Login\:\:process_form\(\) has invalid type ZeroSpam\\Modules\\Login\\WP_Error\.$#'
-			identifier: class.notFound
-			count: 1
-			path: modules/login/class-login.php
-
-		-
-			message: '#^Parameter \$user of method ZeroSpam\\Modules\\Login\\Login\:\:process_form\(\) has invalid type ZeroSpam\\Modules\\Login\\WP_User\.$#'
-			identifier: class.notFound
 			count: 1
 			path: modules/login/class-login.php
 

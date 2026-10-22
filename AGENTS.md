@@ -67,7 +67,8 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   network-wide (`base_prefix`) `wpzerospam_api_usage`,
   `wpzerospam_stats_daily`, `wpzerospam_stats_monthly`,
   `wpzerospam_network_templates`, `wpzerospam_network_audit` (see
-  `DB::$tables`). `wpzerospam_blacklist` is listed there but never created. Schema changes go through `DB::update()` and a
+  `DB::$tables`). `wpzerospam_blacklist` is listed there; 4.x created it and
+  current versions do not, but uninstall still drops it. Schema changes go through `DB::update()` and a
   `DB_VERSION` bump.
 - Logged submission data is sanitized on write (keys and values) and must be
   escaped on read: it has carried a stored XSS before (CVE-2026-96752).
@@ -421,59 +422,62 @@ npm run env:stop                 # stop both wp-env sites
 
 ## 8. Known debt and pitfalls (October 2026)
 
-- WPCS backlog measured at 429 errors / 367 warnings in 62 files (340
-  auto-fixable); PHPStan level 5 baseline of 168 findings. Clearing them is
-  planned work; do it file by file with tests, not in one sweep.
+- WPCS backlog at 5.7.13: 293 errors / 292 warnings in 52 files (296
+  auto-fixable), down from 429 / 367 in 62 files; PHPStan level 5 baseline of
+  144 findings in 99 entries (was 168). Clearing them is planned work; do it
+  file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
+  `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
+  `build/`.
+- Fixed in 5.7.13 (tests now in the gate): the multisite locked-settings UI
+  and site-save rule (locked keys are never stored; a saved value equal to the
+  network value follows the network; REST returns 403 `rest_setting_locked`
+  and WP-CLI warns and exits non-zero on locked keys), the `uninstall.php`
+  cleanup, the
+  detection-log table (pagination, filtered count, `prepare()` notice, region
+  sort, lost type filter, bulk-delete capability), the Security module's
+  cross-wired settings, the unprotected `.htaccess` refresh (now an
+  `admin_post` action), the Stop Forum Spam cache group, `DB::log()` pruning,
+  the never-loaded Elementor Pro module, the login cookie guard, and the
+  1970 end date on permanent blocks.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
-  test). The first six below, through `DB::log()`, already have that test,
-  tagged `@group known-defect` (`composer test:defects`); the `region` sort
-  and the rest do not yet:
-  - `uninstall.php`: the single-site branch loops over array indexes and
-    deletes `zero-spam-0`, `zero-spam-1`, … instead of the module options; the
-    module list omits `settings`, `ipbase`, `elementor` and uses `fluentforms`
-    for the `fluent_form` key; the two `network_*` tables are never dropped;
-    the options `zerospam_blocked_email_domains`, `zerospam_api_notices` and
-    `zerospam_settings_audit` and the `zero_spam_circuit_open` /
-    `zero_spam_failure_count` transients (prefix `zero_spam_`, not matched by
-    the cleanup query) are left behind; on a network the site options
-    `zerospam_network_settings`, `zero-spam-network-zerospam`,
-    `zerospam_network_notifications_enabled`,
-    `zerospam_network_settings_notifications_enabled` and
-    `zero_spam_last_api_request` are never removed; the
-    `zerospam_network_weekly_summary` cron event is never cleared; and the
-    multisite branch calls `switch_to_blog()` per site but
-    `restore_current_blog()` once, so the network-wide cron clean-up runs on
-    the wrong site.
-  - `core/admin/tables/class-logtable.php`: `LIMIT` has count and offset
-    swapped, the offset is `per_page * page` instead of `per_page * (page - 1)`,
-    `$wpdb->prepare()` is called with no placeholders when no filter is set,
-    the total count ignores the active filters, and `region` sorts by country.
-  - `modules/security/class-security.php`: the "remove resource query
-    parameters" and "disable emojis" settings trigger each other's behavior.
-  - `core/admin/class-dashboard.php`: `admin_init` rewrites `.htaccess` on a
-    query flag with no nonce or capability check.
-  - `modules/class-stopforumspam.php`: `wp_cache_get()` reads the default
-    group while `wp_cache_set()` writes group `zerospam`, so results are never
-    served from cache.
-  - `includes/class-db.php`: `DB::log()` prunes only when the table is already
-    above `max_logs` (`>`), then inserts, so the log settles at
-    `max_logs + 1` rows.
-  - `modules/elementor/class-elementor.php` exists but `Plugin::init_modules()`
-    never instantiates it.
-  - `includes/admin/class-siteadminoverrides.php` hooks
-    `zerospam_setting_field_before/after`, `zerospam_setting_field_disabled`
-    and `zerospam_settings_page_top`, but the settings page never fires them,
-    so site admins on a network get no lock badge and can edit locked fields
-    whose values are then silently overridden. `settings_validation` also
-    stores `false` for every unticked checkbox, so one save on a subsite turns
-    every checkbox into a site override.
-  - `modules/login/class-login.php`: `setcookie()` with no `headers_sent()`
-    guard and dead PHP < 7.3 branches.
+  test tagged `@group known-defect`, run with `composer test:defects`):
+  - `modules/class-stopforumspam.php`: `preprocess_registrations()` is hooked
+    to `zerospam_preprocess_registration_submission`, whose arguments are
+    `( array $errors, $post, 'registration_spam_message' )`, so the registration
+    check receives nonsense and would fatal (`$errors->add()` on an array) on a
+    hit; Stop Forum Spam registration protection has never worked. Comment
+    detections from this module are logged with reason `0` (numeric key).
+  - Cache group mismatch (`wp_cache_get()` default group vs `wp_cache_set()`
+    group) in `modules/class-projecthoneypot.php` (~92),
+    `modules/ipbase/class-ipbase.php` (~203), `modules/class-ipinfomodule.php`
+    (~293) and `modules/class-ipstack.php` (~173); the Stop Forum Spam cache
+    is object-cache only (no transient fallback), so it lasts one request on
+    hosts without a persistent object cache.
+  - `core/admin/tables/class-blockedtable.php`: the bulk delete never deletes
+    (`sanitize_text_field()` on the `ids` array returns `''`) and has no
+    capability check of its own; removing the last blocked IP leaves the old
+    rules in `.htaccess`.
+  - `core/admin/tables/class-logtable.php`: the Actions column runs one
+    blocked-IP query per row (about 50 per page); a page past the end shows
+    "No items found" with no pagination (clamp the page number).
+  - `modules/security/class-security.php`: the emoji setting is incomplete
+    since WordPress 6.4 (`wp_enqueue_emoji_styles` on
+    `wp_enqueue_scripts`/`admin_enqueue_scripts` and the `embed_head` script
+    are not unhooked); the setting title has a typo ("Emoji's");
+    `remove_resource_query_params` is hooked with 2 arguments but takes 1.
+  - `core/class-utilities.php` `refresh_htaccess()`: a subsite admin in
+    `.htaccess` mode writes the network-root `.htaccess`.
+  - The second network-settings storage model (`zero-spam-network-zerospam`
+    used by the `zero-spam/v1/settings` resolver vs `zerospam_network_settings`
+    used everywhere else, see §2) is still unreconciled; `Network_Settings` is
+    instantiated in several places, each registering its own resolver;
+    `Network_Settings::is_using_default()` rebuilds the settings registry per
+    call (the settings page now caches, other callers do not).
   - Unqualified `WP_Error` in docblocks of namespaced classes (for example
-    `includes/rest/class-apiusagecontroller.php`,
-    `modules/class-stopforumspam.php`) resolves to the wrong namespace for
-    static analysis; the runtime code uses `\WP_Error` or `use WP_Error`
-    correctly. Fix the docblocks and drop the matching baseline entries.
+    `includes/rest/class-apiusagecontroller.php`) resolves to the wrong
+    namespace for static analysis; the runtime code uses `\WP_Error` or
+    `use WP_Error` correctly. Fix the docblocks and drop the matching baseline
+    entries.
 - Accessibility debt proven by the Playwright suite (each item has an
   expected-failure test or entries in `tests/e2e/a11y/allowlist.json`;
   GitHub issues still to be filed):
