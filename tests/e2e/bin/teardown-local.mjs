@@ -1,9 +1,10 @@
 /**
  * Undoes setup-local.mjs on both LocalWP sites (`npm run e2e:teardown:local`):
  * deletes the e2e users and the "E2E comments" posts, removes the
- * ZEROSPAM_E2E_TOKEN / ZEROSPAM_RESCUE_KEY constants and the mu-plugin
- * symlink, restores users_can_register, and deletes tests/e2e/.env.
- * Asks first unless --yes is passed.
+ * wp-config.php constants setup created (E2E_*_CREATED_CONSTANTS in
+ * tests/e2e/.env; a ZEROSPAM_RESCUE_KEY or token the site had before is
+ * left alone) and the mu-plugin symlink, restores users_can_register, and
+ * deletes tests/e2e/.env. Asks first unless --yes is passed.
  */
 
 import { existsSync, lstatSync, rmSync, unlinkSync } from 'node:fs';
@@ -58,8 +59,13 @@ for ( const site of sites ) {
 		}
 	}
 
-	localCli( site, [ 'config', 'delete', 'ZEROSPAM_E2E_TOKEN', '--type=constant' ] );
-	localCli( site, [ 'config', 'delete', 'ZEROSPAM_RESCUE_KEY', '--type=constant' ] );
+	// Only what setup created. A .env from before the list existed only ever
+	// had the token added unconditionally.
+	const createdKey = `${ site.envPrefix }_CREATED_CONSTANTS`;
+	const createdConstants = undefined === env[ createdKey ] ? [ 'ZEROSPAM_E2E_TOKEN' ] : env[ createdKey ].split( ',' ).filter( Boolean );
+	for ( const name of createdConstants.filter( ( n ) => [ 'ZEROSPAM_E2E_TOKEN', 'ZEROSPAM_RESCUE_KEY' ].includes( n ) ) ) {
+		localCli( site, [ 'config', 'delete', name, '--type=constant' ] );
+	}
 
 	const link = join( site.path, 'wp-content/mu-plugins/zero-spam-e2e.php' );
 	if ( lstatSync( link, { throwIfNoEntry: false } )?.isSymbolicLink() ) {

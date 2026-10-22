@@ -2,7 +2,7 @@ import { expect, test } from '../support/fixtures';
 
 test.describe( 'Rescue mode', () => {
 	test( 'the rescue URL lets a blocked visitor back in and sets a 1-hour HttpOnly, SameSite=Lax cookie; a wrong key stays blocked', async ( { visitor, zs, target } ) => {
-		test.skip( ! target.rescueKey, 'ZEROSPAM_RESCUE_KEY is not defined for this target (set E2E_RESCUE_KEY on Local).' );
+		test.skip( ! target.rescueKey, 'No rescue key known for this target (on Local: npm run e2e:setup:local -- --rescue).' );
 		await zs.reset( 'baseline' );
 		await zs.block( visitor.ip, 'E2E rescue test' );
 

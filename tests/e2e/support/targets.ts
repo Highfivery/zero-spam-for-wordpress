@@ -162,7 +162,8 @@ function buildTarget( name: string | undefined ): Target {
 			subsitePath: def.subsitePath,
 			wp,
 			token: required( 'E2E_TOKEN' ),
-			rescueKey: process.env.E2E_RESCUE_KEY || null,
+			// Per site (setup-local.mjs --rescue); E2E_RESCUE_KEY overrides both.
+			rescueKey: process.env.E2E_RESCUE_KEY || process.env[ `${ prefix }_RESCUE_KEY` ] || null,
 			users,
 			cli: { kind: 'local', siteId: def.siteId!, path, url: def.baseURL },
 			artifacts,
