@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#
+# Zero Spam for WordPress: pre-push quality gate.
+#
+# Runs before every `git push` once `composer install` has pointed git at this
+# directory (core.hooksPath = .githooks). It refuses the push when any check
+# fails so that nothing unchecked reaches GitHub. There is no CI service.
+#
+#   1. version:check   plugin header, ZEROSPAM_VERSION and Stable tag agree
+#   2. lint:changed    full WPCS ruleset on PHP files changed vs origin/develop
+#   3. compat          PHP 8.2+ compatibility on the same files
+#   4. analyse         PHPStan (level 5) against phpstan-baseline.neon
+#
+# Escape hatch for a genuine emergency only: SKIP_QUALITY_GATE=1 git push
+# (say so in the PR description).
+
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+if [[ "${SKIP_QUALITY_GATE:-0}" == "1" ]]; then
+	echo "pre-push: SKIP_QUALITY_GATE=1 set, skipping the quality gate." >&2
+	exit 0
+fi
+
+if [[ ! -x vendor/bin/phpcs || ! -x vendor/bin/phpstan || ! -f vendor/composer/installed.json ]]; then
+	echo "pre-push: dev tooling missing or the Composer autoloader is stale (this happens after" >&2
+	echo "          checking out a branch that still tracks vendor/). Run: composer install" >&2
+	exit 1
+fi
+
+step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
+
+step "1/4 Version consistency"
+bin/check-version.sh
+
+step "2/4 WordPress Coding Standards (changed PHP files)"
+bin/lint-changed.sh
+
+step "3/4 PHP 8.2+ compatibility (changed PHP files)"
+PHPCS_STANDARD=PHPCompatibilityWP bin/lint-changed.sh
+
+step "4/4 PHPStan"
+vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+printf '\n\033[32mpre-push: all checks passed.\033[0m\n'

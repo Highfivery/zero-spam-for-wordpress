@@ -1,0 +1,19 @@
+# Files that must never ship in the WordPress.org release (see CONTRIBUTING.md).
+# Apply with: rsync -a --delete --exclude-from=.distignore <checkout>/ <svn>/trunk/
+.git
+.github
+.githooks
+.gitignore
+.distignore
+.DS_Store
+bin
+tests
+vendor
+node_modules
+composer.json
+composer.lock
+phpcs.xml.dist
+phpstan.neon.dist
+phpstan-baseline.neon
+assets/src
+NETWORK_SETTINGS_DEVELOPER_GUIDE.md

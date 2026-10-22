@@ -1,0 +1,679 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \#3 \$deps of function wp_enqueue_style expects array\<string\>, false given\.$#'
+			identifier: argument.type
+			count: 1
+			path: core/admin/class-admin.php
+
+		-
+			message: '#^Parameter \#3 \$value of static method ZeroSpam\\Includes\\DB\:\:delete\(\) expects string, int\<1, max\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: core/admin/class-settings.php
+
+		-
+			message: '#^Offset ''where'' on array\{order\: mixed, orderby\: mixed, where\: array\{key_type\: array\{value\: array\{''country_code'', ''region_code'', ''zip'', ''city''\}, relation\: ''IN''\}, user_ip\?\: array\{value\: mixed\}\}\} in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: core/admin/tables/class-blockedlocations.php
+
+		-
+			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: int\<0, max\>, per_page\: 50, total_pages\: float, orderby\: non\-falsy\-string\|false, order\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: core/admin/tables/class-blockedlocations.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 3
+			path: core/admin/tables/class-blockedlocations.php
+
+		-
+			message: '#^Offset ''where'' on array\{order\: mixed, orderby\: mixed, where\: array\{key_type\: array\{value\: ''ip''\}, blocked_type\?\: array\{value\: mixed\}, user_ip\?\: array\{value\: mixed\}\}\} in empty\(\) always exists and is not falsy\.$#'
+			identifier: empty.offset
+			count: 1
+			path: core/admin/tables/class-blockedtable.php
+
+		-
+			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: int\<0, max\>, per_page\: 50, total_pages\: float, orderby\: non\-falsy\-string\|false, order\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: core/admin/tables/class-blockedtable.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 3
+			path: core/admin/tables/class-blockedtable.php
+
+		-
+			message: '#^Call to function is_array\(\) with non\-empty\-array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: core/admin/tables/class-logtable.php
+
+		-
+			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: mixed, per_page\: 50, total_pages\: float, orderby\: non\-falsy\-string\|false, order\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: core/admin/tables/class-logtable.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 5
+			path: core/admin/tables/class-logtable.php
+
+		-
+			message: '#^Parameter \#1 \$record of static method ZeroSpam\\Includes\\DB\:\:blocked\(\) expects array, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: core/class-access.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: core/class-access.php
+
+		-
+			message: '#^Parameter \#3 \$args of function wp_die expects array\{response\?\: int, link_url\?\: string, link_text\?\: string, back_link\?\: bool, text_direction\?\: string, charset\?\: string, code\?\: string, exit\?\: bool\}\|int, array\{response\: string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: core/class-access.php
+
+		-
+			message: '#^Right side of \|\| is always false\.$#'
+			identifier: booleanOr.rightAlwaysFalse
+			count: 1
+			path: core/class-access.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 1
+			path: core/class-access.php
+
+		-
+			message: '#^Call to static method add_command\(\) on an unknown class ZeroSpam\\Core\\WP_CLI\.$#'
+			identifier: class.notFound
+			count: 1
+			path: core/class-cli.php
+
+		-
+			message: '#^Access to offset ''general'' on an unknown class ZeroSpam\\Core\\Sections\.$#'
+			identifier: class.notFound
+			count: 1
+			path: core/class-settings.php
+
+		-
+			message: '#^Access to offset ''settings'' on an unknown class ZeroSpam\\Core\\Sections\.$#'
+			identifier: class.notFound
+			count: 1
+			path: core/class-settings.php
+
+		-
+			message: '#^Default value of the parameter \#1 \$key \(false\) of method ZeroSpam\\Core\\Settings\:\:get_settings\(\) is incompatible with type string\.$#'
+			identifier: parameter.defaultValue
+			count: 1
+			path: core/class-settings.php
+
+		-
+			message: '#^Property ZeroSpam\\Core\\Settings\:\:\$sections has unknown class ZeroSpam\\Core\\Sections as its type\.$#'
+			identifier: class.notFound
+			count: 1
+			path: core/class-settings.php
+
+		-
+			message: '#^Static property ZeroSpam\\Core\\Settings\:\:\$sections \(ZeroSpam\\Core\\Sections\) does not accept default value of type array\.$#'
+			identifier: property.defaultValue
+			count: 1
+			path: core/class-settings.php
+
+		-
+			message: '#^Static property ZeroSpam\\Core\\Settings\:\:\$settings \(ZeroSpam\\Core\\Settings\) does not accept default value of type array\.$#'
+			identifier: property.defaultValue
+			count: 1
+			path: core/class-settings.php
+
+		-
+			message: '#^Call to function is_wp_error\(\) with array\<mixed, mixed\> will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 2
+			path: core/class-utilities.php
+
+		-
+			message: '#^Default value of the parameter \#1 \$setting_msg_key \(false\) of method ZeroSpam\\Core\\Utilities\:\:detection_message\(\) is incompatible with type string\.$#'
+			identifier: parameter.defaultValue
+			count: 1
+			path: core/class-utilities.php
+
+		-
+			message: '#^Default value of the parameter \#1 \$setting_msg_key \(false\) of method ZeroSpam\\Core\\Utilities\:\:detection_title\(\) is incompatible with type string\.$#'
+			identifier: parameter.defaultValue
+			count: 1
+			path: core/class-utilities.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 1
+			path: core/class-utilities.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, \(float\|int\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-networksettingspage.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, \(float\|int\<1, max\>\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-networksettingspage.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 4
+			path: includes/admin/class-networksettingspage.php
+
+		-
+			message: '#^Parameter \#2 \$site_id of method ZeroSpam\\Includes\\Network_Settings\:\:get_effective_value\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/admin/class-networksettingspage.php
+
+		-
+			message: '#^Unreachable statement \- code above always terminates\.$#'
+			identifier: deadCode.unreachable
+			count: 8
+			path: includes/admin/class-networksettingspage.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, float\|int\<0, max\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/admin/class-networkstatspage.php
+
+		-
+			message: '#^Parameter \#1 \$text of function esc_html expects string, int\<1, max\> given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/admin/class-siteadminoverrides.php
+
+		-
+			message: '#^Parameter \#1 \$new_blog_id of function switch_to_blog expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-apiusagealerts.php
+
+		-
+			message: '#^Parameter \#1 \$site_id of method ZeroSpam\\Includes\\API_Usage_Alerts\:\:check_site_anomalies\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-apiusagealerts.php
+
+		-
+			message: '#^Parameter \#2 \$site_id of method ZeroSpam\\Includes\\API_Usage_Alerts\:\:format_alert_email\(\) expects int, null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-apiusagealerts.php
+
+		-
+			message: '#^Call to function is_wp_error\(\) with mixed will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 3
+			path: includes/class-apiusagetracker.php
+
+		-
+			message: '#^Parameter \#1 \$months of static method ZeroSpam\\Includes\\Stats_Aggregator\:\:backfill_monthly\(\) expects int, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-cli.php
+
+		-
+			message: '#^Cannot access offset ''blocked_id'' on false\.$#'
+			identifier: offsetAccess.nonOffsetAccessible
+			count: 1
+			path: includes/class-db.php
+
+		-
+			message: '#^Parameter \#2 \$site_id of method ZeroSpam\\Includes\\Network_Settings\:\:is_using_default\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-networksettings.php
+
+		-
+			message: '#^Parameter \#1 \$new_blog_id of function switch_to_blog expects int, string given\.$#'
+			identifier: argument.type
+			count: 3
+			path: includes/class-networkstatstracker.php
+
+		-
+			message: '#^Parameter \#1 \$site_id of static method ZeroSpam\\Includes\\Network_Stats_Tracker\:\:get_site_stats\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-networkstatstracker.php
+
+		-
+			message: '#^Parameter \#1 \$site_id of static method ZeroSpam\\Includes\\Network_Stats_Tracker\:\:has_enhanced_protection\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/class-networkstatstracker.php
+
+		-
+			message: '#^Parameter \#1 \$new_blog_id of function switch_to_blog expects int, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-statsaggregator.php
+
+		-
+			message: '#^Parameter \#1 \$year of method ZeroSpam\\Includes\\Stats_Aggregator\:\:aggregate_month\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-statsaggregator.php
+
+		-
+			message: '#^Parameter \#2 \$month of method ZeroSpam\\Includes\\Stats_Aggregator\:\:aggregate_month\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 2
+			path: includes/class-statsaggregator.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\API_Usage_Controller\:\:export_usage\(\) has invalid return type ZeroSpam\\Includes\\Rest\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/rest/class-apiusagecontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\API_Usage_Controller\:\:get_usage\(\) has invalid return type ZeroSpam\\Includes\\Rest\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/rest/class-apiusagecontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\API_Usage_Controller\:\:get_usage\(\) should return WP_REST_Response\|ZeroSpam\\Includes\\Rest\\WP_Error but returns WP_Error\.$#'
+			identifier: return.type
+			count: 2
+			path: includes/rest/class-apiusagecontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\API_Usage_Controller\:\:get_usage_permissions_check\(\) has invalid return type ZeroSpam\\Includes\\Rest\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: includes/rest/class-apiusagecontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\API_Usage_Controller\:\:get_usage_permissions_check\(\) should return bool\|ZeroSpam\\Includes\\Rest\\WP_Error but returns WP_Error\.$#'
+			identifier: return.type
+			count: 3
+			path: includes/rest/class-apiusagecontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\Network_Settings_Controller\:\:apply_template\(\) should return WP_REST_Response but returns WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/rest/class-networksettingscontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\Network_Settings_Controller\:\:create_template\(\) should return WP_REST_Response but returns WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/rest/class-networksettingscontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\Network_Settings_Controller\:\:delete_template\(\) should return WP_REST_Response but returns WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/rest/class-networksettingscontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\Network_Settings_Controller\:\:get_template\(\) should return WP_REST_Response but returns WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/rest/class-networksettingscontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\Network_Settings_Controller\:\:lock_item\(\) should return WP_REST_Response but returns WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/rest/class-networksettingscontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\Network_Settings_Controller\:\:reset_site\(\) should return WP_REST_Response but returns WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/rest/class-networksettingscontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\Network_Settings_Controller\:\:unlock_item\(\) should return WP_REST_Response but returns WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/rest/class-networksettingscontroller.php
+
+		-
+			message: '#^Method ZeroSpam\\Includes\\Rest\\Network_Settings_Controller\:\:update_item\(\) should return WP_REST_Response but returns WP_Error\.$#'
+			identifier: return.type
+			count: 1
+			path: includes/rest/class-networksettingscontroller.php
+
+		-
+			message: '#^Parameter \#2 \$site_id of method ZeroSpam\\Includes\\Network_Settings\:\:get_effective_value\(\) expects int, string given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/rest/class-networksettingscontroller.php
+
+		-
+			message: '#^Variable \$entries might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/templates/admin-hours-list.php
+
+		-
+			message: '#^Parameter \#1 \$record of static method ZeroSpam\\Includes\\DB\:\:blocked\(\) expects array, \(int\<0, max\>\|string\) given\.$#'
+			identifier: argument.type
+			count: 1
+			path: includes/templates/admin-ips.php
+
+		-
+			message: '#^Variable \$item might not be defined\.$#'
+			identifier: variable.undefined
+			count: 8
+			path: includes/templates/admin-modal-details.php
+
+		-
+			message: '#^Left side of && is always true\.$#'
+			identifier: booleanAnd.leftAlwaysTrue
+			count: 2
+			path: includes/templates/unified-dashboard-widget.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 2
+			path: includes/templates/unified-dashboard-widget.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between 0 and mixed will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: includes/templates/unified-dashboard-widget.php
+
+		-
+			message: '#^Variable \$data might not be defined\.$#'
+			identifier: variable.undefined
+			count: 5
+			path: includes/templates/unified-dashboard-widget.php
+
+		-
+			message: '#^Variable \$is_network might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/templates/unified-dashboard-widget.php
+
+		-
+			message: '#^Variable \$license_valid might not be defined\.$#'
+			identifier: variable.undefined
+			count: 2
+			path: includes/templates/unified-dashboard-widget.php
+
+		-
+			message: '#^Variable \$zerospam_enabled might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/templates/unified-dashboard-widget.php
+
+		-
+			message: '#^Variable \$zerospam_license might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: includes/templates/unified-dashboard-widget.php
+
+		-
+			message: '#^Callback expects 1 parameter, \$accepted_args is set to 2\.$#'
+			identifier: arguments.count
+			count: 1
+			path: modules/class-google.php
+
+		-
+			message: '#^Expression "\$api_key" on a separate line does not do anything\.$#'
+			identifier: expr.resultUnused
+			count: 1
+			path: modules/class-google.php
+
+		-
+			message: '#^Undefined variable\: \$api_key$#'
+			identifier: variable.undefined
+			count: 1
+			path: modules/class-google.php
+
+		-
+			message: '#^Access to property \$errors on an unknown class ZeroSpam\\Modules\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/class-stopforumspam.php
+
+		-
+			message: '#^Call to method add\(\) on an unknown class ZeroSpam\\Modules\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 2
+			path: modules/class-stopforumspam.php
+
+		-
+			message: '#^Parameter \$errors of method ZeroSpam\\Modules\\StopForumSpam\:\:preprocess_registrations\(\) has invalid type ZeroSpam\\Modules\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/class-stopforumspam.php
+
+		-
+			message: '#^Right side of && is always true\.$#'
+			identifier: booleanAnd.rightAlwaysTrue
+			count: 3
+			path: modules/class-stopforumspam.php
+
+		-
+			message: '#^Action callback returns true but should not return anything\.$#'
+			identifier: return.void
+			count: 1
+			path: modules/class-zerospam.php
+
+		-
+			message: '#^Parameter \#4 \$response_time_ms of static method ZeroSpam\\Includes\\API_Usage_Tracker\:\:track_api_call\(\) expects int, float given\.$#'
+			identifier: argument.type
+			count: 1
+			path: modules/class-zerospam.php
+
+		-
+			message: '#^Access to offset 0 on an unknown class ZeroSpam\\Modules\\ContactForm7\\WPCF7_FormTag\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/contactform7/class-contactform7.php
+
+		-
+			message: '#^Call to method invalidate\(\) on an unknown class ZeroSpam\\Modules\\ContactForm7\\WPCF7_Validation\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/contactform7/class-contactform7.php
+
+		-
+			message: '#^Parameter \$result of method ZeroSpam\\Modules\\ContactForm7\\ContactForm7\:\:process_form\(\) has invalid type ZeroSpam\\Modules\\ContactForm7\\WPCF7_Validation\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/contactform7/class-contactform7.php
+
+		-
+			message: '#^Parameter \$tag of method ZeroSpam\\Modules\\ContactForm7\\ContactForm7\:\:process_form\(\) has invalid type ZeroSpam\\Modules\\ContactForm7\\WPCF7_FormTag\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/contactform7/class-contactform7.php
+
+		-
+			message: '#^Call to method add_error_message\(\) on an unknown class ElementorPro\\Modules\\Forms\\Classes\\Ajax_Handler\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/elementor/class-elementor.php
+
+		-
+			message: '#^Parameter \$ajax_handler of method ZeroSpam\\Modules\\Elementor\\Elementor\:\:validate_davidwalsh\(\) has invalid type ElementorPro\\Modules\\Forms\\Classes\\Ajax_Handler\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/elementor/class-elementor.php
+
+		-
+			message: '#^Parameter \$form_fields_registrar of method ZeroSpam\\Modules\\Elementor\\Elementor\:\:register_fields\(\) has invalid type ElementorPro\\Modules\\Forms\\Registrars\\Form_Fields_Registrar\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/elementor/class-elementor.php
+
+		-
+			message: '#^Parameter \$record of method ZeroSpam\\Modules\\Elementor\\Elementor\:\:validate_davidwalsh\(\) has invalid type ElementorPro\\Modules\\Forms\\Classes\\Form_Record\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/elementor/class-elementor.php
+
+		-
+			message: '#^Function give_clean not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: modules/give/class-give.php
+
+		-
+			message: '#^Function give_set_error not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: modules/give/class-give.php
+
+		-
+			message: '#^Callback expects 1 parameter, \$accepted_args is set to 2\.$#'
+			identifier: arguments.count
+			count: 1
+			path: modules/gravityforms/class-gravityforms.php
+
+		-
+			message: '#^Function rgar not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: modules/gravityforms/class-gravityforms.php
+
+		-
+			message: '#^Parameter \$form of method ZeroSpam\\Modules\\GravityForms\\GravityForms\:\:process_form\(\) has invalid type ZeroSpam\\Modules\\GravityForms\\FormObject\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/gravityforms/class-gravityforms.php
+
+		-
+			message: '#^Default value of the parameter \#2 \$ip_address_details \(array\) of method ZeroSpam\\Modules\\ipbase\\ipbase\:\:ip_address_details\(\) is incompatible with type string\.$#'
+			identifier: parameter.defaultValue
+			count: 1
+			path: modules/ipbase/class-ipbase.php
+
+		-
+			message: '#^Undefined variable\: \$cache_key$#'
+			identifier: variable.undefined
+			count: 1
+			path: modules/ipbase/class-ipbase.php
+
+		-
+			message: '#^Undefined variable\: \$expiration$#'
+			identifier: variable.undefined
+			count: 1
+			path: modules/ipbase/class-ipbase.php
+
+		-
+			message: '#^Undefined variable\: \$settings$#'
+			identifier: variable.undefined
+			count: 2
+			path: modules/ipbase/class-ipbase.php
+
+		-
+			message: '#^Variable \$settings in empty\(\) is never defined\.$#'
+			identifier: empty.variable
+			count: 2
+			path: modules/ipbase/class-ipbase.php
+
+		-
+			message: '#^Constant COOKIEPATH not found\.$#'
+			identifier: constant.notFound
+			count: 2
+			path: modules/login/class-login.php
+
+		-
+			message: '#^Parameter \$user of method ZeroSpam\\Modules\\Login\\Login\:\:process_form\(\) has invalid type ZeroSpam\\Modules\\Login\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/login/class-login.php
+
+		-
+			message: '#^Parameter \$user of method ZeroSpam\\Modules\\Login\\Login\:\:process_form\(\) has invalid type ZeroSpam\\Modules\\Login\\WP_User\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/login/class-login.php
+
+		-
+			message: '#^Parameter \$element of method ZeroSpam\\Modules\\MailchimpForWP\\MailchimpForWP\:\:add_honeypot\(\) has invalid type ZeroSpam\\Modules\\MailchimpForWP\\MC4WP_Form_Element\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/mailchimpforwp/class-mailchimpforwp.php
+
+		-
+			message: '#^Parameter \$form of method ZeroSpam\\Modules\\MailchimpForWP\\MailchimpForWP\:\:add_honeypot\(\) has invalid type ZeroSpam\\Modules\\MailchimpForWP\\MC4WP_Form\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/mailchimpforwp/class-mailchimpforwp.php
+
+		-
+			message: '#^Call to method add\(\) on an unknown class ZeroSpam\\Modules\\Registration\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/registration/class-registration.php
+
+		-
+			message: '#^Parameter \$errors of method ZeroSpam\\Modules\\Registration\\Registration\:\:process_form\(\) has invalid type ZeroSpam\\Modules\\Registration\\WP_Error\.$#'
+			identifier: class.notFound
+			count: 1
+			path: modules/registration/class-registration.php
+
+		-
+			message: '#^Callback expects 1 parameter, \$accepted_args is set to 2\.$#'
+			identifier: arguments.count
+			count: 3
+			path: modules/security/class-security.php
+
+		-
+			message: '#^Callback expects 1 parameter, \$accepted_args is set to 2\.$#'
+			identifier: arguments.count
+			count: 1
+			path: modules/woocommerce/class-woocommerce.php
+
+		-
+			message: '#^Cannot call method add\(\) on string\.$#'
+			identifier: method.nonObject
+			count: 1
+			path: modules/woocommerce/class-woocommerce.php
+
+		-
+			message: '#^Function wc_add_notice not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: modules/woocommerce/class-woocommerce.php
+
+		-
+			message: '#^Function woocommerce_form_field not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: modules/woocommerce/class-woocommerce.php
+
+		-
+			message: '#^Function wpforms not found\.$#'
+			identifier: function.notFound
+			count: 1
+			path: modules/wpforms/class-wpforms.php
+
+		-
+			message: '#^Right side of && is always false\.$#'
+			identifier: booleanAnd.rightAlwaysFalse
+			count: 1
+			path: wordpress-zero-spam.php
