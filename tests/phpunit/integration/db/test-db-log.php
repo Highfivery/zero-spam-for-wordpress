@@ -55,10 +55,8 @@ class Test_DB_Log extends TestCase {
 	/**
 	 * The table never holds more than max_logs rows after a write.
 	 *
-	 * DB::log() prunes only when the count is already above the limit
-	 * (`>`), then inserts, so the table settles at max_logs + 1.
-	 *
-	 * @group known-defect
+	 * Regression: DB::log() pruned only when the count was already above the
+	 * limit (`>`), then inserted, so the table settled at max_logs + 1.
 	 */
 	public function test_table_never_exceeds_max_logs(): void {
 		$this->set_setting( 'max_logs', 5 );
@@ -68,6 +66,69 @@ class Test_DB_Log extends TestCase {
 		DB::log( 'comment', array() );
 
 		$this->assertSame( 5, $this->count_log_rows(), 'The log table holds more rows than max_logs.' );
+	}
+
+	/**
+	 * With max_logs = 1 only the entry just written is kept.
+	 */
+	public function test_max_logs_of_one_keeps_only_the_new_entry(): void {
+		$this->set_setting( 'max_logs', 1 );
+		$ids = $this->insert_log_rows( 3 );
+
+		$this->assertSame( 1, DB::log( 'blocked', array() ) );
+
+		$remaining = array_map( 'intval', $GLOBALS['wpdb']->get_col( 'SELECT log_id FROM `' . $this->log_table() . '`' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Fixed table name.
+		$this->assertCount( 1, $remaining );
+		$this->assertGreaterThan( max( $ids ), $remaining[0], 'A seeded row survived instead of the new entry.' );
+		$this->assertSame( 1, $this->count_log_rows( array( 'log_type' => 'blocked' ) ) );
+	}
+
+	/**
+	 * Empty and zero max_logs values.
+	 *
+	 * @return array<string, array{0: int|string}>
+	 */
+	public static function data_unset_max_logs(): array {
+		return array(
+			'zero'         => array( 0 ),
+			'empty string' => array( '' ),
+		);
+	}
+
+	/**
+	 * An empty or zero max_logs falls back to the 10,000 default instead of
+	 * deleting every entry.
+	 *
+	 * @dataProvider data_unset_max_logs
+	 *
+	 * @param int|string $value Stored max_logs value.
+	 */
+	public function test_unset_max_logs_uses_the_default_limit( $value ): void {
+		$this->set_setting( 'max_logs', $value );
+		$this->insert_log_rows( 3 );
+
+		$this->assertSame( 10000, \ZeroSpam\Core\Settings::get_settings( 'max_logs' ) );
+
+		DB::log( 'comment', array() );
+
+		$this->assertSame( 4, $this->count_log_rows(), 'Entries were pruned below the default limit.' );
+	}
+
+	/**
+	 * The zerospam_log_record filter still shapes the stored row.
+	 */
+	public function test_log_record_filter_is_applied(): void {
+		add_filter(
+			'zerospam_log_record',
+			static function ( array $record ): array {
+				$record['log_type'] = 'filtered';
+				return $record;
+			}
+		);
+
+		DB::log( 'comment', array() );
+
+		$this->assertSame( 1, $this->count_log_rows( array( 'log_type' => 'filtered' ) ) );
 	}
 
 	/**
