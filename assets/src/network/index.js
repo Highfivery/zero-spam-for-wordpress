@@ -12,8 +12,11 @@
 import { getAppLabel } from '../admin/app-label';
 import '../admin/styles/index.css';
 
-const root = document.getElementById('zerospam-network-app');
+const root = document.getElementById( 'zerospam-network-app' );
 
-if (root) {
-	root.setAttribute('aria-label', getAppLabel(root.dataset.version || ''));
+if ( root ) {
+	root.setAttribute(
+		'aria-label',
+		getAppLabel( root.dataset.version || '' )
+	);
 }

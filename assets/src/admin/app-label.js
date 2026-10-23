@@ -13,14 +13,13 @@ import { __, sprintf } from '@wordpress/i18n';
  * @param {string} version Plugin version, or an empty string when unknown.
  * @return {string} The label, for example "Zero Spam 6.0.0".
  */
-export function getAppLabel(version) {
-	if (!version) {
-		return __('Zero Spam', 'zero-spam');
+export function getAppLabel( version ) {
+	if ( ! version ) {
+		return __( 'Zero Spam', 'zero-spam' );
 	}
 
-	return sprintf(
-		/* translators: %s: plugin version number, for example 6.0.0. */
-		__('Zero Spam %s', 'zero-spam'),
-		version
-	);
+	/* translators: %s: plugin version number, for example 6.0.0. */
+	const label = __( 'Zero Spam %s', 'zero-spam' );
+
+	return sprintf( label, version );
 }

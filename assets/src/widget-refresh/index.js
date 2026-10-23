@@ -8,6 +8,6 @@
  */
 import './index.css';
 
-document.querySelectorAll('[data-zs-widget]').forEach((root) => {
-	root.setAttribute('data-zs-ready', '');
-});
+document.querySelectorAll( '[data-zs-widget]' ).forEach( ( root ) => {
+	root.setAttribute( 'data-zs-ready', '' );
+} );

@@ -4,7 +4,7 @@
  * for the unit tests. tests/e2e is type-checked by TypeScript instead
  * (npm run typecheck:e2e).
  */
-const wpPlugin = require('@wordpress/eslint-plugin');
+const wpPlugin = require( '@wordpress/eslint-plugin' );
 
 module.exports = [
 	{
@@ -26,7 +26,7 @@ module.exports = [
 				requireConfigFile: false,
 				babelOptions: {
 					presets: [
-						require.resolve('@wordpress/babel-preset-default'),
+						require.resolve( '@wordpress/babel-preset-default' ),
 					],
 				},
 			},
@@ -39,7 +39,7 @@ module.exports = [
 		},
 	},
 	{
-		files: ['webpack.config.js', 'eslint.config.cjs'],
+		files: [ 'webpack.config.js', 'eslint.config.cjs' ],
 		languageOptions: {
 			globals: {
 				__dirname: 'readonly',
@@ -51,7 +51,7 @@ module.exports = [
 	},
 	{
 		// Vitest is imported explicitly, so only its node:* helpers need this.
-		files: ['assets/src/**/*.test.js'],
+		files: [ 'assets/src/**/*.test.js' ],
 		languageOptions: {
 			globals: { __dirname: 'readonly' },
 		},
