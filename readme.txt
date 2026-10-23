@@ -130,7 +130,7 @@ If every visitor, including you, suddenly sees "Your IP has been flagged as spam
 
 = Does Zero Spam work with two-step login plugins like Defender Pro or Two Factor? =
 
-**Yes, since version 5.7.14.** Zero Spam checks the username and password step of the login as before. Once that step succeeds, the later steps of the same login (such as entering a two-factor code from WPMU DEV Defender Pro or the Two Factor plugin) are not checked again. An expired or already-used page key, for example from a cached login page or the back button, no longer blocks the login with "Your IP has been flagged as spam/malicious": the visitor is let through with the login intent token or asked to try again. Developers with custom login flows can use the `zerospam_login_skip_check` filter.
+**Yes, since version 5.7.14.** Zero Spam checks the username and password step of the login as before. Once that step succeeds, the later steps of the same login (such as entering a two-factor code from WPMU DEV Defender Pro or the Two Factor plugin) are not checked again. Verification that has expired or was already used, for example from a cached login page or the back button, no longer blocks the login with "Your IP has been flagged as spam/malicious": the visitor is let through, or asked to try again. Developers with custom login flows can use the `zerospam_login_skip_check` filter.
 
 = Why can't I access `wp-login.php` or XML-RPC anymore? =
 
@@ -148,7 +148,7 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 
 = v5.7.14 =
 
-* **fix(login):** logins are no longer refused with "Your IP has been flagged as spam/malicious" when the login page's key has expired or been used up, as happened with cached login pages, the back button and two-step logins such as WPMU DEV Defender Pro's two-factor login (a 5.7.12 regression). Once the password is accepted, the rest of the login, such as a two-factor code, goes through ([support topic](https://wordpress.org/support/topic/login-conflic-with-wpmu-dev-defender-pro/))
+* **fix(login):** logins are no longer refused with "Your IP has been flagged as spam/malicious" when the verification that the login form carries has expired or been used up, as happened with cached login pages, the back button and two-step logins such as WPMU DEV Defender Pro's two-factor login (a problem introduced in 5.7.12). Once the password is accepted, the rest of the login, such as a two-factor code, goes through ([support topic](https://wordpress.org/support/topic/login-conflic-with-wpmu-dev-defender-pro/))
 * **fix(ip):** sites behind a CDN, load balancer or reverse proxy (such as Hostinger CDN) no longer see every visitor with the proxy's IP address, which could get every visitor, administrators included, blocked. Zero Spam now reads the real visitor IP from Cloudflare automatically, or from the proxies you list in the new Trusted Proxy IPs setting, so visitors still can't fake their IP. Behind Cloudflare and your own proxy, your proxy must pass on Cloudflare's `CF-Connecting-IP` header.
 * **fix(ip):** IPv6 addresses now match however they are written, in the IP Whitelist and in blocked IPs (existing blocks are updated once), and searching the Detection Log or Blocked IPs finds them in any form.
 * **fix(multisite):** multi-line settings saved on the network settings screen, such as the IP Whitelist, now keep one entry per line. Before, a multi-line IP Whitelist set there never matched.
@@ -157,8 +157,7 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 * **feat(rescue):** activating or updating Zero Spam saves your current IP address as one it never locks out. Visitors from it are still checked for spam; the saved addresses are listed, with a Remove button, under the IP Whitelist.
 * **feat(settings):** new Trusted Proxy IPs setting (Settings → Zero Spam → Settings) for your CDN's or proxy's IP addresses or ranges, and a warning on Zero Spam's screens when many visitors seem to share one IP address.
 * **ui(admin):** settings switches now work with the keyboard and screen readers, list tables and buttons follow WordPress's standard look with readable contrast, and animations turn off when your device asks for reduced motion.
-* **chore(admin):** admin assets reload automatically on development sites (SCRIPT_DEBUG).
-* **dev:** developer changes (new filters and actions, rescue entries left out of `DB::query( 'log' )`) are listed in the [full changelog on GitHub](https://github.com/Highfivery/zero-spam-for-wordpress/blob/main/CHANGELOG.md) and on Zero Spam's Documentation tab.
+* **dev:** developer changes (new filters and actions, rescue entries left out of `DB::query( 'log' )`, admin assets that reload automatically on development sites with SCRIPT_DEBUG) are listed in the [full changelog on GitHub](https://github.com/Highfivery/zero-spam-for-wordpress/blob/main/CHANGELOG.md) and on Zero Spam's Documentation tab.
 
 = v5.7.13 =
 
