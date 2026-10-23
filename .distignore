@@ -20,6 +20,10 @@ phpstan.neon.dist
 phpstan-baseline.neon
 build
 assets/src
+webpack.config.js
+vitest.config.mjs
+eslint.config.cjs
+.stylelintrc.json
 NETWORK_SETTINGS_DEVELOPER_GUIDE.md
 package.json
 package-lock.json

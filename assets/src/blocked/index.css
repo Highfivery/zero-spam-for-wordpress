@@ -1,0 +1,8 @@
+/**
+ * Blocked, rescue and expired-link pages (6.0). Placeholder: the pages' own
+ * token subset and the base styles, scoped to .zs-blocked. The pages
+ * themselves are rebuilt in a later pull request, which inlines this file (no
+ * request, no JavaScript); budget 8 KB raw (bin/check-dist.sh).
+ */
+@import "./tokens.css";
+@import "../admin/styles/base.css";
