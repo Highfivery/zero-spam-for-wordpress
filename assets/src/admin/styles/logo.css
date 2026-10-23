@@ -8,6 +8,9 @@
  *
  * States, set on the wrapper by the mark's controller:
  *   (no data-state)        static, no halo
+ * Bricks are <g class="zs-b" data-i="0".."12">, numbered row by row from the
+ * top; the controller finds them by data-i (the symbol has no ids).
+ *
  *   data-state="idle"      halo and core glow breathe (4 s cycle); the
  *                          controller may set data-glint on one brick
  *                          every 20-40 s while the tab is visible

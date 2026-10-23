@@ -1,46 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img">
 	<title>Zero Spam</title>
 	<defs>
-		<linearGradient id="zs-g-63000d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#820011"/><stop offset="1" stop-color="#440009"/></linearGradient>
-		<linearGradient id="zs-g-840012" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a30016"/><stop offset="1" stop-color="#65000e"/></linearGradient>
-		<linearGradient id="zs-g-be0000" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dd0000"/><stop offset="1" stop-color="#9f0000"/></linearGradient>
-		<linearGradient id="zs-g-ff2929" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4848"/><stop offset="1" stop-color="#ff0a0a"/></linearGradient>
-		<linearGradient id="zs-g-ff7038" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8657"/><stop offset="1" stop-color="#ff5a19"/></linearGradient>
-		<linearGradient id="zs-g-ffa17c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb79b"/><stop offset="1" stop-color="#ff8b5d"/></linearGradient>
-		<linearGradient id="zs-hl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".32" stop-color="#fff" stop-opacity="0"/></linearGradient>
-		<linearGradient id="zs-core" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6E5A"/><stop offset=".55" stop-color="#FF2929"/><stop offset="1" stop-color="#D81818"/></linearGradient>
-		<radialGradient id="zs-core-glow"><stop offset="0" stop-color="#FF2929" stop-opacity=".95"/><stop offset=".45" stop-color="#FF2929" stop-opacity=".4"/><stop offset="1" stop-color="#FF2929" stop-opacity="0"/></radialGradient>
+		<linearGradient id="zs-mark-g-63000d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#820011"/><stop offset="1" stop-color="#440009"/></linearGradient>
+		<linearGradient id="zs-mark-g-840012" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a30016"/><stop offset="1" stop-color="#65000e"/></linearGradient>
+		<linearGradient id="zs-mark-g-be0000" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dd0000"/><stop offset="1" stop-color="#9f0000"/></linearGradient>
+		<linearGradient id="zs-mark-g-ff2929" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4848"/><stop offset="1" stop-color="#ff0a0a"/></linearGradient>
+		<linearGradient id="zs-mark-g-ff7038" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8657"/><stop offset="1" stop-color="#ff5a19"/></linearGradient>
+		<linearGradient id="zs-mark-g-ffa17c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb79b"/><stop offset="1" stop-color="#ff8b5d"/></linearGradient>
+		<linearGradient id="zs-mark-hl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".32" stop-color="#fff" stop-opacity="0"/></linearGradient>
+		<linearGradient id="zs-mark-core" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6E5A"/><stop offset=".55" stop-color="#FF2929"/><stop offset="1" stop-color="#D81818"/></linearGradient>
+		<radialGradient id="zs-mark-core-glow"><stop offset="0" stop-color="#FF2929" stop-opacity=".95"/><stop offset=".45" stop-color="#FF2929" stop-opacity=".4"/><stop offset="1" stop-color="#FF2929" stop-opacity="0"/></radialGradient>
 	</defs>
 	<g transform="translate(0 7)">
-		<ellipse cx="149.5" cy="90" rx="49.95" ry="72.8" fill="url(#zs-core-glow)" opacity=".85"/>
-		<rect x="1.78" y="63.78" width="78.44" height="52.44" rx="8" fill="url(#zs-g-63000d)"/>
-		<rect x="1.78" y="187.78" width="78.44" height="52.44" rx="8" fill="url(#zs-g-63000d)"/>
-		<rect x="52.42" y="125.42" width="71.16" height="53.16" rx="8" fill="url(#zs-g-840012)"/>
+		<ellipse cx="149.5" cy="90" rx="49.95" ry="72.8" fill="url(#zs-mark-core-glow)" opacity=".85"/>
+		<rect x="1.78" y="63.78" width="78.44" height="52.44" rx="8" fill="url(#zs-mark-g-63000d)"/>
+		<rect x="1.78" y="187.78" width="78.44" height="52.44" rx="8" fill="url(#zs-mark-g-63000d)"/>
+		<rect x="52.42" y="125.42" width="71.16" height="53.16" rx="8" fill="url(#zs-mark-g-840012)"/>
 		<rect x="132.07" y="1.98" width="71.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
-		<rect x="132.07" y="1.07" width="71.87" height="53.87" rx="8" fill="url(#zs-g-be0000)"/>
+		<rect x="132.07" y="1.07" width="71.87" height="53.87" rx="8" fill="url(#zs-mark-g-be0000)"/>
 		<rect x="89.07" y="63.98" width="34.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
-		<rect x="89.07" y="63.07" width="34.87" height="53.87" rx="8" fill="url(#zs-g-be0000)"/>
+		<rect x="89.07" y="63.07" width="34.87" height="53.87" rx="8" fill="url(#zs-mark-g-be0000)"/>
 		<rect x="1.07" y="125.98" width="42.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
-		<rect x="1.07" y="125.07" width="42.87" height="53.87" rx="8" fill="url(#zs-g-be0000)"/>
+		<rect x="1.07" y="125.07" width="42.87" height="53.87" rx="8" fill="url(#zs-mark-g-be0000)"/>
 		<rect x="132.07" y="125.98" width="71.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
-		<rect x="132.07" y="125.07" width="71.87" height="53.87" rx="8" fill="url(#zs-g-be0000)"/>
+		<rect x="132.07" y="125.07" width="71.87" height="53.87" rx="8" fill="url(#zs-mark-g-be0000)"/>
 		<rect x="89.07" y="187.98" width="34.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
-		<rect x="89.07" y="187.07" width="34.87" height="53.87" rx="8" fill="url(#zs-g-be0000)"/>
+		<rect x="89.07" y="187.07" width="34.87" height="53.87" rx="8" fill="url(#zs-mark-g-be0000)"/>
 		<rect x="211.71" y="126.08" width="43.58" height="54.58" rx="8" fill="#63000D" fill-opacity="0.21"/>
-		<rect x="211.71" y="124.71" width="43.58" height="54.58" rx="8" fill="url(#zs-g-ff2929)"/>
-		<rect x="212.21" y="125.21" width="42.58" height="53.58" rx="7.5" fill="none" stroke="url(#zs-hl)" stroke-width="1"/>
+		<rect x="211.71" y="124.71" width="43.58" height="54.58" rx="8" fill="url(#zs-mark-g-ff2929)"/>
+		<rect x="212.21" y="125.21" width="42.58" height="53.58" rx="7.5" fill="none" stroke="url(#zs-mark-hl)" stroke-width="1"/>
 		<rect x="131.71" y="188.08" width="35.58" height="54.58" rx="8" fill="#63000D" fill-opacity="0.21"/>
-		<rect x="131.71" y="186.71" width="35.58" height="54.58" rx="8" fill="url(#zs-g-ff2929)"/>
-		<rect x="132.21" y="187.21" width="34.58" height="53.58" rx="7.5" fill="none" stroke="url(#zs-hl)" stroke-width="1"/>
+		<rect x="131.71" y="186.71" width="35.58" height="54.58" rx="8" fill="url(#zs-mark-g-ff2929)"/>
+		<rect x="132.21" y="187.21" width="34.58" height="53.58" rx="7.5" fill="none" stroke="url(#zs-mark-hl)" stroke-width="1"/>
 		<rect x="174.36" y="64.18" width="81.29" height="55.29" rx="8" fill="#63000D" fill-opacity="0.28"/>
-		<rect x="174.36" y="62.36" width="81.29" height="55.29" rx="8" fill="url(#zs-g-ff7038)"/>
-		<rect x="174.86" y="62.86" width="80.29" height="54.29" rx="7.5" fill="none" stroke="url(#zs-hl)" stroke-width="1"/>
+		<rect x="174.36" y="62.36" width="81.29" height="55.29" rx="8" fill="url(#zs-mark-g-ff7038)"/>
+		<rect x="174.86" y="62.86" width="80.29" height="54.29" rx="7.5" fill="none" stroke="url(#zs-mark-hl)" stroke-width="1"/>
 		<rect x="174" y="188.28" width="82" height="56" rx="8" fill="#63000D" fill-opacity="0.35"/>
-		<rect x="174" y="186" width="82" height="56" rx="8" fill="url(#zs-g-ffa17c)"/>
-		<rect x="174.5" y="186.5" width="81" height="55" rx="7.5" fill="none" stroke="url(#zs-hl)" stroke-width="1"/>
+		<rect x="174" y="186" width="82" height="56" rx="8" fill="url(#zs-mark-g-ffa17c)"/>
+		<rect x="174.5" y="186.5" width="81" height="55" rx="7.5" fill="none" stroke="url(#zs-mark-hl)" stroke-width="1"/>
 		<g transform="translate(149.5 90) scale(1.06) translate(-149.5 -90)">
 		<rect x="131" y="65.2" width="37" height="56" rx="8" fill="#63000D" fill-opacity=".45"/>
-		<rect x="131" y="62" width="37" height="56" rx="8" fill="url(#zs-core)"/>
+		<rect x="131" y="62" width="37" height="56" rx="8" fill="url(#zs-mark-core)"/>
 		<rect x="131.5" y="62.5" width="36" height="55" rx="7.5" fill="none" stroke="#FFFFFF" stroke-opacity=".5" stroke-width="1"/>
 		</g>
 	</g>

@@ -4,16 +4,21 @@
 		<svg class="zs-icon" aria-hidden="true" focusable="false"><use href="#zs-i-shield"/></svg>.
 
 		zs-mark       the mark, treatment B "Live core", for 21px and up. Each brick is a
-		              <g id="zs-mark-bN" class="zs-b"> (N = position, row by row from the top)
-		              with its .zs-f fill and a .zs-sh sheen; .zs-coreglow, .zs-pulse and
-		              .zs-ring serve the motion states in styles/logo.css. To animate it,
+		              <g class="zs-b" data-i="N"> (N = position, row by row from the top;
+		              no ids, so inline copies never clash) with its .zs-f fill and a
+		              .zs-sh sheen; .zs-coreglow, .zs-pulse and .zs-ring serve the motion
+		              states in styles/logo.css. To animate it,
 		              copy the symbol's content into an inline <svg viewBox="0 0 256 242">;
 		              CSS cannot reach inside a <use> instance.
 		zs-mark-flat  treatment A, the pixel-snapped grid for 20px and smaller.
-		zs-mark-mono  one colour (currentColor; the bricks around the core at 58% opacity),
-		              for the WordPress admin menu and other one-colour uses.
+		zs-mark-mono  one colour (currentColor; the bricks around the core at 70% opacity).
+		              The WordPress admin menu needs explicit fills instead:
+		              assets/img/zero-spam-menu-icon.svg.
 		zs-i-*        UI icons, 24px grid, drawn with strokes: give the <svg> class zs-icon
 		              (styles/base.css) for fill:none and stroke:currentColor.
+
+		The sheen, pulse and ring layers carry opacity="0", so a <use> instance (which page
+		CSS cannot reach) draws the static mark; logo.css animations override it.
 
 		The marks were generated from the approved logo pass (no mirror transform, one
 		element per brick, no editor metadata); edit this file by hand from here.
@@ -32,64 +37,64 @@
 		<radialGradient id="zs-pulse-fill"><stop offset="0" stop-color="#FF2929" stop-opacity="1"/><stop offset=".5" stop-color="#FF2929" stop-opacity=".55"/><stop offset="1" stop-color="#FF2929" stop-opacity="0"/></radialGradient>
 	</defs>
 	<symbol id="zs-mark" viewBox="0 0 256 242">
-		<ellipse class="zs-pulse" cx="0" cy="0" rx="1" ry="1" fill="url(#zs-pulse-fill)"/>
+		<ellipse class="zs-pulse" opacity="0" cx="0" cy="0" rx="1" ry="1" fill="url(#zs-pulse-fill)"/>
 		<ellipse class="zs-coreglow" cx="149.5" cy="90" rx="49.95" ry="72.8" fill="url(#zs-core-glow)" opacity=".85"/>
-		<g id="zs-mark-b1" class="zs-b" data-i="1" data-x="0" data-y="62" data-w="82" data-h="56" style="--zs-r:1;--zs-cx:0.16">
+		<g class="zs-b" data-i="1" data-x="0" data-y="62" data-w="82" data-h="56" style="--zs-r:1;--zs-cx:0.16">
 			<rect x="1.78" y="63.78" width="78.44" height="52.44" rx="8" class="zs-f" fill="url(#zs-g-63000d)"/>
-			<rect x="0" y="62" width="82" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b9" class="zs-b" data-i="9" data-x="0" data-y="186" data-w="82" data-h="56" style="--zs-r:3;--zs-cx:0.16">
+			<rect x="0" y="62" width="82" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="9" data-x="0" data-y="186" data-w="82" data-h="56" style="--zs-r:3;--zs-cx:0.16">
 			<rect x="1.78" y="187.78" width="78.44" height="52.44" rx="8" class="zs-f" fill="url(#zs-g-63000d)"/>
-			<rect x="0" y="186" width="82" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b6" class="zs-b" data-i="6" data-x="51" data-y="124" data-w="74" data-h="56" style="--zs-r:2;--zs-cx:0.34">
+			<rect x="0" y="186" width="82" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="6" data-x="51" data-y="124" data-w="74" data-h="56" style="--zs-r:2;--zs-cx:0.34">
 			<rect x="52.42" y="125.42" width="71.16" height="53.16" rx="8" class="zs-f" fill="url(#zs-g-840012)"/>
-			<rect x="51" y="124" width="74" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b0" class="zs-b" data-i="0" data-x="131" data-y="0" data-w="74" data-h="56" style="--zs-r:0;--zs-cx:0.66">
+			<rect x="51" y="124" width="74" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="0" data-x="131" data-y="0" data-w="74" data-h="56" style="--zs-r:0;--zs-cx:0.66">
 			<rect x="132.07" y="1.98" width="71.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
 			<rect x="132.07" y="1.07" width="71.87" height="53.87" rx="8" class="zs-f" fill="url(#zs-g-be0000)"/>
-			<rect x="131" y="0" width="74" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b2" class="zs-b" data-i="2" data-x="88" data-y="62" data-w="37" data-h="56" style="--zs-r:1;--zs-cx:0.42">
+			<rect x="131" y="0" width="74" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="2" data-x="88" data-y="62" data-w="37" data-h="56" style="--zs-r:1;--zs-cx:0.42">
 			<rect x="89.07" y="63.98" width="34.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
 			<rect x="89.07" y="63.07" width="34.87" height="53.87" rx="8" class="zs-f" fill="url(#zs-g-be0000)"/>
-			<rect x="88" y="62" width="37" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b5" class="zs-b" data-i="5" data-x="0" data-y="124" data-w="45" data-h="56" style="--zs-r:2;--zs-cx:0.09">
+			<rect x="88" y="62" width="37" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="5" data-x="0" data-y="124" data-w="45" data-h="56" style="--zs-r:2;--zs-cx:0.09">
 			<rect x="1.07" y="125.98" width="42.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
 			<rect x="1.07" y="125.07" width="42.87" height="53.87" rx="8" class="zs-f" fill="url(#zs-g-be0000)"/>
-			<rect x="0" y="124" width="45" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b7" class="zs-b" data-i="7" data-x="131" data-y="124" data-w="74" data-h="56" style="--zs-r:2;--zs-cx:0.66">
+			<rect x="0" y="124" width="45" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="7" data-x="131" data-y="124" data-w="74" data-h="56" style="--zs-r:2;--zs-cx:0.66">
 			<rect x="132.07" y="125.98" width="71.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
 			<rect x="132.07" y="125.07" width="71.87" height="53.87" rx="8" class="zs-f" fill="url(#zs-g-be0000)"/>
-			<rect x="131" y="124" width="74" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b10" class="zs-b" data-i="10" data-x="88" data-y="186" data-w="37" data-h="56" style="--zs-r:3;--zs-cx:0.42">
+			<rect x="131" y="124" width="74" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="10" data-x="88" data-y="186" data-w="37" data-h="56" style="--zs-r:3;--zs-cx:0.42">
 			<rect x="89.07" y="187.98" width="34.87" height="53.87" rx="8" fill="#63000D" fill-opacity="0.14"/>
 			<rect x="89.07" y="187.07" width="34.87" height="53.87" rx="8" class="zs-f" fill="url(#zs-g-be0000)"/>
-			<rect x="88" y="186" width="37" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b8" class="zs-b" data-i="8" data-x="211" data-y="124" data-w="45" data-h="56" style="--zs-r:2;--zs-cx:0.91">
+			<rect x="88" y="186" width="37" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="8" data-x="211" data-y="124" data-w="45" data-h="56" style="--zs-r:2;--zs-cx:0.91">
 			<rect x="211.71" y="126.08" width="43.58" height="54.58" rx="8" fill="#63000D" fill-opacity="0.21"/>
 			<rect x="211.71" y="124.71" width="43.58" height="54.58" rx="8" class="zs-f" fill="url(#zs-g-ff2929)"/>
 			<rect x="212.21" y="125.21" width="42.58" height="53.58" rx="7.5" fill="none" stroke="url(#zs-hl)" stroke-width="1"/>
-			<rect x="211" y="124" width="45" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b11" class="zs-b" data-i="11" data-x="131" data-y="186" data-w="37" data-h="56" style="--zs-r:3;--zs-cx:0.58">
+			<rect x="211" y="124" width="45" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="11" data-x="131" data-y="186" data-w="37" data-h="56" style="--zs-r:3;--zs-cx:0.58">
 			<rect x="131.71" y="188.08" width="35.58" height="54.58" rx="8" fill="#63000D" fill-opacity="0.21"/>
 			<rect x="131.71" y="186.71" width="35.58" height="54.58" rx="8" class="zs-f" fill="url(#zs-g-ff2929)"/>
 			<rect x="132.21" y="187.21" width="34.58" height="53.58" rx="7.5" fill="none" stroke="url(#zs-hl)" stroke-width="1"/>
-			<rect x="131" y="186" width="37" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b4" class="zs-b" data-i="4" data-x="174" data-y="62" data-w="82" data-h="56" style="--zs-r:1;--zs-cx:0.84">
+			<rect x="131" y="186" width="37" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="4" data-x="174" data-y="62" data-w="82" data-h="56" style="--zs-r:1;--zs-cx:0.84">
 			<rect x="174.36" y="64.18" width="81.29" height="55.29" rx="8" fill="#63000D" fill-opacity="0.28"/>
 			<rect x="174.36" y="62.36" width="81.29" height="55.29" rx="8" class="zs-f" fill="url(#zs-g-ff7038)"/>
 			<rect x="174.86" y="62.86" width="80.29" height="54.29" rx="7.5" fill="none" stroke="url(#zs-hl)" stroke-width="1"/>
-			<rect x="174" y="62" width="82" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b12" class="zs-b" data-i="12" data-x="174" data-y="186" data-w="82" data-h="56" style="--zs-r:3;--zs-cx:0.84">
+			<rect x="174" y="62" width="82" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="12" data-x="174" data-y="186" data-w="82" data-h="56" style="--zs-r:3;--zs-cx:0.84">
 			<rect x="174" y="188.28" width="82" height="56" rx="8" fill="#63000D" fill-opacity="0.35"/>
 			<rect x="174" y="186" width="82" height="56" rx="8" class="zs-f" fill="url(#zs-g-ffa17c)"/>
 			<rect x="174.5" y="186.5" width="81" height="55" rx="7.5" fill="none" stroke="url(#zs-hl)" stroke-width="1"/>
-			<rect x="174" y="186" width="82" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<g id="zs-mark-b3" class="zs-b" data-i="3" data-x="131" data-y="62" data-w="37" data-h="56" style="--zs-r:1;--zs-cx:0.58">
+			<rect x="174" y="186" width="82" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<g class="zs-b" data-i="3" data-x="131" data-y="62" data-w="37" data-h="56" style="--zs-r:1;--zs-cx:0.58">
 		<g transform="translate(149.5 90) scale(1.06) translate(-149.5 -90)">
 			<rect x="131" y="65.2" width="37" height="56" rx="8" fill="#63000D" fill-opacity=".45"/>
 			<rect x="131" y="62" width="37" height="56" rx="8" class="zs-f" fill="url(#zs-core)"/>
 			<rect x="131.5" y="62.5" width="36" height="55" rx="7.5" fill="none" stroke="#FFFFFF" stroke-opacity=".5" stroke-width="1"/></g>
-			<rect x="131" y="62" width="37" height="56" rx="8" class="zs-sh" fill="url(#zs-sheen)"/></g>
-		<circle class="zs-ring" cx="0" cy="0" r="1" fill="none" stroke="#FF2929" stroke-width="4"/>
+			<rect x="131" y="62" width="37" height="56" rx="8" class="zs-sh" opacity="0" fill="url(#zs-sheen)"/></g>
+		<circle class="zs-ring" opacity="0" cx="0" cy="0" r="1" fill="none" stroke="#FF2929" stroke-width="4"/>
 	</symbol>
 	<symbol id="zs-mark-flat" viewBox="0 0 20 19" shape-rendering="crispEdges">
 		<rect x="11" y="0" width="5" height="4" rx="1" fill="#BE0000"/>
@@ -107,19 +112,19 @@
 		<rect x="14" y="15" width="6" height="4" rx="1" fill="#FFA17C"/>
 	</symbol>
 	<symbol id="zs-mark-mono" viewBox="0 0 20 19" shape-rendering="crispEdges">
-		<rect x="11" y="0" width="5" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="0" y="5" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="7" y="5" width="3" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
+		<rect x="11" y="0" width="5" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="0" y="5" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="7" y="5" width="3" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
 		<rect x="11" y="5" width="2" height="4" rx="1" fill="currentColor"/>
-		<rect x="14" y="5" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="0" y="10" width="3" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="4" y="10" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="11" y="10" width="5" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="17" y="10" width="3" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="0" y="15" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="7" y="15" width="3" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="11" y="15" width="2" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
-		<rect x="14" y="15" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".58"/>
+		<rect x="14" y="5" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="0" y="10" width="3" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="4" y="10" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="11" y="10" width="5" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="17" y="10" width="3" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="0" y="15" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="7" y="15" width="3" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="11" y="15" width="2" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
+		<rect x="14" y="15" width="6" height="4" rx="1" fill="currentColor" fill-opacity=".7"/>
 	</symbol>
 	<symbol id="zs-i-wall" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9.3h18M3 14.7h18M10 4v5.3M15 9.3v5.4M8 14.7V20"/></symbol>
 	<symbol id="zs-i-activity" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
