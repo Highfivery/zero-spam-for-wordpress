@@ -8,7 +8,7 @@
 .DS_Store
 bin
 tests
-vendor
+/vendor/
 node_modules
 composer.json
 composer.lock
