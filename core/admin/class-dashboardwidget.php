@@ -172,7 +172,7 @@ class Dashboard_Widget {
 			'zerospam-dashboard-widget',
 			plugins_url( 'assets/css/unified-dashboard-widget.css', ZEROSPAM ),
 			array(),
-			ZEROSPAM_VERSION
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/css/unified-dashboard-widget.css' )
 		);
 
 		// Enqueue widget JavaScript.
@@ -180,7 +180,7 @@ class Dashboard_Widget {
 			'zerospam-dashboard-widget',
 			plugins_url( 'assets/js/unified-dashboard-widget.js', ZEROSPAM ),
 			array( 'jquery', 'zerospam-chartjs' ),
-			ZEROSPAM_VERSION,
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/js/unified-dashboard-widget.js' ),
 			true
 		);
 

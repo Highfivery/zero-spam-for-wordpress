@@ -18,6 +18,45 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Whether SCRIPT_DEBUG is on, read once per request (see asset_version()).
+	 *
+	 * @var bool|null
+	 */
+	private static $script_debug = null;
+
+	/**
+	 * Version string for one of the plugin's own CSS or JS files.
+	 *
+	 * With SCRIPT_DEBUG on (development sites) it is the file's modification
+	 * time, so browsers load an edited file at once; otherwise it is the
+	 * plugin version, so caches are only busted by a release.
+	 *
+	 * @since 5.7.14
+	 *
+	 * @param string $relative_path Path relative to the plugin directory, e.g. assets/css/admin.css.
+	 * @return string Version for wp_enqueue_style()/wp_enqueue_script().
+	 */
+	public static function asset_version( string $relative_path ): string {
+		if ( null === self::$script_debug ) {
+			self::$script_debug = defined( 'SCRIPT_DEBUG' ) && true === constant( 'SCRIPT_DEBUG' );
+		}
+
+		if ( self::$script_debug ) {
+			$file = ZEROSPAM_PATH . ltrim( $relative_path, '/' );
+
+			if ( is_file( $file ) ) {
+				$mtime = filemtime( $file );
+
+				if ( false !== $mtime ) {
+					return (string) $mtime;
+				}
+			}
+		}
+
+		return ZEROSPAM_VERSION;
+	}
+
+	/**
 	 * Returns a clean domain name
 	 *
 	 * @param string $domain Domain name.
@@ -232,6 +271,8 @@ class Utilities {
 
 		/**
 		 * Filters the path of the .htaccess file Zero Spam writes its deny rules to.
+		 *
+		 * @since 5.7.14
 		 *
 		 * @param string $htaccess_file Full path. Default: .htaccess in the WordPress home directory.
 		 */

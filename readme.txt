@@ -1,11 +1,11 @@
 === Zero Spam for WordPress ===
-Contributors: bmarshall511
+Contributors: bmarshall511, highfivery
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 5.7.13
+Stable tag: 5.7.14
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -122,6 +122,16 @@ You can also define the `ZEROSPAM_RESCUE_KEY` constant in your `wp-config.php` f
 
 If none of these work (for example, you use an `.htaccess` block method, or your site can't send email), rename the plugin folder via FTP (`wp-content/plugins/zero-spam` -> `zero-spam-disabled`) to gain access.
 
+If every visitor, including you, suddenly sees "Your IP has been flagged as spam/malicious", your site is probably behind a CDN, load balancer or proxy (for example Hostinger CDN or Sucuri) that Zero Spam doesn't know about, so every visitor appears with the proxy's address. Get back in with the rescue link or Rescue Mode, then add the proxy's IP addresses or ranges under **Trusted Proxy IPs** in Settings → Zero Spam → Settings (your host can tell you what they are). Cloudflare is recognised automatically.
+
+= My site is behind Cloudflare or another CDN. Does Zero Spam see the real visitor IP? =
+
+**Yes.** Cloudflare is recognised automatically. For any other CDN, load balancer or reverse proxy, list its IP addresses or ranges under Settings → Zero Spam → Settings → **Trusted Proxy IPs**, one per line (for example `203.0.113.0/24`), including internal hops such as a load balancer. Zero Spam only reads forwarded IP headers from those addresses, so visitors can't fake their IP. If many visitors appear to share one IP address, Zero Spam shows administrators a warning on its screens so you know to check this setting. Developers can add proxies with the `zerospam_trusted_proxies` filter.
+
+= Does Zero Spam work with two-step login plugins like Defender Pro or Two Factor? =
+
+**Yes, since version 5.7.14.** Zero Spam checks the username and password step of the login as before. Once that step succeeds, the later steps of the same login (such as entering a two-factor code from WPMU DEV Defender Pro or the Two Factor plugin) are not checked again. Verification that has expired or was already used, for example from a cached login page or the back button, no longer blocks the login with "Your IP has been flagged as spam/malicious": the visitor is let through, or asked to try again. Developers with custom login flows can use the `zerospam_login_skip_check` filter.
+
 = Why can't I access `wp-login.php` or XML-RPC anymore? =
 
 As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation, or use the emailed rescue link on the blocked page (or the Rescue Mode key) to log in and whitelist your IP.
@@ -135,6 +145,19 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 5. Add blocked location
 
 == Changelog ==
+
+= v5.7.14 =
+
+* **fix(login):** logins are no longer refused with "Your IP has been flagged as spam/malicious" when the verification that the login form carries has expired or been used up, as happened with cached login pages, the back button and two-step logins such as WPMU DEV Defender Pro's two-factor login (a problem introduced in 5.7.12). Once the password is accepted, the rest of the login, such as a two-factor code, goes through ([support topic](https://wordpress.org/support/topic/login-conflic-with-wpmu-dev-defender-pro/))
+* **fix(ip):** sites behind a CDN, load balancer or reverse proxy (such as Hostinger CDN) no longer see every visitor with the proxy's IP address, which could get every visitor, administrators included, blocked. Zero Spam now reads the real visitor IP from Cloudflare automatically, or from the proxies you list in the new Trusted Proxy IPs setting, so visitors still can't fake their IP. Behind Cloudflare and your own proxy, your proxy must pass on Cloudflare's `CF-Connecting-IP` header.
+* **fix(ip):** IPv6 addresses now match however they are written, in the IP Whitelist and in blocked IPs (existing blocks are updated once), and searching the Detection Log or Blocked IPs finds them in any form.
+* **fix(multisite):** multi-line settings saved on the network settings screen, such as the IP Whitelist, now keep one entry per line. Before, a multi-line IP Whitelist set there never matched.
+* **fix(settings):** the Rescue Mode card, which says whether a rescue key is set and how to get back in, now shows on Settings → Zero Spam → Settings. It was missing there.
+* **feat(rescue):** locked out by Zero Spam? The blocked page now lets you request a single-use link, sent only to an administrator's email address, that lets your browser back in for one hour so you can log in. No file editing needed; email security scanners can't use the link up, and every use is logged. The Rescue Mode setting now explains both ways back in.
+* **feat(rescue):** activating or updating Zero Spam saves your current IP address as one it never locks out. Visitors from it are still checked for spam; the saved addresses are listed, with a Remove button, under the IP Whitelist.
+* **feat(settings):** new Trusted Proxy IPs setting (Settings → Zero Spam → Settings) for your CDN's or proxy's IP addresses or ranges, and a warning on Zero Spam's screens when many visitors seem to share one IP address.
+* **ui(admin):** settings switches now work with the keyboard and screen readers, list tables, buttons and pop-up windows follow WordPress's standard look with readable contrast, and animations turn off when your device asks for reduced motion.
+* **dev:** developer changes (new filters and actions, rescue entries left out of `DB::query( 'log' )`, admin assets that reload automatically on development sites with SCRIPT_DEBUG) are listed in the [full changelog on GitHub](https://github.com/Highfivery/zero-spam-for-wordpress/blob/main/CHANGELOG.md) and on Zero Spam's Documentation tab.
 
 = v5.7.13 =
 

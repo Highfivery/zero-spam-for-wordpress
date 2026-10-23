@@ -596,7 +596,7 @@ class DavidWalsh {
 			'zerospam-davidwalsh',
 			plugin_dir_url( ZEROSPAM ) . 'modules/davidwalsh/assets/js/davidwalsh.js',
 			array(),
-			ZEROSPAM_VERSION,
+			\ZeroSpam\Core\Utilities::asset_version( 'modules/davidwalsh/assets/js/davidwalsh.js' ),
 			true
 		);
 

@@ -920,8 +920,22 @@ a.zerospam-dashboard__menu-link--active {
   display: block;
   position: relative;
 }
+.zerospam-modal-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  opacity: 0;
+  position: fixed;
+  transition: opacity 0.5s, visibility 0.5s;
+  visibility: hidden;
+  z-index: 100100;
+}
+.zerospam-modal-overlay.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
 .zerospam-modal {
-  box-shadow: 0 0 4rem 100vw rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 4rem rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
   left: 50%;
   max-width: 600px;
@@ -934,7 +948,7 @@ a.zerospam-dashboard__menu-link--active {
   transition: all 0.5s;
   visibility: hidden;
   width: 100%;
-  z-index: 1;
+  z-index: 100101;
 }
 .zerospam-modal.is-active {
   opacity: 1;
@@ -1651,6 +1665,11 @@ a.zerospam-dashboard__menu-link--active {
 	border-bottom: 2px solid var(--zerospam-accent);
 	padding-bottom: 10px;
 	margin-bottom: 20px;
+}
+
+/* Readable link colour (the dashboard's accent link colour is below 4.5:1). */
+.zerospam-docs-more a {
+	color: var(--zerospam-secondary);
 }
 
 .zerospam-docs-intro {

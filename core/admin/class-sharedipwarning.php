@@ -198,6 +198,8 @@ class Shared_IP_Warning {
 		 *
 		 * Return false to never show it.
 		 *
+		 * @since 5.7.14
+		 *
 		 * @param array|false $verdict {
 		 *     The warning, or false for none.
 		 *

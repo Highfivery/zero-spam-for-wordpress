@@ -48,6 +48,11 @@ $sections = apply_filters(
 			'template' => ZEROSPAM_PATH . 'includes/templates/docs/lockout-rescue.php',
 			'priority' => 40,
 		),
+		'developer-hooks'    => array(
+			'title'    => __( 'Developer Hooks', 'zero-spam' ),
+			'template' => ZEROSPAM_PATH . 'includes/templates/docs/developer-hooks.php',
+			'priority' => 50,
+		),
 	)
 );
 
