@@ -2,27 +2,39 @@
  * Zero Spam design tokens (6.0 admin, Direction C "Evolving Grid").
  *
  * Every value comes from the approved prototype's :root custom properties and
- * its Design QA checklist. They are scoped to the three roots the plugin
- * renders, so nothing leaks into the rest of wp-admin or the front end:
+ * its Design QA checklist. They are scoped to the roots the admin renders, so
+ * nothing leaks into the rest of wp-admin:
  *
  *   .zs-app      the admin app (site and network screens)
- *   .zs-blocked  the blocked, rescue and expired-link pages
  *   .zs-widget   the dashboard widget
+ *
+ * The blocked, rescue and expired-link pages (.zs-blocked) carry their own
+ * minimal subset (assets/src/blocked/tokens.css) because that stylesheet is
+ * inlined into every blocked response; tokens.test.js keeps its values equal
+ * to these.
  *
  * Naming: the prototype's --name is --zs-name here (for example --ink is
  * --zs-ink, --r-tile is --zs-radius-card). The prototype's --wp-* values only
  * drew its simulated WordPress chrome and are left out.
  *
- * Theme: light by default. data-zs-theme="dark" on the root (or an ancestor)
- * switches to dark; data-zs-theme="auto" follows the operating system. The
- * dark values appear twice (dark, and auto under prefers-color-scheme) because
+ * Theme: light by default. data-zs-theme="dark" on the root (or on an
+ * ancestor) switches to dark; data-zs-theme="auto" follows the operating
+ * system. An attribute on the root itself wins over one on an ancestor, so a
+ * root with data-zs-theme="light" stays light inside a dark page. The dark
+ * values appear twice (dark, and auto under prefers-color-scheme) because
  * plain CSS cannot share a block; assets/src/admin/test/tokens.test.js fails
  * when the two copies differ, and checks the contrast of every text and UI
- * pair in both themes.
+ * pair in both themes and inside dark blocks.
+ *
+ * Tokens defined as var() of another token (--zs-eyebrow, --zs-sx-label) are
+ * resolved where they are declared, on the root. A surface that redefines the
+ * token underneath (for example --zs-ink-3) must set them again; .zs-dark-block
+ * below does. For the same reason the focus ring is composed where it is used
+ * (outline: var(--zs-focus-width) solid var(--zs-focus)), never stored as one
+ * token.
  */
 
 .zs-app,
-.zs-blocked,
 .zs-widget {
 	color-scheme: light;
 
@@ -71,8 +83,8 @@
 	--zs-enh-line: #4a1218;
 	--zs-enh-glow: 0 0 0 1px rgba(190, 0, 0, 0.25), 0 4px 14px -6px rgba(190, 0, 0, 0.55);
 
-	/* Hero, charts and the scan line */
-	--zs-hero-bg: linear-gradient(100deg, #fff 40%, #fff4f1 100%);
+	/* Hero (the dark panel in both themes; maintainer decision, prototype v5), charts and the scan line */
+	--zs-hero-bg: radial-gradient(circle at 0% 0%, rgba(255, 41, 41, 0.16), transparent 55%), linear-gradient(120deg, #0f0203, #1a0506);
 	--zs-ch0: #63000d;
 	--zs-ch1: #840012;
 	--zs-ch2: #be0000;
@@ -99,10 +111,9 @@
 
 	/* Focus: one ring everywhere, 2px outline with a 2px offset */
 	--zs-focus: #be0000;
-	--zs-focus-on-dark: #ffa17c; /* set as --zs-focus inside dark blocks (.enh, hero) */
+	--zs-focus-on-dark: #ffa17c; /* --zs-focus inside .zs-dark-block */
 	--zs-focus-width: 2px;
 	--zs-focus-offset: 2px;
-	--zs-focus-ring: var(--zs-focus-width) solid var(--zs-focus);
 
 	/* Type */
 	--zs-font-ui: "Plus Jakarta Sans", system-ui, -apple-system, blinkmacsystemfont, "Segoe UI", roboto, helvetica, arial, sans-serif;
@@ -196,7 +207,8 @@
 	/*
 	 * Layers. Inside the page they keep the prototype's order; the overlay
 	 * layers sit above the WordPress admin bar (z-index 99999), as core's own
-	 * modals do.
+	 * modals do, and below the media modal (backdrop 159900, modal 160000),
+	 * which must stay on top when a Zero Spam screen opens it.
 	 */
 	--zs-z-raised: 1;
 	--zs-z-tooltip: 5;
@@ -215,7 +227,6 @@
 @media (min-width: 960px) {
 
 	.zs-app,
-	.zs-blocked,
 	.zs-widget {
 		--zs-side-w: 248px;
 	}
@@ -224,15 +235,14 @@
 @media (max-width: 782px) {
 
 	.zs-app,
-	.zs-blocked,
 	.zs-widget {
 		--zs-wpbar-h: 46px;
 	}
 }
 
 /* Dark, chosen explicitly. Keep identical to the auto block below. */
-:is(.zs-app, .zs-blocked, .zs-widget)[data-zs-theme="dark"],
-[data-zs-theme="dark"] :is(.zs-app, .zs-blocked, .zs-widget) {
+:is(.zs-app, .zs-widget)[data-zs-theme="dark"],
+[data-zs-theme="dark"] :is(.zs-app, .zs-widget):not([data-zs-theme]) {
 	color-scheme: dark;
 	--zs-bg: #0f0203;
 	--zs-surface: #1a0506;
@@ -268,7 +278,6 @@
 	--zs-enh-ink: #ffa17c;
 	--zs-enh-line: #840012;
 	--zs-enh-glow: 0 0 16px -4px rgba(255, 41, 41, 0.55);
-	--zs-hero-bg: radial-gradient(circle at 0% 0%, rgba(255, 41, 41, 0.14), transparent 55%), linear-gradient(120deg, #1a0506, #2a0508);
 	--zs-ch0: #d90a0a;
 	--zs-ch1: #ff2929;
 	--zs-ch2: #ff5a3a;
@@ -285,8 +294,8 @@
 /* Dark, following the operating system. Keep identical to the block above. */
 @media (prefers-color-scheme: dark) {
 
-	:is(.zs-app, .zs-blocked, .zs-widget)[data-zs-theme="auto"],
-	[data-zs-theme="auto"] :is(.zs-app, .zs-blocked, .zs-widget) {
+	:is(.zs-app, .zs-widget)[data-zs-theme="auto"],
+	[data-zs-theme="auto"] :is(.zs-app, .zs-widget):not([data-zs-theme]) {
 		color-scheme: dark;
 		--zs-bg: #0f0203;
 		--zs-surface: #1a0506;
@@ -322,8 +331,7 @@
 		--zs-enh-ink: #ffa17c;
 		--zs-enh-line: #840012;
 		--zs-enh-glow: 0 0 16px -4px rgba(255, 41, 41, 0.55);
-		--zs-hero-bg: radial-gradient(circle at 0% 0%, rgba(255, 41, 41, 0.14), transparent 55%), linear-gradient(120deg, #1a0506, #2a0508);
-		--zs-ch0: #d90a0a;
+			--zs-ch0: #d90a0a;
 		--zs-ch1: #ff2929;
 		--zs-ch2: #ff5a3a;
 		--zs-ch3: #ff7038;
@@ -335,4 +343,28 @@
 		--zs-glow: 0 0 20px -5px rgba(255, 41, 41, 0.45);
 		--zs-focus: #ffa17c;
 	}
+}
+
+/*
+ * Dark blocks: the hero and the Enhanced Protection block are dark in both
+ * themes (one per screen). Put .zs-dark-block on the block; it redefines the
+ * text, line, control and action tokens for the dark surface, the peach focus
+ * ring, and the alias tokens that would otherwise keep the root's values.
+ */
+.zs-dark-block {
+	--zs-ink: #fbf1f1;
+	--zs-ink-2: #d9b8bb;
+	--zs-ink-3: #b38084;
+	--zs-red: #ff5a5a;
+	--zs-line: #3a1015;
+	--zs-surface: #1a0506;
+	--zs-ok: #4ade80;
+	--zs-ok-ink: #4ade80;
+	--zs-control: #9b6a70;
+	--zs-action: #d90a0a;
+	--zs-action-hover: #e81b1b;
+	--zs-focus: var(--zs-focus-on-dark);
+	--zs-eyebrow: var(--zs-enh-ink);
+	--zs-sx-label: var(--zs-ink-3);
+	color: var(--zs-ink);
 }

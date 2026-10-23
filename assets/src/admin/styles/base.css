@@ -56,8 +56,9 @@
 	flex: none;
 }
 
+/* Composed here, not in a token, so a surface that sets --zs-focus changes it. */
 :where(.zs-app, .zs-blocked, .zs-widget) :focus-visible {
-	outline: var(--zs-focus-ring);
+	outline: var(--zs-focus-width) solid var(--zs-focus);
 	outline-offset: var(--zs-focus-offset);
 }
 
