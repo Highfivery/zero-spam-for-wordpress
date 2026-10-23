@@ -36,7 +36,10 @@ in the same PR.
 | `includes/class-networksettings*.php`, `includes/admin/`, `includes/cli/`, `includes/rest/` | Multisite network settings, templates, stats, audit, notifications, REST controllers (`zero-spam/v1`), WP-CLI (`wp zerospam …`). |
 | `includes/templates/` | Plain PHP admin templates. Escape everything on output. |
 | `modules/` | One directory or file per detection technique or integrated plugin. Third-party modules are only instantiated when that plugin is active (`includes/class-plugin.php`). |
-| `assets/` | Hand-written CSS/JS (jQuery), `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand, vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. No build tooling exists. Enqueue the plugin's own CSS/JS with `Utilities::asset_version( 'assets/…' )` as the version (file time with `SCRIPT_DEBUG`, else `ZEROSPAM_VERSION`); pinned vendored libraries keep their own version. |
+| `assets/` | Legacy (5.x) admin: hand-written CSS/JS (jQuery) in `assets/css/` and `assets/js/`, `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand (no build step for these), vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. Enqueue the plugin's own CSS/JS with `Utilities::asset_version( 'assets/…' )` as the version (file time with `SCRIPT_DEBUG`, else `ZEROSPAM_VERSION`); pinned vendored libraries keep their own version. |
+| `assets/src/`, `assets/dist/`, `webpack.config.js` | 6.0 admin front end, built with `@wordpress/scripts` (section 5, Front-end build). Sources in `assets/src/` (never shipped): entries `admin/index.js`, `network/index.js`, `widget-refresh/index.js` (plain JS, no WordPress dependencies) and `blocked/index.css` (CSS only); shared styles in `admin/styles/` (`tokens.css` design tokens scoped to `.zs-app`, `.zs-blocked`, `.zs-widget` with light, `data-zs-theme="dark"` and `"auto"`; `base.css`; `logo.css` mark animation); `admin/icons/sprite.svg` (marks `zs-mark`, `zs-mark-flat`, `zs-mark-mono` and `zs-i-*` UI icons); Vitest tests in `**/test/*.test.js`. Output in `assets/dist/` (committed and shipped): `{entry}.js`, `{entry}.css`, `{entry}-rtl.css`, `{entry}.asset.php` (dependencies and version for enqueueing) and `sprite.svg`. Never edit `assets/dist/` by hand. |
+| `assets/fonts/` | Self-hosted Plus Jakarta Sans and JetBrains Mono (variable woff2, Latin and Latin Extended), `fonts.css` (`@font-face`, shipped as is) and each family's `OFL.txt`. Sources, versions and checksums in `assets/fonts/FONTS.md`. |
+| `assets/img/zero-spam-mark.svg` | The 6.0 mark (treatment B "Live core") on a 256 × 256 artboard. Not used yet; `assets/img/icon.svg` is still the 5.x logo the legacy screens show. |
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
 | `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
@@ -154,14 +157,17 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 
 ```bash
 composer install     # installs tooling and points git at .githooks/
-composer check       # version check, WPCS on changed files and tests, PHP 8.2+ compat, PHPStan, PHPUnit
-composer check:all   # WPCS on every file and the tests, compat, PHPStan, the PHPUnit matrix
-                     # (red until the WPCS backlog is cleared)
+npm ci               # Node 22 (nvm use): the front-end build, its linters and tests, and the e2e suite
+composer check       # built assets and budgets (check:dist), version check, WPCS on changed files
+                     # and tests, PHP 8.2+ compat, PHPStan, PHPUnit
+composer check:all   # check:dist, WPCS on every file and the tests, compat, PHPStan, the PHPUnit
+                     # matrix (red until the WPCS backlog is cleared)
 composer lint:fix    # apply the WPCS fixes phpcbf can make
 ```
 
-- `.githooks/pre-push` runs the same checks as `composer check` (PHPUnit is
-  step 6/6, `bin/test.sh --mode=all`) and refuses the push on failure.
+- `.githooks/pre-push` runs the same checks as `composer check` (step 0/6 is
+  `bin/check-dist.sh`, PHPUnit is step 6/6, `bin/test.sh --mode=all`) and
+  refuses the push on failure.
   `SKIP_QUALITY_GATE=1` is for a genuine emergency only and must be mentioned
   in the PR.
   Pushes that only delete branches or only push tags skip the gate.
@@ -176,6 +182,65 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
   having run it.
 - Do not create markdown process files (`NOTES.md`, `PLAN.md`, "what I did"
   files). Plans and findings go in the PR or in the conversation.
+
+### Front-end build (`@wordpress/scripts`)
+
+```bash
+nvm use                  # Node 22 (.nvmrc); @wordpress/scripts 36 needs 22.22.2+
+npm ci
+npm run build            # production build of assets/src into assets/dist (commit the result)
+npm start                # development build with source maps, rebuilt on change; never commit it
+npm run lint:js          # ESLint (@wordpress/eslint-plugin, eslint.config.cjs; text domain zero-spam)
+npm run lint:css         # stylelint (@wordpress/stylelint-config, .stylelintrc.json)
+npm run test:js          # Vitest unit tests (wp-scripts test-unit-js; vitest.config.mjs)
+npm run check:dist       # bin/check-dist.sh (also composer check:dist and pre-push step 0)
+npm run check:budget     # budgets of the committed assets/dist only, no build
+bin/check-dist.sh --twice   # build twice and require byte-identical output
+```
+
+- `webpack.config.js` extends the `@wordpress/scripts` default: four entries,
+  output in `assets/dist/` (`ZEROSPAM_DIST_DIR` overrides it), no split chunks
+  (WordPress loads translations per script handle, so a lazily loaded chunk
+  would never be translated; `LimitChunkCountPlugin` folds any `import()`
+  back in), no source maps in production, no JavaScript stub for the CSS-only
+  `blocked` entry, and `sprite.svg` copied in. Enqueue a built script with the
+  `dependencies` and `version` from its `.asset.php` and call
+  `wp_set_script_translations()` for it. `assets/dist/` is excluded from WPCS
+  (generated); `.distignore` keeps `assets/src/` and the tool configs out of
+  the release.
+- **`bin/check-dist.sh`** runs when `assets/src/**`, `assets/dist/**`,
+  `assets/fonts/**`, `package*.json`, `webpack.config.js`, the lint and test
+  configs, `.nvmrc` or the script itself changed against `origin/develop` (`--force` always). It needs
+  Node 22 and loads nvm from `$NVM_DIR` (default `~/.nvm`) when the `node` on
+  `PATH` is another version, because git hooks do not read shell profiles;
+  runs `npm ci --ignore-scripts` when `node_modules` is missing or older than
+  `package-lock.json`; runs `lint:js`, `lint:css` and `test:js`; builds
+  into a temporary directory; refuses the push
+  when that build differs from `assets/dist/` in any byte; checks that the
+  admin bundle kept its `zero-spam` strings and `translators:` comments; and
+  enforces the budgets (KB = 1,024 bytes, gzip -9): admin JS 75, admin CSS 25,
+  network JS 40, network CSS 25, widget JS 6 and CSS 6, fonts (woff2 as
+  stored) 110. `blocked.css` and `sprite.svg` are reported without a budget.
+- **Reproducible builds:** the same sources must give byte-identical output,
+  on any machine and from any checkout path, or the stale-dist check could
+  never pass. `--twice` proves it (two builds, `diff -r`, SHA-256 per file).
+  Keep it that way: no timestamps, absolute paths, random ids or
+  environment-dependent values in the build, and pin build dependencies to
+  exact versions (`package-lock.json` is committed; `npm ci` only).
+- **Unit tests:** `@wordpress/scripts` 36 runs Vitest 5 for `test-unit-js`
+  (Jest moved to `test-unit-jest` without WordPress defaults). Tests live next
+  to the sources in `test/` directories as `*.test.js`, import `describe`,
+  `it` and `expect` from `vitest`, and run in Node.
+  `admin/test/tokens.test.js` fails when a text colour token drops below 4.5:1
+  or a UI colour below 3:1 against its surfaces in either theme, when the
+  `dark` and `auto` dark blocks differ, or when a selector in the shared
+  stylesheets can reach outside Zero Spam markup.
+- **Design tokens** are the only source of colour, type, radius, spacing,
+  motion and layer values for 6.0 screens: `var(--zs-…)`, never a literal.
+  Everything is scoped (`.zs-app`, `.zs-blocked`, `.zs-widget`, or a `zs-`
+  class); nothing styles wp-admin outside those roots. Motion animates
+  `transform` and `opacity` only and stops under `prefers-reduced-motion` or
+  `data-zs-motion="reduce"`.
 
 ### PHPUnit
 
@@ -382,8 +447,9 @@ npm run env:stop                 # stop both wp-env sites
 
 ### e2e environments
 
-- **Node 22** (`.nvmrc`; `nvm use`): `@wordpress/env` 12 needs 22.13+ and
-  `@wordpress/e2e-test-utils-playwright` 22.19+.
+- **Node 22** (`.nvmrc`; `nvm use`): `@wordpress/env` 12 needs 22.13+,
+  `@wordpress/e2e-test-utils-playwright` 22.19+ and the front-end build
+  (`@wordpress/scripts` 36) 22.22.2+.
 - **wp-env** (Docker Desktop): `.wp-env.json` serves the single site on port
   **8900**, `.wp-env.multisite.json` the subdirectory network on **8910**
   (8888 is taken by another project on the maintainer's Mac). Each config is

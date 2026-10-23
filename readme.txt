@@ -54,6 +54,10 @@ Zero Spam for WordPress can integrate optional services for enhanced spam detect
 
 Additionally, you have the option to contribute to Zero Spam's improvement by enabling the sharing of detection information. For further information on the shared data, kindly refer to our [FAQ](https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ).
 
+= Source code and build =
+
+The plugin's complete source code is on GitHub: [Highfivery/zero-spam-for-wordpress](https://github.com/Highfivery/zero-spam-for-wordpress). The admin scripts and styles in `assets/dist/` are built from the human-readable sources in `assets/src/` with [@wordpress/scripts](https://www.npmjs.com/package/@wordpress/scripts). To build them yourself, check out the repository and, with Node.js 22, run `npm ci && npm run build`. The fonts in `assets/fonts/` (Plus Jakarta Sans and JetBrains Mono, SIL Open Font License 1.1) are included unmodified; their sources are listed in `assets/fonts/FONTS.md`.
+
 == Installation ==
 
 1. Upload the entire *zero-spam* folder to the */wp-content/plugins/* directory.
