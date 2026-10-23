@@ -396,6 +396,9 @@ npm run env:stop                 # stop both wp-env sites
   WordPress versions are in `tests/e2e/wp-versions.json`
   (`npm run env:core:min` / `env:core:latest` switch). Never run
   `wp-env destroy` or `stop` for other configs than these two.
+  Both configs define `ZEROSPAM_RESCUE_KEY`, so the accessibility scans and
+  visual baselines only ever see the Rescue Mode card's "Active" state; the
+  "Rescue key not set" state is covered by PHPUnit only (known e2e gap).
 - **Local targets** need a one-off set-up that changes the Local sites
   (approve it first): make the network site load this checkout as
   `plugins/zero-spam` (it ran a stale `zero-spam-for-wordpress` 5.7.3 copy;

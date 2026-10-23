@@ -68,4 +68,39 @@ class Test_Settings_Registry extends TestCase {
 			array_search( 'rescue_mode', $keys, true )
 		);
 	}
+
+	/**
+	 * Calls the private Rescue Mode status renderer.
+	 *
+	 * @param bool $key_defined Whether ZEROSPAM_RESCUE_KEY is defined.
+	 * @return string HTML.
+	 */
+	private function rescue_mode_status( bool $key_defined ): string {
+		$method = new ReflectionMethod( Settings::class, 'rescue_mode_status' );
+
+		return (string) $method->invoke( null, $key_defined );
+	}
+
+	/**
+	 * Without a rescue key the card says the emailed link still works, in a
+	 * colour that meets 4.5:1 on white (pure red did not).
+	 */
+	public function test_inactive_state_is_readable_and_mentions_the_rescue_link(): void {
+		$html = $this->rescue_mode_status( false );
+
+		$this->assertStringContainsString( 'Rescue key not set — the emailed rescue link still works.', $html );
+		$this->assertStringContainsString( 'color: #b32d2e;', $html );
+		$this->assertStringNotContainsString( 'color: red;', $html );
+	}
+
+	/**
+	 * With a rescue key the card says Active, and the registry uses it (the
+	 * test bootstrap defines ZEROSPAM_RESCUE_KEY).
+	 */
+	public function test_active_state(): void {
+		$html = $this->rescue_mode_status( true );
+
+		$this->assertStringContainsString( 'Active', $html );
+		$this->assertSame( $html, Settings::get_settings()['rescue_mode']['html'] );
+	}
 }
