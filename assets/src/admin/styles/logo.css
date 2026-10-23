@@ -1,0 +1,261 @@
+/**
+ * The Zero Spam mark ("Live core", treatment B) and its motion states.
+ *
+ * Markup: the #zs-mark symbol from icons/sprite.svg copied inline (page CSS
+ * cannot reach inside a <use> instance) into a wrapper:
+ *
+ *   <span class="zs-mark" data-state="idle"><svg viewBox="0 0 256 242">…</svg></span>
+ *
+ * States, set on the wrapper by the mark's controller:
+ *   (no data-state)        static, no halo
+ *   data-state="idle"      halo and core glow breathe (4 s cycle); the
+ *                          controller may set data-glint on one brick
+ *                          every 20-40 s while the tab is visible
+ *   data-state="thinking"  a sheen travels across the courses (1.2 s loop)
+ *   data-state="blocking"  the brick carrying data-landing lands: scale
+ *                          1.08 -> 1, glow pulse, ring; the controller places
+ *                          .zs-pulse and .zs-ring on that brick and allows at
+ *                          most one landing per 600 ms (WCAG 2.3.1)
+ * Reduced motion (prefers-reduced-motion, or data-zs-motion="reduce" on the
+ * mark or an ancestor): nothing moves; the halo is static at .5 and a landing
+ * only dips the brick's opacity for 200 ms.
+ *
+ * Only transform and opacity animate. Timings and easings are tokens
+ * (tokens.css, "Logo motion"); the fallbacks below match them.
+ */
+
+.zs-mark {
+	display: inline-grid;
+	position: relative;
+	place-items: center;
+	isolation: isolate;
+	line-height: 0;
+}
+
+.zs-mark > svg {
+	display: block;
+	width: 100%;
+	height: auto;
+	overflow: visible;
+}
+
+.zs-mark .zs-b,
+.zs-mark .zs-ring,
+.zs-mark .zs-pulse {
+	transform-box: fill-box;
+	transform-origin: center;
+}
+
+.zs-mark .zs-sh,
+.zs-mark .zs-ring,
+.zs-mark .zs-pulse {
+	opacity: 0;
+}
+
+/* The halo behind a live mark */
+.zs-mark[data-state]::before {
+	position: absolute;
+	z-index: -1;
+	inset: -34%;
+	border-radius: 50%;
+	background: radial-gradient(closest-side, var(--zs-halo, rgba(255, 41, 41, 0.34)), var(--zs-halo-0, rgba(255, 41, 41, 0)));
+	content: "";
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+/* Thinking */
+.zs-mark[data-state="thinking"]::before {
+	opacity: 0.62;
+}
+
+.zs-mark[data-state="thinking"] .zs-sh {
+	animation: zs-mark-shimmer var(--zs-mark-shimmer, 1.2s) var(--zs-ease-standard, cubic-bezier(0.4, 0, 0.2, 1)) infinite;
+	animation-delay: calc(var(--zs-r, 0) * var(--zs-mark-course-delay, 140ms) + var(--zs-cx, 0) * var(--zs-mark-row-delay, 160ms));
+}
+
+/* Idle */
+.zs-mark[data-state="idle"]::before,
+.zs-mark[data-state="blocking"]::before {
+	animation: zs-mark-breathe var(--zs-mark-breathe, 2s) var(--zs-ease-in-out, cubic-bezier(0.4, 0, 0.6, 1)) infinite alternate;
+}
+
+.zs-mark[data-state="idle"] .zs-coreglow,
+.zs-mark[data-state="blocking"] .zs-coreglow {
+	animation: zs-mark-breathe-core var(--zs-mark-breathe, 2s) var(--zs-ease-in-out, cubic-bezier(0.4, 0, 0.6, 1)) infinite alternate;
+}
+
+.zs-mark[data-state="idle"] .zs-b[data-glint] .zs-sh {
+	animation: zs-mark-glint var(--zs-mark-glint, 700ms) ease-out;
+}
+
+/* Blocking */
+.zs-mark[data-state="blocking"] .zs-b[data-landing] {
+	animation: zs-mark-land var(--zs-mark-land, 300ms) var(--zs-ease-land, cubic-bezier(0.2, 0.9, 0.3, 1));
+}
+
+.zs-mark[data-state="blocking"] .zs-b[data-landing] .zs-sh {
+	animation: zs-mark-sheen-out var(--zs-mark-land, 300ms) ease-out;
+}
+
+.zs-mark[data-state="blocking"] .zs-pulse {
+	animation: zs-mark-pulse var(--zs-mark-land, 300ms) ease-out;
+}
+
+.zs-mark[data-state="blocking"] .zs-ring {
+	animation: zs-mark-ring var(--zs-mark-ring, 500ms) var(--zs-ease-ring, cubic-bezier(0.2, 0.7, 0.3, 1));
+}
+
+/*
+ * Reduced motion. base.css turns every animation off with !important; these
+ * selectors are more specific, so the opacity dip comes back and nothing else.
+ */
+@media (prefers-reduced-motion: reduce) {
+
+	.zs-mark[data-state]::before {
+		opacity: 0.5;
+		animation: none !important;
+	}
+
+	.zs-mark[data-state] .zs-coreglow,
+	.zs-mark[data-state] .zs-sh,
+	.zs-mark[data-state] .zs-pulse,
+	.zs-mark[data-state] .zs-ring {
+		animation: none !important;
+	}
+
+	.zs-mark[data-state="blocking"] .zs-b[data-landing] {
+		animation: zs-mark-dip var(--zs-mark-dip, 200ms) linear !important;
+	}
+}
+
+[data-zs-motion="reduce"] .zs-mark[data-state]::before,
+.zs-mark[data-zs-motion="reduce"][data-state]::before {
+	opacity: 0.5;
+	animation: none !important;
+}
+
+[data-zs-motion="reduce"] .zs-mark[data-state] :is(.zs-coreglow, .zs-sh, .zs-pulse, .zs-ring),
+.zs-mark[data-zs-motion="reduce"][data-state] :is(.zs-coreglow, .zs-sh, .zs-pulse, .zs-ring) {
+	animation: none !important;
+}
+
+[data-zs-motion="reduce"] .zs-mark[data-state="blocking"] .zs-b[data-landing],
+.zs-mark[data-zs-motion="reduce"][data-state="blocking"] .zs-b[data-landing] {
+	animation: zs-mark-dip var(--zs-mark-dip, 200ms) linear !important;
+}
+
+@keyframes zs-mark-breathe {
+
+	from {
+		opacity: 0.3;
+	}
+
+	to {
+		opacity: 0.78;
+	}
+}
+
+@keyframes zs-mark-breathe-core {
+
+	from {
+		opacity: 0.55;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes zs-mark-shimmer {
+
+	0% {
+		opacity: 0;
+	}
+
+	24% {
+		opacity: 0.3;
+	}
+
+	52%,
+	100% {
+		opacity: 0;
+	}
+}
+
+@keyframes zs-mark-glint {
+
+	0% {
+		opacity: 0;
+	}
+
+	40% {
+		opacity: 0.4;
+	}
+
+	100% {
+		opacity: 0;
+	}
+}
+
+@keyframes zs-mark-land {
+
+	from {
+		transform: scale(1.08);
+	}
+
+	to {
+		transform: scale(1);
+	}
+}
+
+@keyframes zs-mark-sheen-out {
+
+	from {
+		opacity: 0.5;
+	}
+
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes zs-mark-pulse {
+
+	0% {
+		opacity: 0;
+	}
+
+	30% {
+		opacity: 0.95;
+	}
+
+	100% {
+		opacity: 0;
+	}
+}
+
+@keyframes zs-mark-ring {
+
+	from {
+		opacity: 0.85;
+		transform: scale(0.5);
+	}
+
+	to {
+		opacity: 0;
+		transform: scale(1.7);
+	}
+}
+
+@keyframes zs-mark-dip {
+
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.55;
+	}
+}
