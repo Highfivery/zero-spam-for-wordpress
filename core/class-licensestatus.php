@@ -172,6 +172,27 @@ final class License_Status {
 	}
 
 	/**
+	 * Keeps an answer from check() as the cached status of that key, so
+	 * saving a key that was just checked asks the API only once.
+	 *
+	 * @param string               $key    License key the answer is for.
+	 * @param array<string, mixed> $answer check() result.
+	 */
+	public static function remember( string $key, array $answer ): void {
+		$key = trim( $key );
+
+		if ( '' === $key || empty( $answer['status'] ) || self::NONE === $answer['status'] ) {
+			return;
+		}
+
+		// Read on every call by present(), never cached.
+		unset( $answer['enabled'], $answer['reset_date'] );
+
+		self::store( md5( $key ), $answer );
+		self::$current = array();
+	}
+
+	/**
 	 * Forgets the cached answers, the API answer for the current key included.
 	 */
 	public static function reset_cache(): void {

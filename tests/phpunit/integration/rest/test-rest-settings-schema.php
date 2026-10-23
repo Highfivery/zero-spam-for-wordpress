@@ -110,7 +110,7 @@ class Test_Rest_Settings_Schema extends TestCase {
 	}
 
 	/**
-	 * Exactly the six secrets are flagged; their values and defaults are never shown.
+	 * Exactly the listed secrets are flagged; their values and defaults are never shown.
 	 */
 	public function test_secrets_are_flagged_and_masked(): void {
 		$this->set_setting( 'zerospam_license', 'abcd-efgh-1234-a1b2' );
@@ -130,7 +130,8 @@ class Test_Rest_Settings_Schema extends TestCase {
 		sort( $secrets );
 		sort( $expected );
 		$this->assertSame( $expected, $secrets );
-		$this->assertCount( 5, $secrets );
+		$this->assertCount( 6, $secrets );
+		$this->assertContains( 'alert_webhook_url', $secrets, 'Webhook URLs work as credentials.' );
 
 		$license = self::by_key( Settings_Schema::get()['settings'] )['zerospam_license'];
 		$this->assertSame(

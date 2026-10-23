@@ -8,6 +8,7 @@
 declare( strict_types=1 );
 
 use ZeroSpam\Core\License_Status;
+use ZeroSpam\Core\Settings_Schema;
 use ZeroSpam\Tests\HttpMock;
 use ZeroSpam\Tests\TestCase;
 
@@ -35,10 +36,24 @@ class Test_License_Status extends TestCase {
 	const ROUTE = '/zero-spam/v1/license';
 
 	/**
+	 * Name of the constant the constant-source test uses.
+	 */
+	const TEST_CONSTANT = 'ZEROSPAM_TESTS_LICENSE_ROUTE_KEY';
+
+	/**
+	 * Settings_Schema::$constants before the test.
+	 *
+	 * @var array<string, string>
+	 */
+	private array $constants_backup = array();
+
+	/**
 	 * Starts every test without a key or cached status.
 	 */
 	public function set_up(): void {
 		parent::set_up();
+
+		$this->constants_backup = ( new ReflectionProperty( Settings_Schema::class, 'constants' ) )->getValue();
 
 		delete_option( 'zero-spam-zerospam' );
 		delete_option( 'zero-spam-api-monitoring' );
@@ -47,6 +62,39 @@ class Test_License_Status extends TestCase {
 		delete_transient( 'zero_spam_failure_count' );
 		delete_transient( sanitize_title( 'license_' . self::KEY ) );
 		delete_transient( sanitize_title( 'license_other-key-1111' ) );
+	}
+
+	/**
+	 * Restores the constants map.
+	 */
+	public function tear_down(): void {
+		self::set_static( Settings_Schema::class, 'constants', $this->constants_backup );
+
+		parent::tear_down();
+	}
+
+	/**
+	 * Maps the license to a test constant, with a registry filter doing what
+	 * modules/class-zerospam.php does for ZEROSPAM_LICENSE_KEY.
+	 */
+	private function use_test_constant(): void {
+		if ( ! defined( self::TEST_CONSTANT ) ) {
+			define( self::TEST_CONSTANT, 'route-CONSTANTKEY-4321' );
+		}
+
+		self::set_static( Settings_Schema::class, 'constants', array( 'zerospam_license' => self::TEST_CONSTANT ) );
+		add_filter(
+			'zerospam_settings',
+			static function ( array $settings ): array {
+				if ( empty( $settings['zerospam_license']['value'] ) ) {
+					$settings['zerospam_license']['value'] = constant( self::TEST_CONSTANT );
+				}
+
+				return $settings;
+			},
+			20
+		);
+		Settings_Schema::reset_cache();
 	}
 
 	/**
@@ -281,6 +329,22 @@ class Test_License_Status extends TestCase {
 		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( License_Status::UNREACHABLE, $response->get_data()['status'] );
 		$this->assertSame( self::KEY, get_option( 'zero-spam-zerospam' )['zerospam_license'] );
+		$this->assertSame( 1, HttpMock::hits( self::ENDPOINT ), 'The answer of the check is reused, not asked again.' );
+	}
+
+	/**
+	 * A key from wp-config.php cannot be removed over REST, and is not revealed.
+	 */
+	public function test_route_delete_refuses_a_constant_key(): void {
+		$this->as_role( 'administrator' );
+		$this->use_test_constant();
+		$this->mock_http( self::ENDPOINT, self::valid_body() );
+
+		$response = $this->rest( 'DELETE', self::ROUTE );
+
+		$this->assertSame( 409, $response->get_status() );
+		$this->assertSame( 'rest_license_constant', $response->get_data()['code'] );
+		$this->assertStringNotContainsString( 'CONSTANTKEY', (string) wp_json_encode( $response->get_data() ) );
 	}
 
 	/**

@@ -222,6 +222,93 @@ class Test_Rest_Settings_Network extends TestCase {
 	}
 
 	/**
+	 * A plain GET and the PATCH response also return the locked network value, not the site override.
+	 */
+	public function test_locked_value_in_plain_get_and_patch_response(): void {
+		$this->set_network_setting( 'max_logs', 500, true );
+		switch_to_blog( self::$site_b );
+		update_option( 'zero-spam-settings', array( 'max_logs' => 250 ) );
+		restore_current_blog();
+		wp_set_current_user( $this->site_b_admin() );
+
+		$get   = $this->rest_on( self::$site_b, 'GET', self::ROUTE )->get_data();
+		$patch = $this->rest_on( self::$site_b, 'PATCH', self::ROUTE, array( 'log_blocked_ips' => 'enabled' ) );
+
+		$this->assertSame( 500, $get['settings']['max_logs'] );
+		$this->assertSame( 200, $patch->get_status() );
+		$this->assertSame( 500, $patch->get_data()['settings']['max_logs'] );
+	}
+
+	/**
+	 * A network PATCH adds one network audit entry per changed setting, as the acting user, secrets masked.
+	 */
+	public function test_network_patch_is_audited(): void {
+		global $wpdb;
+
+		$this->set_network_setting( 'max_logs', 500 );
+		$user_id = $this->super_admin();
+		$table   = $wpdb->base_prefix . 'wpzerospam_network_audit';
+		$before  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(audit_id) FROM %i', $table ) );
+
+		$response = $this->rest_on(
+			get_main_site_id(),
+			'PATCH',
+			self::ROUTE,
+			array(
+				'max_logs'         => 600,
+				'log_blocked_ips'  => 'enabled',
+				'zerospam_license' => 'audited-key-SECRET-9876',
+				'blocked_message'  => 'Blocked.',
+			),
+			array( 'scope' => 'network' )
+		);
+		$this->assertSame( 200, $response->get_status() );
+
+		$this->rest_on( get_main_site_id(), 'PATCH', self::ROUTE, array( 'max_logs' => 600 ), array( 'scope' => 'network' ) );
+
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE audit_id > %d ORDER BY audit_id ASC', $table, $before ), ARRAY_A );
+
+		$keys = array_column( $rows, 'setting_key' );
+		sort( $keys );
+		$this->assertSame( array( 'blocked_message', 'log_blocked_ips', 'max_logs', 'zerospam_license' ), $keys, 'One entry per changed setting; an unchanged one adds none.' );
+		$rows = array_column( $rows, null, 'setting_key' );
+		foreach ( $rows as $row ) {
+			$this->assertSame( 'set', $row['action_type'] );
+			$this->assertSame( (string) $user_id, (string) $row['user_id'] );
+			$this->assertSame( '0', (string) $row['site_id'] );
+		}
+		$this->assertSame( '500', $rows['max_logs']['old_value'] );
+		$this->assertSame( '600', $rows['max_logs']['new_value'] );
+		$this->assertStringNotContainsString( 'SECRET', (string) wp_json_encode( $rows ), 'The key leaked into the network audit log.' );
+	}
+
+	/**
+	 * A network dry run labels secrets with the network as their source.
+	 */
+	public function test_network_dry_run_secret_source(): void {
+		$this->super_admin();
+
+		$data = $this->rest_on( get_main_site_id(), 'PATCH', self::ROUTE, array( 'ipstack_api' => 'ipstack-key-0001' ), array( 'scope' => 'network', 'dry_run' => true ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+
+		$this->assertSame( 'network', $data['settings']['ipstack_api']['source'] );
+		$this->assertSame( 'network', $data['changes']['ipstack_api']['new']['source'] );
+	}
+
+	/**
+	 * A license set by the network cannot be removed by a site.
+	 */
+	public function test_license_delete_refuses_a_network_key(): void {
+		$this->set_network_setting( 'zerospam_license', 'network-license-NNNN-5678' );
+		wp_set_current_user( $this->site_b_admin() );
+
+		$response = $this->rest_on( self::$site_b, 'DELETE', '/zero-spam/v1/license' );
+
+		$this->assertSame( 409, $response->get_status() );
+		$this->assertSame( 'rest_license_network', $response->get_data()['code'] );
+		$this->assertSame( 'network-license-NNNN-5678', get_site_option( Network_Settings::META_KEY )['settings']['zerospam_license']['value'] );
+	}
+
+	/**
 	 * Any locked setting of the registry is refused with 403, not only the original two.
 	 */
 	public function test_locked_registry_setting_is_refused(): void {

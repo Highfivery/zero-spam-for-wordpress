@@ -139,14 +139,17 @@ class License_Controller extends Base_Controller {
 
 		$this->forget_cached_settings();
 
+		// The answer of the check above is the status of the saved key: no second request.
+		License_Status::remember( $key, $check );
+
 		return rest_ensure_response( $this->prepare( License_Status::get() ) );
 	}
 
 	/**
 	 * Removes the key this site stores.
 	 *
-	 * A key set by the network or in wp-config.php (ZEROSPAM_LICENSE_KEY)
-	 * cannot be removed here.
+	 * A key set by the network (409 `rest_license_network`) or in
+	 * wp-config.php (409 `rest_license_constant`) cannot be removed here.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
@@ -167,6 +170,14 @@ class License_Controller extends Base_Controller {
 			return new WP_Error(
 				'rest_license_constant',
 				__( 'The license key is set in wp-config.php (ZEROSPAM_LICENSE_KEY) and can only be removed there.', 'zero-spam' ),
+				array( 'status' => 409 )
+			);
+		}
+
+		if ( null !== $resolved && Settings_Schema::SOURCE_NETWORK === $resolved['source'] ) {
+			return new WP_Error(
+				'rest_license_network',
+				__( 'The license key is set by the network administrator and can only be removed in the network settings.', 'zero-spam' ),
 				array( 'status' => 409 )
 			);
 		}

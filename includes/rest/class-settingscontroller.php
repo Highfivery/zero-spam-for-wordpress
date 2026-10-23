@@ -58,11 +58,11 @@ class Settings_Controller extends Base_Controller {
 	private $whitelist = array();
 
 	/**
-	 * Every setting the route accepts, built on first use in a request.
+	 * Every setting the route accepts, built on first use in a request, by blog ID.
 	 *
-	 * @var array|null
+	 * @var array<int, array>
 	 */
-	private $full_whitelist = null;
+	private $full_whitelist = array();
 
 	/**
 	 * Constructor.
@@ -260,8 +260,8 @@ class Settings_Controller extends Base_Controller {
 				array(
 					'dry_run'  => true,
 					'valid'    => true,
-					'changes'  => $this->mask_changes( $changes ),
-					'settings' => $this->mask_layer( $validated, 'site' === $scope ? Settings_Schema::SOURCE_SITE : Settings_Schema::SOURCE_NETWORK ),
+					'changes'  => $this->mask_changes( $changes, $this->layer_source( $scope ) ),
+					'settings' => $this->mask_layer( $validated, $this->layer_source( $scope ) ),
 					'meta'     => $this->get_response_meta( $scope ),
 				)
 			);
@@ -301,14 +301,14 @@ class Settings_Controller extends Base_Controller {
 		}
 
 		// Record audit entry (secrets masked).
-		$this->add_audit_entry( $scope, $this->mask_changes( $changes ), false );
+		$this->add_audit_entry( $scope, $this->mask_changes( $changes, $this->layer_source( $scope ) ), false );
 
 		$resolved = $this->get_resolved( false );
 
 		return rest_ensure_response(
 			array(
 				'success'  => true,
-				'changes'  => $this->mask_changes( $changes ),
+				'changes'  => $this->mask_changes( $changes, $this->layer_source( $scope ) ),
 				'settings' => $resolved['values'],
 				'meta'     => $this->get_response_meta( $scope ),
 			)
@@ -472,14 +472,18 @@ class Settings_Controller extends Base_Controller {
 		foreach ( $keys as $key ) {
 			$config = $store['settings'][ $key ] ?? null;
 
-			if ( ! is_array( $config ) || ! array_key_exists( 'value', $config ) ) {
+			if ( ! is_array( $config ) ) {
 				continue;
 			}
 
-			$layer['values'][ $key ] = $config['value'];
-
+			// Locked whatever its value, as Network_Settings::is_locked() says.
 			if ( ! empty( $config['locked'] ) ) {
 				$layer['locked'][] = (string) $key;
+			}
+
+			// A null value is no network value (the isset() test Network_Settings uses).
+			if ( isset( $config['value'] ) ) {
+				$layer['values'][ $key ] = $config['value'];
 			}
 		}
 
@@ -507,9 +511,10 @@ class Settings_Controller extends Base_Controller {
 	 * Masks the secrets in a list of changes.
 	 *
 	 * @param array<string, array<string, mixed>> $changes Changes by key.
+	 * @param string                              $source  Where the values are stored (`site` or `network`).
 	 * @return array<string, array<string, mixed>>
 	 */
-	private function mask_changes( array $changes ): array {
+	private function mask_changes( array $changes, string $source ): array {
 		foreach ( $changes as $key => $change ) {
 			if ( ! Settings_Schema::is_secret( (string) $key ) ) {
 				continue;
@@ -517,12 +522,21 @@ class Settings_Controller extends Base_Controller {
 
 			foreach ( array( 'old', 'new' ) as $side ) {
 				if ( array_key_exists( $side, $change ) ) {
-					$changes[ $key ][ $side ] = $this->mask_value( $change[ $side ], $change['source'] ?? Settings_Schema::SOURCE_SITE );
+					$changes[ $key ][ $side ] = $this->mask_value( $change[ $side ], $source );
 				}
 			}
 		}
 
 		return $changes;
+	}
+
+	/**
+	 * The source a write scope stores values in.
+	 *
+	 * @param string $scope `site` or `network`.
+	 */
+	private function layer_source( string $scope ): string {
+		return 'network' === $scope ? Settings_Schema::SOURCE_NETWORK : Settings_Schema::SOURCE_SITE;
 	}
 
 	/**
@@ -712,8 +726,10 @@ class Settings_Controller extends Base_Controller {
 	 * @return array Whitelist array.
 	 */
 	private function get_full_whitelist() {
-		if ( null !== $this->full_whitelist ) {
-			return $this->full_whitelist;
+		$blog_id = get_current_blog_id();
+
+		if ( isset( $this->full_whitelist[ $blog_id ] ) ) {
+			return $this->full_whitelist[ $blog_id ];
 		}
 
 		$whitelist = $this->get_base_whitelist();
@@ -738,10 +754,10 @@ class Settings_Controller extends Base_Controller {
 		}
 
 		/** This filter is documented in get_settings_whitelist(). */
-		$filtered             = apply_filters( 'zero_spam_rest_settings_whitelist', $whitelist );
-		$this->full_whitelist = is_array( $filtered ) ? $filtered : array();
+		$filtered                         = apply_filters( 'zero_spam_rest_settings_whitelist', $whitelist );
+		$this->full_whitelist[ $blog_id ] = is_array( $filtered ) ? $filtered : array();
 
-		return $this->full_whitelist;
+		return $this->full_whitelist[ $blog_id ];
 	}
 
 	/**

@@ -56,7 +56,7 @@ final class Settings_Schema {
 
 	/**
 	 * Settings that are always secret: write-only over REST, never shown in
-	 * full. A registry entry can add to this list with `'secret' => true`
+	 * full. Webhook URLs count: they work as credentials. A registry entry can add to this list with `'secret' => true`
 	 * but cannot remove from it.
 	 *
 	 * @var string[]
@@ -68,6 +68,7 @@ final class Settings_Schema {
 		'ipinfo_access_token',
 		'ipstack_api',
 		'google_api',
+		'alert_webhook_url',
 	);
 
 	/**

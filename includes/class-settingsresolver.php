@@ -140,7 +140,8 @@ class Settings_Resolver {
 	 * Note: WordPress update_option/update_site_option returns false if the value
 	 * hasn't changed. This is not an error - we consider it a success.
 	 *
-	 * A network update keeps each setting's lock and records who changed it.
+	 * A network update keeps each setting's lock, records who changed it and
+	 * adds one network audit log entry per changed setting (secrets masked).
 	 *
 	 * @param string $module Module name.
 	 * @param string $scope  Scope: 'site' or 'network'.
@@ -155,7 +156,7 @@ class Settings_Resolver {
 
 			$stored  = get_site_option( Network_Settings::META_KEY, array() );
 			$store   = Settings_Schema::normalize_network_store( $stored );
-			$changed = false;
+			$changed = array();
 
 			foreach ( $values as $key => $value ) {
 				$entry = isset( $store['settings'][ $key ] ) && is_array( $store['settings'][ $key ] ) ? $store['settings'][ $key ] : array();
@@ -163,6 +164,8 @@ class Settings_Resolver {
 				if ( array_key_exists( 'value', $entry ) && $entry['value'] === $value ) {
 					continue;
 				}
+
+				$changed[ $key ] = array_key_exists( 'value', $entry ) ? $entry['value'] : null;
 
 				$store['settings'][ $key ] = array_merge(
 					$entry,
@@ -173,8 +176,6 @@ class Settings_Resolver {
 						'updated_at' => current_time( 'mysql' ),
 					)
 				);
-
-				$changed = true;
 			}
 
 			// No change, but this is success (idempotent).
@@ -186,6 +187,12 @@ class Settings_Resolver {
 
 			if ( $result ) {
 				delete_site_transient( Network_Settings::CACHE_KEY );
+
+				// Every network change is audited with the acting user, as the network settings screen does.
+				$manager = new Network_Settings_Manager();
+				foreach ( $changed as $key => $old_value ) {
+					$manager->log_setting_change( (string) $key, self::audit_value( (string) $key, $old_value ), self::audit_value( (string) $key, $values[ $key ] ) );
+				}
 			}
 		} else {
 			// Site scope.
@@ -243,7 +250,8 @@ class Settings_Resolver {
 		$registry = Settings_Schema::registry();
 
 		foreach ( $store['settings'] as $key => $config ) {
-			if ( ! is_array( $config ) || ! array_key_exists( 'value', $config ) ) {
+			// A null value is no network value (the isset() test Network_Settings uses).
+			if ( ! is_array( $config ) || ! isset( $config['value'] ) ) {
 				continue;
 			}
 
@@ -259,6 +267,26 @@ class Settings_Resolver {
 		}
 
 		return $network;
+	}
+
+	/**
+	 * A value as the network audit log records it: secrets masked.
+	 *
+	 * @param string $key   Setting key.
+	 * @param mixed  $value Value.
+	 * @return mixed
+	 */
+	private static function audit_value( string $key, $value ) {
+		if ( null === $value || ! Settings_Schema::is_secret( $key ) ) {
+			return $value;
+		}
+
+		$value = is_scalar( $value ) && ! is_bool( $value ) ? trim( (string) $value ) : '';
+
+		return '' === $value ? array( 'set' => false ) : array(
+			'set'  => true,
+			'hint' => Settings_Schema::hint( $value ),
+		);
 	}
 
 	/**

@@ -402,7 +402,7 @@ console.log(result);</code></pre>
 		<div class="zerospam-docs-accordion-content">
 			<h3><?php esc_html_e( 'Every setting through /settings', 'zero-spam' ); ?></h3>
 			<p><?php esc_html_e( 'GET and PATCH /settings accept every Zero Spam setting that holds a value, not only Enhanced Protection. Values are checked against the setting\'s type, choices and limits. The zero_spam_rest_settings_whitelist filter can still add or remove settings.', 'zero-spam' ); ?></p>
-			<p><?php esc_html_e( 'License and API keys are write-only: PATCH stores them, but reads return only whether one is set, where it comes from (site, network, locked or constant) and, for a key this site stores, its last four characters. On a network site, keys set by the network or in wp-config.php are never hinted.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'License keys, API keys and the alert webhook URL are write-only: PATCH stores them, but reads return only whether one is set, where it comes from (site, network, locked or constant) and, for a key this site stores, its last four characters. On a network site, keys set by the network or in wp-config.php are never hinted.', 'zero-spam' ); ?></p>
 			<p><?php esc_html_e( 'Network values come from the Network Settings store, the same one the Network Settings screen and WP-CLI use. A locked network value wins over a site override and is reported with the source "locked".', 'zero-spam' ); ?></p>
 
 			<h3><?php esc_html_e( 'GET /settings/schema — Describe Every Setting', 'zero-spam' ); ?></h3>
@@ -413,7 +413,7 @@ console.log(result);</code></pre>
 			</div>
 
 			<h3><?php esc_html_e( 'GET, PUT and DELETE /license — The Zero Spam License', 'zero-spam' ); ?></h3>
-			<p><?php esc_html_e( 'GET returns the license status (none, valid, invalid, unreachable or quota_exceeded), the plan, query counts and the masked key; add refresh=1 to ask the Zero Spam API again. PUT with {"license_key": "…"} checks the key and saves it (a rejected key is not saved). DELETE removes the key this site stores. Administrators only.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'GET returns the license status (none, valid, invalid, unreachable or quota_exceeded), the plan, query counts and the masked key; add refresh=1 to ask the Zero Spam API again. PUT with {"license_key": "…"} checks the key and saves it (a rejected key is not saved). DELETE removes the key this site stores; a key set by the network or in wp-config.php is refused with 409. Administrators only.', 'zero-spam' ); ?></p>
 			<div class="zerospam-docs-code-block">
 				<pre><code>curl -X PUT -u "admin:APP_PASSWORD" \
 	-H "Content-Type: application/json" \
