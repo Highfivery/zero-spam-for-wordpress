@@ -1,0 +1,7 @@
+/**
+ * Blocked, rescue and expired-link pages (6.0). Placeholder: the design tokens
+ * and base styles, scoped to .zs-blocked. The pages themselves are rebuilt in a
+ * later pull request, which inlines this file (no request, no JavaScript).
+ */
+@import "../admin/styles/tokens.css";
+@import "../admin/styles/base.css";
