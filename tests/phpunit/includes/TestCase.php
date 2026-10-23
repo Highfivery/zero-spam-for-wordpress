@@ -14,11 +14,14 @@ use ReflectionClass;
 use ReflectionProperty;
 use WP_UnitTest_Factory;
 use WP_UnitTestCase;
+use ZeroSpam\Core\License_Status;
 use ZeroSpam\Core\Settings;
+use ZeroSpam\Core\Settings_Schema;
 use ZeroSpam\Core\User;
 use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Network_Settings;
+use ZeroSpam\Includes\Rest\Base_Controller;
 use ZeroSpam\Includes\Settings_Resolver;
 
 /**
@@ -96,6 +99,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zero_spam_dismiss_notice_enhanced_protection',
 		'zero_spam_dismiss_notice_missing_license',
 		'zerospam_promo_dismissed',
+		'zerospam_ui',
 	);
 
 	/**
@@ -110,6 +114,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_admin_safe_ips',
 		'zerospam_api_monitoring_notice_dismissed',
 		'zerospam_api_notices',
+		'zerospam_backup_5x',
 		'zerospam_blocked_email_domains',
 		'zerospam_completed_migrations',
 		'zerospam_configured',
@@ -119,6 +124,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_db_version',
 		'zerospam_migration_cursor_canonical_blocked_ips',
 		'zerospam_migration_lock_canonical_blocked_ips',
+		'zerospam_migration_lock_network',
 		'zerospam_proxy_detection_since',
 		'zerospam_settings_audit',
 		'zerospam_share_queue',
@@ -139,6 +145,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_dashboard_data_site',
 		'zerospam_dw_test',
 		'zerospam_geo_test',
+		'zerospam_license_status',
 		'zerospam_ipinfo_test',
 		'zerospam_login_intent_test',
 		'zerospam_rescue_ip_test',
@@ -156,6 +163,8 @@ abstract class TestCase extends WP_UnitTestCase {
 	 */
 	const PLUGIN_NETWORK_OPTIONS = array(
 		'zero_spam_last_api_request',
+		'zerospam_backup_5x',
+		'zerospam_network_completed_migrations',
 		'zerospam_network_notifications_enabled',
 		'zerospam_network_settings',
 		'zerospam_network_settings_notifications_enabled',
@@ -218,6 +227,9 @@ abstract class TestCase extends WP_UnitTestCase {
 		$_COOKIE = $this->cookie_backup;
 		self::reset_static_caches();
 
+		// Routes are registered afresh by the next rest() call.
+		$GLOBALS['wp_rest_server'] = null;
+
 		parent::tear_down();
 
 		if ( $unmocked ) {
@@ -258,6 +270,9 @@ abstract class TestCase extends WP_UnitTestCase {
 		self::set_static( Settings_Resolver::class, 'cache', array() );
 		Settings::$settings = array();
 		Settings::$sections = array();
+		Settings_Schema::reset_cache();
+		License_Status::reset_request_cache();
+		Base_Controller::reset_request_cache();
 		User::reset_cache();
 	}
 
@@ -485,6 +500,30 @@ abstract class TestCase extends WP_UnitTestCase {
 	 */
 	protected function mock_http( string $pattern, $body, int $code = 200 ): void {
 		HttpMock::mock( $pattern, $body, $code );
+	}
+
+	/**
+	 * Sends a request to the REST API as the current user.
+	 *
+	 * Permission callbacks run as for a real request; the cookie nonce check
+	 * does not (see rest_cookie_check_errors()), so tests of it call that
+	 * function themselves.
+	 *
+	 * @param string               $method HTTP method.
+	 * @param string               $route  Route, e.g. /zero-spam/v1/settings.
+	 * @param array<string, mixed> $body   JSON body.
+	 * @param array<string, mixed> $query  Query parameters.
+	 */
+	protected function rest( string $method, string $route, array $body = array(), array $query = array() ): \WP_REST_Response {
+		$request = new \WP_REST_Request( $method, $route );
+		$request->set_query_params( $query );
+
+		if ( $body ) {
+			$request->set_header( 'Content-Type', 'application/json' );
+			$request->set_body( (string) wp_json_encode( $body ) );
+		}
+
+		return rest_do_request( $request );
 	}
 
 	/**

@@ -9,11 +9,13 @@
 
 namespace ZeroSpam\Includes\Rest;
 
-use WP_REST_Controller;
 use WP_REST_Server;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
+use ZeroSpam\Core\License_Status;
+use ZeroSpam\Core\Settings_Schema;
+use ZeroSpam\Includes\Settings_Resolver;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -23,8 +25,13 @@ defined( 'ABSPATH' ) || die();
  *
  * Provides endpoints for reading and updating Zero Spam settings remotely.
  * Supports multisite with network/site scoping, dry-run mode, and audit trails.
+ *
+ * Since 6.0.0 every setting that holds a value (every type but `html`) can be
+ * read and written, secrets are write-only (reads return them masked), network
+ * values live in the network settings store only, and `settings/schema`
+ * describes every setting.
  */
-class Settings_Controller extends WP_REST_Controller {
+class Settings_Controller extends Base_Controller {
 
 	/**
 	 * REST API namespace.
@@ -41,11 +48,21 @@ class Settings_Controller extends WP_REST_Controller {
 	protected $rest_base = 'settings';
 
 	/**
-	 * Settings whitelist schema.
+	 * Settings whitelist schema used for the route arguments: the original
+	 * Enhanced Protection settings plus what `zero_spam_rest_settings_whitelist`
+	 * adds. Built without the settings registry, so registering the routes
+	 * stays cheap.
 	 *
 	 * @var array
 	 */
 	private $whitelist = array();
+
+	/**
+	 * Every setting the route accepts, built on first use in a request.
+	 *
+	 * @var array|null
+	 */
+	private $full_whitelist = null;
 
 	/**
 	 * Constructor.
@@ -77,6 +94,60 @@ class Settings_Controller extends WP_REST_Controller {
 				'schema' => array( $this, 'get_public_item_schema' ),
 			)
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/schema',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_settings_schema' ),
+					'permission_callback' => array( $this, 'get_schema_permissions_check' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Get the settings schema.
+	 *
+	 * Every section and setting of the registry, with its type, choices,
+	 * limits, default, recommended value, area and group, whether it can be
+	 * locked, whether it is locked, where its value comes from, and its value
+	 * (secrets masked).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return WP_REST_Response
+	 */
+	public function get_settings_schema( $request ) {
+		unset( $request );
+
+		$schema = Settings_Schema::get();
+
+		return rest_ensure_response(
+			array(
+				'sections' => $schema['sections'],
+				'settings' => $schema['settings'],
+				'meta'     => $this->get_response_meta( 'resolved' ),
+			)
+		);
+	}
+
+	/**
+	 * Permission check for the settings schema: the same as reading settings.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param WP_REST_Request $request Request object.
+	 * @return bool|WP_Error True if permitted, error otherwise.
+	 */
+	public function get_schema_permissions_check( $request ) {
+		$request = clone $request;
+		$request->set_param( 'scope', 'resolved' );
+
+		return $this->get_settings_permissions_check( $request );
 	}
 
 	/**
@@ -89,21 +160,12 @@ class Settings_Controller extends WP_REST_Controller {
 		$scope   = $request->get_param( 'scope' );
 		$include = $request->get_param( 'include' );
 
-		// Get defaults from whitelist.
-		$defaults = array();
-		foreach ( $this->whitelist as $key => $schema ) {
-			if ( isset( $schema['default'] ) ) {
-				$defaults[ $key ] = $schema['default'];
-			}
-		}
-
 		$response_data = array();
 
 		// Determine which settings to return based on scope.
 		switch ( $scope ) {
 			case 'site':
-				$site_settings             = get_option( 'zero-spam-zerospam', array() );
-				$response_data['settings'] = is_array( $site_settings ) ? $site_settings : array();
+				$response_data['settings'] = $this->mask_layer( $this->get_site_values( array_keys( $this->get_full_whitelist() ) ), Settings_Schema::SOURCE_SITE );
 				$response_data['meta']     = $this->get_response_meta( 'site' );
 				break;
 
@@ -116,19 +178,18 @@ class Settings_Controller extends WP_REST_Controller {
 					);
 				}
 
-				$network_settings          = get_site_option( 'zero-spam-network-zerospam', array() );
-				$response_data['settings'] = is_array( $network_settings ) ? $network_settings : array();
+				$network                   = $this->get_network_layer( array_keys( $this->get_full_whitelist() ) );
+				$response_data['settings'] = $this->mask_layer( $network['values'], Settings_Schema::SOURCE_NETWORK );
+				$response_data['locked']   = $network['locked'];
 				$response_data['meta']     = $this->get_response_meta( 'network' );
 				break;
 
 			case 'resolved':
 			default:
+				$resolved                  = $this->get_resolved( 'sources' === $include );
+				$response_data['settings'] = $resolved['values'];
 				if ( 'sources' === $include ) {
-					$resolved                  = \ZeroSpam\Includes\Settings_Resolver::get_resolved_with_sources( 'zerospam', $defaults );
-					$response_data['settings'] = $resolved['values'];
-					$response_data['sources']  = $resolved['sources'];
-				} else {
-					$response_data['settings'] = \ZeroSpam\Includes\Settings_Resolver::get_resolved_settings( 'zerospam', $defaults );
+					$response_data['sources'] = $resolved['sources'];
 				}
 				$response_data['meta'] = $this->get_response_meta( 'resolved' );
 				break;
@@ -171,22 +232,14 @@ class Settings_Controller extends WP_REST_Controller {
 		// A site may not change what the network administrator has locked: refuse the whole request.
 		$locked_keys = 'site' === $scope ? $this->get_locked_keys( array_keys( $validated ) ) : array();
 		if ( $locked_keys ) {
-			return new WP_Error(
-				'rest_setting_locked',
-				__( 'These settings are locked by the network administrator and cannot be changed on this site. Nothing was saved.', 'zero-spam' ),
-				array(
-					'status'      => 403,
-					'locked_keys' => $locked_keys,
-				)
-			);
+			return $this->locked_error( $locked_keys );
 		}
 
 		// Get existing settings to compute diff.
-		$existing = array();
 		if ( 'network' === $scope ) {
-			$existing = get_site_option( 'zero-spam-network-zerospam', array() );
+			$existing = $this->get_network_layer( array_keys( $validated ) )['values'];
 		} else {
-			$existing = get_option( 'zero-spam-zerospam', array() );
+			$existing = $this->get_site_values( array_keys( $validated ) );
 		}
 
 		// Compute changes.
@@ -207,15 +260,15 @@ class Settings_Controller extends WP_REST_Controller {
 				array(
 					'dry_run'  => true,
 					'valid'    => true,
-					'changes'  => $changes,
-					'settings' => $validated,
+					'changes'  => $this->mask_changes( $changes ),
+					'settings' => $this->mask_layer( $validated, 'site' === $scope ? Settings_Schema::SOURCE_SITE : Settings_Schema::SOURCE_NETWORK ),
 					'meta'     => $this->get_response_meta( $scope ),
 				)
 			);
 		}
 
 		// Perform actual update.
-		$result = \ZeroSpam\Includes\Settings_Resolver::update_settings( 'zerospam', $scope, $validated );
+		$result = $this->write_settings( $scope, $validated );
 
 		if ( ! $result ) {
 			return new WP_Error(
@@ -227,10 +280,14 @@ class Settings_Controller extends WP_REST_Controller {
 
 		// On a network site, a value equal to the network value is not stored: the site keeps following the network default.
 		if ( 'site' === $scope && is_multisite() ) {
-			$stored = get_option( 'zero-spam-zerospam', array() );
-			$stored = is_array( $stored ) ? $stored : array();
-
 			foreach ( $validated as $key => $new_value ) {
+				if ( isset( Settings_Schema::OWN_OPTIONS[ $key ] ) ) {
+					continue;
+				}
+
+				$stored = get_option( 'zero-spam-' . $this->module_of( $key ), array() );
+				$stored = is_array( $stored ) ? $stored : array();
+
 				if ( ! array_key_exists( $key, $stored ) ) {
 					$changes[ $key ] = array(
 						'old'    => isset( $existing[ $key ] ) ? $existing[ $key ] : null,
@@ -243,27 +300,271 @@ class Settings_Controller extends WP_REST_Controller {
 			}
 		}
 
-		// Record audit entry.
-		$this->add_audit_entry( $scope, $changes, false );
+		// Record audit entry (secrets masked).
+		$this->add_audit_entry( $scope, $this->mask_changes( $changes ), false );
 
-		// Get updated settings.
-		$defaults = array();
-		foreach ( $this->whitelist as $key => $schema ) {
-			if ( isset( $schema['default'] ) ) {
-				$defaults[ $key ] = $schema['default'];
-			}
-		}
-
-		$updated_settings = \ZeroSpam\Includes\Settings_Resolver::get_resolved_settings( 'zerospam', $defaults );
+		$resolved = $this->get_resolved( false );
 
 		return rest_ensure_response(
 			array(
 				'success'  => true,
-				'changes'  => $changes,
-				'settings' => $updated_settings,
+				'changes'  => $this->mask_changes( $changes ),
+				'settings' => $resolved['values'],
 				'meta'     => $this->get_response_meta( $scope ),
 			)
 		);
+	}
+
+	/**
+	 * Writes validated settings, module by module.
+	 *
+	 * @param string               $scope     `site` or `network`.
+	 * @param array<string, mixed> $validated Validated values.
+	 * @return bool Whether every write succeeded.
+	 */
+	private function write_settings( string $scope, array $validated ): bool {
+		$by_module = array();
+		$result    = true;
+
+		foreach ( $validated as $key => $value ) {
+			if ( 'site' === $scope && isset( Settings_Schema::OWN_OPTIONS[ $key ] ) ) {
+				// Stored on its own and never autoloaded, as the settings page does.
+				update_option( Settings_Schema::OWN_OPTIONS[ $key ], $value, false );
+				continue;
+			}
+
+			$by_module[ $this->module_of( $key ) ][ $key ] = $value;
+		}
+
+		foreach ( $by_module as $module => $values ) {
+			$result = Settings_Resolver::update_settings( $module, $scope, $values ) && $result;
+		}
+
+		Settings_Resolver::invalidate_all();
+		Settings_Schema::reset_cache();
+		self::reset_request_cache();
+
+		// After the schema cache is reset, so the cache of the new key is the one cleared.
+		if ( array_key_exists( 'zerospam_license', $validated ) ) {
+			License_Status::reset_cache();
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Resolved values of every accepted setting (secrets masked).
+	 *
+	 * @param bool $with_sources Whether to return where each value comes from.
+	 * @return array{values: array<string, mixed>, sources: array<string, string>}
+	 */
+	private function get_resolved( bool $with_sources ): array {
+		$whitelist = $this->get_full_whitelist();
+		$modules   = array();
+
+		foreach ( $whitelist as $key => $schema ) {
+			$modules[ $this->module_of( (string) $key ) ][ $key ] = isset( $schema['default'] ) ? $schema['default'] : null;
+		}
+
+		$values  = array();
+		$sources = array();
+
+		foreach ( $modules as $module => $module_keys ) {
+			$defaults = array_filter(
+				$module_keys,
+				static function ( $value ) {
+					return null !== $value;
+				}
+			);
+
+			if ( $with_sources ) {
+				$resolved       = Settings_Resolver::get_resolved_with_sources( $module, $defaults );
+				$module_values  = $resolved['values'];
+				$module_sources = $resolved['sources'];
+			} else {
+				$module_values  = Settings_Resolver::get_resolved_settings( $module, $defaults );
+				$module_sources = array();
+			}
+
+			foreach ( array_keys( $module_keys ) as $key ) {
+				if ( Settings_Schema::is_secret( (string) $key ) ) {
+					$masked          = Settings_Schema::masked( (string) $key );
+					$values[ $key ]  = $masked;
+					$sources[ $key ] = $masked['source'];
+					continue;
+				}
+
+				if ( isset( Settings_Schema::OWN_OPTIONS[ $key ] ) ) {
+					$resolved_own = Settings_Schema::resolve( (string) $key );
+					if ( null !== $resolved_own ) {
+						$values[ $key ]  = $resolved_own['value'];
+						$sources[ $key ] = $resolved_own['source'];
+						continue;
+					}
+				}
+
+				if ( array_key_exists( $key, $module_values ) ) {
+					$values[ $key ] = $module_values[ $key ];
+					if ( isset( $module_sources[ $key ] ) ) {
+						$sources[ $key ] = $module_sources[ $key ];
+					}
+				}
+			}
+		}
+
+		if ( ! $with_sources ) {
+			$sources = array();
+		}
+
+		return array(
+			'values'  => $values,
+			'sources' => $sources,
+		);
+	}
+
+	/**
+	 * Values the current site stores for some settings.
+	 *
+	 * @param string[] $keys Setting keys.
+	 * @return array<string, mixed>
+	 */
+	private function get_site_values( array $keys ): array {
+		$values = array();
+
+		foreach ( $keys as $key ) {
+			$key = (string) $key;
+
+			if ( isset( Settings_Schema::OWN_OPTIONS[ $key ] ) ) {
+				$own = get_option( Settings_Schema::OWN_OPTIONS[ $key ] );
+				if ( false !== $own ) {
+					$values[ $key ] = $own;
+				}
+				continue;
+			}
+
+			$stored = get_option( 'zero-spam-' . $this->module_of( $key ), array() );
+			if ( is_array( $stored ) && array_key_exists( $key, $stored ) ) {
+				$values[ $key ] = $stored[ $key ];
+			}
+		}
+
+		return $values;
+	}
+
+	/**
+	 * Network values of some settings, and which of them are locked.
+	 *
+	 * @param string[] $keys Setting keys.
+	 * @return array{values: array<string, mixed>, locked: string[]}
+	 */
+	private function get_network_layer( array $keys ): array {
+		$layer = array(
+			'values' => array(),
+			'locked' => array(),
+		);
+
+		if ( ! is_multisite() ) {
+			return $layer;
+		}
+
+		$store = Settings_Schema::normalize_network_store( get_site_option( \ZeroSpam\Includes\Network_Settings::META_KEY, array() ) );
+
+		foreach ( $keys as $key ) {
+			$config = $store['settings'][ $key ] ?? null;
+
+			if ( ! is_array( $config ) || ! array_key_exists( 'value', $config ) ) {
+				continue;
+			}
+
+			$layer['values'][ $key ] = $config['value'];
+
+			if ( ! empty( $config['locked'] ) ) {
+				$layer['locked'][] = (string) $key;
+			}
+		}
+
+		return $layer;
+	}
+
+	/**
+	 * Replaces secret values of one storage layer by their masked form.
+	 *
+	 * @param array<string, mixed> $values Values by key.
+	 * @param string               $source Where they are stored (`site` or `network`).
+	 * @return array<string, mixed>
+	 */
+	private function mask_layer( array $values, string $source ): array {
+		foreach ( $values as $key => $value ) {
+			if ( Settings_Schema::is_secret( (string) $key ) ) {
+				$values[ $key ] = $this->mask_value( $value, $source );
+			}
+		}
+
+		return $values;
+	}
+
+	/**
+	 * Masks the secrets in a list of changes.
+	 *
+	 * @param array<string, array<string, mixed>> $changes Changes by key.
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function mask_changes( array $changes ): array {
+		foreach ( $changes as $key => $change ) {
+			if ( ! Settings_Schema::is_secret( (string) $key ) ) {
+				continue;
+			}
+
+			foreach ( array( 'old', 'new' ) as $side ) {
+				if ( array_key_exists( $side, $change ) ) {
+					$changes[ $key ][ $side ] = $this->mask_value( $change[ $side ], $change['source'] ?? Settings_Schema::SOURCE_SITE );
+				}
+			}
+		}
+
+		return $changes;
+	}
+
+	/**
+	 * The masked form of one secret value.
+	 *
+	 * @param mixed  $value  Secret.
+	 * @param string $source Where it is stored.
+	 * @return array{set: bool, source: string, hint?: string}
+	 */
+	private function mask_value( $value, string $source ): array {
+		$value  = is_scalar( $value ) && ! is_bool( $value ) ? trim( (string) $value ) : '';
+		$masked = array(
+			'set'    => '' !== $value,
+			'source' => $source,
+		);
+
+		if ( '' !== $value ) {
+			$masked['hint'] = Settings_Schema::hint( $value );
+		}
+
+		return $masked;
+	}
+
+	/**
+	 * Module (and so option) a setting belongs to.
+	 *
+	 * Keys added through `zero_spam_rest_settings_whitelist` that the registry
+	 * does not know are stored with the Enhanced Protection settings, as
+	 * before 6.0.0, unless their whitelist entry names a `module`.
+	 *
+	 * @param string $key Setting key.
+	 */
+	private function module_of( string $key ): string {
+		$whitelist = $this->get_full_whitelist();
+
+		if ( ! empty( $whitelist[ $key ]['module'] ) && is_string( $whitelist[ $key ]['module'] ) ) {
+			return $whitelist[ $key ]['module'];
+		}
+
+		$entry = Settings_Schema::setting( $key );
+
+		return null !== $entry ? (string) $entry['module'] : 'zerospam';
 	}
 
 	/**
@@ -350,25 +651,37 @@ class Settings_Controller extends WP_REST_Controller {
 			return array();
 		}
 
-		$network_settings = new \ZeroSpam\Includes\Network_Settings();
-
-		return array_values(
-			array_filter(
-				$keys,
-				static function ( $key ) use ( $network_settings ) {
-					return $network_settings->is_locked( (string) $key );
-				}
-			)
-		);
+		return $this->get_network_layer( array_map( 'strval', $keys ) )['locked'];
 	}
 
 	/**
 	 * Get settings whitelist with schema.
 	 *
+	 * The original Enhanced Protection settings, filtered. Used for the route
+	 * arguments; requests use get_full_whitelist().
+	 *
 	 * @return array Whitelist array.
 	 */
 	private function get_settings_whitelist() {
-		$whitelist = array(
+		/**
+		 * Filter the settings whitelist for REST API.
+		 *
+		 * Allows adding custom settings to REST API exposure, or removing
+		 * settings from it. Since 6.0.0 the filter also runs when a request is
+		 * handled, then with every setting of the registry that holds a value.
+		 *
+		 * @param array $whitelist Settings whitelist array.
+		 */
+		return apply_filters( 'zero_spam_rest_settings_whitelist', $this->get_base_whitelist() );
+	}
+
+	/**
+	 * The settings the route accepted before 6.0.0, with their own rules.
+	 *
+	 * @return array Whitelist array.
+	 */
+	private function get_base_whitelist() {
+		return array(
 			'zerospam'                => array(
 				'type'              => 'string',
 				'enum'              => array( 'enabled', false ),
@@ -387,15 +700,253 @@ class Settings_Controller extends WP_REST_Controller {
 				'description'       => __( 'Confidence threshold (0-100%)', 'zero-spam' ),
 			),
 		);
+	}
 
-		/**
-		 * Filter the settings whitelist for REST API.
-		 *
-		 * Allows adding custom settings to REST API exposure.
-		 *
-		 * @param array $whitelist Settings whitelist array.
-		 */
-		return apply_filters( 'zero_spam_rest_settings_whitelist', $whitelist );
+	/**
+	 * Every setting the route accepts: the original ones, every setting of the
+	 * registry that holds a value, and what `zero_spam_rest_settings_whitelist`
+	 * adds or removes.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return array Whitelist array.
+	 */
+	private function get_full_whitelist() {
+		if ( null !== $this->full_whitelist ) {
+			return $this->full_whitelist;
+		}
+
+		$whitelist = $this->get_base_whitelist();
+
+		foreach ( Settings_Schema::get()['settings'] as $entry ) {
+			if ( 'html' === $entry['type'] ) {
+				continue;
+			}
+
+			if ( isset( $whitelist[ $entry['key'] ] ) ) {
+				$whitelist[ $entry['key'] ]['module'] = $entry['module'];
+				continue;
+			}
+
+			$whitelist[ $entry['key'] ] = array(
+				'type'            => $this->json_type( $entry ),
+				'description'     => $entry['title'],
+				'default'         => $entry['default'],
+				'module'          => $entry['module'],
+				'zerospam_schema' => true,
+			);
+		}
+
+		/** This filter is documented in get_settings_whitelist(). */
+		$filtered             = apply_filters( 'zero_spam_rest_settings_whitelist', $whitelist );
+		$this->full_whitelist = is_array( $filtered ) ? $filtered : array();
+
+		return $this->full_whitelist;
+	}
+
+	/**
+	 * JSON type of a setting.
+	 *
+	 * @param array<string, mixed> $entry Schema entry.
+	 * @return string|string[]
+	 */
+	private function json_type( array $entry ) {
+		switch ( $entry['type'] ) {
+			case 'number':
+				return 'number';
+			case 'checkbox':
+				return array( 'string', 'boolean' );
+			case 'select':
+				return $entry['multiple'] ? 'array' : 'string';
+			default:
+				return 'string';
+		}
+	}
+
+	/**
+	 * Checks and normalizes a value for a setting of the registry.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $key   Setting key.
+	 * @param mixed  $value Submitted value.
+	 * @return mixed|WP_Error Value to store, or the reason it is refused.
+	 */
+	private function normalize_value( string $key, $value ) {
+		$entry   = Settings_Schema::setting( $key );
+		$options = $this->option_keys( $key );
+
+		if ( null === $entry ) {
+			return is_scalar( $value ) ? sanitize_text_field( (string) $value ) : new WP_Error( 'invalid', __( 'Must be text.', 'zero-spam' ) );
+		}
+
+		switch ( $entry['type'] ) {
+			case 'checkbox':
+				if ( false === $value || '' === $value || null === $value ) {
+					return false;
+				}
+				if ( true === $value && $options ) {
+					return $options[0];
+				}
+				$match = $this->match_option( $value, $options );
+
+				return null !== $match ? $match : new WP_Error(
+					'invalid',
+					/* translators: %s: comma-separated list of allowed values */
+					sprintf( __( 'Must be false or one of: %s.', 'zero-spam' ), implode( ', ', array_map( 'strval', $options ) ) )
+				);
+
+			case 'radio':
+			case 'select':
+				if ( ! empty( $entry['multiple'] ) ) {
+					if ( ! is_array( $value ) ) {
+						return new WP_Error( 'invalid', __( 'Must be a list.', 'zero-spam' ) );
+					}
+
+					$selected = array();
+					foreach ( $value as $item ) {
+						$match = $this->match_option( $item, $options );
+						if ( null === $match ) {
+							return new WP_Error(
+								'invalid',
+								/* translators: %s: comma-separated list of allowed values */
+								sprintf( __( 'Every item must be one of: %s.', 'zero-spam' ), implode( ', ', array_map( 'strval', $options ) ) )
+							);
+						}
+						$selected[] = $match;
+					}
+
+					return array_values( array_unique( $selected ) );
+				}
+
+				$match = $this->match_option( $value, $options );
+
+				return null !== $match ? $match : new WP_Error(
+					'invalid',
+					/* translators: %s: comma-separated list of allowed values */
+					sprintf( __( 'Must be one of: %s.', 'zero-spam' ), implode( ', ', array_map( 'strval', $options ) ) )
+				);
+
+			case 'number':
+				return $this->normalize_number( $entry, $value );
+
+			case 'url':
+				if ( ! is_string( $value ) ) {
+					return new WP_Error( 'invalid', __( 'Must be a web address.', 'zero-spam' ) );
+				}
+				$value = trim( $value );
+				if ( '' === $value ) {
+					return '';
+				}
+				$url = esc_url_raw( $value, array( 'http', 'https' ) );
+
+				return '' !== $url && false !== filter_var( $url, FILTER_VALIDATE_URL ) ? $url : new WP_Error( 'invalid', __( 'Must be a web address starting with http:// or https://.', 'zero-spam' ) );
+
+			case 'date':
+				if ( ! is_string( $value ) ) {
+					return new WP_Error( 'invalid', __( 'Must be a date (YYYY-MM-DD) or empty.', 'zero-spam' ) );
+				}
+				$value = trim( $value );
+				if ( '' === $value ) {
+					return '';
+				}
+				$valid = 1 === preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $value, $parts ) && checkdate( (int) $parts[2], (int) $parts[3], (int) $parts[1] );
+
+				return $valid ? $value : new WP_Error( 'invalid', __( 'Must be a date (YYYY-MM-DD) or empty.', 'zero-spam' ) );
+
+			case 'textarea':
+				if ( ! is_string( $value ) ) {
+					return new WP_Error( 'invalid', __( 'Must be text.', 'zero-spam' ) );
+				}
+
+				if ( 'trusted_proxies' === $key ) {
+					$proxies = \ZeroSpam\Core\Utilities::parse_ip_ranges( $value );
+					$dropped = \ZeroSpam\Core\Utilities::describe_dropped_ip_ranges( $proxies );
+
+					return $dropped ? new WP_Error(
+						'invalid',
+						/* translators: %s: comma-separated list of the entries that are not accepted */
+						sprintf( __( 'These entries are not IP addresses or ranges, or are too broad: %s', 'zero-spam' ), implode( ', ', $dropped ) )
+					) : implode( "\n", $proxies['valid'] );
+				}
+
+				return sanitize_textarea_field( $value );
+
+			default:
+				if ( ! is_string( $value ) && ! is_int( $value ) && ! is_float( $value ) ) {
+					return new WP_Error( 'invalid', __( 'Must be text.', 'zero-spam' ) );
+				}
+
+				$value = sanitize_text_field( (string) $value );
+
+				return $entry['secret'] ? trim( $value ) : $value;
+		}
+	}
+
+	/**
+	 * Checks a number against a setting's limits.
+	 *
+	 * @param array<string, mixed> $entry Schema entry.
+	 * @param mixed                $value Submitted value.
+	 * @return int|float|WP_Error
+	 */
+	private function normalize_number( array $entry, $value ) {
+		if ( is_bool( $value ) || ! is_numeric( $value ) ) {
+			return new WP_Error( 'invalid', __( 'Must be a number.', 'zero-spam' ) );
+		}
+
+		$number = 0 + $value;
+
+		if ( null !== $entry['min'] && $number < $entry['min'] ) {
+			/* translators: %s: smallest allowed number */
+			return new WP_Error( 'invalid', sprintf( __( 'Must be at least %s.', 'zero-spam' ), $entry['min'] ) );
+		}
+
+		if ( null !== $entry['max'] && $number > $entry['max'] ) {
+			/* translators: %s: largest allowed number */
+			return new WP_Error( 'invalid', sprintf( __( 'Must be at most %s.', 'zero-spam' ), $entry['max'] ) );
+		}
+
+		$whole_steps = null === $entry['step'] || is_int( $entry['step'] );
+
+		if ( $whole_steps && floor( (float) $number ) !== (float) $number ) {
+			return new WP_Error( 'invalid', __( 'Must be a whole number.', 'zero-spam' ) );
+		}
+
+		return $whole_steps ? (int) $number : (float) $number;
+	}
+
+	/**
+	 * The choices of a setting as the registry defines them (keys keep their type).
+	 *
+	 * @param string $key Setting key.
+	 * @return array<int, int|string>
+	 */
+	private function option_keys( string $key ): array {
+		$registry = Settings_Schema::registry();
+
+		return isset( $registry[ $key ]['options'] ) && is_array( $registry[ $key ]['options'] ) ? array_keys( $registry[ $key ]['options'] ) : array();
+	}
+
+	/**
+	 * The choice a submitted value names, or null.
+	 *
+	 * @param mixed                  $value   Submitted value.
+	 * @param array<int, int|string> $options Choices.
+	 * @return int|string|null
+	 */
+	private function match_option( $value, array $options ) {
+		if ( ! is_string( $value ) && ! is_int( $value ) ) {
+			return null;
+		}
+
+		foreach ( $options as $option ) {
+			if ( (string) $option === (string) $value ) {
+				return $option;
+			}
+		}
+
+		return null;
 	}
 
 	/**
@@ -435,6 +986,10 @@ class Settings_Controller extends WP_REST_Controller {
 	/**
 	 * Validate settings against whitelist.
 	 *
+	 * Errors keep the `rest_invalid_settings` code and `errors` list the
+	 * route has always returned; since 6.0.0 `params` carries the same
+	 * messages in the shape WordPress uses for `rest_invalid_param`.
+	 *
 	 * @param array $settings Settings to validate.
 	 * @return array|WP_Error Validated settings or error.
 	 */
@@ -447,12 +1002,15 @@ class Settings_Controller extends WP_REST_Controller {
 			);
 		}
 
+		$whitelist = $this->get_full_whitelist();
 		$validated = array();
 		$errors    = array();
 
 		foreach ( $settings as $key => $value ) {
+			$key = (string) $key;
+
 			// Check if key is whitelisted.
-			if ( ! isset( $this->whitelist[ $key ] ) ) {
+			if ( ! isset( $whitelist[ $key ] ) ) {
 				$errors[ $key ] = sprintf(
 					/* translators: %s: setting key */
 					__( 'Setting "%s" is not allowed or does not exist.', 'zero-spam' ),
@@ -461,7 +1019,24 @@ class Settings_Controller extends WP_REST_Controller {
 				continue;
 			}
 
-			$schema = $this->whitelist[ $key ];
+			$schema = $whitelist[ $key ];
+
+			if ( ! empty( $schema['zerospam_schema'] ) ) {
+				$normalized = $this->normalize_value( $key, $value );
+
+				if ( is_wp_error( $normalized ) ) {
+					$errors[ $key ] = sprintf(
+						/* translators: 1: setting key, 2: what is wrong with the value */
+						__( 'Invalid value for "%1$s". %2$s', 'zero-spam' ),
+						$key,
+						$normalized->get_error_message()
+					);
+					continue;
+				}
+
+				$validated[ $key ] = $normalized;
+				continue;
+			}
 
 			// Sanitize value.
 			if ( isset( $schema['sanitize_callback'] ) && is_callable( $schema['sanitize_callback'] ) ) {
@@ -493,6 +1068,7 @@ class Settings_Controller extends WP_REST_Controller {
 				array(
 					'status' => 400,
 					'errors' => $errors,
+					'params' => $errors,
 				)
 			);
 		}

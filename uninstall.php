@@ -57,6 +57,7 @@ $zerospam_site_options = array(
 	'zerospam_admin_safe_ips',
 	'zerospam_api_monitoring_notice_dismissed',
 	'zerospam_api_notices',
+	'zerospam_backup_5x',
 	'zerospam_blocked_email_domains',
 	'zerospam_completed_migrations',
 	'zerospam_configured',
@@ -66,6 +67,7 @@ $zerospam_site_options = array(
 	'zerospam_db_version',
 	'zerospam_migration_cursor_canonical_blocked_ips',
 	'zerospam_migration_lock_canonical_blocked_ips',
+	'zerospam_migration_lock_network',
 	'zerospam_proxy_detection_since',
 	'zerospam_settings_audit',
 	'zerospam_share_queue',
@@ -82,6 +84,7 @@ $zerospam_site_transients = array(
 	'zero_spam_failure_count',
 	'zerospam_dashboard_data_network',
 	'zerospam_dashboard_data_site',
+	'zerospam_license_status',
 	'zerospam_rescue_site_sends',
 	'zerospam_shared_ip_warning',
 	'zerospam_woo_options_migrated',
@@ -105,6 +108,7 @@ $zerospam_user_meta = array(
 	'zero_spam_dismiss_notice_enhanced_protection',
 	'zero_spam_dismiss_notice_missing_license',
 	'zerospam_promo_dismissed',
+	'zerospam_ui',
 );
 
 // Option name prefixes swept on every site after the named options are gone.
@@ -145,6 +149,8 @@ $zerospam_network_tables = array(
 $zerospam_network_options = array_merge(
 	array(
 		'zero_spam_last_api_request',
+		'zerospam_backup_5x',
+		'zerospam_network_completed_migrations',
 		'zerospam_network_notifications_enabled',
 		'zerospam_network_settings',
 		'zerospam_network_settings_notifications_enabled',
