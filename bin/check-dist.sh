@@ -20,10 +20,12 @@
 #                  (proves the build is reproducible)
 #   --budget-only  check the budgets of the committed files; no build
 #
-# Needs Node 22 (.nvmrc). When the node on PATH is not 22, nvm is loaded from
-# $NVM_DIR (default ~/.nvm), because git hooks do not read shell profiles.
-# Runs "npm ci --ignore-scripts" first when node_modules is missing or older
-# than package-lock.json.
+# Needs Node 22 (.nvmrc, package.json engines ^22). When the node on PATH is
+# not 22, nvm is loaded from $NVM_DIR (default ~/.nvm), because git hooks do
+# not read shell profiles. Refuses to run when node_modules is missing or older
+# than package-lock.json (run npm ci yourself: installing here would skip or
+# redo the e2e packages' install scripts behind your back). The unit tests
+# render in Playwright's Chromium (npx playwright install chromium).
 
 set -euo pipefail
 
@@ -52,6 +54,8 @@ budget_network_css=25
 budget_widget_js=6
 budget_widget_css=6
 budget_fonts=110
+# Raw size: blocked.css is inlined into every blocked response.
+budget_blocked_css_raw=8
 
 dist="assets/dist"
 
@@ -103,9 +107,9 @@ check_budget() {
 }
 
 check_budgets() {
-	echo "check-dist: budgets (KB = 1,024 bytes; JavaScript and CSS gzip -9, fonts as stored):"
+	echo "check-dist: budgets (KB = 1,024 bytes; JavaScript and CSS gzip -9 unless marked raw, fonts as stored):"
 	local f
-	for f in admin.js admin.css network.js network.css widget-refresh.js widget-refresh.css blocked.css sprite.svg; do
+	for f in admin.js admin.css network.js network.css widget-refresh.js widget-refresh.css blocked.css blocked-rtl.css sprite.svg; do
 		if [[ ! -f "$dist/$f" ]]; then
 			echo "check-dist: $dist/$f is missing. Run: npm run build" >&2
 			budget_fail=1
@@ -126,7 +130,8 @@ check_budgets() {
 	done < <(find assets/fonts -type f -name '*.woff2' | sort)
 	check_budget "fonts (assets/fonts/**/*.woff2)" "$fonts_total" "$budget_fonts"
 
-	printf '  %-34s %8s KB  (no budget; inlined on the blocked page)\n' "blocked.css (gzip)" "$(kb "$(gz_bytes "$dist/blocked.css")")"
+	check_budget "blocked.css (raw, inlined)" "$(file_bytes "$dist/blocked.css")" "$budget_blocked_css_raw"
+	check_budget "blocked-rtl.css (raw, inlined)" "$(file_bytes "$dist/blocked-rtl.css")" "$budget_blocked_css_raw"
 	printf '  %-34s %8s KB  (no budget; inlined on Zero Spam screens)\n' "sprite.svg (gzip)" "$(kb "$(gz_bytes "$dist/sprite.svg")")"
 }
 
@@ -164,8 +169,9 @@ fi
 echo "check-dist: Node $(node -v), npm $(npm -v)."
 
 if [[ ! -f node_modules/.package-lock.json || package-lock.json -nt node_modules/.package-lock.json ]]; then
-	echo "check-dist: node_modules is missing or older than package-lock.json; running npm ci --ignore-scripts."
-	npm ci --ignore-scripts --no-audit --no-fund
+	echo "check-dist: node_modules is missing or older than package-lock.json. Run: npm ci" >&2
+	echo "            (then npx playwright install chromium if it asks), and push again." >&2
+	exit 1
 fi
 
 # ---------------------------------------------------------------------------

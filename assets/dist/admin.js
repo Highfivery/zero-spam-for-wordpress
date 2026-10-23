@@ -1,2 +1,2 @@
-(()=>{"use strict";const e=window.wp.i18n,t=document.getElementById("zerospam-app");var a;t&&t.setAttribute("aria-label",(a=t.dataset.version||"")?(0,e.sprintf)(/* translators: %s: plugin version number, for example 6.0.0. */ /* translators: %s: plugin version number, for example 6.0.0. */
-(0,e.__)("Zero Spam %s","zero-spam"),a):(0,e.__)("Zero Spam","zero-spam"))})();
+(()=>{"use strict";const e=window.wp.i18n,t=document.getElementById("zerospam-app");t&&t.setAttribute("aria-label",function(t){if(!t)return(0,e.__)("Zero Spam","zero-spam");
+/* translators: %s: plugin version number, for example 6.0.0. */const r=(0,e.__)("Zero Spam %s","zero-spam");return(0,e.sprintf)(r,t)}(t.dataset.version||""))})();
