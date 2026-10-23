@@ -15,6 +15,12 @@ built by webpack). Both families are licensed under the SIL Open Font License
 Total: 91,896 bytes (89.7 KB), inside the 110 KB budget that
 `bin/check-dist.sh` enforces.
 
+Only the Latin and Latin Extended subsets ship. Google also serves Vietnamese
+and Cyrillic Extended files for Plus Jakarta Sans, and Cyrillic, Cyrillic
+Extended, Greek and Vietnamese files for JetBrains Mono; they are left out to
+stay within the budget. Text in those scripts falls back to the system fonts
+in `--zs-font-ui` and `--zs-font-data`.
+
 ## Source
 
 Downloaded on 2026-10-23 from Google Fonts, which builds these files from the

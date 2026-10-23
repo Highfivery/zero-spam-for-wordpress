@@ -40,14 +40,15 @@ This project deliberately uses no hosted CI (GitHub Actions is not used). Instea
 ```bash
 composer install        # also points git at .githooks/ so the pre-push hook is active
 nvm use && npm ci       # Node 22 (.nvmrc): the front-end build, its linters and tests, and the e2e suite
+npx playwright install chromium   # used by the render unit test and the e2e suite
 composer check          # the gate: built assets and budgets, version check, WPCS on changed files and the tests, PHP 8.2+ compatibility, PHPStan, PHPUnit
-composer check:all      # WPCS on every file and the tests, PHPStan and the full PHPUnit matrix (red until the pre-existing WPCS backlog is cleared)
+composer check:all      # built assets and budgets, WPCS on every file and the tests, PHPStan and the full PHPUnit matrix (red until the pre-existing WPCS backlog is cleared)
 ```
 
 | Script | What it runs |
 |---|---|
 | `npm run build` (`composer build`) | Builds the 6.0 admin front end from `assets/src/` into `assets/dist/` with `@wordpress/scripts`. Commit `assets/dist/` with the source change that produced it; never edit it by hand, and never commit the development output of `npm start` |
-| `composer check:dist` (`npm run check:dist`) | `bin/check-dist.sh`: when the build inputs or outputs changed, runs the JavaScript and CSS linters and unit tests, builds into a temporary directory, refuses an `assets/dist/` that differs from it, and checks the size budgets (`--twice` also proves the build is reproducible; `npm run check:budget` checks the budgets only). Needs Node 22; loads nvm itself |
+| `composer check:dist` (`npm run check:dist`) | `bin/check-dist.sh`: when the build inputs or outputs changed, runs the JavaScript and CSS linters and unit tests, builds into a temporary directory, refuses an `assets/dist/` that differs from it, and checks the size budgets (`--twice` also proves the build is reproducible; `npm run check:budget` checks the budgets only). Needs Node 22 (loads nvm itself) and an up-to-date `npm ci`; it refuses rather than installing |
 | `npm run lint:js` / `npm run lint:css` / `npm run test:js` | ESLint and stylelint with the WordPress configurations, and the Vitest unit tests (including the design-token contrast test) |
 | `composer lint` / `composer lint:fix` | The full WordPress Coding Standards ruleset (`phpcs.xml.dist`) on every PHP file; `lint:fix` applies the fixes `phpcbf` can make |
 | `composer lint:changed` | WPCS on the PHP files changed against `origin/develop` (whole files, so a touched file is left clean) |
