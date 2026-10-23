@@ -19,6 +19,10 @@ test.describe( 'Dashboard', () => {
 				await dashboard.goto( subview );
 				await expect( page.locator( 'table.wp-list-table' ) ).toBeVisible();
 				await expect( page.locator( 'table.wp-list-table tbody' ) ).toContainText( 'No items found.' );
+
+				// WordPress only prints the search box when there are rows or a search.
+				await dashboard.goto( subview, '&s=no-match' );
+				await expect( page.locator( '.search-box input[type="submit"]' ) ).toHaveValue( 'blocked-locations' === subview ? 'Search locations' : 'Search IPs' );
 			} );
 		}
 

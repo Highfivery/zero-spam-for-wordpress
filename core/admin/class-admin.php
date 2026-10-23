@@ -729,6 +729,10 @@ class Admin {
 		);
 
 		$settings_url = admin_url( 'admin.php?page=wordpress-zero-spam-settings&subview=api-monitoring' );
+
+		// Zero Spam's screens have one primary action each (Save Settings, …),
+		// so the notice's call to action is a secondary button there.
+		$cta_class = 'dashboard' === $screen->id ? 'button button-primary' : 'button';
 		?>
 		<div class="notice notice-info is-dismissible" id="zerospam-api-monitoring-notice">
 			<p><strong><?php esc_html_e( 'New Feature: API Usage Monitoring & Alerts!', 'zero-spam' ); ?></strong></p>
@@ -738,7 +742,7 @@ class Admin {
 				?>
 			</p>
 			<p>
-				<a href="<?php echo esc_url( $settings_url ); ?>" class="button button-primary">
+				<a href="<?php echo esc_url( $settings_url ); ?>" class="<?php echo esc_attr( $cta_class ); ?>">
 					<?php esc_html_e( 'Enable API Monitoring', 'zero-spam' ); ?>
 				</a>
 				<a href="<?php echo esc_url( $dismiss_url ); ?>" class="button button-secondary">
