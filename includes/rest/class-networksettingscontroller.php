@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Network_Settings_Controller to this file name.
 /**
  * Network Settings REST API Controller
  *
@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 /**
  * Network Settings Controller class
  */
-class Network_Settings_Controller extends \WP_REST_Controller {
+class Network_Settings_Controller extends Base_Controller {
 
 	/**
 	 * Namespace
@@ -418,7 +418,7 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Update setting
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function update_item( $request ) {
 		$key    = $request->get_param( 'key' );
@@ -428,7 +428,12 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 		$result = $this->settings_manager->set_setting( $key, $value, $locked );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Setting updated' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Setting updated',
+				)
+			);
 		}
 
 		return new \WP_Error( 'update_failed', 'Failed to update setting', array( 'status' => 500 ) );
@@ -438,14 +443,19 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Lock setting
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function lock_item( $request ) {
 		$key    = $request->get_param( 'key' );
 		$result = $this->settings_manager->lock_setting( $key );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Setting locked' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Setting locked',
+				)
+			);
 		}
 
 		return new \WP_Error( 'lock_failed', 'Failed to lock setting', array( 'status' => 500 ) );
@@ -455,14 +465,19 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Unlock setting
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function unlock_item( $request ) {
 		$key    = $request->get_param( 'key' );
 		$result = $this->settings_manager->unlock_setting( $key );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Setting unlocked' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Setting unlocked',
+				)
+			);
 		}
 
 		return new \WP_Error( 'unlock_failed', 'Failed to unlock setting', array( 'status' => 500 ) );
@@ -475,9 +490,9 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function apply_all( $request ) {
-		$force  = $request->get_param( 'force' );
-		$mode   = $request->get_param( 'mode' );
-		$sites  = $request->get_param( 'sites' ) ?? array();
+		$force = $request->get_param( 'force' );
+		$mode  = $request->get_param( 'mode' );
+		$sites = $request->get_param( 'sites' ) ?? array();
 
 		$result = $this->settings_manager->apply_to_sites( $force, $sites, $mode );
 
@@ -496,7 +511,7 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 		$result   = array();
 
 		foreach ( $settings as $key => $config ) {
-			$effective = $this->network_settings->get_effective_value( $key, $site_id );
+			$effective      = $this->network_settings->get_effective_value( $key, $site_id );
 			$result[ $key ] = array(
 				'value'  => $effective['value'],
 				'source' => $effective['source'],
@@ -510,14 +525,19 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Reset site
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function reset_site( $request ) {
 		$site_id = $request->get_param( 'site_id' );
 		$result  = $this->settings_manager->reset_site( $site_id );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Site reset' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Site reset',
+				)
+			);
 		}
 
 		return new \WP_Error( 'reset_failed', 'Failed to reset site', array( 'status' => 500 ) );
@@ -542,7 +562,7 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 			);
 
 			foreach ( $sites as $site ) {
-				$effective = $this->network_settings->get_effective_value( $key, $site->blog_id );
+				$effective                                     = $this->network_settings->get_effective_value( $key, (int) $site->blog_id );
 				$comparison[ $key ]['sites'][ $site->blog_id ] = array(
 					'value'  => $effective['value'],
 					'source' => $effective['source'],
@@ -550,7 +570,12 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 			}
 		}
 
-		return rest_ensure_response( array( 'comparison' => $comparison, 'sites' => $sites ) );
+		return rest_ensure_response(
+			array(
+				'comparison' => $comparison,
+				'sites'      => $sites,
+			)
+		);
 	}
 
 	/**
@@ -560,15 +585,15 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function get_status( $request ) {
-		$sites                = get_sites( array( 'number' => 0 ) );
-		$total_sites          = count( $sites );
-		$settings             = $this->settings_manager->get_all_with_status();
-		$locked_settings      = 0;
-		$total_overrides      = 0;
+		$sites           = get_sites( array( 'number' => 0 ) );
+		$total_sites     = count( $sites );
+		$settings        = $this->settings_manager->get_all_with_status();
+		$locked_settings = 0;
+		$total_overrides = 0;
 
 		foreach ( $settings as $config ) {
 			if ( $config['locked'] ) {
-				$locked_settings++;
+				++$locked_settings;
 			}
 			$total_overrides += $config['overridden'];
 		}
@@ -645,7 +670,7 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Get single template
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function get_template( $request ) {
 		$slug     = $request->get_param( 'slug' );
@@ -662,7 +687,7 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Create template
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function create_template( $request ) {
 		$name        = $request->get_param( 'name' );
@@ -688,14 +713,19 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Delete template
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function delete_template( $request ) {
 		$slug   = $request->get_param( 'slug' );
 		$result = $this->templates_manager->delete_template( $slug );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Template deleted' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Template deleted',
+				)
+			);
 		}
 
 		return new \WP_Error( 'delete_failed', 'Failed to delete template', array( 'status' => 500 ) );
@@ -705,7 +735,7 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Apply template
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function apply_template( $request ) {
 		$slug  = $request->get_param( 'slug' );
@@ -717,7 +747,12 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 			$result = $this->templates_manager->apply_to_network( $slug, $lock );
 
 			if ( $result ) {
-				return rest_ensure_response( array( 'success' => true, 'message' => 'Template applied to network' ) );
+				return rest_ensure_response(
+					array(
+						'success' => true,
+						'message' => 'Template applied to network',
+					)
+				);
 			}
 
 			return new \WP_Error( 'apply_failed', 'Failed to apply template', array( 'status' => 500 ) );

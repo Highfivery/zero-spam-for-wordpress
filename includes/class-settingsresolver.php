@@ -3,12 +3,15 @@
  * Settings Resolver class
  *
  * Handles multisite-aware settings resolution with per-request caching.
- * Implements precedence: site override > network default > plugin defaults.
+ * Implements the precedence Network_Settings applies: locked network value >
+ * site override > network default > plugin defaults.
  *
  * @package ZeroSpam
  */
 
 namespace ZeroSpam\Includes;
+
+use ZeroSpam\Core\Settings_Schema;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -18,6 +21,11 @@ defined( 'ABSPATH' ) || die();
  *
  * Centralized settings resolution for both admin UI and REST API.
  * Provides per-request caching to minimize database queries.
+ *
+ * Since 6.0.0 network values are read from and written to the network
+ * settings store (`zerospam_network_settings`, see Network_Settings) only.
+ * The `zero-spam-network-{module}` options used before are merged into it
+ * once (Migrations::merge_network_store()) and no longer read or written.
  */
 class Settings_Resolver {
 
@@ -31,7 +39,8 @@ class Settings_Resolver {
 	/**
 	 * Get resolved settings for a module with multisite support.
 	 *
-	 * Precedence: site override > network default > plugin defaults.
+	 * Precedence: locked network value > site override > network default >
+	 * plugin defaults.
 	 *
 	 * @param string $module Module name (e.g., 'zerospam', 'settings').
 	 * @param array  $defaults Optional. Default values for settings.
@@ -52,19 +61,19 @@ class Settings_Resolver {
 			$resolved = $defaults;
 		}
 
-		// Layer 2: Network defaults (if multisite and network-active).
-		if ( is_multisite() && self::is_network_active() ) {
-			$network_settings = get_site_option( "zero-spam-network-$module", array() );
-			if ( is_array( $network_settings ) ) {
-				$resolved = array_merge( $resolved, $network_settings );
-			}
-		}
+		$network = self::get_network_values( $module );
 
-		// Layer 3: Site overrides (highest priority).
+		// Layer 2: Network defaults.
+		$resolved = array_merge( $resolved, $network['values'] );
+
+		// Layer 3: Site overrides.
 		$site_settings = get_option( "zero-spam-$module", array() );
 		if ( is_array( $site_settings ) ) {
 			$resolved = array_merge( $resolved, $site_settings );
 		}
+
+		// Layer 4: Locked network values (highest priority).
+		$resolved = array_merge( $resolved, array_intersect_key( $network['values'], array_flip( $network['locked'] ) ) );
 
 		// Cache for this request.
 		self::$cache[ $cache_key ] = $resolved;
@@ -75,7 +84,8 @@ class Settings_Resolver {
 	/**
 	 * Get resolved settings with source information.
 	 *
-	 * Returns settings along with metadata about where each value came from.
+	 * Returns settings along with metadata about where each value came from:
+	 * `locked`, `site`, `network` or `default`.
 	 *
 	 * @param string $module Module name.
 	 * @param array  $defaults Default values.
@@ -86,12 +96,12 @@ class Settings_Resolver {
 		$values  = array();
 
 		// Get all layers.
-		$network_settings = array();
-		if ( is_multisite() && self::is_network_active() ) {
-			$network_settings = get_site_option( "zero-spam-network-$module", array() );
-		}
+		$network          = self::get_network_values( $module );
+		$network_settings = $network['values'];
+		$locked           = array_flip( $network['locked'] );
 
 		$site_settings = get_option( "zero-spam-$module", array() );
+		$site_settings = is_array( $site_settings ) ? $site_settings : array();
 
 		// Determine source for each key.
 		$all_keys = array_unique(
@@ -103,7 +113,10 @@ class Settings_Resolver {
 		);
 
 		foreach ( $all_keys as $key ) {
-			if ( isset( $site_settings[ $key ] ) ) {
+			if ( isset( $locked[ $key ] ) ) {
+				$values[ $key ]  = $network_settings[ $key ];
+				$sources[ $key ] = 'locked';
+			} elseif ( isset( $site_settings[ $key ] ) ) {
 				$values[ $key ]  = $site_settings[ $key ];
 				$sources[ $key ] = 'site';
 			} elseif ( isset( $network_settings[ $key ] ) ) {
@@ -127,6 +140,9 @@ class Settings_Resolver {
 	 * Note: WordPress update_option/update_site_option returns false if the value
 	 * hasn't changed. This is not an error - we consider it a success.
 	 *
+	 * A network update keeps each setting's lock, records who changed it and
+	 * adds one network audit log entry per changed setting (secrets masked).
+	 *
 	 * @param string $module Module name.
 	 * @param string $scope  Scope: 'site' or 'network'.
 	 * @param array  $values Settings values to update.
@@ -138,17 +154,46 @@ class Settings_Resolver {
 				return false;
 			}
 
-			// Get existing network settings.
-			$existing = get_site_option( "zero-spam-network-$module", array() );
-			$updated  = array_merge( is_array( $existing ) ? $existing : array(), $values );
+			$stored  = get_site_option( Network_Settings::META_KEY, array() );
+			$store   = Settings_Schema::normalize_network_store( $stored );
+			$changed = array();
 
-			// Check if values actually changed.
-			if ( $existing === $updated ) {
-				// No change, but this is success (idempotent).
+			foreach ( $values as $key => $value ) {
+				$entry = isset( $store['settings'][ $key ] ) && is_array( $store['settings'][ $key ] ) ? $store['settings'][ $key ] : array();
+
+				if ( array_key_exists( 'value', $entry ) && $entry['value'] === $value ) {
+					continue;
+				}
+
+				$changed[ $key ] = array_key_exists( 'value', $entry ) ? $entry['value'] : null;
+
+				$store['settings'][ $key ] = array_merge(
+					$entry,
+					array(
+						'value'      => $value,
+						'locked'     => ! empty( $entry['locked'] ),
+						'updated_by' => get_current_user_id(),
+						'updated_at' => current_time( 'mysql' ),
+					)
+				);
+			}
+
+			// No change, but this is success (idempotent).
+			if ( ! $changed ) {
 				return true;
 			}
 
-			$result = update_site_option( "zero-spam-network-$module", $updated );
+			$result = update_site_option( Network_Settings::META_KEY, $store );
+
+			if ( $result ) {
+				delete_site_transient( Network_Settings::CACHE_KEY );
+
+				// Every network change is audited with the acting user, as the network settings screen does.
+				$manager = new Network_Settings_Manager();
+				foreach ( $changed as $key => $old_value ) {
+					$manager->log_setting_change( (string) $key, self::audit_value( (string) $key, $old_value ), self::audit_value( (string) $key, $values[ $key ] ) );
+				}
+			}
 		} else {
 			// Site scope.
 			$existing = get_option( "zero-spam-$module", array() );
@@ -179,6 +224,72 @@ class Settings_Resolver {
 	}
 
 	/**
+	 * Network values of a module's settings, and which of them are locked.
+	 *
+	 * Read from the network settings store; empty on a single site. Keys the
+	 * settings registry does not know are left out.
+	 *
+	 * @param string $module Module name.
+	 * @return array{values: array<string, mixed>, locked: string[]}
+	 */
+	public static function get_network_values( $module ) {
+		$network = array(
+			'values' => array(),
+			'locked' => array(),
+		);
+
+		if ( ! is_multisite() ) {
+			return $network;
+		}
+
+		$stored = get_site_transient( Network_Settings::CACHE_KEY );
+		if ( false === $stored ) {
+			$stored = get_site_option( Network_Settings::META_KEY, array() );
+		}
+		$store    = Settings_Schema::normalize_network_store( $stored );
+		$registry = Settings_Schema::registry();
+
+		foreach ( $store['settings'] as $key => $config ) {
+			// A null value is no network value (the isset() test Network_Settings uses).
+			if ( ! is_array( $config ) || ! isset( $config['value'] ) ) {
+				continue;
+			}
+
+			if ( ! isset( $registry[ $key ]['module'] ) || $module !== $registry[ $key ]['module'] ) {
+				continue;
+			}
+
+			$network['values'][ $key ] = $config['value'];
+
+			if ( ! empty( $config['locked'] ) ) {
+				$network['locked'][] = (string) $key;
+			}
+		}
+
+		return $network;
+	}
+
+	/**
+	 * A value as the network audit log records it: secrets masked.
+	 *
+	 * @param string $key   Setting key.
+	 * @param mixed  $value Value.
+	 * @return mixed
+	 */
+	private static function audit_value( string $key, $value ) {
+		if ( null === $value || ! Settings_Schema::is_secret( $key ) ) {
+			return $value;
+		}
+
+		$value = is_scalar( $value ) && ! is_bool( $value ) ? trim( (string) $value ) : '';
+
+		return '' === $value ? array( 'set' => false ) : array(
+			'set'  => true,
+			'hint' => Settings_Schema::hint( $value ),
+		);
+	}
+
+	/**
 	 * Invalidate cached settings for a module.
 	 *
 	 * @param string $module Module name.
@@ -206,22 +317,5 @@ class Settings_Resolver {
 	private static function get_cache_key( $module ) {
 		$blog_id = is_multisite() ? get_current_blog_id() : 0;
 		return "module_{$module}_blog_{$blog_id}";
-	}
-
-	/**
-	 * Check if plugin is network active.
-	 *
-	 * @return bool True if network active.
-	 */
-	private static function is_network_active() {
-		if ( ! is_multisite() ) {
-			return false;
-		}
-
-		if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
-			require_once ABSPATH . '/wp-admin/includes/plugin.php';
-		}
-
-		return is_plugin_active_for_network( ZEROSPAM_PLUGIN_BASE );
 	}
 }

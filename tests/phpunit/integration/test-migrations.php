@@ -28,6 +28,8 @@ class Test_Migrations extends TestCase {
 		'proxy_detection_since',
 		'canonical_blocked_ips',
 		'admin_safe_ip',
+		'v6_backup_5x',
+		'v6_network_store',
 	);
 
 	/**

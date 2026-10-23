@@ -338,6 +338,14 @@ add_filter('zerospam_settings', function($settings) {
 
 ---
 
+## Storage, the settings schema and REST (6.0)
+
+- **One store.** Network values live in the site option `zerospam_network_settings` (`settings` → key → `value`, `locked`, `updated_by`, `updated_at`). The REST route `zero-spam/v1/settings` used a second option, `zero-spam-network-zerospam`, before 6.0; the `v6_network_store` migration merges it once per network (store values win, merged keys are unlocked) and leaves the old option in place, unread and unwritten, so a downgrade to 5.7.x still finds it. It is removed in 6.1, together with the `zerospam_backup_5x` copy of the 5.x settings.
+- **Precedence everywhere.** `Network_Settings::resolve_all_settings()`, `Settings_Resolver`, `Core\Settings_Schema` and the REST routes all apply: locked network value → site override → network default → (license only) `ZEROSPAM_LICENSE_KEY` → plugin default. REST reports the source as `locked`, `site`, `network`, `constant` or `default`.
+- **Optional registry keys.** A setting added with `zerospam_settings` may carry `default`, `secret`, `lockable`, `area`, `group`, `depends_on` (`array( 'key' => …, 'value' => … )`) and `order`. `lockable => false` keeps it off the lock switches; every type but `html` is lockable by default. `secret => true` makes it write-only over REST: reads return `{ set, source, hint }`, and on a network site `{ set, source }` only when the value comes from the network or a constant.
+- **Audit.** A `scope=network` PATCH of `zero-spam/v1/settings` keeps each key's lock and adds one `wpzerospam_network_audit` entry per changed key, as the acting user, with secrets masked.
+- **Schema.** `GET zero-spam/v1/settings/schema` (site administrators) returns every section and setting with these keys plus `locked`, `source` and the value; `Settings_Schema::get()` gives the same in PHP, built once per request.
+
 ## Support
 
 For questions or issues with extensibility:
