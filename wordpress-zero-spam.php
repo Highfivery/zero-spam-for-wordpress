@@ -11,7 +11,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       Zero Spam for WordPress
- * Plugin URI:        https://wordpress.com/plugins/zero-spam/
+ * Plugin URI:        https://wordpress.org/plugins/zero-spam/
  * Description:       Tired of all the ineffective WordPress anti-spam & security plugins? Zero Spam for WordPress makes blocking spam &amp; malicious activity a cinch. <strong>Just activate, configure, and say goodbye to spam.</strong>
  * Version:           5.7.14
  * Requires at least: 6.9

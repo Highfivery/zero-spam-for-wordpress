@@ -1,5 +1,5 @@
 === Zero Spam for WordPress ===
-Contributors: bmarshall511
+Contributors: bmarshall511, highfivery
 Tags: protection, firewall, security, spam, spam blocker
 Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
