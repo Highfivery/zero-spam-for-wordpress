@@ -31,7 +31,7 @@ Agent and contributor conventions (repository map, standards, quality gate, defi
 - Branch from `develop` using a descriptive prefix (`fix/`, `feature/`, `security/`, `chore/`, `docs/`) and open pull requests against `develop`.
 - Both `develop` and `main` are protected: changes land only through pull requests, and force pushes and branch deletion are disabled. There is no hosted CI; the quality gate below runs locally before every push and its results are posted on the PR.
 - Commit messages follow the conventional style already used in the history: `fix(scope): …`, `feat(scope): …`, `security(scope): …`, `perf(scope): …`, `docs: …`, `chore: …`.
-- Every PR must include a `readme.txt` changelog entry (see the PR template). `readme.txt` is the single changelog for this project; there is no separate `CHANGELOG.md`.
+- Every PR must include a `readme.txt` changelog entry (see the PR template). `readme.txt` carries the user-facing changelog summary for the current minor series and `CHANGELOG.md` the full entries and history; release PRs write both (see the release instructions below).
 
 ## Quality gate
 
@@ -74,7 +74,7 @@ The Playwright suite (`tests/e2e/`) runs outside the hook because it needs Docke
 
 1. **Branch:** starting from an up-to-date `develop`, cut `release/X.Y.Z`.
 2. **Version bump:** update the version in all three places and confirm they match: the `Version:` plugin header and the `ZEROSPAM_VERSION` constant in `wordpress-zero-spam.php`, and `Stable tag:` in `readme.txt`. Compare against the previous release tag so the version never goes backwards (in March 2026 a release was mislabeled 5.5.8 instead of 5.7.8, so 5.7.7 sites were never offered the update).
-3. **Changelog:** add a `= vX.Y.Z =` section at the top of `== Changelog ==` in `readme.txt`, one bullet per change using the `**type(scope):**` convention, linking issues and support topics where relevant.
+3. **Changelog:** add a `= vX.Y.Z =` section at the top of `== Changelog ==` in `readme.txt`, one bullet per change using the `**type(scope):**` convention, linking issues and support topics where relevant. Add the full entry to `CHANGELOG.md` (`## vX.Y.Z`, `- **type(scope):** …`): `readme.txt` carries the user-facing summary (plain language, benefit first, no hook, class or migration detail), `CHANGELOG.md` the full entry. `readme.txt` keeps only the current minor series: when a new minor series starts, move the previous one to `CHANGELOG.md` (WordPress.org truncates the readme changelog at 5,000 words; `composer version:check` fails above 4,500).
 4. **Compatibility:** check the current WordPress release (`https://api.wordpress.org/core/version-check/1.7/`). Bump `Tested up to` in `readme.txt` only after actually testing the plugin on that version.
 5. **Review and test:** open the release PR against `develop`, confirm `composer check` passes, and run the full regression pass on both the single-site and the multisite Local sites (settings save, each enabled module, log and dashboard screens, network settings, uninstall).
 6. **Merge to develop**, then open a PR from `develop` to `main` and merge it with a merge commit (not a squash) so history stays shared between the two branches.

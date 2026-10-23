@@ -77,6 +77,11 @@ class Plugin {
 		if ( is_admin() ) {
 			// Plugin admin module.
 			new \ZeroSpam\Core\Admin\Admin();
+
+			// Administrator addresses that are never locked out: notice and Settings page list.
+			new \ZeroSpam\Core\Admin_Safe_IPs();
+			// Warns when visitors appear to share one IP address (unknown proxy or CDN).
+			new \ZeroSpam\Core\Admin\Shared_IP_Warning();
 		}
 
 		// Register REST API routes.
@@ -84,6 +89,9 @@ class Plugin {
 
 		// Preform the firewall access check.
 		new \ZeroSpam\Core\Access();
+
+		// Emailed rescue links for administrators who blocked themselves.
+		new \ZeroSpam\Core\Rescue_Link();
 
 		// Database functionality.
 		new \ZeroSpam\Includes\DB();

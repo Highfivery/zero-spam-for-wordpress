@@ -436,7 +436,7 @@ endif;
 								<form class="zerospam-table-form" method="post">
 								<?php wp_nonce_field( 'zerospam_nonce', 'zerospam_nonce' ); ?>
 									<input type="hidden" name="paged" value="1" />
-								<?php $table_data->search_box( __( 'Search IPs', 'zero-spam' ), 'search-ip' ); ?>
+								<?php $table_data->search_box( __( 'Search locations', 'zero-spam' ), 'search-ip' ); ?>
 								<?php $table_data->display(); ?>
 								</form>
 								<?php

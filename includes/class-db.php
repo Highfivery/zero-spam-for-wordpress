@@ -19,6 +19,17 @@ class DB {
 	const DB_VERSION = '1.4';
 
 	/**
+	 * Log types that are recorded in the Detection Log but are not detections.
+	 *
+	 * The Log lists them; totals, charts, top lists, the dashboard widget and
+	 * the network statistics leave them out (see detections_sql()).
+	 * `rescue`: an emailed rescue link was used (Core\Rescue_Link).
+	 *
+	 * @var string[]
+	 */
+	const NON_DETECTION_TYPES = array( 'rescue' );
+
+	/**
 	 * DB tables
 	 *
 	 * @var array $tables List of plugin database tables.
@@ -324,6 +335,15 @@ class DB {
 		if ( is_array( $record ) ) {
 			$blocked = false;
 
+			// Store IP addresses in canonical form (User::normalize_ip()), the
+			// form visitors are reported in.
+			if ( ! empty( $record['user_ip'] ) && is_string( $record['user_ip'] ) ) {
+				$canonical = \ZeroSpam\Core\User::normalize_ip( $record['user_ip'] );
+				if ( '' !== $canonical ) {
+					$record['user_ip'] = $canonical;
+				}
+			}
+
 			// Add or update a record.
 			if ( ! empty( $record['blocked_id'] ) ) {
 				// Update a record.
@@ -376,14 +396,17 @@ class DB {
 				),
 				ARRAY_A
 			);
-		} elseif ( rest_is_ip_address( $record ) ) {
-			// Get record by IP.
+		} elseif ( is_string( $record ) && '' !== \ZeroSpam\Core\User::normalize_ip( $record ) ) {
+			// Get record by IP, as given or in canonical form (blocks are stored
+			// canonical; the `canonical_blocked_ips` migration rewrote older
+			// rows). If both exist, the longer-lasting block wins.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			return $wpdb->get_row(
 				$wpdb->prepare(
-					'SELECT * FROM %i WHERE user_ip = %s',
+					"SELECT * FROM %i WHERE user_ip IN (%s, %s) ORDER BY blocked_type = 'permanent' DESC, end_block DESC LIMIT 1",
 					$wpdb->prefix . self::$tables['blocked'],
-					$record
+					$record,
+					\ZeroSpam\Core\User::normalize_ip( $record )
 				),
 				ARRAY_A
 			);
@@ -504,7 +527,28 @@ class DB {
 	}
 
 	/**
+	 * SQL condition that keeps detections only (log rows whose type is not in NON_DETECTION_TYPES).
+	 *
+	 * Every statistics query on the log table adds it, so a non-detection
+	 * type is excluded everywhere by adding it to NON_DETECTION_TYPES once.
+	 *
+	 * @param string $column Log type column, optionally with a table alias.
+	 * @return string Prepared SQL condition, such as `log_type NOT IN ('rescue')`.
+	 */
+	public static function detections_sql( string $column = 'log_type' ): string {
+		global $wpdb;
+
+		return $wpdb->prepare(
+			'%i NOT IN (' . implode( ', ', array_fill( 0, count( self::NON_DETECTION_TYPES ), '%s' ) ) . ')',
+			array_merge( array( $column ), self::NON_DETECTION_TYPES )
+		);
+	}
+
+	/**
 	 * Query the DB
+	 *
+	 * Log queries return detections only (see detections_sql()) unless
+	 * `include_non_detections` is true.
 	 *
 	 * @param string $table Database table to query.
 	 * @param array  $args  Arguments for the select statement.
@@ -572,10 +616,9 @@ class DB {
 
 		// Build WHERE clause using prepared statements.
 		$prepare_values = array();
+		$where_clauses  = array();
 
 		if ( ! empty( $args['where'] ) ) {
-			$where_clauses = array();
-
 			foreach ( $args['where'] as $key => $where ) {
 				// Sanitize column name — only allow alphanumeric and underscores.
 				$column = preg_replace( '/[^a-zA-Z0-9_]/', '', $key );
@@ -599,10 +642,15 @@ class DB {
 					$prepare_values[] = $where['value'];
 				}
 			}
+		}
 
-			if ( ! empty( $where_clauses ) ) {
-				$sql .= ' WHERE ' . implode( ' AND ', $where_clauses );
-			}
+		// Detections only, after the caller's conditions.
+		if ( 'log' === $table && empty( $args['include_non_detections'] ) ) {
+			$where_clauses[] = self::detections_sql();
+		}
+
+		if ( ! empty( $where_clauses ) ) {
+			$sql .= ' WHERE ' . implode( ' AND ', $where_clauses );
 		}
 
 		if ( ! empty( $args['orderby'] ) ) {

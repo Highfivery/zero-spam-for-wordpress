@@ -15,6 +15,7 @@ use ReflectionProperty;
 use WP_UnitTest_Factory;
 use WP_UnitTestCase;
 use ZeroSpam\Core\Settings;
+use ZeroSpam\Core\User;
 use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Network_Settings;
@@ -77,6 +78,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_aggregate_api_data',
 		'zerospam_async_share_detection',
 		'zerospam_network_weekly_summary',
+		'zerospam_send_rescue_link',
 	);
 
 	/**
@@ -104,6 +106,8 @@ abstract class TestCase extends WP_UnitTestCase {
 		'wpzerospam',
 		'wpzerospam_honeypot',
 		'zerospam_activation_time',
+		'zerospam_admin_safe_ip_notice',
+		'zerospam_admin_safe_ips',
 		'zerospam_api_monitoring_notice_dismissed',
 		'zerospam_api_notices',
 		'zerospam_blocked_email_domains',
@@ -113,8 +117,12 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_davidwalsh_data',
 		'zerospam_davidwalsh_secret',
 		'zerospam_db_version',
+		'zerospam_migration_cursor_canonical_blocked_ips',
+		'zerospam_migration_lock_canonical_blocked_ips',
+		'zerospam_proxy_detection_since',
 		'zerospam_settings_audit',
 		'zerospam_share_queue',
+		'zerospam_shared_ip_warning_dismissed',
 		'zerospam_show_settings_review_notice',
 		'zero-spam-last-update',
 		'zero_spam_last_api_report',
@@ -133,6 +141,12 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_geo_test',
 		'zerospam_ipinfo_test',
 		'zerospam_login_intent_test',
+		'zerospam_rescue_ip_test',
+		'zerospam_rescue_job_test',
+		'zerospam_rescue_site_sends',
+		'zerospam_rescue_to_test',
+		'zerospam_rescue_token_test',
+		'zerospam_shared_ip_warning',
 		'zerospam_woo_options_migrated',
 	);
 
@@ -232,7 +246,7 @@ abstract class TestCase extends WP_UnitTestCase {
 	/**
 	 * Clears the per-request static caches in the plugin.
 	 *
-	 * DavidWalsh::validate_token() also keeps a function-level
+	 * DavidWalsh::get_token_status() (behind validate_token()) also keeps a function-level
 	 * `static $accepted`, which cannot be reset from outside: a token accepted
 	 * in one test stays accepted for the rest of the run. Use a fresh token per
 	 * test until that cache moves to a resettable property.
@@ -240,9 +254,11 @@ abstract class TestCase extends WP_UnitTestCase {
 	protected static function reset_static_caches(): void {
 		self::set_static( Utilities::class, 'allowed_words_cache', null );
 		self::set_static( Utilities::class, 'min_length_cache', null );
+		self::set_static( Utilities::class, 'script_debug', null );
 		self::set_static( Settings_Resolver::class, 'cache', array() );
 		Settings::$settings = array();
 		Settings::$sections = array();
+		User::reset_cache();
 	}
 
 	/**

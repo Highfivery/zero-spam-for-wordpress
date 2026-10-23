@@ -18,6 +18,45 @@ defined( 'ABSPATH' ) || die();
 class Utilities {
 
 	/**
+	 * Whether SCRIPT_DEBUG is on, read once per request (see asset_version()).
+	 *
+	 * @var bool|null
+	 */
+	private static $script_debug = null;
+
+	/**
+	 * Version string for one of the plugin's own CSS or JS files.
+	 *
+	 * With SCRIPT_DEBUG on (development sites) it is the file's modification
+	 * time, so browsers load an edited file at once; otherwise it is the
+	 * plugin version, so caches are only busted by a release.
+	 *
+	 * @since 5.7.14
+	 *
+	 * @param string $relative_path Path relative to the plugin directory, e.g. assets/css/admin.css.
+	 * @return string Version for wp_enqueue_style()/wp_enqueue_script().
+	 */
+	public static function asset_version( string $relative_path ): string {
+		if ( null === self::$script_debug ) {
+			self::$script_debug = defined( 'SCRIPT_DEBUG' ) && true === constant( 'SCRIPT_DEBUG' );
+		}
+
+		if ( self::$script_debug ) {
+			$file = ZEROSPAM_PATH . ltrim( $relative_path, '/' );
+
+			if ( is_file( $file ) ) {
+				$mtime = filemtime( $file );
+
+				if ( false !== $mtime ) {
+					return (string) $mtime;
+				}
+			}
+		}
+
+		return ZEROSPAM_VERSION;
+	}
+
+	/**
 	 * Returns a clean domain name
 	 *
 	 * @param string $domain Domain name.
@@ -50,24 +89,24 @@ class Utilities {
 	 * as `field[<img src=x onerror=…>]` into an array key, so keys are just as
 	 * attacker-controlled as values.
 	 *
-	 * @param array  $array Array to sanitize.
+	 * @param mixed  $data Array (or single value) to sanitize.
 	 * @param string $type  Type of sanitization.
 	 */
-	public static function sanitize_array( $array, $type = 'sanitize_text_field' ) {
-		if ( ! is_array( $array ) ) {
+	public static function sanitize_array( $data, $type = 'sanitize_text_field' ) {
+		if ( ! is_array( $data ) ) {
 			switch ( $type ) {
 				case 'sanitize_text_field':
-					$array = sanitize_text_field( $array );
+					$data = sanitize_text_field( $data );
 					break;
 				case 'esc_html':
-					$array = esc_html( $array );
+					$data = esc_html( $data );
 					break;
 				default:
-					$array = sanitize_text_field( $array );
+					$data = sanitize_text_field( $data );
 			}
 		} else {
 			$sanitized = array();
-			foreach ( $array as $key => $value ) {
+			foreach ( $data as $key => $value ) {
 				$key = is_string( $key ) ? sanitize_text_field( $key ) : $key;
 
 				if ( is_array( $value ) ) {
@@ -85,10 +124,10 @@ class Utilities {
 					}
 				}
 			}
-			$array = $sanitized;
+			$data = $sanitized;
 		}
 
-		return $array;
+		return $data;
 	}
 
 	/**
@@ -224,31 +263,22 @@ class Utilities {
 			return false;
 		}
 
-		$denied_ips    = array();
-		$htaccess_file = get_home_path() . '.htaccess';
-		if ( is_writable( $htaccess_file ) ) {
-			$blocked_ips = \ZeroSpam\Includes\DB::get_blocked();
-			if ( $blocked_ips ) {
-				foreach ( $blocked_ips as $key => $record ) {
-					$details = \ZeroSpam\Core\Access::get_blocked_details( $record );
-					if ( $details['blocked'] ) {
-						$denied_ips[] = $details['details']['user_ip'];
-					}
-				}
-			}
+		// Also called outside wp-admin (the update migration runs on any request).
+		if ( ! function_exists( 'get_home_path' ) || ! function_exists( 'insert_with_markers' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			require_once ABSPATH . 'wp-admin/includes/misc.php';
+		}
 
-			if ( $denied_ips ) {
-				$lines = array();
-
-				if ( 'htaccess_legacy' === $settings ) {
-					$lines[] = 'Deny from ' . implode( ' ', $denied_ips );
-				} elseif ( 'htaccess_modern' === $settings ) {
-					$lines[] = '<RequireAll>';
-					$lines[] = 'Require all granted';
-					$lines[] = 'Require not ip ' . implode( ' ', $denied_ips );
-					$lines[] = '</RequireAll>';
-				}
-			}
+		/**
+		 * Filters the path of the .htaccess file Zero Spam writes its deny rules to.
+		 *
+		 * @since 5.7.14
+		 *
+		 * @param string $htaccess_file Full path. Default: .htaccess in the WordPress home directory.
+		 */
+		$htaccess_file = (string) apply_filters( 'zerospam_htaccess_file', get_home_path() . '.htaccess' );
+		if ( wp_is_writable( $htaccess_file ) ) {
+			$lines = self::htaccess_rules( (string) $settings );
 
 			if ( empty( $lines ) ) {
 				return false;
@@ -267,6 +297,46 @@ class Utilities {
 	}
 
 	/**
+	 * The .htaccess deny rules for the IPs blocked now.
+	 *
+	 * Administrator addresses that are never locked out (Admin_Safe_IPs) are
+	 * left out, as they are in the PHP block check.
+	 *
+	 * @param string $method Block method: `htaccess_legacy` or `htaccess_modern`.
+	 * @return string[] Rule lines, empty when no IP is denied.
+	 */
+	public static function htaccess_rules( string $method ): array {
+		$denied_ips = array();
+		$safe_ips   = \ZeroSpam\Core\Admin_Safe_IPs::get_ips();
+
+		foreach ( (array) \ZeroSpam\Includes\DB::get_blocked() as $record ) {
+			$details = \ZeroSpam\Core\Access::get_blocked_details( $record );
+			if ( $details['blocked'] && ! in_array( (string) $details['details']['user_ip'], $safe_ips, true ) ) {
+				$denied_ips[] = $details['details']['user_ip'];
+			}
+		}
+
+		if ( ! $denied_ips ) {
+			return array();
+		}
+
+		if ( 'htaccess_legacy' === $method ) {
+			return array( 'Deny from ' . implode( ' ', $denied_ips ) );
+		}
+
+		if ( 'htaccess_modern' === $method ) {
+			return array(
+				'<RequireAll>',
+				'Require all granted',
+				'Require not ip ' . implode( ' ', $denied_ips ),
+				'</RequireAll>',
+			);
+		}
+
+		return array();
+	}
+
+	/**
 	 * Update a plugin settings.
 	 *
 	 * @param string $key Setting key.
@@ -282,17 +352,7 @@ class Utilities {
 		// Handle blocked_email_domains separately — it uses a standalone option
 		// to prevent autoloading large data on every page load.
 		if ( 'blocked_email_domains' === $key ) {
-			if ( update_option( 'zerospam_blocked_email_domains', $value ) ) {
-				wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
-				global $wpdb;
-				$wpdb->query(
-					$wpdb->prepare(
-						"UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s",
-						'no',
-						'zerospam_blocked_email_domains'
-					)
-				);
-			}
+			update_option( 'zerospam_blocked_email_domains', $value, false );
 			return true;
 		}
 
@@ -684,6 +744,8 @@ class Utilities {
 	 * Returns an array of countries.
 	 *
 	 * @access public
+	 *
+	 * @param string|false $key Optional. Country code to return the name of.
 	 */
 	public static function countries( $key = false ) {
 		$countries = apply_filters(
@@ -946,6 +1008,8 @@ class Utilities {
 	 * Returns a country flag image URL.
 	 *
 	 * @access public
+	 *
+	 * @param string $country_code Two-character country code.
 	 */
 	public static function country_flag_url( $country_code ) {
 		return plugins_url( 'assets/img/flags/' . strtolower( $country_code ) . '.svg', ZEROSPAM );
@@ -968,6 +1032,7 @@ class Utilities {
 	 *
 	 * @access public
 	 *
+	 * @param bool $regenerate Optional. Whether to generate a new key.
 	 * @return string A unique key used for the 'honeypot' field.
 	 */
 	public static function get_honeypot( $regenerate = false ) {
@@ -982,6 +1047,9 @@ class Utilities {
 
 	/**
 	 * Returns a cache key
+	 *
+	 * @param array|string $args  Key parts.
+	 * @param string|false $table Optional. Prefix (usually a table or service name).
 	 */
 	public static function cache_key( $args, $table = false ) {
 		if ( is_array( $args ) ) {
@@ -1054,20 +1122,35 @@ class Utilities {
 	 *
 	 * @since 5.0.0
 	 * @access public
+	 *
+	 * Addresses are compared in canonical form (see User::normalize_ip()), so
+	 * `2001:DB8::1` on the list matches a visitor seen as `2001:db8:0:0::1`.
+	 *
+	 * @param string|false $ip IP address.
 	 */
 	public static function is_whitelisted( $ip ) {
+		if ( ! is_string( $ip ) || '' === $ip ) {
+			return false;
+		}
+
 		$settings = ZeroSpam\Core\Settings::get_settings();
 
-		// Check whitelist.
-		if ( ! empty( $settings['ip_whitelist']['value'] ) ) {
-			$whitelisted = explode( PHP_EOL, $settings['ip_whitelist']['value'] );
-			if ( $whitelisted ) {
-				foreach ( $whitelisted as $key => $whitelisted_ip ) {
-					$whitelisted_ip = trim( $whitelisted_ip );
-					if ( $whitelisted_ip === $ip ) {
-						return true;
-					}
-				}
+		if ( empty( $settings['ip_whitelist']['value'] ) || ! is_string( $settings['ip_whitelist']['value'] ) ) {
+			return false;
+		}
+
+		$ip_normalized = User::normalize_ip( $ip );
+
+		foreach ( (array) preg_split( '/\R/', $settings['ip_whitelist']['value'] ) as $whitelisted_ip ) {
+			$whitelisted_ip = trim( (string) $whitelisted_ip );
+			if ( '' === $whitelisted_ip ) {
+				continue;
+			}
+
+			// Non-IP values (a Debug IP mock, for example) are compared as entered.
+			$whitelisted_normalized = User::normalize_ip( $whitelisted_ip );
+			if ( '' !== $ip_normalized && '' !== $whitelisted_normalized ? $whitelisted_normalized === $ip_normalized : $whitelisted_ip === $ip ) {
+				return true;
 			}
 		}
 
@@ -1153,13 +1236,173 @@ class Utilities {
 	}
 
 	/**
+	 * Parses a list of IP addresses and CIDR ranges (IPv4 and IPv6).
+	 *
+	 * Entries may be separated by new lines, commas or spaces, as admins paste
+	 * them from their host's documentation. Duplicates are dropped. Ranges
+	 * broader than /8 (IPv4) or /32 (IPv6) are rejected as too broad: trusting
+	 * them as proxies would trust almost every visitor's X-Forwarded-For.
+	 *
+	 * @param mixed $value String list, or an array of entries.
+	 * @return array{valid: string[], invalid: string[], too_broad: string[]} Valid
+	 *         entries, entries that are not an IP address or range, and ranges
+	 *         that are too broad.
+	 */
+	public static function parse_ip_ranges( $value ): array {
+		$parsed = array(
+			'valid'     => array(),
+			'invalid'   => array(),
+			'too_broad' => array(),
+		);
+
+		if ( is_array( $value ) ) {
+			$entries = array_map(
+				static function ( $entry ) {
+					return is_scalar( $entry ) ? (string) $entry : '';
+				},
+				$value
+			);
+		} elseif ( is_string( $value ) ) {
+			$entries = preg_split( '/[\s,]+/', $value );
+		} else {
+			return $parsed;
+		}
+
+		foreach ( (array) $entries as $entry ) {
+			$entry = trim( (string) $entry );
+			if ( '' === $entry ) {
+				continue;
+			}
+
+			$unmapped = self::unmap_ip_range( $entry );
+
+			if ( null === $unmapped || ! self::is_ip_range( $unmapped ) ) {
+				$key = 'invalid';
+			} elseif ( self::is_too_broad_range( $unmapped ) ) {
+				$key = 'too_broad';
+			} else {
+				$key   = 'valid';
+				$entry = $unmapped;
+			}
+
+			if ( ! in_array( $entry, $parsed[ $key ], true ) ) {
+				$parsed[ $key ][] = $entry;
+			}
+		}
+
+		return $parsed;
+	}
+
+	/**
+	 * Rewrites an IPv4-mapped IPv6 address or range (`::ffff:192.0.2.1`,
+	 * `::ffff:192.0.2.0/120`) as IPv4 (`192.0.2.1`, `192.0.2.0/24`).
+	 *
+	 * Visitor addresses are compared in IPv4 form (User::normalize_ip()), so a
+	 * mapped range would silently never match.
+	 *
+	 * @param string $entry IP address or CIDR range.
+	 * @return string|null The entry (rewritten when mapped), or null for a
+	 *                     mapped range wider than the IPv4 space (/96).
+	 */
+	public static function unmap_ip_range( string $entry ): ?string {
+		$parts = explode( '/', $entry, 2 );
+		if ( false === strpos( $parts[0], ':' ) || false === filter_var( $parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
+			return $entry;
+		}
+
+		$binary = inet_pton( $parts[0] );
+		if ( false === $binary || str_repeat( "\0", 10 ) . "\xff\xff" !== substr( $binary, 0, 12 ) ) {
+			return $entry;
+		}
+
+		$ipv4 = inet_ntop( substr( $binary, 12 ) );
+		if ( false === $ipv4 ) {
+			return null;
+		}
+
+		if ( ! isset( $parts[1] ) ) {
+			return $ipv4;
+		}
+
+		if ( 1 !== preg_match( '/^\d{1,3}$/', $parts[1] ) || (int) $parts[1] < 96 || (int) $parts[1] > 128 ) {
+			return null;
+		}
+
+		return $ipv4 . '/' . ( (int) $parts[1] - 96 );
+	}
+
+	/**
+	 * The entries parse_ip_ranges() dropped, as text for a notice: invalid
+	 * entries as entered, too-broad ranges with the reason.
+	 *
+	 * The result is not escaped.
+	 *
+	 * @param array{invalid: string[], too_broad: string[]} $parsed Result of parse_ip_ranges().
+	 * @return string[]
+	 */
+	public static function describe_dropped_ip_ranges( array $parsed ): array {
+		$dropped = $parsed['invalid'];
+
+		foreach ( $parsed['too_broad'] as $range ) {
+			$dropped[] = sprintf(
+				/* translators: %s: CIDR range, e.g. 0.0.0.0/0 */
+				__( '%s (too broad: would trust every visitor\'s X-Forwarded-For)', 'zero-spam' ),
+				$range
+			);
+		}
+
+		return $dropped;
+	}
+
+	/**
+	 * Whether a string is an IP address or a CIDR range.
+	 *
+	 * @param string $entry IP address (192.0.2.1, 2001:db8::1) or range (192.0.2.0/24, 2001:db8::/32).
+	 * @return bool
+	 */
+	public static function is_ip_range( string $entry ): bool {
+		$parts = explode( '/', $entry );
+		if ( count( $parts ) > 2 || ! rest_is_ip_address( $parts[0] ) ) {
+			return false;
+		}
+
+		if ( 1 === count( $parts ) ) {
+			return true;
+		}
+
+		$max_bits = false === strpos( $parts[0], ':' ) ? 32 : 128;
+
+		return 1 === preg_match( '/^\d{1,3}$/', $parts[1] ) && (int) $parts[1] <= $max_bits;
+	}
+
+	/**
+	 * Whether a CIDR range is broader than /8 (IPv4) or /32 (IPv6).
+	 *
+	 * @param string $entry IP address or CIDR range (see is_ip_range()).
+	 * @return bool
+	 */
+	public static function is_too_broad_range( string $entry ): bool {
+		$parts = explode( '/', $entry );
+		if ( 2 !== count( $parts ) ) {
+			return false;
+		}
+
+		$min_prefix = false === strpos( $parts[0], ':' ) ? 8 : 32;
+
+		return (int) $parts[1] < $min_prefix;
+	}
+
+	/**
 	 * Gets the visitor's country code from a header set by a trusted proxy.
 	 *
 	 * Visitors can send any header they like, so country headers are only used
-	 * when the request actually came through the proxy that sets them:
+	 * when the request actually came through the proxy that sets them, judged
+	 * with the same trusted-proxy list as the visitor IP (User::get_ip()):
 	 * - `CF-IPCountry` when the connection comes from a Cloudflare IP address
-	 *   or a trusted proxy (`zerospam_trusted_proxies` filter).
-	 * - `X-Forwarded-Country` (Cloudways) only from a trusted proxy.
+	 *   or a configured proxy (the "Trusted Proxy IPs" setting or the
+	 *   `zerospam_trusted_proxies` filter).
+	 * - `X-Forwarded-Country` (Cloudways) only from a configured proxy, never
+	 *   from Cloudflare, which passes the visitor's own header through.
 	 * Sites that restore the visitor's IP at the web server (so the proxy's IP
 	 * isn't visible) and only accept traffic through the proxy can opt in with
 	 * the `zerospam_trust_country_headers` filter.
@@ -1167,7 +1410,7 @@ class Utilities {
 	 * @return string|false Two-character country code or false.
 	 */
 	public static function get_proxy_country_code() {
-		$remote_addr = ! empty( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		$remote_addr = User::get_remote_addr();
 
 		/**
 		 * Filters whether country headers are trusted regardless of where the
@@ -1178,27 +1421,16 @@ class Utilities {
 		 */
 		$trust_headers = (bool) apply_filters( 'zerospam_trust_country_headers', false );
 
-		$trusted_proxy = $trust_headers || in_array( $remote_addr, (array) apply_filters( 'zerospam_trusted_proxies', array() ), true );
+		$from_configured_proxy = $trust_headers || ( '' !== $remote_addr && User::is_configured_proxy( $remote_addr ) );
+		$from_cloudflare       = '' !== $remote_addr && User::is_cloudflare_ip( $remote_addr );
 
 		$country = false;
 
-		if ( ! empty( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) {
-			$from_cloudflare = $trusted_proxy;
-			if ( ! $from_cloudflare && $remote_addr ) {
-				foreach ( self::cloudflare_ip_ranges() as $range ) {
-					if ( self::ip_in_range( $remote_addr, $range ) ) {
-						$from_cloudflare = true;
-						break;
-					}
-				}
-			}
-
-			if ( $from_cloudflare ) {
-				$country = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_IPCOUNTRY'] ) );
-			}
+		if ( ( $from_configured_proxy || $from_cloudflare ) && ! empty( $_SERVER['HTTP_CF_IPCOUNTRY'] ) ) {
+			$country = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_IPCOUNTRY'] ) );
 		}
 
-		if ( ! $country && $trusted_proxy && ! empty( $_SERVER['HTTP_X_FORWARDED_COUNTRY'] ) ) {
+		if ( ! $country && $from_configured_proxy && ! empty( $_SERVER['HTTP_X_FORWARDED_COUNTRY'] ) ) {
 			$country = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_COUNTRY'] ) );
 		}
 

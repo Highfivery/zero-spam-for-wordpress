@@ -187,8 +187,10 @@ class BlockedTable extends WP_List_Table {
 		}
 
 		if ( $user_ip ) {
+			// As typed or in canonical form, the form blocks are stored in.
+			$canonical                      = \ZeroSpam\Core\User::normalize_ip( $user_ip );
 			$query_args['where']['user_ip'] = array(
-				'value' => $user_ip,
+				'value' => array_values( array_unique( array( $user_ip, '' !== $canonical ? $canonical : $user_ip ) ) ),
 			);
 		}
 
@@ -216,18 +218,13 @@ class BlockedTable extends WP_List_Table {
 
 		$this->_column_headers = array( $columns, $hidden, $sortable );
 
+		// Pagination links keep the filter and the search as typed.
 		$paging_options = array();
-		if ( ! empty( $query_args['where'] ) ) {
-			foreach ( $query_args['where'] as $key => $value ) {
-				switch ( $key ) {
-					case 'blocked_type':
-						$paging_options['type'] = $value['value'];
-						break;
-					case 'user_ip':
-						$paging_options['s'] = $value['value'];
-						break;
-				}
-			}
+		if ( $log_type ) {
+			$paging_options['type'] = $log_type;
+		}
+		if ( $user_ip ) {
+			$paging_options['s'] = $user_ip;
 		}
 
 		$request_uri            = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
@@ -248,7 +245,7 @@ class BlockedTable extends WP_List_Table {
 		}
 		?>
 		<div class="alignleft actions">
-			<button class="button zerospam-block-trigger"><?php esc_html_e( 'Add Blocked IP Address →', 'zero-spam' ); ?></button>
+			<button class="button button-primary zerospam-block-trigger"><?php esc_html_e( 'Add Blocked IP Address →', 'zero-spam' ); ?></button>
 			<?php
 			$settings = \ZeroSpam\Core\Settings::get_settings( 'block_method' );
 

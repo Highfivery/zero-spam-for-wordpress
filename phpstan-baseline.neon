@@ -25,18 +25,6 @@ parameters:
 			path: core/admin/tables/class-blockedlocations.php
 
 		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 3
-			path: core/admin/tables/class-blockedlocations.php
-
-		-
-			message: '#^Offset ''where'' on array\{order\: mixed, orderby\: mixed, where\: array\{key_type\: array\{value\: ''ip''\}, blocked_type\?\: array\{value\: mixed\}, user_ip\?\: array\{value\: mixed\}\}\} in empty\(\) always exists and is not falsy\.$#'
-			identifier: empty.offset
-			count: 1
-			path: core/admin/tables/class-blockedtable.php
-
-		-
 			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: int\<0, max\>, per_page\: 50, total_pages\: float, orderby\: non\-falsy\-string\|false, order\: string\} given\.$#'
 			identifier: argument.type
 			count: 1
@@ -49,26 +37,8 @@ parameters:
 			path: core/class-access.php
 
 		-
-			message: '#^Parameter \#1 \$text of function esc_html expects string, int given\.$#'
-			identifier: argument.type
-			count: 1
-			path: core/class-access.php
-
-		-
-			message: '#^Parameter \#3 \$args of function wp_die expects array\{response\?\: int, link_url\?\: string, link_text\?\: string, back_link\?\: bool, text_direction\?\: string, charset\?\: string, code\?\: string, exit\?\: bool\}\|int, array\{response\: string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: core/class-access.php
-
-		-
 			message: '#^Right side of \|\| is always false\.$#'
 			identifier: booleanOr.rightAlwaysFalse
-			count: 1
-			path: core/class-access.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
 			count: 1
 			path: core/class-access.php
 

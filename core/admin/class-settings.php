@@ -449,6 +449,29 @@ class Settings {
 			}
 		}
 
+		// Keep only valid IP addresses and CIDR ranges as trusted proxies, and say which lines were dropped.
+		if ( isset( $input['trusted_proxies'] ) ) {
+			$proxies                  = \ZeroSpam\Core\Utilities::parse_ip_ranges( $input['trusted_proxies'] );
+			$input['trusted_proxies'] = implode( "\n", $proxies['valid'] );
+
+			$dropped = \ZeroSpam\Core\Utilities::describe_dropped_ip_ranges( $proxies );
+
+			if ( $dropped ) {
+				add_settings_error(
+					'zero-spam',
+					'zerospam_trusted_proxies_invalid',
+					sprintf(
+						/* translators: %s: comma-separated list of the entries that were removed */
+						esc_html__( 'These Trusted Proxy IPs entries were not saved because they are not IP addresses or ranges (like 203.0.113.5 or 203.0.113.0/24) or are too broad: %s', 'zero-spam' ),
+						esc_html( implode( ', ', $dropped ) )
+					),
+					'warning'
+				);
+			}
+
+			\ZeroSpam\Core\User::reset_cache();
+		}
+
 		// Handle blocked email domains separate option to prevent autoloading.
 		if ( isset( $input['blocked_email_domains'] ) ) {
 			// Never autoload this large option (see https://10up.github.io/Engineering-Best-Practices/php/#performance).
@@ -867,9 +890,25 @@ class Settings {
 
 				echo '<div class="zerospam-form-field-group">';
 
+				// Checkboxes are on/off switches; radios keep WordPress's own control.
+				$is_switch          = 'checkbox' === $args['type'];
+				$input_class        = trim( ( $is_switch ? 'zerospam-switch__input ' : '' ) . $args['field_class'] );
+				$allowed_label_html = array(
+					'a'      => array(
+						'target' => array(),
+						'href'   => array(),
+						'class'  => array(),
+						'rel'    => array(),
+					),
+					'strong' => array(),
+					'b'      => array(),
+					'code'   => array(),
+				);
+
 				foreach ( $args['options'] as $key => $label ) {
 					$field_name = $setting_name;
 					$selected   = false;
+					$label      = (string) $label;
 
 					if ( count( $args['options'] ) > 1 && 'checkbox' === $args['type'] ) {
 						$field_name .= '[' . $key . ']';
@@ -878,14 +917,21 @@ class Settings {
 					if ( ! empty( $args['value'] ) && $args['value'] == $key ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual -- Option keys can be integers while stored values are strings.
 						$selected = true;
 					}
+
+					if ( $is_switch ) {
+						echo '<div class="zerospam-switch">';
+					}
 					?>
 					<input
 						type="<?php echo esc_attr( $args['type'] ); ?>"
 						id="<?php echo esc_attr( $field_key . $key ); ?>"
 						name="<?php echo esc_attr( $field_name ); ?>"
 						value="<?php echo esc_attr( $key ); ?>"
-						<?php if ( ! empty( $args['field_class'] ) ) : ?>
-							class="<?php echo esc_attr( $args['field_class'] ); ?>"
+						<?php if ( '' !== $input_class ) : ?>
+							class="<?php echo esc_attr( $input_class ); ?>"
+						<?php endif; ?>
+						<?php if ( $is_switch ) : ?>
+							role="switch"
 						<?php endif; ?>
 						<?php if ( $disabled ) : ?>
 							disabled
@@ -894,26 +940,23 @@ class Settings {
 						<?php checked( $selected ); ?>
 					/>
 
-					<label for="<?php echo esc_attr( $field_key . $key ); ?>">
+					<?php if ( $is_switch ) : ?>
+						<label for="<?php echo esc_attr( $field_key . $key ); ?>" class="zerospam-switch__label">
+							<?php if ( '' !== trim( wp_strip_all_tags( $label ) ) ) : ?>
+								<span class="zerospam-switch__text"><?php echo wp_kses( $label, $allowed_label_html ); ?></span>
+							<?php else : ?>
+								<?php // A switch without option text is named after its setting. ?>
+								<span class="screen-reader-text"><?php echo esc_html( (string) ( $args['title'] ?? '' ) ); ?></span>
+							<?php endif; ?>
+						</label>
+					</div>
+					<?php else : ?>
+						<label for="<?php echo esc_attr( $field_key . $key ); ?>">
+							<?php echo wp_kses( $label, $allowed_label_html ); ?>
+						</label>
+						<br />
 						<?php
-						echo wp_kses(
-							$label,
-							array(
-								'a'      => array(
-									'target' => array(),
-									'href'   => array(),
-									'class'  => array(),
-									'rel'    => array(),
-								),
-								'strong' => array(),
-								'b'      => array(),
-								'code'   => array(),
-							)
-						);
-						?>
-					</label>
-					<br />
-					<?php
+					endif;
 				}
 
 				echo '</div>';

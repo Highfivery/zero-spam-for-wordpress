@@ -99,6 +99,41 @@ class DavidWalsh {
 	const REST_NAMESPACE = 'zero-spam/v5';
 
 	/**
+	 * Token status: accepted (see get_token_status()).
+	 *
+	 * @var string
+	 */
+	const STATUS_VALID = 'valid';
+
+	/**
+	 * Token status: no key was submitted.
+	 *
+	 * @var string
+	 */
+	const STATUS_MISSING = 'missing';
+
+	/**
+	 * Token status: correctly signed by this site, but older than KEY_TTL.
+	 *
+	 * @var string
+	 */
+	const STATUS_EXPIRED = 'expired';
+
+	/**
+	 * Token status: correctly signed by this site, but used MAX_USES times.
+	 *
+	 * @var string
+	 */
+	const STATUS_EXHAUSTED = 'exhausted';
+
+	/**
+	 * Token status: malformed, forged or otherwise not issued by this site.
+	 *
+	 * @var string
+	 */
+	const STATUS_INVALID = 'invalid';
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -220,7 +255,11 @@ class DavidWalsh {
 	/**
 	 * Validates a submission against the David Walsh field.
 	 *
-	 * Accepts a valid, unexpired token that hasn't been used up.
+	 * Accepts a valid, unexpired token that hasn't been used up. Otherwise
+	 * adds an error keyed by the reason (see error_key()): a missing key keeps
+	 * the original `zerospam_david_walsh` key; an expired, used-up or invalid
+	 * key adds `zerospam_david_walsh_expired`, `_exhausted` or `_invalid`, so
+	 * modules log the specific reason.
 	 *
 	 * @param array  $errors            Array of submission errors.
 	 * @param array  $post              Form post array.
@@ -230,13 +269,52 @@ class DavidWalsh {
 	public function validate_post( $errors, $post, $detection_msg_key ) {
 		$submitted_key = isset( $post['zerospam_david_walsh_key'] ) && is_string( $post['zerospam_david_walsh_key'] ) ? sanitize_text_field( $post['zerospam_david_walsh_key'] ) : '';
 
-		if ( ! self::validate_token( $submitted_key ) ) {
+		$status = self::get_token_status( $submitted_key );
+
+		if ( self::STATUS_VALID !== $status ) {
 			// Failed the David Walsh check.
-			$error_message = \ZeroSpam\Core\Utilities::detection_message( $detection_msg_key );
-			$errors['zerospam_david_walsh'] = $error_message;
+			$errors[ self::error_key( $status ) ] = \ZeroSpam\Core\Utilities::detection_message( $detection_msg_key );
 		}
 
 		return $errors;
+	}
+
+	/**
+	 * Error key validate_post() adds for a token status.
+	 *
+	 * @since 5.7.14
+	 *
+	 * @param string $status One of the STATUS_* constants other than STATUS_VALID.
+	 * @return string
+	 */
+	public static function error_key( $status ) {
+		return self::STATUS_MISSING === $status ? 'zerospam_david_walsh' : 'zerospam_david_walsh_' . $status;
+	}
+
+	/**
+	 * Whether a validate_post() error means the key was missing or had
+	 * lapsed (expired or used up) rather than being forged or malformed.
+	 *
+	 * A lapsed key comes from a real page that was open too long, served from
+	 * a cache, restored from the back/forward cache, or submitted more than
+	 * once; callers that can retry (the login form) treat it like a missing
+	 * key instead of as spam.
+	 *
+	 * @since 5.7.14
+	 *
+	 * @param string $error_key Key of an error added by validate_post().
+	 * @return bool
+	 */
+	public static function is_lapsed_error( $error_key ) {
+		return in_array(
+			$error_key,
+			array(
+				self::error_key( self::STATUS_MISSING ),
+				self::error_key( self::STATUS_EXPIRED ),
+				self::error_key( self::STATUS_EXHAUSTED ),
+			),
+			true
+		);
 	}
 
 	/**
@@ -246,7 +324,11 @@ class DavidWalsh {
 	 * @return array Modified types array.
 	 */
 	public function failed_types( $types ) {
-		$types['david_walsh'] = __( 'David Walsh', 'zero-spam' );
+		$types['david_walsh']           = __( 'David Walsh', 'zero-spam' );
+		$types['david_walsh_expired']   = __( 'David Walsh (expired key)', 'zero-spam' );
+		$types['david_walsh_exhausted'] = __( 'David Walsh (key used too many times)', 'zero-spam' );
+		$types['david_walsh_invalid']   = __( 'David Walsh (invalid key)', 'zero-spam' );
+
 		return $types;
 	}
 
@@ -514,7 +596,7 @@ class DavidWalsh {
 			'zerospam-davidwalsh',
 			plugin_dir_url( ZEROSPAM ) . 'modules/davidwalsh/assets/js/davidwalsh.js',
 			array(),
-			ZEROSPAM_VERSION,
+			\ZeroSpam\Core\Utilities::asset_version( 'modules/davidwalsh/assets/js/davidwalsh.js' ),
 			true
 		);
 
@@ -646,43 +728,64 @@ class DavidWalsh {
 	 * @return bool
 	 */
 	public static function validate_token( $token ) {
+		return self::STATUS_VALID === self::get_token_status( $token );
+	}
+
+	/**
+	 * Checks a submitted token and says why it was rejected.
+	 *
+	 * The signature is checked before the expiry, so only a token this site
+	 * issued can be reported as expired or used up; anything malformed or
+	 * forged is invalid. A valid result counts as one use of the token
+	 * (counted once per request, even if several integrations check it).
+	 *
+	 * @since 5.7.14
+	 *
+	 * @param string $token Submitted token.
+	 * @return string One of the STATUS_* constants.
+	 */
+	public static function get_token_status( $token ) {
 		static $accepted = array();
 
 		if ( empty( $token ) || ! is_string( $token ) ) {
-			return false;
+			return self::STATUS_MISSING;
 		}
 
 		if ( isset( $accepted[ $token ] ) ) {
-			return true;
+			return self::STATUS_VALID;
 		}
 
 		$issued = self::get_token_time( $token );
 		if ( ! $issued ) {
-			return self::validate_legacy_key( $token );
-		}
-
-		// Allow a minute of clock skew between web servers.
-		$age = time() - $issued;
-		if ( $age < -60 || $age > self::KEY_TTL ) {
-			return false;
+			return self::validate_legacy_key( $token ) ? self::STATUS_VALID : self::STATUS_INVALID;
 		}
 
 		$last_dot = strrpos( $token, '.' );
 		$payload  = substr( $token, 0, $last_dot );
 		if ( ! hash_equals( self::sign( $payload ), substr( $token, $last_dot + 1 ) ) ) {
-			return false;
+			return self::STATUS_INVALID;
+		}
+
+		// Allow a minute of clock skew between web servers.
+		$age = time() - $issued;
+		if ( $age < -60 ) {
+			return self::STATUS_INVALID;
+		}
+
+		if ( $age > self::KEY_TTL ) {
+			return self::STATUS_EXPIRED;
 		}
 
 		$uses_key = 'zerospam_dw_' . md5( $token );
 		$uses     = (int) get_transient( $uses_key );
 		if ( $uses >= self::MAX_USES ) {
-			return false;
+			return self::STATUS_EXHAUSTED;
 		}
 
 		set_transient( $uses_key, $uses + 1, self::KEY_TTL + MINUTE_IN_SECONDS );
 		$accepted[ $token ] = true;
 
-		return true;
+		return self::STATUS_VALID;
 	}
 
 	/**
@@ -779,7 +882,7 @@ class DavidWalsh {
 	 * @param bool $regenerate Unused parameter, kept for compatibility.
 	 * @return string A new David Walsh token.
 	 */
-	public static function get_davidwalsh( $regenerate = false ) {
+	public static function get_davidwalsh( $regenerate = false ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Kept so callers of the pre-5.7.12 signature don't break.
 		return self::generate_token();
 	}
 }

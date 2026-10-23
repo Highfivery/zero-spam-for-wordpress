@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Network_Stats_Page to this file name.
 /**
  * Network Statistics Admin Page
  *
@@ -58,14 +58,14 @@ class Network_Stats_Page {
 			'zerospam-network-stats',
 			plugin_dir_url( ZEROSPAM ) . 'assets/css/network-stats.css',
 			array(),
-			ZEROSPAM_VERSION
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/css/network-stats.css' )
 		);
 
 		wp_enqueue_script(
 			'zerospam-network-stats',
 			plugin_dir_url( ZEROSPAM ) . 'assets/js/network-stats.js',
 			array( 'jquery' ),
-			ZEROSPAM_VERSION,
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/js/network-stats.js' ),
 			true
 		);
 

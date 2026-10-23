@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Network_Settings_Page to this file name.
 /**
  * Network Settings Page - Admin Interface
  *
@@ -49,7 +49,7 @@ class Network_Settings_Page {
 			add_action( 'network_admin_menu', array( $this, 'add_menu' ) );
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		}
-		
+
 		// AJAX handlers - must be registered globally, not just in network admin context.
 		add_action( 'wp_ajax_zerospam_network_set_setting', array( $this, 'ajax_set_setting' ) );
 		add_action( 'wp_ajax_zerospam_network_lock_setting', array( $this, 'ajax_lock_setting' ) );
@@ -96,14 +96,14 @@ class Network_Settings_Page {
 			'zerospam-network-settings',
 			plugin_dir_url( ZEROSPAM ) . 'assets/css/network-settings.css',
 			array(),
-			ZEROSPAM_VERSION
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/css/network-settings.css' )
 		);
 
 		wp_enqueue_script(
 			'zerospam-network-settings',
 			plugin_dir_url( ZEROSPAM ) . 'assets/js/network-settings.js',
 			array( 'jquery' ),
-			ZEROSPAM_VERSION,
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/js/network-settings.js' ),
 			true
 		);
 
@@ -111,9 +111,9 @@ class Network_Settings_Page {
 			'zerospam-network-settings',
 			'zeroSpamNetwork',
 			array(
-				'nonce'    => wp_create_nonce( 'zerospam_network_settings' ),
-				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
-				'strings'  => array(
+				'nonce'   => wp_create_nonce( 'zerospam_network_settings' ),
+				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+				'strings' => array(
 					'confirm_apply'  => __( 'This will apply network settings to all sites. Continue?', 'zero-spam' ),
 					'confirm_reset'  => __( 'This will reset the site to network defaults. Continue?', 'zero-spam' ),
 					'confirm_import' => __( 'This will import settings. Existing settings may be overwritten. Continue?', 'zero-spam' ),
@@ -135,6 +135,7 @@ class Network_Settings_Page {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'zero-spam' ) );
 		}
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only tab selection for display.
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( wp_unslash( $_GET['tab'] ) ) : 'overview';
 
 		?>
@@ -190,8 +191,8 @@ class Network_Settings_Page {
 						$this->render_import_export_tab();
 						break;
 					case 'notifications':
-					$this->render_notifications_tab();
-					break;
+						$this->render_notifications_tab();
+						break;
 				}
 				?>
 			</div>
@@ -203,15 +204,15 @@ class Network_Settings_Page {
 	 * Render Overview Tab
 	 */
 	private function render_overview_tab() {
-		$sites           = get_sites( array( 'number' => 0 ) );
-		$total_sites     = count( $sites );
-		$settings        = $this->settings_manager->get_all_with_status();
-		$locked_count    = 0;
-		$override_count  = 0;
+		$sites          = get_sites( array( 'number' => 0 ) );
+		$total_sites    = count( $sites );
+		$settings       = $this->settings_manager->get_all_with_status();
+		$locked_count   = 0;
+		$override_count = 0;
 
 		foreach ( $settings as $config ) {
 			if ( $config['locked'] ) {
-				$locked_count++;
+				++$locked_count;
 			}
 			$override_count += $config['overridden'];
 		}
@@ -276,8 +277,8 @@ class Network_Settings_Page {
 	 * Render Settings Tab
 	 */
 	private function render_settings_tab() {
-		$settings          = $this->settings_manager->get_all_with_status();
-		$plugin_settings   = \ZeroSpam\Core\Settings::get_settings();
+		$settings           = $this->settings_manager->get_all_with_status();
+		$plugin_settings    = \ZeroSpam\Core\Settings::get_settings();
 		$settings_by_module = \ZeroSpam\Core\Settings::get_settings_by_module();
 
 		// Group settings by module (dynamic categorization).
@@ -330,8 +331,8 @@ class Network_Settings_Page {
 							<tbody>
 							<?php
 							foreach ( $group['settings'] as $field_key => $field ) {
-								$setting_key = $field_key;
-								$config      = $settings[ $setting_key ] ?? null;
+								$setting_key   = $field_key;
+								$config        = $settings[ $setting_key ] ?? null;
 								$current_value = $config ? $config['value'] : ( $plugin_settings[ $setting_key ]['value'] ?? '' );
 								$locked        = $config && $config['locked'];
 								$using_default = $config ? $config['using_default'] : 0;
@@ -376,7 +377,7 @@ class Network_Settings_Page {
 										</button>
 									</td>
 									<td>
-										<button type="button" class="button button-primary button-small save-setting">
+										<button type="button" class="button button-small save-setting">
 											<?php esc_html_e( 'Save', 'zero-spam' ); ?>
 										</button>
 									</td>
@@ -420,7 +421,7 @@ class Network_Settings_Page {
 				break;
 
 			case 'radio':
-				$options = $field['options'] ?? array();
+				$options      = $field['options'] ?? array();
 				$allowed_html = array(
 					'a'    => array(
 						'href'   => array(),
@@ -450,13 +451,14 @@ class Network_Settings_Page {
 					<?php echo $multiple ? 'multiple size="5" style="height: auto;"' : ''; ?>>
 					<?php foreach ( $options as $option_value => $option_label ) : ?>
 						<option value="<?php echo esc_attr( $option_value ); ?>" 
-							<?php 
+							<?php
 							if ( $multiple ) {
 								selected( in_array( $option_value, (array) $value, true ), true );
 							} else {
-								selected( $value, $option_value ); 
+								selected( $value, $option_value );
 							}
-							?>>
+							?>
+							>
 							<?php echo esc_html( $option_label ); ?>
 						</option>
 					<?php endforeach; ?>
@@ -470,6 +472,7 @@ class Network_Settings_Page {
 				?>
 				<textarea 
 					name="<?php echo esc_attr( $key ); ?>" 
+					aria-label="<?php echo esc_attr( is_string( $field['title'] ?? null ) ? $field['title'] : $key ); ?>"
 					class="<?php echo esc_attr( $field_class ); ?>" 
 					rows="5"
 					placeholder="<?php echo esc_attr( $placeholder ); ?>"><?php echo esc_textarea( $value ); ?></textarea>
@@ -524,29 +527,33 @@ class Network_Settings_Page {
 	private function group_settings_by_module( $settings_by_module ) {
 		// Get section metadata for proper titles/descriptions.
 		$sections = \ZeroSpam\Core\Settings::get_sections();
-		
+
 		// Map module names to user-friendly group metadata.
 		$module_metadata = $this->get_module_metadata();
-		
+
 		$grouped_settings = array();
-		
+
 		foreach ( $settings_by_module as $module_name => $settings ) {
 			// Skip HTML-only settings.
-			$filtered_settings = array_filter( $settings, function( $setting ) {
-				return 'html' !== ( $setting['type'] ?? '' );
-			} );
-			
+			$filtered_settings = array_filter(
+				$settings,
+				function ( $setting ) {
+					return 'html' !== ( $setting['type'] ?? '' );
+				}
+			);
+
 			if ( empty( $filtered_settings ) ) {
 				continue;
 			}
-			
+
 			// Use metadata if available, otherwise generate from module name.
 			$metadata = $module_metadata[ $module_name ] ?? array(
 				'title'       => ucwords( str_replace( array( '-', '_' ), ' ', $module_name ) ),
+				/* translators: %s: module name */
 				'description' => sprintf( __( 'Settings for %s', 'zero-spam' ), $module_name ),
 				'icon'        => 'admin-generic',
 			);
-			
+
 			$grouped_settings[ $module_name ] = array(
 				'title'       => $metadata['title'],
 				'description' => $metadata['description'],
@@ -554,7 +561,7 @@ class Network_Settings_Page {
 				'settings'    => $filtered_settings,
 			);
 		}
-		
+
 		return $grouped_settings;
 	}
 
@@ -565,127 +572,127 @@ class Network_Settings_Page {
 	 */
 	private function get_module_metadata() {
 		return array(
-			'settings'          => array(
+			'settings'         => array(
 				'title'       => __( 'General Settings', 'zero-spam' ),
 				'description' => __( 'Core plugin settings and blocking behavior', 'zero-spam' ),
 				'icon'        => 'admin-settings',
 			),
-			'zerospam'          => array(
+			'zerospam'         => array(
 				'title'       => __( 'Zero Spam API', 'zero-spam' ),
 				'description' => __( 'Zero Spam confidence detection service', 'zero-spam' ),
 				'icon'        => 'shield-alt',
 			),
-			'stop_forum_spam'   => array(
+			'stop_forum_spam'  => array(
 				'title'       => __( 'Stop Forum Spam', 'zero-spam' ),
 				'description' => __( 'Check IPs against the Stop Forum Spam database', 'zero-spam' ),
 				'icon'        => 'shield',
 			),
-			'project_honeypot'  => array(
+			'project_honeypot' => array(
 				'title'       => __( 'Project Honeypot', 'zero-spam' ),
 				'description' => __( 'Check IPs against Project Honeypot', 'zero-spam' ),
 				'icon'        => 'shield',
 			),
-			'comments'          => array(
+			'comments'         => array(
 				'title'       => __( 'Comment Protection', 'zero-spam' ),
 				'description' => __( 'Protect WordPress comments from spam', 'zero-spam' ),
 				'icon'        => 'admin-comments',
 			),
-			'registration'      => array(
+			'registration'     => array(
 				'title'       => __( 'Registration Protection', 'zero-spam' ),
 				'description' => __( 'Protect user registrations from spam', 'zero-spam' ),
 				'icon'        => 'admin-users',
 			),
-			'contactform7'      => array(
+			'contactform7'     => array(
 				'title'       => __( 'Contact Form 7', 'zero-spam' ),
 				'description' => __( 'Protect Contact Form 7 submissions', 'zero-spam' ),
 				'icon'        => 'forms',
 			),
-			'wpforms'           => array(
+			'wpforms'          => array(
 				'title'       => __( 'WPForms', 'zero-spam' ),
 				'description' => __( 'Protect WPForms submissions', 'zero-spam' ),
 				'icon'        => 'forms',
 			),
-			'formidable'        => array(
+			'formidable'       => array(
 				'title'       => __( 'Formidable Forms', 'zero-spam' ),
 				'description' => __( 'Protect Formidable Forms submissions', 'zero-spam' ),
 				'icon'        => 'forms',
 			),
-			'fluentforms'       => array(
+			'fluentforms'      => array(
 				'title'       => __( 'Fluent Forms', 'zero-spam' ),
 				'description' => __( 'Protect Fluent Forms submissions', 'zero-spam' ),
 				'icon'        => 'forms',
 			),
-			'gravityforms'      => array(
+			'gravityforms'     => array(
 				'title'       => __( 'Gravity Forms', 'zero-spam' ),
 				'description' => __( 'Protect Gravity Forms submissions', 'zero-spam' ),
 				'icon'        => 'forms',
 			),
-			'elementor'         => array(
+			'elementor'        => array(
 				'title'       => __( 'Elementor Forms', 'zero-spam' ),
 				'description' => __( 'Protect Elementor form submissions', 'zero-spam' ),
 				'icon'        => 'forms',
 			),
-			'give'              => array(
+			'give'             => array(
 				'title'       => __( 'GiveWP', 'zero-spam' ),
 				'description' => __( 'Protect GiveWP donation forms', 'zero-spam' ),
 				'icon'        => 'heart',
 			),
-			'woocommerce'       => array(
+			'woocommerce'      => array(
 				'title'       => __( 'WooCommerce', 'zero-spam' ),
 				'description' => __( 'Protect WooCommerce registrations', 'zero-spam' ),
 				'icon'        => 'cart',
 			),
-			'mailchimp4wp'      => array(
+			'mailchimp4wp'     => array(
 				'title'       => __( 'Mailchimp for WordPress', 'zero-spam' ),
 				'description' => __( 'Protect Mailchimp form submissions', 'zero-spam' ),
 				'icon'        => 'email',
 			),
-			'davidwalsh'        => array(
+			'davidwalsh'       => array(
 				'title'       => __( 'David Walsh Method', 'zero-spam' ),
 				'description' => __( 'JavaScript-based spam protection technique', 'zero-spam' ),
 				'icon'        => 'code-standards',
 			),
-			'login'             => array(
+			'login'            => array(
 				'title'       => __( 'Login Protection', 'zero-spam' ),
 				'description' => __( 'Protect WordPress login from spam', 'zero-spam' ),
 				'icon'        => 'lock',
 			),
-			'wpuseravatar'      => array(
+			'wpuseravatar'     => array(
 				'title'       => __( 'WP User Avatar', 'zero-spam' ),
 				'description' => __( 'Protect WP User Avatar registrations', 'zero-spam' ),
 				'icon'        => 'admin-users',
 			),
-			'ipbase'            => array(
+			'ipbase'           => array(
 				'title'       => __( 'ipbase.com', 'zero-spam' ),
 				'description' => __( 'IP geolocation and details service', 'zero-spam' ),
 				'icon'        => 'location-alt',
 			),
-			'ipstack'           => array(
+			'ipstack'          => array(
 				'title'       => __( 'ipstack', 'zero-spam' ),
 				'description' => __( 'IP geolocation service', 'zero-spam' ),
 				'icon'        => 'location-alt',
 			),
-			'ipinfo'            => array(
+			'ipinfo'           => array(
 				'title'       => __( 'IPinfo', 'zero-spam' ),
 				'description' => __( 'IP information service', 'zero-spam' ),
 				'icon'        => 'location-alt',
 			),
-			'google'            => array(
+			'google'           => array(
 				'title'       => __( 'Google Integration', 'zero-spam' ),
 				'description' => __( 'Google services integration', 'zero-spam' ),
 				'icon'        => 'google',
 			),
-			'security'          => array(
+			'security'         => array(
 				'title'       => __( 'Security', 'zero-spam' ),
 				'description' => __( 'Additional security features', 'zero-spam' ),
 				'icon'        => 'lock',
 			),
-			'api_monitoring'    => array(
+			'api_monitoring'   => array(
 				'title'       => __( 'API Monitoring', 'zero-spam' ),
 				'description' => __( 'Monitor API usage and performance', 'zero-spam' ),
 				'icon'        => 'chart-line',
 			),
-			'debug'             => array(
+			'debug'            => array(
 				'title'       => __( 'Debug', 'zero-spam' ),
 				'description' => __( 'Debugging and testing features', 'zero-spam' ),
 				'icon'        => 'admin-tools',
@@ -957,19 +964,45 @@ class Network_Settings_Page {
 		$locked = isset( $_POST['locked'] ) && '1' === $_POST['locked'];
 
 		// Handle value - could be string or array (for multi-selects).
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized below, per element for multi-selects.
 		$value = isset( $_POST['value'] ) ? wp_unslash( $_POST['value'] ) : '';
-		
+
+		if ( ! $key ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid setting key', 'zero-spam' ) ) );
+		}
+
 		// Sanitize based on type.
 		if ( is_array( $value ) ) {
 			// Multi-select: sanitize each value.
 			$value = array_map( 'sanitize_text_field', $value );
+		} elseif ( 'textarea' === $this->get_setting_type( $key ) ) {
+			// Lists (IP addresses, domains, words) keep one entry per line.
+			$value = sanitize_textarea_field( $value );
 		} else {
 			// Single value: sanitize as text.
 			$value = sanitize_text_field( $value );
 		}
 
-		if ( ! $key ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid setting key', 'zero-spam' ) ) );
+		// Trusted proxies are validated like on the site settings page; nothing
+		// is stored while an entry is invalid or too broad.
+		if ( 'trusted_proxies' === $key && is_string( $value ) ) {
+			$proxies = \ZeroSpam\Core\Utilities::parse_ip_ranges( $value );
+			$dropped = \ZeroSpam\Core\Utilities::describe_dropped_ip_ranges( $proxies );
+
+			if ( $dropped ) {
+				wp_send_json_error(
+					array(
+						'message' => sprintf(
+							/* translators: %s: comma-separated list of the rejected entries */
+							esc_html__( 'Not saved. These Trusted Proxy IPs entries are not IP addresses or ranges (like 203.0.113.5 or 203.0.113.0/24) or are too broad: %s', 'zero-spam' ),
+							esc_html( implode( ', ', $dropped ) )
+						),
+						'invalid' => array_map( 'esc_html', $dropped ),
+					)
+				);
+			}
+
+			$value = implode( "\n", $proxies['valid'] );
 		}
 
 		$result = $this->settings_manager->set_setting( $key, $value, $locked );
@@ -979,6 +1012,18 @@ class Network_Settings_Page {
 		} else {
 			wp_send_json_error( array( 'message' => __( 'Failed to save setting', 'zero-spam' ) ) );
 		}
+	}
+
+	/**
+	 * The registered type of a setting (`textarea`, `checkbox`, …).
+	 *
+	 * @param string $key Setting key.
+	 * @return string Type, or '' for an unknown key.
+	 */
+	private function get_setting_type( string $key ): string {
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+
+		return isset( $settings[ $key ]['type'] ) && is_string( $settings[ $key ]['type'] ) ? $settings[ $key ]['type'] : '';
 	}
 
 	/**
@@ -1088,10 +1133,10 @@ class Network_Settings_Page {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'zero-spam' ) ) );
 		}
 
-		$sites            = get_sites( array( 'number' => 0 ) );
-		$settings         = $this->settings_manager->get_all_with_status();
-		$comparison_data  = array();
-		$sites_data       = array();
+		$sites           = get_sites( array( 'number' => 0 ) );
+		$settings        = $this->settings_manager->get_all_with_status();
+		$comparison_data = array();
+		$sites_data      = array();
 
 		// Build sites data array.
 		foreach ( $sites as $site ) {
@@ -1119,10 +1164,12 @@ class Network_Settings_Page {
 			}
 		}
 
-		wp_send_json_success( array( 
-			'comparison' => $comparison_data, 
-			'sites'      => $sites_data,
-		) );
+		wp_send_json_success(
+			array(
+				'comparison' => $comparison_data,
+				'sites'      => $sites_data,
+			)
+		);
 	}
 
 	/**
@@ -1135,15 +1182,15 @@ class Network_Settings_Page {
 		if ( is_array( $value ) ) {
 			return implode( ', ', $value );
 		}
-		
+
 		if ( is_bool( $value ) ) {
 			return $value ? 'enabled' : 'disabled';
 		}
-		
+
 		if ( null === $value || '' === $value ) {
 			return '—';
 		}
-		
+
 		return (string) $value;
 	}
 
@@ -1176,6 +1223,7 @@ class Network_Settings_Page {
 			wp_send_json_error( array( 'message' => __( 'You do not have permission to import settings.', 'zero-spam' ) ) );
 		}
 
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- JSON is validated by json_decode() below.
 		$json = isset( $_POST['json'] ) ? wp_unslash( $_POST['json'] ) : '';
 		$mode = isset( $_POST['mode'] ) ? sanitize_text_field( wp_unslash( $_POST['mode'] ) ) : 'merge';
 
@@ -1221,9 +1269,9 @@ class Network_Settings_Page {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'zero-spam' ) ) );
 		}
 
-		$slug   = isset( $_POST['slug'] ) ? sanitize_text_field( wp_unslash( $_POST['slug'] ) ) : '';
-		$scope  = isset( $_POST['scope'] ) ? sanitize_text_field( wp_unslash( $_POST['scope'] ) ) : 'network';
-		$lock   = isset( $_POST['lock'] ) && '1' === $_POST['lock'];
+		$slug  = isset( $_POST['slug'] ) ? sanitize_text_field( wp_unslash( $_POST['slug'] ) ) : '';
+		$scope = isset( $_POST['scope'] ) ? sanitize_text_field( wp_unslash( $_POST['scope'] ) ) : 'network';
+		$lock  = isset( $_POST['lock'] ) && '1' === $_POST['lock'];
 
 		if ( ! $slug ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid template slug', 'zero-spam' ) ) );
@@ -1275,7 +1323,12 @@ class Network_Settings_Page {
 		$template_id       = $templates_manager->save_current_as_template( $name, $slug, $description );
 
 		if ( $template_id ) {
-			wp_send_json_success( array( 'message' => __( 'Template saved successfully', 'zero-spam' ), 'template_id' => $template_id ) );
+			wp_send_json_success(
+				array(
+					'message'     => __( 'Template saved successfully', 'zero-spam' ),
+					'template_id' => $template_id,
+				)
+			);
 		} else {
 			wp_send_json_error( array( 'message' => __( 'Failed to save template', 'zero-spam' ) ) );
 		}
@@ -1463,10 +1516,10 @@ class Network_Settings_Page {
 
 		// Toggle notifications.
 		$notifications = new \ZeroSpam\Includes\Network_Notifications();
-		
+
 		// Save weekly summary setting.
 		$weekly_result = $notifications->toggle_notifications( $weekly_enabled );
-		
+
 		// Save settings change notification setting.
 		$settings_result = $notifications->toggle_settings_notifications( $settings_enabled );
 
@@ -1482,11 +1535,9 @@ class Network_Settings_Page {
 			if ( $timestamp ) {
 				wp_unschedule_event( $timestamp, 'zerospam_network_weekly_summary' );
 			}
-		} else {
+		} elseif ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
 			// If enabling, schedule the weekly summary if not already scheduled.
-			if ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
-				wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
-			}
+			wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
 		}
 
 		// Send success response.
@@ -1535,11 +1586,9 @@ class Network_Settings_Page {
 			if ( $timestamp ) {
 				wp_unschedule_event( $timestamp, 'zerospam_network_weekly_summary' );
 			}
-		} else {
+		} elseif ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
 			// If enabling, schedule the weekly summary if not already scheduled.
-			if ( ! wp_next_scheduled( 'zerospam_network_weekly_summary' ) ) {
-				wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
-			}
+			wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
 		}
 
 		// Send success response.

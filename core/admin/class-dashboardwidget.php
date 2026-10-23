@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Dashboard_Widget to this file name.
 /**
  * Unified Dashboard Widget
  *
@@ -172,7 +172,7 @@ class Dashboard_Widget {
 			'zerospam-dashboard-widget',
 			plugins_url( 'assets/css/unified-dashboard-widget.css', ZEROSPAM ),
 			array(),
-			ZEROSPAM_VERSION
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/css/unified-dashboard-widget.css' )
 		);
 
 		// Enqueue widget JavaScript.
@@ -180,7 +180,7 @@ class Dashboard_Widget {
 			'zerospam-dashboard-widget',
 			plugins_url( 'assets/js/unified-dashboard-widget.js', ZEROSPAM ),
 			array( 'jquery', 'zerospam-chartjs' ),
-			ZEROSPAM_VERSION,
+			\ZeroSpam\Core\Utilities::asset_version( 'assets/js/unified-dashboard-widget.js' ),
 			true
 		);
 
@@ -253,9 +253,9 @@ class Dashboard_Widget {
 	 */
 	public function render_widget() {
 		try {
-			$is_network      = is_multisite() && is_network_admin();
-			$api_monitoring  = \ZeroSpam\Includes\API_Usage_Tracker::is_monitoring_enabled();
-			$settings        = \ZeroSpam\Core\Settings::get_settings();
+			$is_network       = is_multisite() && is_network_admin();
+			$api_monitoring   = \ZeroSpam\Includes\API_Usage_Tracker::is_monitoring_enabled();
+			$settings         = \ZeroSpam\Core\Settings::get_settings();
 			$zerospam_enabled = isset( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
 
 			// Check for license key.
@@ -324,6 +324,7 @@ class Dashboard_Widget {
 			require ZEROSPAM_PATH . 'includes/templates/unified-dashboard-widget.php';
 		} catch ( \Exception $e ) {
 			echo '<div class="notice notice-error"><p>';
+			/* translators: %s: error message */
 			echo esc_html( sprintf( __( 'Error loading Zero Spam dashboard widget: %s', 'zero-spam' ), $e->getMessage() ) );
 			echo '</p></div>';
 		}
@@ -388,21 +389,47 @@ class Dashboard_Widget {
 			return $this->get_empty_network_data( true );
 		}
 
+		// Detections only: rescue-link entries and other non-detections are left out.
+		$detections = \ZeroSpam\Includes\DB::detections_sql();
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- $detections is prepared by DB::detections_sql(); the widget caches its data in a transient.
+
 		// Total spam blocked across network.
-		$total_blocked = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$total_blocked = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$detections}", $table ) );
 
 		// Total sites.
 		$total_sites = get_blog_count();
 
 		// Top 10 sites by spam volume.
-		$top_sites = $wpdb->get_results( // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			"SELECT blog_id, COUNT(*) as spam_count
-			FROM {$table}
-			GROUP BY blog_id
-			ORDER BY spam_count DESC
-			LIMIT 10",
+		$top_sites = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT blog_id, COUNT(*) as spam_count
+				FROM %i
+				WHERE {$detections}
+				GROUP BY blog_id
+				ORDER BY spam_count DESC
+				LIMIT 10",
+				$table
+			),
 			ARRAY_A
 		);
+
+		// 30-day trend.
+		$trend_data = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT DATE(date_recorded) as date, COUNT(*) as count
+				FROM %i
+				WHERE date_recorded >= %s
+				AND {$detections}
+				GROUP BY DATE(date_recorded)
+				ORDER BY date ASC",
+				$table,
+				gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) )
+			),
+			ARRAY_A
+		);
+
+		// phpcs:enable
 
 		// Add site names.
 		foreach ( $top_sites as &$site ) {
@@ -410,22 +437,10 @@ class Dashboard_Widget {
 			$site['site_name'] = $site_details ? $site_details->blogname : __( 'Unknown Site', 'zero-spam' );
 			$site['site_url']  = $site_details ? get_admin_url( $site['blog_id'] ) : '';
 		}
-
-		// 30-day trend.
-		$trend_data = $wpdb->get_results( // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			$wpdb->prepare(
-				"SELECT DATE(date_recorded) as date, COUNT(*) as count
-				FROM {$table}
-				WHERE date_recorded >= %s
-				GROUP BY DATE(date_recorded)
-				ORDER BY date ASC",
-				gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) )
-			),
-			ARRAY_A
-		);
+		unset( $site );
 
 		// API usage (if monitoring enabled).
-		$api_usage = $this->get_api_usage_data( true );
+		$api_usage = $this->get_api_usage_data();
 
 		return array(
 			'total_blocked' => $total_blocked,
@@ -451,65 +466,73 @@ class Dashboard_Widget {
 			return $this->get_empty_site_data( true );
 		}
 
+		// Detections only: rescue-link entries and other non-detections are left out.
+		$detections = \ZeroSpam\Includes\DB::detections_sql();
+		$since      = gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- $detections is prepared by DB::detections_sql(); the widget caches its data in a transient.
+
 		// Total spam blocked.
-		$total_blocked = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table} WHERE blog_id = %d",
-				$blog_id
-			)
+		$total_blocked = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE blog_id = %d AND {$detections}", $table, $blog_id )
 		);
 
 		// Unique IPs.
-		$unique_ips = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$wpdb->prepare(
-				"SELECT COUNT(DISTINCT user_ip) FROM {$table} WHERE blog_id = %d",
-				$blog_id
-			)
+		$unique_ips = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COUNT(DISTINCT user_ip) FROM %i WHERE blog_id = %d AND {$detections}", $table, $blog_id )
 		);
 
 		// Active days (last 30).
-		$active_days = (int) $wpdb->get_var( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$active_days = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(DISTINCT DATE(date_recorded))
-				FROM {$table}
+				FROM %i
 				WHERE blog_id = %d
-				AND date_recorded >= %s",
+				AND date_recorded >= %s
+				AND {$detections}",
+				$table,
 				$blog_id,
-				gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) )
+				$since
 			)
 		);
 
 		// 30-day trend.
-		$trend_data = $wpdb->get_results( // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$trend_data = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT DATE(date_recorded) as date, COUNT(*) as count
-				FROM {$table}
+				FROM %i
 				WHERE blog_id = %d
 				AND date_recorded >= %s
+				AND {$detections}
 				GROUP BY DATE(date_recorded)
 				ORDER BY date ASC",
+				$table,
 				$blog_id,
-				gmdate( 'Y-m-d H:i:s', strtotime( '-30 days' ) )
+				$since
 			),
 			ARRAY_A
 		);
 
 		// Spam types breakdown.
-		$spam_types = $wpdb->get_results( // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$spam_types = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT log_type, COUNT(*) as count
-				FROM {$table}
+				FROM %i
 				WHERE blog_id = %d
+				AND {$detections}
 				GROUP BY log_type
 				ORDER BY count DESC
 				LIMIT 8",
+				$table,
 				$blog_id
 			),
 			ARRAY_A
 		);
 
+		// phpcs:enable
+
 		// API usage (if monitoring enabled).
-		$api_usage = $this->get_api_usage_data( false );
+		$api_usage = $this->get_api_usage_data();
 
 		return array(
 			'total_blocked' => $total_blocked,
@@ -568,10 +591,11 @@ class Dashboard_Widget {
 	/**
 	 * Get API usage data.
 	 *
-	 * @param bool $network Whether to get network-wide usage.
+	 * The license quota is the same in network and site context.
+	 *
 	 * @return array|false API usage data or false if not available.
 	 */
-	private function get_api_usage_data( $network ) {
+	private function get_api_usage_data() {
 		// Get license key.
 		$license_key = \ZeroSpam\Core\Settings::get_settings( 'zerospam_license' );
 

@@ -36,7 +36,8 @@ in the same PR.
 | `includes/class-networksettings*.php`, `includes/admin/`, `includes/cli/`, `includes/rest/` | Multisite network settings, templates, stats, audit, notifications, REST controllers (`zero-spam/v1`), WP-CLI (`wp zerospam …`). |
 | `includes/templates/` | Plain PHP admin templates. Escape everything on output. |
 | `modules/` | One directory or file per detection technique or integrated plugin. Third-party modules are only instantiated when that plugin is active (`includes/class-plugin.php`). |
-| `assets/` | Hand-written CSS/JS (jQuery), `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand, vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. No build tooling exists. |
+| `assets/` | Hand-written CSS/JS (jQuery), `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand, vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. No build tooling exists. Enqueue the plugin's own CSS/JS with `Utilities::asset_version( 'assets/…' )` as the version (file time with `SCRIPT_DEBUG`, else `ZEROSPAM_VERSION`); pinned vendored libraries keep their own version. |
+| `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
 | `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
 
@@ -86,10 +87,20 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 - **Commits:** `type(scope): what and why` as in the existing history
   (`fix(login): …`, `security(davidwalsh): …`, `feat(woocommerce): …`,
   `perf(dashboard-widget): …`, `docs: …`, `chore: …`).
-- **Changelog:** `readme.txt` is the only changelog. Every user-visible or
+- **Changelog:** new entries go in `readme.txt`. Every user-visible or
   behavioral change adds a bullet under the next `= vX.Y.Z =` heading in the
   existing `**type(scope):** description` style, linking issues or support
-  topics. Fill the PR template's "Changelog Entry" too.
+  topics. Fill the PR template's "Changelog Entry" too. `CHANGELOG.md` holds
+  the full history (Markdown: `## vX.Y.Z`, `- **type(scope):** text`).
+  `readme.txt` carries the user-facing summary (plain language, benefit
+  first, no hook, class or migration detail); `CHANGELOG.md` the full entry.
+  Release PRs write both. `readme.txt` keeps only the current minor series (5.7.x),
+  because WordPress.org truncates the readme changelog at 5,000 words and
+  `composer version:check` fails above 4,500. When a new minor series starts
+  (for example 5.8.0), move the previous series out of `readme.txt` into
+  `CHANGELOG.md` (each release's full entry is already there; confirm
+  before deleting) and keep the "full changelog on GitHub" line below
+  the last readme entry.
 - **Versions:** `Version:` header, `ZEROSPAM_VERSION` and `Stable tag` must
   agree and never go backwards (`composer version:check`). Bump
   `Tested up to` only after testing on that WordPress release.
@@ -357,6 +368,17 @@ npm run env:stop                 # stop both wp-env sites
   site's other plugins.
 - The plugin's email checks reject `.test` addresses; use `@example.com` in
   test data.
+- **Previewing a branch on the Local site:** the single-site Local plugin
+  folder *is* the main checkout, normally on `develop`, so merged work shows
+  there after `git pull`. To preview an unmerged branch, run
+  `git fetch origin <branch> && git checkout --detach origin/<branch> && composer install`
+  in the main checkout, then hard-refresh the browser: admin assets are
+  versioned by `ZEROSPAM_VERSION`, so the browser keeps the old CSS/JS until
+  the version changes (unless the site defines `SCRIPT_DEBUG`, which versions
+  them by file time). Afterwards run `git checkout develop && composer install`.
+  Never switch it while `composer check` or the pre-push hook is running
+  there. Agents work in their own worktree and never rely on the main
+  checkout's branch.
 
 ### e2e environments
 
@@ -374,6 +396,9 @@ npm run env:stop                 # stop both wp-env sites
   WordPress versions are in `tests/e2e/wp-versions.json`
   (`npm run env:core:min` / `env:core:latest` switch). Never run
   `wp-env destroy` or `stop` for other configs than these two.
+  Both configs define `ZEROSPAM_RESCUE_KEY`, so the accessibility scans and
+  visual baselines only ever see the Rescue Mode card's "Active" state; the
+  "Rescue key not set" state is covered by PHPUnit only (known e2e gap).
 - **Local targets** need a one-off set-up that changes the Local sites
   (approve it first): make the network site load this checkout as
   `plugins/zero-spam` (it ran a stale `zero-spam-for-wordpress` 5.7.3 copy;
@@ -420,11 +445,12 @@ npm run env:stop                 # stop both wp-env sites
 - Report outcomes faithfully: failing checks with their output, skipped steps
   as skipped.
 
-## 8. Known debt and pitfalls (October 2026)
+## 8. Known debt and pitfalls (October 2026, 5.7.14)
 
-- WPCS backlog at 5.7.13: 293 errors / 292 warnings in 52 files (296
-  auto-fixable), down from 429 / 367 in 62 files; PHPStan level 5 baseline of
-  144 findings in 99 entries (was 168). Clearing them is planned work; do it
+- WPCS backlog at 5.7.14: 143 errors / 172 warnings in 32 files (176
+  auto-fixable), down from 293 / 292 in 52 files at 5.7.13 and 429 / 367 in
+  62 files before; PHPStan level 5 baseline of 135 findings in 93 entries
+  (was 144 in 99 at 5.7.13), with no unmatched entries. Clearing them is planned work; do it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
   `build/`.
@@ -439,6 +465,18 @@ npm run env:stop                 # stop both wp-env sites
   `admin_post` action), the Stop Forum Spam cache group, `DB::log()` pruning,
   the never-loaded Elementor Pro module, the login cookie guard, and the
   1970 end date on permanent blocks.
+- Fixed in 5.7.14 (tests in the gate): the client IP behind CDNs and proxies
+  (`CF-Connecting-IP` / `X-Forwarded-For` read only from Cloudflare or the
+  Trusted Proxy IPs setting, `zerospam_trusted_proxies` with CIDR, #430);
+  logins refused on lapsed David Walsh keys, including WPMU DEV Defender Pro
+  and other two-step logins (#429); lockouts without a way back in (emailed
+  rescue link and saved administrator addresses, #432); network-screen
+  textarea settings losing their newlines (#430); IPv6 matching in the IP
+  Whitelist and blocked IPs (canonical form, IPv4-mapped addresses, #430);
+  `Settings::get_settings()` registering `rescue_mode` after the
+  `zerospam_settings` filter (missing from the first call, invisible to
+  filters); and, from #433, keyboard-accessible settings switches, a
+  `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
   - `modules/class-stopforumspam.php`: `preprocess_registrations()` is hooked
@@ -485,10 +523,6 @@ npm run env:stop                 # stop both wp-env sites
     "Data refreshed." string is never put in a live region (WCAG 4.1.3);
   - the add/update block modal (`assets/js/admin.js`) does not move focus
     into the modal or return it to the button that opened it;
-  - no plugin stylesheet has a `prefers-reduced-motion` rule;
-  - `assets/css/admin.css` hides every settings checkbox and radio with
-    `display: none` and draws the switch on the label, so the settings
-    toggles cannot be reached or switched with the keyboard (WCAG 2.1.1);
   - the admin header logo (`<img width="250">` in
     `includes/templates/admin-header.php`) makes the plugin screens 378px wide
     at a 320px viewport, where WordPress's own screens fit (WCAG 1.4.10); the
@@ -502,13 +536,45 @@ npm run env:stop                 # stop both wp-env sites
     list-table action buttons (`core/admin/tables/`);
   - controls without a label: the import/export and error-log textareas
     (`core/admin/class-settings.php`), the list-table row checkboxes, the
-    network settings value controls (`render_setting_field()`), the network
-    import file input and the Network Stats period select;
+    network settings multi-select value control (`render_setting_field()`;
+    its textareas are labelled since #430), the network import file input
+    and the Network Stats period select;
   - the Facebook `<iframe>` in the dashboard sidebar has no `title`;
-  - text below 4.5:1 contrast: the header "Enhanced Protection is DISABLED"
-    link, the restyled "Save Settings" and other buttons, list-table sort
-    headers and IP links, the "Tweets by ZeroSpamOrg" link, the promo notice's
-    call to action and status text, and the Network Stats trend badges.
+  - text below 4.5:1 contrast: the admin link colour `#ff2929` (3.74:1) on
+    the header "Enhanced Protection is DISABLED" link, list-table sort headers
+    and IP links, the "Tweets by ZeroSpamOrg" link and links in setting
+    descriptions and dashboard blocks; `<code>` in the David Walsh help text;
+    the promo notice's status text; and the Network Stats trend badges (the
+    `color-contrast` entries of `tests/e2e/a11y/allowlist.json`).
+- Admin UI debt not covered by a test yet:
+  - the settings row titles are printed by WordPress's settings API as
+    `<label for="{setting key}">` (`label_for`), but checkbox and radio inputs
+    have the id `{setting key}{option}`, so for those settings the title
+    labels nothing;
+  - the Network Settings page (`render_setting_field()` in
+    `includes/admin/class-networksettingspage.php`) shows native checkboxes
+    inside their labels, in WordPress blue, where the site settings show the
+    plugin's `.zerospam-switch`, so the same setting looks different on the
+    two pages.
+- `assets/css/admin.css` is not a pure compile of `assets/src/scss/admin.scss`:
+  about 850 lines (documentation, feature/step lists, labels) exist only in
+  the CSS. Change both by hand, keeping the compiled regions identical to
+  what sass produces, until those rules are moved into the SCSS. There is no
+  source map.
+- Found by the 5.7.14 Local smoke test, not fixed yet (each needs its own
+  PR):
+  - the e2e mu-plugin's canned Zero Spam `v3/query` answer has no
+    `body_response`, so `modules/class-zerospam.php` logs "problem querying
+    the Zero Spam Blacklist API" during e2e runs;
+  - on a network subsite, a setting whose network value is empty shows
+    "Using network default:" followed by an empty box;
+  - Network Stats labels sites "Enhanced" even when they have no working
+    license;
+  - the API monitoring notice's links (Enable, Dismiss) point to
+    `admin.php?page=wordpress-zero-spam-settings…` instead of
+    `options-general.php?page=…`;
+  - the network settings lock button's 🔓 emoji is replaced by WordPress's
+    emoji script with an `s.w.org` image (an external asset in admin).
 - `includes/templates/admin-bar-chart.php` and `admin-line-chart.php` still
   load Chart.js from a CDN (the e2e browser serves the bundled
   `assets/js/vendor/chart.umd.min.js` instead and lists the request in the

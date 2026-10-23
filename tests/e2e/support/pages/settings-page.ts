@@ -37,8 +37,9 @@ export class SettingsPage {
 	}
 
 	/**
-	 * Switches a checkbox or radio the way a mouse user does: the input itself
-	 * is display:none and the styled label is the control.
+	 * Switches a checkbox or radio the way a mouse user does, by clicking its
+	 * label (a settings checkbox is a switch: the input is visually hidden and
+	 * the label draws the track).
 	 *
 	 * @param key    Setting key.
 	 * @param option Option key (enabled for single checkboxes).

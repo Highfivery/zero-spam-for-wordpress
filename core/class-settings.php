@@ -33,12 +33,12 @@ class Settings {
 	 * Returns the plugin setting sections
 	 */
 	public static function get_sections() {
-		// DEPRECATED
+		// Deprecated.
 		self::$sections['general'] = array(
 			'title' => __( 'General Settings', 'zero-spam' ),
 		);
 
-		// v5.4
+		// Since v5.4.
 		self::$sections['settings'] = array(
 			'title' => __( 'Settings', 'zero-spam' ),
 		);
@@ -101,13 +101,9 @@ class Settings {
 		$text = $wp_filesystem->get_contents( ZEROSPAM_PATH . 'assets/blacklist.txt' );
 
 		if ( $text ) {
-			if ( update_option( 'disallowed_keys', $text ) ) {
-				// Prevent autoloading large options.
-				// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
-				wp_cache_delete( 'disallowed_keys', 'options' );
-				global $wpdb;
-				$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s", 'no', 'disallowed_keys' ) );
-			}
+			// Prevent autoloading large options.
+			// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
+			update_option( 'disallowed_keys', $text, false );
 		}
 	}
 
@@ -122,13 +118,9 @@ class Settings {
 		foreach ( $modules['settings'] as $key => $setting ) {
 			if ( 'blocked_email_domains' === $key ) {
 				$domains = trim( implode( "\n", $recommended_blocked_email_domains ) );
-				if ( update_option( 'zerospam_blocked_email_domains', $domains ) ) {
-					// Prevent autoloading large options.
-					// @see https://10up.github.io/Engineering-Best-Practices/php/#performance
-					wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
-					global $wpdb;
-					$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s", 'no', 'zerospam_blocked_email_domains' ) );
-				}
+				// Prevent autoloading large options.
+				// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
+				update_option( 'zerospam_blocked_email_domains', $domains, false );
 			} else {
 				$new_settings[ $key ] = isset( $setting['value'] ) ? $setting['value'] : false;
 			}
@@ -163,16 +155,8 @@ class Settings {
 			// Handle blocked_email_domains separately — uses standalone option.
 			if ( isset( $recommended_settings['blocked_email_domains'] ) ) {
 				$blocked_domains = $recommended_settings['blocked_email_domains'];
-				if ( $blocked_domains && update_option( 'zerospam_blocked_email_domains', $blocked_domains ) ) {
-					wp_cache_delete( 'zerospam_blocked_email_domains', 'options' );
-					global $wpdb;
-					$wpdb->query(
-						$wpdb->prepare(
-							"UPDATE $wpdb->options SET autoload = %s WHERE option_name = %s",
-							'no',
-							'zerospam_blocked_email_domains'
-						)
-					);
+				if ( $blocked_domains ) {
+					update_option( 'zerospam_blocked_email_domains', $blocked_domains, false );
 				}
 				unset( $recommended_settings['blocked_email_domains'] );
 			}
@@ -236,7 +220,7 @@ class Settings {
 			'module'  => 'settings',
 			'section' => 'general',
 			'type'    => 'html',
-			'html'    => '', // Generated dynamically during render to avoid early nonce calls
+			'html'    => '', // Generated dynamically during render to avoid early nonce calls.
 		);
 
 		self::$settings['share_data'] = array(
@@ -252,14 +236,8 @@ class Settings {
 			'recommended' => 'enabled',
 		);
 
-		global $wp_roles;
-
-		// Ensure roles are initialized
-		if ( ! isset( $wp_roles ) || ! $wp_roles ) {
-			$wp_roles = wp_roles();
-		}
-
-		$roles       = isset( $wp_roles->roles ) ? $wp_roles->roles : array();
+		// wp_roles() initializes the roles global when needed.
+		$roles       = wp_roles()->roles;
 		$roles_array = array();
 
 		foreach ( $roles as $role => $data ) {
@@ -382,6 +360,17 @@ class Settings {
 			'value'       => ! empty( $options['ip_whitelist'] ) ? trim( $options['ip_whitelist'] ) : false,
 		);
 
+		self::$settings['trusted_proxies'] = array(
+			'title'       => __( 'Trusted Proxy IPs', 'zero-spam' ),
+			'desc'        => __( 'If your site sits behind a CDN, load balancer or reverse proxy (for example Cloudflare, Hostinger CDN, Sucuri, a Kubernetes ingress), list its IP addresses or ranges here, one per line, e.g. 203.0.113.5 or 203.0.113.0/24. Zero Spam will then read the real visitor address that the proxy forwards, so the proxy must send it in an X-Forwarded-For or X-Real-IP header. If your proxy sits behind Cloudflare, it must also pass on Cloudflare\'s CF-Connecting-IP header. List internal hops between the proxy and your site too, such as a load balancer on 10.0.0.0/8. Cloudflare is recognised automatically. Leave empty if your site is not behind a proxy.', 'zero-spam' ),
+			'section'     => 'general',
+			'module'      => 'settings',
+			'type'        => 'textarea',
+			'field_class' => 'regular-text code',
+			'placeholder' => '',
+			'value'       => ! empty( $options['trusted_proxies'] ) && is_string( $options['trusted_proxies'] ) ? trim( $options['trusted_proxies'] ) : false,
+		);
+
 		self::$settings['blocked_email_domains'] = array(
 			'title'       => __( 'Blocked Email Domains', 'zero-spam' ),
 			'desc'        => __( 'Block email addresses from these domains (like "spam.com"). Put one per line.', 'zero-spam' ),
@@ -406,7 +395,7 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => '', // Generated dynamically during render to avoid early nonce calls
+			'html'    => '', // Generated dynamically during render to avoid early nonce calls.
 		);
 
 		self::$settings['regenerate_honeypot'] = array(
@@ -424,7 +413,7 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => '', // Generated dynamically during render
+			'html'    => '', // Generated dynamically during render.
 		);
 
 		self::$settings['allowed_words'] = array(
@@ -455,7 +444,17 @@ class Settings {
 			'section' => 'general',
 			'module'  => 'settings',
 			'type'    => 'html',
-			'html'    => '', // Generated dynamically during render
+			'html'    => '', // Generated dynamically during render.
+		);
+
+		self::$settings['rescue_mode'] = array(
+			'title'   => __( 'Rescue Mode', 'zero-spam' ),
+			'section' => 'general',
+			'module'  => 'settings',
+			'type'    => 'html',
+			'html'    => self::rescue_mode_status( defined( 'ZEROSPAM_RESCUE_KEY' ) ),
+			'desc'    => __( 'Locked out? Blocked visitors who administer the site can ask for an emailed rescue link from the blocked page; it lets their browser in for one hour. You can also define ZEROSPAM_RESCUE_KEY in wp-config.php and visit any page with ?zerospam_rescue={KEY} appended; checks stay bypassed in that browser for one hour, long enough to log in.', 'zero-spam' ),
+			'value'   => false,
 		);
 
 		$settings = apply_filters( 'zerospam_settings', self::$settings );
@@ -476,18 +475,22 @@ class Settings {
 			return false;
 		}
 
-		self::$settings['rescue_mode'] = array(
-			'title'   => __( 'Rescue Mode', 'zero-spam' ),
-			'section' => 'general',
-			'module'  => 'settings',
-			'type'    => 'html',
-			'html'    => defined( 'ZEROSPAM_RESCUE_KEY' ) ?
-				'<span style="color: green; font-weight: bold;">' . __( 'Active', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Key defined in wp-config.php', 'zero-spam' ) . ')</span>' :
-				'<span style="color: red;">' . __( 'Inactive', 'zero-spam' ) . '</span> <span class="description">(' . __( 'Define ZEROSPAM_RESCUE_KEY in wp-config.php to enable', 'zero-spam' ) . ')</span>',
-			'desc'    => __( 'Rescue Mode lets administrators bypass blocks by visiting any page with ?zerospam_rescue={KEY} appended. Checks stay bypassed in that browser for one hour, long enough to log in.', 'zero-spam' ),
-			'value'   => false,
-		);
-
 		return $settings;
+	}
+
+	/**
+	 * Status line of the Rescue Mode card.
+	 *
+	 * @since 5.7.14
+	 *
+	 * @param bool $key_defined Whether ZEROSPAM_RESCUE_KEY is defined.
+	 * @return string HTML.
+	 */
+	private static function rescue_mode_status( bool $key_defined ): string {
+		if ( $key_defined ) {
+			return '<span style="color: green; font-weight: bold;">' . esc_html__( 'Active', 'zero-spam' ) . '</span> <span class="description">(' . esc_html__( 'Key defined in wp-config.php', 'zero-spam' ) . ')</span>';
+		}
+
+		return '<span style="color: #b32d2e;">' . esc_html__( 'Rescue key not set — the emailed rescue link still works. Define ZEROSPAM_RESCUE_KEY in wp-config.php for an always-on key.', 'zero-spam' ) . '</span>';
 	}
 }

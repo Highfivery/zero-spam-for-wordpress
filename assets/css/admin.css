@@ -121,27 +121,24 @@
 
 .zerospam-promo-notice__cta {
   display: inline-block;
-  background: var(--zerospam-accent);
+  background: var(--zerospam-trinary);
   color: #fff;
   padding: 12px 24px;
   border-radius: 4px;
   text-decoration: none;
   font-size: 15px;
   font-weight: 600;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(255, 41, 41, 0.2);
+  transition: background-color 0.15s ease-in-out;
 }
 
 .zerospam-promo-notice__cta:hover {
-  background: var(--zerospam-trinary);
+  background: var(--zerospam-secondary);
   color: #fff;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(255, 41, 41, 0.3);
 }
 
 .zerospam-promo-notice__cta:focus {
   color: #fff;
-  outline: 2px solid var(--zerospam-accent);
+  outline: 2px solid var(--zerospam-primary);
   outline-offset: 2px;
 }
 
@@ -284,50 +281,114 @@
 }
 
 .zerospam-table-form .button,
-.zerospam-form .button, .zerospam-block .button {
-  backface-visibility: hidden;
-  background: var(--zerospam-trinary);
+.zerospam-form .button, .zerospam-block .button, .zerospam-button {
+  align-items: center;
   border: 1px solid transparent;
   border-radius: 3px;
-  box-shadow: 0 2px 1px rgba(28, 31, 63, 0.06);
-  color: #fff;
-  display: inline-block;
-  font-size: 0.875rem;
+  box-shadow: none;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 1;
-  min-height: 0;
+  gap: 0.25rem;
+  justify-content: center;
+  line-height: 20px;
+  min-height: 32px;
+  padding: 0.3125rem 1rem;
+  text-decoration: none;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, color 0.15s ease-in-out;
+  vertical-align: middle;
+}
+.zerospam-table-form .button:focus,
+.zerospam-form .button:focus, .zerospam-block .button:focus, .zerospam-button:focus {
+  box-shadow: none;
   outline: none;
-  padding: 0.875rem 2rem;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
 }
-.zerospam-table-form .button:active,
-.zerospam-form .button:active, .zerospam-block .button:active, .zerospam-table-form .button:focus,
-.zerospam-form .button:focus, .zerospam-block .button:focus {
-  background-color: var(--zerospam-accent);
-  box-shadow: 0 4px 6px rgba(28, 31, 63, 0.08);
-  border-color: var(--zerospam-accent);
-  color: #fff;
+.zerospam-table-form .button:focus-visible,
+.zerospam-form .button:focus-visible, .zerospam-block .button:focus-visible, .zerospam-button:focus-visible {
+  box-shadow: 0 0 0 1px #fff;
+  outline: 2px solid var(--zerospam-primary);
+  outline-offset: 2px;
 }
-.zerospam-table-form .button:hover,
-.zerospam-form .button:hover, .zerospam-block .button:hover {
-  background-color: var(--zerospam-trinary);
-  border: 1px solid transparent;
-  box-shadow: 0 4px 6px rgba(28, 31, 63, 0.08);
-  color: #fff;
-  transform: translate(0, -2px);
-}
-.zerospam-table-form .button-primary.button,
-.zerospam-form .button-primary.button, .zerospam-block .button-primary.button {
-  background: var(--zerospam-accent);
-}
-.zerospam-table-form .button-primary.button:focus,
-.zerospam-form .button-primary.button:focus, .zerospam-block .button-primary.button:focus {
-  color: #fff;
+@media screen and (max-width: 782px) {
+  .zerospam-table-form .button,
+  .zerospam-form .button, .zerospam-block .button, .zerospam-button {
+    min-height: 40px;
+    padding: 0.5625rem 1rem;
+  }
 }
 
-.zerospam-list--data-actions .button, .zerospam-list--top .button, .zerospam-table-form .column-actions .button {
-  font-size: 11px;
-  padding: 0.4rem 0.5rem;
+.zerospam-table-form .button,
+.zerospam-form .button, .zerospam-block .button, .zerospam-button--secondary {
+  background-color: #fff;
+  border-color: #787c82;
+  color: #1d2327;
+}
+.zerospam-table-form .button:focus,
+.zerospam-form .button:focus, .zerospam-block .button:focus, .zerospam-button--secondary:focus {
+  background-color: #fff;
+  border-color: #787c82;
+  color: #1d2327;
+}
+.zerospam-table-form .button:hover,
+.zerospam-form .button:hover, .zerospam-block .button:hover, .zerospam-button--secondary:hover {
+  background-color: #f0f0f1;
+  border-color: #787c82;
+  color: #1d2327;
+}
+.zerospam-table-form .button:active,
+.zerospam-form .button:active, .zerospam-block .button:active, .zerospam-button--secondary:active {
+  background-color: #dcdcde;
+  border-color: #787c82;
+  color: #1d2327;
+}
+.zerospam-table-form .button:disabled,
+.zerospam-form .button:disabled, .zerospam-block .button:disabled, .zerospam-button--secondary:disabled, .zerospam-table-form .disabled.button,
+.zerospam-form .disabled.button, .zerospam-block .disabled.button, .disabled.zerospam-button--secondary {
+  background-color: #f6f7f7;
+  border-color: #dcdcde;
+  color: #a7aaad;
+  cursor: not-allowed;
+}
+
+.zerospam-table-form .button-primary,
+.zerospam-form .button-primary, .zerospam-block .button-primary, .zerospam-button--primary {
+  background-color: var(--zerospam-trinary);
+  border-color: var(--zerospam-trinary);
+  color: #fff;
+}
+.zerospam-table-form .button-primary:focus,
+.zerospam-form .button-primary:focus, .zerospam-block .button-primary:focus, .zerospam-button--primary:focus {
+  background-color: var(--zerospam-trinary);
+  border-color: var(--zerospam-trinary);
+  color: #fff;
+}
+.zerospam-table-form .button-primary:hover,
+.zerospam-form .button-primary:hover, .zerospam-block .button-primary:hover, .zerospam-button--primary:hover, .zerospam-table-form .button-primary:active,
+.zerospam-form .button-primary:active, .zerospam-block .button-primary:active, .zerospam-button--primary:active {
+  background-color: var(--zerospam-secondary);
+  border-color: var(--zerospam-secondary);
+  color: #fff;
+}
+.zerospam-table-form .button-primary:disabled,
+.zerospam-form .button-primary:disabled, .zerospam-block .button-primary:disabled, .zerospam-button--primary:disabled, .zerospam-table-form .disabled.button-primary,
+.zerospam-form .disabled.button-primary, .zerospam-block .disabled.button-primary, .disabled.zerospam-button--primary {
+  background-color: #f6f7f7;
+  border-color: #dcdcde;
+  color: #a7aaad;
+  cursor: not-allowed;
+}
+
+.zerospam-list--data-actions .button, .zerospam-list--top .button, .zerospam-table-form td.column-actions .button {
+  font-size: 12px;
+  line-height: 16px;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0.3125rem 0.5rem;
+}
+.zerospam-list--data-actions .button img, .zerospam-list--top .button img, .zerospam-table-form td.column-actions .button img {
+  display: block;
 }
 
 #wpcontent {
@@ -563,228 +624,246 @@ a.zerospam-dashboard__menu-link--active {
   margin: calc(var(--zerospam-block-gap) / 2);
 }
 
-.zerospam-table-form .column-actions {
-  column-gap: 5px;
-  display: flex;
+.zerospam-table-form td.column-actions {
+  white-space: nowrap;
 }
-.zerospam-table-form .tablenav-pages .current-page {
-  width: auto;
+.zerospam-table-form td.column-actions .button {
+  margin: 0 4px 4px 0;
 }
 .zerospam-table-form .tablenav {
   align-items: center;
   display: flex;
   flex-wrap: wrap;
+  gap: 0.5rem;
   height: auto;
   margin: 0 0 1rem 0;
   padding-top: 0;
 }
 .zerospam-table-form .tablenav .actions {
   align-items: center;
-  column-gap: 5px;
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   padding: 0;
 }
 .zerospam-table-form .tablenav .actions select {
-  float: none;
-  margin-right: 0;
+  margin: 0;
 }
 .zerospam-table-form .tablenav .tablenav-pages {
   flex-grow: 1;
-  float: none;
   margin: 0;
   text-align: right;
+}
+.zerospam-table-form .tablenav .tablenav-pages .button {
+  font-size: 16px;
+  line-height: 30px;
+  min-width: 32px;
+  padding: 0 4px;
+}
+@media screen and (max-width: 782px) {
+  .zerospam-table-form .tablenav .tablenav-pages .button {
+    font-size: 18px;
+    line-height: 1;
+    min-width: 40px;
+    padding: 10px 8px;
+  }
 }
 .zerospam-table-form .tablenav.bottom {
   margin: 1rem 0 0 0;
 }
-.zerospam-table-form p.search-box {
-  align-items: center;
-  column-gap: 5px;
-  display: flex;
-  margin-bottom: 5px;
-  float: none;
+.zerospam-table-form p.search-box .button {
+  line-height: 20px;
+  padding: 0.3125rem 1rem;
 }
-.zerospam-table-form .search-box input[name=s] {
-  float: none;
-  margin: 0;
+@media screen and (max-width: 782px) {
+  .zerospam-table-form p.search-box .button {
+    padding: 0.5625rem 1rem;
+  }
 }
 
-.zerospam-table-form .regular-text,
-.zerospam-form .regular-text {
+.zerospam-form .regular-text,
+.zerospam-form-field .regular-text {
   width: 100%;
 }
-.zerospam-table-form .code,
-.zerospam-form .code {
+.zerospam-form .code,
+.zerospam-form-field .code {
   font-size: 0.8rem;
 }
-.zerospam-table-form select,
-.zerospam-table-form input[type=text],
-.zerospam-table-form input[type=url],
-.zerospam-table-form input[type=number],
-.zerospam-table-form input[type=search],
-.zerospam-table-form input[type=datetime-local],
-.zerospam-table-form textarea,
 .zerospam-form select,
 .zerospam-form input[type=text],
 .zerospam-form input[type=url],
 .zerospam-form input[type=number],
 .zerospam-form input[type=search],
 .zerospam-form input[type=datetime-local],
-.zerospam-form textarea {
+.zerospam-form textarea,
+.zerospam-form-field select,
+.zerospam-form-field input[type=text],
+.zerospam-form-field input[type=url],
+.zerospam-form-field input[type=number],
+.zerospam-form-field input[type=search],
+.zerospam-form-field input[type=datetime-local],
+.zerospam-form-field textarea {
   border: 1px solid var(--zerospam-trinary);
   color: var(--zerospam-primary);
   max-width: none;
   padding: 0.45rem 1rem;
   width: 100%;
 }
-.zerospam-table-form select:hover,
-.zerospam-table-form input[type=text]:hover,
-.zerospam-table-form input[type=url]:hover,
-.zerospam-table-form input[type=number]:hover,
-.zerospam-table-form input[type=search]:hover,
-.zerospam-table-form input[type=datetime-local]:hover,
-.zerospam-table-form textarea:hover,
 .zerospam-form select:hover,
 .zerospam-form input[type=text]:hover,
 .zerospam-form input[type=url]:hover,
 .zerospam-form input[type=number]:hover,
 .zerospam-form input[type=search]:hover,
 .zerospam-form input[type=datetime-local]:hover,
-.zerospam-form textarea:hover {
+.zerospam-form textarea:hover,
+.zerospam-form-field select:hover,
+.zerospam-form-field input[type=text]:hover,
+.zerospam-form-field input[type=url]:hover,
+.zerospam-form-field input[type=number]:hover,
+.zerospam-form-field input[type=search]:hover,
+.zerospam-form-field input[type=datetime-local]:hover,
+.zerospam-form-field textarea:hover {
   color: var(--zerospam-primary);
 }
-.zerospam-table-form select:focus,
-.zerospam-table-form input[type=text]:focus,
-.zerospam-table-form input[type=url]:focus,
-.zerospam-table-form input[type=number]:focus,
-.zerospam-table-form input[type=search]:focus,
-.zerospam-table-form input[type=datetime-local]:focus,
-.zerospam-table-form textarea:focus,
 .zerospam-form select:focus,
 .zerospam-form input[type=text]:focus,
 .zerospam-form input[type=url]:focus,
 .zerospam-form input[type=number]:focus,
 .zerospam-form input[type=search]:focus,
 .zerospam-form input[type=datetime-local]:focus,
-.zerospam-form textarea:focus {
+.zerospam-form textarea:focus,
+.zerospam-form-field select:focus,
+.zerospam-form-field input[type=text]:focus,
+.zerospam-form-field input[type=url]:focus,
+.zerospam-form-field input[type=number]:focus,
+.zerospam-form-field input[type=search]:focus,
+.zerospam-form-field input[type=datetime-local]:focus,
+.zerospam-form-field textarea:focus {
   border: 1px solid var(--zerospam-trinary);
   box-shadow: none;
 }
-.zerospam-table-form select,
-.zerospam-form select {
+.zerospam-form select,
+.zerospam-form-field select {
   padding-right: 33px;
 }
-.zerospam-table-form input[type=radio],
-.zerospam-table-form input[type=checkbox],
-.zerospam-form input[type=radio],
-.zerospam-form input[type=checkbox] {
-  display: none;
-}
-.zerospam-table-form input[type=radio] + label,
-.zerospam-table-form input[type=checkbox] + label,
-.zerospam-form input[type=radio] + label,
-.zerospam-form input[type=checkbox] + label {
-  display: inline-block;
-  margin-bottom: 0.2rem;
-  position: relative;
-}
-.zerospam-table-form input[type=radio] + label::before, .zerospam-table-form input[type=radio] + label::after,
-.zerospam-table-form input[type=checkbox] + label::before,
-.zerospam-table-form input[type=checkbox] + label::after,
-.zerospam-form input[type=radio] + label::before,
-.zerospam-form input[type=radio] + label::after,
-.zerospam-form input[type=checkbox] + label::before,
-.zerospam-form input[type=checkbox] + label::after {
-  content: "";
-  cursor: pointer;
-}
-.zerospam-table-form input[type=radio] + label::before,
-.zerospam-table-form input[type=checkbox] + label::before,
-.zerospam-form input[type=radio] + label::before,
-.zerospam-form input[type=checkbox] + label::before {
-  background: var(--zerospam-trinary);
-  border: 2px solid transparent;
-  border-radius: 15px;
-  box-shadow: inset 0 1px 2px rgba(90, 97, 105, 0.15);
-  display: inline-block;
-  height: 1.125rem;
-  margin-right: 0.5rem;
-  padding: 0.1275rem;
-  position: relative;
-  vertical-align: middle;
-  transition: all 0.25s ease;
-  transition-duration: 0.2s;
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.1, 1);
-  width: 2.625rem;
-}
-.zerospam-table-form input[type=radio] + label::after,
-.zerospam-table-form input[type=checkbox] + label::after,
-.zerospam-form input[type=radio] + label::after,
-.zerospam-form input[type=checkbox] + label::after {
-  background: #fff center no-repeat url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yLjQ3NDkgMi41MjUxYS41ODMzLjU4MzMgMCAwMDAgLjgyNUw0LjEyNDggNWwtMS42NSAxLjY1YS41ODMzLjU4MzMgMCAxMC44MjUuODI0OWwxLjY1LTEuNjUgMS42NDk5IDEuNjVhLjU4MzMuNTgzMyAwIDEwLjgyNS0uODI1TDUuNzc0NiA1bDEuNjUtMS42NWEuNTgzMy41ODMzIDAgMTAtLjgyNS0uODI0OWwtMS42NSAxLjY1LTEuNjQ5OS0xLjY1YS41ODMzLjU4MzMgMCAwMC0uODI1IDB6IiBmaWxsPSIjOTA5MkIyIi8+PC9zdmc+);
-  background-size: 0.625rem;
-  border-radius: 50%;
-  box-shadow: 0 1px 4px rgba(24, 24, 72, 0.12);
-  display: block;
-  height: 1.125rem;
-  left: 4px;
-  position: absolute;
-  top: 4px;
-  transition: all 0.25s ease;
-  transition-duration: 0.2s;
-  transition-property: background, left;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  width: 1.125rem;
-  z-index: 1;
-}
-.zerospam-table-form input[type=radio]:checked + label::before,
-.zerospam-table-form input[type=checkbox]:checked + label::before,
-.zerospam-form input[type=radio]:checked + label::before,
-.zerospam-form input[type=checkbox]:checked + label::before {
-  background: var(--zerospam-accent);
-}
-.zerospam-table-form input[type=radio]:checked + label::after,
-.zerospam-table-form input[type=checkbox]:checked + label::after,
-.zerospam-form input[type=radio]:checked + label::after,
-.zerospam-form input[type=checkbox]:checked + label::after {
-  background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOCIgaGVpZ2h0PSI3IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0yLjY2NjcgNC4zOTA1TDYuODYxOS4xOTUzYS42NjY3LjY2NjcgMCAwMS45NDI4Ljk0MjhsLTUuMTM4IDUuMTM4TC4xOTUzIDMuODA0N2EuNjY2Ny42NjY3IDAgMDEuOTQyOC0uOTQyOGwxLjUyODYgMS41Mjg2eiIgZmlsbD0iIzNFN0RBNiIvPjwvc3ZnPg==);
-  background-size: 0.5rem;
-  left: 1.7rem;
-}
-.zerospam-table-form input[type=radio]:disabled + label,
-.zerospam-table-form input[type=checkbox]:disabled + label,
-.zerospam-form input[type=radio]:disabled + label,
-.zerospam-form input[type=checkbox]:disabled + label {
-  cursor: not-allowed;
-}
-.zerospam-table-form input[type=radio]:disabled + label::before, .zerospam-table-form input[type=radio]:disabled + label::after,
-.zerospam-table-form input[type=checkbox]:disabled + label::before,
-.zerospam-table-form input[type=checkbox]:disabled + label::after,
-.zerospam-form input[type=radio]:disabled + label::before,
-.zerospam-form input[type=radio]:disabled + label::after,
-.zerospam-form input[type=checkbox]:disabled + label::before,
-.zerospam-form input[type=checkbox]:disabled + label::after {
-  cursor: not-allowed;
-}
-.zerospam-table-form input[type=radio]:disabled + label::before,
-.zerospam-table-form input[type=checkbox]:disabled + label::before,
-.zerospam-form input[type=radio]:disabled + label::before,
-.zerospam-form input[type=checkbox]:disabled + label::before {
-  opacity: 0.6;
-}
-.zerospam-table-form select:disabled,
-.zerospam-table-form input:disabled,
-.zerospam-table-form textarea:disabled,
 .zerospam-form select:disabled,
 .zerospam-form input:disabled,
-.zerospam-form textarea:disabled {
+.zerospam-form textarea:disabled,
+.zerospam-form-field select:disabled,
+.zerospam-form-field input:disabled,
+.zerospam-form-field textarea:disabled {
   background-color: #f0f0f1;
   cursor: not-allowed;
 }
 
-.check-column input[type=checkbox] {
+.zerospam-switch {
   display: block;
+  margin-bottom: 0.25rem;
+  position: relative;
+}
+.zerospam-switch__input {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+.zerospam-switch__label {
+  align-items: flex-start;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.5rem;
+  line-height: 22px;
+  min-height: 24px;
+  position: relative;
+}
+.zerospam-switch__label::before {
+  background-color: #8c8f94;
+  border-radius: 11px;
+  box-sizing: border-box;
+  content: "";
+  flex-shrink: 0;
+  height: 22px;
+  transition: background-color 0.15s ease-in-out;
+  width: 40px;
+}
+.zerospam-switch__label::after {
+  background: #fff center/8px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M2 2l6 6M8 2L2 8' stroke='%23646970' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  content: "";
+  height: 16px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  transition: transform 0.15s ease-in-out;
+  width: 16px;
+}
+.zerospam-switch__label:hover::before {
+  background-color: #646970;
+}
+.zerospam-switch__text {
+  min-width: 0;
+}
+.zerospam-switch__input:checked + .zerospam-switch__label::before {
+  background-color: var(--zerospam-trinary);
+}
+.zerospam-switch__input:checked + .zerospam-switch__label::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M1.5 5.5l2.5 2.5 4.5-6' fill='none' stroke='%23be0000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  transform: translateX(18px);
+}
+.zerospam-switch__input:checked + .zerospam-switch__label:hover::before {
+  background-color: var(--zerospam-secondary);
+}
+.zerospam-switch__input:focus-visible + .zerospam-switch__label::before {
+  outline: 2px solid var(--zerospam-primary);
+  outline-offset: 2px;
+}
+.zerospam-switch__input:disabled + .zerospam-switch__label {
+  cursor: not-allowed;
+}
+.zerospam-switch__input:disabled + .zerospam-switch__label::before {
+  opacity: 0.6;
+}
+.zerospam-switch__input:disabled + .zerospam-switch__label:hover::before {
+  background-color: #8c8f94;
+}
+.zerospam-switch__input:checked:disabled + .zerospam-switch__label:hover::before {
+  background-color: var(--zerospam-trinary);
+}
+@media (forced-colors: active) {
+  .zerospam-switch__label::before, .zerospam-switch__label::after {
+    forced-color-adjust: none;
+  }
+  .zerospam-switch__label::before, .zerospam-switch__label:hover::before, .zerospam-switch__input:checked + .zerospam-switch__label::before, .zerospam-switch__input:checked + .zerospam-switch__label:hover::before, .zerospam-switch__input:disabled + .zerospam-switch__label:hover::before, .zerospam-switch__input:checked:disabled + .zerospam-switch__label:hover::before {
+    background-color: Canvas;
+    border: 1px solid ButtonText;
+  }
+  .zerospam-switch__label::after {
+    background: ButtonText;
+    box-shadow: none;
+  }
+  .zerospam-switch__input:checked + .zerospam-switch__label::before, .zerospam-switch__input:checked + .zerospam-switch__label:hover::before {
+    border-color: Highlight;
+  }
+  .zerospam-switch__input:checked + .zerospam-switch__label::after {
+    background: Highlight;
+  }
+  .zerospam-switch__input:focus-visible + .zerospam-switch__label::before {
+    outline-color: Highlight;
+  }
+  .zerospam-switch__input:disabled + .zerospam-switch__label::before, .zerospam-switch__input:disabled + .zerospam-switch__label:hover::before, .zerospam-switch__input:checked:disabled + .zerospam-switch__label::before, .zerospam-switch__input:checked:disabled + .zerospam-switch__label:hover::before {
+    border-color: GrayText;
+    opacity: 1;
+  }
+  .zerospam-switch__input:disabled + .zerospam-switch__label::after {
+    background: GrayText;
+  }
 }
 
 .zerospam-form-field-container {
@@ -841,8 +920,22 @@ a.zerospam-dashboard__menu-link--active {
   display: block;
   position: relative;
 }
+.zerospam-modal-overlay {
+  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  opacity: 0;
+  position: fixed;
+  transition: opacity 0.5s, visibility 0.5s;
+  visibility: hidden;
+  z-index: 100100;
+}
+.zerospam-modal-overlay.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
 .zerospam-modal {
-  box-shadow: 0 0 4rem 100vw rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 4rem rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
   left: 50%;
   max-width: 600px;
@@ -855,7 +948,7 @@ a.zerospam-dashboard__menu-link--active {
   transition: all 0.5s;
   visibility: hidden;
   width: 100%;
-  z-index: 1;
+  z-index: 100101;
 }
 .zerospam-modal.is-active {
   opacity: 1;
@@ -1574,6 +1667,11 @@ a.zerospam-dashboard__menu-link--active {
 	margin-bottom: 20px;
 }
 
+/* Readable link colour (the dashboard's accent link colour is below 4.5:1). */
+.zerospam-docs-more a {
+	color: var(--zerospam-secondary);
+}
+
 .zerospam-docs-intro {
 	font-size: 15px;
 	background: #f6f7f7;
@@ -2104,4 +2202,22 @@ html {
 
 .zerospam-documentation-section {
 	scroll-margin-top: 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  [class*=zerospam],
+  [class*=zerospam] *,
+  [class*=zerospam]::before,
+  [class*=zerospam]::after,
+  [class*=zerospam] *::before,
+  [class*=zerospam] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .zerospam-docs-toc-list a:hover {
+    transform: none;
+  }
 }
