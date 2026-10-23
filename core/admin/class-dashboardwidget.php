@@ -255,54 +255,28 @@ class Dashboard_Widget {
 		try {
 			$is_network       = is_multisite() && is_network_admin();
 			$api_monitoring   = \ZeroSpam\Includes\API_Usage_Tracker::is_monitoring_enabled();
-			$settings         = \ZeroSpam\Core\Settings::get_settings();
-			$zerospam_enabled = isset( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
+			$zerospam_enabled = \ZeroSpam\Core\License_Status::is_enabled();
 
-			// Check for license key.
-			$zerospam_license = false;
-			if ( defined( 'ZEROSPAM_LICENSE_KEY' ) && ZEROSPAM_LICENSE_KEY ) {
-				$zerospam_license = ZEROSPAM_LICENSE_KEY;
-			} elseif ( ! empty( $settings['zerospam_license']['value'] ) ) {
-				$zerospam_license = $settings['zerospam_license']['value'];
-			}
-
-			// Validate license.
+			// The license status every Zero Spam screen shows (License_Status).
+			$zerospam_license       = \ZeroSpam\Core\License_Status::has_key();
 			$license_valid          = false;
 			$license_status_message = '';
 
-			if ( $zerospam_license && function_exists( 'wp_remote_get' ) ) {
-				// Check cache first (12 hour cache).
-				$cache_key    = 'zerospam_license_check_' . md5( $zerospam_license );
-				$license_data = get_transient( $cache_key );
+			// The banners only show while Enhanced Protection is on.
+			if ( $zerospam_enabled && $zerospam_license ) {
+				$license = \ZeroSpam\Core\License_Status::get();
 
-				if ( false === $license_data ) {
-					// Make API call.
-					$response = wp_remote_get(
-						'https://www.zerospam.org/?wpserviceapi=license-check&license_key=' . rawurlencode( $zerospam_license ),
-						array( 'timeout' => 5 )
-					);
-
-					if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
-						$body         = json_decode( wp_remote_retrieve_body( $response ), true );
-						$license_data = array(
-							'valid'   => ! empty( $body['success'] ) && true === $body['success'],
-							'message' => ! empty( $body['message'] ) ? $body['message'] : '',
-						);
-						// Cache for 12 hours.
-						set_transient( $cache_key, $license_data, 12 * HOUR_IN_SECONDS );
-					} else {
-						// API error - assume valid to avoid blocking users on temporary API issues.
-						$license_data = array(
-							'valid'   => true,
-							'message' => '',
-						);
-						// Cache for shorter time (15 minutes) on errors.
-						set_transient( $cache_key, $license_data, 15 * MINUTE_IN_SECONDS );
-					}
+				switch ( $license['status'] ) {
+					case \ZeroSpam\Core\License_Status::VALID:
+						$license_valid = true;
+						break;
+					case \ZeroSpam\Core\License_Status::INVALID:
+						$license_status_message = __( 'The Zero Spam license key is invalid.', 'zero-spam' );
+						break;
+					case \ZeroSpam\Core\License_Status::QUOTA_EXCEEDED:
+						$license_status_message = __( 'License query limit reached.', 'zero-spam' );
+						break;
 				}
-
-				$license_valid          = $license_data['valid'];
-				$license_status_message = $license_data['message'];
 			}
 
 			// Get spam log data.
@@ -596,24 +570,24 @@ class Dashboard_Widget {
 	 * @return array|false API usage data or false if not available.
 	 */
 	private function get_api_usage_data() {
-		// Get license key.
-		$license_key = \ZeroSpam\Core\Settings::get_settings( 'zerospam_license' );
-
-		if ( ! $license_key ) {
+		if ( ! \ZeroSpam\Core\License_Status::has_key() ) {
 			return false;
 		}
 
-		// Use the same method as the settings page header.
-		$license = \ZeroSpam\Modules\Zero_Spam::get_license( $license_key );
+		// The same license status as the settings page header.
+		$license = \ZeroSpam\Core\License_Status::get();
 
-		if ( empty( $license ) || empty( $license['license_key'] ) ) {
+		if (
+			! in_array( $license['status'], array( \ZeroSpam\Core\License_Status::VALID, \ZeroSpam\Core\License_Status::QUOTA_EXCEEDED ), true ) ||
+			empty( $license['queries'] )
+		) {
 			return false;
 		}
 
 		// Extract quota information from license data.
-		$queries_limit     = isset( $license['queries_limit'] ) ? (int) $license['queries_limit'] : 0;
-		$queries_made      = isset( $license['queries_made'] ) ? (int) $license['queries_made'] : 0;
-		$queries_remaining = isset( $license['queries_remaining'] ) ? (int) $license['queries_remaining'] : 0;
+		$queries_limit     = (int) $license['queries']['limit'];
+		$queries_made      = (int) $license['queries']['used'];
+		$queries_remaining = (int) $license['queries']['remaining'];
 
 		if ( 0 === $queries_limit ) {
 			return false;

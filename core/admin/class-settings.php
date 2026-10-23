@@ -1164,9 +1164,8 @@ class Settings {
 						<?php
 						switch ( $subview ) :
 							case 'zerospam':
-								$license_key         = \ZeroSpam\Core\Settings::get_settings( 'zerospam_license' );
-								$license_key_enabled = \ZeroSpam\Core\Settings::get_settings( 'zerospam' );
-								if ( ! $license_key || 'enabled' !== $license_key_enabled ) :
+								// Same Enhanced Protection state as the header and the notices (License_Status).
+								if ( ! \ZeroSpam\Core\License_Status::has_key() || ! \ZeroSpam\Core\License_Status::is_enabled() ) :
 									?>
 									<div class="zerospam-block zerospam-block--callout">
 										<div class="zerospam-block__content">
