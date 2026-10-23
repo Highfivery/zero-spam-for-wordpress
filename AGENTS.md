@@ -561,6 +561,20 @@ npm run env:stop                 # stop both wp-env sites
   the CSS. Change both by hand, keeping the compiled regions identical to
   what sass produces, until those rules are moved into the SCSS. There is no
   source map.
+- Found by the 5.7.14 Local smoke test, not fixed yet (each needs its own
+  PR):
+  - the e2e mu-plugin's canned Zero Spam `v3/query` answer has no
+    `body_response`, so `modules/class-zerospam.php` logs "problem querying
+    the Zero Spam Blacklist API" during e2e runs;
+  - on a network subsite, a setting whose network value is empty shows
+    "Using network default:" followed by an empty box;
+  - Network Stats labels sites "Enhanced" even when they have no working
+    license;
+  - the API monitoring notice's links (Enable, Dismiss) point to
+    `admin.php?page=wordpress-zero-spam-settings…` instead of
+    `options-general.php?page=…`;
+  - the network settings lock button's 🔓 emoji is replaced by WordPress's
+    emoji script with an `s.w.org` image (an external asset in admin).
 - `includes/templates/admin-bar-chart.php` and `admin-line-chart.php` still
   load Chart.js from a CDN (the e2e browser serves the bundled
   `assets/js/vendor/chart.umd.min.js` instead and lists the request in the

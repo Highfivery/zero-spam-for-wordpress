@@ -156,7 +156,7 @@ As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.
 * **feat(rescue):** locked out by Zero Spam? The blocked page now lets you request a single-use link, sent only to an administrator's email address, that lets your browser back in for one hour so you can log in. No file editing needed; email security scanners can't use the link up, and every use is logged. The Rescue Mode setting now explains both ways back in.
 * **feat(rescue):** activating or updating Zero Spam saves your current IP address as one it never locks out. Visitors from it are still checked for spam; the saved addresses are listed, with a Remove button, under the IP Whitelist.
 * **feat(settings):** new Trusted Proxy IPs setting (Settings → Zero Spam → Settings) for your CDN's or proxy's IP addresses or ranges, and a warning on Zero Spam's screens when many visitors seem to share one IP address.
-* **ui(admin):** settings switches now work with the keyboard and screen readers, list tables and buttons follow WordPress's standard look with readable contrast, and animations turn off when your device asks for reduced motion.
+* **ui(admin):** settings switches now work with the keyboard and screen readers, list tables, buttons and pop-up windows follow WordPress's standard look with readable contrast, and animations turn off when your device asks for reduced motion.
 * **dev:** developer changes (new filters and actions, rescue entries left out of `DB::query( 'log' )`, admin assets that reload automatically on development sites with SCRIPT_DEBUG) are listed in the [full changelog on GitHub](https://github.com/Highfivery/zero-spam-for-wordpress/blob/main/CHANGELOG.md) and on Zero Spam's Documentation tab.
 
 = v5.7.13 =
