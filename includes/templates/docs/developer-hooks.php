@@ -69,7 +69,7 @@ $zerospam_hook_kses = array( 'code' => array() );
 		</div>
 	</div>
 
-	<p>
+	<p class="zerospam-docs-more">
 		<?php
 		printf(
 			wp_kses(

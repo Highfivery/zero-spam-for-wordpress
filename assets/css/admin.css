@@ -1653,6 +1653,11 @@ a.zerospam-dashboard__menu-link--active {
 	margin-bottom: 20px;
 }
 
+/* Readable link colour (the dashboard's accent link colour is below 4.5:1). */
+.zerospam-docs-more a {
+	color: var(--zerospam-secondary);
+}
+
 .zerospam-docs-intro {
 	font-size: 15px;
 	background: #f6f7f7;
