@@ -58,17 +58,34 @@
   };
 
   $(function () {
+    // One overlay for every modal: it sits above the admin bar and the
+    // list-table rows (see .zerospam-modal-overlay in admin.scss), so nothing
+    // behind an open modal can be clicked, and clicking it closes the modal.
+    var $overlay = $('<div class="zerospam-modal-overlay" aria-hidden="true"></div>').appendTo("body");
+
+    function closeModals() {
+      $(".zerospam-modal").removeClass("is-active");
+      $overlay.removeClass("is-active");
+    }
+
+    function openModal($modal) {
+      closeModals();
+      $modal.addClass("is-active");
+      $overlay.addClass("is-active");
+    }
+
+    $overlay.on("click", closeModals);
+
     $(".zerospam-details-trigger").click(function (e) {
       e.preventDefault();
-      $(".zerospam-modal").removeClass("is-active");
 
       var id = $(this).data("id");
-      $("#zerospam-details-" + id).addClass("is-active");
+      openModal($("#zerospam-details-" + id));
     });
 
     $(".zerospam-close-modal").click(function (e) {
       e.preventDefault();
-      $(".zerospam-modal").removeClass("is-active");
+      closeModals();
     });
 
     $(".zerospam-block-location-trigger").click(function (e) {
@@ -76,8 +93,7 @@
 
       ZeroSpamAdmin.prepopulateFields($(this));
 
-      $(".zerospam-modal").removeClass("is-active");
-      $("#zerospam-block-location").addClass("is-active");
+      openModal($("#zerospam-block-location"));
     });
 
     $(".zerospam-block-trigger").click(function (e) {
@@ -85,13 +101,12 @@
 
       ZeroSpamAdmin.prepopulateFields($(this));
 
-      $(".zerospam-modal").removeClass("is-active");
-      $("#zerospam-block-ip").addClass("is-active");
+      openModal($("#zerospam-block-ip"));
     });
 
     $(document).on("keydown", function (e) {
       if (e.key == "Escape") {
-        $(".zerospam-modal").removeClass("is-active");
+        closeModals();
       }
     });
   });

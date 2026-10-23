@@ -1094,8 +1094,26 @@ a.zerospam-dashboard__menu-link {
   }
 }
 
+// Above WordPress's admin bar (99999) and the list-table checkboxes
+// (position: relative; z-index: 1 in core's list-tables.css), which would
+// otherwise paint and take clicks on top of a modal inside a row.
+.zerospam-modal-overlay {
+  background: rgb(0 0 0 / 50%);
+  inset: 0;
+  opacity: 0;
+  position: fixed;
+  transition: opacity 0.5s, visibility 0.5s;
+  visibility: hidden;
+  z-index: 100100;
+
+  &.is-active {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
 .zerospam-modal {
-  box-shadow: 0 0 4rem 100vw rgb(0 0 0 / 50%);
+  box-shadow: 0 0 4rem rgb(0 0 0 / 50%);
   box-sizing: border-box;
   left: 50%;
   max-width: 600px;
@@ -1108,7 +1126,7 @@ a.zerospam-dashboard__menu-link {
   transition: all 0.5s;
   visibility: hidden;
   width: 100%;
-  z-index: 1;
+  z-index: 100101;
 
   &.is-active {
     opacity: 1;
