@@ -1,0 +1,1 @@
+(()=>{"use strict";document.querySelectorAll("[data-zs-widget]").forEach(t=>{t.setAttribute("data-zs-ready","")})})();

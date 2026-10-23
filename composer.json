@@ -70,6 +70,14 @@
 		"test:wp": "bin/test-matrix.sh",
 		"test:defects": "bin/test.sh --mode=all --known-defects",
 		"test:coverage": "bin/test.sh --mode=all --coverage",
+		"build": [
+			"Composer\\Config::disableProcessTimeout",
+			"npm run build"
+		],
+		"check:dist": [
+			"Composer\\Config::disableProcessTimeout",
+			"bin/check-dist.sh"
+		],
 		"e2e:install": [
 			"Composer\\Config::disableProcessTimeout",
 			"npm ci",
@@ -104,6 +112,7 @@
 			"npm run --silent test:visual --"
 		],
 		"check": [
+			"@check:dist",
 			"@version:check",
 			"@lint:changed",
 			"@lint:tests",
@@ -112,6 +121,7 @@
 			"@test"
 		],
 		"check:all": [
+			"@check:dist",
 			"@version:check",
 			"@lint",
 			"@lint:tests",
@@ -139,6 +149,8 @@
 		"test:wp": "Run the suite on PHP 8.2 and 8.4 x minimum and latest WordPress x single site and multisite, then check the readme.txt WordPress headers.",
 		"test:defects": "Run only the @group known-defect tests. They fail until the bug each one documents is fixed.",
 		"test:coverage": "Run the suite with code coverage into build/coverage/ (needs pcov or Xdebug).",
+		"build": "Build the admin front end (assets/src) into assets/dist with @wordpress/scripts. Needs Node 22 (nvm use) and npm ci.",
+		"check:dist": "Refuse a stale assets/dist (a fresh build must match it) and check the size budgets, when the build inputs or outputs changed against origin/develop. Needs Node 22.",
 		"e2e:install": "Install the Node dev dependencies (npm ci) and Playwright's Chromium for the e2e suite. Needs Node 22 (nvm use).",
 		"test:e2e": "Run the Playwright e2e, accessibility and visual suite on both Local sites (needs npm run e2e:setup:local once). Not part of composer check.",
 		"test:e2e:local": "Run the e2e suite on the Local single site only.",
@@ -147,8 +159,8 @@
 		"test:e2e:wp-env:min": "Run the e2e suite on wp-env with the minimum supported WordPress, then switch back to the latest.",
 		"test:a11y": "Run only the accessibility scans (axe-core) on wp-env.",
 		"test:visual": "Compare the visual baselines in tests/e2e/__screenshots__ on wp-env (latest WordPress).",
-		"check": "The quality gate the pre-push hook enforces: version check, WPCS on changed files and on the tests, PHP compatibility, PHPStan, PHPUnit.",
-		"check:all": "The full gate: WPCS on every file and on the tests, PHP compatibility, PHPStan and the PHPUnit matrix. Fails until the pre-existing WPCS backlog is cleared.",
+		"check": "The quality gate the pre-push hook enforces: built assets and budgets, version check, WPCS on changed files and on the tests, PHP compatibility, PHPStan, PHPUnit.",
+		"check:all": "The full gate: built assets and budgets, WPCS on every file and on the tests, PHP compatibility, PHPStan and the PHPUnit matrix. Fails until the pre-existing WPCS backlog is cleared.",
 		"hooks:install": "Point git at the committed .githooks/ directory (runs automatically after composer install/update)."
 	}
 }
