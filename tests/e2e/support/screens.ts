@@ -72,7 +72,8 @@ export const SETTINGS_SUBVIEWS = [
 export const DYNAMIC_MASKS = [ '.zerospam-header__status', 'time' ];
 export const REPORT_MASKS = [ ...DYNAMIC_MASKS, 'canvas', '#world-map', '.zerospam-block--review .zerospam-block__content', '.zerospam-block--list > .zerospam-block__content', '.zerospam-block--pie-chart .zerospam-block__content' ];
 export const TABLE_MASKS = [ ...DYNAMIC_MASKS, 'td.column-date_recorded', '.tablenav .displaying-num' ];
-export const WIDGET_MASKS = [ 'canvas', '.zerospam-stat-value' ];
+/** The 6.0 dashboard widget: the figures, the sparkline (its days move at midnight) and the relative times. */
+export const WIDGET_MASKS = [ '[data-zs-field="total"]', '[data-zs-field="delta"]', '.zs-w-spark', 'time' ];
 
 /**
  * Waits until an element's CSS transitions and finite animations have ended.
@@ -255,7 +256,7 @@ export const SCREENS: Screen[] = [
 	{ id: 'dashboard-blocked-ips-seeded', title: 'Blocked IPs (with blocks)', area: 'admin', sites: 'both', state: 'seeded', path: () => DASHBOARD + 'blocked-ips', visual: { mask: [ ...TABLE_MASKS, 'td.column-start_block', 'td.column-end_block', 'td.column-date_added' ] } },
 	{ id: 'dashboard-block-ip-modal', title: 'Blocked IPs › add/update modal', area: 'admin', sites: 'both', state: 'seeded', path: () => DASHBOARD + 'blocked-ips', prepare: openBlockModal, visual: { selector: '#zerospam-block-ip' } },
 	{ id: 'dashboard-block-location-modal', title: 'Blocked Locations › add/update modal', area: 'admin', sites: 'both', state: 'empty', path: () => DASHBOARD + 'blocked-locations', prepare: openLocationModal, visual: { selector: '#zerospam-block-location' } },
-	{ id: 'wp-dashboard-widget', title: 'WordPress Dashboard › Zero Spam Overview widget', area: 'admin', sites: 'both', state: 'seeded', path: () => 'wp-admin/index.php', include: [ '#zerospam_unified_widget' ], visual: { mobile: true, mask: WIDGET_MASKS, selector: '#zerospam_unified_widget' } },
+	{ id: 'wp-dashboard-widget', title: 'WordPress Dashboard › Zero Spam overview widget', area: 'admin', sites: 'both', state: 'seeded', path: () => 'wp-admin/index.php', include: [ '#zerospam_unified_widget' ], visual: { mobile: true, mask: WIDGET_MASKS, selector: '#zerospam_unified_widget' } },
 	{
 		id: 'wp-dashboard-promo-notice',
 		title: 'WordPress Dashboard with the Enhanced Protection notice',
@@ -284,7 +285,7 @@ export const SCREENS: Screen[] = [
 	),
 	{ id: 'network-settings-group-expanded', title: 'Network Settings › settings group expanded', area: 'network', sites: 'multisite', state: 'empty', path: () => NETWORK + 'settings', prepare: expandFirstGroup, visual: { mask: [ '.status-text' ] } },
 	{ id: 'network-stats', title: 'Network Stats', area: 'network', sites: 'multisite', state: 'seeded', path: () => 'wp-admin/network/settings.php?page=wordpress-zero-spam-network-stats', visual: { mask: [ ...DYNAMIC_MASKS, 'canvas', 'td', '.stat-value', '.stat-card' ] } },
-	{ id: 'network-dashboard-widget', title: 'Network Dashboard › Zero Spam Network Overview widget', area: 'network', sites: 'multisite', state: 'seeded', path: () => 'wp-admin/network/index.php', include: [ '#zerospam_unified_widget' ], visual: { mask: WIDGET_MASKS, selector: '#zerospam_unified_widget' } },
+	{ id: 'network-dashboard-widget', title: 'Network Dashboard › Zero Spam network overview widget', area: 'network', sites: 'multisite', state: 'seeded', path: () => 'wp-admin/network/index.php', include: [ '#zerospam_unified_widget' ], visual: { mask: WIDGET_MASKS, selector: '#zerospam_unified_widget' } },
 	{
 		id: 'subsite-settings-locked',
 		title: 'Subsite settings while "Protect Comments" is locked by the network',
