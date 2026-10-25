@@ -38,6 +38,8 @@ export interface Screen {
 	/** Expected HTTP status (blocked pages answer 403). */
 	status?: number;
 	visual?: boolean | { mobile?: boolean; mask?: string[]; selector?: string };
+	/** prefers-color-scheme to emulate (default: the fixtures' light). Screens that follow the OS add a dark twin. */
+	colorScheme?: 'light' | 'dark';
 }
 
 const SETTINGS = 'wp-admin/options-general.php?page=wordpress-zero-spam-settings&subview=';
@@ -117,6 +119,118 @@ const settingsScreens: Screen[] = SETTINGS_SUBVIEWS.map( ( subview ) => ( {
 	visual: true,
 } ) );
 
+/** The rescue token the "Let me back in" screen opens (fetched in `before`, read by `path`). */
+let rescueToken = '';
+
+/** The Block_Page pages (core/front/class-blockpage.php): the copy, the wall and the bylines; IP, reference and time change. */
+const FRONT_VISUAL = { mobile: true, selector: 'main.zs-blk', mask: [ '.zs-dl dd' ] };
+
+/** Submits the blocked page's rescue form with an address (the browser's own validation is skipped, as a bot would). */
+const submitRescue = async ( page: Page, email: string ): Promise< number > => {
+	await page.locator( '.zs-owner summary' ).click();
+	await page.locator( '#zerospam-rescue-email' ).fill( email );
+	const response = page.waitForResponse( ( r ) => r.url().includes( 'admin-post.php' ) && 'POST' === r.request().method() );
+	await page.locator( '.zs-owner form' ).evaluate( ( f: HTMLFormElement ) => HTMLFormElement.prototype.submit.call( f ) );
+	const status = ( await response ).status();
+	await page.waitForURL( /admin-post\.php/, { waitUntil: 'load' } );
+	return status;
+};
+
+const blockVisitor = async ( zs: ZsApi, _t: Target, ip: string ) => {
+	await zs.block( ip, 'Blocked page screen' );
+};
+
+const FRONT_PAGES: Screen[] = [
+	{ id: 'front-blocked-403', title: 'Blocked visitor (403 page)', area: 'front', sites: 'both', state: 'empty', as: 'visitor', status: 403, before: blockVisitor, path: () => '', include: [ 'body' ], visual: FRONT_VISUAL },
+	{
+		id: 'front-rescue-form-error',
+		title: 'Blocked page › rescue form error',
+		area: 'front',
+		sites: 'both',
+		state: 'empty',
+		as: 'visitor',
+		status: 400,
+		before: blockVisitor,
+		path: () => '',
+		prepare: ( page ) => submitRescue( page, 'not an email' ),
+		include: [ 'body' ],
+		visual: FRONT_VISUAL,
+	},
+	{
+		id: 'front-rescue-sent',
+		title: 'Blocked page › "Check your email"',
+		area: 'front',
+		sites: 'both',
+		state: 'empty',
+		as: 'visitor',
+		before: blockVisitor,
+		path: () => '',
+		prepare: ( page ) => submitRescue( page, 'nobody@example.com' ),
+		include: [ 'body' ],
+		visual: FRONT_VISUAL,
+	},
+	{
+		id: 'front-rescue-confirm',
+		title: 'Rescue link › "Let me back in"',
+		area: 'front',
+		sites: 'both',
+		state: 'empty',
+		as: 'visitor',
+		before: async ( zs, _t, ip ) => {
+			await zs.block( ip, 'Blocked page screen' );
+			rescueToken = await zs.rescueToken( ip );
+		},
+		path: () => `?zerospam_rescue_token=${ rescueToken }`,
+		include: [ 'body' ],
+		visual: FRONT_VISUAL,
+	},
+	{
+		id: 'front-rescue-expired',
+		title: 'Rescue link › "This link has expired"',
+		area: 'front',
+		sites: 'both',
+		state: 'empty',
+		as: 'visitor',
+		status: 403,
+		before: blockVisitor,
+		// A well-formed token that was never issued (used and expired tokens look the same).
+		path: () => `?zerospam_rescue_token=${ 'ab'.repeat( 32 ) }`,
+		include: [ 'body' ],
+		visual: FRONT_VISUAL,
+	},
+	{
+		id: 'front-comment-blocked',
+		title: 'Comment blocked page',
+		area: 'front',
+		sites: 'both',
+		state: 'empty',
+		as: 'visitor',
+		status: 403,
+		path: () => COMMENTS_POST_PATH,
+		prepare: async ( page ) => {
+			await page.locator( '#commentform' ).waitFor();
+			await page.evaluate( () => {
+				const form = document.querySelector< HTMLFormElement >( '#commentform' )!;
+				const hp = form.querySelector< HTMLInputElement >( 'input[style*="display: none"]' );
+				if ( hp ) {
+					hp.value = 'i-am-a-bot';
+				}
+				( form.querySelector( '#comment' ) as HTMLTextAreaElement ).value = 'Blocked page screen ' + Date.now();
+				( form.querySelector( '#author' ) as HTMLInputElement | null )?.setAttribute( 'value', 'Bot' );
+				( form.querySelector( '#email' ) as HTMLInputElement | null )?.setAttribute( 'value', 'bot@example.com' );
+			} );
+			const response = page.waitForResponse( ( r ) => r.url().includes( 'wp-comments-post.php' ) && 'POST' === r.request().method() );
+			// The comment form has a button named "submit", which shadows form.submit().
+			await page.locator( '#commentform' ).evaluate( ( f: HTMLFormElement ) => HTMLFormElement.prototype.submit.call( f ) );
+			const status = ( await response ).status();
+			await page.waitForURL( /wp-comments-post\.php/, { waitUntil: 'load' } );
+			return status;
+		},
+		include: [ 'body' ],
+		visual: FRONT_VISUAL,
+	},
+];
+
 export const SCREENS: Screen[] = [
 	...settingsScreens,
 	{
@@ -189,50 +303,11 @@ export const SCREENS: Screen[] = [
 	{ id: 'front-comment-form', title: 'Post with the comment form', area: 'front', sites: 'both', state: 'empty', as: 'visitor', path: () => COMMENTS_POST_PATH, include: [ '#commentform' ] },
 	{ id: 'front-login', title: 'wp-login.php', area: 'front', sites: 'both', state: 'empty', as: 'visitor', path: () => 'wp-login.php', include: [ '#loginform' ] },
 	{ id: 'front-register', title: 'Registration form', area: 'front', sites: 'single', state: 'empty', as: 'visitor', path: () => 'wp-login.php?action=register', include: [ '#registerform' ] },
-	{
-		id: 'front-blocked-403',
-		title: 'Blocked visitor (403 page)',
-		area: 'front',
-		sites: 'both',
-		state: 'empty',
-		as: 'visitor',
-		status: 403,
-		before: async ( zs, _t, ip ) => {
-			await zs.block( ip, 'Blocked page screen' );
-		},
-		path: () => '',
-		include: [ 'body' ],
-	},
-	{
-		id: 'front-comment-blocked',
-		title: 'Comment blocked page',
-		area: 'front',
-		sites: 'both',
-		state: 'empty',
-		as: 'visitor',
-		status: 403,
-		path: () => COMMENTS_POST_PATH,
-		prepare: async ( page ) => {
-			await page.locator( '#commentform' ).waitFor();
-			await page.evaluate( () => {
-				const form = document.querySelector< HTMLFormElement >( '#commentform' )!;
-				const hp = form.querySelector< HTMLInputElement >( 'input[style*="display: none"]' );
-				if ( hp ) {
-					hp.value = 'i-am-a-bot';
-				}
-				( form.querySelector( '#comment' ) as HTMLTextAreaElement ).value = 'Blocked page screen ' + Date.now();
-				( form.querySelector( '#author' ) as HTMLInputElement | null )?.setAttribute( 'value', 'Bot' );
-				( form.querySelector( '#email' ) as HTMLInputElement | null )?.setAttribute( 'value', 'bot@example.com' );
-			} );
-			const response = page.waitForResponse( ( r ) => r.url().includes( 'wp-comments-post.php' ) && 'POST' === r.request().method() );
-			// The comment form has a button named "submit", which shadows form.submit().
-			await page.locator( '#commentform' ).evaluate( ( f: HTMLFormElement ) => HTMLFormElement.prototype.submit.call( f ) );
-			const status = ( await response ).status();
-			await page.waitForURL( /wp-comments-post\.php/, { waitUntil: 'load' } );
-			return status;
-		},
-		include: [ 'body' ],
-	},
+	...FRONT_PAGES.flatMap( ( screen ): Screen[] => [
+		screen,
+		// The pages follow the visitor's operating system: scan the dark theme too (no baseline; decision 9).
+		{ ...screen, id: `${ screen.id }-dark`, title: `${ screen.title } (dark)`, colorScheme: 'dark', visual: false },
+	] ),
 ];
 
 /**
