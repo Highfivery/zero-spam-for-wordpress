@@ -73,7 +73,6 @@ class Test_Utilities_Asset_Version extends TestCase {
 	public function test_own_assets_are_enqueued_with_asset_version(): void {
 		$files = array(
 			'core/admin/class-admin.php',
-			'core/admin/class-dashboardwidget.php',
 			'includes/admin/class-networkstatspage.php',
 			'includes/admin/class-networksettingspage.php',
 			'includes/admin/class-siteadminoverrides.php',

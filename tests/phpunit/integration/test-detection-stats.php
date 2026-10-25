@@ -11,6 +11,7 @@ use ZeroSpam\Core\Admin\Dashboard_Widget;
 use ZeroSpam\Core\Admin\Tables\LogTable;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Network_Stats_Tracker;
+use ZeroSpam\Includes\Rest\Stats_Controller;
 use ZeroSpam\Tests\TestCase;
 
 /**
@@ -47,18 +48,14 @@ class Test_Detection_Stats extends TestCase {
 	}
 
 	/**
-	 * Calls a private method of the dashboard widget.
+	 * The dashboard widget's site data (a private method).
 	 *
-	 * @param string $method Method name.
 	 * @return array<string, mixed>
 	 */
-	private function widget_data( string $method ): array {
-		global $wpdb;
-
+	private function widget_data(): array {
 		$widget = ( new ReflectionClass( Dashboard_Widget::class ) )->newInstanceWithoutConstructor();
-		$call   = new ReflectionMethod( Dashboard_Widget::class, $method );
 
-		return $call->invoke( $widget, $wpdb );
+		return ( new ReflectionMethod( Dashboard_Widget::class, 'site_data' ) )->invoke( $widget );
 	}
 
 	/**
@@ -85,12 +82,13 @@ class Test_Detection_Stats extends TestCase {
 	 * The dashboard widget's site counts skip rescue rows.
 	 */
 	public function test_dashboard_widget_site_counts_skip_rescue_rows(): void {
-		$data = $this->widget_data( 'get_site_data' );
+		Stats_Controller::flush_cache();
+		$data = $this->widget_data();
 
-		$this->assertSame( 3, $data['total_blocked'] );
-		$this->assertSame( 3, $data['unique_ips'] );
-		$this->assertSame( 3, array_sum( array_map( 'intval', array_column( $data['trend_data'], 'count' ) ) ) );
-		$this->assertNotContains( 'rescue', array_column( $data['spam_types'], 'log_type' ) );
+		$this->assertSame( 3, array_sum( $data['days'] ) );
+		$this->assertCount( 3, $data['latest'] );
+		$this->assertNotContains( 'rescue', array_column( $data['latest'], 'type' ) );
+		$this->assertNotContains( self::RESCUE_IP, array_column( $data['latest'], 'ip' ) );
 	}
 
 	/**

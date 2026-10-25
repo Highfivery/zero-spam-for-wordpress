@@ -406,7 +406,7 @@ class API_Usage_Alerts {
 
 			echo '<div class="notice ' . esc_attr( $class ) . ' is-dismissible">';
 			echo '<p><strong>' . esc_html__( 'Zero Spam API Alert:', 'zero-spam' ) . '</strong> ' . esc_html( $notice['message'] ) . '</p>';
-			echo '<p><a href="' . esc_url( admin_url( 'index.php' ) ) . '">' . esc_html__( 'View API Usage Dashboard', 'zero-spam' ) . '</a></p>';
+			echo '<p><a href="' . esc_url( \ZeroSpam\Core\Utilities::admin_link( 'api-monitoring' ) ) . '">' . esc_html__( 'Open API Monitoring settings', 'zero-spam' ) . '</a></p>';
 			echo '</div>';
 		}
 

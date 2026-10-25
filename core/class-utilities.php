@@ -113,9 +113,57 @@ class Utilities {
 	}
 
 	/**
-	 * Address of the activity log: the 6.0 Activity screen when the new admin
-	 * is on, the legacy Detection Log (or, on the network, Network Stats)
-	 * otherwise.
+	 * Admin pages other code links to, by view: the legacy (5.x) address and
+	 * the 6.0 address (build plan redirect map), each [ path, network ].
+	 *
+	 * @var array<string, array{legacy: array{0: string, 1: bool}, v6: array{0: string, 1: bool}}>
+	 */
+	const ADMIN_LINKS = array(
+		'activity'         => array(
+			'legacy' => array( 'index.php?page=wordpress-zero-spam-dashboard&subview=log', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-activity', false ),
+		),
+		'api-monitoring'   => array(
+			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-settings&tab=api', false ),
+		),
+		'license'          => array(
+			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings&subview=zerospam', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-protection&tab=intelligence&card=zerospam', false ),
+		),
+		'network-activity' => array(
+			'legacy' => array( 'settings.php?page=wordpress-zero-spam-network-stats', true ),
+			'v6'     => array( 'admin.php?page=zero-spam-network&tab=stats', true ),
+		),
+		'network-license'  => array(
+			'legacy' => array( 'settings.php?page=zerospam-network-settings', true ),
+			'v6'     => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
+		),
+	);
+
+	/**
+	 * Address of a Zero Spam admin view, following the 6.0 admin flag: the
+	 * 6.0 page when the new admin is on, the legacy page otherwise.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $view activity, api-monitoring, license, network-activity or network-license.
+	 * @return string Unescaped admin URL, or '' for an unknown view.
+	 */
+	public static function admin_link( string $view ): string {
+		if ( ! isset( self::ADMIN_LINKS[ $view ] ) ) {
+			return '';
+		}
+
+		list( $path, $network ) = self::ADMIN_LINKS[ $view ][ self::admin_v6() ? 'v6' : 'legacy' ];
+
+		return $network ? network_admin_url( $path ) : admin_url( $path );
+	}
+
+	/**
+	 * Address of the activity log: the 6.0 Activity screen (or network
+	 * Statistics tab) when the new admin is on, the legacy Detection Log (or
+	 * Network Stats) otherwise.
 	 *
 	 * @since 6.0.0
 	 *
@@ -123,15 +171,7 @@ class Utilities {
 	 * @return string Unescaped admin URL.
 	 */
 	public static function activity_url( bool $network = false ): string {
-		if ( $network ) {
-			return self::admin_v6()
-				? network_admin_url( 'admin.php?page=zero-spam-network' )
-				: network_admin_url( 'settings.php?page=wordpress-zero-spam-network-stats' );
-		}
-
-		return self::admin_v6()
-			? admin_url( 'admin.php?page=zero-spam-activity' )
-			: admin_url( 'index.php?page=wordpress-zero-spam-dashboard&subview=log' );
+		return self::admin_link( $network ? 'network-activity' : 'activity' );
 	}
 
 	/**

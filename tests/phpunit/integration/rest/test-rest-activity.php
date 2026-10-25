@@ -99,6 +99,21 @@ class Test_Rest_Activity extends TestCase {
 	}
 
 	/**
+	 * The date field is the site's local time (as WordPress writes post dates)
+	 * and date_gmt is UTC with its offset, so a browser never reads it as local time.
+	 */
+	public function test_date_gmt_has_a_utc_offset(): void {
+		update_option( 'timezone_string', 'America/Chicago' );
+		$this->insert_log_rows( 1, array( 'date_recorded' => '2026-07-01 07:00:00' ) );
+
+		$item = $this->rest( 'GET', self::ROUTE )->get_data()[0];
+
+		$this->assertSame( '2026-07-01T07:00:00', $item['date'] );
+		$this->assertSame( '2026-07-01T12:00:00+00:00', $item['date_gmt'] );
+		$this->assertSame( gmmktime( 12, 0, 0, 7, 1, 2026 ), strtotime( $item['date_gmt'] ) );
+	}
+
+	/**
 	 * Newest first, paged, with the WordPress paging headers.
 	 */
 	public function test_pages_newest_first_with_headers(): void {

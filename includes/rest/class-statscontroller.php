@@ -190,8 +190,23 @@ class Stats_Controller extends Base_Controller {
 	 * @return WP_REST_Response
 	 */
 	public function get_timeseries( $request ) {
-		$range = (int) $request->get_param( 'range' );
-		$data  = $this->cached(
+		return rest_ensure_response( $this->filter_fields( $this->timeseries_data( (int) $request->get_param( 'range' ) ), $request ) );
+	}
+
+	/**
+	 * The time series GET stats/timeseries returns, from the same cache, for
+	 * screens rendered in PHP (the dashboard widget). Makes no capability
+	 * check: the caller decides who may see it.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param int $range Days, today included (clamped to 1 to 30).
+	 * @return array<string, mixed>
+	 */
+	public function timeseries_data( int $range ): array {
+		$range = max( 1, min( self::MAX_SERIES_DAYS, $range ) );
+
+		return $this->cached(
 			self::TIMESERIES_TRANSIENT,
 			$range,
 			self::TIMESERIES_TTL,
@@ -199,8 +214,6 @@ class Stats_Controller extends Base_Controller {
 				return $this->timeseries( $range );
 			}
 		);
-
-		return rest_ensure_response( $this->filter_fields( $data, $request ) );
 	}
 
 	/**

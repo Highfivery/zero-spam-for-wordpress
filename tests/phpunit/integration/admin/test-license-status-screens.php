@@ -11,6 +11,7 @@ declare( strict_types=1 );
 use ZeroSpam\Core\Admin\Admin;
 use ZeroSpam\Core\Admin\Dashboard_Widget;
 use ZeroSpam\Core\License_Status;
+use ZeroSpam\Core\Utilities;
 use ZeroSpam\Tests\HttpMock;
 use ZeroSpam\Tests\TestCase;
 
@@ -47,7 +48,7 @@ class Test_License_Status_Screens extends TestCase {
 
 		delete_transient( License_Status::TRANSIENT );
 		delete_transient( sanitize_title( 'license_' . self::KEY ) );
-		delete_transient( 'zerospam_dashboard_data_site' );
+		delete_transient( 'zerospam_stats_timeseries' );
 		update_option(
 			'zero-spam-zerospam',
 			array(
@@ -93,7 +94,7 @@ class Test_License_Status_Screens extends TestCase {
 	}
 
 	/**
-	 * API answer, what the header says, and the widget banner.
+	 * API answer, what the header says, and the widget's protection level line.
 	 *
 	 * @return array<string, array{0: array<string, mixed>|string, 1: int, 2: string, 3: string|null}>
 	 */
@@ -108,7 +109,7 @@ class Test_License_Status_Screens extends TestCase {
 				),
 				200,
 				'900 queries available',
-				'Enhanced Protection Active',
+				'Enhanced · Active',
 			),
 			'quota used up'   => array(
 				array(
@@ -119,7 +120,7 @@ class Test_License_Status_Screens extends TestCase {
 				),
 				200,
 				'License query limit reached.',
-				'License Issue',
+				'Enhanced · Query limit reached',
 			),
 			'invalid'         => array(
 				array(
@@ -128,9 +129,9 @@ class Test_License_Status_Screens extends TestCase {
 				),
 				200,
 				'(invalid license)',
-				'License Issue',
+				'Enhanced · License not valid',
 			),
-			'API unreachable' => array( 'down', 503, 'Couldn\'t verify your license right now', null ),
+			'API unreachable' => array( 'down', 503, 'Couldn\'t verify your license right now', 'Enhanced · Couldn’t verify the license right now' ),
 		);
 	}
 
@@ -142,7 +143,7 @@ class Test_License_Status_Screens extends TestCase {
 	 * @param array<string, mixed>|string $body   API answer.
 	 * @param int                         $code   HTTP status.
 	 * @param string                      $header Text in the header.
-	 * @param string|null                 $banner Widget banner, or null for none.
+	 * @param string|null                 $banner Widget protection level, or null for none.
 	 */
 	public function test_header_and_widget_agree( $body, int $code, string $header, ?string $banner ): void {
 		$this->mock_http( self::ENDPOINT, $body, $code );
@@ -152,7 +153,7 @@ class Test_License_Status_Screens extends TestCase {
 
 		$this->assertStringContainsString( esc_html( $header ), $header_html );
 
-		foreach ( array( 'Enhanced Protection Active', 'License Issue' ) as $candidate ) {
+		foreach ( array( 'Enhanced · Active', 'Enhanced · Query limit reached', 'Enhanced · License not valid', 'Enhanced · Couldn’t verify the license right now', 'Protection level: <b>Basic' ) as $candidate ) {
 			if ( $candidate === $banner ) {
 				$this->assertStringContainsString( $candidate, $widget_html );
 			} else {
@@ -161,6 +162,14 @@ class Test_License_Status_Screens extends TestCase {
 		}
 
 		$this->assertSame( 1, HttpMock::hits( self::ENDPOINT ), 'The header and the widget share one license request.' );
+
+		// A license that needs attention links to the license setting (no billing link).
+		$needs_attention = in_array( $banner, array( 'Enhanced · License not valid', 'Enhanced · Query limit reached' ), true );
+		$this->assertSame( $needs_attention, str_contains( $widget_html, '>Check license</a>' ) );
+		if ( $needs_attention ) {
+			$this->assertStringContainsString( 'href="' . esc_url( Utilities::admin_link( 'license' ) ) . '"', $widget_html );
+		}
+		$this->assertStringNotContainsString( 'zerospam.org', $widget_html );
 	}
 
 	/**

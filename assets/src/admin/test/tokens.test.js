@@ -442,6 +442,7 @@ describe( 'stylesheet scoping', () => {
 		join( stylesDir, 'overview.css' ),
 		join( stylesDir, 'areas.css' ),
 		join( srcDir, 'widget-refresh', 'index.css' ),
+		join( srcDir, 'widget-refresh', 'widget.css' ),
 		join( srcDir, 'blocked', 'tokens.css' ),
 		join( srcDir, 'blocked', 'index.css' ),
 		join( srcDir, 'blocked', 'page.css' ),

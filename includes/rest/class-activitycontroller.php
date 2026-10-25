@@ -748,7 +748,8 @@ class Activity_Controller extends Base_Controller {
 		$item = array(
 			'id'           => (int) $row['log_id'],
 			'date'         => mysql_to_rfc3339( $date ),
-			'date_gmt'     => mysql_to_rfc3339( get_gmt_from_date( $date ) ),
+			// With the UTC offset, so clients never read it as local time (mysql_to_rfc3339() writes none).
+			'date_gmt'     => mysql_to_rfc3339( get_gmt_from_date( $date ) ) . '+00:00',
 			'type'         => $type,
 			'type_label'   => $labels[ $type ] ?? $type,
 			'ip'           => $ip,
