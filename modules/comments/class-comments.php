@@ -175,9 +175,12 @@ class Comments {
 				}
 			}
 
-			\ZeroSpam\Core\Access::terminate_execution(
-				\ZeroSpam\Core\Utilities::detection_title( 'comment_spam_message' ),
-				$error_message
+			$post_id  = isset( $commentdata['comment_post_ID'] ) ? absint( $commentdata['comment_post_ID'] ) : 0;
+			$back_url = $post_id ? get_permalink( $post_id ) : false;
+
+			\ZeroSpam\Core\Front\Block_Page::comment_blocked(
+				(string) $error_message,
+				$back_url ? $back_url . '#respond' : home_url( '/' )
 			);
 		}
 
@@ -225,7 +228,7 @@ class Comments {
 			'module'      => 'comments',
 			'type'        => 'checkbox',
 			'options'     => array(
-				'enabled' => false
+				'enabled' => false,
 			),
 			'value'       => ! empty( $options['verify_comments'] ) ? $options['verify_comments'] : false,
 			'recommended' => 'enabled',

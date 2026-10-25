@@ -1,0 +1,371 @@
+/**
+ * The blocked, rescue, expired-link and comment-blocked pages
+ * (core/front/class-blockpage.php, includes/templates/front/). Inlined into
+ * every response, so it stays small (8 KB raw with the tokens; checked by
+ * bin/check-dist.sh) and carries its own reset instead of admin base.css.
+ * No JavaScript: the rescue section is a <details> element.
+ */
+
+.zs-blocked {
+	min-height: 100vh;
+	margin: 0;
+	background: var(--zs-bg);
+	color: var(--zs-ink);
+	font-family: var(--zs-font-ui);
+	font-size: var(--zs-text-base);
+	line-height: var(--zs-leading-body);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.zs-blocked *,
+.zs-blocked *::before,
+.zs-blocked *::after {
+	box-sizing: border-box;
+}
+
+.zs-blocked :where(h1, h2, p, dl, dd) {
+	margin: 0;
+}
+
+.zs-blocked :where(a) {
+	color: var(--zs-red);
+	text-underline-offset: 3px;
+}
+
+.zs-blocked :where(a:hover) {
+	text-decoration-thickness: 2px;
+}
+
+.zs-blocked :where(button, input) {
+	color: inherit;
+	font: inherit;
+}
+
+.zs-blocked :focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
+/* Layout: the copy, and the wall beside it (above it below 860px). */
+.zs-blk {
+	display: grid;
+	grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+	min-height: 100vh;
+}
+
+.zs-blk-l {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	justify-self: end;
+	gap: 22px;
+	width: 100%;
+	max-width: 660px;
+	padding: 56px 32px 56px max(24px, env(safe-area-inset-left, 0px));
+}
+
+.zs-blk-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 22px;
+}
+
+.zs-blk-r {
+	position: relative;
+	overflow: hidden;
+}
+
+.zs-wall {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.zs-wall rect {
+	transform-box: fill-box;
+	transform-origin: 50% 50%;
+}
+
+@media (min-width: 1100px) {
+
+	.zs-blk-l {
+		padding-right: 64px;
+		padding-left: 64px;
+	}
+}
+
+@media (max-width: 860px) {
+
+	.zs-blk {
+		grid-template-columns: 1fr;
+		grid-template-rows: 180px auto;
+	}
+
+	.zs-blk-r {
+		order: -1;
+	}
+
+	.zs-blk-l {
+		justify-self: stretch;
+		padding: 28px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px));
+	}
+}
+
+/* Copy */
+.zs-h1 {
+	font-size: clamp(2rem, 1.2rem + 2.6vw, 3.2rem);
+	font-weight: var(--zs-weight-extrabold);
+	letter-spacing: var(--zs-tracking-display);
+	line-height: var(--zs-leading-display);
+	text-wrap: balance;
+}
+
+.zs-h1 span {
+	display: block;
+	color: var(--zs-red);
+}
+
+.zs-lede {
+	max-width: 52ch;
+	color: var(--zs-ink-2);
+	font-size: 17px;
+	overflow-wrap: anywhere;
+}
+
+.zs-lede p + p {
+	margin-top: var(--zs-space-2);
+}
+
+.zs-card {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-3);
+	padding: var(--zs-card-padding);
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-card);
+	background: var(--zs-surface);
+}
+
+.zs-eyebrow {
+	color: var(--zs-eyebrow);
+	font-size: var(--zs-text-2xs);
+	font-weight: var(--zs-weight-semibold);
+	letter-spacing: var(--zs-tracking-eyebrow);
+	text-transform: uppercase;
+}
+
+.zs-dl {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: var(--zs-space-2) var(--zs-space-4);
+	font-size: var(--zs-text-md);
+}
+
+.zs-dl dt,
+.zs-hint {
+	color: var(--zs-ink-3);
+}
+
+.zs-dl dd {
+	font-weight: var(--zs-weight-semibold);
+	overflow-wrap: anywhere;
+}
+
+.zs-hint {
+	font-size: var(--zs-text-sm);
+}
+
+.zs-mono {
+	font-family: var(--zs-font-data);
+	font-variant-ligatures: none;
+}
+
+.zs-byline {
+	display: flex;
+	align-items: center;
+	gap: var(--zs-space-2);
+	color: var(--zs-ink-3);
+	font-size: var(--zs-text-sm);
+}
+
+.zs-byline b {
+	color: var(--zs-ink-2);
+}
+
+.zs-mark {
+	flex: none;
+}
+
+.zs-icon {
+	flex: none;
+	width: var(--zs-icon);
+	height: var(--zs-icon);
+	fill: none;
+	stroke: currentcolor;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-width: var(--zs-icon-stroke);
+}
+
+.zs-icon-sm {
+	width: var(--zs-icon-sm);
+	height: var(--zs-icon-sm);
+}
+
+.zs-flip:dir(rtl) {
+	transform: scaleX(-1);
+}
+
+/* Buttons and the field */
+.zs-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--zs-space-2);
+	min-height: var(--zs-tap-min);
+	padding: 0 var(--zs-space-4);
+	border: 1px solid transparent;
+	border-radius: var(--zs-radius-control);
+	background: var(--zs-action);
+	color: var(--zs-on-action);
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-bold);
+	text-decoration: none;
+	cursor: pointer;
+	transition: background-color 0.15s;
+}
+
+.zs-btn:hover {
+	background: var(--zs-action-hover);
+}
+
+.zs-btn-secondary {
+	border-color: var(--zs-control);
+	background: var(--zs-surface);
+	color: var(--zs-ink);
+}
+
+.zs-btn-secondary:hover {
+	background: var(--zs-sunken);
+}
+
+.zs-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.zs-field label {
+	color: var(--zs-ink);
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-bold);
+}
+
+.zs-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--zs-space-2);
+}
+
+.zs-input {
+	flex: 1;
+	min-width: 200px;
+	min-height: var(--zs-tap-min);
+	padding: var(--zs-space-2) var(--zs-space-3);
+	border: 1px solid var(--zs-control);
+	border-radius: var(--zs-radius-control);
+	background: var(--zs-surface);
+	color: var(--zs-ink);
+}
+
+.zs-input::placeholder {
+	color: var(--zs-ink-3);
+}
+
+.zs-input[aria-invalid="true"] {
+	border-color: var(--zs-red);
+}
+
+.zs-input:focus-visible {
+	border-color: var(--zs-focus);
+	outline-offset: 1px;
+}
+
+.zs-ferr {
+	color: var(--zs-red);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-semibold);
+}
+
+/* "Help for site owners" */
+.zs-owner {
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-card);
+	background: var(--zs-surface-2);
+}
+
+.zs-owner summary {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-height: var(--zs-tap-min);
+	padding: 14px var(--zs-card-padding);
+	border-radius: var(--zs-radius-card);
+	font-weight: var(--zs-weight-bold);
+	list-style: none;
+	cursor: pointer;
+}
+
+.zs-owner summary::-webkit-details-marker {
+	display: none;
+}
+
+/* A down chevron turned to the end of the line while closed (rtlcss mirrors the angle). */
+.zs-owner .zs-chev {
+	margin-left: auto;
+	transform: rotate(-90deg);
+	transition: transform 0.2s;
+}
+
+.zs-owner[open] .zs-chev {
+	transform: none;
+}
+
+.zs-owner-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-3);
+	padding: 0 var(--zs-card-padding) var(--zs-card-padding);
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-md);
+}
+
+/* The wall is laid brick by brick, once, only without a reduced-motion preference. */
+@media (prefers-reduced-motion: no-preference) {
+
+	.zs-wall rect {
+		animation: zs-brick-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+		animation-delay: var(--d, 0ms);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.zs-blocked *,
+	.zs-blocked *::before,
+	.zs-blocked *::after {
+		transition: none !important;
+		animation: none !important;
+	}
+}
+
+@keyframes zs-brick-in {
+
+	from {
+		transform: translateY(-26px) scale(0.96);
+		opacity: 0;
+	}
+}
