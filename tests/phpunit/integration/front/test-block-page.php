@@ -719,7 +719,7 @@ class Test_Block_Page extends TestCase {
 	}
 
 	/**
-	 * terminate_execution() with the rescue form uses the caller's title for the page and still sends no-cache headers.
+	 * Access::terminate_execution() with the rescue form uses the caller's title for the page and still sends no-cache headers.
 	 */
 	public function test_terminate_execution_with_rescue_keeps_title_and_no_cache(): void {
 		$title = '';
