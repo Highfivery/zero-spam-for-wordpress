@@ -166,7 +166,9 @@ class Test_Uninstall_Network extends TestCase {
 		}
 		update_site_option( 'zerospam_unlisted', 'seeded' );
 		update_site_option( 'zerospamXunlisted', 'seeded' );
-		set_site_transient( 'zerospam_network_settings', 'seeded', HOUR_IN_SECONDS );
+		foreach ( self::PLUGIN_NETWORK_TRANSIENTS as $transient ) {
+			set_site_transient( $transient, 'seeded', HOUR_IN_SECONDS );
+		}
 
 		$this->uninstall();
 		while ( ms_is_switched() ) {
@@ -180,8 +182,10 @@ class Test_Uninstall_Network extends TestCase {
 				$left[] = $option;
 			}
 		}
-		if ( false !== get_site_transient( 'zerospam_network_settings' ) ) {
-			$left[] = 'site transient zerospam_network_settings';
+		foreach ( self::PLUGIN_NETWORK_TRANSIENTS as $transient ) {
+			if ( false !== get_site_transient( $transient ) ) {
+				$left[] = "site transient {$transient}";
+			}
 		}
 
 		$this->assertSame( array(), $left, 'uninstall.php left these network options behind.' );

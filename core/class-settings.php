@@ -236,6 +236,21 @@ class Settings {
 			'recommended' => 'enabled',
 		);
 
+		// On unless stored: a settings form stores an unticked checkbox as false, which turns it off.
+		self::$settings['show_news'] = array(
+			'title'       => __( 'Zero Spam News', 'zero-spam' ),
+			'desc'        => __( 'Shows the latest articles and security notices from zerospam.org in the Zero Spam admin. Your site only downloads the public news feed; no site data is sent.', 'zero-spam' ),
+			'module'      => 'settings',
+			'section'     => 'general',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => __( 'Show Zero Spam news and security notices in the admin.', 'zero-spam' ),
+			),
+			'value'       => is_array( $options ) && array_key_exists( 'show_news', $options ) ? $options['show_news'] : 'enabled',
+			'default'     => 'enabled',
+			'recommended' => 'enabled',
+		);
+
 		// wp_roles() initializes the roles global when needed.
 		$roles       = wp_roles()->roles;
 		$roles_array = array();

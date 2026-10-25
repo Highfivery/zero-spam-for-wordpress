@@ -164,6 +164,8 @@ $zerospam_network_options = array_merge(
 // Network (site) transients with fixed names.
 $zerospam_network_transients = array(
 	'zerospam_network_settings',
+	'zerospam_news',
+	'zerospam_news_backoff',
 );
 
 // Sitemeta key prefixes swept on a network after the named network options are gone.

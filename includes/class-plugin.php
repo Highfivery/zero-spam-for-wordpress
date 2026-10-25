@@ -265,6 +265,10 @@ class Plugin {
 		$ui_prefs_controller = new \ZeroSpam\Includes\Rest\UI_Prefs_Controller();
 		$ui_prefs_controller->register_routes();
 
+		// News and security notices from zerospam.org (since 6.0.0).
+		$news_controller = new \ZeroSpam\Includes\Rest\News_Controller();
+		$news_controller->register_routes();
+
 		// Network Settings REST API (multisite only).
 		if ( is_multisite() ) {
 			$network_settings_controller = new \ZeroSpam\Includes\Rest\Network_Settings_Controller();

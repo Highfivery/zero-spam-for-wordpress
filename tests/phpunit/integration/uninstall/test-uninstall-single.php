@@ -82,7 +82,9 @@ class Test_Uninstall_Single extends TestCase {
 		foreach ( $transients as $transient ) {
 			set_transient( $transient, 'seeded', HOUR_IN_SECONDS );
 		}
-		set_site_transient( 'zerospam_network_settings', 'seeded', HOUR_IN_SECONDS );
+		foreach ( self::PLUGIN_NETWORK_TRANSIENTS as $transient ) {
+			set_site_transient( $transient, 'seeded', HOUR_IN_SECONDS );
+		}
 
 		$cron_hooks = array_merge( self::PLUGIN_CRON_HOOKS, self::PLUGIN_LEGACY_CRON_HOOKS );
 		foreach ( $cron_hooks as $hook ) {
@@ -135,8 +137,10 @@ class Test_Uninstall_Single extends TestCase {
 				$left[] = "transient {$transient}";
 			}
 		}
-		if ( false !== get_site_transient( 'zerospam_network_settings' ) ) {
-			$left[] = 'site transient zerospam_network_settings';
+		foreach ( self::PLUGIN_NETWORK_TRANSIENTS as $transient ) {
+			if ( false !== get_site_transient( $transient ) ) {
+				$left[] = "site transient {$transient}";
+			}
 		}
 		foreach ( $cron_hooks as $hook ) {
 			if ( false !== wp_next_scheduled( $hook ) ) {

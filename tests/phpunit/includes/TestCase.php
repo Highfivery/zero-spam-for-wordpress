@@ -171,6 +171,15 @@ abstract class TestCase extends WP_UnitTestCase {
 	);
 
 	/**
+	 * Network (site) transients the plugin sets with fixed names.
+	 */
+	const PLUGIN_NETWORK_TRANSIENTS = array(
+		'zerospam_network_settings',
+		'zerospam_news',
+		'zerospam_news_backoff',
+	);
+
+	/**
 	 * Sites created by create_site_with_tables(), deleted after the class.
 	 *
 	 * @var int[]
