@@ -86,6 +86,7 @@ $zerospam_site_transients = array(
 	'zerospam_dashboard_data_site',
 	'zerospam_license_status',
 	'zerospam_rescue_site_sends',
+	'zerospam_self_test_lock',
 	'zerospam_shared_ip_warning',
 	'zerospam_woo_options_migrated',
 );

@@ -49,38 +49,8 @@ parameters:
 			path: core/class-cli.php
 
 		-
-			message: '#^Access to offset ''general'' on an unknown class ZeroSpam\\Core\\Sections\.$#'
-			identifier: class.notFound
-			count: 1
-			path: core/class-settings.php
-
-		-
-			message: '#^Access to offset ''settings'' on an unknown class ZeroSpam\\Core\\Sections\.$#'
-			identifier: class.notFound
-			count: 1
-			path: core/class-settings.php
-
-		-
 			message: '#^Default value of the parameter \#1 \$key \(false\) of method ZeroSpam\\Core\\Settings\:\:get_settings\(\) is incompatible with type string\.$#'
 			identifier: parameter.defaultValue
-			count: 1
-			path: core/class-settings.php
-
-		-
-			message: '#^Property ZeroSpam\\Core\\Settings\:\:\$sections has unknown class ZeroSpam\\Core\\Sections as its type\.$#'
-			identifier: class.notFound
-			count: 1
-			path: core/class-settings.php
-
-		-
-			message: '#^Static property ZeroSpam\\Core\\Settings\:\:\$sections \(ZeroSpam\\Core\\Sections\) does not accept default value of type array\.$#'
-			identifier: property.defaultValue
-			count: 1
-			path: core/class-settings.php
-
-		-
-			message: '#^Static property ZeroSpam\\Core\\Settings\:\:\$settings \(ZeroSpam\\Core\\Settings\) does not accept default value of type array\.$#'
-			identifier: property.defaultValue
 			count: 1
 			path: core/class-settings.php
 
@@ -143,24 +113,6 @@ parameters:
 			identifier: argument.type
 			count: 2
 			path: includes/admin/class-networkstatspage.php
-
-		-
-			message: '#^Parameter \#1 \$new_blog_id of function switch_to_blog expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-apiusagealerts.php
-
-		-
-			message: '#^Parameter \#1 \$site_id of method ZeroSpam\\Includes\\API_Usage_Alerts\:\:check_site_anomalies\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-apiusagealerts.php
-
-		-
-			message: '#^Parameter \#2 \$site_id of method ZeroSpam\\Includes\\API_Usage_Alerts\:\:format_alert_email\(\) expects int, null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-apiusagealerts.php
 
 		-
 			message: '#^Call to function is_wp_error\(\) with mixed will always evaluate to false\.$#'

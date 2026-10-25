@@ -16,16 +16,16 @@ defined( 'ABSPATH' ) || die();
 class Settings {
 
 	/**
-	 * Settings
+	 * Core settings registered before the `zerospam_settings` filter runs.
 	 *
-	 * @var Settings
+	 * @var array<string, array<string, mixed>>
 	 */
 	public static $settings = array();
 
 	/**
-	 * Sections
+	 * Core setting sections.
 	 *
-	 * @var Sections
+	 * @var array<string, array<string, mixed>>
 	 */
 	public static $sections = array();
 
@@ -133,16 +133,29 @@ class Settings {
 
 	/**
 	 * Configures the plugin's recommended settings.
+	 *
+	 * @since 6.0.0 The `$skip_keys` parameter: settings left as they are, for
+	 *              example those the network administrator has locked. A
+	 *              value the site already stores for one is kept unchanged.
+	 *
+	 * @param string[] $skip_keys Optional. Setting keys not to configure. Default none.
 	 */
-	public static function auto_configure() {
-		$settings = self::get_settings();
-		$modules  = self::get_settings_by_module();
+	public static function auto_configure( array $skip_keys = array() ) {
+		$modules = self::get_settings_by_module();
 
 		foreach ( $modules as $module => $setting ) {
+			$stored               = get_option( "zero-spam-$module" );
 			$recommended_settings = array();
 			foreach ( $setting as $key => $args ) {
 				// Skip action-type settings (buttons) that don't store values.
 				if ( ! empty( $args['type'] ) && 'html' === $args['type'] ) {
+					continue;
+				}
+
+				if ( in_array( $key, $skip_keys, true ) ) {
+					if ( is_array( $stored ) && array_key_exists( $key, $stored ) ) {
+						$recommended_settings[ $key ] = $stored[ $key ];
+					}
 					continue;
 				}
 
@@ -155,7 +168,7 @@ class Settings {
 			// Handle blocked_email_domains separately — uses standalone option.
 			if ( isset( $recommended_settings['blocked_email_domains'] ) ) {
 				$blocked_domains = $recommended_settings['blocked_email_domains'];
-				if ( $blocked_domains ) {
+				if ( $blocked_domains && ! in_array( 'blocked_email_domains', $skip_keys, true ) ) {
 					update_option( 'zerospam_blocked_email_domains', $blocked_domains, false );
 				}
 				unset( $recommended_settings['blocked_email_domains'] );
