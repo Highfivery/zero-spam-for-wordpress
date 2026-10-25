@@ -8,7 +8,7 @@
  *
  * $args:
  * - scope        (string) site or network.
- * - theme        (string) light, dark or auto (the user's ui/prefs theme).
+ * - theme        (string) light or dark (Utilities::resolved_theme( 'widget' ): auto is light here).
  * - reduce       (bool)   The user's reduce-motion preference.
  * - level        (array)  Protection level: level, tone (quiet, ok, warn), text.
  * - data         (array)  Widget data: table_missing, days, and latest (site) or sites + top_sites (network).
@@ -41,7 +41,7 @@ $zerospam_icons   = array(
 	'warn' => 'zs-i-warn',
 );
 ?>
-<div class="zs-widget" data-zs-widget="<?php echo esc_attr( $zerospam_network ? 'network' : 'site' ); ?>" data-zs-theme="<?php echo esc_attr( $zerospam_w['theme'] ?? 'auto' ); ?>"<?php echo empty( $zerospam_w['reduce'] ) ? '' : ' data-zs-motion="reduce"'; ?>>
+<div class="zs-widget" data-zs-widget="<?php echo esc_attr( $zerospam_network ? 'network' : 'site' ); ?>" data-zs-theme="<?php echo esc_attr( $zerospam_w['theme'] ?? 'light' ); ?>"<?php echo empty( $zerospam_w['reduce'] ) ? '' : ' data-zs-motion="reduce"'; ?>>
 
 	<p class="zs-w-level zs-w-level-<?php echo esc_attr( $zerospam_level['tone'] ); ?>">
 		<?php

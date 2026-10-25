@@ -24,6 +24,7 @@ use ZeroSpam\Tests\TestCase;
  * @covers \ZeroSpam\Core\Admin\Icons
  * @covers \ZeroSpam\Core\Utilities::activity_url
  * @covers \ZeroSpam\Core\Utilities::admin_v6
+ * @covers \ZeroSpam\Core\Utilities::resolved_theme
  */
 class Test_Dashboard_Widget extends TestCase {
 
@@ -203,11 +204,16 @@ class Test_Dashboard_Widget extends TestCase {
 	}
 
 	/**
-	 * Theme and motion come from the user's ui/prefs; auto without a preference.
+	 * Theme and motion come from the user's ui/prefs. On the WordPress
+	 * dashboard "auto" (or no preference) is light; dark only when chosen.
 	 */
 	public function test_theme_and_motion_follow_ui_prefs(): void {
-		$this->assertStringContainsString( 'data-zs-theme="auto"', $this->render() );
-		$this->assertStringNotContainsString( 'data-zs-motion', $this->render() );
+		$html = $this->render();
+		$this->assertStringContainsString( 'data-zs-theme="light"', $html );
+		$this->assertStringNotContainsString( 'data-zs-motion', $html );
+
+		update_user_meta( get_current_user_id(), UI_Prefs_Controller::META_KEY, array( 'theme' => 'auto' ) );
+		$this->assertStringContainsString( 'data-zs-theme="light"', $this->render() );
 
 		update_user_meta(
 			get_current_user_id(),

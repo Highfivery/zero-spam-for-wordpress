@@ -97,7 +97,11 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   (`_doing_it_wrong()` once per request). Links into the activity log go
   through `Utilities::activity_url()`, which follows the 6.0 admin flag
   (`Utilities::admin_v6()`: the `ZEROSPAM_ADMIN_V6` constant, else the
-  `zerospam_admin_v6` filter, off by default).
+  `zerospam_admin_v6` filter, off by default). The `data-zs-theme` of a
+  Zero Spam root comes from `Utilities::resolved_theme( $context )`: an
+  explicit light or dark ui/prefs theme everywhere; `auto` follows the OS in
+  the `app` context and is light in the `widget` context (wp-admin around it
+  stays light).
 - 6.0 data routes (`feat/rest-data`): `stats/*`, `activity*`, `undo/{token}`,
   `rules/*`, `protection/modules`, `settings/actions|export|import`,
   `self-test`, `news`. Log statistics are cached in the transients

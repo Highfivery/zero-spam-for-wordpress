@@ -424,7 +424,7 @@ class Dashboard_Widget {
 				ZEROSPAM_PATH . 'includes/templates/dashboard-widget.php',
 				array(
 					'scope'        => $is_network ? 'network' : 'site',
-					'theme'        => in_array( $prefs['theme'] ?? '', array( 'light', 'dark', 'auto' ), true ) ? $prefs['theme'] : 'auto',
+					'theme'        => Utilities::resolved_theme( 'widget' ),
 					'reduce'       => ! empty( $prefs['reduce_motion'] ),
 					'level'        => self::level(),
 					'data'         => $data,

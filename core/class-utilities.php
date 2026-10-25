@@ -83,6 +83,45 @@ class Utilities {
 	}
 
 	/**
+	 * Theme contexts and what the user's "auto" preference becomes in each.
+	 *
+	 * - app:    the Zero Spam screens, where Zero Spam owns the whole page:
+	 *           auto follows the operating system (CSS, data-zs-theme="auto").
+	 * - widget: Zero Spam inside a WordPress screen (the dashboard widget),
+	 *           where the surrounding admin stays light: auto is light.
+	 *
+	 * @var array<string, string>
+	 */
+	const THEME_AUTO = array(
+		'app'    => 'auto',
+		'widget' => 'light',
+	);
+
+	/**
+	 * The data-zs-theme value for a Zero Spam root: the user's ui/prefs theme
+	 * (light, dark or auto), with "auto" resolved for the context.
+	 *
+	 * An explicit light or dark preference is used everywhere. Unknown
+	 * contexts are treated as "app".
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string   $context app or widget (see THEME_AUTO).
+	 * @param int|null $user_id User; the current user when null.
+	 * @return string light, dark or auto.
+	 */
+	public static function resolved_theme( string $context = 'app', ?int $user_id = null ): string {
+		$prefs = \ZeroSpam\Includes\Rest\UI_Prefs_Controller::for_user( $user_id ?? get_current_user_id() );
+		$theme = $prefs['theme'] ?? 'auto';
+
+		if ( 'light' === $theme || 'dark' === $theme ) {
+			return $theme;
+		}
+
+		return self::THEME_AUTO[ $context ] ?? self::THEME_AUTO['app'];
+	}
+
+	/**
 	 * Address of the activity log: the 6.0 Activity screen when the new admin
 	 * is on, the legacy Detection Log (or, on the network, Network Stats)
 	 * otherwise.
