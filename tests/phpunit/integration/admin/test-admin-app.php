@@ -379,7 +379,13 @@ class Test_Admin_App extends TestCase {
 		$this->as_role( 'administrator' );
 		$key = 'ZS-SECRET-LICENSE-9f3c7a';
 		$this->set_setting( 'zerospam_license', $key, 'zerospam' );
-		$this->mock_http( '#wp-json/v2/get-license#', array( 'license_key' => $key, 'queries_remaining' => 5 ) );
+		$this->mock_http(
+			'#wp-json/v2/get-license#',
+			array(
+				'license_key'       => $key,
+				'queries_remaining' => 5,
+			)
+		);
 
 		$app = $this->registered_app();
 		$app->enqueue( 'toplevel_page_zero-spam' );
