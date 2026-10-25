@@ -57,6 +57,124 @@ class Utilities {
 	}
 
 	/**
+	 * Whether the 6.0 admin screens are switched on.
+	 *
+	 * Until the 6.0 cutover the new admin stays behind a flag so develop can
+	 * ship: the ZEROSPAM_ADMIN_V6 constant (wp-config.php) wins, otherwise
+	 * the `zerospam_admin_v6` filter decides (off by default).
+	 *
+	 * @since 6.0.0
+	 */
+	public static function admin_v6(): bool {
+		if ( defined( 'ZEROSPAM_ADMIN_V6' ) ) {
+			return (bool) constant( 'ZEROSPAM_ADMIN_V6' );
+		}
+
+		/**
+		 * Filters whether the 6.0 admin screens are switched on.
+		 *
+		 * The ZEROSPAM_ADMIN_V6 constant, when defined, takes precedence.
+		 *
+		 * @since 6.0.0
+		 *
+		 * @param bool $enabled Whether the 6.0 admin is on. Default false.
+		 */
+		return (bool) apply_filters( 'zerospam_admin_v6', false );
+	}
+
+	/**
+	 * The current user's display preferences for Zero Spam's 6.0 screens
+	 * (ui/prefs: `theme` light, dark or auto; `reduce_motion`), as the
+	 * markup's data-zs-theme and data-zs-motion attributes need them.
+	 *
+	 * "auto" follows the operating system only inside the plugin's own
+	 * screens (the app shell). Elsewhere in wp-admin (the dashboard widget
+	 * under WordPress's white postbox header) "auto" renders light; dark
+	 * only when the user chose dark.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param bool     $plugin_screen Whether the markup is on one of the plugin's own screens.
+	 * @param int|null $user_id       User (default: the current user).
+	 * @return array{theme: string, reduce_motion: bool} Theme: light, dark or auto (auto only on the plugin's screens).
+	 */
+	public static function display_prefs( bool $plugin_screen = true, ?int $user_id = null ): array {
+		$stored = get_user_meta( $user_id ?? get_current_user_id(), 'zerospam_ui', true );
+		$theme  = is_array( $stored ) && isset( $stored['theme'] ) && in_array( $stored['theme'], array( 'light', 'dark', 'auto' ), true ) ? (string) $stored['theme'] : 'auto';
+
+		if ( ! $plugin_screen && 'auto' === $theme ) {
+			$theme = 'light';
+		}
+
+		return array(
+			'theme'         => $theme,
+			'reduce_motion' => is_array( $stored ) && isset( $stored['reduce_motion'] ) && true === $stored['reduce_motion'],
+		);
+	}
+
+	/**
+	 * Admin pages other code links to, by view: the legacy (5.x) address and
+	 * the 6.0 address (build plan redirect map), each [ path, network ].
+	 *
+	 * @var array<string, array{legacy: array{0: string, 1: bool}, v6: array{0: string, 1: bool}}>
+	 */
+	const ADMIN_LINKS = array(
+		'activity'         => array(
+			'legacy' => array( 'index.php?page=wordpress-zero-spam-dashboard&subview=log', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-activity', false ),
+		),
+		'api-monitoring'   => array(
+			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-settings&tab=api', false ),
+		),
+		'license'          => array(
+			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings&subview=zerospam', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-protection&tab=intelligence&card=zerospam', false ),
+		),
+		'network-activity' => array(
+			'legacy' => array( 'settings.php?page=wordpress-zero-spam-network-stats', true ),
+			'v6'     => array( 'admin.php?page=zero-spam-network&tab=stats', true ),
+		),
+		'network-license'  => array(
+			'legacy' => array( 'settings.php?page=zerospam-network-settings', true ),
+			'v6'     => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
+		),
+	);
+
+	/**
+	 * Address of a Zero Spam admin view, following the 6.0 admin flag: the
+	 * 6.0 page when the new admin is on, the legacy page otherwise.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $view activity, api-monitoring, license, network-activity or network-license.
+	 * @return string Unescaped admin URL, or '' for an unknown view.
+	 */
+	public static function admin_link( string $view ): string {
+		if ( ! isset( self::ADMIN_LINKS[ $view ] ) ) {
+			return '';
+		}
+
+		list( $path, $network ) = self::ADMIN_LINKS[ $view ][ self::admin_v6() ? 'v6' : 'legacy' ];
+
+		return $network ? network_admin_url( $path ) : admin_url( $path );
+	}
+
+	/**
+	 * Address of the activity log: the 6.0 Activity screen (or network
+	 * Statistics tab) when the new admin is on, the legacy Detection Log (or
+	 * Network Stats) otherwise.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param bool $network Whether the network admin's activity is wanted.
+	 * @return string Unescaped admin URL.
+	 */
+	public static function activity_url( bool $network = false ): string {
+		return self::admin_link( $network ? 'network-activity' : 'activity' );
+	}
+
+	/**
 	 * Returns a clean domain name
 	 *
 	 * @param string $domain Domain name.
