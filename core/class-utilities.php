@@ -57,6 +57,54 @@ class Utilities {
 	}
 
 	/**
+	 * Whether the 6.0 admin screens are switched on.
+	 *
+	 * Until the 6.0 cutover the new admin stays behind a flag so develop can
+	 * ship: the ZEROSPAM_ADMIN_V6 constant (wp-config.php) wins, otherwise
+	 * the `zerospam_admin_v6` filter decides (off by default).
+	 *
+	 * @since 6.0.0
+	 */
+	public static function admin_v6(): bool {
+		if ( defined( 'ZEROSPAM_ADMIN_V6' ) ) {
+			return (bool) constant( 'ZEROSPAM_ADMIN_V6' );
+		}
+
+		/**
+		 * Filters whether the 6.0 admin screens are switched on.
+		 *
+		 * The ZEROSPAM_ADMIN_V6 constant, when defined, takes precedence.
+		 *
+		 * @since 6.0.0
+		 *
+		 * @param bool $enabled Whether the 6.0 admin is on. Default false.
+		 */
+		return (bool) apply_filters( 'zerospam_admin_v6', false );
+	}
+
+	/**
+	 * Address of the activity log: the 6.0 Activity screen when the new admin
+	 * is on, the legacy Detection Log (or, on the network, Network Stats)
+	 * otherwise.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param bool $network Whether the network admin's activity is wanted.
+	 * @return string Unescaped admin URL.
+	 */
+	public static function activity_url( bool $network = false ): string {
+		if ( $network ) {
+			return self::admin_v6()
+				? network_admin_url( 'admin.php?page=zero-spam-network' )
+				: network_admin_url( 'settings.php?page=wordpress-zero-spam-network-stats' );
+		}
+
+		return self::admin_v6()
+			? admin_url( 'admin.php?page=zero-spam-activity' )
+			: admin_url( 'index.php?page=wordpress-zero-spam-dashboard&subview=log' );
+	}
+
+	/**
 	 * Returns a clean domain name
 	 *
 	 * @param string $domain Domain name.

@@ -47,20 +47,12 @@ defined( 'ABSPATH' ) || die();
 			<strong><?php esc_html_e( 'Dashboard Widget', 'zero-spam' ); ?></strong>
 		</button>
 		<div class="zerospam-docs-accordion-content">
-			<p><?php esc_html_e( 'The Network Overview widget appears on your WordPress dashboard and provides quick insights across three tabs:', 'zero-spam' ); ?></p>
-
-			<h3><?php esc_html_e( 'Tab 1: Spam Activity', 'zero-spam' ); ?></h3>
-			<p><?php esc_html_e( 'View network-wide spam statistics including total blocked, unique IPs, and top sites by spam count. For Network Admins, see a list of your top 5 sites receiving the most spam.', 'zero-spam' ); ?></p>
-
-			<h3><?php esc_html_e( 'Tab 2: API Usage', 'zero-spam' ); ?></h3>
-			<p><?php esc_html_e( 'Monitor your API quota, cache efficiency, and response times. See today\'s usage with visual quota meter and performance indicators.', 'zero-spam' ); ?></p>
-
-			<h3><?php esc_html_e( 'Tab 3: Combined Analysis', 'zero-spam' ); ?></h3>
-			<p><?php esc_html_e( 'Weekly summary showing both spam activity and API usage side-by-side with insights and recommendations.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'The Zero Spam network overview widget appears on the Network Admin dashboard. It shows the spam blocked across every site in the last 30 days, the last 7 days compared with the 7 days before, a 30-day trend line, and the sites with the most spam.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'Each site\'s own dashboard has the Zero Spam overview widget: the same figures for that site and its latest detections. Administrators can press Refresh to update it without reloading the page; the result is announced to screen readers.', 'zero-spam' ); ?></p>
 
 			<div class="zerospam-docs-note">
-				<strong><?php esc_html_e( 'Pro Tip:', 'zero-spam' ); ?></strong>
-				<p><?php esc_html_e( 'Click the "Refresh" button to clear cached data and see real-time statistics.', 'zero-spam' ); ?></p>
+				<strong><?php esc_html_e( 'Good to know:', 'zero-spam' ); ?></strong>
+				<p><?php esc_html_e( 'The network widget\'s figures are kept for five minutes; reload the dashboard after that to see newer numbers. Who sees the widgets is set with the Dashboard Widget settings.', 'zero-spam' ); ?></p>
 			</div>
 		</div>
 	</div>
@@ -235,7 +227,7 @@ wp zerospam backfill_stats --days=90</code></pre>
 			<p><?php esc_html_e( 'No. Network Statistics requires WordPress Multisite with 2 or more sites. Single-site installations can use the API Monitoring features instead.', 'zero-spam' ); ?></p>
 
 			<h3><?php esc_html_e( 'How often are statistics updated?', 'zero-spam' ); ?></h3>
-			<p><?php esc_html_e( 'Statistics are cached for 1 hour for performance. Use the "Refresh" button on the dashboard widget or statistics page to clear the cache and see real-time data.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'Statistics are cached for 1 hour for performance. The dashboard widgets show newer figures: the site widget\'s Refresh button updates it at once, and the network widget keeps its figures for five minutes.', 'zero-spam' ); ?></p>
 
 			<h3><?php esc_html_e( 'Can I block an IP across all sites at once?', 'zero-spam' ); ?></h3>
 			<p><?php esc_html_e( 'Yes! On the Multi-Site Attackers table, click "Block Network-Wide" to add an IP to the block list for all sites in your network.', 'zero-spam' ); ?></p>

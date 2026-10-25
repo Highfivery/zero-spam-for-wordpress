@@ -1,0 +1,332 @@
+/**
+ * The "Zero Spam overview" and "Zero Spam network overview" dashboard
+ * widgets (includes/templates/dashboard-widget.php), after the approved
+ * prototype's widget view: a status line, the headline figure with the last
+ * 7 days, a sparkline, a short list and a footer with the activity link and
+ * Refresh.
+ *
+ * The widget sits inside a WordPress postbox, whose own rules (p, a, h3 and
+ * ul margins, link colour, #dashboard-widgets h3) outrank base.css's :where()
+ * resets, so the rules below set those properties again. The few rules that
+ * must beat #dashboard-widgets use the widget's own postbox ID.
+ */
+
+/* The postbox title: the flat mark (24px) and the name. It sits in
+   WordPress's postbox header, outside the .zs-widget root, where the tokens
+   are not defined. */
+.zs-w-title {
+	display: inline-flex;
+	gap: 10px;
+	align-items: center;
+}
+
+.zs-w-mark {
+	display: block;
+	flex: none;
+}
+
+/* The body fills the postbox's .inside (padding 0 12px 12px, margin 11px 0 0). */
+.zs-widget {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-3);
+	margin: -11px -12px -12px;
+	padding: 14px;
+	background: var(--zs-surface);
+	font-size: var(--zs-text-sm);
+}
+
+.zs-widget p,
+.zs-widget ul,
+.zs-widget ol,
+.zs-widget li,
+.zs-widget figure {
+	margin: 0;
+	padding: 0;
+}
+
+.zs-widget a {
+	color: var(--zs-red);
+}
+
+.zs-widget a:hover,
+.zs-widget a:focus {
+	color: var(--zs-red);
+	box-shadow: none;
+}
+
+/* Protection level */
+.zs-w-level {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: flex-start;
+	padding: 10px var(--zs-space-3);
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-surface-2);
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+}
+
+.zs-w-level b {
+	color: var(--zs-ink);
+	font-weight: var(--zs-weight-bold);
+}
+
+.zs-w-level .zs-icon {
+	margin-top: 1px;
+}
+
+.zs-w-level-ok .zs-icon {
+	color: var(--zs-ok);
+}
+
+.zs-w-level-warn {
+	border-color: transparent;
+	background: var(--zs-warn-soft);
+}
+
+.zs-w-level-warn .zs-icon {
+	color: var(--zs-warn-ink);
+}
+
+/* Headline */
+.zs-w-headline {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-1);
+}
+
+.zs-w-figure {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--zs-space-1) var(--zs-space-2);
+	align-items: baseline;
+}
+
+.zs-w-count {
+	color: var(--zs-ink);
+	font-size: var(--zs-text-figure-sm);
+	font-variant-numeric: tabular-nums;
+	font-weight: var(--zs-weight-semibold);
+	letter-spacing: var(--zs-tracking-figure);
+	line-height: 1.1;
+}
+
+.zs-w-label {
+	color: var(--zs-ink-3);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-w-delta {
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+}
+
+/* Sparkline (30 days) */
+.zs-w-spark-svg {
+	display: block;
+	width: 100%;
+	height: var(--zs-space-12);
+	overflow: visible;
+}
+
+.zs-w-spark-area {
+	fill: var(--zs-spark-fill);
+}
+
+.zs-w-spark-line {
+	fill: none;
+	stroke: var(--zs-spark);
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-width: var(--zs-spark-stroke);
+}
+
+/* Lists: latest detections (site) and the sites with the most spam (network) */
+/* stylelint-disable-next-line selector-id-pattern -- The dashboard widget ID WordPress gives the postbox (kept from 5.x); only an ID outranks #dashboard-widgets h3. */
+#zerospam_unified_widget .zs-w-sub {
+	margin: var(--zs-space-1) 0 0;
+	padding: 0;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-bold);
+	line-height: var(--zs-leading-heading);
+}
+
+.zs-w-list {
+	display: flex;
+	flex-direction: column;
+	list-style: none;
+}
+
+.zs-w-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 2px var(--zs-space-3);
+	align-items: baseline;
+	padding: var(--zs-space-2) 0;
+	border-top: 1px solid var(--zs-line);
+}
+
+.zs-w-item:first-child {
+	border-top: 0;
+	padding-top: 0;
+}
+
+.zs-w-name {
+	grid-column: 1;
+	grid-row: 1;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--zs-ink);
+	font-weight: var(--zs-weight-bold);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.zs-w-when,
+.zs-w-num {
+	grid-column: 2;
+	grid-row: 1;
+	color: var(--zs-ink-3);
+	white-space: nowrap;
+}
+
+.zs-w-num {
+	color: var(--zs-ink-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.zs-w-ip {
+	grid-column: 1 / -1;
+	grid-row: 2;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-xs);
+	overflow-wrap: anywhere;
+}
+
+.zs-w-empty {
+	padding: 14px;
+	border: 1.5px dashed var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+	color: var(--zs-ink-2);
+}
+
+.zs-w-notice,
+.zs-w-error {
+	display: flex;
+	gap: var(--zs-space-3);
+	align-items: flex-start;
+	padding: var(--zs-space-3) 14px;
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-warn-soft);
+	color: var(--zs-ink);
+}
+
+.zs-w-notice .zs-icon {
+	color: var(--zs-warn-ink);
+}
+
+.zs-w-notice p {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-1);
+}
+
+/* Footer: activity link, Refresh and the live region */
+.zs-w-foot {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--zs-space-2) var(--zs-space-3);
+	align-items: center;
+	justify-content: space-between;
+	padding-top: 10px;
+	border-top: 1px solid var(--zs-line);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-w-link {
+	display: inline-flex;
+	gap: var(--zs-space-1);
+	align-items: center;
+	min-height: var(--zs-control-sm);
+}
+
+.zs-w-btn {
+	display: inline-flex;
+	gap: 6px;
+	align-items: center;
+	justify-content: center;
+	min-height: 32px;
+	margin-left: auto;
+	padding: 0 var(--zs-space-3);
+	border: 1px solid var(--zs-control);
+	border-radius: var(--zs-radius-control);
+	background: var(--zs-surface);
+	color: var(--zs-ink);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-bold);
+	line-height: 1;
+	cursor: pointer;
+}
+
+.zs-w-btn:hover {
+	background: var(--zs-sunken);
+}
+
+.zs-w-btn[aria-disabled="true"] {
+	cursor: progress;
+}
+
+.zs-w-status {
+	flex-basis: 100%;
+	color: var(--zs-ink-3);
+	font-size: var(--zs-text-xs);
+	font-weight: var(--zs-weight-medium);
+}
+
+.zs-w-status:empty {
+	display: none;
+}
+
+.zs-w-status[data-zs-error] {
+	color: var(--zs-red);
+	font-weight: var(--zs-weight-semibold);
+}
+
+/* Loading: the Refresh icon turns. Under reduced motion it turns slowly
+   instead of stopping, so loading never looks finished (it is a progress
+   indicator; base.css stops every other animation). */
+.zs-widget[data-zs-busy] .zs-w-spin {
+	animation: zs-w-spin calc(var(--zs-duration-slower) * 2) linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.zs-widget[data-zs-busy] .zs-w-spin {
+		animation: zs-w-spin calc(var(--zs-duration-slower) * 6) linear infinite !important;
+	}
+}
+
+.zs-widget[data-zs-motion="reduce"][data-zs-busy] .zs-w-spin,
+[data-zs-motion="reduce"] .zs-widget[data-zs-busy] .zs-w-spin {
+	animation: zs-w-spin calc(var(--zs-duration-slower) * 6) linear infinite !important;
+}
+
+@keyframes zs-w-spin {
+
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Narrow screens: 44px targets. */
+@media (max-width: 782px) {
+
+	.zs-w-link,
+	.zs-w-btn {
+		min-height: var(--zs-tap-min);
+	}
+}
