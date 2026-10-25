@@ -18,11 +18,11 @@ export const UNDO_DURATION = 10000;
 /**
  * Creates a pausable countdown.
  *
- * @param {Object}   options          Options.
- * @param {number}   options.duration Milliseconds before it expires.
- * @param {Function} options.onExpire Called once when it expires.
- * @param {Function} [options.now]    Clock.
- * @param {Object}   [options.timers] { setTimeout, clearTimeout }.
+ * @param {Object}                          options          Options.
+ * @param {number}                          options.duration Milliseconds before it expires.
+ * @param {(...args: unknown[]) => unknown} options.onExpire Called once when it expires.
+ * @param {(...args: unknown[]) => unknown} [options.now]    Clock.
+ * @param {Object}                          [options.timers] { setTimeout, clearTimeout }.
  * @return {Object} { start, pause, resume, cancel, remaining, isPaused }.
  */
 export function createToastTimer( {

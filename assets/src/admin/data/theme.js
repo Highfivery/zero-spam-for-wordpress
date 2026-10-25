@@ -11,7 +11,7 @@ export const THEMES = [ 'light', 'dark', 'auto' ];
 /**
  * A valid theme preference.
  *
- * @param {*} pref Stored value.
+ * @param {unknown} pref Stored value.
  * @return {'light'|'dark'|'auto'} Theme preference.
  */
 export function themePref( pref ) {
@@ -21,7 +21,7 @@ export function themePref( pref ) {
 /**
  * The theme shown.
  *
- * @param {*}       pref   Theme preference.
+ * @param {unknown} pref   Theme preference.
  * @param {boolean} osDark The operating system prefers dark.
  * @return {'light'|'dark'} Theme shown.
  */
@@ -37,7 +37,7 @@ export function resolveTheme( pref, osDark ) {
  * The preference the top bar's theme button switches to: the opposite of
  * what is shown.
  *
- * @param {*}       pref   Theme preference.
+ * @param {unknown} pref   Theme preference.
  * @param {boolean} osDark The operating system prefers dark.
  * @return {'light'|'dark'} New preference.
  */
@@ -48,7 +48,7 @@ export function toggledTheme( pref, osDark ) {
 /**
  * Whether animations are off.
  *
- * @param {*}       reducePref The user's reduce_motion preference.
+ * @param {unknown} reducePref The user's reduce_motion preference.
  * @param {boolean} osReduce   The operating system asks for reduced motion.
  * @return {boolean} Animations are off.
  */

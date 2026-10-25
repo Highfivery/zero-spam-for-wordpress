@@ -40,7 +40,7 @@ const FeedbackContext = createContext( {
 	setUnsaved: () => {},
 } );
 
-/** @return {{toast: Function, announce: Function, setUnsaved: Function}} Feedback API. */
+/** @return {{toast: (message: string, options?: Object) => number, announce: (message: string, level?: string) => void}} Feedback API. */
 export const useFeedback = () => useContext( FeedbackContext );
 
 let nextId = 1;
@@ -48,9 +48,9 @@ let nextId = 1;
 /**
  * One toast.
  *
- * @param {Object}   props         Props.
- * @param {Object}   props.toast   { id, message, undo, undoLabel }.
- * @param {Function} props.onClose Removes it.
+ * @param {Object}                          props         Props.
+ * @param {Object}                          props.toast   { id, message, undo, undoLabel }.
+ * @param {(...args: unknown[]) => unknown} props.onClose Removes it.
  */
 function Toast( { toast, onClose } ) {
 	const timer = useRef( null );
@@ -114,11 +114,11 @@ function Toast( { toast, onClose } ) {
 /**
  * The unsaved-changes bar.
  *
- * @param {Object}   props           Props.
- * @param {string}   [props.message] Text.
- * @param {Function} props.onSave    Save.
- * @param {Function} props.onDiscard Discard.
- * @param {boolean}  [props.saving]  Saving now.
+ * @param {Object}                          props           Props.
+ * @param {string}                          [props.message] Text.
+ * @param {(...args: unknown[]) => unknown} props.onSave    Save.
+ * @param {(...args: unknown[]) => unknown} props.onDiscard Discard.
+ * @param {boolean}                         [props.saving]  Saving now.
  */
 export function UnsavedBar( { message, onSave, onDiscard, saving = false } ) {
 	const bar = useRef( null );
@@ -189,8 +189,8 @@ export function UnsavedBar( { message, onSave, onDiscard, saving = false } ) {
 /**
  * Provides toast(), announce() and the live regions.
  *
- * @param {Object} props          Props.
- * @param {*}      props.children App.
+ * @param {Object}  props          Props.
+ * @param {unknown} props.children App.
  */
 export function FeedbackProvider( { children } ) {
 	const [ toasts, setToasts ] = useState( [] );
@@ -205,10 +205,10 @@ export function FeedbackProvider( { children } ) {
 	/**
 	 * Shows a toast.
 	 *
-	 * @param {string}   message             Message.
-	 * @param {Object}   [options]           Options.
-	 * @param {Function} [options.undo]      Undo callback (adds an Undo button).
-	 * @param {string}   [options.undoLabel] Undo button label.
+	 * @param {string}                          message             Message.
+	 * @param {Object}                          [options]           Options.
+	 * @param {(...args: unknown[]) => unknown} [options.undo]      Undo callback (adds an Undo button).
+	 * @param {string}                          [options.undoLabel] Undo button label.
 	 */
 	const toast = useCallback( ( message, options = {} ) => {
 		const id = nextId++;

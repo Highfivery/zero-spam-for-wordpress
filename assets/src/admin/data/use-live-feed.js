@@ -26,12 +26,12 @@ const INPUT_EVENTS = [
 ];
 
 /**
- * @param {Object}   options            Options.
- * @param {Array}    options.initial    Entries already shown (newest first), or undefined while loading.
- * @param {boolean}  options.userPaused The user's live_paused preference.
- * @param {boolean}  options.reduced    Animations are off.
- * @param {Function} options.onNew      Receives every batch of new entries (counts, mark, announcements).
- * @param {number}   [options.keep]     Entries kept.
+ * @param {Object}                          options            Options.
+ * @param {Array}                           options.initial    Entries already shown (newest first), or undefined while loading.
+ * @param {boolean}                         options.userPaused The user's live_paused preference.
+ * @param {boolean}                         options.reduced    Animations are off.
+ * @param {(...args: unknown[]) => unknown} options.onNew      Receives every batch of new entries (counts, mark, announcements).
+ * @param {number}                          [options.keep]     Entries kept.
  * @return {Object} { items, fresh, queued, showQueued, reason }.
  */
 export function useLiveFeed( {

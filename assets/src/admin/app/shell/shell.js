@@ -113,12 +113,12 @@ function ThemeButton( { className } ) {
 }
 
 /**
- * @param {Object}   props             Props.
- * @param {string}   props.area        Current area.
- * @param {string}   [props.netTab]    Network tab.
- * @param {Function} [props.setNetTab] Changes the network tab.
- * @param {string}   [props.crumb]     Breadcrumb's last part.
- * @param {*}        props.children    Area content.
+ * @param {Object}                          props             Props.
+ * @param {string}                          props.area        Current area.
+ * @param {string}                          [props.netTab]    Network tab.
+ * @param {(...args: unknown[]) => unknown} [props.setNetTab] Changes the network tab.
+ * @param {string}                          [props.crumb]     Breadcrumb's last part.
+ * @param {unknown}                         props.children    Area content.
  */
 export function Shell( { area, netTab, setNetTab, crumb, children } ) {
 	const { network, modules, day } = useApp();

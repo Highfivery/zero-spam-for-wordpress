@@ -11,7 +11,7 @@ import { forwardRef } from '@wordpress/element';
 /**
  * Joins class names, skipping empty ones.
  *
- * @param {...*} names Class names.
+ * @param {...(string|false|null|undefined)} names Class names.
  * @return {string} Class attribute.
  */
 export const cx = ( ...names ) => names.filter( Boolean ).join( ' ' );
@@ -101,11 +101,11 @@ export const Button = forwardRef( function ButtonRender(
 /**
  * Badge (20px pill): neutral, ok, warn, danger, info, enh.
  *
- * @param {Object} props             Props.
- * @param {string} [props.tone]      Tone.
- * @param {string} [props.icon]      Icon.
- * @param {*}      props.children    Label.
- * @param {string} [props.className] Extra classes.
+ * @param {Object}  props             Props.
+ * @param {string}  [props.tone]      Tone.
+ * @param {string}  [props.icon]      Icon.
+ * @param {unknown} props.children    Label.
+ * @param {string}  [props.className] Extra classes.
  */
 export function Badge( { tone, icon, children, className } ) {
 	return (
@@ -125,10 +125,10 @@ export function Badge( { tone, icon, children, className } ) {
 /**
  * Toggle chip (28px; 44px on phones) with aria-pressed.
  *
- * @param {Object}   props          Props.
- * @param {boolean}  props.pressed  Selected.
- * @param {Function} props.onClick  Click.
- * @param {*}        props.children Label.
+ * @param {Object}                          props          Props.
+ * @param {boolean}                         props.pressed  Selected.
+ * @param {(...args: unknown[]) => unknown} props.onClick  Click.
+ * @param {unknown}                         props.children Label.
  */
 export function Chip( { pressed, onClick, children, ...rest } ) {
 	return (
@@ -147,14 +147,14 @@ export function Chip( { pressed, onClick, children, ...rest } ) {
 /**
  * The switch: a 44×26 pill with an invisible 44px hit band (role="switch").
  *
- * @param {Object}   props               Props.
- * @param {boolean}  props.checked       On.
- * @param {Function} props.onChange      Receives the new value.
- * @param {string}   [props.labelledBy]  ID of the visible label.
- * @param {string}   [props.describedBy] ID of the status text.
- * @param {string}   [props.label]       Accessible name when there is no visible label.
- * @param {boolean}  [props.disabled]    Disabled.
- * @param {string}   [props.id]          ID.
+ * @param {Object}                          props               Props.
+ * @param {boolean}                         props.checked       On.
+ * @param {(...args: unknown[]) => unknown} props.onChange      Receives the new value.
+ * @param {string}                          [props.labelledBy]  ID of the visible label.
+ * @param {string}                          [props.describedBy] ID of the status text.
+ * @param {string}                          [props.label]       Accessible name when there is no visible label.
+ * @param {boolean}                         [props.disabled]    Disabled.
+ * @param {string}                          [props.id]          ID.
  */
 export function Switch( {
 	checked,
@@ -184,12 +184,12 @@ export function Switch( {
 /**
  * A tile (card) on the wall. `span` is its width in the 12-column grid.
  *
- * @param {Object} props              Props.
- * @param {number} [props.span]       Columns (12, 8, 7, 6, 5, 4).
- * @param {string} [props.className]  Extra classes.
- * @param {string} [props.labelledBy] Heading ID (makes it a region).
- * @param {string} [props.as]         Element.
- * @param {*}      props.children     Content.
+ * @param {Object}  props              Props.
+ * @param {number}  [props.span]       Columns (12, 8, 7, 6, 5, 4).
+ * @param {string}  [props.className]  Extra classes.
+ * @param {string}  [props.labelledBy] Heading ID (makes it a region).
+ * @param {string}  [props.as]         Element.
+ * @param {unknown} props.children     Content.
  */
 export function Tile( {
 	span = 12,
@@ -216,8 +216,8 @@ export function Tile( {
  * @param {Object}  props             Props.
  * @param {string}  props.eyebrow     Eyebrow.
  * @param {string}  props.id          Heading ID.
- * @param {*}       props.title       Heading.
- * @param {*}       [props.aside]     Right-hand content.
+ * @param {unknown} props.title       Heading.
+ * @param {unknown} [props.aside]     Right-hand content.
  * @param {boolean} [props.focusable] The heading can take focus (after a dismiss).
  */
 export function TileHead( { eyebrow, id, title, aside, focusable = false } ) {
@@ -241,9 +241,9 @@ export function TileHead( { eyebrow, id, title, aside, focusable = false } ) {
 /**
  * Skip link to the area's content.
  *
- * @param {Object} props          Props.
- * @param {string} props.target   ID to jump to.
- * @param {*}      props.children Label.
+ * @param {Object}  props          Props.
+ * @param {string}  props.target   ID to jump to.
+ * @param {unknown} props.children Label.
  */
 export function SkipLink( { target, children } ) {
 	return (
@@ -267,11 +267,11 @@ export function SkipLink( { target, children } ) {
 /**
  * An external link with an icon and a hidden "(opens in a new tab)".
  *
- * @param {Object} props             Props.
- * @param {string} props.href        Address.
- * @param {*}      props.children    Label.
- * @param {string} [props.className] Extra classes.
- * @param {string} [props.newTab]    Hidden suffix.
+ * @param {Object}  props             Props.
+ * @param {string}  props.href        Address.
+ * @param {unknown} props.children    Label.
+ * @param {string}  [props.className] Extra classes.
+ * @param {string}  [props.newTab]    Hidden suffix.
  */
 export function ExtLink( { href, children, className, newTab } ) {
 	return (

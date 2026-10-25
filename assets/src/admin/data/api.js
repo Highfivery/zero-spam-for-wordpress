@@ -1,5 +1,5 @@
 /**
- * The REST client: @wordpress/api-fetch (with WordPress's nonce and the
+ * The REST client: the api-fetch package (with WordPress's nonce and the
  * preloading middleware the page adds, see Admin_App::enqueue()), plus a
  * count of requests in flight that drives the mark's Thinking state.
  */
@@ -54,8 +54,8 @@ const notify = () => listeners.forEach( ( fn ) => fn( inFlight ) );
 /**
  * Subscribes to the number of requests in flight.
  *
- * @param {Function} fn Listener.
- * @return {Function} Unsubscribe.
+ * @param {(...args: unknown[]) => unknown} fn Listener.
+ * @return {(...args: unknown[]) => unknown} Unsubscribe.
  */
 export function onBusy( fn ) {
 	listeners.add( fn );
@@ -83,7 +83,7 @@ export function request( options ) {
  * @param {string|null} path         Route, or null to skip.
  * @param {Object}      [opts]       Options.
  * @param {boolean}     [opts.parse] false to keep the response (headers).
- * @return {{data: *, error: *, loading: boolean, headers: Object, reload: Function, setData: Function}} State.
+ * @return {{data: unknown, error: unknown, loading: boolean, headers: Object, reload: () => Promise<void>, setData: (updater: unknown) => void}} State.
  */
 export function useResource( path, { parse = true } = {} ) {
 	const [ state, setState ] = useState( {

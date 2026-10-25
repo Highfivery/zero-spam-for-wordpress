@@ -69,7 +69,7 @@ export function useMedia( query ) {
 /**
  * @param {Object}  props          Props.
  * @param {Element} props.root     The app root (#zerospam-app).
- * @param {*}       props.children App.
+ * @param {unknown} props.children App.
  */
 export function AppProvider( { root, children } ) {
 	const { toast } = useFeedback();

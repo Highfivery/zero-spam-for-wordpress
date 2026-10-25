@@ -27,8 +27,8 @@ export const ANNOUNCE_GAP = 60000;
 /**
  * Milliseconds until the next poll.
  *
- * @param {number}   failures Failed requests in a row.
- * @param {Function} random   Returns a number in [0, 1).
+ * @param {number}                          failures Failed requests in a row.
+ * @param {(...args: unknown[]) => unknown} random   Returns a number in [0, 1).
  * @return {number} Delay in milliseconds.
  */
 export function nextDelay( failures, random = Math.random ) {
@@ -80,13 +80,13 @@ export function highestId( items, current = 0 ) {
 /**
  * Creates the poller.
  *
- * @param {Object}   options           Options.
- * @param {Function} options.fetch     ( sinceId ) => Promise<Array> of newer entries, newest first.
- * @param {Function} options.onItems   Receives each non-empty batch.
- * @param {Function} [options.onError] Receives each failure.
- * @param {number}   [options.sinceId] Highest ID already shown.
- * @param {Object}   [options.timers]  { setTimeout, clearTimeout }.
- * @param {Function} [options.random]  Random source for the jitter.
+ * @param {Object}                          options           Options.
+ * @param {(...args: unknown[]) => unknown} options.fetch     ( sinceId ) => Promise<Array> of newer entries, newest first.
+ * @param {(...args: unknown[]) => unknown} options.onItems   Receives each non-empty batch.
+ * @param {(...args: unknown[]) => unknown} [options.onError] Receives each failure.
+ * @param {number}                          [options.sinceId] Highest ID already shown.
+ * @param {Object}                          [options.timers]  { setTimeout, clearTimeout }.
+ * @param {(...args: unknown[]) => unknown} [options.random]  Random source for the jitter.
  * @return {Object} { start, stop, pause, resume, isRunning, failures, sinceId }.
  */
 export function createPoller( {
@@ -189,10 +189,10 @@ export function createPoller( {
 /**
  * Limits screen reader summaries to one per minute.
  *
- * @param {Object}   options     Options.
- * @param {number}   options.gap Milliseconds between two announcements.
- * @param {Function} options.now Clock.
- * @return {Function} Returns true when an announcement may be made now (and records it).
+ * @param {Object}                          options     Options.
+ * @param {number}                          options.gap Milliseconds between two announcements.
+ * @param {(...args: unknown[]) => unknown} options.now Clock.
+ * @return {(...args: unknown[]) => unknown} Returns true when an announcement may be made now (and records it).
  */
 export function createAnnounceGate( {
 	gap = ANNOUNCE_GAP,

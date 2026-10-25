@@ -35,16 +35,16 @@ export function focusables( root ) {
 }
 
 /**
- * @param {Object}   props             Props.
- * @param {boolean}  props.open        Shown.
- * @param {Function} props.onClose     Called by Escape, the scrim and the close button.
- * @param {string}   props.labelledBy  ID of the drawer's heading.
- * @param {boolean}  [props.wide]      760px instead of 440px.
- * @param {string}   [props.className] Extra classes.
- * @param {*}        [props.header]    Header content (left of the close button); omit for a floating close button.
- * @param {*}        [props.footer]    Footer content.
- * @param {Object}   [props.nav]       { position, total, onPrev, onNext } for previous/next.
- * @param {*}        props.children    Body.
+ * @param {Object}                          props             Props.
+ * @param {boolean}                         props.open        Shown.
+ * @param {(...args: unknown[]) => unknown} props.onClose     Called by Escape, the scrim and the close button.
+ * @param {string}                          props.labelledBy  ID of the drawer's heading.
+ * @param {boolean}                         [props.wide]      760px instead of 440px.
+ * @param {string}                          [props.className] Extra classes.
+ * @param {unknown}                         [props.header]    Header content (left of the close button); omit for a floating close button.
+ * @param {unknown}                         [props.footer]    Footer content.
+ * @param {Object}                          [props.nav]       { position, total, onPrev, onNext } for previous/next.
+ * @param {unknown}                         props.children    Body.
  */
 export function Drawer( {
 	open,

@@ -930,9 +930,9 @@ export const REVIEW_URL =
 /**
  * The milestone (and the review ask).
  *
- * @param {Object}   props           Props.
- * @param {number}   props.total     Threats stopped in 30 days.
- * @param {Function} props.onDismiss Called after dismissing (focus moves on).
+ * @param {Object}                          props           Props.
+ * @param {number}                          props.total     Threats stopped in 30 days.
+ * @param {(...args: unknown[]) => unknown} props.onDismiss Called after dismissing (focus moves on).
  */
 export function MilestoneTile( { total, onDismiss } ) {
 	const { dismiss, undismiss } = useApp();

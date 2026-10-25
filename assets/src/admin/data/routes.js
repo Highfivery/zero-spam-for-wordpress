@@ -70,7 +70,7 @@ const readTab = ( fallback ) => {
  *
  * @param {string}   fallback Default tab.
  * @param {string[]} [valid]  Allowed tabs.
- * @return {[string, Function]} Tab and setter.
+ * @return {[string, (tab: string) => void]} Tab and setter.
  */
 export function useTab( fallback, valid ) {
 	const check = useCallback(

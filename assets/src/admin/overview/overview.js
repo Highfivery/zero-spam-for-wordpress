@@ -80,10 +80,10 @@ function bump( summary, items ) {
 /**
  * The hero.
  *
- * @param {Object}   props              Props.
- * @param {number}   props.total        Threats stopped in 30 days.
- * @param {Object}   props.feed         Live feed state.
- * @param {Function} props.onToggleLive Pause or resume.
+ * @param {Object}                          props              Props.
+ * @param {number}                          props.total        Threats stopped in 30 days.
+ * @param {Object}                          props.feed         Live feed state.
+ * @param {(...args: unknown[]) => unknown} props.onToggleLive Pause or resume.
  */
 function Hero( { total, feed, onToggleLive } ) {
 	const { enhanced, license, modules, reduced, prefs } = useApp();
