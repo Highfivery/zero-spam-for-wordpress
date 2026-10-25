@@ -22,6 +22,12 @@ export const POLL_INTERVAL = 15000;
 export const POLL_JITTER = 0.2;
 export const BACKOFF = [ 30000, 60000, 120000 ];
 export const IDLE_LIMIT = 30 * 60 * 1000;
+
+/**
+ * How long after input woke an idle feed a press of the Live button still
+ * counts as that wake (a Space press clicks on key up, a mouse on release).
+ */
+export const WAKE_GRACE = 1500;
 export const ANNOUNCE_GAP = 60000;
 
 /**
@@ -126,15 +132,22 @@ export function createPoller( {
 
 		return Promise.resolve()
 			.then( () => fetch( last ) )
-			.then( ( items ) => {
+			.then( ( result ) => {
 				failures = 0;
-				const list = Array.isArray( items ) ? items : [];
+				// An array of entries, or { items, total } when the server
+				// says how many are new in all (a burst bigger than a page).
+				const list = Array.isArray( result )
+					? result
+					: result?.items || [];
 				const fresh = list.filter(
 					( item ) => Number( item.id ) > last
 				);
 				if ( fresh.length ) {
 					last = highestId( fresh, last );
-					onItems( fresh );
+					onItems(
+						fresh,
+						Math.max( fresh.length, Number( result?.total ) || 0 )
+					);
 				}
 			} )
 			.catch( ( error ) => {
@@ -206,6 +219,121 @@ export function createAnnounceGate( {
 			return false;
 		}
 		lastAt = t;
+		return true;
+	};
+}
+
+/**
+ * What the Live/Pause button does in a state: "pause" saves live_paused,
+ * "resume" clears it, and "wake" only restarts a feed the page paused (a
+ * hidden tab, or 30 minutes without input) without writing the preference.
+ *
+ * @param {Object}      state            State.
+ * @param {boolean}     state.userPaused The user's live_paused preference.
+ * @param {string|null} state.reason     pauseReason() at the time of the press.
+ * @param {boolean}     [state.justWoke] The press's own input just woke an idle feed.
+ * @return {'pause'|'resume'|'wake'} Action.
+ */
+export function liveAction( { userPaused, reason, justWoke = false } ) {
+	if ( userPaused ) {
+		return 'resume';
+	}
+	return reason || justWoke ? 'wake' : 'pause';
+}
+
+/**
+ * Tracks inactivity. Input clears the idle state on the next tick, not at
+ * once, so a key press or click that lands on the Resume button still sees
+ * the feed as paused (and only wakes it).
+ *
+ * @param {Object}                  options          Options.
+ * @param {number}                  [options.limit]  Milliseconds without input.
+ * @param {() => number}            [options.now]    Clock.
+ * @param {Object}                  [options.timers] { setTimeout, clearTimeout }.
+ * @param {(idle: boolean) => void} options.onChange Receives each change.
+ * @return {{input: () => void, check: () => void, wake: () => void, isIdle: () => boolean, justWoke: () => boolean}} Tracker.
+ */
+export function createIdleTracker( {
+	limit = IDLE_LIMIT,
+	now = Date.now,
+	timers = defaultTimers,
+	onChange,
+} ) {
+	let last = now();
+	let idle = false;
+	let pending = null;
+	let wokeAt = -Infinity;
+
+	const set = ( value ) => {
+		if ( value !== idle ) {
+			idle = value;
+			onChange( value );
+		}
+	};
+
+	return {
+		input() {
+			last = now();
+			if ( idle && null === pending ) {
+				wokeAt = last;
+				pending = timers.setTimeout( () => {
+					pending = null;
+					set( false );
+				}, 0 );
+			}
+		},
+		check() {
+			if ( now() - last >= limit ) {
+				set( true );
+			}
+		},
+		wake() {
+			last = now();
+			set( false );
+		},
+		isIdle: () => idle,
+		justWoke: () => now() - wokeAt < WAKE_GRACE,
+	};
+}
+
+/**
+ * Follows the tab's visibility.
+ *
+ * @param {EventTarget & {hidden: boolean}} doc      The document.
+ * @param {(hidden: boolean) => void}       onChange Receives the hidden state.
+ * @return {() => void} Stops listening.
+ */
+export function watchVisibility( doc, onChange ) {
+	const handler = () => onChange( Boolean( doc.hidden ) );
+	doc.addEventListener( 'visibilitychange', handler );
+	return () => doc.removeEventListener( 'visibilitychange', handler );
+}
+
+/**
+ * Leaves out log rows that are not detections (rescue links).
+ *
+ * @param {Array<{type: string}>} items Entries.
+ * @param {string[]}              types Non-detection types.
+ * @return {Array} Detections.
+ */
+export const detectionsOnly = ( items, types = [] ) =>
+	( items || [] ).filter( ( item ) => ! types.includes( item.type ) );
+
+/**
+ * One polite screen-reader summary of new detections, at most once a minute.
+ *
+ * @param {Object}                                  options          Options.
+ * @param {() => boolean}                           options.gate     createAnnounceGate().
+ * @param {(message: string) => void}               options.announce Speaks a message.
+ * @param {(items: Array, total: number) => string} options.message  Builds the message.
+ * @return {(items: Array, total: number) => boolean} Announces when allowed; true when it did.
+ */
+export function createNewDetectionsAnnouncer( { gate, announce, message } ) {
+	return ( items, total ) => {
+		if ( ! items.length || ! gate() ) {
+			return false;
+		}
+		announce( message( items, total ) );
 		return true;
 	};
 }

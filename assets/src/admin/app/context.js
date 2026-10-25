@@ -22,6 +22,7 @@ import {
  * Internal dependencies
  */
 import { boot, PATHS, request, useResource } from '../data/api';
+import { createSaveQueue } from '../data/save-queue';
 import { motionReduced, resolveTheme, themePref } from '../data/theme';
 import { useFeedback } from './primitives/feedback';
 
@@ -102,42 +103,43 @@ export function AppProvider( { root, children } ) {
 		}
 	}, [ root, themeValue, reduceValue ] );
 
+	// One save at a time; on failure the server's state is loaded again.
+	const handlers = useRef( {} );
+	handlers.current = { reload: prefs.reload, toast };
+	const queue = useRef( null );
+	if ( ! queue.current ) {
+		queue.current = createSaveQueue( {
+			send: ( data ) =>
+				request( { path: PATHS.prefs, method: 'POST', data } ),
+			onSaved: ( saved ) => prefs.setData( saved ),
+			onFailed: () => {
+				handlers.current.reload();
+				handlers.current.toast(
+					__(
+						'Your preference could not be saved. Please try again.',
+						'zero-spam'
+					)
+				);
+			},
+		} );
+	}
+
 	/**
-	 * Saves preferences (optimistic; restored with a message on failure).
+	 * Saves preferences (optimistic, in order; reloaded with a message on failure).
 	 *
 	 * @param {Object} changes Preferences to change.
 	 * @return {Promise} Request.
 	 */
 	const savePrefs = useCallback(
 		( changes ) => {
-			const before = prefs.data;
 			prefs.setData( ( current ) => ( {
 				...( current || {} ),
 				...changes,
 			} ) );
-			return request( {
-				path: PATHS.prefs,
-				method: 'POST',
-				data: changes,
-			} ).then(
-				( saved ) => {
-					prefs.setData( saved );
-					return saved;
-				},
-				( error ) => {
-					prefs.setData( before );
-					toast(
-						__(
-							'Your preference could not be saved. Please try again.',
-							'zero-spam'
-						)
-					);
-					throw error;
-				}
-			);
+			return queue.current.save( changes );
 		},
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- setData is stable.
-		[ prefs.data, toast ]
+		[]
 	);
 
 	/**

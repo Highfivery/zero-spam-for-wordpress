@@ -14,8 +14,16 @@ import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { PATHS, request } from './api';
-import { createPoller, highestId, IDLE_LIMIT, pauseReason } from './poll';
+import { boot, PATHS, request } from './api';
+import {
+	createIdleTracker,
+	createPoller,
+	detectionsOnly,
+	highestId,
+	IDLE_LIMIT,
+	pauseReason,
+	watchVisibility,
+} from './poll';
 
 const INPUT_EVENTS = [
 	'pointerdown',
@@ -49,7 +57,7 @@ export function useLiveFeed( {
 	);
 	const [ idle, setIdle ] = useState( false );
 	const poller = useRef( null );
-	const lastInput = useRef( Date.now() );
+	const tracker = useRef( null );
 	const onNewRef = useRef( onNew );
 	const reducedRef = useRef( reduced );
 	onNewRef.current = onNew;
@@ -59,7 +67,12 @@ export function useLiveFeed( {
 
 	useEffect( () => {
 		if ( loaded ) {
-			setItems( initial.slice( 0, keep ) );
+			setItems(
+				detectionsOnly( initial, boot.nonDetectionTypes ).slice(
+					0,
+					keep
+				)
+			);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- Seed once, when the first list arrives.
 	}, [ loaded ] );
@@ -79,9 +92,29 @@ export function useLiveFeed( {
 		}
 		poller.current = createPoller( {
 			sinceId: highestId( initial, 0 ),
-			fetch: ( since ) => request( { path: PATHS.since( since ) } ),
-			onItems: ( entries ) => {
-				onNewRef.current( entries );
+			fetch: ( since ) =>
+				request( { path: PATHS.since( since ), parse: false } ).then(
+					( response ) =>
+						response.json().then( ( list ) => ( {
+							items: list,
+							total: Number(
+								response.headers.get(
+									'X-ZeroSpam-New-Detections'
+								)
+							),
+						} ) )
+				),
+			onItems: ( all, total ) => {
+				const entries = detectionsOnly( all, boot.nonDetectionTypes );
+				// The server's count leaves non-detections out already.
+				const count = Math.max(
+					entries.length,
+					total - ( all.length - entries.length )
+				);
+				if ( ! entries.length && count <= 0 ) {
+					return;
+				}
+				onNewRef.current( entries, count );
 				if ( reducedRef.current ) {
 					setQueued( ( q ) => [ ...entries, ...q ] );
 				} else {
@@ -95,28 +128,33 @@ export function useLiveFeed( {
 
 	// Tab visibility and inactivity.
 	useEffect( () => {
-		const onVisibility = () => setHidden( document.hidden );
-		const onInput = () => {
-			lastInput.current = Date.now();
-			setIdle( false );
-		};
-		document.addEventListener( 'visibilitychange', onVisibility );
+		tracker.current = createIdleTracker( { onChange: setIdle } );
+		const onInput = () => tracker.current.input();
+		const stopVisibility = watchVisibility( document, setHidden );
 		INPUT_EVENTS.forEach( ( e ) =>
 			window.addEventListener( e, onInput, { passive: true } )
 		);
-		const check = window.setInterval( () => {
-			if ( Date.now() - lastInput.current >= IDLE_LIMIT ) {
-				setIdle( true );
-			}
-		}, 60000 );
+		const check = window.setInterval(
+			() => tracker.current.check(),
+			60000
+		);
 		return () => {
-			document.removeEventListener( 'visibilitychange', onVisibility );
+			stopVisibility();
 			INPUT_EVENTS.forEach( ( e ) =>
 				window.removeEventListener( e, onInput )
 			);
 			window.clearInterval( check );
 		};
 	}, [] );
+
+	/** Restarts a feed the page paused (hidden tab, inactivity). */
+	const wake = useCallback( () => tracker.current?.wake(), [] );
+
+	/** True while a press still belongs to the input that woke the feed. */
+	const justWoke = useCallback(
+		() => Boolean( tracker.current?.justWoke() ),
+		[]
+	);
 
 	const reason = pauseReason( {
 		userPaused,
@@ -151,5 +189,14 @@ export function useLiveFeed( {
 		} );
 	}, [ insert ] );
 
-	return { items, fresh, queued, showQueued, reason, loaded };
+	return {
+		items,
+		fresh,
+		queued,
+		showQueued,
+		reason,
+		loaded,
+		wake,
+		justWoke,
+	};
 }

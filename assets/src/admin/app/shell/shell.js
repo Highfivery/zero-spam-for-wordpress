@@ -24,6 +24,7 @@ import { boot } from '../../data/api';
 import { num } from '../../data/format';
 import { toggledTheme } from '../../data/theme';
 import { areaUrl } from '../../data/routes';
+import { protectionStatus } from '../../data/status';
 
 const ICONS = {
 	overview: 'wall',
@@ -56,33 +57,7 @@ export const networkTabs = () => [
 	[ 'stats', __( 'Network stats', 'zero-spam' ), 'activity' ],
 ];
 
-/**
- * The site's protection status from protection/modules.
- *
- * @param {Object|undefined} modules Route answer.
- * @return {{tone: string, label: string, count: number}} Status.
- */
-export function protectionStatus( modules ) {
-	const warnings = ( modules?.attention || [] ).filter(
-		( a ) => 'warning' === a.severity
-	);
-	if ( warnings.length ) {
-		return {
-			tone: 'warn',
-			label: sprintf(
-				/* translators: %d: number of items */
-				__( '%d to review', 'zero-spam' ),
-				warnings.length
-			),
-			count: warnings.length,
-		};
-	}
-	return {
-		tone: 'ok',
-		label: __( 'All checks active', 'zero-spam' ),
-		count: 0,
-	};
-}
+export { protectionStatus } from '../../data/status';
 
 /**
  * The theme switch (sun / moon).

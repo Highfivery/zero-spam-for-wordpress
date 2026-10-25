@@ -8,6 +8,7 @@
  * WordPress dependencies
  */
 import { __, sprintf } from '@wordpress/i18n';
+import { createInterpolateElement } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -255,14 +256,26 @@ export function CompareDrawer() {
 			<ul className="zs-cd-proof">
 				{ q && (
 					<li>
-						<b>{ num( q.remaining ) }</b>{ ' ' }
-						{ __( 'queries left', 'zero-spam' ) }
+						{ createInterpolateElement(
+							sprintf(
+								/* translators: %s: number of queries */
+								__( '<b>%s</b> queries left', 'zero-spam' ),
+								num( q.remaining )
+							),
+							{ b: <b /> }
+						) }
 					</li>
 				) }
 				{ license?.reset_date && (
 					<li>
-						{ __( 'Resets', 'zero-spam' ) }{ ' ' }
-						<b>{ day( license.reset_date ) }</b>
+						{ createInterpolateElement(
+							sprintf(
+								/* translators: %s: date */
+								__( 'Resets <b>%s</b>', 'zero-spam' ),
+								day( license.reset_date )
+							),
+							{ b: <b /> }
+						) }
 					</li>
 				) }
 			</ul>
@@ -288,18 +301,24 @@ export function CompareDrawer() {
 			>
 				<li>
 					<span className="zs-pdot" aria-hidden="true" />
-					<b>{ __( '120M+', 'zero-spam' ) }</b>{ ' ' }
-					{ __( 'records', 'zero-spam' ) }
+					{ createInterpolateElement(
+						__( '<b>120M+</b> records', 'zero-spam' ),
+						{ b: <b /> }
+					) }
 				</li>
 				<li>
 					<span className="zs-pdot" aria-hidden="true" />
-					<b>{ __( '30,000+', 'zero-spam' ) }</b>{ ' ' }
-					{ __( 'sites reporting', 'zero-spam' ) }
+					{ createInterpolateElement(
+						__( '<b>30,000+</b> sites reporting', 'zero-spam' ),
+						{ b: <b /> }
+					) }
 				</li>
 				<li>
 					<span className="zs-pdot" aria-hidden="true" />
-					<b>{ __( '<10 ms', 'zero-spam' ) }</b>{ ' ' }
-					{ __( 'per check', 'zero-spam' ) }
+					{ createInterpolateElement(
+						__( '<b>&lt;10 ms</b> per check', 'zero-spam' ),
+						{ b: <b /> }
+					) }
 				</li>
 			</ul>
 		</div>

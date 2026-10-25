@@ -338,3 +338,46 @@ export function sparkPaths( values, w, h ) {
 		.join( '' );
 	return { line, area: `${ line }L${ w } ${ h }L0 ${ h }Z` };
 }
+
+/**
+ * Adds live detections to a stats/summary answer.
+ *
+ * @param {Object|undefined}                          summary stats/summary answer.
+ * @param {Array<{type: string, type_label: string}>} items   New entries (detections only).
+ * @param {number}                                    [count] New detections in all (more than items after a burst bigger than a page).
+ * @return {Object|undefined} Summary.
+ */
+export function bumpSummary( summary, items, count = items.length ) {
+	if ( ! summary ) {
+		return summary;
+	}
+	const all = Math.max( count, items.length );
+	const byType = [ ...( summary.by_type || [] ) ];
+	items.forEach( ( item ) => {
+		const i = byType.findIndex( ( t ) => t.type === item.type );
+		if ( i >= 0 ) {
+			byType[ i ] = { ...byType[ i ], count: byType[ i ].count + 1 };
+		} else {
+			byType.push( {
+				type: item.type,
+				label: item.type_label,
+				count: 1,
+			} );
+		}
+	} );
+	const network = items.filter( isNetworkOnly ).length;
+	const next = {
+		...summary,
+		total: ( summary.total || 0 ) + all,
+		delta: ( summary.delta || 0 ) + all,
+		by_type: byType,
+	};
+	if ( summary.network_only ) {
+		next.network_only = {
+			...summary.network_only,
+			total: summary.network_only.total + network,
+			basic_total: summary.network_only.basic_total + all - network,
+		};
+	}
+	return next;
+}

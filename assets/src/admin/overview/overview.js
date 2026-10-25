@@ -7,7 +7,13 @@
  * WordPress dependencies
  */
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { useCallback, useMemo, useRef, useState } from '@wordpress/element';
+import {
+	createInterpolateElement,
+	useCallback,
+	useMemo,
+	useRef,
+	useState,
+} from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -16,14 +22,18 @@ import { useApp } from '../app/context';
 import { cx, Icon } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { land } from '../app/mark';
-import { protectionStatus } from '../app/shell/shell';
+import { protectionStatus } from '../data/status';
 import { boot, nowLocal, PATHS, useResource } from '../data/api';
 import { ago, minutesAgo, num } from '../data/format';
-import { createAnnounceGate } from '../data/poll';
+import {
+	createAnnounceGate,
+	createNewDetectionsAnnouncer,
+	liveAction,
+} from '../data/poll';
 import { useLiveFeed } from '../data/use-live-feed';
 import {
 	addToDays,
-	isNetworkOnly,
+	bumpSummary,
 	milestones,
 	networkFigures,
 	networkSeries,
@@ -53,48 +63,98 @@ const bucketOf = ( type ) =>
 	} )[ type ] || 'forms';
 
 /**
- * Adds live entries to a summary's totals.
+ * The screen reader summary of new detections.
  *
- * @param {Object|undefined} summary stats/summary answer.
- * @param {Array}            items   New entries.
- * @return {Object|undefined} Summary.
+ * @param {Array}  items New entries, newest first.
+ * @param {number} count New detections in all.
+ * @return {string} Message.
  */
-function bump( summary, items ) {
-	if ( ! summary ) {
-		return summary;
+export function newBlocksMessage( items, count ) {
+	const latest = items[ 0 ];
+	return sprintf(
+		/* translators: 1: number of new blocks, 2: detection type, 3: IP address */
+		_n(
+			'%1$s new block. Latest: %2$s from %3$s.',
+			'%1$s new blocks. Latest: %2$s from %3$s.',
+			count,
+			'zero-spam'
+		),
+		num( count ),
+		latest.type_label,
+		latest.ip
+	);
+}
+
+/**
+ * The hero's first line, honest about what is switched on.
+ *
+ * @param {string} state protectionStatus().state.
+ * @param {string} site  Site name ('' when it has none).
+ * @return {string} Headline.
+ */
+function headline( state, site ) {
+	if ( 'off' === state ) {
+		return site
+			? sprintf(
+					/* translators: %s: site name */
+					__( '%s is not protected yet.', 'zero-spam' ),
+					site
+				)
+			: __( 'Your site is not protected yet.', 'zero-spam' );
 	}
-	const byType = [ ...( summary.by_type || [] ) ];
-	items.forEach( ( item ) => {
-		const i = byType.findIndex( ( t ) => t.type === item.type );
-		if ( i >= 0 ) {
-			byType[ i ] = { ...byType[ i ], count: byType[ i ].count + 1 };
-		} else {
-			byType.push( {
-				type: item.type,
-				label: item.type_label,
-				count: 1,
-			} );
-		}
-	} );
-	const network = items.filter( isNetworkOnly ).length;
-	return {
-		...summary,
-		total: summary.total + items.length,
-		delta: summary.delta + items.length,
-		by_type: byType,
-		...( summary.network_only
-			? {
-					network_only: {
-						...summary.network_only,
-						total: summary.network_only.total + network,
-						basic_total:
-							summary.network_only.basic_total +
-							items.length -
-							network,
-					},
-				}
-			: {} ),
-	};
+	if ( 'partial' === state ) {
+		return site
+			? sprintf(
+					/* translators: %s: site name */
+					__( '%s is partly protected.', 'zero-spam' ),
+					site
+				)
+			: __( 'Your site is partly protected.', 'zero-spam' );
+	}
+	return site
+		? sprintf(
+				/* translators: %s: site name */
+				__( '%s is protected.', 'zero-spam' ),
+				site
+			)
+		: __( 'Your site is protected.', 'zero-spam' );
+}
+
+/**
+ * The hero's lede: one translatable sentence per case.
+ *
+ * @param {string}  state    protectionStatus().state.
+ * @param {boolean} enhanced Enhanced Protection is on.
+ * @return {import('react').ReactNode} Lede.
+ */
+function lede( state, enhanced ) {
+	if ( 'off' === state ) {
+		return __(
+			'Comment, login and registration checks are off, so nothing is checked for spam yet. Turn them on under Needs attention below.',
+			'zero-spam'
+		);
+	}
+	if ( 'partial' === state ) {
+		return __(
+			'Some of the core checks are off. The ones that are on were applied to every submission in the last 30 days; turn the rest on under Needs attention below.',
+			'zero-spam'
+		);
+	}
+	return enhanced
+		? createInterpolateElement(
+				__(
+					"Every comment, login, registration and form was checked in the last 30 days, and every visitor was checked against Zero Spam's network of 30,000+ sites. <b>Enhanced Protection is active.</b>",
+					'zero-spam'
+				),
+				{ b: <b /> }
+			)
+		: createInterpolateElement(
+				__(
+					"Every comment, login, registration and form Zero Spam protects was checked in the last 30 days. You're on <b>Basic protection</b>, which is free.",
+					'zero-spam'
+				),
+				{ b: <b /> }
+			);
 }
 
 /**
@@ -108,11 +168,10 @@ function bump( summary, items ) {
  * @param {Array}                           props.days         stats/timeseries days.
  */
 function Hero( { total, feed, onToggleLive, summary, days } ) {
-	const { enhanced, license, modules, reduced, prefs } = useApp();
+	const { enhanced, license, modules, reduced } = useApp();
 	const status = protectionStatus( modules );
 	const site = boot.site.name;
 	const last = feed.items[ 0 ];
-	const paused = Boolean( feed.reason );
 	const list = modules?.modules || [];
 	const entry = list.filter(
 		( m ) =>
@@ -128,11 +187,12 @@ function Hero( { total, feed, onToggleLive, summary, days } ) {
 		none: __( 'nowhere (not available)', 'zero-spam' ),
 	};
 
-	let liveText = __( 'Live', 'zero-spam' );
+	const live = ! feed.reason;
+	let liveState = __( 'Live', 'zero-spam' );
 	if ( 'idle' === feed.reason ) {
-		liveText = __( 'Paused while you were away', 'zero-spam' );
-	} else if ( paused ) {
-		liveText = __( 'Paused', 'zero-spam' );
+		liveState = __( 'Paused while you were away', 'zero-spam' );
+	} else if ( feed.reason ) {
+		liveState = __( 'Paused', 'zero-spam' );
 	}
 
 	const net = networkFigures( summary );
@@ -157,46 +217,57 @@ function Hero( { total, feed, onToggleLive, summary, days } ) {
 							) }
 							aria-hidden="true"
 						/>
-						{ __( 'System status:', 'zero-spam' ) }{ ' ' }
-						<span
-							className={
-								'ok' === status.tone ? 'zs-ok' : 'zs-warn-t'
+						{ createInterpolateElement(
+							sprintf(
+								/* translators: %s: protection status, for example "All checks active" */
+								__( 'System status: <s>%s</s>', 'zero-spam' ),
+								status.label
+							),
+							{
+								s: (
+									<span
+										className={
+											'ok' === status.tone
+												? 'zs-ok'
+												: 'zs-warn-t'
+										}
+									/>
+								),
 							}
-						>
-							{ status.label }
-						</span>
+						) }
 					</span>
+					{ /* The name stays "Live feed"; the state is the pressed state and the description. */ }
 					<button
 						className={ cx(
 							'zs-pill',
 							'zs-live',
-							! paused && 'zs-on'
+							live && 'zs-on'
 						) }
 						type="button"
-						aria-pressed={ prefs.live_paused ? 'false' : 'true' }
+						aria-pressed={ live ? 'true' : 'false' }
+						aria-describedby="zs-live-state"
 						onClick={ onToggleLive }
 					>
-						<span className="zs-ldot" aria-hidden="true" />
-						<span className="zs-live-t">{ liveText }</span>
-						<span aria-hidden="true">·</span>
-						<span>
-							{ prefs.live_paused || paused
-								? __( 'Resume', 'zero-spam' )
-								: __( 'Pause', 'zero-spam' ) }
-						</span>
 						<span className="zs-sr-only">
-							{ __( 'live feed', 'zero-spam' ) }
+							{ __( 'Live feed', 'zero-spam' ) }
+						</span>
+						<span className="zs-ldot" aria-hidden="true" />
+						<span className="zs-live-t" aria-hidden="true">
+							{ liveState }
+						</span>
+						<span aria-hidden="true">·</span>
+						<span aria-hidden="true">
+							{ live
+								? __( 'Pause', 'zero-spam' )
+								: __( 'Resume', 'zero-spam' ) }
 						</span>
 					</button>
+					<span id="zs-live-state" className="zs-sr-only">
+						{ liveState }
+					</span>
 				</div>
 				<h1 className="zs-h1" id="zs-ov-h" tabIndex={ -1 }>
-					{ site
-						? sprintf(
-								/* translators: %s: site name */
-								__( '%s is protected.', 'zero-spam' ),
-								site
-							)
-						: __( 'Your site is protected.', 'zero-spam' ) }
+					{ headline( status.state, site ) }
 					{ ! enhanced && (
 						<span>
 							{ total > 0
@@ -216,87 +287,73 @@ function Hero( { total, feed, onToggleLive, summary, days } ) {
 				</h1>
 				{ enhanced && (
 					<p className="zs-hero-sub">
-						{ net.network > 0 ? (
-							<>
-								{ __( 'Enhanced caught', 'zero-spam' ) }{ ' ' }
-								<b>
-									{ sprintf(
+						{ net.network > 0
+							? createInterpolateElement(
+									sprintf(
 										/* translators: %s: number of threats */
-										__( '%s more.', 'zero-spam' ),
+										__(
+											'The network caught <b>%s</b>.',
+											'zero-spam'
+										),
 										num( net.network )
-									) }
-								</b>
-							</>
-						) : (
-							sprintf(
-								/* translators: %s: number of threats */
-								_n(
-									'%s threat stopped.',
-									'%s threats stopped.',
-									total,
-									'zero-spam'
-								),
-								num( total )
-							)
-						) }
+									),
+									{ b: <b /> }
+								)
+							: sprintf(
+									/* translators: %s: number of threats */
+									_n(
+										'%s threat stopped.',
+										'%s threats stopped.',
+										total,
+										'zero-spam'
+									),
+									num( total )
+								) }
 					</p>
 				) }
-				<p className="zs-lede">
-					{ enhanced
-						? __(
-								"Every comment, login, registration and form was checked in the last 30 days, and every visitor was checked against Zero Spam's network of 30,000+ sites.",
-								'zero-spam'
-							)
-						: __(
-								'Every comment, login, registration and form Zero Spam protects was checked in the last 30 days.',
-								'zero-spam'
-							) }{ ' ' }
-					{ enhanced ? (
-						<b>
-							{ __(
-								'Enhanced Protection is active.',
-								'zero-spam'
-							) }
-						</b>
-					) : (
-						<>
-							{ __( "You're on", 'zero-spam' ) }{ ' ' }
-							<b>{ __( 'Basic protection', 'zero-spam' ) }</b>
-							{ __( ', which is free.', 'zero-spam' ) }
-						</>
-					) }
-				</p>
+				<p className="zs-lede">{ lede( status.state, enhanced ) }</p>
 				<div className="zs-hero-meta">
 					<span>
-						{ __( 'Last detection', 'zero-spam' ) }{ ' ' }
-						<b>
-							{ last
-								? ago( minutesAgo( last.date, nowLocal() ) )
-								: __( 'none yet', 'zero-spam' ) }
-						</b>
+						{ createInterpolateElement(
+							sprintf(
+								/* translators: %s: when, such as 2 min ago */
+								__( 'Last detection <b>%s</b>', 'zero-spam' ),
+								last
+									? ago( minutesAgo( last.date, nowLocal() ) )
+									: __( 'none yet', 'zero-spam' )
+							),
+							{ b: <b /> }
+						) }
 					</span>
 					<span>
-						{ __( 'Visitor IPs read from', 'zero-spam' ) }{ ' ' }
-						<b>
-							{ ipNames[ boot.environment.ipSource ] ||
-								ipNames.direct }
-						</b>
+						{ createInterpolateElement(
+							sprintf(
+								/* translators: %s: where visitor addresses come from, such as Cloudflare */
+								__(
+									'Visitor IPs read from <b>%s</b>',
+									'zero-spam'
+								),
+								ipNames[ boot.environment.ipSource ] ||
+									ipNames.direct
+							),
+							{ b: <b /> }
+						) }
 					</span>
 					{ modules && (
 						<span>
-							{ __( 'Checks run on', 'zero-spam' ) }{ ' ' }
-							<b>
-								{ sprintf(
+							{ createInterpolateElement(
+								sprintf(
 									/* translators: %d: number of entry points */
 									_n(
-										'%d entry point',
-										'%d entry points',
+										'Checks run on <b>%d entry point</b>',
+										'Checks run on <b>%d entry points</b>',
 										entry,
 										'zero-spam'
 									),
 									entry
-								) }
-							</b>
+								),
+								{ b: <b /> }
+							) }
 						</span>
 					) }
 				</div>
@@ -313,7 +370,7 @@ function Hero( { total, feed, onToggleLive, summary, days } ) {
 						<b className="zs-mono">{ num( net.network ) }</b>
 						<span>
 							{ __(
-								'threats Basic would have missed · last 30 days',
+								'threats caught by the Zero Spam network · last 30 days',
 								'zero-spam'
 							) }
 						</span>
@@ -327,7 +384,7 @@ function Hero( { total, feed, onToggleLive, summary, days } ) {
 							label={ sprintf(
 								/* translators: %s: number of threats */
 								__(
-									'Threats only the network caught, per day over the last 30 days: %s in all',
+									'Threats the Zero Spam network caught, per day over the last 30 days: %s in all',
 									'zero-spam'
 								),
 								num( net.network )
@@ -362,13 +419,20 @@ export function Overview() {
 	const activity = useResource( PATHS.activity );
 	const [ freshDay, setFreshDay ] = useState( -1 );
 	const [ flash, setFlash ] = useState( '' );
-	const gate = useRef( createAnnounceGate() );
+	const announcer = useRef( null );
+	if ( ! announcer.current ) {
+		announcer.current = createNewDetectionsAnnouncer( {
+			gate: createAnnounceGate(),
+			announce: ( message ) => announce( message ),
+			message: newBlocksMessage,
+		} );
+	}
 
 	const onNew = useCallback(
-		( items ) => {
-			setDay( ( d ) => bump( d, items ) );
-			s7.setData( ( d ) => bump( d, items ) );
-			s30.setData( ( d ) => bump( d, items ) );
+		( items, count = items.length ) => {
+			setDay( ( d ) => bumpSummary( d, items, count ) );
+			s7.setData( ( d ) => bumpSummary( d, items, count ) );
+			s30.setData( ( d ) => bumpSummary( d, items, count ) );
 			series.setData( ( d ) =>
 				d ? { ...d, days: addToDays( d.days, items ) } : d
 			);
@@ -379,23 +443,7 @@ export function Overview() {
 				setFlash( '' );
 			}, 2500 );
 			land();
-			if ( gate.current() ) {
-				const latest = items[ 0 ];
-				announce(
-					sprintf(
-						/* translators: 1: number of new blocks, 2: detection type, 3: IP address */
-						_n(
-							'%1$s new block. Latest: %2$s from %3$s.',
-							'%1$s new blocks. Latest: %2$s from %3$s.',
-							items.length,
-							'zero-spam'
-						),
-						num( items.length ),
-						latest.type_label,
-						latest.ip
-					)
-				);
-			}
+			announcer.current( items, count );
 		},
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- setData functions are stable.
 		[ announce, series.data ]
@@ -408,8 +456,19 @@ export function Overview() {
 		onNew,
 	} );
 
+	// Decided from the state the button showed when it was pressed.
 	const toggleLive = () => {
-		const pause = ! prefs.live_paused;
+		const action = liveAction( {
+			userPaused: true === prefs.live_paused,
+			reason: feed.reason,
+			justWoke: feed.justWoke(),
+		} );
+		if ( 'wake' === action ) {
+			feed.wake();
+			toast( __( 'Live feed resumed', 'zero-spam' ) );
+			return;
+		}
+		const pause = 'pause' === action;
 		savePrefs( { live_paused: pause } ).then( () =>
 			toast(
 				pause

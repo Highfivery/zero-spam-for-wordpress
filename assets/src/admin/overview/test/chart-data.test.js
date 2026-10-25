@@ -15,6 +15,7 @@ import {
 	CHART,
 	NETWORK_FAILED,
 	addToDays,
+	bumpSummary,
 	isNetworkOnly,
 	networkFigures,
 	networkSeries,
@@ -255,5 +256,42 @@ describe( 'sparkPaths', () => {
 		expect( sparkPaths( [ 0, 0 ], 10, 10 ).line ).toBe(
 			'M0.0 8.0L10.0 8.0'
 		);
+	} );
+} );
+
+describe( 'bumpSummary', () => {
+	const summary = {
+		total: 10,
+		delta: 2,
+		by_type: [ { type: 'comment', label: 'Comment', count: 10 } ],
+		network_only: { total: 4, previous_total: 1, basic_total: 6 },
+	};
+
+	it( 'adds the server count of a burst larger than the page', () => {
+		const items = [
+			{ id: 9, type: 'comment' },
+			{ id: 8, type: 'blocked', failed: NETWORK_FAILED },
+		];
+		const next = bumpSummary( summary, items, 30 );
+		expect( next.total ).toBe( 40 );
+		expect( next.delta ).toBe( 32 );
+		expect( next.network_only ).toEqual( {
+			total: 5,
+			previous_total: 1,
+			basic_total: 35,
+		} );
+		expect( next.by_type ).toContainEqual( {
+			type: 'comment',
+			label: 'Comment',
+			count: 11,
+		} );
+		expect( summary.total ).toBe( 10 ); // not mutated
+	} );
+
+	it( 'never counts less than the entries it was given', () => {
+		expect(
+			bumpSummary( summary, [ { id: 1, type: 'comment' } ], 0 ).total
+		).toBe( 11 );
+		expect( bumpSummary( undefined, [], 3 ) ).toBeUndefined();
 	} );
 } );

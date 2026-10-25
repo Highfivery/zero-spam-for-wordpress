@@ -96,3 +96,27 @@ export function createToastTimer( {
 		isPaused: () => holds > 0,
 	};
 }
+
+/**
+ * Wires a toast element to its timer: the pointer over it or focus inside
+ * it holds the countdown (WCAG 2.2.1).
+ *
+ * @param {EventTarget}                             target The toast element.
+ * @param {{pause: () => void, resume: () => void}} timer  createToastTimer().
+ * @return {() => void} Removes the listeners.
+ */
+export function bindToastHold( target, timer ) {
+	const hold = () => timer.pause();
+	const release = () => timer.resume();
+	const events = [
+		[ 'mouseenter', hold ],
+		[ 'mouseleave', release ],
+		[ 'focusin', hold ],
+		[ 'focusout', release ],
+	];
+	events.forEach( ( [ name, fn ] ) => target.addEventListener( name, fn ) );
+	return () =>
+		events.forEach( ( [ name, fn ] ) =>
+			target.removeEventListener( name, fn )
+		);
+}

@@ -78,7 +78,27 @@ export function request( options ) {
 }
 
 /**
- * Reads a route once (from the preload cache on first load).
+ * Takes a preloaded answer out of the page (Admin_App prints the same object
+ * it hands to apiFetch's preloading middleware as `zeroSpamPreload`). Read
+ * once, so a later reload goes to the server.
+ *
+ * @param {string|null} path Route, exactly as preloaded.
+ * @return {{body: unknown, headers: Object}|undefined} The answer.
+ */
+export function takePreloaded( path ) {
+	const store =
+		'undefined' !== typeof window ? window.zeroSpamPreload : undefined;
+	if ( ! path || ! store || ! store[ path ] ) {
+		return undefined;
+	}
+	const entry = store[ path ];
+	delete store[ path ];
+	return entry;
+}
+
+/**
+ * Reads a route once. A preloaded answer is used for the first render, so
+ * the screen paints with its data and nothing shifts when it arrives.
  *
  * @param {string|null} path         Route, or null to skip.
  * @param {Object}      [opts]       Options.
@@ -86,11 +106,22 @@ export function request( options ) {
  * @return {{data: unknown, error: unknown, loading: boolean, headers: Object, reload: () => Promise<void>, setData: (updater: unknown) => void}} State.
  */
 export function useResource( path, { parse = true } = {} ) {
-	const [ state, setState ] = useState( {
-		data: undefined,
-		error: null,
-		loading: Boolean( path ),
-		headers: {},
+	const seeded = useRef( null );
+	const [ state, setState ] = useState( () => {
+		const entry = takePreloaded( path );
+		seeded.current = entry ? path : null;
+		return {
+			data: entry ? entry.body : undefined,
+			error: null,
+			loading: Boolean( path ) && ! entry,
+			// Lower-case names, as Headers.entries() gives them.
+			headers: Object.fromEntries(
+				Object.entries( entry?.headers || {} ).map( ( [ k, v ] ) => [
+					k.toLowerCase(),
+					v,
+				] )
+			),
+		};
 	} );
 	const alive = useRef( true );
 
@@ -129,11 +160,17 @@ export function useResource( path, { parse = true } = {} ) {
 
 	useEffect( () => {
 		alive.current = true;
+		if ( seeded.current && seeded.current === path ) {
+			seeded.current = null;
+			return () => {
+				alive.current = false;
+			};
+		}
 		load();
 		return () => {
 			alive.current = false;
 		};
-	}, [ load ] );
+	}, [ load, path ] );
 
 	const setData = useCallback(
 		( updater ) =>
