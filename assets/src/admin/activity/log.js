@@ -516,7 +516,7 @@ export function Log( { onChanged, summary } ) {
 			.filter( Boolean )
 			.join( ', ' );
 
-	const blockButton = ( row, compact = false ) => (
+	const blockButton = ( row ) => (
 		<Button
 			variant="ghost"
 			size="sm"
@@ -546,7 +546,6 @@ export function Log( { onChanged, summary } ) {
 			{ row.blocked
 				? __( 'Edit block', 'zero-spam' )
 				: __( 'Block IP', 'zero-spam' ) }
-			{ compact ? null : null }
 		</Button>
 	);
 
@@ -881,7 +880,7 @@ export function Log( { onChanged, summary } ) {
 									{ networkBadge( row ) }
 								</span>
 								<span className="zs-cm-a">
-									{ blockButton( row, true ) }
+									{ blockButton( row ) }
 								</span>
 							</span>
 						</li>
