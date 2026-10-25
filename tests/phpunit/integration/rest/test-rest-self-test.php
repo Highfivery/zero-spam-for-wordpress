@@ -127,12 +127,45 @@ class Test_Rest_Self_Test extends TestCase {
 
 		$this->assertSame( 'pass', $steps['honeypot']['status'], $steps['honeypot']['message'] );
 		$this->assertSame( array(), Stubs::$headers, 'The self-test sent the blocked page\'s headers: ' . implode( ' | ', Stubs::$headers ) );
+		$this->assertFalse( \ZeroSpam\Core\Access::is_intercepting_termination(), 'Interception is still on after the self-test.' );
 		$this->assertIsArray( $response->get_data() );
 
 		foreach ( $response->get_headers() as $name => $value ) {
 			$this->assertStringNotContainsStringIgnoringCase( 'text/html', (string) $value, $name );
 			$this->assertStringNotContainsStringIgnoringCase( 'content-security-policy', (string) $name );
 		}
+	}
+
+	/**
+	 * Interception ends when the callback stops, is stopped, or throws.
+	 */
+	public function test_interception_is_reset_after_the_callback(): void {
+		$this->assertFalse( \ZeroSpam\Core\Access::intercept_termination( static function (): void {} ) );
+		$this->assertFalse( \ZeroSpam\Core\Access::is_intercepting_termination(), 'Still on after a callback that did not stop.' );
+
+		$this->assertTrue(
+			\ZeroSpam\Core\Access::intercept_termination(
+				static function (): void {
+					\ZeroSpam\Core\Access::terminate_execution( 'Stopped', 'Stopped.' );
+				}
+			)
+		);
+		$this->assertFalse( \ZeroSpam\Core\Access::is_intercepting_termination(), 'Still on after a stopped callback.' );
+
+		$thrown = null;
+		try {
+			\ZeroSpam\Core\Access::intercept_termination(
+				static function (): void {
+					throw new RuntimeException( 'Unrelated failure.' );
+				}
+			);
+		} catch ( RuntimeException $e ) {
+			$thrown = $e;
+		}
+
+		$this->assertInstanceOf( RuntimeException::class, $thrown, 'An unrelated exception is passed on.' );
+		$this->assertFalse( \ZeroSpam\Core\Access::is_intercepting_termination(), 'Still on after a callback that threw.' );
+		$this->assertSame( array(), Stubs::$headers );
 	}
 
 	/**
