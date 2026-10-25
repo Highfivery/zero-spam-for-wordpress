@@ -72,3 +72,82 @@ export function blockBody( values ) {
 	}
 	return body;
 }
+
+/**
+ * What "Block selected IPs" does with the selected rows: each address once,
+ * the ones already blocked left out (and counted).
+ *
+ * @param {Array<{id: number, ip: string, blocked: boolean}>} rows     Rows shown.
+ * @param {Set<number>}                                       selected Selected IDs.
+ * @return {{ips: string[], already: number}} Addresses to block, and how many were already blocked.
+ */
+export function bulkBlockPlan( rows, selected ) {
+	const block = new Set();
+	const already = new Set();
+	rows.filter( ( r ) => selected.has( r.id ) ).forEach( ( r ) => {
+		const ip = String( r.ip || '' ).trim();
+		if ( ! ip ) {
+			return;
+		}
+		( r.blocked ? already : block ).add( ip.toLowerCase() );
+	} );
+	already.forEach( ( ip ) => block.delete( ip ) );
+	return {
+		ips: rows
+			.map( ( r ) => String( r.ip || '' ).trim() )
+			.filter(
+				( ip, i, list ) =>
+					block.has( ip.toLowerCase() ) &&
+					list.findIndex(
+						( x ) => x.toLowerCase() === ip.toLowerCase()
+					) === i
+			),
+		already: already.size,
+	};
+}
+
+/**
+ * Blocks addresses one by one with the block drawer's defaults (temporary,
+ * ending at `end`, no reason).
+ *
+ * @param {Object}                          options         Options.
+ * @param {string[]}                        options.ips     Addresses.
+ * @param {string}                          options.end     End (site time, YYYY-MM-DDTHH:MM).
+ * @param {(...args: unknown[]) => unknown} options.request apiFetch-like; called with parse: false.
+ * @return {Promise<{created: number[], replaced: number, failed: number}>} IDs of new blocks (what Undo removes), blocks replaced, failures.
+ */
+export function blockAll( { ips, end, request } ) {
+	return Promise.allSettled(
+		ips.map( ( ip ) =>
+			request( {
+				path: '/zero-spam/v1/rules/blocks',
+				method: 'POST',
+				data: blockBody( {
+					ip,
+					type: 'temporary',
+					reason: '',
+					start: '',
+					end,
+				} ),
+				parse: false,
+			} ).then( ( response ) =>
+				response.json().then( ( saved ) => ( {
+					saved,
+					created: 201 === response.status,
+				} ) )
+			)
+		)
+	).then( ( results ) => {
+		const out = { created: [], replaced: 0, failed: 0 };
+		results.forEach( ( r ) => {
+			if ( 'fulfilled' !== r.status ) {
+				out.failed++;
+			} else if ( r.value.created ) {
+				out.created.push( r.value.saved.id );
+			} else {
+				out.replaced++;
+			}
+		} );
+		return out;
+	} );
+}

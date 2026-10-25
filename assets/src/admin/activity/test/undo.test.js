@@ -126,3 +126,23 @@ describe( 'runUndoable', () => {
 		expect( toasts[ 2 ].message ).toBe( 'Could not restore' );
 	} );
 } );
+
+describe( 'runUndoable with canUndo', () => {
+	it( 'offers no Undo when the answer cannot be undone', async () => {
+		const toasts = [];
+		await runUndoable( {
+			run: () => Promise.resolve( { created: [] } ),
+			undo: vi.fn(),
+			canUndo: ( a ) => a.created.length > 0,
+			request: vi.fn(),
+			toast: ( message, options = {} ) =>
+				toasts.push( { message, ...options } ),
+			refresh: vi.fn(),
+			messages: {
+				...messages,
+				done: () => 'Blocked 1 IP address for 7 days',
+			},
+		} );
+		expect( toasts[ 0 ].undo ).toBeUndefined();
+	} );
+} );

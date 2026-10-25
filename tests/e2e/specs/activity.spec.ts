@@ -230,6 +230,24 @@ test.describe( '6.0 Activity', () => {
 		await expect( rows( page ) ).toHaveCount( 8 );
 	} );
 
+	test( 'Block selected IPs: each address once for 7 days, already-blocked ones reported, one Undo removes them all', async ( { page, zs } ) => {
+		await zs.seedLog( 2, { ip: '198.51.100.30' } );
+		await zs.seedLog( 1, { ip: '198.51.100.31' } );
+		await zs.seedLog( 1, { ip: '198.51.100.32' } );
+		await zs.block( '198.51.100.32', 'Already blocked' );
+		await openLog( page );
+
+		await page.getByLabel( 'Select all shown' ).check();
+		await page.getByLabel( 'Bulk action' ).selectOption( 'block' );
+		await page.getByRole( 'button', { name: 'Apply' } ).click();
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( 'Blocked 2 IP addresses for 7 days · 1 already blocked' );
+		await expect( page.locator( '[data-zs-block]' ) ).toHaveText( [ 'Edit block', 'Edit block', 'Edit block', 'Edit block' ] );
+
+		await page.locator( '.zs-toast-btn' ).click();
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( '2 blocks removed' );
+		await expect( page.locator( '[data-zs-block]', { hasText: 'Block IP' } ) ).toHaveCount( 3 );
+	} );
+
 	test( 'logged markup is shown as text and never runs (stored XSS fixture)', async ( { page, zs } ) => {
 		await zs.seedLog( 1, {
 			data: {

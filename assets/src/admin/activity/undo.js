@@ -6,18 +6,20 @@
  */
 
 /**
- * @param {Object}                          options          Options.
- * @param {(...args: unknown[]) => unknown} options.run      Sends the request; resolves to an answer with `undo_token` (or the action's own undo, see `undo`).
- * @param {(...args: unknown[]) => unknown} [options.undo]   ( answer ) => Promise: undoes without a token (an added allowlist entry, a new block).
- * @param {(...args: unknown[]) => unknown} options.request  apiFetch-like ( { path, method } ) => Promise.
- * @param {(...args: unknown[]) => unknown} options.toast    ( message, { undo } ) => void.
- * @param {(...args: unknown[]) => unknown} options.refresh  Reloads what changed.
- * @param {Object}                          options.messages { done( answer ), undone( answer ), failed( error ), undoFailed( error ) }.
+ * @param {Object}                          options           Options.
+ * @param {(...args: unknown[]) => unknown} options.run       Sends the request; resolves to an answer with `undo_token` (or the action's own undo, see `undo`).
+ * @param {(...args: unknown[]) => unknown} [options.undo]    ( answer ) => Promise: undoes without a token (an added allowlist entry, a new block).
+ * @param {(...args: unknown[]) => unknown} [options.canUndo] ( answer ) => boolean: whether this answer can be undone (default: yes).
+ * @param {(...args: unknown[]) => unknown} options.request   apiFetch-like ( { path, method } ) => Promise.
+ * @param {(...args: unknown[]) => unknown} options.toast     ( message, { undo } ) => void.
+ * @param {(...args: unknown[]) => unknown} options.refresh   Reloads what changed.
+ * @param {Object}                          options.messages  { done( answer ), undone( answer ), failed( error ), undoFailed( error ) }.
  * @return {Promise<Object|null>} The answer, or null when the action failed.
  */
 export function runUndoable( {
 	run,
 	undo,
+	canUndo = () => true,
 	request,
 	toast,
 	refresh,
@@ -30,7 +32,9 @@ export function runUndoable( {
 				refresh();
 				const token = answer && answer.undo_token;
 				let back = null;
-				if ( undo ) {
+				if ( ! canUndo( answer ) ) {
+					back = null;
+				} else if ( undo ) {
 					back = () => undo( answer );
 				} else if ( token ) {
 					back = () =>

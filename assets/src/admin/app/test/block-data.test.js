@@ -10,7 +10,13 @@ import { describe, expect, it } from 'vitest';
 /**
  * Internal dependencies
  */
-import { blockBody, initialValues, toSiteInput } from '../block-data';
+import {
+	blockAll,
+	blockBody,
+	bulkBlockPlan,
+	initialValues,
+	toSiteInput,
+} from '../block-data';
 
 const HOUR = 3600000;
 
@@ -92,6 +98,65 @@ describe( 'blockBody', () => {
 			type: 'permanent',
 			reason: '',
 			start: '2026-10-25T10:00',
+		} );
+	} );
+} );
+
+describe( 'Block selected IPs', () => {
+	const rows = [
+		{ id: 1, ip: '203.0.113.9', blocked: false },
+		{ id: 2, ip: '203.0.113.9', blocked: false },
+		{ id: 3, ip: '198.51.100.4', blocked: true },
+		{ id: 4, ip: '2001:DB8::1', blocked: false },
+		{ id: 5, ip: '192.0.2.1', blocked: false },
+	];
+
+	it( 'blocks each selected address once and counts the ones already blocked', () => {
+		expect( bulkBlockPlan( rows, new Set( [ 1, 2, 3, 4 ] ) ) ).toEqual( {
+			ips: [ '203.0.113.9', '2001:DB8::1' ],
+			already: 1,
+		} );
+		expect( bulkBlockPlan( rows, new Set( [ 3 ] ) ) ).toEqual( {
+			ips: [],
+			already: 1,
+		} );
+	} );
+
+	it( 'sends temporary blocks and reports new, replaced and failed ones', async () => {
+		const calls = [];
+		const answers = {
+			'203.0.113.9': { status: 201, body: { id: 11 } },
+			'2001:DB8::1': { status: 200, body: { id: 12 } },
+		};
+		const request = ( options ) => {
+			calls.push( options );
+			const a = answers[ options.data.ip ];
+			return a
+				? Promise.resolve( {
+						status: a.status,
+						json: () => Promise.resolve( a.body ),
+					} )
+				: Promise.reject( new Error( 'nope' ) );
+		};
+
+		const result = await blockAll( {
+			ips: [ '203.0.113.9', '2001:DB8::1', '192.0.2.1' ],
+			end: '2026-11-01T09:30',
+			request,
+		} );
+
+		expect( result ).toEqual( { created: [ 11 ], replaced: 1, failed: 1 } );
+		expect( calls[ 0 ] ).toEqual( {
+			path: '/zero-spam/v1/rules/blocks',
+			method: 'POST',
+			data: {
+				kind: 'ip',
+				ip: '203.0.113.9',
+				type: 'temporary',
+				reason: '',
+				end: '2026-11-01T09:30',
+			},
+			parse: false,
 		} );
 	} );
 } );

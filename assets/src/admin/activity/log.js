@@ -23,6 +23,7 @@ import { useApp, useMedia } from '../app/context';
 import { Badge, Button, Chip, Icon, cx } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { BlockForm } from '../app/block-form';
+import { blockAll, bulkBlockPlan, initialValues } from '../app/block-data';
 import { NS, boot, nowLocal, request } from '../data/api';
 import { ago, day, dayTime, minutesAgo, num } from '../data/format';
 import { createAnnounceGate } from '../data/poll';
@@ -417,6 +418,108 @@ export function Log( { onChanged, summary } ) {
 		} );
 	};
 
+	const bulkBlock = ( chosen ) => {
+		const plan = bulkBlockPlan( rows, new Set( chosen ) );
+		const alreadyText = plan.already
+			? sprintf(
+					/* translators: %s: number of IP addresses */
+					_n(
+						'%s already blocked',
+						'%s already blocked',
+						plan.already,
+						'zero-spam'
+					),
+					num( plan.already )
+				)
+			: '';
+		if ( ! plan.ips.length ) {
+			toast( alreadyText );
+			return;
+		}
+		const end = initialValues( null, '', nowLocal(), 0 ).end;
+		runUndoable( {
+			run: () =>
+				blockAll( { ips: plan.ips, end, request } ).then(
+					( result ) => {
+						if ( ! result.created.length && ! result.replaced ) {
+							return Promise.reject( {} );
+						}
+						return result;
+					}
+				),
+			// Undo removes the new blocks (a replaced block keeps its new dates).
+			canUndo: ( result ) => result.created.length > 0,
+			undo: ( result ) =>
+				request( {
+					path: `${ NS }/rules/blocks/bulk-delete`,
+					method: 'POST',
+					data: { ids: result.created },
+				} ),
+			request,
+			toast,
+			refresh,
+			messages: {
+				done: ( result ) => {
+					const blocked = result.created.length + result.replaced;
+					return [
+						sprintf(
+							/* translators: %s: number of IP addresses */
+							_n(
+								'Blocked %s IP address for 7 days',
+								'Blocked %s IP addresses for 7 days',
+								blocked,
+								'zero-spam'
+							),
+							num( blocked )
+						),
+						alreadyText,
+						result.failed
+							? sprintf(
+									/* translators: %s: number of IP addresses */
+									_n(
+										'%s could not be blocked',
+										'%s could not be blocked',
+										result.failed,
+										'zero-spam'
+									),
+									num( result.failed )
+								)
+							: '',
+					]
+						.filter( Boolean )
+						.join( ' · ' );
+				},
+				undone: ( answer ) =>
+					sprintf(
+						/* translators: %s: number of IP addresses */
+						_n(
+							'%s block removed',
+							'%s blocks removed',
+							answer?.deleted ?? 0,
+							'zero-spam'
+						),
+						num( answer?.deleted ?? 0 )
+					),
+				failed: ( error ) =>
+					errorMessage(
+						error,
+						__(
+							'The addresses could not be blocked. Please try again.',
+							'zero-spam'
+						)
+					),
+				undoFailed: ( error ) =>
+					errorMessage(
+						error,
+						__(
+							'The blocks could not be removed. Please try again.',
+							'zero-spam'
+						)
+					),
+			},
+		} );
+	};
+
 	const applyBulk = () => {
 		if ( ! bulk ) {
 			toast( __( 'Choose a bulk action first', 'zero-spam' ) );
@@ -429,6 +532,10 @@ export function Log( { onChanged, summary } ) {
 		}
 		const chosen = [ ...selected ];
 		setSelected( new Set() );
+		if ( 'block' === bulk ) {
+			bulkBlock( chosen );
+			return;
+		}
 		runUndoable( {
 			run: () =>
 				request( {
@@ -1068,6 +1175,9 @@ export function Log( { onChanged, summary } ) {
 					</option>
 					<option value="delete">
 						{ __( 'Delete selected', 'zero-spam' ) }
+					</option>
+					<option value="block">
+						{ __( 'Block selected IPs', 'zero-spam' ) }
 					</option>
 				</select>
 				<Button variant="secondary" size="sm" onClick={ applyBulk }>
