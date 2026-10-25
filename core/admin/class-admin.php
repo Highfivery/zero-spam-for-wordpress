@@ -51,19 +51,9 @@ class Admin {
 		$current_user_id = get_current_user_id();
 		delete_transient( 'zerospam_promo_shown_' . $current_user_id );
 
-		// Get the Enhanced Protection settings using the Settings API for consistency.
-		$settings = \ZeroSpam\Core\Settings::get_settings();
-
-		// Check if Enhanced Protection is enabled.
-		$zerospam_enabled = isset( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
-
-		// Check for license key - include constant check like the settings definition does.
-		$zerospam_license_key = false;
-		if ( defined( 'ZEROSPAM_LICENSE_KEY' ) && ZEROSPAM_LICENSE_KEY ) {
-			$zerospam_license_key = ZEROSPAM_LICENSE_KEY;
-		} elseif ( ! empty( $settings['zerospam_license']['value'] ) ) {
-			$zerospam_license_key = $settings['zerospam_license']['value'];
-		}
+		// Enhanced Protection state, as every Zero Spam screen reads it (no API request).
+		$zerospam_enabled     = \ZeroSpam\Core\License_Status::is_enabled();
+		$zerospam_license_key = \ZeroSpam\Core\License_Status::has_key();
 
 		// Display enhanced promo notice or error notice based on state.
 		if ( $zerospam_enabled && ! $zerospam_license_key ) {
@@ -704,15 +694,8 @@ class Admin {
 			return;
 		}
 
-		// Check if Enhanced Protection is enabled (no point showing if they don't have a license).
-		$settings = \ZeroSpam\Core\Settings::get_settings();
-		if ( empty( $settings['zerospam']['value'] ) || 'enabled' !== $settings['zerospam']['value'] ) {
-			return;
-		}
-
-		// Check if they have a license key.
-		$has_license = ! empty( $settings['zerospam_license']['value'] ) || defined( 'ZEROSPAM_LICENSE_KEY' );
-		if ( ! $has_license ) {
+		// Only with Enhanced Protection on and a license key (no point showing it otherwise).
+		if ( ! \ZeroSpam\Core\License_Status::is_enabled() || ! \ZeroSpam\Core\License_Status::has_key() ) {
 			return;
 		}
 

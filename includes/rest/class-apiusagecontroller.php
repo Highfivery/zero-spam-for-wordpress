@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps API_Usage_Controller to this file name.
 /**
  * API Usage REST Controller
  *
@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || die();
 /**
  * API Usage Controller class
  */
-class API_Usage_Controller extends \WP_REST_Controller {
+class API_Usage_Controller extends Base_Controller {
 
 	/**
 	 * Namespace
@@ -67,12 +67,12 @@ class API_Usage_Controller extends \WP_REST_Controller {
 	 * Get usage statistics
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response|WP_Error Response object or error.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function get_usage( $request ) {
-		$period  = $request->get_param( 'period' ) ?: 'today';
+		$period  = $request->get_param( 'period' ) ? $request->get_param( 'period' ) : 'today';
 		$site_id = $request->get_param( 'site_id' );
-		$scope   = $request->get_param( 'scope' ) ?: 'site';
+		$scope   = $request->get_param( 'scope' ) ? $request->get_param( 'scope' ) : 'site';
 
 		// For network requests, check network admin permission.
 		if ( 'network' === $scope && is_multisite() ) {
@@ -94,7 +94,7 @@ class API_Usage_Controller extends \WP_REST_Controller {
 			}
 
 			// Verify user has access to requested site.
-			if ( is_multisite() && $site_id !== get_current_blog_id() ) {
+			if ( is_multisite() && get_current_blog_id() !== $site_id ) {
 				if ( ! current_user_can( 'manage_network_options' ) ) {
 					return new \WP_Error(
 						'rest_forbidden',
@@ -130,12 +130,12 @@ class API_Usage_Controller extends \WP_REST_Controller {
 	 * Export usage data
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response|WP_Error Response object or error.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function export_usage( $request ) {
-		$format  = $request->get_param( 'format' ) ?: 'json';
-		$period  = $request->get_param( 'period' ) ?: 'today';
-		$site_id = $request->get_param( 'site_id' ) ?: get_current_blog_id();
+		$format  = $request->get_param( 'format' ) ? $request->get_param( 'format' ) : 'json';
+		$period  = $request->get_param( 'period' ) ? $request->get_param( 'period' ) : 'today';
+		$site_id = $request->get_param( 'site_id' ) ? $request->get_param( 'site_id' ) : get_current_blog_id();
 
 		// Get stats.
 		$stats  = \ZeroSpam\Includes\API_Usage_Tracker::get_usage_stats( $site_id, $period );
@@ -172,7 +172,7 @@ class API_Usage_Controller extends \WP_REST_Controller {
 	 * Permission check for getting usage
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return bool|WP_Error True if allowed, error otherwise.
+	 * @return bool|\WP_Error True if allowed, error otherwise.
 	 */
 	public function get_usage_permissions_check( $request ) {
 		// Require authentication.

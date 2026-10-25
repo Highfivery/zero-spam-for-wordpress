@@ -71,6 +71,9 @@ class Plugin {
 	 * Initializes modules
 	 */
 	private function init_modules() {
+		// Keeps the settings schema cache in step with stored settings.
+		\ZeroSpam\Core\Settings_Schema::register_hooks();
+
 		// Debug module.
 		new \ZeroSpam\Modules\Debug();
 
@@ -253,6 +256,14 @@ class Plugin {
 
 		$api_usage_controller = new \ZeroSpam\Includes\Rest\API_Usage_Controller();
 		$api_usage_controller->register_routes();
+
+		// License status and key (since 6.0.0).
+		$license_controller = new \ZeroSpam\Includes\Rest\License_Controller();
+		$license_controller->register_routes();
+
+		// The current user's admin preferences (since 6.0.0).
+		$ui_prefs_controller = new \ZeroSpam\Includes\Rest\UI_Prefs_Controller();
+		$ui_prefs_controller->register_routes();
 
 		// Network Settings REST API (multisite only).
 		if ( is_multisite() ) {

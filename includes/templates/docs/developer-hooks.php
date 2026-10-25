@@ -2,8 +2,8 @@
 /**
  * Developer Hooks Documentation Template
  *
- * Lists the filters and actions for login protection, visitor IP detection
- * and lockout rescue. The complete list of hooks is on the GitHub wiki.
+ * Lists the filters and actions for login protection, visitor IP detection,
+ * lockout rescue and the settings registry. The complete list of hooks is on the GitHub wiki.
  *
  * @package ZeroSpam
  */
@@ -65,6 +65,19 @@ $zerospam_hook_kses = array( 'code' => array() );
 				<li><?php echo wp_kses( __( '<code>zerospam_rescue_email_via_cron</code> (filter, since 5.7.14; receives <code>$use_cron</code>): send rescue emails from a WP-Cron event (true) or at the end of the request (false). Default true unless DISABLE_WP_CRON is set.', 'zero-spam' ), $zerospam_hook_kses ); ?></li>
 				<li><?php echo wp_kses( __( '<code>zerospam_admin_safe_ip_enabled</code> (filter, since 5.7.14; receives <code>$enabled</code>, <code>$ip</code>): return false to stop saving the activating or updating administrator\'s IP address as one Zero Spam never locks out.', 'zero-spam' ), $zerospam_hook_kses ); ?></li>
 				<li><?php echo wp_kses( __( '<code>zerospam_htaccess_file</code> (filter, since 5.7.14; receives <code>$htaccess_file</code>): the full path of the .htaccess file Zero Spam writes its deny rules to. Default: .htaccess in the WordPress home directory.', 'zero-spam' ), $zerospam_hook_kses ); ?></li>
+			</ul>
+		</div>
+	</div>
+
+	<div class="zerospam-docs-accordion">
+		<button class="zerospam-docs-accordion-toggle" type="button">
+			<span class="zerospam-docs-accordion-icon">▶</span>
+			<strong><?php esc_html_e( 'Settings registry and REST', 'zero-spam' ); ?></strong>
+		</button>
+		<div class="zerospam-docs-accordion-content">
+			<ul>
+				<li><?php echo wp_kses( __( 'Settings added with the <code>zerospam_settings</code> filter may carry these optional keys (since 6.0.0): <code>default</code> (value when nothing is stored), <code>secret</code> (true for keys and tokens: write-only over REST, shown masked), <code>lockable</code> (false to keep the network from locking it), <code>area</code> and <code>group</code> (where it appears in the admin), <code>depends_on</code> (an array with <code>key</code> and <code>value</code>) and <code>order</code>. Without them Zero Spam derives sensible values; a section without an area appears under Protection › Integrations.', 'zero-spam' ), $zerospam_hook_kses ); ?></li>
+				<li><?php echo wp_kses( __( '<code>zero_spam_rest_settings_whitelist</code> (filter; receives <code>$whitelist</code>): the settings <code>zero-spam/v1/settings</code> accepts. Since 6.0.0 it receives every setting that holds a value; remove a key to keep it out of the REST API.', 'zero-spam' ), $zerospam_hook_kses ); ?></li>
 			</ul>
 		</div>
 	</div>

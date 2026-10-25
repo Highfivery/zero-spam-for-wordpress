@@ -59,6 +59,16 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   option. Read through `Settings::get_settings( $key )`.
 - `Settings::get_settings()` rebuilds the whole registry on every call and is
   expensive. Do not call it in loops or hot paths; read once and reuse.
+- Since 6.0 (`feat/rest-foundation`) `Core\Settings_Schema` builds the
+  registry once per request and site and describes every setting (type,
+  choices, default, area/group, locked, source, secrets masked); prefer
+  `Settings_Schema::resolve()` / `registry()` in new code. Optional registry
+  keys: `default`, `secret`, `lockable`, `area`, `group`, `depends_on`,
+  `order`. `Core\License_Status` is the one license status (header, widget,
+  notices, REST); never ask the license API from elsewhere.
+- REST controllers extend `Includes\Rest\Base_Controller` (permission
+  helpers, `rest_invalid_param` with `data.params`, `per_page` ≤ 100, paging
+  headers, `_fields`). Secrets are write-only over REST.
 - Multisite precedence, as implemented in
   `includes/class-networksettings.php`: **locked network value → site
   override → network default → plugin default.** Network values live in the
@@ -284,7 +294,8 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
   `Test_*` classes, and use its helpers (`set_setting()`,
   `set_network_setting()`, `set_request()`, `insert_log_rows()`, `block()`,
   `mock_http()`, `capture_queries()`, `expect_redirect()`, `as_role()`,
-  `admin_screen()`, `create_site_with_tables()`) instead of ad-hoc set-up.
+  `admin_screen()`, `create_site_with_tables()`, `rest()`) instead of ad-hoc
+  set-up.
   Groups: `ms-required` (network only), `ms-excluded` (single site only),
   `known-defect`.
 - **Known-defect policy:** a confirmed bug that is not fixed yet gets a test
@@ -595,17 +606,10 @@ npm run env:stop                 # stop both wp-env sites
     `remove_resource_query_params` is hooked with 2 arguments but takes 1.
   - `core/class-utilities.php` `refresh_htaccess()`: a subsite admin in
     `.htaccess` mode writes the network-root `.htaccess`.
-  - The second network-settings storage model (`zero-spam-network-zerospam`
-    used by the `zero-spam/v1/settings` resolver vs `zerospam_network_settings`
-    used everywhere else, see §2) is still unreconciled; `Network_Settings` is
+  - `Network_Settings` is
     instantiated in several places, each registering its own resolver;
     `Network_Settings::is_using_default()` rebuilds the settings registry per
     call (the settings page now caches, other callers do not).
-  - Unqualified `WP_Error` in docblocks of namespaced classes (for example
-    `includes/rest/class-apiusagecontroller.php`) resolves to the wrong
-    namespace for static analysis; the runtime code uses `\WP_Error` or
-    `use WP_Error` correctly. Fix the docblocks and drop the matching baseline
-    entries.
 - Accessibility debt proven by the Playwright suite (each item has an
   expected-failure test or entries in `tests/e2e/a11y/allowlist.json`;
   GitHub issues still to be filed):
@@ -670,9 +674,11 @@ npm run env:stop                 # stop both wp-env sites
   `assets/js/vendor/chart.umd.min.js` instead and lists the request in the
   summary); the dashboard sidebar loads Twitter's script and a Facebook
   iframe; the dashboard page loads every log row.
-- Network settings exist in two storage models (`zerospam_network_settings`
-  used by the admin, CLI and most REST; `zero-spam-network-zerospam` used by
-  the `zero-spam/v1/settings` resolver). Reconcile before extending either.
+- Network settings live in `zerospam_network_settings` only. The 5.x REST
+  option `zero-spam-network-zerospam` is merged into it once per network
+  (migration `v6_network_store`, guarded by the site option
+  `zerospam_network_completed_migrations`) and kept, unread and unwritten,
+  for a downgrade; remove it, and `zerospam_backup_5x`, in 6.1.
 - `DavidWalsh::validate_token()` caches accepted tokens in a function-level
   `static $accepted`, which tests cannot reset; use a fresh token per test.
 - `core/class-cli.php` is dead code; the `zerospam_blacklist` table is defined
