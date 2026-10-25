@@ -2,8 +2,8 @@
  * Design tokens for the blocked, rescue and expired-link pages (.zs-blocked).
  *
  * A minimal subset of admin/styles/tokens.css: blocked.css is inlined into
- * every blocked response, so it carries only what those pages and base.css
- * use (budget: 8 KB raw, bin/check-dist.sh). Values must equal the admin
+ * every blocked response, so it carries only what page.css and the admin
+ * base.css use (budget: 8 KB raw, bin/check-dist.sh). Values must equal the admin
  * tokens of the same name; assets/src/admin/test/tokens.test.js checks that,
  * and that every token base.css uses is defined here.
  *
@@ -16,6 +16,7 @@
 	color-scheme: light;
 	--zs-bg: #f7f3f3;
 	--zs-surface: #fff;
+	--zs-surface-2: #fbf8f8;
 	--zs-sunken: #f1eaea;
 	--zs-line: #e8dcdd;
 	--zs-control: #937a7e;
@@ -78,6 +79,7 @@
 		color-scheme: dark;
 		--zs-bg: #0f0203;
 		--zs-surface: #1a0506;
+		--zs-surface-2: #210709;
 		--zs-sunken: #140304;
 		--zs-line: #3a1015;
 		--zs-control: #9b6a70;

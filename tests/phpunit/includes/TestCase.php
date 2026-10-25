@@ -517,6 +517,56 @@ abstract class TestCase extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Emails sent so far (the test framework's mock mailer).
+	 *
+	 * @return array<int, object>
+	 */
+	protected function sent_mail(): array {
+		return array_map(
+			static fn ( array $mail ): object => (object) $mail,
+			tests_retrieve_phpmailer_instance()->mock_sent
+		);
+	}
+
+	/**
+	 * The parts of a sent email, decoded, keyed by content type, with "\n" line endings.
+	 *
+	 * A plain email has one part; an HTML email with a plain-text alternative
+	 * (multipart/alternative) has `text/plain` and `text/html`.
+	 *
+	 * @param object $mail Email from sent_mail().
+	 * @return array<string, string>
+	 */
+	protected function mail_parts( object $mail ): array {
+		$decode = static function ( string $headers, string $body ): string {
+			if ( 1 === preg_match( '/^Content-Transfer-Encoding:\s*quoted-printable/mi', $headers ) ) {
+				$body = quoted_printable_decode( $body );
+			} elseif ( 1 === preg_match( '/^Content-Transfer-Encoding:\s*base64/mi', $headers ) ) {
+				$body = (string) base64_decode( $body ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- MIME decoding of a test email.
+			}
+
+			return str_replace( "\r\n", "\n", $body );
+		};
+
+		if ( 1 !== preg_match( '/boundary="([^"]+)"/', $mail->header, $boundary ) ) {
+			preg_match( '/^Content-Type:\s*([\w\/+.-]+)/mi', $mail->header, $type );
+
+			return array( strtolower( $type[1] ?? 'text/plain' ) => $decode( $mail->header, $mail->body ) );
+		}
+
+		$parts = array();
+		foreach ( explode( '--' . $boundary[1], $mail->body ) as $chunk ) {
+			$split = preg_split( '/\R\R/', ltrim( $chunk, "\r\n" ), 2 );
+			if ( 2 !== count( $split ) || 1 !== preg_match( '/^Content-Type:\s*([\w\/+.-]+)/mi', $split[0], $type ) ) {
+				continue;
+			}
+			$parts[ strtolower( $type[1] ) ] = $decode( $split[0], rtrim( $split[1] ) );
+		}
+
+		return $parts;
+	}
+
+	/**
 	 * Sends a request to the REST API as the current user.
 	 *
 	 * Permission callbacks run as for a real request; the cookie nonce check

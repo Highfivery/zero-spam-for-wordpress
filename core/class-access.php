@@ -8,6 +8,7 @@
 namespace ZeroSpam\Core;
 
 use ZeroSpam;
+use ZeroSpam\Core\Front\Block_Page;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -54,40 +55,25 @@ class Access {
 	}
 
 	/**
-	 * Terminates execution with a custom error message and HTTP status code.
+	 * Ends the request with a Zero Spam page (see Front\Block_Page): uncached, not indexed.
 	 *
-	 * Registers an action to prevent caching on error conditions by setting
-	 * appropriate HTTP headers before leveraging WordPress's wp_die() function
-	 * to produce an error page with a specified message, title, and HTTP status
-	 * code.
-	 *
-	 * @param string $title   The text to be used as the page title for the error message.
-	 *                        This content will be sanitized to remove unwanted HTML.
-	 * @param string $message The error message to display. This content will be escaped
-	 *                        to ensure only safe HTML is included.
-	 * @param int    $code    Optional. The HTTP status code to be sent in the header.
-	 *                        Defaults to 403 to indicate a Forbidden error.
-	 * @param bool   $rescue  Optional. Whether to add the "Help for site owners"
-	 *                        section with the rescue link form (the blocked
-	 *                        page only), unless the zerospam_rescue_form_enabled
-	 *                        filter turns it off. Default false.
+	 * @param string $title   Page title and, without the rescue form, its heading (plain text).
+	 * @param string $message The message (HTML, filtered with wp_kses_post()).
+	 * @param int    $code    Optional. HTTP status. Default 403.
+	 * @param bool   $rescue  Optional. Whether this is the blocked page, with the
+	 *                        visitor's details and the "Help for site owners"
+	 *                        rescue form (unless the zerospam_rescue_form_enabled
+	 *                        filter turns the form off). Default false.
 	 */
 	public static function terminate_execution( $title, $message, $code = 403, $rescue = false ) {
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
+		if ( $rescue ) {
+			$ip = User::get_ip();
+			Block_Page::blocked( (string) $message, array( 'ip' => is_string( $ip ) ? $ip : '' ), wp_strip_all_tags( (string) $title ) );
+
+			return;
 		}
-		nocache_headers();
 
-		$rescue = $rescue && Rescue_Link::form_enabled();
-
-		// The administrator's message keeps the post allowlist; only the plugin's own form markup may add form controls and styles.
-		wp_die(
-			$rescue ? '<h1>' . esc_html( $title ) . '</h1>' . wp_kses_post( $message ) . wp_kses( Rescue_Link::form_html(), Rescue_Link::allowed_html() ) : wp_kses_post( $message ),
-			esc_html( $title ),
-			array(
-				'response' => absint( $code ),
-			)
-		);
+		Block_Page::detection( (string) $title, (string) $message, absint( $code ) );
 	}
 
 	/**
@@ -203,19 +189,24 @@ class Access {
 	 * the token unused, because email scanners open links on their own. The
 	 * button's POST uses the token: it sets the rescue cookie, logs it and
 	 * sends the visitor to log in. Only requests carrying the token do any
-	 * work; invalid, used and expired tokens are ignored, so the request
-	 * continues as usual.
+	 * work. A used or expired token (any well-formed token that is not valid
+	 * now) shows the "This link has expired" page with the form to ask for a
+	 * new link; malformed values are ignored, so the request continues as
+	 * usual.
 	 */
 	private function redeem_rescue_link(): void {
 		// phpcs:disable WordPress.Security.NonceVerification -- The single-use token is the credential; see Rescue_Link.
 		$method = isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
 
 		if ( 'POST' === $method && isset( $_POST[ Rescue_Link::TOKEN_PARAM ] ) && is_string( $_POST[ Rescue_Link::TOKEN_PARAM ] ) ) {
-			$grant = Rescue_Link::redeem_token( sanitize_text_field( wp_unslash( $_POST[ Rescue_Link::TOKEN_PARAM ] ) ) );
+			$token = sanitize_text_field( wp_unslash( $_POST[ Rescue_Link::TOKEN_PARAM ] ) );
+			$grant = Rescue_Link::redeem_token( $token );
 		} elseif ( isset( $_GET[ Rescue_Link::TOKEN_PARAM ] ) && is_string( $_GET[ Rescue_Link::TOKEN_PARAM ] ) ) {
 			$token = sanitize_text_field( wp_unslash( $_GET[ Rescue_Link::TOKEN_PARAM ] ) );
 			if ( Rescue_Link::peek_token( $token ) ) {
 				Rescue_Link::show_confirm_page( $token );
+			} elseif ( Rescue_Link::is_token_format( $token ) ) {
+				Rescue_Link::show_expired_page();
 			}
 
 			return;
@@ -225,6 +216,10 @@ class Access {
 		// phpcs:enable
 
 		if ( null === $grant ) {
+			if ( Rescue_Link::is_token_format( $token ) ) {
+				Rescue_Link::show_expired_page();
+			}
+
 			return;
 		}
 
@@ -318,6 +313,9 @@ class Access {
 		if ( ! empty( $access['blocked'] ) ) {
 			$settings = ZeroSpam\Core\Settings::get_settings();
 
+			// The first log row written for this block, shown on the page as its reference.
+			$reference = 0;
+
 			if ( ! empty( $access['details'] ) && is_array( $access['details'] ) ) {
 				foreach ( $access['details'] as $key => $detail ) {
 					if ( ! empty( $detail['blocked'] ) ) {
@@ -326,7 +324,9 @@ class Access {
 						}
 
 						if ( ! empty( $settings['log_blocked_ips']['value'] ) && 'enabled' === $settings['log_blocked_ips']['value'] ) {
-							ZeroSpam\Includes\DB::log( $detail['type'], $detail['details'] );
+							if ( ZeroSpam\Includes\DB::log( $detail['type'], $detail['details'] ) && ! $reference ) {
+								$reference = ZeroSpam\Includes\DB::last_log_id();
+							}
 						}
 					}
 				}
@@ -351,7 +351,13 @@ class Access {
 							$message = $settings['blocked_message']['value'];
 						}
 
-						self::terminate_execution( __( 'Blocked', 'zero-spam' ), $message, 403, true );
+						Block_Page::blocked(
+							(string) $message,
+							array(
+								'ip'        => isset( $access['ip'] ) && is_string( $access['ip'] ) ? $access['ip'] : '',
+								'reference' => $reference,
+							)
+						);
 						break;
 					case 'redirect':
 						$url = 'https://wordpress.org/plugins/zero-spam/';

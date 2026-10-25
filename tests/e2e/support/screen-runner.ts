@@ -59,6 +59,9 @@ export async function openScreen(
 	} else if ( viewport ) {
 		await page.setViewportSize( viewport );
 	}
+	if ( screen.colorScheme ) {
+		await page.emulateMedia( { colorScheme: screen.colorScheme } );
+	}
 
 	const response = await page.goto( screen.path( ctx.target ) );
 	let status = response?.status();

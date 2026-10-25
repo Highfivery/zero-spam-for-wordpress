@@ -220,15 +220,14 @@ class API_Usage_Alerts {
 
 		// Send to network admin email.
 		$to      = get_site_option( 'admin_email' );
+		$network = wp_specialchars_decode( (string) get_network()->site_name, ENT_QUOTES );
 		$subject = sprintf(
 			/* translators: %s: site name */
 			__( '[Zero Spam] Network Alert: %s', 'zero-spam' ),
-			get_network()->site_name
+			$network
 		);
 
-		$message = $this->format_alert_email( $anomaly, null, true );
-
-		wp_mail( $to, $subject, $message );
+		Email::send( $to, $subject, $this->format_alert_email( $anomaly, null, true ) );
 	}
 
 	/**
@@ -241,169 +240,111 @@ class API_Usage_Alerts {
 		$to = get_option( 'admin_email' );
 
 		$subject = sprintf(
-			/* translators: 1: severity, 2: site name */
+			/* translators: 1: severity (Warning or Critical), 2: site name */
 			__( '[Zero Spam] %1$s Alert: %2$s', 'zero-spam' ),
-			ucfirst( $anomaly['severity'] ),
-			get_bloginfo( 'name' )
+			self::severity_label( (string) $anomaly['severity'] ),
+			wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES )
 		);
 
-		$message = $this->format_alert_email( $anomaly, $site_id );
-
-		wp_mail( $to, $subject, $message, array( 'Content-Type: text/html; charset=UTF-8' ) );
+		Email::send( $to, $subject, $this->format_alert_email( $anomaly, $site_id ) );
 	}
 
 	/**
-	 * Formats alert email content
+	 * The translated name of an alert severity.
+	 *
+	 * @param string $severity Severity: warning or critical.
+	 */
+	private static function severity_label( string $severity ): string {
+		switch ( $severity ) {
+			case 'critical':
+				return __( 'Critical', 'zero-spam' );
+			case 'warning':
+				return __( 'Warning', 'zero-spam' );
+		}
+
+		return ucfirst( $severity );
+	}
+
+	/**
+	 * The alert email (Includes\Email message): what happened, today's usage and where to look.
 	 *
 	 * @param array    $anomaly    Anomaly data.
 	 * @param int|null $site_id    Site ID (null for a network alert).
 	 * @param bool     $is_network Is network alert.
-	 * @return string Email HTML content.
+	 * @return array Email message.
 	 */
 	private function format_alert_email( $anomaly, $site_id, $is_network = false ) {
 		$stats = $is_network ? API_Usage_Tracker::get_network_usage_stats( 'today' ) : API_Usage_Tracker::get_usage_stats( $site_id, 'today' );
+		$name  = $is_network ? (string) get_network()->site_name : (string) get_bloginfo( 'name' );
+		$name  = wp_specialchars_decode( $name, ENT_QUOTES );
 
-		$html  = '<html><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">';
-		$html .= '<div style="max-width: 600px; margin: 0 auto; padding: 20px; background: #f9f9f9; border-radius: 8px;">';
-
-		// Header.
-		$html .= '<div style="background: ' . ( 'critical' === $anomaly['severity'] ? '#d32f2f' : '#ff9800' ) . '; color: white; padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">';
-		$html .= '<h1 style="margin: 0; font-size: 24px;">' . esc_html( ucfirst( $anomaly['severity'] ) . ' Alert' ) . '</h1>';
-		$html .= '</div>';
-
-		// Content.
-		$html .= '<div style="background: white; padding: 20px; border-radius: 0 0 8px 8px;">';
-		$html .= '<h2 style="color: #2c3e50; margin-top: 0;">' . esc_html( $anomaly['message'] ) . '</h2>';
-
-		// Stats summary.
-		$html .= '<div style="background: #f5f5f5; padding: 15px; border-radius: 4px; margin: 20px 0;">';
-		$html .= '<h3 style="margin-top: 0; color: #34495e;">Today\'s Statistics:</h3>';
-		$html .= '<ul style="list-style: none; padding: 0;">';
-		$html .= '<li><strong>API Calls:</strong> ' . number_format( (float) $stats['api_calls'] ) . '</li>';
-		$html .= '<li><strong>Cache Hits:</strong> ' . number_format( (float) $stats['cache_hits'] ) . '</li>';
-		$html .= '<li><strong>Errors:</strong> ' . number_format( (float) $stats['errors'] ) . '</li>';
-
-		if ( $stats['current_limit'] ) {
-			$html .= '<li><strong>Quota Used:</strong> ' . number_format( (float) $stats['current_made'] ) . ' / ' . number_format( (float) $stats['current_limit'] ) . '</li>';
-			$html .= '<li><strong>Quota Remaining:</strong> ' . number_format( (float) $stats['current_remaining'] ) . '</li>';
-		}
-
-		$html .= '</ul>';
-		$html .= '</div>';
-
-		// Action link.
-		$dashboard_url = $is_network ? network_admin_url( 'index.php' ) : admin_url( 'index.php' );
-		$html         .= '<div style="text-align: center; margin-top: 20px;">';
-		$html         .= '<a href="' . esc_url( $dashboard_url ) . '" style="display: inline-block; padding: 12px 30px; background: #3498db; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">View Dashboard</a>';
-		$html         .= '</div>';
-
-		// Add promotional content for quota-related alerts.
-		if ( in_array( $anomaly['type'], array( 'quota_warning', 'quota_critical' ), true ) ) {
-			$html .= $this->get_promotional_content( $anomaly, $stats );
-		}
-
-		// Footer.
-		$html .= '<p style="margin-top: 30px; font-size: 12px; color: #7f8c8d; text-align: center;">';
-		$html .= 'This alert was sent by Zero Spam for WordPress. ';
-		$html .= 'To configure alert settings, visit the <a href="' . esc_url( admin_url( 'admin.php?page=wordpress-zero-spam-settings&subview=api-monitoring' ) ) . '">API Monitoring settings page</a>.';
-		$html .= '</p>';
-
-		$html .= '</div></div></body></html>';
-
-		return $html;
-	}
-
-	/**
-	 * Get promotional content for quota alerts
-	 *
-	 * @param array $anomaly Anomaly data.
-	 * @param array $stats   Usage statistics.
-	 * @return string Promotional HTML content.
-	 */
-	private function get_promotional_content( $anomaly, $stats ) {
-		$is_critical = 'quota_critical' === $anomaly['type'] || 'critical' === $anomaly['severity'];
-
-		// Detect current tier based on quota limit.
-		$current_tier = 'Explorer';
-		$next_tier    = 'Essentials';
-		$next_quota   = '50,000';
-
-		if ( $stats['current_limit'] ) {
-			if ( $stats['current_limit'] >= 100000 ) {
-				$current_tier = 'Business';
-				$next_tier    = 'Platform';
-				$next_quota   = '500,000';
-			} elseif ( $stats['current_limit'] >= 50000 ) {
-				$current_tier = 'Essentials';
-				$next_tier    = 'Business';
-				$next_quota   = '100,000';
-			} elseif ( $stats['current_limit'] >= 10000 ) {
-				$current_tier = 'Explorer';
-				$next_tier    = 'Essentials';
-				$next_quota   = '50,000';
-			}
-		}
-
-		// Build UTM parameters.
-		$utm_params = array(
-			'utm_source'   => 'wordpress',
-			'utm_medium'   => 'email',
-			'utm_campaign' => 'quota_alert',
-			'utm_content'  => $is_critical ? 'critical' : 'warning',
+		$rows = array(
+			array( __( 'API calls', 'zero-spam' ), number_format_i18n( (int) $stats['api_calls'] ) ),
+			array( __( 'Cache hits', 'zero-spam' ), number_format_i18n( (int) $stats['cache_hits'] ) ),
+			array( __( 'Errors', 'zero-spam' ), number_format_i18n( (int) $stats['errors'] ) ),
 		);
 
-		$pricing_url = add_query_arg( $utm_params, 'https://www.zerospam.org/pricing/' );
-
-		// Build promotional section.
-		$html = '';
-
-		if ( $is_critical ) {
-			// Critical: Urgent messaging.
-			$html .= '<div style="margin-top: 30px; padding: 20px; background: #fcf0f1; border-left: 4px solid #d63638; border-radius: 4px;">';
-			$html .= '<h3 style="margin-top: 0; color: #8c1c1c;">⚠️ Upgrade to Avoid Service Interruption</h3>';
-			$html .= '<p style="margin: 10px 0; color: #2c3e50;">';
-			$html .= 'You\'re close to hitting your API quota limit. To ensure uninterrupted spam protection for your site, upgrade to a higher plan now.';
-			$html .= '</p>';
-
-			$html .= '<div style="background: white; padding: 15px; border-radius: 4px; margin: 15px 0;">';
-			$html .= '<p style="margin: 0 0 10px 0; font-size: 14px; color: #646970;"><strong>Currently on:</strong> ' . esc_html( $current_tier ) . ' (' . number_format( (float) $stats['current_limit'] ) . ' queries/month)</p>';
-			$html .= '<p style="margin: 0; font-size: 14px; color: #0c5d8f;"><strong>Upgrade to ' . esc_html( $next_tier ) . ':</strong> ' . esc_html( $next_quota ) . ' queries/month + priority support</p>';
-			$html .= '</div>';
-
-			$html .= '<div style="text-align: center; margin-top: 15px;">';
-			$html .= '<a href="' . esc_url( $pricing_url ) . '" style="display: inline-block; padding: 14px 32px; background: #d32f2f; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 16px;">Upgrade Now →</a>';
-			$html .= '</div>';
-
-			$html .= '<p style="margin: 15px 0 0 0; font-size: 12px; color: #646970; text-align: center;">';
-			$html .= '✓ Instant activation &nbsp;•&nbsp; ✓ 30-day money-back guarantee &nbsp;•&nbsp; ✓ Priority support';
-			$html .= '</p>';
-
-			$html .= '</div>';
-		} else {
-			// Warning: Softer, value-focused messaging.
-			$html .= '<div style="margin-top: 30px; padding: 20px; background: #f0f6fc; border-left: 4px solid #2271b1; border-radius: 4px;">';
-			$html .= '<h3 style="margin-top: 0; color: #0c5d8f;">💡 Need More API Quota?</h3>';
-			$html .= '<p style="margin: 10px 0; color: #2c3e50;">';
-			$html .= 'As your site grows, upgrading ensures continuous protection with increased API quota, advanced threat intelligence, and priority support.';
-			$html .= '</p>';
-
-			$html .= '<div style="background: white; padding: 15px; border-radius: 4px; margin: 15px 0;">';
-			$html .= '<ul style="margin: 0; padding-left: 20px; color: #2c3e50;">';
-			$html .= '<li><strong>Higher API quota</strong> – Never worry about hitting limits</li>';
-			$html .= '<li><strong>Advanced geolocation data</strong> – Better threat insights</li>';
-			$html .= '<li><strong>Detailed threat intelligence</strong> – Comprehensive reporting</li>';
-			$html .= '<li><strong>Priority support</strong> – Get help when you need it</li>';
-			$html .= '</ul>';
-			$html .= '</div>';
-
-			$html .= '<div style="text-align: center; margin-top: 15px;">';
-			$html .= '<a href="' . esc_url( $pricing_url ) . '" style="display: inline-block; padding: 12px 28px; background: #2271b1; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">View Plans →</a>';
-			$html .= '</div>';
-
-			$html .= '</div>';
+		if ( ! empty( $stats['current_limit'] ) ) {
+			$rows[] = array(
+				__( 'Queries used', 'zero-spam' ),
+				sprintf(
+					/* translators: 1: queries used, 2: queries allowed */
+					__( '%1$s of %2$s', 'zero-spam' ),
+					number_format_i18n( (int) $stats['current_made'] ),
+					number_format_i18n( (int) $stats['current_limit'] )
+				),
+			);
+			$rows[] = array( __( 'Queries left', 'zero-spam' ), number_format_i18n( (int) $stats['current_remaining'] ) );
 		}
 
-		return $html;
+		return array(
+			'site'    => $name,
+			'heading' => (string) $anomaly['message'],
+			'blocks'  => array(
+				array(
+					'type' => 'text',
+					'text' => $is_network
+						/* translators: 1: severity (Warning or Critical), 2: network name */
+						? __( '%1$s alert: Zero Spam found this while checking API usage across the %2$s network.', 'zero-spam' )
+						/* translators: 1: severity (Warning or Critical), 2: site name */
+						: __( '%1$s alert: Zero Spam found this while checking API usage on %2$s.', 'zero-spam' ),
+					'args' => array(
+						array(
+							'text'  => self::severity_label( (string) $anomaly['severity'] ),
+							'style' => 'strong',
+						),
+						array(
+							'text'  => $name,
+							'style' => 'strong',
+						),
+					),
+				),
+				array(
+					'type'  => 'rows',
+					'title' => __( 'Today', 'zero-spam' ),
+					'rows'  => $rows,
+				),
+				// TODO(6.0 cutover): menu path (API usage and API monitoring settings links).
+				array(
+					'type'  => 'button',
+					'label' => __( 'View API usage', 'zero-spam' ),
+					'url'   => $is_network ? network_admin_url( 'index.php' ) : admin_url( 'index.php' ),
+				),
+				array(
+					'type' => 'text',
+					'size' => 'small',
+					/* translators: %s: link to the API monitoring settings */
+					'text' => __( 'To change which alerts you get, go to %s.', 'zero-spam' ),
+					'args' => array(
+						array(
+							'text'  => $is_network ? __( 'Zero Spam network settings', 'zero-spam' ) : __( 'API monitoring settings', 'zero-spam' ),
+							'style' => 'link',
+							'url'   => $is_network ? network_admin_url( 'settings.php?page=zerospam-network-settings' ) : admin_url( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring' ),
+						),
+					),
+				),
+			),
+		);
 	}
 
 	/**

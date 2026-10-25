@@ -30,6 +30,13 @@ class DB {
 	const NON_DETECTION_TYPES = array( 'rescue' );
 
 	/**
+	 * ID of the row the last DB::log() call inserted in this request (0 when it inserted none).
+	 *
+	 * @var int
+	 */
+	private static $last_log_id = 0;
+
+	/**
 	 * DB tables
 	 *
 	 * @var array $tables List of plugin database tables.
@@ -428,6 +435,8 @@ class DB {
 	public static function log( $type, $details ) {
 		global $wpdb;
 
+		self::$last_log_id = 0;
+
 		$log_table = $wpdb->prefix . self::$tables['log'];
 
 		// Bail early if the log table does not exist to prevent DB errors.
@@ -458,10 +467,23 @@ class DB {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 		$inserted = $wpdb->insert( $log_table, $record );
+		if ( $inserted ) {
+			// Read now: pruning reads the settings, and filters there may insert other rows.
+			self::$last_log_id = (int) $wpdb->insert_id;
+		}
 
 		self::prune_log( $log_table );
 
 		return $inserted;
+	}
+
+	/**
+	 * ID of the row the last DB::log() call inserted in this request, or 0 when it inserted none.
+	 *
+	 * @return int
+	 */
+	public static function last_log_id() {
+		return self::$last_log_id;
 	}
 
 	/**
