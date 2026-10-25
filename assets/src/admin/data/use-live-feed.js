@@ -29,9 +29,12 @@ const INPUT_EVENTS = [
  * @param {Object}                          options            Options.
  * @param {Array}                           options.initial    Entries already shown (newest first), or undefined while loading.
  * @param {boolean}                         options.userPaused The user's live_paused preference.
- * @param {boolean}                         options.reduced    Animations are off.
+ * @param {boolean}                         options.reduced    Animations are off (new entries always wait behind the button).
  * @param {(...args: unknown[]) => unknown} options.onNew      Receives every batch of new entries (counts, mark, announcements).
  * @param {number}                          [options.keep]     Entries kept.
+ * @param {(...args: unknown[]) => unknown} [options.fetch]    ( sinceId ) => Promise<Array>: another request than the Overview's (filters, fewer fields).
+ * @param {number}                          [options.sinceId]  Highest ID already shown, when it is not the highest of `initial` (a filtered or sorted list).
+ * @param {string}                          [options.resetKey] Changing it starts over from `sinceId` with nothing queued (new filters).
  * @return {Object} { items, fresh, queued, showQueued, reason }.
  */
 export function useLiveFeed( {
@@ -40,6 +43,9 @@ export function useLiveFeed( {
 	reduced,
 	onNew,
 	keep = 6,
+	fetch,
+	sinceId,
+	resetKey = '',
 } ) {
 	const [ items, setItems ] = useState( [] );
 	const [ fresh, setFresh ] = useState( () => new Set() );
@@ -52,8 +58,11 @@ export function useLiveFeed( {
 	const lastInput = useRef( Date.now() );
 	const onNewRef = useRef( onNew );
 	const reducedRef = useRef( reduced );
+	const fetchRef = useRef( fetch );
+	const started = useRef( false );
 	onNewRef.current = onNew;
 	reducedRef.current = reduced;
+	fetchRef.current = fetch;
 
 	const loaded = Array.isArray( initial );
 
@@ -72,14 +81,22 @@ export function useLiveFeed( {
 		[ keep ]
 	);
 
-	// One poller for the page.
+	// One poller for the page (a new one when resetKey changes).
 	useEffect( () => {
 		if ( ! loaded ) {
 			return undefined;
 		}
+		started.current = false;
+		setQueued( [] );
 		poller.current = createPoller( {
-			sinceId: highestId( initial, 0 ),
-			fetch: ( since ) => request( { path: PATHS.since( since ) } ),
+			sinceId:
+				undefined !== sinceId
+					? Number( sinceId ) || 0
+					: highestId( initial, 0 ),
+			fetch: ( since ) =>
+				fetchRef.current
+					? fetchRef.current( since )
+					: request( { path: PATHS.since( since ) } ),
 			onItems: ( entries ) => {
 				onNewRef.current( entries );
 				if ( reducedRef.current ) {
@@ -90,8 +107,8 @@ export function useLiveFeed( {
 			},
 		} );
 		return () => poller.current?.stop();
-		// eslint-disable-next-line react-hooks/exhaustive-deps -- Created once the first list is in.
-	}, [ loaded ] );
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- Created once the first list is in, again on a reset.
+	}, [ loaded, resetKey ] );
 
 	// Tab visibility and inactivity.
 	useEffect( () => {
@@ -126,7 +143,6 @@ export function useLiveFeed( {
 
 	// Start, stop and resume as the conditions change. The first start waits
 	// one interval (the list was just loaded); a resume fetches at once.
-	const started = useRef( false );
 	useEffect( () => {
 		const p = poller.current;
 		if ( ! p ) {
@@ -140,7 +156,7 @@ export function useLiveFeed( {
 			started.current = true;
 			p.start();
 		}
-	}, [ reason, loaded ] );
+	}, [ reason, loaded, resetKey ] );
 
 	const showQueued = useCallback( () => {
 		setQueued( ( q ) => {

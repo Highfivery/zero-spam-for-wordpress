@@ -99,8 +99,30 @@ final class Admin_App {
 		'/zero-spam/v1/stats/summary?range=7',
 		'/zero-spam/v1/stats/summary?range=30',
 		'/zero-spam/v1/stats/timeseries',
-		'/zero-spam/v1/activity?per_page=6',
+		'/zero-spam/v1/activity?per_page=6&no_count=1&_fields=id,date,type,type_label,ip,country,country_name,failed,failed_label',
 	);
+
+	/**
+	 * Fields of an Activity log row (assets/src/admin/activity/query.js asks
+	 * for the same list, so the preloaded answer is used).
+	 *
+	 * @var string
+	 */
+	const ACTIVITY_FIELDS = 'id,date,type,type_label,ip,blocked,network,failed,failed_label,country,country_name,region,region_name,city';
+
+	/**
+	 * Rows per page of the Activity log.
+	 *
+	 * @var int
+	 */
+	const ACTIVITY_PER_PAGE = 25;
+
+	/**
+	 * Period of the Reports tab on load, in days.
+	 *
+	 * @var int
+	 */
+	const REPORTS_DAYS = 30;
 
 	/**
 	 * The news route, preloaded when the news is on.
@@ -108,6 +130,16 @@ final class Admin_App {
 	 * @var string
 	 */
 	const NEWS_PRELOAD = '/zero-spam/v1/news';
+
+	/**
+	 * JSON flags for data printed into inline scripts: `<`, `>` and `&` are
+	 * written as \u escapes, so logged text such as `</script>` or `<!--`
+	 * (preloaded activity entries carry what visitors sent) can never end
+	 * or change the script element.
+	 *
+	 * @var int
+	 */
+	const JSON_FLAGS = JSON_HEX_TAG | JSON_HEX_AMP;
 
 	/**
 	 * Hook suffixes of the registered pages, by area.
@@ -285,15 +317,15 @@ final class Admin_App {
 
 		wp_add_inline_script(
 			self::HANDLE,
-			'var zeroSpamAdmin = ' . wp_json_encode( $this->bootstrap( $area ) ) . ';',
+			'var zeroSpamAdmin = ' . wp_json_encode( $this->bootstrap( $area ), self::JSON_FLAGS ) . ';',
 			'before'
 		);
 
-		$preloaded = array_reduce( self::preload_paths( $area ), 'rest_preload_api_request', array() );
+		$preloaded = array_reduce( self::preload_paths( $area, self::view_args() ), 'rest_preload_api_request', array() );
 
 		wp_add_inline_script(
 			'wp-api-fetch',
-			sprintf( 'wp.apiFetch.use( wp.apiFetch.createPreloadingMiddleware( %s ) );', wp_json_encode( $preloaded ) ),
+			sprintf( 'wp.apiFetch.use( wp.apiFetch.createPreloadingMiddleware( %s ) );', wp_json_encode( $preloaded, self::JSON_FLAGS ) ),
 			'after'
 		);
 
@@ -311,18 +343,68 @@ final class Admin_App {
 	}
 
 	/**
-	 * The REST paths preloaded for an area.
+	 * The view the address asks for: the tab and the activity entry to open.
 	 *
-	 * @param string $area Area.
+	 * @return array{tab: string, item: int}
+	 */
+	public static function view_args(): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only view state.
+		return array(
+			'tab'  => isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '',
+			'item' => isset( $_GET['item'] ) ? absint( wp_unslash( $_GET['item'] ) ) : 0,
+		);
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * The REST paths the Activity page reads on load: the heading's 30-day
+	 * count; on the Log tab the first page of entries and the filter counts;
+	 * on the Reports tab the 30-day series and breakdowns; and the entry an
+	 * address opens (`&item=`, from the Overview's feed).
+	 *
+	 * The paths are written exactly as the app asks for them
+	 * (assets/src/admin/activity/query.js); the preloading middleware
+	 * matches them with their query arguments in any order.
+	 *
+	 * @param array{tab?: string, item?: int} $view View.
 	 * @return string[]
 	 */
-	public static function preload_paths( string $area ): array {
+	public static function activity_preloads( array $view = array() ): array {
+		$paths = array( '/zero-spam/v1/stats/summary?range=30' );
+
+		if ( 'reports' === ( $view['tab'] ?? '' ) ) {
+			$paths[] = '/zero-spam/v1/stats/timeseries';
+			$paths[] = '/zero-spam/v1/activity?facets=1&detections_only=1&days=' . self::REPORTS_DAYS;
+		} else {
+			$paths[] = '/zero-spam/v1/activity?per_page=' . self::ACTIVITY_PER_PAGE . '&_fields=' . self::ACTIVITY_FIELDS;
+			$paths[] = '/zero-spam/v1/activity?facets=1';
+		}
+
+		if ( ! empty( $view['item'] ) ) {
+			$paths[] = '/zero-spam/v1/activity/' . (int) $view['item'];
+		}
+
+		return $paths;
+	}
+
+	/**
+	 * The REST paths preloaded for an area.
+	 *
+	 * @param string                          $area Area.
+	 * @param array{tab?: string, item?: int} $view View the address asks for (see view_args()).
+	 * @return string[]
+	 */
+	public static function preload_paths( string $area, array $view = array() ): array {
 		$paths = 'network' === $area
 			? array( '/zero-spam/v1/ui/prefs' )
 			: self::SHELL_PRELOADS;
 
 		if ( 'overview' === $area ) {
 			$paths = array_merge( $paths, self::OVERVIEW_PRELOADS );
+		}
+
+		if ( 'activity' === $area ) {
+			$paths = array_merge( $paths, self::activity_preloads( $view ) );
 		}
 
 		if ( News_Feed::is_enabled() ) {
@@ -360,11 +442,9 @@ final class Admin_App {
 			$urls[ $key ] = admin_url( 'admin.php?page=' . $slug );
 		}
 
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view state.
-
 		return array(
 			'area'        => $area,
-			'tab'         => $tab,
+			'tab'         => self::view_args()['tab'],
 			'version'     => ZEROSPAM_VERSION,
 			// Site-local "now" in milliseconds (read as UTC), so relative times match the log's site-local dates.
 			'nowLocal'    => ( time() + ( new \DateTimeImmutable( 'now', wp_timezone() ) )->getOffset() ) * 1000,
@@ -376,6 +456,8 @@ final class Admin_App {
 				'network'   => is_multisite() && current_user_can( 'manage_network_options' ) ? network_admin_url( 'admin.php?page=' . self::NETWORK_SLUG ) : '',
 				'siteAdmin' => admin_url( 'admin.php?page=' . self::AREAS['overview'] ),
 				'legacy'    => admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ),
+				'flags'     => plugins_url( 'assets/img/flags/', ZEROSPAM ),
+				'ipLookup'  => ZEROSPAM_URL . 'ip-lookup/',
 			),
 			'isMultisite' => is_multisite(),
 			'newsEnabled' => News_Feed::is_enabled(),
