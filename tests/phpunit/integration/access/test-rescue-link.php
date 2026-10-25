@@ -191,6 +191,9 @@ class Test_Rescue_Link extends TestCase {
 	/**
 	 * Presses "Let me back in" (POST of the token) and returns where it redirected, or null.
 	 *
+	 * Null when the token is not used: the request continues, or (for a used or
+	 * expired token) the expired-link page is shown.
+	 *
 	 * @param string $token Token.
 	 * @param string $ip    Visitor IP.
 	 */
@@ -205,6 +208,8 @@ class Test_Rescue_Link extends TestCase {
 			( new Access() )->init();
 		} catch ( RedirectException $e ) {
 			return $e->getMessage();
+		} catch ( WPDieException $e ) {
+			return null;
 		} finally {
 			$_POST    = array();
 			$_REQUEST = array();
@@ -234,19 +239,81 @@ class Test_Rescue_Link extends TestCase {
 		$this->assertSame( 200, $response['code'] );
 		$this->assertStringContainsString( 'If that address belongs to a site administrator, a rescue link has been sent.', $response['message'] );
 		$this->assertStringContainsString( 'It can take a few minutes to arrive.', $response['message'] );
-		$this->assertSame( 'Check your email', $this->parse( $response['message'] )->evaluate( 'normalize-space(//h1)' ) );
+		$this->assertSame( 'Check your email. A rescue link is on its way.', $this->parse( $response['message'] )->evaluate( 'normalize-space(//h1)' ) );
 
 		$sent = $this->sent();
 		$this->assertCount( 1, $sent );
 		$this->assertSame( get_option( 'admin_email' ), $sent[0]->to[0][0] );
-		$this->assertStringContainsString( 'text/plain', $sent[0]->header );
+		$this->assertSame( '[' . get_option( 'blogname' ) . '] Your Zero Spam rescue link', $sent[0]->subject );
+		$this->assertStringContainsString( 'multipart/alternative', $sent[0]->header );
 
 		$token = $this->token_from_email();
-		$this->assertStringContainsString( home_url( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token ), $sent[0]->body );
-		$this->assertStringContainsString( '15 minutes', $sent[0]->body );
-		$this->assertStringContainsString( 'Settings → Zero Spam → Settings', $sent[0]->body );
-		$this->assertStringContainsString( self::DEFAULT_IP, $sent[0]->body, 'The email does not say which IP asked for it.' );
-		$this->assertStringNotContainsString( '@', home_url( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token ) );
+		$link  = home_url( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token );
+		$parts = $this->mail_parts( $sent[0] );
+		$this->assertArrayHasKey( 'text/plain', $parts );
+		$this->assertArrayHasKey( 'text/html', $parts );
+		foreach ( $parts as $type => $body ) {
+			$this->assertStringContainsString( $link, $body, "The {$type} part has no link." );
+			$this->assertStringContainsString( '15 minutes', $body );
+			$this->assertStringContainsString( 'IP Allowlist under Zero Spam → Rules', $body );
+			$this->assertStringContainsString( self::DEFAULT_IP, $body, 'The email does not say which IP asked for it.' );
+		}
+		$this->assertStringNotContainsString( '@', $link );
+	}
+
+	/**
+	 * The HTML rescue email: a "Let me back in" link and the raw address, the site's language, the site name escaped.
+	 */
+	public function test_rescue_email_html(): void {
+		update_option( 'blogname', 'Lakeside & <Dental>' );
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$token = $this->token_from_email();
+		$link  = home_url( '/?' . Rescue_Link::TOKEN_PARAM . '=' . $token );
+		$parts = $this->mail_parts( $this->sent()[0] );
+		$html  = $parts['text/html'];
+		$text  = $parts['text/plain'];
+
+		$this->assertSame( '[Lakeside & <Dental>] Your Zero Spam rescue link', $this->sent()[0]->subject );
+		$this->assertMatchesRegularExpression( '/<html lang="en-US" dir="ltr"/', $html );
+		$this->assertMatchesRegularExpression( '#<a href="' . preg_quote( esc_url( $link ), '#' ) . '"[^>]*>Let me back in</a>#', $html );
+		$this->assertStringContainsString( 'Or paste this address into your browser:', $html );
+		$this->assertStringContainsString( 'Lakeside &amp; &lt;Dental&gt;', $html );
+		$this->assertStringNotContainsString( '<Dental>', $html );
+		$this->assertStringContainsString( 'Lakeside & <Dental>', $text );
+		$this->assertStringContainsString( "\n" . $link . "\n", $text, 'The plain-text link is not on a line of its own.' );
+		$this->assertDoesNotMatchRegularExpression( '/<(img|script|svg|style)\b/i', $html );
+
+		foreach ( array( $html, $text ) as $body ) {
+			$this->assertStringNotContainsString( ZEROSPAM_RESCUE_KEY, $body, 'The email carries the rescue key.' );
+			$this->assertDoesNotMatchRegularExpression( '/pricing|upgrade|subscription|billing|\$\d/i', $body );
+			$this->assertStringContainsString( $token, $body );
+		}
+	}
+
+	/**
+	 * Every sentence of the rescue email is translatable.
+	 */
+	public function test_rescue_email_is_translatable(): void {
+		add_filter(
+			'gettext',
+			static function ( $translation, $text, $domain ) {
+				return 'zero-spam' === $domain ? 'XX ' . $translation : $translation;
+			},
+			10,
+			3
+		);
+
+		$this->submit( (string) get_option( 'admin_email' ) );
+		$text = $this->mail_parts( $this->sent()[0] )['text/plain'];
+
+		foreach ( preg_split( '/\R{2,}/', trim( $text ) ) as $paragraph ) {
+			// The footer follows the "-- " signature line.
+			$paragraph = preg_replace( '/\A-- \n/', '', $paragraph );
+			if ( 1 === preg_match( '#^https?://#', $paragraph ) ) {
+				continue;
+			}
+			$this->assertStringStartsWith( 'XX ', $paragraph, "Not translated: {$paragraph}" );
+		}
 	}
 
 	/**
@@ -398,8 +465,7 @@ class Test_Rescue_Link extends TestCase {
 		$this->assertSame( home_url( '/' ), $form->getAttribute( 'action' ) );
 		$this->assertSame( 1, $xpath->query( '//form//input[@type="hidden"][@name="' . Rescue_Link::TOKEN_PARAM . '"][@value="' . $token . '"]' )->length );
 		$this->assertSame( 'Let me back in', $xpath->evaluate( 'normalize-space(//form//button[@type="submit"])' ) );
-		$this->assertSame( 'Let me back in', $xpath->evaluate( 'normalize-space(//h1)' ) );
-		$this->assertStringContainsString( 'outline: 2px solid', $first['message'] );
+		$this->assertSame( 'Let me back in. One click, then log in.', $xpath->evaluate( 'normalize-space(//h1)' ) );
 
 		$this->assertSame( wp_login_url(), $this->confirm_link( $token ) );
 		$this->assertFalse( get_transient( $key ) );
@@ -607,7 +673,7 @@ class Test_Rescue_Link extends TestCase {
 	}
 
 	/**
-	 * A link works once: a second "Let me back in" is refused, and opening it again shows nothing.
+	 * A link works once: a second "Let me back in" is refused, and opening it again shows the expired-link page.
 	 */
 	public function test_link_is_single_use(): void {
 		$this->submit( (string) get_option( 'admin_email' ) );
@@ -618,7 +684,10 @@ class Test_Rescue_Link extends TestCase {
 		unset( $_COOKIE[ Access::RESCUE_COOKIE ] );
 
 		$this->assertNull( $this->confirm_link( $token ), 'A used link worked again.' );
-		$this->assertNull( $this->open_link( $token ), 'A used link still shows the button.' );
+		$reopened = $this->open_link( $token );
+		$this->assertIsArray( $reopened );
+		$this->assertStringContainsString( 'This link has expired.', $reopened['message'] );
+		$this->assertStringNotContainsString( 'name="' . Rescue_Link::TOKEN_PARAM . '"', $reopened['message'], 'A used link still shows the button.' );
 		$this->assertSame( array(), Stubs::$cookies );
 		$this->assertCount( 1, $this->rescue_log_rows() );
 	}
@@ -636,7 +705,9 @@ class Test_Rescue_Link extends TestCase {
 		$stored['expires'] = time() - 1;
 		set_transient( $key, $stored, MINUTE_IN_SECONDS );
 
-		$this->assertNull( $this->open_link( $token ), 'An expired link shows the button.' );
+		$expired = $this->open_link( $token );
+		$this->assertIsArray( $expired );
+		$this->assertStringContainsString( 'This link has expired.', $expired['message'], 'An expired link shows the button.' );
 		$this->assertNull( $this->confirm_link( $token ), 'An expired link worked.' );
 		$this->assertSame( array(), Stubs::$cookies );
 
@@ -667,7 +738,22 @@ class Test_Rescue_Link extends TestCase {
 	}
 
 	/**
-	 * Made-up or malformed tokens do nothing.
+	 * A made-up token in the right format shows the expired-link page and does nothing else.
+	 */
+	public function test_unknown_token_shows_the_expired_page(): void {
+		$token = str_repeat( 'ab', 32 );
+		$page  = $this->open_link( $token );
+
+		$this->assertIsArray( $page );
+		$this->assertSame( 403, $page['code'] );
+		$this->assertStringContainsString( 'This link has expired.', $page['message'] );
+		$this->assertNull( $this->confirm_link( $token ) );
+		$this->assertSame( array(), Stubs::$cookies );
+		$this->assertSame( array(), $this->rescue_log_rows() );
+	}
+
+	/**
+	 * Malformed tokens do nothing.
 	 *
 	 * @dataProvider data_bad_tokens
 	 *
@@ -681,13 +767,12 @@ class Test_Rescue_Link extends TestCase {
 	}
 
 	/**
-	 * Tokens that were never issued.
+	 * Values that can never be a token.
 	 *
 	 * @return array<string, array{0: string}>
 	 */
 	public static function data_bad_tokens(): array {
 		return array(
-			'unknown'   => array( str_repeat( 'ab', 32 ) ),
 			'too short' => array( 'abc123' ),
 			'not hex'   => array( str_repeat( 'zz', 32 ) ),
 			'empty'     => array( '' ),
@@ -811,10 +896,7 @@ class Test_Rescue_Link extends TestCase {
 		$this->assertSame( 1, $xpath->query( '//form//button[@type="submit"]' )->length );
 		$this->assertSame( 1, $xpath->query( '//details//a[@href="https://wordpress.org/plugins/zero-spam/#faq"]' )->length );
 		$this->assertStringContainsString( 'Site owner? If you administer this site, enter the email address of an administrator account on this site', $html );
-		$this->assertSame( 'Blocked', $xpath->evaluate( 'normalize-space(//h1)' ) );
-
-		// A 2px focus outline with an offset for the form controls.
-		$this->assertMatchesRegularExpression( '/<style>[^<]*\.zerospam-rescue input:focus-visible[^<]*outline: 2px solid #2271b1; outline-offset: 2px;/', $html );
+		$this->assertSame( 'Blocked. Your connection was flagged.', $xpath->evaluate( 'normalize-space(//h1)' ) );
 	}
 
 	/**
