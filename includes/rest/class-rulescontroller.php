@@ -615,12 +615,12 @@ class Rules_Controller extends Base_Controller {
 				} elseif ( 'add' === $field ) {
 					$list = array_merge( $list, $entries );
 				} else {
-					$remove = array_map( 'strtolower', $entries );
+					$remove = array_fill_keys( array_map( 'strtolower', $entries ), true );
 					$list   = array_values(
 						array_filter(
 							$list,
 							static function ( string $item ) use ( $remove ): bool {
-								return ! in_array( strtolower( $item ), $remove, true );
+								return ! isset( $remove[ strtolower( $item ) ] );
 							}
 						)
 					);

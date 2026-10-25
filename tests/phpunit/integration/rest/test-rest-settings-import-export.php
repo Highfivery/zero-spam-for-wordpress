@@ -139,28 +139,36 @@ class Test_Rest_Settings_Import_Export extends TestCase {
 	}
 
 	/**
-	 * The 5.x Import/Export JSON is accepted: html settings are ignored, secrets stored.
+	 * The 5.x Import/Export JSON is accepted: html settings are ignored and
+	 * secrets are skipped unless include_secrets is passed.
 	 */
 	public function test_legacy_shape_and_secrets(): void {
-		$response = $this->rest(
-			'POST',
-			self::IMPORT,
-			array(
-				'settings' => array(
-					'max_logs'                 => '777',
-					'use_recommended_settings' => false,
-					'blocked_email_domains'    => "spam.example\nbad.example",
-				),
-				'zerospam' => array( 'zerospam_license' => self::LICENSE ),
-			)
+		$body = array(
+			'settings'       => array(
+				'max_logs'                 => '777',
+				'use_recommended_settings' => false,
+				'blocked_email_domains'    => "spam.example\nbad.example",
+			),
+			'zerospam'       => array( 'zerospam_license' => self::LICENSE ),
+			'api-monitoring' => array( 'alert_webhook_url' => 'https://hooks.example.com/SECRET' ),
 		);
 
-		$data = $response->get_data();
+		$response = $this->rest( 'POST', self::IMPORT, $body );
+		$data     = $response->get_data();
+
 		$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $data ) );
-		$this->assertEqualsCanonicalizing( array( 'max_logs', 'blocked_email_domains', 'zerospam_license' ), $data['imported'] );
+		$this->assertEqualsCanonicalizing( array( 'max_logs', 'blocked_email_domains' ), $data['imported'] );
+		$this->assertEqualsCanonicalizing( array( 'zerospam_license', 'alert_webhook_url' ), $data['skipped_secrets'] );
 		$this->assertSame( array( 'use_recommended_settings' ), $data['ignored'] );
 		$this->assertSame( 777, get_option( 'zero-spam-settings' )['max_logs'] );
 		$this->assertSame( "spam.example\nbad.example", get_option( 'zerospam_blocked_email_domains' ) );
+		$this->assertFalse( get_option( 'zero-spam-zerospam' ), 'A key was imported without include_secrets.' );
+
+		$response = $this->rest( 'POST', self::IMPORT, $body, array( 'include_secrets' => true ) );
+		$data     = $response->get_data();
+
+		$this->assertEqualsCanonicalizing( array( 'max_logs', 'blocked_email_domains', 'zerospam_license', 'alert_webhook_url' ), $data['imported'] );
+		$this->assertSame( array(), $data['skipped_secrets'] );
 		$this->assertSame( self::LICENSE, get_option( 'zero-spam-zerospam' )['zerospam_license'] );
 		$this->assertStringNotContainsString( 'SECRET', (string) wp_json_encode( get_option( 'zerospam_settings_audit' ) ), 'The audit masks secrets.' );
 		$this->assertStringNotContainsString( 'SECRET', (string) wp_json_encode( $data ) );
@@ -248,5 +256,20 @@ class Test_Rest_Settings_Import_Export extends TestCase {
 		$this->assertSame( 413, $response->get_status() );
 		$this->assertSame( 'zerospam_import_too_large', $response->get_data()['code'] );
 		$this->assertFalse( get_option( 'zero-spam-settings' ) );
+	}
+
+	/**
+	 * The export builds the settings registry at most once.
+	 */
+	public function test_export_builds_the_registry_once(): void {
+		$this->rest( 'GET', self::EXPORT );
+
+		$builds = $this->count_registry_builds(
+			function () {
+				$this->assertSame( 200, $this->rest( 'GET', self::EXPORT )->get_status() );
+			}
+		);
+
+		$this->assertLessThanOrEqual( 1, $builds );
 	}
 }

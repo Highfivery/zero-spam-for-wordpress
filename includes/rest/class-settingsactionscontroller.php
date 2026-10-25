@@ -121,6 +121,13 @@ class Settings_Actions_Controller extends Base_Controller {
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'import_settings' ),
 					'permission_callback' => array( $this, 'site_permissions_check' ),
+					'args'                => array(
+						'include_secrets' => array(
+							'description' => __( 'Also import license and API keys and webhook URLs found in the file (query parameter).', 'zero-spam' ),
+							'type'        => 'boolean',
+							'default'     => false,
+						),
+					),
 				),
 			)
 		);
@@ -160,8 +167,7 @@ class Settings_Actions_Controller extends Base_Controller {
 				break;
 
 			case 'update-disallowed-words':
-				Settings::update_disallowed_words();
-				if ( '' === trim( (string) get_option( 'disallowed_keys', '' ) ) ) {
+				if ( ! Settings::update_disallowed_words() ) {
 					return $this->action_failed( __( 'The recommended disallowed words list could not be read.', 'zero-spam' ), 500 );
 				}
 				$message = __( "WordPress's disallowed words list has been successfully updated to the recommended.", 'zero-spam' );
@@ -229,7 +235,8 @@ class Settings_Actions_Controller extends Base_Controller {
 		$settings = array();
 		$omitted  = array();
 
-		foreach ( Settings_Schema::get()['settings'] as $entry ) {
+		// Values only: no `default`, so the registry is built once.
+		foreach ( Settings_Schema::get( false )['settings'] as $entry ) {
 			if ( 'html' === $entry['type'] ) {
 				continue;
 			}
@@ -317,6 +324,18 @@ class Settings_Actions_Controller extends Base_Controller {
 			}
 		}
 
+		// Keys and webhook URLs only with include_secrets: a shared or old
+		// export must not replace them silently.
+		$skipped_secrets = array();
+		if ( true !== $request->get_param( 'include_secrets' ) ) {
+			foreach ( array_keys( $values ) as $key ) {
+				if ( Settings_Schema::is_secret( (string) $key ) ) {
+					$skipped_secrets[] = (string) $key;
+					unset( $values[ $key ] );
+				}
+			}
+		}
+
 		$controller = new Settings_Controller();
 		$locked     = $controller->get_locked_keys( array_keys( $values ) );
 		$values     = array_diff_key( $values, array_flip( $locked ) );
@@ -331,11 +350,12 @@ class Settings_Actions_Controller extends Base_Controller {
 
 		return rest_ensure_response(
 			array(
-				'imported'       => array_keys( $checked['valid'] ),
-				'changed'        => array_keys( $changes ),
-				'skipped_locked' => array_values( $locked ),
-				'errors'         => (object) $checked['errors'],
-				'ignored'        => array_values( array_unique( $ignored ) ),
+				'imported'        => array_keys( $checked['valid'] ),
+				'changed'         => array_keys( $changes ),
+				'skipped_locked'  => array_values( $locked ),
+				'skipped_secrets' => $skipped_secrets,
+				'errors'          => (object) $checked['errors'],
+				'ignored'         => array_values( array_unique( $ignored ) ),
 			)
 		);
 	}
@@ -374,12 +394,44 @@ class Settings_Actions_Controller extends Base_Controller {
 	 * @return string[] The locked settings that were skipped.
 	 */
 	private function autoconfigure(): array {
-		$keys   = array_keys( Settings_Schema::registry() );
-		$locked = ( new Settings_Controller() )->get_locked_keys( array_map( 'strval', $keys ) );
+		$controller = new Settings_Controller();
+		$keys       = array_keys( Settings_Schema::registry() );
+		$locked     = $controller->get_locked_keys( array_map( 'strval', $keys ) );
+		$before     = $this->site_values();
 
 		Settings::auto_configure( $locked );
+		$this->reset_caches();
+
+		// One audit entry, as PATCH /settings writes (secrets masked).
+		$changes = array();
+		foreach ( $this->site_values() as $key => $value ) {
+			$old = $before[ $key ] ?? null;
+			if ( $old !== $value ) {
+				$changes[ $key ] = array(
+					'old' => $old,
+					'new' => $value,
+				);
+			}
+		}
+		$controller->audit_site_changes( $changes );
 
 		return $locked;
+	}
+
+	/**
+	 * The values the current site uses, by key (settings that hold a value).
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function site_values(): array {
+		$values = array();
+		foreach ( Settings_Schema::get( false )['settings'] as $entry ) {
+			if ( 'html' !== $entry['type'] ) {
+				$values[ (string) $entry['key'] ] = $entry['value'];
+			}
+		}
+
+		return $values;
 	}
 
 	/**

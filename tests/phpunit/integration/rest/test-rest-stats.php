@@ -165,20 +165,26 @@ class Test_Rest_Stats extends TestCase {
 	}
 
 	/**
-	 * A cold summary costs at most six queries; a cached one reads no log
+	 * A cold summary (nothing cached, the transient not in the object cache
+	 * either) costs exactly four reads of the log table (MAX(log_id), the
+	 * days by type, the countries, the row count) plus the transient: two
+	 * reads (value and timeout) and two writes. A cached one reads no log
 	 * statistics, until a new detection changes the highest log ID.
 	 */
 	public function test_summary_queries_and_cache(): void {
 		$this->insert_log_rows( 5 );
 		$this->rest( 'GET', self::SUMMARY );
 		Stats_Controller::flush_cache();
+		wp_cache_delete( 'notoptions', 'options' );
 
 		$cold = $this->capture_queries(
 			function () {
 				$this->rest( 'GET', self::SUMMARY );
 			}
 		);
-		$this->assertLessThanOrEqual( 6, count( $cold ), implode( "\n", $cold ) );
+		$log  = preg_grep( '/wpzerospam_log/', $cold );
+		$this->assertCount( 4, $log, implode( "\n", $cold ) );
+		$this->assertCount( 8, $cold, implode( "\n", $cold ) );
 
 		global $wpdb;
 		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET log_type = %s', $this->log_table(), 'login' ) );

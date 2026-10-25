@@ -9,6 +9,7 @@ declare( strict_types=1 );
 
 use ZeroSpam\Includes\Rest\Self_Test_Controller;
 use ZeroSpam\Tests\HttpMock;
+use ZeroSpam\Tests\Stubs;
 use ZeroSpam\Tests\TestCase;
 
 /**
@@ -118,6 +119,23 @@ class Test_Rest_Self_Test extends TestCase {
 	}
 
 	/**
+	 * The trapped comment never reaches the blocked page: no page header
+	 * (HTML content type, CSP, no-cache) is sent, so the REST answer stays JSON.
+	 */
+	public function test_sends_no_page_headers(): void {
+		list( $response, $steps ) = $this->run_self_test();
+
+		$this->assertSame( 'pass', $steps['honeypot']['status'], $steps['honeypot']['message'] );
+		$this->assertSame( array(), Stubs::$headers, 'The self-test sent the blocked page\'s headers: ' . implode( ' | ', Stubs::$headers ) );
+		$this->assertIsArray( $response->get_data() );
+
+		foreach ( $response->get_headers() as $name => $value ) {
+			$this->assertStringNotContainsStringIgnoringCase( 'text/html', (string) $value, $name );
+			$this->assertStringNotContainsStringIgnoringCase( 'content-security-policy', (string) $name );
+		}
+	}
+
+	/**
 	 * With comment protection off the honeypot still works but a warning says comments are not checked.
 	 */
 	public function test_honeypot_warns_when_comments_are_off(): void {
@@ -219,6 +237,29 @@ class Test_Rest_Self_Test extends TestCase {
 		$this->assertSame( array( 'zero_spam' ), array_column( $steps['reputation']['services'], 'id' ) );
 		$this->assertSame( 1, HttpMock::hits( self::ZERO_SPAM ) );
 		$this->assertStringNotContainsString( 'selftest-key', (string) wp_json_encode( $steps ) );
+	}
+
+	/**
+	 * The Zero Spam network test lookup is a plain request: it is not counted
+	 * in the API usage statistics and a failure does not move the circuit breaker.
+	 */
+	public function test_zero_spam_ping_leaves_usage_and_breaker_alone(): void {
+		global $wpdb;
+
+		$this->set_setting( 'zerospam', 'enabled', 'zerospam' );
+		$this->set_setting( 'zerospam_license', 'selftest-key-0002', 'zerospam' );
+		$this->mock_http( self::ZERO_SPAM, 'Server error', 500 );
+		delete_transient( 'zero_spam_failure_count' );
+
+		$usage = $wpdb->base_prefix . 'wpzerospam_api_usage';
+		$rows  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $usage ) );
+
+		list( , $steps ) = $this->run_self_test();
+
+		$this->assertSame( 'fail', $steps['reputation']['status'] );
+		$this->assertSame( 1, HttpMock::hits( self::ZERO_SPAM ) );
+		$this->assertSame( $rows, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $usage ) ), 'The test lookup was recorded as API usage.' );
+		$this->assertFalse( get_transient( 'zero_spam_failure_count' ), 'The test lookup moved the circuit breaker.' );
 	}
 
 	/**

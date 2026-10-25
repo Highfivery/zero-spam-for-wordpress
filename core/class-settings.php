@@ -91,6 +91,8 @@ class Settings {
 
 	/**
 	 * Updates core disallowed words.
+	 *
+	 * @return bool Whether the recommended list was read and stored (since 6.0.0).
 	 */
 	public static function update_disallowed_words() {
 		global $wp_filesystem;
@@ -100,11 +102,15 @@ class Settings {
 		}
 		$text = $wp_filesystem->get_contents( ZEROSPAM_PATH . 'assets/blacklist.txt' );
 
-		if ( $text ) {
-			// Prevent autoloading large options.
-			// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
-			update_option( 'disallowed_keys', $text, false );
+		if ( ! $text ) {
+			return false;
 		}
+
+		// Prevent autoloading large options.
+		// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
+		update_option( 'disallowed_keys', $text, false );
+
+		return true;
 	}
 
 	/**

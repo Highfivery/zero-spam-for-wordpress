@@ -230,4 +230,19 @@ class Test_Rest_Protection extends TestCase {
 	public function test_fields(): void {
 		$this->assertSame( array( 'attention' ), array_keys( $this->rest( 'GET', self::ROUTE, array(), array( '_fields' => 'attention' ) )->get_data() ) );
 	}
+
+	/**
+	 * The modules route builds the settings registry at most once.
+	 */
+	public function test_builds_the_registry_once(): void {
+		$this->rest( 'GET', self::ROUTE );
+
+		$builds = $this->count_registry_builds(
+			function () {
+				$this->assertSame( 200, $this->rest( 'GET', self::ROUTE )->get_status() );
+			}
+		);
+
+		$this->assertLessThanOrEqual( 1, $builds );
+	}
 }

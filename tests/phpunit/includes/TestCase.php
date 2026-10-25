@@ -487,6 +487,32 @@ abstract class TestCase extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs a callback and returns how many times the settings registry was
+	 * built (each build applies the `zerospam_settings` filter once), after
+	 * clearing the per-request caches so the callback starts cold.
+	 *
+	 * @param callable $callback Code to run.
+	 */
+	protected function count_registry_builds( callable $callback ): int {
+		$builds  = 0;
+		$counter = static function ( $settings ) use ( &$builds ) {
+			++$builds;
+
+			return $settings;
+		};
+
+		self::reset_static_caches();
+		add_filter( 'zerospam_settings', $counter, PHP_INT_MIN );
+		try {
+			$callback();
+		} finally {
+			remove_filter( 'zerospam_settings', $counter, PHP_INT_MIN );
+		}
+
+		return $builds;
+	}
+
+	/**
 	 * Makes wp_redirect() throw a RedirectException and expects it.
 	 *
 	 * The exception message is the redirect location, so tests can follow

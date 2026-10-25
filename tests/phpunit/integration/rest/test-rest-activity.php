@@ -329,6 +329,20 @@ class Test_Rest_Activity extends TestCase {
 	}
 
 	/**
+	 * The IP facet ignores the IP filter, like every facet ignores its own.
+	 */
+	public function test_ip_facet_ignores_the_ip_filter(): void {
+		$this->insert_log_rows( 3, array( 'user_ip' => '203.0.113.5' ) );
+		$this->insert_log_rows( 2, array( 'user_ip' => '203.0.113.6' ) );
+
+		$data = $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true, 'ip' => '203.0.113.6' ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+
+		$this->assertSame( 2, $data['total'], 'The total still follows every filter.' );
+		$this->assertSame( array( '203.0.113.5' => 3, '203.0.113.6' => 2 ), array_column( $data['ip'], 'count', 'value' ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short expected value.
+		$this->assertSame( array( 'comment' => 2 ), array_column( $data['type'], 'count', 'value' ), 'Other facets apply the IP filter.' );
+	}
+
+	/**
 	 * One entry with its stored data (returned as stored: clients escape it),
 	 * geolocation, a map link and its block.
 	 */
@@ -382,6 +396,7 @@ class Test_Rest_Activity extends TestCase {
 			array(
 				'kind'     => 'activity',
 				'restored' => 1,
+				'skipped'  => 0,
 			),
 			$undo->get_data()
 		);
@@ -472,15 +487,39 @@ class Test_Rest_Activity extends TestCase {
 	}
 
 	/**
-	 * Deleting entries refreshes the statistics at once.
+	 * Deleting entries, one or several, refreshes the statistics and the
+	 * protection counts at once (the highest log ID does not change).
 	 */
 	public function test_deleting_refreshes_the_statistics(): void {
 		$ids = $this->insert_log_rows( 4 );
 
 		$this->assertSame( 4, $this->rest( 'GET', '/zero-spam/v1/stats/summary' )->get_data()['total'] );
+		$this->rest( 'GET', '/zero-spam/v1/protection/modules' );
+		$this->assertNotFalse( get_transient( \ZeroSpam\Includes\Rest\Protection_Controller::TRANSIENT ) );
 
 		$this->rest( 'POST', self::ROUTE . '/bulk-delete', array( 'ids' => array( $ids[0] ) ) );
 
-		$this->assertSame( 3, $this->rest( 'GET', '/zero-spam/v1/stats/summary' )->get_data()['total'], 'The cached summary was not cleared (the highest log ID did not change).' );
+		$this->assertSame( 3, $this->rest( 'GET', '/zero-spam/v1/stats/summary' )->get_data()['total'], 'Bulk delete left the cached summary.' );
+		$this->assertFalse( get_transient( \ZeroSpam\Includes\Rest\Protection_Controller::TRANSIENT ), 'Bulk delete left the cached protection counts.' );
+
+		$this->rest( 'DELETE', self::ROUTE . '/' . $ids[1] );
+
+		$this->assertSame( 2, $this->rest( 'GET', '/zero-spam/v1/stats/summary' )->get_data()['total'], 'Deleting one entry left the cached summary.' );
+	}
+
+	/**
+	 * An undo cannot push the log past max_logs: the oldest rows are pruned.
+	 */
+	public function test_undo_keeps_the_log_within_its_maximum(): void {
+		$this->set_setting( 'max_logs', 5 );
+		$ids   = $this->insert_log_rows( 3 );
+		$token = $this->rest( 'POST', self::ROUTE . '/bulk-delete', array( 'ids' => $ids ) )->get_data()['undo_token'];
+		$this->insert_log_rows( 4 );
+
+		$undo = $this->rest( 'POST', '/zero-spam/v1/undo/' . $token )->get_data();
+
+		$this->assertSame( 3, $undo['restored'] );
+		$this->assertSame( 0, $undo['skipped'] );
+		$this->assertSame( 5, $this->count_log_rows() );
 	}
 }

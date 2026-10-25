@@ -1158,6 +1158,18 @@ class Settings_Controller extends Base_Controller {
 	}
 
 	/**
+	 * Records changes made on the current site outside PATCH /settings (for
+	 * example by the autoconfigure action) as one audit entry, secrets masked.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array<string, array<string, mixed>> $changes Changes by key (`old`, `new`).
+	 */
+	public function audit_site_changes( array $changes ): void {
+		$this->add_audit_entry( 'site', $this->mask_changes( $changes, Settings_Schema::SOURCE_SITE ), false );
+	}
+
+	/**
 	 * Add audit entry for settings change.
 	 *
 	 * @param string $scope   Scope (site or network).

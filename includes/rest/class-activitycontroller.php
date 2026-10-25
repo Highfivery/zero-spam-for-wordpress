@@ -452,6 +452,8 @@ class Activity_Controller extends Base_Controller {
 	/**
 	 * Counts per type, country and IP address (the ten with most entries) for the filters.
 	 *
+	 * `total` counts the entries every filter matches.
+	 *
 	 * Each facet ignores its own filter, so a client can show how many
 	 * entries every choice would give.
 	 *
@@ -466,7 +468,7 @@ class Activity_Controller extends Base_Controller {
 
 		$type_where    = $this->where( $filters, array( 'type' ) );
 		$country_where = $this->where( $filters, array( 'country' ) );
-		$ip_where      = $this->where( $filters );
+		$ip_where      = $this->where( $filters, array( 'ip' ) );
 
 		$type_cond    = '' !== $type_where['sql'] ? ' WHERE ' . $type_where['sql'] : '';
 		$country_cond = ' WHERE `country` IS NOT NULL AND `country` <> \'\'' . ( '' !== $country_where['sql'] ? ' AND ' . $country_where['sql'] : '' );

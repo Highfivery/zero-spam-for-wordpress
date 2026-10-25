@@ -98,6 +98,13 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   minutes in `zerospam_undo_{token}` (`Includes\Undo_Store`, at most 500 rows,
   bound to the user and the site, single use). The live feed (`activity?since_id=`)
   must stay at three queries or fewer and never build the settings registry.
+  The self-test runs real checks inside `Access::intercept_termination()`,
+  which makes `terminate_execution()` and every `Front\Block_Page` page throw
+  (caught) instead of sending a page or headers; use it for any dry run.
+  Alert webhooks go through `wp_safe_remote_post()` (private addresses are
+  refused; the `http_request_host_is_external` filter allows a trusted host).
+  Read settings in per-request paths with `Settings_Schema::value()` (one
+  registry build per request), not `Settings::get_settings()`.
   `Includes\News_Feed` is the only code that reads the zerospam.org feed
   (site transients `zerospam_news` and `zerospam_news_backoff`); every outbound
   service is listed in the readme's External services section: keep it
@@ -630,10 +637,7 @@ npm run env:stop                 # stop both wp-env sites
     `zero-spam-settings` option with resolved values, which on a network
     turns network defaults into site overrides; the REST action writes only
     `zerospam_blocked_email_domains`.
-  - `includes/class-apiusagealerts.php` `send_webhook_alert()` posts to the
-    admin-configured webhook with `wp_remote_post`, not `wp_safe_remote_post`
-    (switching would also block webhooks on internal addresses: needs a
-    decision). ipstack is queried over plain `http://`.
+  - ipstack is queried over plain `http://`.
   - `modules/security/class-security.php`: the emoji setting is incomplete
     since WordPress 6.4 (`wp_enqueue_emoji_styles` on
     `wp_enqueue_scripts`/`admin_enqueue_scripts` and the `embed_head` script

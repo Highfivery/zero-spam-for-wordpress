@@ -36,10 +36,11 @@ class Debug {
 	 * @param string $ip IP address.
 	 */
 	public function debug_ip( $ip ) {
-		$debug_ip = \ZeroSpam\Core\Settings::get_settings( 'debug_ip' );
+		// Read from the registry built once per request: this runs on every User::get_ip().
+		$debug_ip = \ZeroSpam\Core\Settings_Schema::value( 'debug_ip' );
 
 		if (
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'debug' ) &&
+			'enabled' === \ZeroSpam\Core\Settings_Schema::value( 'debug' ) &&
 			! empty( $debug_ip )
 		) {
 			return $debug_ip;

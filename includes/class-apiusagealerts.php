@@ -436,7 +436,9 @@ class API_Usage_Alerts {
 			'stats'      => $stats,
 		);
 
-		return wp_remote_post(
+		// The URL is an administrator setting: refuse local and private addresses
+		// (allow a trusted internal host with the http_request_host_is_external filter).
+		return wp_safe_remote_post(
 			$webhook_url,
 			array(
 				'body'    => wp_json_encode( $payload ),

@@ -487,6 +487,18 @@ class DB {
 	}
 
 	/**
+	 * Prunes the current site's log to `max_logs` rows (after rows are
+	 * written back, for example by an undo).
+	 *
+	 * @since 6.0.0
+	 */
+	public static function prune_log_table(): void {
+		global $wpdb;
+
+		self::prune_log( $wpdb->prefix . self::$tables['log'] );
+	}
+
+	/**
 	 * Deletes the oldest log entries so the table holds at most max_logs rows.
 	 *
 	 * Runs after the insert, so the table never exceeds the limit and a failed

@@ -9,11 +9,11 @@ declare( strict_types=1 );
 
 namespace ZeroSpam\Includes\Rest;
 
-use RuntimeException;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use ZeroSpam\Core\Access;
 use ZeroSpam\Core\License_Status;
 use ZeroSpam\Core\Settings;
 use ZeroSpam\Core\Settings_Schema;
@@ -22,7 +22,6 @@ use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Modules\Comments\Comments;
 use ZeroSpam\Modules\DavidWalsh\DavidWalsh;
-use ZeroSpam\Modules\Zero_Spam;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -91,18 +90,19 @@ class Self_Test_Controller extends Base_Controller {
 	const TIMEOUT = 5;
 
 	/**
+	 * Timeout of the Zero Spam network test lookup, in seconds.
+	 *
+	 * @var int
+	 */
+	const PING_TIMEOUT = 3;
+
+	/**
 	 * A service answering more slowly than this (ms) is reported with a warning.
 	 *
 	 * @var int
 	 */
 	const SLOW_MS = 2000;
 
-	/**
-	 * Code of the exception that stands in for wp_die() during the honeypot step.
-	 *
-	 * @var int
-	 */
-	const STOPPED = 4031;
 
 	/**
 	 * Step results, worst last.
@@ -207,10 +207,11 @@ class Self_Test_Controller extends Base_Controller {
 	 * A comment with the honeypot field filled is stopped.
 	 *
 	 * Runs the comment module's own check twice, without and with the trap
-	 * filled, with logging and sharing turned off for the duration and
-	 * wp_die() intercepted. Any other check that adds an error through
-	 * `zerospam_preprocess_comment_submission` (the browser check) is set
-	 * aside, so only the honeypot can stop the trapped comment.
+	 * filled, with logging and sharing turned off for the duration and the
+	 * stop intercepted (Access::intercept_termination()). Any other check
+	 * that adds an error through `zerospam_preprocess_comment_submission`
+	 * (the browser check) is set aside, so only the honeypot can stop the
+	 * trapped comment.
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -273,8 +274,10 @@ class Self_Test_Controller extends Base_Controller {
 	/**
 	 * Whether the comment check stops a test comment.
 	 *
+	 * Access::intercept_termination() turns the stop into an answer: no page,
+	 * no header and no wp_die() reach this REST response.
+	 *
 	 * @param bool $fill_trap Whether to fill the honeypot field.
-	 * @throws RuntimeException An exception the check throws itself (rethrown).
 	 */
 	private function comment_is_stopped( bool $fill_trap ): bool {
 		$post_backup = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Saved to restore it; not read.
@@ -294,56 +297,37 @@ class Self_Test_Controller extends Base_Controller {
 			return array();
 		};
 
-		$stop = static function (): callable {
-			return static function (): void {
-				throw new RuntimeException( 'zerospam_self_test_stopped', self::STOPPED ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Caught below, never shown.
-			};
-		};
-
-		$die_filters = array( 'wp_die_handler', 'wp_die_json_handler', 'wp_die_jsonp_handler', 'wp_die_ajax_handler', 'wp_die_xml_handler', 'wp_die_xmlrpc_handler' );
-
 		add_filter( 'zerospam_settings', $quiet, PHP_INT_MAX );
 		add_filter( 'zerospam_preprocess_comment_submission', $no_other_checks, PHP_INT_MAX );
-		foreach ( $die_filters as $filter ) {
-			add_filter( $filter, $stop, PHP_INT_MAX );
-		}
 
 		$_POST = array();
 		if ( $fill_trap ) {
 			$_POST[ $honeypot ] = 'zero-spam-self-test';
 		}
 
-		$stopped = false;
-
 		try {
-			( new Comments() )->preprocess_comments(
-				array(
-					'comment_author'       => '',
-					'comment_author_email' => '',
-					'comment_author_url'   => '',
-					'comment_content'      => '',
-					'comment_agent'        => '',
-				)
+			return Access::intercept_termination(
+				static function (): void {
+					( new Comments() )->preprocess_comments(
+						array(
+							'comment_author'       => '',
+							'comment_author_email' => '',
+							'comment_author_url'   => '',
+							'comment_content'      => '',
+							'comment_agent'        => '',
+						)
+					);
+				}
 			);
-		} catch ( RuntimeException $e ) {
-			if ( self::STOPPED !== $e->getCode() ) {
-				throw $e;
-			}
-			$stopped = true;
 		} finally {
 			$_POST = $post_backup;
 
 			remove_filter( 'zerospam_settings', $quiet, PHP_INT_MAX );
 			remove_filter( 'zerospam_preprocess_comment_submission', $no_other_checks, PHP_INT_MAX );
-			foreach ( $die_filters as $filter ) {
-				remove_filter( $filter, $stop, PHP_INT_MAX );
-			}
 
 			Settings::$settings = array();
 			Settings_Schema::reset_cache();
 		}
-
-		return $stopped;
 	}
 
 	/**
@@ -451,7 +435,9 @@ class Self_Test_Controller extends Base_Controller {
 			$services[] = $this->ping(
 				'zero_spam',
 				static function () {
-					return Zero_Spam::remote_request(
+					// A plain request: not counted in the API usage statistics and
+					// never opening the circuit breaker the real lookups use.
+					return wp_safe_remote_get(
 						add_query_arg(
 							array(
 								'license_key' => rawurlencode( License_Status::key() ),
@@ -459,7 +445,7 @@ class Self_Test_Controller extends Base_Controller {
 							),
 							ZEROSPAM_URL . 'wp-json/v3/query'
 						),
-						array( 'timeout' => self::TIMEOUT )
+						array( 'timeout' => self::PING_TIMEOUT )
 					);
 				},
 				static function ( array $data ): bool {

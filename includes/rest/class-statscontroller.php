@@ -198,6 +198,7 @@ class Stats_Controller extends Base_Controller {
 	public static function flush_cache(): void {
 		delete_transient( self::SUMMARY_TRANSIENT );
 		delete_transient( self::TIMESERIES_TRANSIENT );
+		delete_transient( Protection_Controller::TRANSIENT );
 	}
 
 	/**

@@ -104,10 +104,13 @@ final class Undo_Store {
 	 *
 	 * A token belongs to the user who deleted the rows and to the site they
 	 * were deleted from; anyone else, an expired token and a token already
-	 * used get null. A row whose ID was taken in the meantime is skipped.
+	 * used get null. A row whose ID was taken in the meantime, and a block
+	 * whose address or location was blocked again, are skipped (counted in
+	 * `skipped`). Restored activity entries are pruned to `max_logs` like
+	 * new ones.
 	 *
 	 * @param string $token Token.
-	 * @return array{kind: string, restored: int}|null
+	 * @return array{kind: string, restored: int, skipped: int}|null
 	 */
 	public static function restore( string $token ): ?array {
 		global $wpdb;
@@ -134,16 +137,95 @@ final class Undo_Store {
 		$kind    = (string) $entry['kind'];
 		$table   = $wpdb->prefix . DB::$tables[ self::KINDS[ $kind ]['table'] ];
 		$columns = self::KINDS[ $kind ]['columns'];
+		$rows    = array_values( array_filter( $entry['rows'], 'is_array' ) );
+
+		// A block whose address or location was blocked again in the meantime
+		// is not restored next to the new block.
+		if ( 'blocks' === $kind ) {
+			$rows = self::without_existing_blocks( $table, $rows );
+		}
 
 		$restored = 0;
-		foreach ( array_chunk( $entry['rows'], 100 ) as $chunk ) {
+		foreach ( array_chunk( $rows, 100 ) as $chunk ) {
 			$restored += self::insert_rows( $table, $columns, $chunk );
+		}
+
+		if ( 'activity' === $kind && $restored > 0 ) {
+			DB::prune_log_table();
 		}
 
 		return array(
 			'kind'     => $kind,
 			'restored' => $restored,
+			'skipped'  => count( $entry['rows'] ) - $restored,
 		);
+	}
+
+	/**
+	 * Leaves out the blocks whose IP address or location key has a block again.
+	 *
+	 * @param string                           $table Full name of the blocked table.
+	 * @param array<int, array<string, mixed>> $rows  Block rows to restore.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function without_existing_blocks( string $table, array $rows ): array {
+		global $wpdb;
+
+		$ips  = array();
+		$keys = array();
+		foreach ( $rows as $row ) {
+			if ( 'ip' === ( $row['key_type'] ?? 'ip' ) ) {
+				$ips[] = (string) ( $row['user_ip'] ?? '' );
+			} else {
+				$keys[] = (string) ( $row['blocked_key'] ?? '' );
+			}
+		}
+
+		$clauses = array();
+		$values  = array( $table );
+		if ( $ips ) {
+			$clauses[] = "( `key_type` = 'ip' AND `user_ip` IN (" . implode( ', ', array_fill( 0, count( $ips ), '%s' ) ) . ') )';
+			$values    = array_merge( $values, $ips );
+		}
+		if ( $keys ) {
+			$clauses[] = "( `key_type` <> 'ip' AND `blocked_key` IN (" . implode( ', ', array_fill( 0, count( $keys ), '%s' ) ) . ') )';
+			$values    = array_merge( $values, $keys );
+		}
+
+		if ( ! $clauses ) {
+			return $rows;
+		}
+
+		$where = implode( ' OR ', $clauses );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $where holds fixed fragments with one %s per value (at most MAX_ROWS).
+		$existing = $wpdb->get_results( $wpdb->prepare( "SELECT `key_type`, `user_ip`, `blocked_key` FROM %i WHERE {$where}", $values ), ARRAY_A );
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		$taken = array();
+		foreach ( is_array( $existing ) ? $existing : array() as $row ) {
+			$taken[ self::block_identity( $row ) ] = true;
+		}
+
+		return array_values(
+			array_filter(
+				$rows,
+				static function ( array $row ) use ( $taken ): bool {
+					return ! isset( $taken[ self::block_identity( $row ) ] );
+				}
+			)
+		);
+	}
+
+	/**
+	 * What a block blocks: its IP address, or its location key type and value.
+	 *
+	 * @param array<string, mixed> $row Block row.
+	 */
+	private static function block_identity( array $row ): string {
+		$key_type = (string) ( $row['key_type'] ?? 'ip' );
+
+		return 'ip' === $key_type ? 'ip|' . (string) ( $row['user_ip'] ?? '' ) : $key_type . '|' . strtolower( (string) ( $row['blocked_key'] ?? '' ) );
 	}
 
 	/**

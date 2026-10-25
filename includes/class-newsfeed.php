@@ -218,7 +218,10 @@ final class News_Feed {
 			return null;
 		}
 
-		// No DOCTYPE means no entity can be defined, let alone loaded.
+		// No DOCTYPE means no entity can be defined, let alone loaded. A DOCTYPE
+		// hidden in another encoding (UTF-16) is not caught here, but libxml
+		// neither loads external entities (default since PHP 8.0, and
+		// LIBXML_NONET) nor expands internal ones (no LIBXML_NOENT).
 		if ( false !== stripos( $xml, '<!DOCTYPE' ) ) {
 			return null;
 		}
@@ -277,8 +280,10 @@ final class News_Feed {
 	 * @return string
 	 */
 	private static function plain_text( string $text ): string {
-		$text = wp_strip_all_tags( html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		// Decoded twice (feeds often double-encode), then stripped, so an encoded tag cannot survive as markup.
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$text = wp_strip_all_tags( $text );
 
 		return trim( (string) preg_replace( '/\s+/u', ' ', $text ) );
 	}

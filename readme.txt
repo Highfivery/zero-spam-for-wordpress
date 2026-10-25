@@ -182,7 +182,7 @@ The Zero Spam dashboard screen shows Zero Spam's Facebook page and X (Twitter) t
 
 = Addresses you configure =
 
-* API usage alerts: when you enter a webhook address under API Monitoring, alerts are posted to it with the alert type, message, your site's address and name and the usage figures.
+* API usage alerts: when you enter a webhook address under API Monitoring, alerts are posted to it with the alert type, message, your site's address and name and the usage figures. Addresses on your own server or private network are refused unless a developer allows them.
 * Email checks: to tell whether an email address can receive mail, the domain of email addresses entered in protected forms is looked up through your server's DNS resolver.
 
 == Screenshots ==

@@ -25,6 +25,13 @@ class Access {
 	const RESCUE_COOKIE = 'zerospam_rescue';
 
 	/**
+	 * Whether terminate_execution() is being intercepted (see intercept_termination()).
+	 *
+	 * @var bool
+	 */
+	private static $intercepting = false;
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -55,6 +62,42 @@ class Access {
 	}
 
 	/**
+	 * Runs a check and tells whether it would have stopped the request, without
+	 * stopping it: terminate_execution() and every Front\Block_Page page throw
+	 * instead of sending a page or any header while the callback runs (used by
+	 * the REST self-test).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param callable $check Code that may call terminate_execution().
+	 * @return bool Whether it called terminate_execution().
+	 */
+	public static function intercept_termination( callable $check ): bool {
+		$previous           = self::$intercepting;
+		self::$intercepting = true;
+
+		try {
+			$check();
+		} catch ( Termination_Intercepted $stopped ) {
+			return true;
+		} finally {
+			self::$intercepting = $previous;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether a check runs inside intercept_termination(): Front\Block_Page
+	 * then throws instead of sending a page or any header.
+	 *
+	 * @since 6.0.0
+	 */
+	public static function is_intercepting_termination(): bool {
+		return self::$intercepting;
+	}
+
+	/**
 	 * Ends the request with a Zero Spam page (see Front\Block_Page): uncached, not indexed.
 	 *
 	 * @param string $title   Page title and, without the rescue form, its heading (plain text).
@@ -64,8 +107,14 @@ class Access {
 	 *                        visitor's details and the "Help for site owners"
 	 *                        rescue form (unless the zerospam_rescue_form_enabled
 	 *                        filter turns the form off). Default false.
+	 * @throws Termination_Intercepted Inside intercept_termination(), instead of ending the request.
 	 */
 	public static function terminate_execution( $title, $message, $code = 403, $rescue = false ) {
+		// The self-test asks whether a check would stop a request: no page, no headers.
+		if ( self::$intercepting ) {
+			throw new Termination_Intercepted( 'Zero Spam would have stopped this request.' );
+		}
+
 		if ( $rescue ) {
 			$ip = User::get_ip();
 			Block_Page::blocked( (string) $message, array( 'ip' => is_string( $ip ) ? $ip : '' ), wp_strip_all_tags( (string) $title ) );

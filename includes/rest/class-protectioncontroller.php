@@ -204,7 +204,7 @@ class Protection_Controller extends Base_Controller {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function modules( array $types ): array {
-		$schema     = Settings_Schema::get();
+		$schema     = Settings_Schema::get( false );
 		$by_section = array();
 
 		foreach ( $schema['settings'] as $entry ) {

@@ -168,6 +168,37 @@ class Test_Rest_Settings_Actions extends TestCase {
 	}
 
 	/**
+	 * When the recommended list cannot be read the action fails, even if the
+	 * site already has disallowed words (they are left as they are).
+	 */
+	public function test_update_disallowed_words_reports_an_unreadable_list(): void {
+		global $wp_filesystem;
+
+		update_option( 'disallowed_keys', "existing\nwords" );
+		$previous      = $wp_filesystem;
+		$wp_filesystem = new class() {
+			/**
+			 * Reads nothing.
+			 *
+			 * @param string $file File.
+			 */
+			public function get_contents( $file ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Signature of WP_Filesystem_Base::get_contents().
+				return false;
+			}
+		};
+
+		try {
+			$response = $this->rest( 'POST', self::ROUTE . 'update-disallowed-words' );
+		} finally {
+			$wp_filesystem = $previous; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the test's own replacement.
+		}
+
+		$this->assertSame( 500, $response->get_status() );
+		$this->assertSame( 'zerospam_action_failed', $response->get_data()['code'] );
+		$this->assertSame( "existing\nwords", get_option( 'disallowed_keys' ) );
+	}
+
+	/**
 	 * The error log is deleted.
 	 */
 	public function test_clear_error_log(): void {
@@ -192,6 +223,17 @@ class Test_Rest_Settings_Actions extends TestCase {
 		$this->assertSame( array(), $response->get_data()['skipped_locked'] );
 		$this->assertSame( 'enabled', get_option( 'zero-spam-comments' )['verify_comments'] );
 		$this->assertSame( '1', (string) get_option( 'zerospam_configured' ) );
+
+		$audit = get_option( 'zerospam_settings_audit' );
+		$this->assertIsArray( $audit, 'Autoconfigure writes an audit entry.' );
+		$this->assertSame( get_current_user_id(), $audit[0]['user_id'] );
+		$this->assertSame(
+			array(
+				'old' => false,
+				'new' => 'enabled',
+			),
+			$audit[0]['changes']['verify_comments']
+		);
 	}
 
 	/**
@@ -275,5 +317,58 @@ class Test_Rest_Settings_Actions extends TestCase {
 
 		$this->assertSame( 502, $failed->get_status() );
 		$this->assertSame( 'zerospam_action_failed', $failed->get_data()['code'] );
+	}
+
+	/**
+	 * Webhooks go through wp_safe_remote_post(): an address on a private
+	 * network is refused (so the test action cannot probe internal hosts) and
+	 * reported as failed; a public address is posted to.
+	 *
+	 * The HTTP mock answers before WordPress validates the address, so the
+	 * check WordPress makes for safe requests is applied right after it, and
+	 * the mock only counts as contacted when that check lets the URL through.
+	 */
+	public function test_webhook_to_a_private_address_is_refused(): void {
+		$sent = array();
+		add_filter(
+			'pre_http_request',
+			static function ( $preempt, $args, $url ) use ( &$sent ) {
+				$sent[] = $url;
+
+				if ( ! empty( $args['reject_unsafe_urls'] ) && false === wp_http_validate_url( $url ) ) {
+					return new WP_Error( 'http_request_failed', 'A valid URL was not provided.' );
+				}
+
+				return $preempt;
+			},
+			2,
+			3
+		);
+		$this->mock_http( '#/hook$#', array( 'ok' => true ) );
+
+		$this->set_setting( 'alert_webhook_url', 'https://10.0.0.5/hook' );
+		$refused = $this->rest( 'POST', self::ROUTE . 'test-alert-webhook' );
+
+		$this->assertSame( 502, $refused->get_status() );
+		$this->assertSame( 'zerospam_action_failed', $refused->get_data()['code'] );
+
+		// A public address (nothing leaves the test: the mock answers).
+		$this->set_setting( 'alert_webhook_url', 'https://8.8.8.8/hook' );
+		$public = $this->rest( 'POST', self::ROUTE . 'test-alert-webhook' );
+		$this->assertSame( 200, $public->get_status(), (string) wp_json_encode( $public->get_data() ) );
+
+		// An internal host the site owner allows with WordPress's own filter.
+		add_filter(
+			'http_request_host_is_external',
+			static function ( $external, $host ) {
+				return '10.0.0.5' === $host ? true : $external;
+			},
+			10,
+			2
+		);
+		$this->set_setting( 'alert_webhook_url', 'https://10.0.0.5/hook' );
+		$this->assertSame( 200, $this->rest( 'POST', self::ROUTE . 'test-alert-webhook' )->get_status() );
+
+		$this->assertSame( array( 'https://10.0.0.5/hook', 'https://8.8.8.8/hook', 'https://10.0.0.5/hook' ), $sent );
 	}
 }

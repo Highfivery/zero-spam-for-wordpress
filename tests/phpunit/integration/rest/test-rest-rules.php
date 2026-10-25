@@ -301,10 +301,56 @@ class Test_Rest_Rules extends TestCase {
 	}
 
 	/**
+	 * An undo does not restore a block next to a newer block of the same
+	 * address or location; it reports it as skipped.
+	 */
+	public function test_undo_skips_addresses_blocked_again(): void {
+		$first   = $this->block( '198.51.100.40' );
+		$second  = $this->block( '198.51.100.41' );
+		$deleted = $this->rest( 'POST', self::BLOCKS . '/bulk-delete', array( 'ids' => array( $first, $second ) ) )->get_data();
+
+		$again = $this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'ip'     => '198.51.100.40',
+				'type'   => 'permanent',
+				'reason' => 'Blocked again',
+			)
+		)->get_data();
+
+		$undo = $this->rest( 'POST', '/zero-spam/v1/undo/' . $deleted['undo_token'] )->get_data();
+
+		$this->assertSame( 1, $undo['restored'] );
+		$this->assertSame( 1, $undo['skipped'] );
+		$this->assertSame( '1', $GLOBALS['wpdb']->get_var( $GLOBALS['wpdb']->prepare( 'SELECT COUNT(*) FROM %i WHERE user_ip = %s', $GLOBALS['wpdb']->prefix . DB::$tables['blocked'], '198.51.100.40' ) ) );
+		$this->assertSame( 'Blocked again', DB::blocked( '198.51.100.40' )['reason'] );
+		$this->assertSame( $again['id'], (int) DB::blocked( '198.51.100.40' )['blocked_id'] );
+		$this->assertNotNull( DB::blocked( '198.51.100.41' ) );
+	}
+
+	/**
+	 * The two .htaccess methods.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public function data_htaccess_methods(): array {
+		return array(
+			'modern' => array( 'htaccess_modern', 'Require not ip 192.0.2.44' ),
+			'legacy' => array( 'htaccess_legacy', 'Deny from 192.0.2.44' ),
+		);
+	}
+
+	/**
 	 * In an .htaccess block mode the rules follow every change, and deleting
 	 * the last block clears them (5.x left the last address denied).
+	 *
+	 * @dataProvider data_htaccess_methods
+	 *
+	 * @param string $method Block method.
+	 * @param string $rule   Rule line for 192.0.2.44.
 	 */
-	public function test_htaccess_follows_the_blocks(): void {
+	public function test_htaccess_follows_the_blocks( string $method, string $rule ): void {
 		$this->htaccess = get_temp_dir() . 'zerospam-rules-' . wp_generate_password( 8, false ) . '.htaccess';
 		file_put_contents( $this->htaccess, "# BEGIN WordPress\n# END WordPress\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
 		$file = $this->htaccess;
@@ -314,7 +360,7 @@ class Test_Rest_Rules extends TestCase {
 				return $file;
 			}
 		);
-		$this->set_setting( 'block_method', 'htaccess_modern' );
+		$this->set_setting( 'block_method', $method );
 
 		$created = $this->rest(
 			'POST',
@@ -324,7 +370,7 @@ class Test_Rest_Rules extends TestCase {
 				'type' => 'permanent',
 			)
 		);
-		$this->assertStringContainsString( 'Require not ip 192.0.2.44', (string) file_get_contents( $file ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test file.
+		$this->assertStringContainsString( $rule, (string) file_get_contents( $file ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test file.
 
 		$deleted  = $this->rest( 'DELETE', self::BLOCKS . '/' . $created->get_data()['id'] );
 		$contents = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test file.
@@ -332,7 +378,7 @@ class Test_Rest_Rules extends TestCase {
 		$this->assertStringContainsString( '# BEGIN WordPress', $contents );
 
 		$this->rest( 'POST', '/zero-spam/v1/undo/' . $deleted->get_data()['undo_token'] );
-		$this->assertStringContainsString( 'Require not ip 192.0.2.44', (string) file_get_contents( $file ), 'Undo puts the rule back.' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test file.
+		$this->assertStringContainsString( $rule, (string) file_get_contents( $file ), 'Undo puts the rule back.' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test file.
 	}
 
 	/**
@@ -459,5 +505,22 @@ class Test_Rest_Rules extends TestCase {
 		$this->assertFalse( get_option( Admin_Safe_IPs::NOTICE_OPTION ), 'The notice about the removed address is gone.' );
 
 		$this->assertSame( 404, $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/192.0.2.200' )->get_status() );
+	}
+
+	/**
+	 * Listing the never-locked-out addresses builds the settings registry at
+	 * most once (the visitor IP and the trusted proxies read through it).
+	 */
+	public function test_no_lockout_builds_the_registry_once(): void {
+		update_option( Admin_Safe_IPs::OPTION, array( self::DEFAULT_IP ), false );
+		$this->rest( 'GET', '/zero-spam/v1/rules/no-lockout' );
+
+		$builds = $this->count_registry_builds(
+			function () {
+				$this->assertSame( 200, $this->rest( 'GET', '/zero-spam/v1/rules/no-lockout' )->get_status() );
+			}
+		);
+
+		$this->assertLessThanOrEqual( 1, $builds );
 	}
 }
