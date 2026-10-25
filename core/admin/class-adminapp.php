@@ -293,7 +293,8 @@ final class Admin_App {
 
 		wp_add_inline_script(
 			'wp-api-fetch',
-			sprintf( 'wp.apiFetch.use( wp.apiFetch.createPreloadingMiddleware( %s ) );', wp_json_encode( $preloaded ) ),
+			// One copy: the middleware answers apiFetch, useResource() paints the first render from it.
+			sprintf( 'var zeroSpamPreload = %s; wp.apiFetch.use( wp.apiFetch.createPreloadingMiddleware( zeroSpamPreload ) );', wp_json_encode( $preloaded ) ),
 			'after'
 		);
 
@@ -363,23 +364,25 @@ final class Admin_App {
 		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view state.
 
 		return array(
-			'area'        => $area,
-			'tab'         => $tab,
-			'version'     => ZEROSPAM_VERSION,
+			'area'              => $area,
+			'tab'               => $tab,
+			'version'           => ZEROSPAM_VERSION,
 			// Site-local "now" in milliseconds (read as UTC), so relative times match the log's site-local dates.
-			'nowLocal'    => ( time() + ( new \DateTimeImmutable( 'now', wp_timezone() ) )->getOffset() ) * 1000,
-			'site'        => array(
+			'nowLocal'          => ( time() + ( new \DateTimeImmutable( 'now', wp_timezone() ) )->getOffset() ) * 1000,
+			'site'              => array(
 				'name' => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
 				'url'  => home_url( '/' ),
 			),
-			'urls'        => $urls + array(
+			'urls'              => $urls + array(
 				'network'   => is_multisite() && current_user_can( 'manage_network_options' ) ? network_admin_url( 'admin.php?page=' . self::NETWORK_SLUG ) : '',
 				'siteAdmin' => admin_url( 'admin.php?page=' . self::AREAS['overview'] ),
 				'legacy'    => admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ),
 			),
-			'isMultisite' => is_multisite(),
-			'newsEnabled' => News_Feed::is_enabled(),
-			'environment' => array(
+			'isMultisite'       => is_multisite(),
+			'newsEnabled'       => News_Feed::is_enabled(),
+			// Log types that are not detections (rescue links): left out of the live counts, as in statistics.
+			'nonDetectionTypes' => \ZeroSpam\Includes\DB::NON_DETECTION_TYPES,
+			'environment'       => array(
 				'wordpress' => get_bloginfo( 'version' ),
 				'php'       => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
 				'ipSource'  => self::ip_source(),

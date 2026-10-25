@@ -56,6 +56,14 @@ class Protection_Controller extends Base_Controller {
 	const TRANSIENT = 'zerospam_protection_detections';
 
 	/**
+	 * Sections of the entry points every site should check; a site with one
+	 * of them off is not fully protected (an attention item says so).
+	 *
+	 * @var string[]
+	 */
+	const ENTRY_POINTS = array( 'comments', 'login', 'registration' );
+
+	/**
 	 * Log fill (percent) from which it needs attention.
 	 *
 	 * @var int
@@ -369,6 +377,33 @@ class Protection_Controller extends Base_Controller {
 	 */
 	private function attention( array $modules, int $log_count ): array {
 		$items = array();
+
+		// The core entry points first: these are the checks every site relies on.
+		$texts = array(
+			'comments'     => array(
+				__( 'Comment protection is off', 'zero-spam' ),
+				__( 'Comments posted on your site are not checked for spam. Turn on comment protection.', 'zero-spam' ),
+			),
+			'login'        => array(
+				__( 'Login protection is off', 'zero-spam' ),
+				__( 'Login attempts are not checked, so bots can try passwords freely. Turn on login protection.', 'zero-spam' ),
+			),
+			'registration' => array(
+				__( 'Registration protection is off', 'zero-spam' ),
+				__( 'New sign-ups are not checked for spam accounts. Turn on registration protection.', 'zero-spam' ),
+			),
+		);
+		foreach ( $modules as $module ) {
+			if ( in_array( $module['key'] ?? '', self::ENTRY_POINTS, true ) && false === ( $module['enabled'] ?? null ) ) {
+				$items[] = array(
+					'id'       => 'entry_point_off:' . $module['key'],
+					'severity' => 'warning',
+					'title'    => $texts[ $module['key'] ][0],
+					'message'  => $texts[ $module['key'] ][1],
+					'module'   => $module['key'],
+				);
+			}
+		}
 
 		foreach ( $modules as $module ) {
 			if ( empty( $module['available'] ) || empty( $module['plugin']['active'] ) || false !== $module['enabled'] ) {

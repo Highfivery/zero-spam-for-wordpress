@@ -99,7 +99,7 @@ class Test_Admin_App extends TestCase {
 	 */
 	private function preloaded_paths(): array {
 		$inline = $this->inline( 'wp-api-fetch', 'after' );
-		$this->assertSame( 1, preg_match( '/createPreloadingMiddleware\( (\{.*\}|\[\]) \)/s', $inline, $match ), 'The preloading middleware is added after wp-api-fetch.' );
+		$this->assertSame( 1, preg_match( '/var zeroSpamPreload = (\{.*\}|\[\]); wp\.apiFetch\.use\( wp\.apiFetch\.createPreloadingMiddleware\( zeroSpamPreload \) \);/s', $inline, $match ), 'The preloading middleware is added after wp-api-fetch.' );
 		$data = json_decode( $match[1], true );
 
 		return is_array( $data ) ? array_keys( $data ) : array();
@@ -368,5 +368,30 @@ class Test_Admin_App extends TestCase {
 		$this->assertArrayNotHasKey( '/zero-spam/v1/stats/summary?range=7', $preloaded );
 		// Their own preferences only.
 		$this->assertArrayHasKey( '/zero-spam/v1/ui/prefs', $preloaded );
+	}
+
+	/**
+	 * A saved license key never reaches the page: not in the bootstrap, not
+	 * in the preloaded REST answers (they carry a masked hint only).
+	 */
+	public function test_license_key_never_appears_in_the_page(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$key = 'ZS-SECRET-LICENSE-9f3c7a';
+		$this->set_setting( 'zerospam_license', $key, 'zerospam' );
+		$this->mock_http( '#wp-json/v2/get-license#', array( 'license_key' => $key, 'queries_remaining' => 5 ) );
+
+		$app = $this->registered_app();
+		$app->enqueue( 'toplevel_page_zero-spam' );
+		$_GET['page'] = 'zero-spam';
+		ob_start();
+		$app->render_page();
+		$html = (string) ob_get_clean();
+		unset( $_GET['page'] );
+
+		$page = $html . $this->inline( Admin_App::HANDLE, 'before' ) . $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( 'v1\\/license', $page, 'The license answer is preloaded (JSON-escaped path).' );
+		$this->assertStringNotContainsString( $key, $page );
+		$this->assertStringNotContainsString( 'SECRET-LICENSE', $page );
 	}
 }
