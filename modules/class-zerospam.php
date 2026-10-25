@@ -223,10 +223,10 @@ class Zero_Spam {
 	 * Global API data.
 	 */
 	public function global_api_data() {
+		// The zerospam.org API compares app_type exactly, in lower case, so it is a value, not prose.
 		$api_data                   = array();
 		$api_data['reporter_email'] = sanitize_email( get_bloginfo( 'admin_email' ) );
 		$api_data['app_key']        = \ZeroSpam\Core\Utilities::clean_domain( esc_url( site_url() ) );
-		// The zerospam.org API compares app_type exactly against wordpress, drupal and manual.
 		$api_data['app_type']       = 'wordpress'; // phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText -- An API value, not prose.
 		$api_data['app_details']    = wp_json_encode(
 			array(
