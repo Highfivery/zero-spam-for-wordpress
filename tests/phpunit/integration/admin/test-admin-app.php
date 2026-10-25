@@ -402,6 +402,36 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
+	 * The Overview (the shell from PR 4) prints its bootstrap and preloads
+	 * through the same encoding: a site name and a logged country name with
+	 * markup stay inside their scripts.
+	 */
+	public function test_overview_inline_scripts_escape_markup(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		update_option( 'blogname', 'Shop </script><!--<script>' );
+		$this->insert_log_rows(
+			2,
+			array(
+				'country'      => 'DE',
+				'country_name' => '</script><img src=x onerror=alert(1)>',
+			)
+		);
+
+		$this->registered_app()->enqueue( 'toplevel_page_zero-spam' );
+
+		foreach ( array( $this->inline( Admin_App::HANDLE, 'before' ), $this->inline( 'wp-api-fetch', 'after' ) ) as $inline ) {
+			$this->assertNotSame( '', $inline );
+			$this->assertStringNotContainsStringIgnoringCase( '</script', $inline );
+			$this->assertStringNotContainsString( '<!--', $inline );
+			$this->assertStringNotContainsString( '<img', $inline );
+		}
+
+		$this->assertStringContainsString( 'Shop \u003C\/script\u003E\u003C!--', $this->inline( Admin_App::HANDLE, 'before' ), 'The site name is kept, escaped.' );
+		$this->assertContains( '</script><img src=x onerror=alert(1)>', array_column( $this->preloaded()[ Admin_App::OVERVIEW_PRELOADS[4] ]['body'], 'country_name' ), 'The preloaded entry decodes to the logged text.' );
+	}
+
+	/**
 	 * Logged submissions are preloaded into an inline script: markup in them
 	 * (a closing script tag, an HTML comment opener) is escaped so it can
 	 * never end or change the script element.
