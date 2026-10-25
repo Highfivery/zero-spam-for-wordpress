@@ -286,6 +286,29 @@ class Test_Block_Page extends TestCase {
 	}
 
 	/**
+	 * The reference is the log row's ID even when pruning (which reads the settings) inserts other rows first.
+	 */
+	public function test_reference_survives_inserts_during_pruning(): void {
+		$this->set_setting( 'log_blocked_ips', 'enabled', 'settings' );
+		$this->block( self::DEFAULT_IP );
+		add_filter(
+			'zerospam_settings',
+			static function ( $settings ) {
+				add_option( 'zerospam_test_insert_' . wp_generate_password( 8, false ), 'x' );
+
+				return $settings;
+			}
+		);
+
+		$xpath = $this->parse( $this->blocked_page()['message'] );
+
+		global $wpdb;
+		$log_id = (int) $wpdb->get_var( "SELECT MAX(log_id) FROM `{$this->log_table()}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name only.
+		$this->assertGreaterThan( 0, $log_id );
+		$this->assertSame( '#' . $log_id, $xpath->evaluate( 'normalize-space(//dl/dt[.="Reference"]/following-sibling::dd[1])' ) );
+	}
+
+	/**
 	 * Without logging there is no log row, so no reference is shown.
 	 */
 	public function test_blocked_page_without_logging_has_no_reference(): void {
@@ -519,6 +542,23 @@ class Test_Block_Page extends TestCase {
 	}
 
 	/**
+	 * The form error page shows the blocked message through the same post allowlist.
+	 *
+	 * @dataProvider data_message_payloads
+	 *
+	 * @param string $payload   Stored message.
+	 * @param string $forbidden Text that must not reach the page.
+	 */
+	public function test_form_error_page_filters_the_blocked_message( string $payload, string $forbidden ): void {
+		$this->set_setting( 'blocked_message', 'Before ' . $payload . ' <em>after</em>', 'settings' );
+
+		$page = $this->every_page()['form-error'];
+
+		$this->assertStringNotContainsStringIgnoringCase( $forbidden, $page['message'] );
+		$this->assertStringContainsString( '<em>after</em>', $page['message'] );
+	}
+
+	/**
 	 * Opening a valid link shows the "Let me back in" page; its button posts the token, as before.
 	 */
 	public function test_confirm_page_and_post_are_unchanged(): void {
@@ -563,6 +603,10 @@ class Test_Block_Page extends TestCase {
 			$this->assertInstanceOf( DOMElement::class, $details );
 			$this->assertTrue( $details->hasAttribute( 'open' ), 'The form to ask for a new link is collapsed.' );
 			$this->assertSame( 1, $xpath->query( '//details//form[@action="' . admin_url( 'admin-post.php' ) . '"]//input[@name="' . Rescue_Link::EMAIL_FIELD . '"]' )->length );
+			$this->assertSame( 1, $xpath->query( '//details//form//input[@type="hidden"][@name="action"][@value="' . Rescue_Link::ACTION . '"]' )->length, 'The new-link form does not post the rescue action.' );
+			$nonce = $xpath->query( '//details//form//input[@type="hidden"][@name="' . Rescue_Link::NONCE_FIELD . '"]' )->item( 0 );
+			$this->assertInstanceOf( DOMElement::class, $nonce );
+			$this->assertSame( 1, wp_verify_nonce( $nonce->getAttribute( 'value' ), Rescue_Link::NONCE_ACTION ), 'The new-link form carries no valid nonce.' );
 			$this->assertStringNotContainsString( $token, $page['message'], 'The used token is repeated on the page.' );
 		}
 
@@ -675,6 +719,31 @@ class Test_Block_Page extends TestCase {
 	}
 
 	/**
+	 * terminate_execution() with the rescue form uses the caller's title for the page and still sends no-cache headers.
+	 */
+	public function test_terminate_execution_with_rescue_keeps_title_and_no_cache(): void {
+		$title = '';
+		add_filter(
+			'wp_die_handler',
+			static function () use ( &$title ) {
+				return static function ( $message, $page_title, $args ) use ( &$title ) {
+					$title = (string) $page_title;
+					throw new WPDieException( (string) $message, (int) $args['response'] ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Caught by the test.
+				};
+			},
+			20
+		);
+
+		$page = $this->page( static fn () => Access::terminate_execution( 'Custom title', 'Blocked here.', 403, true ) );
+
+		$this->assertSame( 403, $page['code'] );
+		$this->assertSame( 'Custom title', $title );
+		$this->assertStringContainsString( '<form', $page['message'] );
+		$this->assertContains( 'Cache-Control: no-cache, must-revalidate, max-age=0, no-store, private', Stubs::$headers, 'No-cache headers were not sent before a custom wp_die() handler.' );
+		$this->assertContains( 'X-Robots-Tag: noindex, nofollow', Stubs::$headers );
+	}
+
+	/**
 	 * The zerospam_block_page_template filter lets a theme replace a template; an unreadable path falls back.
 	 */
 	public function test_template_filter_overrides_a_template(): void {
@@ -706,6 +775,45 @@ class Test_Block_Page extends TestCase {
 
 		$this->assertStringContainsString( 'Comment not posted.', $comment['message'], 'An unreadable override broke the page.' );
 		$this->assertSame( 'comment-blocked', $seen[1][0] );
+	}
+
+	/**
+	 * The filter only accepts an existing .php file: other readable files fall back to the default template.
+	 *
+	 * @dataProvider data_rejected_template_paths
+	 *
+	 * @param string $kind What the filter returns: a .txt file holding PHP, or a relative path to a readable non-PHP file.
+	 */
+	public function test_template_filter_rejects_non_php_files( string $kind ): void {
+		if ( 'txt' === $kind ) {
+			$file               = wp_tempnam( 'zerospam-blocked' ) . '.txt';
+			$this->temp_files[] = $file;
+			file_put_contents( $file, '<?php echo "<h1>Ran a text file</h1>";' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
+		} else {
+			$file = ZEROSPAM_PATH . 'includes/templates/front/../../../readme.txt';
+			$this->assertFileExists( $file );
+		}
+
+		add_filter( 'zerospam_block_page_template', static fn () => $file );
+		$this->block( self::DEFAULT_IP );
+
+		$page = $this->blocked_page();
+
+		$this->assertStringNotContainsString( 'Ran a text file', $page['message'] );
+		$this->assertStringNotContainsString( 'Stable tag', $page['message'], 'The readme was shown.' );
+		$this->assertStringContainsString( 'Your connection was flagged.', $page['message'] );
+	}
+
+	/**
+	 * Paths the template filter must refuse.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function data_rejected_template_paths(): array {
+		return array(
+			'text file with PHP' => array( 'txt' ),
+			'readme via ../'     => array( 'readme' ),
+		);
 	}
 
 	/**

@@ -177,6 +177,38 @@ class Test_Emails extends TestCase {
 	}
 
 	/**
+	 * When another plugin sends the email itself (pre_wp_mail), the phpmailer_init callback is still removed.
+	 */
+	public function test_send_cleans_up_when_wp_mail_is_short_circuited(): void {
+		add_filter( 'pre_wp_mail', '__return_true' );
+		$before = has_action( 'phpmailer_init' ) ? count( $GLOBALS['wp_filter']['phpmailer_init']->callbacks, COUNT_RECURSIVE ) : 0;
+
+		$this->assertTrue( Email::send( 'owner@example.com', 'Subject', $this->sample() ) );
+
+		$after = has_action( 'phpmailer_init' ) ? count( $GLOBALS['wp_filter']['phpmailer_init']->callbacks, COUNT_RECURSIVE ) : 0;
+		$this->assertSame( $before, $after, 'The phpmailer_init callback was left behind.' );
+		$this->assertSame( array(), $this->sent_mail() );
+	}
+
+	/**
+	 * Line breaks inside a paragraph survive in the HTML.
+	 */
+	public function test_line_breaks_in_a_paragraph(): void {
+		$html = Email::html(
+			array(
+				'blocks' => array(
+					array(
+						'type' => 'text',
+						'text' => "First line\nsecond <line>",
+					),
+				),
+			)
+		);
+
+		$this->assertStringContainsString( "First line<br>\nsecond &lt;line&gt;", $html );
+	}
+
+	/**
 	 * Rendering an email runs no database queries.
 	 */
 	public function test_rendering_runs_no_queries(): void {

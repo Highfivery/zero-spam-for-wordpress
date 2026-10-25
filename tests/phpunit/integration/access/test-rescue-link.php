@@ -255,7 +255,7 @@ class Test_Rescue_Link extends TestCase {
 		foreach ( $parts as $type => $body ) {
 			$this->assertStringContainsString( $link, $body, "The {$type} part has no link." );
 			$this->assertStringContainsString( '15 minutes', $body );
-			$this->assertStringContainsString( 'IP Allowlist under Zero Spam → Rules', $body );
+			$this->assertStringContainsString( 'IP Whitelist under Settings → Zero Spam → Settings', $body );
 			$this->assertStringContainsString( self::DEFAULT_IP, $body, 'The email does not say which IP asked for it.' );
 		}
 		$this->assertStringNotContainsString( '@', $link );

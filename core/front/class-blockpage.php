@@ -115,8 +115,9 @@ final class Block_Page {
 	 *     @type string $ip        Visitor IP.
 	 *     @type int    $reference Detection log ID, when the block was logged.
 	 * }
+	 * @param string $title   Optional. Page title (plain text). Default "Blocked".
 	 */
-	public static function blocked( string $message, array $details = array() ): void {
+	public static function blocked( string $message, array $details = array(), string $title = '' ): void {
 		self::render(
 			'blocked',
 			array(
@@ -126,7 +127,7 @@ final class Block_Page {
 				'details'    => self::details( $details ),
 				'rescue'     => Rescue_Link::form_enabled() ? Rescue_Link::form_args() : null,
 			),
-			__( 'Blocked', 'zero-spam' ),
+			'' === $title ? __( 'Blocked', 'zero-spam' ) : $title,
 			403
 		);
 	}
@@ -186,6 +187,14 @@ final class Block_Page {
 
 		$fragment = self::template( $template, $args );
 
+		// Sent here, not only by die_handler(), so a wp_die() handler other code installed still gets an uncached, unindexed page.
+		if ( ! headers_sent() ) {
+			foreach ( self::headers() as $name => $value ) {
+				header( $name . ': ' . $value );
+			}
+			header_remove( 'Last-Modified' );
+		}
+
 		$die_args = array(
 			'response'      => $status,
 			'zerospam_page' => $template,
@@ -216,8 +225,9 @@ final class Block_Page {
 		 * The file receives `$args` (the page's arguments; see the default
 		 * template in includes/templates/front/) and must escape everything it
 		 * prints. It renders the page's copy only: the document around it
-		 * (language, styles, the mark and the wall) stays Zero Spam's. A path
-		 * that is not a readable file is ignored.
+		 * (language, styles, the mark and the wall) stays Zero Spam's. Only an
+		 * existing, readable `.php` file is used (resolved with realpath());
+		 * anything else falls back to the default template.
 		 *
 		 * @since 6.0.0
 		 *
@@ -226,8 +236,9 @@ final class Block_Page {
 		 * @param array  $args     Template arguments.
 		 */
 		$filtered = apply_filters( 'zerospam_block_page_template', $path, $template, $args );
-		if ( is_string( $filtered ) && '' !== $filtered && is_file( $filtered ) && is_readable( $filtered ) ) {
-			$path = $filtered;
+		$resolved = is_string( $filtered ) && '' !== $filtered ? realpath( $filtered ) : false;
+		if ( false !== $resolved && is_file( $resolved ) && is_readable( $resolved ) && 'php' === strtolower( pathinfo( $resolved, PATHINFO_EXTENSION ) ) ) {
+			$path = $resolved;
 		}
 
 		if ( ! is_readable( $path ) ) {
@@ -278,7 +289,7 @@ final class Block_Page {
 	}
 
 	/**
-	 * Sends a page: the status and headers, then the document around the page's copy.
+	 * Sends a page: the status, then the document around the page's copy (render() already sent the other headers).
 	 *
 	 * @param string|\WP_Error $message The page's copy (escaped markup).
 	 * @param string           $title   Page title (escaped).
@@ -290,10 +301,6 @@ final class Block_Page {
 
 		if ( ! headers_sent() ) {
 			status_header( $status );
-			foreach ( self::headers() as $name => $value ) {
-				header( $name . ': ' . $value );
-			}
-			header_remove( 'Last-Modified' );
 		}
 
 		echo self::document( $copy, wp_specialchars_decode( (string) $title, ENT_QUOTES ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Built from escaped parts in document().

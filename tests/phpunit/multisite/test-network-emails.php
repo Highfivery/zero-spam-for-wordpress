@@ -117,6 +117,31 @@ class Test_Network_Emails extends TestCase {
 	}
 
 	/**
+	 * The network API alert is HTML and links to the network admin.
+	 */
+	public function test_network_api_alert_links_to_the_network_admin(): void {
+		$this->set_setting( 'alert_network', 'enabled', 'api-monitoring' );
+
+		$send = new ReflectionMethod( \ZeroSpam\Includes\API_Usage_Alerts::class, 'send_network_alert' );
+		$send->invoke(
+			new \ZeroSpam\Includes\API_Usage_Alerts(),
+			array(
+				'type'     => 'quota_warning',
+				'severity' => 'critical',
+				'message'  => 'Network-wide API quota at 5.0% remaining',
+				'value'    => 5,
+			)
+		);
+
+		$sent = $this->sent_mail();
+		$this->assertNotEmpty( $sent );
+		$parts = $this->mail_parts( $sent[0] );
+		$this->assertArrayHasKey( 'text/html', $parts );
+		$this->assertStringContainsString( esc_url( network_admin_url( 'settings.php?page=zerospam-network-settings' ) ), $parts['text/html'] );
+		$this->assertStringNotContainsString( esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring' ) ), $parts['text/html'] );
+	}
+
+	/**
 	 * The weekly summary goes to a super admin in the template, with the network's numbers and recent changes.
 	 */
 	public function test_weekly_summary_email(): void {

@@ -36,8 +36,9 @@ defined( 'ABSPATH' ) || die();
  * The HTML is a table layout at most 600px wide with inline styles only (no
  * classes, images, SVG or web fonts, which many mail clients drop); the mark
  * is drawn as coloured table cells. send() adds the plain-text version as the
- * PHPMailer AltBody, through a phpmailer_init callback that runs once and is
- * removed when wp_mail() returns.
+ * PHPMailer AltBody, through a phpmailer_init callback that is removed when
+ * wp_mail() returns, also when another plugin sends the email itself
+ * (pre_wp_mail) and the callback never runs.
  */
 final class Email {
 
@@ -93,9 +94,7 @@ final class Email {
 	 */
 	public static function send( $to, string $subject, array $message, array $headers = array() ): bool {
 		$text  = self::text( $message );
-		$alt   = null;
-		$alt   = static function ( $phpmailer ) use ( $text, &$alt ): void {
-			remove_action( 'phpmailer_init', $alt );
+		$alt   = static function ( $phpmailer ) use ( $text ): void {
 			if ( is_object( $phpmailer ) && property_exists( $phpmailer, 'AltBody' ) ) {
 				$phpmailer->AltBody = $text; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- PHPMailer property.
 			}
@@ -284,7 +283,7 @@ final class Email {
 		$args   = array_values( (array) ( $block['args'] ?? array() ) );
 
 		if ( ! $args ) {
-			return $html ? esc_html( $format ) : $format;
+			return $html ? self::breaks( esc_html( $format ) ) : $format;
 		}
 
 		$parts = array();
@@ -293,7 +292,16 @@ final class Email {
 		}
 
 		// Placeholders survive esc_html() unchanged; a literal "%" in a translation is written "%%".
-		return vsprintf( $html ? esc_html( $format ) : $format, $parts );
+		return $html ? self::breaks( vsprintf( esc_html( $format ), $parts ) ) : vsprintf( $format, $parts );
+	}
+
+	/**
+	 * Keeps the line breaks inside a paragraph in HTML.
+	 *
+	 * @param string $html Escaped text.
+	 */
+	private static function breaks( string $html ): string {
+		return str_replace( array( "\r\n", "\n" ), "<br>\n", $html );
 	}
 
 	/**

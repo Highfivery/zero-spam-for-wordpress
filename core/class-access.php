@@ -68,7 +68,7 @@ class Access {
 	public static function terminate_execution( $title, $message, $code = 403, $rescue = false ) {
 		if ( $rescue ) {
 			$ip = User::get_ip();
-			Block_Page::blocked( (string) $message, array( 'ip' => is_string( $ip ) ? $ip : '' ) );
+			Block_Page::blocked( (string) $message, array( 'ip' => is_string( $ip ) ? $ip : '' ), wp_strip_all_tags( (string) $title ) );
 
 			return;
 		}
@@ -325,8 +325,7 @@ class Access {
 
 						if ( ! empty( $settings['log_blocked_ips']['value'] ) && 'enabled' === $settings['log_blocked_ips']['value'] ) {
 							if ( ZeroSpam\Includes\DB::log( $detail['type'], $detail['details'] ) && ! $reference ) {
-								global $wpdb;
-								$reference = (int) $wpdb->insert_id;
+								$reference = ZeroSpam\Includes\DB::last_log_id();
 							}
 						}
 					}

@@ -324,6 +324,7 @@ class API_Usage_Alerts {
 					'title' => __( 'Today', 'zero-spam' ),
 					'rows'  => $rows,
 				),
+				// TODO(6.0 cutover): menu path (API usage and API monitoring settings links).
 				array(
 					'type'  => 'button',
 					'label' => __( 'View API usage', 'zero-spam' ),
@@ -336,9 +337,9 @@ class API_Usage_Alerts {
 					'text' => __( 'To change which alerts you get, go to %s.', 'zero-spam' ),
 					'args' => array(
 						array(
-							'text'  => __( 'API monitoring settings', 'zero-spam' ),
+							'text'  => $is_network ? __( 'Zero Spam network settings', 'zero-spam' ) : __( 'API monitoring settings', 'zero-spam' ),
 							'style' => 'link',
-							'url'   => admin_url( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring' ),
+							'url'   => $is_network ? network_admin_url( 'settings.php?page=zerospam-network-settings' ) : admin_url( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring' ),
 						),
 					),
 				),

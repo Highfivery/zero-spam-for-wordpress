@@ -26,6 +26,7 @@ defined( 'ABSPATH' ) || die();
 				<li><?php esc_html_e( 'On the blocked page, open "Help for site owners".', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Enter the email address of an administrator account on this site and press "Email me a rescue link".', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Open the link in that email, on any device, and press "Let me back in". That browser is let in for one hour, so you can log in.', 'zero-spam' ); ?></li>
+				<?php // TODO(6.0 cutover): menu path. ?>
 				<li><?php esc_html_e( 'Add your IP address to the IP Whitelist under Settings → Zero Spam → Settings so it does not happen again.', 'zero-spam' ); ?></li>
 			</ol>
 			<p><?php esc_html_e( 'A link that was already used or has expired opens a "This link has expired" page with the same form, so you can ask for a new one. The email is HTML with a plain-text version for mail clients that need it.', 'zero-spam' ); ?></p>

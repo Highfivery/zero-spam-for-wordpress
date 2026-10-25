@@ -227,6 +227,7 @@ class Network_Notifications {
 							'title' => __( 'What changed', 'zero-spam' ),
 							'rows'  => $rows,
 						),
+						// TODO(6.0 cutover): menu path (site settings link).
 						array(
 							'type'  => 'button',
 							'label' => __( 'View your Zero Spam settings', 'zero-spam' ),
@@ -401,6 +402,7 @@ class Network_Notifications {
 			);
 		}
 
+		// TODO(6.0 cutover): menu path (network settings link).
 		$blocks[] = array(
 			'type'  => 'button',
 			'label' => __( 'View network settings', 'zero-spam' ),
