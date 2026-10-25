@@ -216,12 +216,24 @@ export function addToDays( days, items ) {
 		return days;
 	}
 	const add = {};
+	const network = {};
 	( items || [] ).forEach( ( item ) => {
 		const day = String( item.date || '' ).slice( 0, 10 );
 		add[ day ] = ( add[ day ] || 0 ) + 1;
+		if ( isNetworkOnly( item ) ) {
+			network[ day ] = ( network[ day ] || 0 ) + 1;
+		}
 	} );
 	return days.map( ( day ) =>
-		add[ day.date ] ? { ...day, total: day.total + add[ day.date ] } : day
+		add[ day.date ]
+			? {
+					...day,
+					total: day.total + add[ day.date ],
+					network_only:
+						( day.network_only || 0 ) +
+						( network[ day.date ] || 0 ),
+				}
+			: day
 	);
 }
 
@@ -247,4 +259,82 @@ export function milestones( total ) {
 		}
 	}
 	return { reached, next };
+}
+
+/** Failed-check key of the Zero Spam network (Stats_Controller::NETWORK_FAILED). */
+export const NETWORK_FAILED = 'zero_spam';
+
+/**
+ * Whether a live entry is a detection only the network made.
+ *
+ * @param {{type: string, failed: ?string}} item Activity entry.
+ * @return {boolean} Network-only.
+ */
+export const isNetworkOnly = ( item ) =>
+	'blocked' === item?.type && NETWORK_FAILED === item?.failed;
+
+/**
+ * What Enhanced added in a period, from stats/summary.
+ *
+ * @param {Object|undefined} summary stats/summary answer.
+ * @return {{network: number, basic: number, total: number, previous: number, delta: number, share: number, plus: number}} Figures; share and plus are whole percents.
+ */
+export function networkFigures( summary ) {
+	const total = Math.max( 0, Number( summary?.total ) || 0 );
+	const network = Math.min(
+		total,
+		Math.max( 0, Number( summary?.network_only?.total ) || 0 )
+	);
+	const basic = total - network;
+	const previous = Math.max(
+		0,
+		Number( summary?.network_only?.previous_total ) || 0
+	);
+	return {
+		network,
+		basic,
+		total,
+		previous,
+		delta: network - previous,
+		share: total > 0 ? Math.round( ( network / total ) * 100 ) : 0,
+		plus: basic > 0 ? Math.round( ( network / basic ) * 100 ) : 0,
+	};
+}
+
+/**
+ * The days' network-only counts, oldest first.
+ *
+ * @param {Array<{network_only?: number}>} days stats/timeseries days.
+ * @return {number[]} Counts.
+ */
+export const networkSeries = ( days ) =>
+	( days || [] ).map( ( day ) =>
+		Math.max( 0, Number( day.network_only ) || 0 )
+	);
+
+/**
+ * A sparkline's line and area paths in a w × h box (2px inset top and bottom).
+ *
+ * @param {number[]} values Values, oldest first.
+ * @param {number}   w      Width.
+ * @param {number}   h      Height.
+ * @return {{line: string, area: string}} SVG path data ('' for fewer than two values).
+ */
+export function sparkPaths( values, w, h ) {
+	if ( ! Array.isArray( values ) || values.length < 2 ) {
+		return { line: '', area: '' };
+	}
+	const max = Math.max( 1, ...values );
+	const n = values.length;
+	const points = values.map( ( v, i ) => [
+		( i / ( n - 1 ) ) * w,
+		h - 2 - ( v / max ) * ( h - 4 ),
+	] );
+	const line = points
+		.map(
+			( [ x, y ], i ) =>
+				`${ i ? 'L' : 'M' }${ x.toFixed( 1 ) } ${ y.toFixed( 1 ) }`
+		)
+		.join( '' );
+	return { line, area: `${ line }L${ w } ${ h }L0 ${ h }Z` };
 }

@@ -284,6 +284,11 @@ const overviewReady = async ( page: Page ) => {
 	await page.locator( '.zs-feed, .zs-feed-tile .zs-empty' ).first().waitFor();
 };
 
+/** Seeds 15 blocked visits that only the Zero Spam network caught (TEST-NET IPs). */
+export const seedNetworkCatches = async ( zs: ZsApi ) => {
+	await zs.seedLog( 15, { type: 'blocked', failed: 'zero_spam', ipPrefix: '192.0.2.', spacingMinutes: 180 } );
+};
+
 /** Waits until a placeholder area has rendered. */
 const areaReady = async ( page: Page ) => {
 	await page.locator( '#zs-area-h' ).waitFor();
@@ -292,7 +297,20 @@ const areaReady = async ( page: Page ) => {
 const V6_OVERVIEW: Screen[] = [
 	{ id: 'v6-overview-empty', title: '6.0 Overview (fresh site)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'overview' ), prepare: overviewReady, visual: { mobile: true, mask: OVERVIEW_MASKS, selector: '#zerospam-app' } },
 	{ id: 'v6-overview-seeded', title: '6.0 Overview (Basic, with detections)', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'overview' ), prepare: overviewReady, visual: { mobile: true, dark: true, mask: OVERVIEW_MASKS, selector: '#zerospam-app' } },
-	{ id: 'v6-overview-enhanced', title: '6.0 Overview (Enhanced, with detections)', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', level: 'enhanced', path: () => AREA( 'overview' ), prepare: overviewReady, visual: { mobile: true, mask: OVERVIEW_MASKS, selector: '#zerospam-app' } },
+	{
+		id: 'v6-overview-enhanced',
+		title: '6.0 Overview (Enhanced, with detections)',
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		level: 'enhanced',
+		// 15 visits only the Zero Spam network caught (failed check zero_spam).
+		before: seedNetworkCatches,
+		path: () => AREA( 'overview' ),
+		prepare: overviewReady,
+		visual: { mobile: true, mask: [ ...OVERVIEW_MASKS, '.zs-hn-spark', '.zs-ni-spark', '.zs-spark-mini', '.zs-ni-tiles li:nth-child(3)' ], selector: '#zerospam-app' },
+	},
 	{
 		id: 'v6-overview-milestone',
 		title: '6.0 Overview › milestone and review ask',

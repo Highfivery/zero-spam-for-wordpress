@@ -21,7 +21,14 @@ import { boot, nowLocal, PATHS, useResource } from '../data/api';
 import { ago, minutesAgo, num } from '../data/format';
 import { createAnnounceGate } from '../data/poll';
 import { useLiveFeed } from '../data/use-live-feed';
-import { addToDays, milestones } from './chart-data';
+import {
+	addToDays,
+	isNetworkOnly,
+	milestones,
+	networkFigures,
+	networkSeries,
+} from './chart-data';
+import { Spark } from './spark';
 import { ThreatsChart } from './chart';
 import { HeroWall } from './hero-wall';
 import {
@@ -69,11 +76,24 @@ function bump( summary, items ) {
 			} );
 		}
 	} );
+	const network = items.filter( isNetworkOnly ).length;
 	return {
 		...summary,
 		total: summary.total + items.length,
 		delta: summary.delta + items.length,
 		by_type: byType,
+		...( summary.network_only
+			? {
+					network_only: {
+						...summary.network_only,
+						total: summary.network_only.total + network,
+						basic_total:
+							summary.network_only.basic_total +
+							items.length -
+							network,
+					},
+				}
+			: {} ),
 	};
 }
 
@@ -84,8 +104,10 @@ function bump( summary, items ) {
  * @param {number}                          props.total        Threats stopped in 30 days.
  * @param {Object}                          props.feed         Live feed state.
  * @param {(...args: unknown[]) => unknown} props.onToggleLive Pause or resume.
+ * @param {Object}                          props.summary      stats/summary?range=30.
+ * @param {Array}                           props.days         stats/timeseries days.
  */
-function Hero( { total, feed, onToggleLive } ) {
+function Hero( { total, feed, onToggleLive, summary, days } ) {
 	const { enhanced, license, modules, reduced, prefs } = useApp();
 	const status = protectionStatus( modules );
 	const site = boot.site.name;
@@ -113,7 +135,7 @@ function Hero( { total, feed, onToggleLive } ) {
 		liveText = __( 'Paused', 'zero-spam' );
 	}
 
-	const q = license?.queries;
+	const net = networkFigures( summary );
 
 	return (
 		<div
@@ -175,21 +197,50 @@ function Hero( { total, feed, onToggleLive } ) {
 								site
 							)
 						: __( 'Your site is protected.', 'zero-spam' ) }
-					<span>
-						{ total > 0
-							? sprintf(
-									/* translators: %s: number of threats */
-									_n(
-										'%s threat stopped.',
-										'%s threats stopped.',
-										total,
-										'zero-spam'
-									),
-									num( total )
-								)
-							: __( 'Watching for threats.', 'zero-spam' ) }
-					</span>
+					{ ! enhanced && (
+						<span>
+							{ total > 0
+								? sprintf(
+										/* translators: %s: number of threats */
+										_n(
+											'%s threat stopped.',
+											'%s threats stopped.',
+											total,
+											'zero-spam'
+										),
+										num( total )
+									)
+								: __( 'Watching for threats.', 'zero-spam' ) }
+						</span>
+					) }
 				</h1>
+				{ enhanced && (
+					<p className="zs-hero-sub">
+						{ net.network > 0 ? (
+							<>
+								{ __( 'Enhanced caught', 'zero-spam' ) }{ ' ' }
+								<b>
+									{ sprintf(
+										/* translators: %s: number of threats */
+										__( '%s more.', 'zero-spam' ),
+										num( net.network )
+									) }
+								</b>
+							</>
+						) : (
+							sprintf(
+								/* translators: %s: number of threats */
+								_n(
+									'%s threat stopped.',
+									'%s threats stopped.',
+									total,
+									'zero-spam'
+								),
+								num( total )
+							)
+						) }
+					</p>
+				) }
 				<p className="zs-lede">
 					{ enhanced
 						? __(
@@ -259,23 +310,30 @@ function Hero( { total, feed, onToggleLive } ) {
 							: __( 'Network shield · on', 'zero-spam' ) }
 					</span>
 					<p className="zs-hn-count" id="zs-hn-l">
-						<b className="zs-mono">{ q ? num( q.used ) : '—' }</b>
+						<b className="zs-mono">{ num( net.network ) }</b>
 						<span>
 							{ __(
-								'visitors checked against the network this month',
+								'threats Basic would have missed · last 30 days',
 								'zero-spam'
 							) }
 						</span>
 					</p>
-					{ q && q.limit > 0 && (
-						<div className="zs-zc-bar" aria-hidden="true">
-							<i
-								style={ {
-									width: `${ Math.min( 100, Math.round( ( q.used / q.limit ) * 100 ) ) }%`,
-								} }
-							/>
-						</div>
-					) }
+					<div className="zs-hn-spark">
+						<Spark
+							values={ networkSeries( days ) }
+							width={ 240 }
+							height={ 48 }
+							className="zs-spark-big"
+							label={ sprintf(
+								/* translators: %s: number of threats */
+								__(
+									'Threats only the network caught, per day over the last 30 days: %s in all',
+									'zero-spam'
+								),
+								num( net.network )
+							) }
+						/>
+					</div>
 				</aside>
 			) }
 		</div>
@@ -379,8 +437,12 @@ export function Overview() {
 					total={ total }
 					feed={ feed }
 					onToggleLive={ toggleLive }
+					summary={ s30.data }
+					days={ days }
 				/>
-				{ enhanced && <NetworkPanel /> }
+				{ enhanced && (
+					<NetworkPanel summary={ s30.data } days={ days } />
+				) }
 				<ThreatsChart
 					summaries={ summaries }
 					days={ days }

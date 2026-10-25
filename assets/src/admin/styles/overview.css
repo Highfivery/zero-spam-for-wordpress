@@ -1437,3 +1437,144 @@
 		min-height: var(--zs-tap-min);
 	}
 }
+
+/* Sparklines: one 1.75px stroke and a soft area (prototype v13) */
+.zs-spark {
+	display: block;
+	overflow: visible;
+}
+
+.zs-spark-big {
+	width: 100%;
+	height: 56px;
+}
+
+.zs-spark-mini {
+	width: 96px;
+	height: 22px;
+}
+
+.zs-sp-area {
+	fill: var(--zs-spark-fill);
+}
+
+.zs-sp-line {
+	fill: none;
+	stroke: var(--zs-spark);
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	stroke-width: var(--zs-spark-stroke);
+	vector-effect: non-scaling-stroke;
+}
+
+/* Enhanced hero: "Enhanced caught N more." and the network module's trend */
+.zs-hero-sub {
+	margin-top: -4px;
+	color: var(--zs-ink);
+	font: var(--zs-weight-bold) clamp(1.15rem, 0.9rem + 0.9vw, 1.6rem) / 1.2 var(--zs-font-ui);
+	letter-spacing: -0.015em;
+}
+
+.zs-hero-sub b {
+	color: var(--zs-red);
+}
+
+.zs-hn-spark .zs-spark {
+	height: 48px;
+}
+
+.zs-hero .zs-hn-spark .zs-sp-line {
+	stroke: var(--zs-enh-ink);
+}
+
+.zs-hero .zs-hn-spark .zs-sp-area {
+	fill: color-mix(in srgb, var(--zs-enh-ink) 16%, transparent);
+}
+
+/* Network intelligence: tiles and Basic vs Enhanced on the left, the trend on the right */
+.zs-ni-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+	gap: 20px;
+}
+
+.zs-ni-col {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-4);
+	min-width: 0;
+}
+
+.zs-ni-vs {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-2);
+	padding: 14px;
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-surface-2);
+}
+
+.zs-ni-vs-row {
+	display: grid;
+	grid-template-columns: 110px minmax(0, 1fr) 56px;
+	gap: 10px;
+	align-items: center;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+}
+
+.zs-ni-vs-row b {
+	color: var(--zs-ink);
+	text-align: right;
+}
+
+.zs-ni-bar {
+	display: flex;
+	height: 12px;
+	overflow: hidden;
+	border-radius: var(--zs-radius-pill);
+	background: var(--zs-sunken);
+}
+
+.zs-ni-bar i {
+	display: block;
+	height: 100%;
+	background: var(--zs-ch1);
+}
+
+.zs-ni-bar i.zs-plus {
+	background: linear-gradient(90deg, var(--zs-brick-4), var(--zs-brick-6));
+}
+
+.zs-ni-vs-note {
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+}
+
+.zs-ni-plus {
+	margin-right: 4px;
+	padding: 2px 8px;
+	border-radius: var(--zs-radius-pill);
+	background: var(--zs-action);
+	color: var(--zs-on-action);
+	font: var(--zs-weight-bold) var(--zs-text-sm) var(--zs-font-data);
+}
+
+.zs-ni-h3 {
+	color: var(--zs-eyebrow);
+}
+
+.zs-ni-spark {
+	padding: 12px;
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-ni-tint);
+}
+
+@media (max-width: 1100px) {
+
+	.zs-ni-grid {
+		grid-template-columns: 1fr;
+	}
+}

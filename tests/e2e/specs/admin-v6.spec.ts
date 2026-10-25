@@ -132,10 +132,20 @@ test.describe( '6.0 admin', () => {
 	} );
 
 	test( 'Enhanced: the level chip opens the license popover; Escape closes it and keeps focus', async ( { page, zs } ) => {
+		await zs.seedLog( 20 );
+		await zs.seedLog( 7, { type: 'blocked', failed: 'zero_spam', ipPrefix: '192.0.2.', spacingMinutes: 240 } );
 		await zs.setLevel( 'enhanced' );
 		await openOverview( page );
 		await expect( page.locator( '.zs-zc-member' ) ).toContainText( 'Enhanced · Active' );
-		await expect( page.locator( '.zs-ni' ) ).toContainText( '31,200' );
+		// The network-only detections: hero module, sub-line and Basic vs Enhanced.
+		await expect( page.locator( '.zs-hn-count b' ) ).toHaveText( '7' );
+		await expect( page.locator( '.zs-hero-sub' ) ).toHaveText( 'Enhanced caught 7 more.' );
+		await expect( page.locator( '.zs-ni-vs-row' ).first() ).toContainText( '20' );
+		await expect( page.locator( '.zs-ni-vs-row' ).nth( 1 ) ).toContainText( '27' );
+		await expect( page.locator( '.zs-ni-vs-note' ) ).toContainText( '+7' );
+		await expect( page.locator( '.zs-ni-vs-note' ) ).toContainText( '(+35%)' );
+		// The license's query usage stays in the membership tile.
+		await expect( page.locator( '.zs-membership' ) ).toContainText( '31,200 used' );
 
 		await page.locator( 'body' ).click( { position: { x: 1, y: 1 } } );
 		expect( await tabTo( page, '.zs-topbar .zs-lvl-enh' ) ).toBe( true );

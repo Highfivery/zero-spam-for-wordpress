@@ -13,7 +13,12 @@ import { describe, expect, it } from 'vitest';
  */
 import {
 	CHART,
+	NETWORK_FAILED,
 	addToDays,
+	isNetworkOnly,
+	networkFigures,
+	networkSeries,
+	sparkPaths,
 	axisTicks,
 	bandFor,
 	brickValue,
@@ -159,5 +164,96 @@ describe( 'milestones', () => {
 		expect( milestones( 157 ) ).toEqual( { reached: 100, next: 250 } );
 		expect( milestones( 1284 ) ).toEqual( { reached: 1000, next: 2500 } );
 		expect( milestones( 2500 ) ).toEqual( { reached: 2500, next: 5000 } );
+	} );
+} );
+
+describe( 'network-only figures', () => {
+	it( 'derives Basic alone, the share and the gain from stats/summary', () => {
+		expect(
+			networkFigures( {
+				total: 1284,
+				network_only: {
+					total: 145,
+					previous_total: 120,
+					basic_total: 1139,
+				},
+			} )
+		).toEqual( {
+			network: 145,
+			basic: 1139,
+			total: 1284,
+			previous: 120,
+			delta: 25,
+			share: 11,
+			plus: 13,
+		} );
+	} );
+
+	it( 'is all zero for a missing or empty summary, and never exceeds the total', () => {
+		expect( networkFigures( undefined ) ).toEqual( {
+			network: 0,
+			basic: 0,
+			total: 0,
+			previous: 0,
+			delta: 0,
+			share: 0,
+			plus: 0,
+		} );
+		expect(
+			networkFigures( { total: 3, network_only: { total: 9 } } ).network
+		).toBe( 3 );
+	} );
+
+	it( 'reads the per-day series and recognises live network detections', () => {
+		expect(
+			networkSeries( [ { network_only: 2 }, {}, { network_only: '4' } ] )
+		).toEqual( [ 2, 0, 4 ] );
+		expect(
+			isNetworkOnly( { type: 'blocked', failed: NETWORK_FAILED } )
+		).toBe( true );
+		expect(
+			isNetworkOnly( { type: 'blocked', failed: 'stop_forum_spam' } )
+		).toBe( false );
+		expect(
+			isNetworkOnly( { type: 'comment', failed: NETWORK_FAILED } )
+		).toBe( false );
+	} );
+
+	it( 'adds live network detections to their day', () => {
+		const after = addToDays(
+			[ { date: '2026-10-02', total: 1, network_only: 1 } ],
+			[
+				{
+					date: '2026-10-02T10:00:00',
+					type: 'blocked',
+					failed: NETWORK_FAILED,
+				},
+				{
+					date: '2026-10-02T11:00:00',
+					type: 'comment',
+					failed: 'honeypot',
+				},
+			]
+		);
+		expect( after[ 0 ] ).toEqual( {
+			date: '2026-10-02',
+			total: 3,
+			network_only: 2,
+		} );
+	} );
+} );
+
+describe( 'sparkPaths', () => {
+	it( 'draws a line and a closed area inside the box, scaled to the highest value', () => {
+		const { line, area } = sparkPaths( [ 0, 5, 10 ], 100, 20 );
+		expect( line ).toBe( 'M0.0 18.0L50.0 10.0L100.0 2.0' );
+		expect( area ).toBe( `${ line }L100 20L0 20Z` );
+		expect( sparkPaths( [ 4 ], 100, 20 ) ).toEqual( {
+			line: '',
+			area: '',
+		} );
+		expect( sparkPaths( [ 0, 0 ], 10, 10 ).line ).toBe(
+			'M0.0 8.0L10.0 8.0'
+		);
 	} );
 } );

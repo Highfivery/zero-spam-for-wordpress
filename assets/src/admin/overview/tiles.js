@@ -28,7 +28,14 @@ import { FOLLOW, SocialIcon } from '../app/shell/side-extra';
 import { boot, nowLocal } from '../data/api';
 import { ago, day, minutesAgo, num, parseDate, signed } from '../data/format';
 import { areaUrl, utm } from '../data/routes';
-import { milestones, weekBuckets } from './chart-data';
+import {
+	busiestDay,
+	milestones,
+	networkFigures,
+	networkSeries,
+	weekBuckets,
+} from './chart-data';
+import { Spark } from './spark';
 
 /**
  * The sprite icon for a detection type.
@@ -523,45 +530,57 @@ export function EnhancedTile( { total } ) {
 }
 
 /**
- * Network intelligence (Enhanced): what the license and the network report.
+ * Network intelligence (Enhanced): what only the network caught in the last
+ * 30 days, against what Basic protection alone would have stopped.
+ *
+ * @param {Object} props         Props.
+ * @param {Object} props.summary stats/summary?range=30.
+ * @param {Array}  props.days    stats/timeseries days.
  */
-export function NetworkPanel() {
+export function NetworkPanel( { summary, days } ) {
 	const { license } = useApp();
-	const q = license?.queries;
-	const used = q ? q.used : null;
-	const pct =
-		q && q.limit > 0
-			? Math.min( 100, Math.round( ( q.used / q.limit ) * 100 ) )
-			: null;
+	const net = networkFigures( summary );
+	const series = networkSeries( days );
+	const busiest = busiestDay(
+		( days || [] ).map( ( d, i ) => ( {
+			date: d.date,
+			total: series[ i ],
+		} ) )
+	);
 	const status = license?.status;
+	const width = ( part ) =>
+		`${ net.total > 0 ? ( ( part / net.total ) * 100 ).toFixed( 1 ) : 0 }%`;
+
+	let delta = '';
+	if ( net.previous > 0 || net.network > 0 ) {
+		delta = signed( net.delta );
+	}
 
 	const tiles = [
-		[
-			'hub',
-			__( 'Network checks', 'zero-spam' ),
-			null !== used ? num( used ) : '—',
-			__( 'this month', 'zero-spam' ),
-		],
-		[
-			'activity',
-			__( 'Checks left', 'zero-spam' ),
-			q ? num( Math.max( 0, q.remaining ) ) : '—',
-			q
-				? sprintf(
-						/* translators: %s: queries in the plan */
-						__( 'of %s', 'zero-spam' ),
-						num( q.limit )
-					)
-				: '',
-		],
-		[
-			'clock',
-			__( 'Quota resets', 'zero-spam' ),
-			license?.reset_date ? day( license.reset_date ) : '—',
-			license?.reset_date
-				? ''
-				: __( 'Set in API Monitoring', 'zero-spam' ),
-		],
+		{
+			icon: 'hub',
+			label: __( 'Caught by the network', 'zero-spam' ),
+			value: num( net.network ),
+			note: delta,
+			noteSr: __( 'vs the previous 30 days', 'zero-spam' ),
+			spark: series,
+		},
+		{
+			icon: 'activity',
+			label: __( 'Share of all threats', 'zero-spam' ),
+			value: `${ net.share }%`,
+			note: sprintf(
+				/* translators: %s: number of threats */
+				_n( 'of %s threat', 'of %s threats', net.total, 'zero-spam' ),
+				num( net.total )
+			),
+		},
+		{
+			icon: 'clock',
+			label: __( 'Busiest network day', 'zero-spam' ),
+			value: busiest ? num( busiest.total ) : '—',
+			note: busiest ? day( busiest.date ) : __( 'None yet', 'zero-spam' ),
+		},
 	];
 
 	return (
@@ -573,93 +592,143 @@ export function NetworkPanel() {
 						{ __( 'Network intelligence', 'zero-spam' ) }
 					</p>
 					<h2 id="zs-ni-h" className="zs-tile-title">
-						{ __(
-							'The Zero Spam network is checking your visitors',
-							'zero-spam'
-						) }
+						{ __( 'What the network caught for you', 'zero-spam' ) }
 					</h2>
 					<p className="zs-ni-sub">
 						{ __(
-							"Every visitor's IP address is checked against reputation data reported by sites across the Zero Spam network.",
+							'Last 30 days, caught only because your site asks the Zero Spam network.',
 							'zero-spam'
 						) }
 					</p>
 				</div>
 			</div>
-			<ul className="zs-ni-tiles">
-				{ tiles.map( ( [ icon, label, value, note ] ) => (
-					<li key={ label }>
-						<div className="zs-ni-tk">
-							<span className="zs-ni-ico">
-								<Icon name={ icon } size="sm" />
-							</span>
-							<span>{ label }</span>
-						</div>
-						<b className="zs-mono">{ value }</b>
-						{ note && (
-							<span className="zs-ni-delta">{ note }</span>
-						) }
-					</li>
-				) ) }
-			</ul>
-			{ null !== pct && (
-				<div className="zs-ni-since">
-					<div className="zs-ni-since-t">
-						<span className="zs-eyebrow">
-							{ __( 'Queries this month', 'zero-spam' ) }
-						</span>
-						<span className="zs-mono">{ `${ pct }%` }</span>
-					</div>
+			<div className="zs-ni-grid">
+				<div className="zs-ni-col">
+					<ul className="zs-ni-tiles">
+						{ tiles.map( ( t ) => (
+							<li key={ t.label }>
+								<div className="zs-ni-tk">
+									<span className="zs-ni-ico">
+										<Icon name={ t.icon } size="sm" />
+									</span>
+									<span>{ t.label }</span>
+								</div>
+								<b className="zs-mono">{ t.value }</b>
+								{ t.note && (
+									<span className="zs-ni-delta">
+										{ t.note }
+										{ t.noteSr && (
+											<span className="zs-sr-only">
+												{ ' ' }
+												{ t.noteSr }
+											</span>
+										) }
+									</span>
+								) }
+								{ t.spark && (
+									<Spark
+										values={ t.spark }
+										width={ 96 }
+										height={ 22 }
+										className="zs-spark-mini"
+										label={ sprintf(
+											/* translators: %s: label, such as Caught by the network */
+											__( '%s per day', 'zero-spam' ),
+											t.label
+										) }
+									/>
+								) }
+							</li>
+						) ) }
+					</ul>
 					<div
-						className="zs-ni-prog"
+						className="zs-ni-vs"
 						role="img"
 						aria-label={ sprintf(
-							/* translators: 1: queries used, 2: queries in the plan */
-							__( '%1$s of %2$s queries used', 'zero-spam' ),
-							num( q.used ),
-							num( q.limit )
+							/* translators: 1: threats Basic alone would have stopped, 2: threats stopped with Enhanced */
+							__(
+								'Last 30 days: Basic alone would have stopped %1$s; with Enhanced %2$s',
+								'zero-spam'
+							),
+							num( net.basic ),
+							num( net.total )
 						) }
 					>
-						<i style={ { width: `${ pct }%` } } />
+						<div className="zs-ni-vs-row">
+							<span>{ __( 'Basic alone', 'zero-spam' ) }</span>
+							<span className="zs-ni-bar">
+								<i style={ { width: width( net.basic ) } } />
+							</span>
+							<b className="zs-mono">{ num( net.basic ) }</b>
+						</div>
+						<div className="zs-ni-vs-row">
+							<span>{ __( 'With Enhanced', 'zero-spam' ) }</span>
+							<span className="zs-ni-bar">
+								<i style={ { width: width( net.basic ) } } />
+								<i
+									className="zs-plus"
+									style={ { width: width( net.network ) } }
+								/>
+							</span>
+							<b className="zs-mono">{ num( net.total ) }</b>
+						</div>
+						<p className="zs-ni-vs-note">
+							<span className="zs-ni-plus">
+								{ `+${ num( net.network ) }` }
+							</span>{ ' ' }
+							{ sprintf(
+								/* translators: %d: percentage */
+								__( 'more stopped (+%d%%)', 'zero-spam' ),
+								net.plus
+							) }
+						</p>
 					</div>
 				</div>
-			) }
-			<p className="zs-ni-pulse">
-				<span
-					className={ cx(
-						'zs-pdot',
-						'unreachable' === status && 'zs-pdot-off'
-					) }
-					aria-hidden="true"
-				/>
-				<span>
-					{ 'unreachable' === status
-						? __(
-								'The network could not be reached at the last check. Protection stays on.',
-								'zero-spam'
-							)
-						: sprintf(
-								/* translators: %s: relative time, such as 2 min ago */
-								__( 'License checked %s', 'zero-spam' ),
-								license?.checked_at
-									? ago(
-											Math.max(
-												0,
-												Math.floor(
-													( Date.now() -
-														license.checked_at *
-															1000 ) /
-														60000
-												)
-											)
-										).toLowerCase()
-									: __( 'recently', 'zero-spam' )
+				<div className="zs-ni-col">
+					<h3 className="zs-eyebrow zs-ni-h3">
+						{ __( 'Network catches per day', 'zero-spam' ) }
+					</h3>
+					<div className="zs-ni-spark">
+						<Spark
+							values={ series }
+							width={ 260 }
+							height={ 64 }
+							className="zs-spark-big"
+							label={ sprintf(
+								/* translators: %s: number of threats */
+								__(
+									'Threats only the network caught, per day over the last 30 days: %s in all',
+									'zero-spam'
+								),
+								num( net.network )
 							) }
-				</span>
-			</p>
+						/>
+					</div>
+					<p className="zs-ni-pulse">
+						<span
+							className={ cx(
+								'zs-pdot',
+								'unreachable' === status && 'zs-pdot-off'
+							) }
+							aria-hidden="true"
+						/>
+						<span>
+							{ 'unreachable' === status
+								? __(
+										'The network could not be reached at the last check. Protection stays on.',
+										'zero-spam'
+									)
+								: __(
+										'Connected to the Zero Spam network',
+										'zero-spam'
+									) }
+						</span>
+					</p>
+				</div>
+			</div>
 			<p className="zs-ni-foot">
 				{ __(
-					'Addresses the network has already seen misbehave are stopped before they reach your forms.',
+					'These reached your forms looking normal. The network had already seen them misbehave.',
 					'zero-spam'
 				) }
 			</p>
