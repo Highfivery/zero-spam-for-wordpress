@@ -23,6 +23,13 @@
 	line-height: var(--zs-leading-heading);
 }
 
+.zs-app .zs-h1 {
+	font-size: var(--zs-text-display);
+	font-weight: var(--zs-weight-extrabold);
+	letter-spacing: var(--zs-tracking-display);
+	line-height: var(--zs-leading-display);
+}
+
 .zs-app :where(p, ul, ol, dl, dd, li, figure, blockquote) {
 	margin: 0;
 }

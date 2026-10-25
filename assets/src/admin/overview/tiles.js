@@ -159,20 +159,6 @@ export function LatestBlocks( { feed } ) {
 									href={ areaUrl( 'activity', {
 										item: item.id,
 									} ) }
-									aria-label={ [
-										sprintf(
-											/* translators: 1: detection type, such as Comment, 2: IP address */
-											__( '%1$s from %2$s', 'zero-spam' ),
-											item.type_label,
-											item.ip
-										),
-										place,
-										when,
-										reason,
-										__( 'Open details', 'zero-spam' ),
-									]
-										.filter( Boolean )
-										.join( '. ' ) }
 								>
 									<span className="zs-ico zs-ico-danger">
 										<Icon name={ typeIcon( item.type ) } />
@@ -185,6 +171,11 @@ export function LatestBlocks( { feed } ) {
 									<span className="zs-when">{ when }</span>
 									<span className="zs-c-rs">
 										<CountryCode code={ item.country } />
+										{ place && (
+											<span className="zs-sr-only">
+												{ place }
+											</span>
+										) }
 										<span>
 											{ [ item.type_label, reason ]
 												.filter( Boolean )
@@ -1205,18 +1196,19 @@ export function NewsTile() {
 							href={ f.url }
 							target="_blank"
 							rel="noopener noreferrer"
-							aria-label={ sprintf(
-								/* translators: 1: network name, 2: account name */
-								__(
-									'Zero Spam on %1$s (%2$s), opens in a new tab',
-									'zero-spam'
-								),
-								f.name,
-								f.handle
-							) }
 						>
 							<SocialIcon name={ f.key } />
+							<span className="zs-sr-only">
+								{ sprintf(
+									/* translators: %s: network name, such as Facebook */
+									__( 'Zero Spam on %s:', 'zero-spam' ),
+									f.name
+								) }
+							</span>
 							<span>{ f.handle }</span>
+							<span className="zs-sr-only">
+								{ __( '(opens in a new tab)', 'zero-spam' ) }
+							</span>
 						</a>
 					) ) }
 				</div>

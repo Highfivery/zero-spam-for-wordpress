@@ -81,11 +81,14 @@ export function LevelChip( { where = 'top' } ) {
 	const wrap = useRef( null );
 	const button = useRef( null );
 	const timer = useRef( null );
+	// Opened by hovering (a click then keeps it open) or by a click (a second click closes it).
+	const pinned = useRef( false );
 	const popId = `zs-lvl-pop-${ where }`;
 	const tipId = `zs-lvl-tip-${ where }`;
 
 	useEffect( () => {
 		if ( ! open ) {
+			pinned.current = false;
 			return undefined;
 		}
 		const onKey = ( event ) => {
@@ -178,7 +181,15 @@ export function LevelChip( { where = 'top' } ) {
 				type="button"
 				aria-expanded={ open ? 'true' : 'false' }
 				aria-controls={ popId }
-				onClick={ () => setOpen( ( o ) => ! o ) }
+				onClick={ () => {
+					if ( open && pinned.current ) {
+						pinned.current = false;
+						setOpen( false );
+					} else {
+						pinned.current = true;
+						setOpen( true );
+					}
+				} }
 			>
 				<Icon name="checkc" size="sm" />
 				<span>
