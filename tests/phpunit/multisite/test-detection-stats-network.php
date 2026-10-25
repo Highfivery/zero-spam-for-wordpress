@@ -127,12 +127,10 @@ class Test_Detection_Stats_Network extends TestCase {
 	public function test_network_widget_counts_skip_rescue_rows(): void {
 		$this->seed( gmdate( 'Y-m-d' ) );
 
-		global $wpdb;
 		$widget = ( new ReflectionClass( Dashboard_Widget::class ) )->newInstanceWithoutConstructor();
-		$data   = ( new ReflectionMethod( Dashboard_Widget::class, 'get_network_data' ) )->invoke( $widget, $wpdb );
+		$data   = ( new ReflectionMethod( Dashboard_Widget::class, 'read_network_data' ) )->invoke( $widget );
 
-		$this->assertSame( 3, $data['total_blocked'] );
-		$this->assertSame( 3, (int) $data['top_sites'][0]['spam_count'] );
-		$this->assertSame( 3, array_sum( array_map( 'intval', array_column( $data['trend_data'], 'count' ) ) ) );
+		$this->assertSame( 3, array_sum( $data['days'] ) );
+		$this->assertSame( 3, $data['top_sites'][0]['count'] );
 	}
 }
