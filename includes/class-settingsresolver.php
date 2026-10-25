@@ -250,19 +250,21 @@ class Settings_Resolver {
 		$registry = Settings_Schema::registry();
 
 		foreach ( $store['settings'] as $key => $config ) {
-			// A null value is no network value (the isset() test Network_Settings uses).
-			if ( ! is_array( $config ) || ! isset( $config['value'] ) ) {
+			if ( ! is_array( $config ) || ! isset( $registry[ $key ]['module'] ) || $module !== $registry[ $key ]['module'] ) {
 				continue;
 			}
 
-			if ( ! isset( $registry[ $key ]['module'] ) || $module !== $registry[ $key ]['module'] ) {
-				continue;
-			}
-
-			$network['values'][ $key ] = $config['value'];
-
+			// Locked whatever its value, as Network_Settings enforces it: a locked
+			// null still overrides the site's value.
 			if ( ! empty( $config['locked'] ) ) {
-				$network['locked'][] = (string) $key;
+				$network['values'][ $key ] = $config['value'] ?? null;
+				$network['locked'][]       = (string) $key;
+				continue;
+			}
+
+			// An unlocked null value is no network value (the isset() test Network_Settings uses).
+			if ( isset( $config['value'] ) ) {
+				$network['values'][ $key ] = $config['value'];
 			}
 		}
 
