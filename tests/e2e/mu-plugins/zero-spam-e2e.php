@@ -1294,6 +1294,8 @@ add_action(
 					$ip_prefix = (string) ( $request->get_param( 'ipPrefix' ) ?? '203.0.113.' );
 					$minutes   = max( 1, (int) ( $request->get_param( 'spacingMinutes' ) ?? 60 ) );
 					$fixed_ip  = (string) ( $request->get_param( 'ip' ) ?? '' );
+					$extra     = $request->get_param( 'data' );
+					$extra     = is_array( $extra ) ? array_map( 'strval', array_filter( $extra, 'is_scalar' ) ) : array();
 					$locations = sample_locations();
 					$now       = time();
 
@@ -1315,11 +1317,15 @@ add_action(
 								'user_ip'         => $ips[ $i ],
 								'date_recorded'   => gmdate( 'Y-m-d H:i:s', $now - ( $i * $minutes * MINUTE_IN_SECONDS ) ),
 								'page_url'        => home_url( '/e2e-comments/' ),
+								// `data` adds fields as a form would submit them, stored as given (the XSS fixtures).
 								'submission_data' => wp_json_encode(
-									array(
-										'type'   => $type,
-										'failed' => $failed,
-										'seq'    => $i + 1,
+									array_merge(
+										$extra,
+										array(
+											'type'   => $type,
+											'failed' => $failed,
+											'seq'    => $i + 1,
+										)
 									)
 								),
 								'country'         => $loc[0],

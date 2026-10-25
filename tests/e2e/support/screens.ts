@@ -356,8 +356,71 @@ const V6_OVERVIEW: Screen[] = [
 	},
 ];
 
+/** Activity parts that change between runs: relative times, the sidebar count, detection IDs and hour-of-day charts. */
+export const ACTIVITY_MASKS = [ '.zs-c-w', '.zs-cm-m', '.zs-count', '.zs-cchart-wrap', '.zs-drawer .zs-eyebrow', '.zs-drawer .zs-dkv' ];
+
+/** Waits until the Activity log has its rows (or its empty state). */
+export const activityReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+	await page.locator( '.zs-log-t tbody tr, .zs-cards li, .zs-log .zs-empty' ).first().waitFor();
+};
+
+/** Waits until the Reports tab has its cards. */
+export const reportsReady = async ( page: Page ) => {
+	await page.locator( '.zs-reports' ).waitFor();
+	await page.locator( '.zs-rep:not([aria-busy])' ).waitFor();
+	await page.locator( '#zs-rp-type' ).waitFor();
+};
+
+const V6_ACTIVITY: Screen[] = [
+	{ id: 'v6-activity-empty', title: '6.0 Activity (no detections)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'activity' ), prepare: activityReady, visual: { mobile: true, mask: ACTIVITY_MASKS, selector: '#zerospam-app' } },
+	{ id: 'v6-activity-seeded', title: '6.0 Activity (with detections)', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'activity' ), prepare: activityReady, visual: { mobile: true, dark: true, mask: ACTIVITY_MASKS, selector: '#zerospam-app' } },
+	{
+		id: 'v6-activity-drawer',
+		title: '6.0 Activity › details drawer',
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		path: () => AREA( 'activity' ),
+		prepare: async ( page ) => {
+			await activityReady( page );
+			await page.locator( '[data-zs-open]' ).first().click();
+			await page.locator( '.zs-drawer.zs-details .zs-drawer-f .zs-btn' ).first().waitFor();
+		},
+		visual: { mask: ACTIVITY_MASKS, selector: '.zs-drawer' },
+	},
+	{
+		id: 'v6-activity-enhanced-network',
+		title: '6.0 Activity (Enhanced, Network-only filter)',
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		level: 'enhanced',
+		before: seedNetworkCatches,
+		path: () => AREA( 'activity', '', { network: '1' } ),
+		prepare: activityReady,
+		visual: { mask: ACTIVITY_MASKS, selector: '#zerospam-app' },
+	},
+	{ id: 'v6-reports-seeded', title: '6.0 Activity › Reports (with detections)', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'activity', 'reports' ), prepare: reportsReady, visual: { mobile: true, dark: true, mask: ACTIVITY_MASKS, selector: '#zerospam-app' } },
+	{
+		id: 'v6-reports-enhanced',
+		title: '6.0 Activity › Reports (Enhanced)',
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		level: 'enhanced',
+		before: seedNetworkCatches,
+		path: () => AREA( 'activity', 'reports' ),
+		prepare: reportsReady,
+		visual: { mask: ACTIVITY_MASKS, selector: '#zerospam-app' },
+	},
+];
+
 /** The areas built in later PRs: the shell with a placeholder (Settings carries the display preferences). */
-const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings', 'help' ].map(
+const V6_AREAS: Screen[] = [ 'rules', 'protection', 'settings', 'help' ].map(
 	( area ): Screen => ( {
 		id: `v6-${ area }`,
 		title: `6.0 ${ area } (shell)`,
@@ -377,7 +440,7 @@ const V6_NETWORK: Screen[] = [
 /**
  * Adds the dark twin of every screen that follows the theme ("both"): the
  * same screen under prefers-color-scheme dark (the default theme is
- * "auto"). Only Overview keeps a dark baseline (build plan decision 9).
+ * "auto"). Only key screens keep a dark baseline (`dark: true`; build plan decision 9).
  *
  * @param screens Screens.
  */
@@ -401,7 +464,7 @@ function withDarkTwins( screens: Screen[] ): Screen[] {
 	} );
 }
 
-const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_AREAS, ...V6_NETWORK ] );
+const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_ACTIVITY, ...V6_AREAS, ...V6_NETWORK ] );
 
 export const SCREENS: Screen[] = [
 	...settingsScreens,
