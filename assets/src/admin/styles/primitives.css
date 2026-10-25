@@ -30,6 +30,14 @@
 	line-height: var(--zs-leading-display);
 }
 
+.zs-app .zs-eyebrow {
+	color: var(--zs-eyebrow);
+	font-size: var(--zs-text-2xs);
+	font-weight: var(--zs-weight-semibold);
+	letter-spacing: var(--zs-tracking-eyebrow);
+	text-transform: uppercase;
+}
+
 .zs-app :where(p, ul, ol, dl, dd, li, figure, blockquote) {
 	margin: 0;
 }
