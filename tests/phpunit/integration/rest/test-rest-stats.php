@@ -308,7 +308,7 @@ class Test_Rest_Stats extends TestCase {
 		$this->admin_screen();
 		$site_locale = static fn (): string => 'de_DE';
 		add_filter( 'locale', $site_locale );
-		$german = static function ( $translation, $text, $domain ) {
+		$german      = static function ( $translation, $text, $domain ) {
 			return 'zero-spam' === $domain && 'High Confidence Score: %s%%' === $text && 'de_DE' === determine_locale() ? 'Hohe Konfidenz: %s%%' : $translation;
 		};
 		add_filter( 'gettext', $german, 10, 3 );
