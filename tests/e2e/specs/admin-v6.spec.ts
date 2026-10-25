@@ -139,11 +139,13 @@ test.describe( '6.0 admin', () => {
 		await expect( page.locator( '.zs-zc-member' ) ).toContainText( 'Enhanced · Active' );
 		// The network-only detections: hero module, sub-line and Basic vs Enhanced.
 		await expect( page.locator( '.zs-hn-count b' ) ).toHaveText( '7' );
-		await expect( page.locator( '.zs-hero-sub' ) ).toHaveText( 'Enhanced caught 7 more.' );
+		await expect( page.locator( '.zs-hero-sub' ) ).toHaveText( 'The network caught 7.' );
+		await expect( page.locator( '.zs-hn-count' ) ).toContainText( 'threats caught by the Zero Spam network · last 30 days' );
+		await expect( page.locator( '.zs-ni-vs-row' ).first() ).toContainText( "Your site's own checks" );
 		await expect( page.locator( '.zs-ni-vs-row' ).first() ).toContainText( '20' );
-		await expect( page.locator( '.zs-ni-vs-row' ).nth( 1 ) ).toContainText( '27' );
-		await expect( page.locator( '.zs-ni-vs-note' ) ).toContainText( '+7' );
-		await expect( page.locator( '.zs-ni-vs-note' ) ).toContainText( '(+35%)' );
+		await expect( page.locator( '.zs-ni-vs-row' ).nth( 1 ) ).toContainText( 'Zero Spam network' );
+		await expect( page.locator( '.zs-ni-vs-row' ).nth( 1 ) ).toContainText( '7' );
+		await expect( page.locator( '.zs-ni-vs-note' ) ).toHaveText( '7 caught by the network, 26% of all threats.' );
 		// The license's query usage stays in the membership tile.
 		await expect( page.locator( '.zs-membership' ) ).toContainText( '31,200 used' );
 
@@ -203,6 +205,111 @@ test.describe( '6.0 admin', () => {
 
 		await openOverview( page );
 		await expect( page.locator( '.zs-live' ) ).toContainText( 'Paused' );
+	} );
+
+	test( 'a fresh install is not called protected: status, headline and an attention item per entry point', async ( { page, zs } ) => {
+		await zs.reset( 'defaults' );
+		await openOverview( page );
+		await expect( page.locator( '#zs-ov-h' ) ).toContainText( 'is not protected yet.' );
+		await expect( page.locator( '.zs-hero .zs-pill' ).first() ).toContainText( 'System status: No checks active' );
+		const attention = page.locator( '.zs-na' );
+		for ( const name of [ 'Comment', 'Login', 'Registration' ] ) {
+			await expect( attention ).toContainText( `${ name } protection is off` );
+		}
+		await expect( attention.getByRole( 'link', { name: 'Turn it on' } ).first() ).toBeVisible();
+		// The sidebar status says the same.
+		await expect( page.locator( '.zs-hero' ) ).not.toContainText( 'is protected.' );
+	} );
+
+	test( 'with one entry point off the site is "partly protected"', async ( { page, zs } ) => {
+		await zs.module( 'verify_registrations', false );
+		await openOverview( page );
+		await expect( page.locator( '#zs-ov-h' ) ).toContainText( 'is partly protected.' );
+		await expect( page.locator( '.zs-hero .zs-pill' ).first() ).toContainText( 'Protection not fully on' );
+		await expect( page.locator( '.zs-na' ) ).toContainText( 'Registration protection is off' );
+	} );
+
+	test( 'a dismissed milestone stays dismissed after a reload', async ( { page, zs } ) => {
+		await zs.seedLog( 120 );
+		await openOverview( page );
+		const milestone = page.locator( '.zs-milestone' );
+		await expect( milestone ).toContainText( '100' );
+		const saved = page.waitForResponse( ( r ) => 'POST' === r.request().method() && /ui(%2F|\/)prefs/.test( r.url() ) );
+		await milestone.getByRole( 'button', { name: 'Dismiss' } ).click();
+		await expect( milestone ).toHaveCount( 0 );
+		// The save is in before the reload.
+		expect( JSON.stringify( await ( await saved ).json() ) ).toContain( 'milestone-100' );
+		await openOverview( page );
+		await page.locator( '.zs-week' ).waitFor();
+		await expect( page.locator( '.zs-milestone' ) ).toHaveCount( 0 );
+	} );
+
+	test( 'live feed: a new detection lands on the mark and waits behind "1 new · Show" (reduced motion)', async ( { page, zs } ) => {
+		test.setTimeout( 90_000 );
+		// One row: the seeder numbers rows newest first, so older seeded rows would count as new.
+		await zs.seedLog( 1 );
+		await zs.uiPrefs( { live_paused: false } );
+		await openOverview( page );
+		await page.locator( '.zs-feed li' ).first().waitFor();
+		const before = await page.locator( '.zs-feed li' ).count();
+		await page.evaluate( () => {
+			const w = window as unknown as { __zsLanded: number };
+			w.__zsLanded = 0;
+			new MutationObserver( ( list ) => {
+				for ( const m of list ) {
+					if ( 'data-landing' === m.attributeName && ( m.target as Element ).hasAttribute( 'data-landing' ) ) {
+						w.__zsLanded++;
+					}
+				}
+			} ).observe( document.body, { subtree: true, attributes: true, attributeFilter: [ 'data-landing' ] } );
+		} );
+		await zs.seedLog( 1, { type: 'login', failed: 'stop_forum_spam', ipPrefix: '198.51.100.', spacingMinutes: 1 } );
+		// One poll: 15 s ± 20 %.
+		const show = page.getByRole( 'button', { name: '1 new · Show' } );
+		await expect( show ).toBeVisible( { timeout: 25_000 } );
+		expect( await page.evaluate( () => ( window as unknown as { __zsLanded: number } ).__zsLanded ) ).toBeGreaterThan( 0 );
+		await expect( page.locator( '.zs-feed li' ) ).toHaveCount( before );
+		await show.click();
+		await expect( page.locator( '.zs-feed li' ).first() ).toContainText( '198.51.100.1' );
+		await expect( show ).toHaveCount( 0 );
+	} );
+
+	test( 'logged values are printed as text, never as markup', async ( { page, zs } ) => {
+		await zs.seedLog( 3, { crafted: true } );
+		await openOverview( page );
+		await page.locator( '.zs-feed li' ).first().waitFor();
+		await page.locator( '.zs-week' ).waitFor();
+		await page.waitForTimeout( 500 );
+		expect( await page.evaluate( () => ( window as unknown as { __zsXss?: number } ).__zsXss ) ).toBeUndefined();
+		expect( await page.locator( '.zs-app img[src="x"], .zs-app b:text-is("zs-crafted")' ).count() ).toBe( 0 );
+		// The week tile's top country is the crafted name, shown as plain text.
+		await expect( page.locator( '.zs-week' ) ).toContainText( '<b>zs-crafted</b>' );
+	} );
+
+	test( 'a long site name wraps inside the hero at 375 px without widening the page', async ( { page, wpcli } ) => {
+		const original = wpcli.exec( [ 'option', 'get', 'blogname' ] );
+		const long = 'Supercalifragilisticexpialidocious Bakery'; // 40 characters, one 34-character word.
+		wpcli.exec( [ 'option', 'update', 'blogname', long ] );
+		try {
+			await page.setViewportSize( { width: 375, height: 800 } );
+			await openOverview( page );
+			await expect( page.locator( '#zs-ov-h' ) ).toContainText( long );
+			const sizes = await page.evaluate( () => {
+				const hero = document.querySelector( '.zs-hero' ) as HTMLElement;
+				const h1 = document.querySelector( '#zs-ov-h' ) as HTMLElement;
+				return {
+					page: document.documentElement.scrollWidth,
+					hero: hero.getBoundingClientRect().right,
+					h1: h1.getBoundingClientRect().right,
+					h1Scroll: h1.scrollWidth - h1.clientWidth,
+				};
+			} );
+			expect( sizes.page ).toBeLessThanOrEqual( 375 );
+			expect( sizes.h1 ).toBeLessThanOrEqual( sizes.hero );
+			expect( sizes.h1Scroll ).toBeLessThanOrEqual( 0 );
+		} finally {
+			wpcli.exec( [ 'option', 'update', 'blogname', original ] );
+		}
 	} );
 
 	test( 'a toast with Undo can be reached and stays while it has focus', async ( { page, zs } ) => {
@@ -289,6 +396,45 @@ test.describe( '6.0 admin', () => {
 			expect( scroll, `no sideways scrolling at ${ width }px` ).toBeLessThanOrEqual( width + 1 );
 		}
 	} );
+} );
+
+test.describe( '6.0 Overview layout stability', () => {
+	for ( const [ level, width ] of [
+		[ 'basic', 1280 ],
+		[ 'basic', 375 ],
+		[ 'enhanced', 1280 ],
+	] as const ) {
+		test( `loading the Overview shifts the layout by at most 0.05 CLS (${ level }, ${ width } px)`, async ( { browser, target, zs }, testInfo ) => {
+			await zs.reset( 'baseline', { level } );
+			await zs.seedLog( 60 );
+			const context = await browser.newContext( {
+				baseURL: target.baseURL,
+				storageState: storageStatePath( target, 'admin' ),
+				extraHTTPHeaders: { 'X-ZeroSpam-E2E-Token': target.token },
+				viewport: { width, height: 900 },
+				reducedMotion: 'reduce',
+			} );
+			const page = await context.newPage();
+			await page.addInitScript( () => {
+				const w = window as unknown as { __zsCls: number };
+				w.__zsCls = 0;
+				new PerformanceObserver( ( list ) => {
+					for ( const entry of list.getEntries() as unknown as Array< { value: number; hadRecentInput: boolean } > ) {
+						if ( ! entry.hadRecentInput ) {
+							w.__zsCls += entry.value;
+						}
+					}
+				} ).observe( { type: 'layout-shift', buffered: true } );
+			} );
+			await openOverview( page );
+			await page.locator( '.zs-feed li' ).first().waitFor();
+			await page.waitForTimeout( 2000 );
+			const cls = await page.evaluate( () => ( window as unknown as { __zsCls: number } ).__zsCls );
+			testInfo.annotations.push( { type: 'perf', description: `CLS ${ cls.toFixed( 4 ) } (${ level }, ${ width } px)` } );
+			await context.close();
+			expect( cls ).toBeLessThanOrEqual( 0.05 );
+		} );
+	}
 } );
 
 test.describe( '6.0 Overview CPU budget (build plan §6)', () => {
