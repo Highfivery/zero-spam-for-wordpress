@@ -43,7 +43,7 @@ class Zero_Spam {
 	 * Adds necessary hooks for initialization.
 	 */
 	public function __construct() {
-		add_action( 'init', [ $this, 'init' ] );
+		add_action( 'init', array( $this, 'init' ) );
 	}
 
 	/**
@@ -53,19 +53,34 @@ class Zero_Spam {
 	 * Registers plugin filters and actions.
 	 */
 	public function init() {
-		add_filter( 'zerospam_setting_sections', [ $this, 'sections' ] );
-		add_filter( 'zerospam_settings', [ $this, 'settings' ], 10, 1 );
-		add_action( 'zerospam_share_detection', [ $this, 'share_detection' ], 10, 1 );
+		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
+		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
+		add_filter( 'zerospam_failed_types', array( $this, 'failed_types' ), 10, 1 );
 
 		if (
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'zerospam' ) &&
 			\ZeroSpam\Core\Access::process()
 		) {
-			add_filter( 'zerospam_access_checks', [ $this, 'access_check' ], 10, 2 );
+			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 2 );
 		}
 
 		// Register async share detection action.
-		add_action( 'zerospam_async_share_detection', [ $this, 'process_share_detection' ] );
+		add_action( 'zerospam_async_share_detection', array( $this, 'process_share_detection' ) );
+	}
+
+	/**
+	 * Names the failed check the network logs.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array $types Failed check labels by key.
+	 * @return array
+	 */
+	public function failed_types( $types ) {
+		$types[ \ZeroSpam\Includes\Rest\Stats_Controller::NETWORK_FAILED ] = __( 'Zero Spam network (high confidence)', 'zero-spam' );
+
+		return $types;
 	}
 
 	/**
@@ -80,11 +95,11 @@ class Zero_Spam {
 	public function access_check( $access_checks, $user_ip ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
 
-		$access_checks['zero_spam'] = [
+		$access_checks['zero_spam'] = array(
 			'blocked' => false,
-		];
+		);
 
-		$response = self::query( [ 'ip' => $user_ip ] );
+		$response = self::query( array( 'ip' => $user_ip ) );
 		if ( $response && ! empty( $response['ip_addresses'][ $user_ip ] ) ) {
 			$ip_data              = $response['ip_addresses'][ $user_ip ];
 			$min_confidence_score = (float) $settings['zerospam_confidence_min']['value'];
@@ -96,11 +111,10 @@ class Zero_Spam {
 					$access_checks['zero_spam']['blocked'] = true;
 					$access_checks['zero_spam']['type']    = 'blocked';
 					$access_checks['zero_spam']['details'] = $ip_data;
-					$access_checks['zero_spam']['details']['failed'] = sprintf(
-						/* translators: %s: The calculated confidence score. */
-						__( 'High Confidence Score: %s%%', 'zero-spam' ),
-						$confidence_score
-					);
+					// A stable key (since 6.0.0), so statistics can tell the network's
+					// detections apart; the score stays in the details.
+					$access_checks['zero_spam']['details']['failed']           = \ZeroSpam\Includes\Rest\Stats_Controller::NETWORK_FAILED;
+					$access_checks['zero_spam']['details']['confidence_score'] = $confidence_score;
 				}
 			}
 		}
@@ -212,7 +226,7 @@ class Zero_Spam {
 		$api_data                   = array();
 		$api_data['reporter_email'] = sanitize_email( get_bloginfo( 'admin_email' ) );
 		$api_data['app_key']        = \ZeroSpam\Core\Utilities::clean_domain( esc_url( site_url() ) );
-		$api_data['app_type']       = 'wordpress';
+		$api_data['app_type']       = 'WordPress';
 		$api_data['app_details']    = wp_json_encode(
 			array(
 				'app_version'      => sanitize_text_field( get_bloginfo( 'version' ) ),
@@ -543,7 +557,7 @@ class Zero_Spam {
 
 			$endpoint = add_query_arg( $query_params, $endpoint );
 
-			$args = array();
+			$args            = array();
 			$args['timeout'] = 5;
 			if ( ! empty( $settings['zerospam_timeout'] ) ) {
 				$args['timeout'] = intval( $settings['zerospam_timeout']['value'] );
@@ -563,7 +577,7 @@ class Zero_Spam {
 					empty( $response['body_response'] )
 				) {
 					// Cache the negative response for a shorter time (1 hour).
-					set_transient( $cache_key, [ 'status' => 'error' ], HOUR_IN_SECONDS );
+					set_transient( $cache_key, array( 'status' => 'error' ), HOUR_IN_SECONDS );
 
 					if ( ! empty( $response['response'] ) ) {
 						\ZeroSpam\Core\Utilities::log( $response['response'] );
@@ -584,14 +598,12 @@ class Zero_Spam {
 				// Store persistently.
 				set_transient( $cache_key, $response, $expiration );
 			}
-		} else {
+		} elseif ( class_exists( '\ZeroSpam\Includes\API_Usage_Tracker' ) ) {
 			// Cache hit - track it if monitoring is enabled.
-			if ( class_exists( '\ZeroSpam\Includes\API_Usage_Tracker' ) ) {
-				\ZeroSpam\Includes\API_Usage_Tracker::track_cache_hit(
-					ZEROSPAM_URL . 'wp-json/v3/query',
-					$params
-				);
-			}
+			\ZeroSpam\Includes\API_Usage_Tracker::track_cache_hit(
+				ZEROSPAM_URL . 'wp-json/v3/query',
+				$params
+			);
 		}
 
 		return $response;
@@ -604,7 +616,7 @@ class Zero_Spam {
 	 * @param array  $args     Request arguments.
 	 * @return array|\WP_Error Response array or WP_Error.
 	 */
-	public static function remote_request( $endpoint, $args = [] ) {
+	public static function remote_request( $endpoint, $args = array() ) {
 		// Circuit Breaker: Check if circuit is open.
 		if ( get_transient( 'zero_spam_circuit_open' ) ) {
 			return new \WP_Error( 'circuit_open', 'API Circuit Breaker is open due to recent failures.' );
@@ -636,7 +648,7 @@ class Zero_Spam {
 		if ( is_wp_error( $response ) || 429 === $response_code || $response_code >= 500 ) {
 			// Increment failure count.
 			$failures = (int) get_transient( 'zero_spam_failure_count' );
-			$failures++;
+			++$failures;
 			set_transient( 'zero_spam_failure_count', $failures, HOUR_IN_SECONDS );
 
 			// Trip circuit if failures exceed threshold (5).

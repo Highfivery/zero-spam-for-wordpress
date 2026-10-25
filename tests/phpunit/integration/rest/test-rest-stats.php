@@ -237,4 +237,61 @@ class Test_Rest_Stats extends TestCase {
 		$this->assertSame( 1, $data['hours'][13] );
 		$this->assertSame( 3, array_sum( $data['hours'] ) );
 	}
+
+	/**
+	 * Network-only detections: blocked visits whose failed check is the Zero
+	 * Spam network (the `zero_spam` key, or the "High Confidence Score:"
+	 * sentence logged before 6.0.0); no other failed check or log type.
+	 */
+	public function test_network_only_counts(): void {
+		$recent = array( 'date_recorded' => $this->days_ago( 2 ) );
+		$older  = array( 'date_recorded' => $this->days_ago( 10 ) );
+		$json   = static fn ( array $details ): string => (string) wp_json_encode( $details );
+
+		$this->insert_log_rows( 3, $recent + array( 'log_type' => 'blocked', 'submission_data' => $json( array( 'failed' => 'zero_spam', 'confidence_score' => 91 ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->insert_log_rows( 1, $recent + array( 'log_type' => 'blocked', 'submission_data' => $json( array( 'failed' => 'High Confidence Score: 87%', 'confidence' => 0.87 ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->insert_log_rows( 1, $recent + array( 'log_type' => 'blocked', 'submission_data' => $json( array( 'failed' => 'stop_forum_spam' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->insert_log_rows( 1, $recent + array( 'log_type' => 'blocked', 'submission_data' => $json( array( 'failed' => 'blocked' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->insert_log_rows( 1, $recent + array( 'log_type' => 'comment', 'submission_data' => $json( array( 'failed' => 'honeypot' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->insert_log_rows( 1, $recent + array( 'log_type' => 'comment', 'submission_data' => $json( array( 'failed' => 'zero_spam' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->insert_log_rows( 1, $recent + array( 'log_type' => 'blocked', 'submission_data' => $json( array( 'failed' => 'zero_spam_extra' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->insert_log_rows( 2, $older + array( 'log_type' => 'blocked', 'submission_data' => $json( array( 'failed' => 'zero_spam' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+
+		$week = $this->rest( 'GET', self::SUMMARY, array(), array( 'range' => 7 ) )->get_data();
+		$this->assertSame( 9, $week['total'] );
+		$this->assertSame(
+			array(
+				'total'          => 4,
+				'previous_total' => 2,
+				'basic_total'    => 5,
+			),
+			$week['network_only'],
+			'Three zero_spam rows and one legacy sentence, both only as blocked visits.'
+		);
+
+		$series = $this->rest( 'GET', self::SERIES, array(), array( 'range' => 30 ) )->get_data();
+		$days   = array_column( $series['days'], null, 'date' );
+		$this->assertSame( 4, $days[ substr( $this->days_ago( 2 ), 0, 10 ) ]['network_only'] );
+		$this->assertSame( 2, $days[ substr( $this->days_ago( 10 ), 0, 10 ) ]['network_only'] );
+		$this->assertSame( 6, array_sum( array_column( $series['days'], 'network_only' ) ) );
+		$this->assertSame( 0, $series['days'][29]['network_only'] );
+	}
+
+	/**
+	 * The network-only counts add no query: the summary still reads the log
+	 * table four times when cold.
+	 */
+	public function test_network_only_adds_no_query(): void {
+		$this->insert_log_rows( 2, array( 'log_type' => 'blocked', 'submission_data' => '{"failed":"zero_spam"}' ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		wp_cache_delete( 'notoptions', 'options' );
+
+		$cold = $this->capture_queries(
+			function () use ( &$data ) {
+				$data = $this->rest( 'GET', self::SUMMARY )->get_data();
+			}
+		);
+
+		$this->assertCount( 4, preg_grep( '/wpzerospam_log/', $cold ), implode( "\n", $cold ) );
+		$this->assertSame( 2, $data['network_only']['total'] );
+	}
 }
