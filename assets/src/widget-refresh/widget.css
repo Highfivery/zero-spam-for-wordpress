@@ -45,13 +45,21 @@
 	padding: 0;
 }
 
-.zs-widget a {
-	color: var(--zs-red);
-}
-
+.zs-widget a,
 .zs-widget a:hover,
 .zs-widget a:focus {
 	color: var(--zs-red);
+}
+
+/* WordPress's a:focus (outline: 2px solid transparent; a blue box-shadow
+   ring) outranks base.css's :where() ring; this rule is more specific and
+   replaces core's ring with the Zero Spam one for keyboard focus, so there
+   is one ring, not two. */
+.zs-widget a:focus-visible,
+.zs-widget button:focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+	border-radius: var(--zs-radius-focus);
 	box-shadow: none;
 }
 
@@ -88,6 +96,12 @@
 
 .zs-w-level-warn .zs-icon {
 	color: var(--zs-warn-ink);
+}
+
+.zs-w-level-link {
+	margin-left: auto;
+	font-weight: var(--zs-weight-semibold);
+	white-space: nowrap;
 }
 
 /* Headline */

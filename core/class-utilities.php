@@ -83,48 +83,87 @@ class Utilities {
 	}
 
 	/**
-	 * Theme contexts and what the user's "auto" preference becomes in each.
+	 * The current user's display preferences for Zero Spam's 6.0 screens
+	 * (ui/prefs: `theme` light, dark or auto; `reduce_motion`), as the
+	 * markup's data-zs-theme and data-zs-motion attributes need them.
 	 *
-	 * - app:    the Zero Spam screens, where Zero Spam owns the whole page:
-	 *           auto follows the operating system (CSS, data-zs-theme="auto").
-	 * - widget: Zero Spam inside a WordPress screen (the dashboard widget),
-	 *           where the surrounding admin stays light: auto is light.
-	 *
-	 * @var array<string, string>
-	 */
-	const THEME_AUTO = array(
-		'app'    => 'auto',
-		'widget' => 'light',
-	);
-
-	/**
-	 * The data-zs-theme value for a Zero Spam root: the user's ui/prefs theme
-	 * (light, dark or auto), with "auto" resolved for the context.
-	 *
-	 * An explicit light or dark preference is used everywhere. Unknown
-	 * contexts are treated as "app".
+	 * "auto" follows the operating system only inside the plugin's own
+	 * screens (the app shell). Elsewhere in wp-admin (the dashboard widget
+	 * under WordPress's white postbox header) "auto" renders light; dark
+	 * only when the user chose dark.
 	 *
 	 * @since 6.0.0
 	 *
-	 * @param string   $context app or widget (see THEME_AUTO).
-	 * @param int|null $user_id User; the current user when null.
-	 * @return string light, dark or auto.
+	 * @param bool     $plugin_screen Whether the markup is on one of the plugin's own screens.
+	 * @param int|null $user_id       User (default: the current user).
+	 * @return array{theme: string, reduce_motion: bool} Theme: light, dark or auto (auto only on the plugin's screens).
 	 */
-	public static function resolved_theme( string $context = 'app', ?int $user_id = null ): string {
-		$prefs = \ZeroSpam\Includes\Rest\UI_Prefs_Controller::for_user( $user_id ?? get_current_user_id() );
-		$theme = $prefs['theme'] ?? 'auto';
+	public static function display_prefs( bool $plugin_screen = true, ?int $user_id = null ): array {
+		$stored = get_user_meta( $user_id ?? get_current_user_id(), 'zerospam_ui', true );
+		$theme  = is_array( $stored ) && isset( $stored['theme'] ) && in_array( $stored['theme'], array( 'light', 'dark', 'auto' ), true ) ? (string) $stored['theme'] : 'auto';
 
-		if ( 'light' === $theme || 'dark' === $theme ) {
-			return $theme;
+		if ( ! $plugin_screen && 'auto' === $theme ) {
+			$theme = 'light';
 		}
 
-		return self::THEME_AUTO[ $context ] ?? self::THEME_AUTO['app'];
+		return array(
+			'theme'         => $theme,
+			'reduce_motion' => is_array( $stored ) && isset( $stored['reduce_motion'] ) && true === $stored['reduce_motion'],
+		);
 	}
 
 	/**
-	 * Address of the activity log: the 6.0 Activity screen when the new admin
-	 * is on, the legacy Detection Log (or, on the network, Network Stats)
-	 * otherwise.
+	 * Admin pages other code links to, by view: the legacy (5.x) address and
+	 * the 6.0 address (build plan redirect map), each [ path, network ].
+	 *
+	 * @var array<string, array{legacy: array{0: string, 1: bool}, v6: array{0: string, 1: bool}}>
+	 */
+	const ADMIN_LINKS = array(
+		'activity'         => array(
+			'legacy' => array( 'index.php?page=wordpress-zero-spam-dashboard&subview=log', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-activity', false ),
+		),
+		'api-monitoring'   => array(
+			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-settings&tab=api', false ),
+		),
+		'license'          => array(
+			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings&subview=zerospam', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-protection&tab=intelligence&card=zerospam', false ),
+		),
+		'network-activity' => array(
+			'legacy' => array( 'settings.php?page=wordpress-zero-spam-network-stats', true ),
+			'v6'     => array( 'admin.php?page=zero-spam-network&tab=stats', true ),
+		),
+		'network-license'  => array(
+			'legacy' => array( 'settings.php?page=zerospam-network-settings', true ),
+			'v6'     => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
+		),
+	);
+
+	/**
+	 * Address of a Zero Spam admin view, following the 6.0 admin flag: the
+	 * 6.0 page when the new admin is on, the legacy page otherwise.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $view activity, api-monitoring, license, network-activity or network-license.
+	 * @return string Unescaped admin URL, or '' for an unknown view.
+	 */
+	public static function admin_link( string $view ): string {
+		if ( ! isset( self::ADMIN_LINKS[ $view ] ) ) {
+			return '';
+		}
+
+		list( $path, $network ) = self::ADMIN_LINKS[ $view ][ self::admin_v6() ? 'v6' : 'legacy' ];
+
+		return $network ? network_admin_url( $path ) : admin_url( $path );
+	}
+
+	/**
+	 * Address of the activity log: the 6.0 Activity screen (or network
+	 * Statistics tab) when the new admin is on, the legacy Detection Log (or
+	 * Network Stats) otherwise.
 	 *
 	 * @since 6.0.0
 	 *
@@ -132,15 +171,7 @@ class Utilities {
 	 * @return string Unescaped admin URL.
 	 */
 	public static function activity_url( bool $network = false ): string {
-		if ( $network ) {
-			return self::admin_v6()
-				? network_admin_url( 'admin.php?page=zero-spam-network' )
-				: network_admin_url( 'settings.php?page=wordpress-zero-spam-network-stats' );
-		}
-
-		return self::admin_v6()
-			? admin_url( 'admin.php?page=zero-spam-activity' )
-			: admin_url( 'index.php?page=wordpress-zero-spam-dashboard&subview=log' );
+		return self::admin_link( $network ? 'network-activity' : 'activity' );
 	}
 
 	/**

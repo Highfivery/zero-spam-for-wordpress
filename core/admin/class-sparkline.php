@@ -15,8 +15,9 @@ defined( 'ABSPATH' ) || die();
 /**
  * The SVG paths of a sparkline: the approved prototype's spark() generator,
  * ported to PHP. assets/src/widget-refresh/model.js (sparkPaths()) is the same
- * generator in JavaScript; both are tested against the same values, so a
- * refreshed sparkline draws exactly what the server drew.
+ * generator in JavaScript; both are tested against the same values. They
+ * agree to 0.1 unit: JavaScript's toFixed() and PHP's number_format() may
+ * round a rare halfway value differently.
  *
  * Points are spread evenly across the width, the highest value touches the
  * top (2 units of padding) and zero sits on the bottom line; coordinates have
@@ -86,7 +87,7 @@ final class Sparkline {
 	}
 
 	/**
-	 * A coordinate with one decimal, as JavaScript's toFixed( 1 ) writes it.
+	 * A coordinate with one decimal, as JavaScript's toFixed( 1 ) writes it (to 0.1; rounding may differ).
 	 *
 	 * @param float $value Coordinate.
 	 */

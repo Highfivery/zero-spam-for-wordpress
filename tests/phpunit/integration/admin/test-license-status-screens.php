@@ -11,6 +11,7 @@ declare( strict_types=1 );
 use ZeroSpam\Core\Admin\Admin;
 use ZeroSpam\Core\Admin\Dashboard_Widget;
 use ZeroSpam\Core\License_Status;
+use ZeroSpam\Core\Utilities;
 use ZeroSpam\Tests\HttpMock;
 use ZeroSpam\Tests\TestCase;
 
@@ -161,6 +162,14 @@ class Test_License_Status_Screens extends TestCase {
 		}
 
 		$this->assertSame( 1, HttpMock::hits( self::ENDPOINT ), 'The header and the widget share one license request.' );
+
+		// A license that needs attention links to the license setting (no billing link).
+		$needs_attention = in_array( $banner, array( 'Enhanced · License not valid', 'Enhanced · Query limit reached' ), true );
+		$this->assertSame( $needs_attention, str_contains( $widget_html, '>Check license</a>' ) );
+		if ( $needs_attention ) {
+			$this->assertStringContainsString( 'href="' . esc_url( Utilities::admin_link( 'license' ) ) . '"', $widget_html );
+		}
+		$this->assertStringNotContainsString( 'zerospam.org', $widget_html );
 	}
 
 	/**

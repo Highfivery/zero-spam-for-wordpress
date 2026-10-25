@@ -2,7 +2,9 @@
  * The dashboard widget's numbers, sentences and sparkline, without the DOM.
  *
  * Each function mirrors its PHP twin in ZeroSpam\Core\Admin, so a refreshed
- * widget reads exactly like the one the server rendered:
+ * widget reads like the one the server rendered (sparkline coordinates agree
+ * to 0.1 unit; toFixed() and number_format() may round a rare halfway value
+ * differently):
  *
  * - sparkPaths()  Sparkline::paths() (the approved prototype's spark());
  * - figures()     Dashboard_Widget::figures();
@@ -215,13 +217,18 @@ export function latestItems( entries, skip, limit ) {
 /**
  * "5 minutes ago" in the user's language.
  *
- * @param {string} iso    Time (ISO 8601).
+ * @param {string} iso    UTC time (ISO 8601; without an offset it is taken as UTC).
  * @param {number} now    Current time in milliseconds.
  * @param {string} locale BCP 47 locale.
  * @return {string} Relative time, or '' for an unreadable date.
  */
 export function relativeTime( iso, now, locale ) {
-	const then = Date.parse( iso );
+	const text = String( iso || '' );
+	// A UTC time without an offset (5.x-style RFC 3339 from mysql_to_rfc3339())
+	// would be read as local time: say it is UTC.
+	const then = Date.parse(
+		/T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test( text ) ? text + 'Z' : text
+	);
 	if ( Number.isNaN( then ) ) {
 		return '';
 	}

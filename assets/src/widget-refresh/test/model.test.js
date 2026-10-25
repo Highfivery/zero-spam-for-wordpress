@@ -233,6 +233,28 @@ describe( 'relativeTime', () => {
 		expect( relativeTime( iso, now, 'en-US' ) ).toBe( text );
 	} );
 
+	it( 'takes a time without an offset as UTC, whatever the browser time zone', () => {
+		const zone = process.env.TZ;
+		process.env.TZ = 'America/Chicago';
+		try {
+			// mysql_to_rfc3339() writes no offset; read as local time this would be "in 5 hours" → "now".
+			expect( relativeTime( '2026-10-25T11:55:00', now, 'en-US' ) ).toBe(
+				'5 minutes ago'
+			);
+			expect(
+				relativeTime( '2026-10-25T11:55:00+00:00', now, 'en-US' )
+			).toBe( '5 minutes ago' );
+			expect(
+				relativeTime( '2026-10-25T06:55:00-05:00', now, 'en-US' )
+			).toBe( '5 minutes ago' );
+			expect( relativeTime( '2026-10-25T11:55:00Z', now, 'en-US' ) ).toBe(
+				'5 minutes ago'
+			);
+		} finally {
+			process.env.TZ = zone;
+		}
+	} );
+
 	it( 'returns nothing for an unreadable date', () => {
 		expect( relativeTime( 'not a date', now, 'en-US' ) ).toBe( '' );
 	} );

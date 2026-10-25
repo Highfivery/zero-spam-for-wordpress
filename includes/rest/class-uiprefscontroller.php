@@ -161,19 +161,6 @@ class UI_Prefs_Controller extends Base_Controller {
 	}
 
 	/**
-	 * A user's preferences, for screens rendered in PHP (the dashboard widget
-	 * reads the theme and motion preference from here).
-	 *
-	 * @since 6.0.0
-	 *
-	 * @param int $user_id User ID.
-	 * @return array<string, mixed> As GET ui/prefs returns them.
-	 */
-	public static function for_user( int $user_id ): array {
-		return ( new self() )->read( $user_id );
-	}
-
-	/**
 	 * A user's preferences, defaults filled in and invalid stored values dropped.
 	 *
 	 * @param int $user_id User ID.

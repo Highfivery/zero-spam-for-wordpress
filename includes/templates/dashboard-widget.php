@@ -8,10 +8,10 @@
  *
  * $args:
  * - scope        (string) site or network.
- * - theme        (string) light or dark (Utilities::resolved_theme( 'widget' ): auto is light here).
+ * - theme        (string) light or dark (Utilities::display_prefs( false ): auto is light here).
  * - reduce       (bool)   The user's reduce-motion preference.
- * - level        (array)  Protection level: level, tone (quiet, ok, warn), text.
- * - data         (array)  Widget data: table_missing, days, and latest (site) or sites + top_sites (network).
+ * - level        (array)  Protection level: level, tone (quiet, ok, warn), text, link ('' for none).
+ * - data         (array)  Widget data: table_missing, days, and latest (site) or sites, checked, capped and top_sites (network).
  * - figures      (array)  Dashboard_Widget::figures() of data.days.
  * - spark        (array)  Sparkline::paths() of data.days: line, area.
  * - strings      (array)  Dashboard_Widget::strings().
@@ -50,6 +50,9 @@ $zerospam_icons   = array(
 		}
 		?>
 		<span><?php esc_html_e( 'Protection level:', 'zero-spam' ); ?> <b><?php echo esc_html( $zerospam_level['text'] ); ?></b></span>
+		<?php if ( '' !== ( $zerospam_level['link'] ?? '' ) ) : ?>
+			<a class="zs-w-level-link" href="<?php echo esc_url( $zerospam_level['link'] ); ?>"><?php esc_html_e( 'Check license', 'zero-spam' ); ?></a>
+		<?php endif; ?>
 	</p>
 
 	<?php if ( ! empty( $zerospam_data['table_missing'] ) ) : ?>
@@ -67,7 +70,16 @@ $zerospam_icons   = array(
 				<span class="zs-w-count zs-mono" data-zs-field="total"><?php echo esc_html( number_format_i18n( $zerospam_figures['total'] ) ); ?></span>
 				<span class="zs-w-label">
 					<?php
-					if ( $zerospam_network ) {
+					if ( $zerospam_network && ! empty( $zerospam_data['capped'] ) ) {
+						$zerospam_sites = (int) ( $zerospam_data['checked'] ?? 0 );
+						echo esc_html(
+							sprintf(
+								/* translators: %s: number of sites whose logs were read (the network has more) */
+								_n( 'spam blocked across the %s site checked in the last 30 days', 'spam blocked across the %s sites checked in the last 30 days', $zerospam_sites, 'zero-spam' ),
+								number_format_i18n( $zerospam_sites )
+							)
+						);
+					} elseif ( $zerospam_network ) {
 						$zerospam_sites = (int) ( $zerospam_data['sites'] ?? 0 );
 						echo esc_html(
 							sprintf(

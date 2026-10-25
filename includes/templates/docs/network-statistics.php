@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) || die();
 				<li><strong><?php esc_html_e( 'Site Comparison:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'Rankings and detailed metrics for each site in your network', 'zero-spam' ); ?></li>
 				<li><strong><?php esc_html_e( 'Multi-Site Attackers:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'Identify IPs targeting multiple sites with one-click network blocking', 'zero-spam' ); ?></li>
 				<li><strong><?php esc_html_e( 'Smart Recommendations:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'Upgrade suggestions based on spam volume (high, medium, low)', 'zero-spam' ); ?></li>
-				<li><strong><?php esc_html_e( 'Dashboard Widget:', 'zero-spam' ); ?></strong> <?php esc_html_e( '3-tab interface showing Spam Activity, API Usage, and Combined Analysis', 'zero-spam' ); ?></li>
+				<li><strong><?php esc_html_e( 'Dashboard Widget:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'The network dashboard shows the spam blocked across every site in the last 30 days, the last 7 days compared with the 7 before, a trend line and the sites with the most spam', 'zero-spam' ); ?></li>
 				<li><strong><?php esc_html_e( 'Statistics Page:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'Dedicated network admin page with comparison tables and charts', 'zero-spam' ); ?></li>
 				<li><strong><?php esc_html_e( 'CSV Export:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'Download site comparison data for reporting and analysis', 'zero-spam' ); ?></li>
 				<li><strong><?php esc_html_e( 'WP-CLI Commands:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'Automate monitoring and reporting from the command line', 'zero-spam' ); ?></li>

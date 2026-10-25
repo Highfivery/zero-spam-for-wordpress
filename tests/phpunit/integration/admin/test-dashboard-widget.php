@@ -10,6 +10,7 @@ declare( strict_types=1 );
 use ZeroSpam\Core\Admin\Dashboard_Widget;
 use ZeroSpam\Core\Admin\Sparkline;
 use ZeroSpam\Core\Utilities;
+use ZeroSpam\Includes\API_Usage_Alerts;
 use ZeroSpam\Includes\Rest\Stats_Controller;
 use ZeroSpam\Includes\Rest\UI_Prefs_Controller;
 use ZeroSpam\Tests\TestCase;
@@ -24,7 +25,7 @@ use ZeroSpam\Tests\TestCase;
  * @covers \ZeroSpam\Core\Admin\Icons
  * @covers \ZeroSpam\Core\Utilities::activity_url
  * @covers \ZeroSpam\Core\Utilities::admin_v6
- * @covers \ZeroSpam\Core\Utilities::resolved_theme
+ * @covers \ZeroSpam\Core\Utilities::display_prefs
  */
 class Test_Dashboard_Widget extends TestCase {
 
@@ -363,32 +364,114 @@ class Test_Dashboard_Widget extends TestCase {
 				++$warnings;
 			}
 		);
-		add_filter( 'wp_doing_ajax', '__return_true' );
-		add_filter(
-			'wp_die_ajax_handler',
-			static function () {
-				return static function (): void {
-					throw new WPDieException( 'ajax' );
-				};
-			}
-		);
-		$_REQUEST['nonce'] = wp_create_nonce( 'zerospam_dashboard_refresh' );
 
 		$widget  = new Dashboard_Widget();
-		$answers = array();
-		for ( $i = 0; $i < 2; $i++ ) {
-			ob_start();
-			try {
-				$widget->ajax_refresh_data();
-			} catch ( WPDieException $e ) {
-				unset( $e );
-			}
-			$answers[] = json_decode( (string) ob_get_clean(), true );
-		}
-		unset( $_REQUEST['nonce'] );
+		$request = array( 'nonce' => wp_create_nonce( 'zerospam_dashboard_refresh' ) );
+		$this->ajax( array( $widget, 'ajax_refresh_data' ), $request );
+		$answer = $this->ajax( array( $widget, 'ajax_refresh_data' ), $request );
 
 		$this->assertSame( 1, $warnings );
-		$this->assertTrue( $answers[1]['success'] );
-		$this->assertSame( 2, array_sum( $answers[1]['data']['data']['days'] ) );
+		$this->assertTrue( $answer['success'] );
+		$this->assertSame( 2, array_sum( $answer['data']['data']['days'] ) );
+		$this->assertArrayHasKey( 'latest', $answer['data']['data'] );
+	}
+
+	/**
+	 * The AJAX refresh needs manage_options (a valid nonce is not enough).
+	 */
+	public function test_deprecated_ajax_refresh_needs_manage_options(): void {
+		$this->setExpectedIncorrectUsage( Dashboard_Widget::class . '::ajax_refresh_data' );
+		$this->insert_log_rows( 2 );
+		$this->as_role( 'editor' );
+
+		$answer = $this->ajax(
+			array( new Dashboard_Widget(), 'ajax_refresh_data' ),
+			array( 'nonce' => wp_create_nonce( 'zerospam_dashboard_refresh' ) )
+		);
+
+		$this->assertFalse( $answer['success'] );
+		$this->assertSame( 'Insufficient permissions.', $answer['data']['message'] );
+		$this->assertArrayNotHasKey( 'days', $answer['data'] );
+	}
+
+	/**
+	 * Without a valid nonce the handler stops before it warns or answers.
+	 */
+	public function test_deprecated_ajax_refresh_checks_the_nonce_first(): void {
+		$warnings = 0;
+		add_action(
+			'doing_it_wrong_run',
+			static function () use ( &$warnings ): void {
+				++$warnings;
+			}
+		);
+
+		$answer = $this->ajax( array( new Dashboard_Widget(), 'ajax_refresh_data' ), array( 'nonce' => 'wrong' ) );
+
+		$this->assertNull( $answer );
+		$this->assertSame( 0, $warnings );
+	}
+
+	/**
+	 * Detection times carry their UTC offset, so the browser never reads them as local time.
+	 */
+	public function test_detection_times_have_a_utc_offset(): void {
+		update_option( 'timezone_string', 'America/Chicago' );
+		$this->insert_log_rows( 1, array( 'date_recorded' => '2026-07-01 07:00:00' ) );
+
+		$this->assertStringContainsString( '<time class="zs-w-when" datetime="2026-07-01T12:00:00+00:00">', $this->render() );
+	}
+
+	/**
+	 * When the network has more log tables than are read, the label says so.
+	 */
+	public function test_capped_network_label(): void {
+		ob_start();
+		( new ReflectionMethod( Dashboard_Widget::class, 'load_template' ) )->invoke(
+			( new ReflectionClass( Dashboard_Widget::class ) )->newInstanceWithoutConstructor(),
+			ZEROSPAM_PATH . 'includes/templates/dashboard-widget.php',
+			array(
+				'scope' => 'network',
+				'data'  => array(
+					'table_missing' => false,
+					'days'          => array_fill( 0, 30, 1 ),
+					'sites'         => 1500,
+					'checked'       => 1000,
+					'capped'        => true,
+					'top_sites'     => array(),
+				),
+			)
+		);
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'spam blocked across the 1,000 sites checked in the last 30 days', $html );
+		$this->assertStringNotContainsString( '1,500', $html );
+	}
+
+	/**
+	 * The API alert notice links to the API Monitoring settings, not the dashboard.
+	 */
+	public function test_api_alert_notice_links_to_api_monitoring(): void {
+		$this->set_setting( 'alert_admin_notice', 'enabled' );
+		self::reset_static_caches();
+		update_option(
+			'zerospam_api_notices',
+			array(
+				array(
+					'site_id'   => get_current_blog_id(),
+					'timestamp' => time(),
+					'severity'  => 'warning',
+					'message'   => 'Usage is high.',
+				),
+			)
+		);
+
+		ob_start();
+		( new ReflectionClass( API_Usage_Alerts::class ) )->newInstanceWithoutConstructor()->display_admin_notices();
+		$html = (string) ob_get_clean();
+
+		$this->assertStringContainsString( 'href="' . esc_url( Utilities::admin_link( 'api-monitoring' ) ) . '"', $html );
+		$this->assertStringContainsString( 'subview=api-monitoring', $html );
+		$this->assertStringNotContainsString( 'API Usage Dashboard', $html );
 	}
 }

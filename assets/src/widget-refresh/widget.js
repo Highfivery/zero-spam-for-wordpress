@@ -160,6 +160,19 @@ export function initWidget( root, config, deps = {} ) {
 		return ok;
 	};
 
+	// One wording for every time in the widget: the server's are rewritten
+	// the way a refresh writes them.
+	root.querySelectorAll( 'time[datetime]' ).forEach( ( time ) => {
+		const text = relativeTime(
+			time.getAttribute( 'datetime' ),
+			now(),
+			config.locale
+		);
+		if ( text ) {
+			time.textContent = text;
+		}
+	} );
+
 	button.addEventListener( 'click', ( event ) => {
 		event.preventDefault();
 		refresh();

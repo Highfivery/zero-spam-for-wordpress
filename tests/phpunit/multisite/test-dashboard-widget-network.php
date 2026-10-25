@@ -155,4 +155,41 @@ class Test_Dashboard_Widget_Network extends TestCase {
 		delete_transient( Dashboard_Widget::NETWORK_TRANSIENT );
 		$this->assertMatchesRegularExpression( '#data-zs-field="total">5<#', $this->render() );
 	}
+
+	/**
+	 * The deprecated AJAX refresh trusts no client flag: is_network only
+	 * returns network data to network administrators.
+	 */
+	public function test_ajax_is_network_flag_needs_network_capability(): void {
+		$this->setExpectedIncorrectUsage( Dashboard_Widget::class . '::ajax_refresh_data' );
+		$this->admin_screen( 'dashboard' );
+		$this->as_role( 'administrator' );
+
+		$request = array(
+			'nonce'      => wp_create_nonce( 'zerospam_dashboard_refresh' ),
+			'is_network' => '1',
+		);
+		$answer  = $this->ajax( array( new Dashboard_Widget(), 'ajax_refresh_data' ), $request );
+
+		$this->assertTrue( $answer['success'] );
+		$this->assertArrayHasKey( 'latest', $answer['data']['data'], 'A site administrator gets the site data.' );
+		$this->assertArrayNotHasKey( 'top_sites', $answer['data']['data'] );
+
+		grant_super_admin( get_current_user_id() );
+		$request['nonce'] = wp_create_nonce( 'zerospam_dashboard_refresh' );
+		$answer           = $this->ajax( array( new Dashboard_Widget(), 'ajax_refresh_data' ), $request );
+
+		$this->assertArrayHasKey( 'top_sites', $answer['data']['data'], 'A network administrator gets the network data.' );
+	}
+
+	/**
+	 * Sites, capped and checked are reported for the label.
+	 */
+	public function test_network_data_reports_the_sites_checked(): void {
+		$widget = ( new ReflectionClass( Dashboard_Widget::class ) )->newInstanceWithoutConstructor();
+		$data   = ( new ReflectionMethod( Dashboard_Widget::class, 'read_network_data' ) )->invoke( $widget );
+
+		$this->assertFalse( $data['capped'] );
+		$this->assertGreaterThanOrEqual( 2, $data['checked'] );
+	}
 }

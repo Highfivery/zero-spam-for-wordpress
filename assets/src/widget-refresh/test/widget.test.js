@@ -32,7 +32,7 @@ const widgetHtml = `
 	<p class="zs-w-delta" data-zs-field="delta" data-zs-direction="up">Last 7 days: 5, up 5 from the 7 days before.</p>
 	<figure><svg aria-hidden="true"><path data-zs-field="spark-area" d=""/><path data-zs-field="spark-line" d=""/></svg>
 	<figcaption data-zs-field="spark-text">old</figcaption></figure>
-	<ul data-zs-field="latest" hidden></ul>
+	<ul data-zs-field="latest"><li><span>Comment</span><span>192.0.2.9</span><time class="zs-w-when" datetime="2026-10-25T10:00:00+00:00">2 hours ago</time></li></ul>
 	<p data-zs-field="empty">No spam detected yet.</p>
 	<button type="button" data-zs-refresh>Refresh</button>
 	<p role="status" aria-live="polite" data-zs-field="status"></p>
@@ -86,7 +86,8 @@ const activity = [
 		type: 'login',
 		type_label: 'Login',
 		ip: '192.0.2.2',
-		date_gmt: '2026-10-25T10:00:00+00:00',
+		// The format #441's route returned (no offset): still UTC.
+		date_gmt: '2026-10-25T10:00:00',
 	},
 ];
 
@@ -113,7 +114,10 @@ afterAll( async () => {
  * @return {Promise<import('@playwright/test').Page>} Page.
  */
 async function open( answer ) {
-	const page = await ( await browser.newContext() ).newPage();
+	// A browser west of UTC: a UTC time read as local would be hours off.
+	const page = await (
+		await browser.newContext( { timezoneId: 'America/Chicago' } )
+	).newPage();
 	await page.route( `${ ORIGIN }/**`, async ( route ) => {
 		const url = new URL( route.request().url() );
 		if ( url.pathname.startsWith( '/src/' ) ) {
@@ -222,6 +226,17 @@ describe( 'Refresh', { timeout: 20000 }, () => {
 		);
 	} );
 
+	it( 'rewrites the server-rendered times in the same wording as a refresh', async () => {
+		const page = await open( ok );
+
+		expect( await page.textContent( 'time.zs-w-when' ) ).toBe(
+			'2 hours ago'
+		);
+		expect( await page.getAttribute( 'time.zs-w-when', 'datetime' ) ).toBe(
+			'2026-10-25T10:00:00+00:00'
+		);
+	} );
+
 	it( 'is busy while loading and ignores clicks meanwhile', async () => {
 		let release;
 		const gate = new Promise( ( resolve ) => ( release = resolve ) );
@@ -307,4 +322,57 @@ describe( 'Refresh', { timeout: 20000 }, () => {
 
 		expect( await page.evaluate( () => window.announced ) ).toBe( 2 );
 	} );
+} );
+
+describe( 'keyboard focus', { timeout: 20000 }, () => {
+	// The widget's styles as built (index.css imports), and WordPress's own a:focus rule, which outranks base.css's :where() ring.
+	const css = [
+		'../admin/styles/tokens.css',
+		'../admin/styles/base.css',
+		'widget.css',
+	]
+		.map( ( file ) => readFileSync( join( srcDir, file ), 'utf8' ) )
+		.join( '\n' );
+	const core =
+		'a:focus{color:#043959;border-radius:2px;box-shadow:0 0 0 1.5px #3858e9;outline:2px solid transparent}';
+
+	it.each( [ 'light', 'dark' ] )(
+		'links and Refresh show the Zero Spam ring (%s)',
+		async ( theme ) => {
+			const page = await ( await browser.newContext() ).newPage();
+			await page.setContent(
+				`<!doctype html><html><head><meta charset="utf-8"><style>${ core }${ css }</style></head><body>` +
+					`<div class="zs-widget" data-zs-theme="${ theme }"><p class="zs-w-level">Protection level: <b>Enhanced · License not valid</b> <a class="zs-w-level-link" href="#l">Check license</a></p>` +
+					`<div class="zs-w-foot"><a class="zs-w-link" href="#a">View activity</a><button type="button" class="zs-w-btn">Refresh</button></div></div></body></html>`
+			);
+			const expected =
+				theme === 'dark' ? 'rgb(255, 161, 124)' : 'rgb(190, 0, 0)';
+
+			for ( const selector of [
+				'.zs-w-level-link',
+				'.zs-w-link',
+				'.zs-w-btn',
+			] ) {
+				await page.keyboard.press( 'Tab' );
+				const ring = await page.$eval( selector, ( el ) => {
+					const style =
+						el.ownerDocument.defaultView.getComputedStyle( el );
+					return {
+						focused: el.ownerDocument.activeElement === el,
+						style: style.outlineStyle,
+						width: style.outlineWidth,
+						color: style.outlineColor,
+						shadow: style.boxShadow,
+					};
+				} );
+				expect( ring ).toEqual( {
+					focused: true,
+					style: 'solid',
+					width: '2px',
+					color: expected,
+					shadow: 'none',
+				} );
+			}
+		}
+	);
 } );

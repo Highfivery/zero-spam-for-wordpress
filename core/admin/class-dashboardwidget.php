@@ -14,7 +14,6 @@ use ZeroSpam\Core\Settings as Core_Settings;
 use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Rest\Stats_Controller;
-use ZeroSpam\Includes\Rest\UI_Prefs_Controller;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -98,6 +97,13 @@ class Dashboard_Widget {
 	 * @var bool|null
 	 */
 	private ?bool $access = null;
+
+	/**
+	 * Whether the network has more log tables than MAX_SITES (set by network_log_tables()).
+	 *
+	 * @var bool
+	 */
+	private bool $tables_capped = false;
 
 	/**
 	 * Whether the deprecated AJAX handler has warned in this request.
@@ -334,7 +340,7 @@ class Dashboard_Widget {
 
 	/**
 	 * Strings shared by the template and the script, so a refreshed widget
-	 * reads exactly like the one the server rendered.
+	 * uses the same sentences as the one the server rendered.
 	 *
 	 * @return array<string, string>
 	 */
@@ -368,6 +374,8 @@ class Dashboard_Widget {
 	 * @deprecated 6.0.0 Use the zero-spam/v1/stats/timeseries REST route.
 	 */
 	public function ajax_refresh_data(): void {
+		check_ajax_referer( 'zerospam_dashboard_refresh', 'nonce' );
+
 		if ( ! self::$ajax_warned ) {
 			self::$ajax_warned = true;
 			_doing_it_wrong(
@@ -376,8 +384,6 @@ class Dashboard_Widget {
 				'6.0.0'
 			);
 		}
-
-		check_ajax_referer( 'zerospam_dashboard_refresh', 'nonce' );
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'zero-spam' ) ) );
@@ -417,16 +423,16 @@ class Dashboard_Widget {
 	public function render_widget(): void {
 		try {
 			$is_network = $this->is_network();
-			$prefs      = UI_Prefs_Controller::for_user( get_current_user_id() );
+			$prefs      = Utilities::display_prefs( false ); // One read; "auto" is light on the WordPress dashboard.
 			$data       = $is_network ? $this->network_data() : $this->site_data();
 
 			$this->load_template(
 				ZEROSPAM_PATH . 'includes/templates/dashboard-widget.php',
 				array(
 					'scope'        => $is_network ? 'network' : 'site',
-					'theme'        => Utilities::resolved_theme( 'widget' ),
-					'reduce'       => ! empty( $prefs['reduce_motion'] ),
-					'level'        => self::level(),
+					'theme'        => $prefs['theme'],
+					'reduce'       => $prefs['reduce_motion'],
+					'level'        => self::level( $is_network ),
 					'data'         => $data,
 					'figures'      => self::figures( $data['days'] ),
 					'spark'        => Sparkline::paths( $data['days'] ),
@@ -454,45 +460,38 @@ class Dashboard_Widget {
 
 	/**
 	 * The protection level line: Basic, or Enhanced with the license status
-	 * (License_Status, the same answer as the header and the notices).
+	 * (License_Status, the same answer as the header and the notices). A
+	 * license that needs attention gets a quiet "Check license" link to the
+	 * license setting for users who can change it (never a billing link).
 	 *
-	 * @return array{level: string, tone: string, text: string}
+	 * @param bool $network Whether the line is for the network dashboard.
+	 * @return array{level: string, tone: string, text: string, link: string}
 	 */
-	public static function level(): array {
+	public static function level( bool $network = false ): array {
 		if ( ! License_Status::is_enabled() || ! License_Status::has_key() ) {
 			return array(
 				'level' => 'basic',
 				'tone'  => 'quiet',
 				'text'  => __( 'Basic', 'zero-spam' ),
+				'link'  => '',
 			);
 		}
 
-		switch ( License_Status::get()['status'] ) {
-			case License_Status::VALID:
-				return array(
-					'level' => 'enhanced',
-					'tone'  => 'ok',
-					'text'  => __( 'Enhanced · Active', 'zero-spam' ),
-				);
-			case License_Status::INVALID:
-				return array(
-					'level' => 'enhanced',
-					'tone'  => 'warn',
-					'text'  => __( 'Enhanced · License not valid', 'zero-spam' ),
-				);
-			case License_Status::QUOTA_EXCEEDED:
-				return array(
-					'level' => 'enhanced',
-					'tone'  => 'warn',
-					'text'  => __( 'Enhanced · Query limit reached', 'zero-spam' ),
-				);
-			default:
-				return array(
-					'level' => 'enhanced',
-					'tone'  => 'quiet',
-					'text'  => __( 'Enhanced · Couldn’t verify the license right now', 'zero-spam' ),
-				);
-		}
+		$status = License_Status::get()['status'];
+		$texts  = array(
+			License_Status::VALID          => __( 'Enhanced · Active', 'zero-spam' ),
+			License_Status::INVALID        => __( 'Enhanced · License not valid', 'zero-spam' ),
+			License_Status::QUOTA_EXCEEDED => __( 'Enhanced · Query limit reached', 'zero-spam' ),
+		);
+		$warn   = License_Status::INVALID === $status || License_Status::QUOTA_EXCEEDED === $status;
+		$can    = current_user_can( $network ? 'manage_network_options' : 'manage_options' );
+
+		return array(
+			'level' => 'enhanced',
+			'tone'  => License_Status::VALID === $status ? 'ok' : ( $warn ? 'warn' : 'quiet' ),
+			'text'  => $texts[ $status ] ?? __( 'Enhanced · Couldn’t verify the license right now', 'zero-spam' ),
+			'link'  => $warn && $can ? Utilities::admin_link( $network ? 'network-license' : 'license' ) : '',
+		);
 	}
 
 	/**
@@ -613,7 +612,7 @@ class Dashboard_Widget {
 				'type'     => $type,
 				'label'    => $labels[ $type ] ?? $type,
 				'ip'       => (string) $row['user_ip'],
-				'date_gmt' => mysql_to_rfc3339( $date_gmt ),
+				'date_gmt' => mysql_to_rfc3339( $date_gmt ) . '+00:00',
 				'time'     => (int) strtotime( $date_gmt . ' UTC' ),
 			);
 		}
@@ -630,12 +629,12 @@ class Dashboard_Widget {
 	 * Each site logs to its own table, so the 5.x widget, which read only the
 	 * main site's table, missed every other site.
 	 *
-	 * @return array{table_missing: bool, days: int[], sites: int, top_sites: array<int, array{name: string, url: string, count: int}>}
+	 * @return array{table_missing: bool, days: int[], sites: int, checked: int, capped: bool, top_sites: array<int, array{name: string, url: string, count: int}>}
 	 */
 	private function network_data(): array {
 		$cached = get_transient( self::NETWORK_TRANSIENT );
 
-		if ( is_array( $cached ) && isset( $cached['days'], $cached['sites'], $cached['top_sites'], $cached['table_missing'] ) && is_array( $cached['days'] ) ) {
+		if ( is_array( $cached ) && isset( $cached['days'], $cached['sites'], $cached['checked'], $cached['capped'], $cached['top_sites'], $cached['table_missing'] ) && is_array( $cached['days'] ) ) {
 			return $cached;
 		}
 
@@ -649,7 +648,7 @@ class Dashboard_Widget {
 	/**
 	 * Reads the network widget's data (network_data()).
 	 *
-	 * @return array{table_missing: bool, days: int[], sites: int, top_sites: array<int, array{name: string, url: string, count: int}>}
+	 * @return array{table_missing: bool, days: int[], sites: int, checked: int, capped: bool, top_sites: array<int, array{name: string, url: string, count: int}>}
 	 */
 	private function read_network_data(): array {
 		global $wpdb;
@@ -666,6 +665,8 @@ class Dashboard_Widget {
 			'table_missing' => ! $tables,
 			'days'          => array_values( $days ),
 			'sites'         => (int) get_blog_count(),
+			'checked'       => count( $tables ),
+			'capped'        => $this->tables_capped,
 			'top_sites'     => array(),
 		);
 
@@ -739,6 +740,8 @@ class Dashboard_Widget {
 		}
 
 		ksort( $found );
+
+		$this->tables_capped = count( $found ) > self::MAX_SITES;
 
 		return array_slice( $found, 0, self::MAX_SITES, true );
 	}

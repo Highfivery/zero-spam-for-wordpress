@@ -543,6 +543,53 @@ abstract class TestCase extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs an AJAX handler as admin-ajax.php would and returns its JSON answer.
+	 *
+	 * While it runs wp_doing_ajax() is true and wp_die() throws instead of
+	 * exiting, so the handler's wp_send_json_*() output can be read.
+	 *
+	 * @param callable             $handler Handler (the wp_ajax_* callback).
+	 * @param array<string, mixed> $request Values for $_POST and $_REQUEST (a nonce, flags).
+	 * @return array<string, mixed>|null Decoded answer, or null when it printed no JSON.
+	 */
+	protected function ajax( callable $handler, array $request = array() ): ?array {
+		$filters = array(
+			'wp_doing_ajax'       => '__return_true',
+			'wp_die_ajax_handler' => static function () {
+				return static function (): void {
+					throw new \WPDieException( 'ajax' );
+				};
+			},
+		);
+		foreach ( $filters as $hook => $callback ) {
+			add_filter( $hook, $callback );
+		}
+
+		$saved_post    = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Test set-up, restored below.
+		$saved_request = $_REQUEST; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test set-up, restored below.
+		$_POST         = array_merge( $_POST, $request ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Test set-up.
+		$_REQUEST      = array_merge( $_REQUEST, $request ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test set-up.
+
+		ob_start();
+		try {
+			$handler();
+		} catch ( \WPDieException $e ) {
+			unset( $e );
+		} finally {
+			$output   = (string) ob_get_clean();
+			$_POST    = $saved_post;
+			$_REQUEST = $saved_request;
+			foreach ( $filters as $hook => $callback ) {
+				remove_filter( $hook, $callback );
+			}
+		}
+
+		$answer = json_decode( $output, true );
+
+		return is_array( $answer ) ? $answer : null;
+	}
+
+	/**
 	 * Emails sent so far (the test framework's mock mailer).
 	 *
 	 * @return array<int, object>
