@@ -27,9 +27,9 @@ defined( 'ABSPATH' ) || die();
 /**
  * `zero-spam/v1/rules/…`:
  *
- * - `rules/blocks` and `rules/blocks/{id}`: blocked IP addresses and
- *   locations (the wpzerospam_blocked table). Deleting one returns an undo
- *   token. In an .htaccess block mode the deny rules are rewritten after
+ * - `rules/blocks`, `rules/blocks/{id}` and `rules/blocks/bulk-delete`:
+ *   blocked IP addresses and locations (the wpzerospam_blocked table).
+ *   Deleting returns an undo token. In an .htaccess block mode the deny rules are rewritten after
  *   every change, also when the last blocked address is removed.
  * - `rules/lists/{allowed-ips|email-domains|allowed-words}`: the IP
  *   Allowlist (setting `ip_whitelist`), the blocked email domains and the
@@ -166,6 +166,31 @@ class Rules_Controller extends Base_Controller {
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'create_block' ),
 					'permission_callback' => array( $this, 'site_permissions_check' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/blocks/bulk-delete',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'bulk_delete_blocks' ),
+					'permission_callback' => array( $this, 'site_permissions_check' ),
+					'args'                => array(
+						'ids' => array(
+							'description' => __( 'IDs of the blocks to remove (at most 500).', 'zero-spam' ),
+							'type'        => 'array',
+							'items'       => array(
+								'type'    => 'integer',
+								'minimum' => 1,
+							),
+							'minItems'    => 1,
+							'maxItems'    => Undo_Store::MAX_ROWS,
+							'required'    => true,
+						),
+					),
 				),
 			)
 		);
@@ -462,6 +487,46 @@ class Rules_Controller extends Base_Controller {
 				'deleted'    => 1,
 				'undo_token' => Undo_Store::put( 'blocks', array( $row ) ),
 				'previous'   => self::prepare_block( $row ),
+			)
+		);
+	}
+
+	/**
+	 * Removes several blocks; the response carries a token that restores them for two minutes.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function bulk_delete_blocks( $request ) {
+		global $wpdb;
+
+		$ids          = array_values( array_unique( array_filter( array_map( 'absint', (array) $request->get_param( 'ids' ) ) ) ) );
+		$table        = self::blocked_table();
+		$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders holds one %d per ID (at most 500).
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( "SELECT * FROM %i WHERE `blocked_id` IN ({$placeholders}) LIMIT %d", array_merge( array( $table ), $ids, array( Undo_Store::MAX_ROWS ) ) ),
+			ARRAY_A
+		);
+		$rows = is_array( $rows ) ? $rows : array();
+
+		$deleted = 0;
+		if ( $rows ) {
+			$found        = array_map( 'intval', array_column( $rows, 'blocked_id' ) );
+			$placeholders = implode( ', ', array_fill( 0, count( $found ), '%d' ) );
+			$deleted      = (int) $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE `blocked_id` IN ({$placeholders})", array_merge( array( $table ), $found ) ) );
+		}
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		if ( $deleted > 0 ) {
+			Utilities::refresh_htaccess();
+		}
+
+		return rest_ensure_response(
+			array(
+				'deleted'    => $deleted,
+				'undo_token' => $deleted > 0 ? Undo_Store::put( 'blocks', $rows ) : null,
 			)
 		);
 	}

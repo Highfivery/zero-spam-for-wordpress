@@ -74,6 +74,7 @@ class Test_Rest_Rules extends TestCase {
 			'read block'        => array( 'GET', self::BLOCKS . '/1', array() ),
 			'change block'      => array( 'PUT', self::BLOCKS . '/1', array( 'reason' => 'x' ) ),
 			'delete block'      => array( 'DELETE', self::BLOCKS . '/1', array() ),
+			'bulk delete'       => array( 'POST', self::BLOCKS . '/bulk-delete', array( 'ids' => array( 1 ) ) ),
 			'read list'         => array( 'GET', '/zero-spam/v1/rules/lists/allowed-ips', array() ),
 			'change list'       => array( 'PUT', '/zero-spam/v1/rules/lists/allowed-ips', array( 'items' => array( '192.0.2.1' ) ) ),
 			'read no-lockout'   => array( 'GET', '/zero-spam/v1/rules/no-lockout', array() ),
@@ -275,6 +276,28 @@ class Test_Rest_Rules extends TestCase {
 		$undo = $this->rest( 'POST', '/zero-spam/v1/undo/' . $deleted->get_data()['undo_token'] );
 		$this->assertSame( 'blocks', $undo->get_data()['kind'] );
 		$this->assertSame( 'Brute force', $this->rest( 'GET', self::BLOCKS . '/' . $id )->get_data()['reason'], 'Restored with its ID.' );
+	}
+
+	/**
+	 * Bulk delete removes the blocks (the legacy Blocked IPs bulk action
+	 * deletes nothing) and returns a token that restores them.
+	 */
+	public function test_bulk_delete_blocks_and_undo(): void {
+		$ids = array( $this->block( '198.51.100.31' ), $this->block( '198.51.100.32' ), $this->block( '198.51.100.33' ) );
+
+		$response = $this->rest( 'POST', self::BLOCKS . '/bulk-delete', array( 'ids' => array( $ids[0], $ids[2], 999999 ) ) );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 2, $response->get_data()['deleted'] );
+		$this->assertNull( DB::blocked( '198.51.100.31' ) );
+		$this->assertNotNull( DB::blocked( '198.51.100.32' ) );
+
+		$this->rest( 'POST', '/zero-spam/v1/undo/' . $response->get_data()['undo_token'] );
+		$this->assertNotNull( DB::blocked( '198.51.100.31' ) );
+		$this->assertNotNull( DB::blocked( '198.51.100.33' ) );
+
+		$this->assertSame( 400, $this->rest( 'POST', self::BLOCKS . '/bulk-delete', array( 'ids' => array() ) )->get_status() );
+		$this->assertSame( 400, $this->rest( 'POST', self::BLOCKS . '/bulk-delete', array( 'ids' => range( 1, 501 ) ) )->get_status() );
 	}
 
 	/**

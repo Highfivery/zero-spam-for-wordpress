@@ -614,7 +614,8 @@ npm run env:stop                 # stop both wp-env sites
     (`sanitize_text_field()` on the `ids` array returns `''`) and has no
     capability check of its own; the legacy delete links never refresh
     `.htaccess`. The Blocked Locations search looks at the empty IP column.
-    The 6.0 REST routes that replace these screens (`rules/blocks`) delete,
+    The 6.0 REST routes that replace these screens (`rules/blocks`,
+    `rules/blocks/bulk-delete`) delete,
     search by location value or country name and refresh `.htaccess`, and
     `Utilities::refresh_htaccess()` now clears the rules when no IP is
     blocked any more; the legacy screens keep their bugs until the cutover
