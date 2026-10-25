@@ -118,7 +118,7 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = I blocked myself! How do I get back in? =
 
-On the blocked page, open **Help for site owners**, enter the email address of an administrator account on the site and press **Email me a rescue link**. Open the link in that email (on any device) and press **Let me back in**: that browser is let in for one hour, so you can log in and add your IP address to **IP Whitelist** under Settings → Zero Spam → Settings. The link works once, for 15 minutes. If the address isn't an administrator's, nothing is sent; the page says the same either way. Logged-in users are never blocked.
+On the blocked page, open **Help for site owners**, enter the email address of an administrator account on the site and press **Email me a rescue link**. Open the link in that email (on any device) and press **Let me back in**: that browser is let in for one hour, so you can log in and add your IP address to **IP Whitelist** under Settings → Zero Spam → Settings. The link works once, for 15 minutes; a used or expired link opens a page where you can ask for a new one. If the address isn't an administrator's, nothing is sent; the page says the same either way. Logged-in users are never blocked.
 
 When you activate or update Zero Spam, it also saves your current IP address (public addresses only) as one it never locks out. Visitors from that address are still checked for spam. You can see and remove these addresses under the IP Whitelist on Settings → Zero Spam → Settings.
 

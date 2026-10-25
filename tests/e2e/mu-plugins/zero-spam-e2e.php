@@ -1330,6 +1330,24 @@ add_action(
 
 		register_rest_route(
 			$ns,
+			'/rescue-token',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$ip = (string) $request->get_param( 'ip' );
+					if ( ! is_test_net( $ip ) ) {
+						return new WP_Error( 'zs_e2e_ip', 'Only TEST-NET addresses can ask for a rescue token in the e2e suite.', array( 'status' => 400 ) );
+					}
+
+					// A valid single-use token, as an emailed rescue link carries (the "Let me back in" screen).
+					return new WP_REST_Response( array( 'token' => \ZeroSpam\Core\Rescue_Link::issue_token( $ip ) ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			'/options',
 			array(
 				'methods'             => 'GET',

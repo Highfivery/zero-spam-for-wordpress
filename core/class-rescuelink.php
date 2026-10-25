@@ -9,6 +9,9 @@ declare( strict_types=1 );
 
 namespace ZeroSpam\Core;
 
+use ZeroSpam\Core\Front\Block_Page;
+use ZeroSpam\Includes\Email;
+
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -42,7 +45,11 @@ defined( 'ABSPATH' ) || die();
  * ZEROSPAM_RESCUE_KEY constant and sends the visitor to the login page. The
  * link may be opened from another IP than the one that asked for it (people
  * often open email on another device); both IPs are written to the
- * detection log.
+ * detection log. A used or expired link shows the "This link has expired"
+ * page, with the form to ask for a new one.
+ *
+ * The pages are rendered by Front\Block_Page; the email is HTML with a
+ * plain-text alternative (Includes\Email).
  *
  * The `zerospam_rescue_form_enabled` filter (default true) hides the form
  * from the blocked page and makes the request handler send nothing. Links
@@ -439,27 +446,45 @@ final class Rescue_Link {
 	}
 
 	/**
+	 * Whether a value has the shape of a token (64 hexadecimal characters), valid or not.
+	 *
+	 * @param string $token Value from the link or the "Let me back in" form.
+	 */
+	public static function is_token_format( string $token ): bool {
+		return 1 === preg_match( '/\A[a-f0-9]{64}\z/', $token );
+	}
+
+	/**
 	 * Ends the request with the page an emailed link opens: one "Let me back in" button.
 	 *
 	 * @param string $token Token from the link (valid, see peek_token()).
 	 */
 	public static function show_confirm_page( string $token ): void {
-		$html  = self::focus_style();
-		$html .= '<h1>' . esc_html__( 'Let me back in', 'zero-spam' ) . '</h1>';
-		$html .= '<div class="zerospam-rescue">';
-		$html .= '<p>' . sprintf(
-			/* translators: %s: site name */
-			esc_html__( 'This Zero Spam rescue link lets this browser into %s for one hour, so you can log in.', 'zero-spam' ),
-			'<strong>' . esc_html( wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ) ) . '</strong>'
-		) . '</p>';
-		$html .= '<form method="post" action="' . esc_url( home_url( '/' ) ) . '">';
-		$html .= '<input type="hidden" name="' . esc_attr( self::TOKEN_PARAM ) . '" value="' . esc_attr( $token ) . '">';
-		$html .= '<p><button type="submit" class="button button-large">' . esc_html__( 'Let me back in', 'zero-spam' ) . '</button></p>';
-		$html .= '</form>';
-		$html .= '<p>' . esc_html__( 'The link works once and expires 15 minutes after it was sent.', 'zero-spam' ) . '</p>';
-		$html .= '</div>';
+		Block_Page::render(
+			'rescue-confirm',
+			array(
+				'site_name' => wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES ),
+				'action'    => home_url( '/' ),
+				'field'     => self::TOKEN_PARAM,
+				'token'     => $token,
+			),
+			__( 'Let me back in', 'zero-spam' ),
+			200
+		);
+	}
 
-		self::render( __( 'Let me back in', 'zero-spam' ), $html, 200, false );
+	/**
+	 * Ends the request with the "This link has expired" page, which offers the form to ask for a new link.
+	 */
+	public static function show_expired_page(): void {
+		Block_Page::render(
+			'rescue-expired',
+			array(
+				'rescue' => self::form_enabled() ? self::form_args( '', '', true ) : null,
+			),
+			__( 'This link has expired', 'zero-spam' ),
+			403
+		);
 	}
 
 	/**
@@ -488,106 +513,30 @@ final class Rescue_Link {
 	}
 
 	/**
-	 * Markup of the "Help for site owners" section of the blocked page.
+	 * Arguments of the "Help for site owners" rescue form (includes/templates/front/parts/rescue-form.php).
 	 *
-	 * Plain HTML that works without JavaScript; inline styles because the
-	 * wp_die() page loads no stylesheet (its built-in styles cover `.button`).
+	 * Plain HTML that works without JavaScript.
 	 *
 	 * @param string $error Error to show for the email field.
 	 * @param string $value Value of the email field.
 	 * @param bool   $open  Whether the section starts expanded.
-	 * @return string Escaped markup.
+	 * @return array<string, mixed>
 	 */
-	public static function form_html( string $error = '', string $value = '', bool $open = false ): string {
-		$help_id   = self::FIELD_ID . '-help';
-		$error_id  = self::FIELD_ID . '-error';
-		$described = $help_id . ( '' !== $error ? ' ' . $error_id : '' );
-
-		$html  = self::focus_style();
-		$html .= '<details class="zerospam-rescue"' . ( $open ? ' open' : '' ) . ' style="margin-top: 24px; border-top: 1px solid #dcdcde; padding-top: 16px;">';
-		$html .= '<summary style="font-size: 14px; font-weight: 600;">' . esc_html__( 'Help for site owners', 'zero-spam' ) . '</summary>';
-		$html .= '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		$html .= '<p id="' . esc_attr( $help_id ) . '">' . esc_html__( 'Site owner? If you administer this site, enter the email address of an administrator account on this site and we\'ll email you a link that lets you in for one hour.', 'zero-spam' ) . '</p>';
-		$html .= '<p>';
-		$html .= '<label for="' . esc_attr( self::FIELD_ID ) . '" style="display: block; font-weight: 600; margin-bottom: 4px;">' . esc_html__( 'Administrator email address', 'zero-spam' ) . '</label>';
-		$html .= '<input type="email" id="' . esc_attr( self::FIELD_ID ) . '" name="' . esc_attr( self::EMAIL_FIELD ) . '" value="' . esc_attr( $value ) . '" required autocomplete="email" spellcheck="false" aria-describedby="' . esc_attr( $described ) . '"' . ( '' !== $error ? ' aria-invalid="true"' : '' ) . ( '' !== $error ? ' autofocus' : '' ) . ' style="width: 100%; max-width: 320px; padding: 4px 8px; font-size: 14px; line-height: 2; border: 1px solid ' . ( '' !== $error ? '#d63638' : '#8c8f94' ) . '; border-radius: 4px;">';
-		if ( '' !== $error ) {
-			$html .= '<span id="' . esc_attr( $error_id ) . '" role="alert" style="display: block; margin-top: 4px; color: #d63638; font-weight: 600;">' . esc_html( $error ) . '</span>';
-		}
-		$html .= '</p>';
-		$html .= '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
-		$html .= '<input type="hidden" name="' . esc_attr( self::NONCE_FIELD ) . '" value="' . esc_attr( wp_create_nonce( self::NONCE_ACTION ) ) . '">';
-		$html .= '<p><button type="submit" class="button button-large">' . esc_html__( 'Email me a rescue link', 'zero-spam' ) . '</button></p>';
-		$html .= '</form>';
-		$html .= '<p>' . sprintf(
-			/* translators: %s: link to the "I blocked myself!" question of the plugin FAQ */
-			esc_html__( 'No access to that inbox? See %s in the Zero Spam FAQ.', 'zero-spam' ),
-			'<a href="https://wordpress.org/plugins/zero-spam/#faq">' . esc_html__( 'I blocked myself!', 'zero-spam' ) . '</a>'
-		) . '</p>';
-		$html .= '</details>';
-
-		return $html;
-	}
-
-	/**
-	 * A visible focus indicator for the rescue controls.
-	 *
-	 * The wp_die() page only styles `.button:focus` (a 1px ring); this adds a 2px
-	 * outline, offset from the control, in WordPress blue (#2271b1, 5.3:1
-	 * against the white page).
-	 */
-	private static function focus_style(): string {
-		return '<style>.zerospam-rescue summary:focus-visible, .zerospam-rescue input:focus-visible, .zerospam-rescue button:focus-visible, .zerospam-rescue a:focus-visible { outline: 2px solid #2271b1; outline-offset: 2px; box-shadow: none; }</style>';
-	}
-
-	/**
-	 * Tags and attributes of the rescue markup (form, confirm and answer pages).
-	 *
-	 * Only for markup this class builds. The administrator's blocked message
-	 * is filtered with wp_kses_post() on its own (Access::terminate_execution()).
-	 *
-	 * @return array<string, array<string, bool>>
-	 */
-	public static function allowed_html(): array {
-		$global = array(
-			'id'    => true,
-			'class' => true,
-			'style' => true,
-		);
-
+	public static function form_args( string $error = '', string $value = '', bool $open = false ): array {
 		return array(
-			'style'   => array(),
-			'h1'      => $global,
-			'p'       => $global,
-			'div'     => $global,
-			'strong'  => array(),
-			'a'       => array( 'href' => true ),
-			'span'    => array_merge( $global, array( 'role' => true ) ),
-			'details' => array_merge( $global, array( 'open' => true ) ),
-			'summary' => $global,
-			'form'    => array_merge(
-				$global,
-				array(
-					'method' => true,
-					'action' => true,
-				)
-			),
-			'label'   => array_merge( $global, array( 'for' => true ) ),
-			'button'  => array_merge( $global, array( 'type' => true ) ),
-			'input'   => array_merge(
-				$global,
-				array(
-					'type'             => true,
-					'name'             => true,
-					'value'            => true,
-					'required'         => true,
-					'autocomplete'     => true,
-					'spellcheck'       => true,
-					'autofocus'        => true,
-					'aria-describedby' => true,
-					'aria-invalid'     => true,
-				)
-			),
+			'open'        => $open || '' !== $error,
+			'error'       => $error,
+			'value'       => $value,
+			'action'      => admin_url( 'admin-post.php' ),
+			'field_id'    => self::FIELD_ID,
+			'field_name'  => self::EMAIL_FIELD,
+			'action_name' => self::ACTION,
+			'nonce_field' => self::NONCE_FIELD,
+			'nonce'       => wp_create_nonce( self::NONCE_ACTION ),
+			'faq_url'     => 'https://wordpress.org/plugins/zero-spam/#faq',
+			'placeholder' => 'name@example.com',
+			'help_id'     => self::FIELD_ID . '-help',
+			'error_id'    => self::FIELD_ID . '-error',
 		);
 	}
 
@@ -622,12 +571,12 @@ final class Rescue_Link {
 	}
 
 	/**
-	 * Creates a token and emails the link.
+	 * Creates a single-use token that works for 15 minutes and stores only its hash.
 	 *
-	 * @param string $recipient Administrator address.
-	 * @param string $ip        IP that asked for the link.
+	 * @param string $ip IP that asked for the link.
+	 * @return string The token, for the emailed link only.
 	 */
-	private static function send( string $recipient, string $ip ): void {
+	public static function issue_token( string $ip ): string {
 		$token = bin2hex( random_bytes( 32 ) );
 		$hash  = hash( 'sha256', $token );
 		$now   = time();
@@ -643,32 +592,75 @@ final class Rescue_Link {
 			self::TOKEN_TTL
 		);
 
+		return $token;
+	}
+
+	/**
+	 * Creates a token and emails the link (HTML with a plain-text alternative).
+	 *
+	 * @param string $recipient Administrator address.
+	 * @param string $ip        IP that asked for the link.
+	 */
+	private static function send( string $recipient, string $ip ): void {
+		$token     = self::issue_token( $ip );
+		$link      = home_url( '/?' . self::TOKEN_PARAM . '=' . $token );
 		$site_name = wp_specialchars_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES );
 		$from_ip   = '' === $ip ? __( 'an unknown IP address', 'zero-spam' ) : $ip;
 
-		$paragraphs = array(
-			sprintf(
-				/* translators: 1: site name, 2: site address, 3: IP address the request came from */
-				__( 'Someone asked for a rescue link for %1$s (%2$s) from IP address %3$s.', 'zero-spam' ),
-				$site_name,
-				home_url( '/' ),
-				$from_ip
-			),
-			__( 'Open this link to let your browser in for one hour, then log in:', 'zero-spam' ),
-			home_url( '/?' . self::TOKEN_PARAM . '=' . $token ),
-			__( 'The link works once and expires in 15 minutes. It works on any device, not only the one that asked for it.', 'zero-spam' ),
-			__( 'After you log in, add your IP address to the IP Whitelist under Settings → Zero Spam → Settings so you are not blocked again.', 'zero-spam' ),
-			__( 'If you did not ask for this, you can ignore this email. Nobody can use the link without access to this email.', 'zero-spam' ),
-		);
-
-		wp_mail(
+		Email::send(
 			$recipient,
 			sprintf(
 				/* translators: %s: site name */
 				__( '[%s] Your Zero Spam rescue link', 'zero-spam' ),
 				$site_name
 			),
-			implode( "\n\n", $paragraphs )
+			array(
+				'heading' => __( 'Your rescue link', 'zero-spam' ),
+				'blocks'  => array(
+					array(
+						'type' => 'text',
+						/* translators: 1: site name, 2: site address, 3: IP address the request came from */
+						'text' => __( 'Someone asked for a rescue link for %1$s (%2$s) from IP address %3$s.', 'zero-spam' ),
+						'args' => array(
+							array(
+								'text'  => $site_name,
+								'style' => 'strong',
+							),
+							home_url( '/' ),
+							array(
+								'text'  => $from_ip,
+								'style' => '' === $ip ? '' : 'mono',
+							),
+						),
+					),
+					array(
+						'type' => 'text',
+						'text' => __( 'Open this link to let your browser in for one hour, then log in:', 'zero-spam' ),
+					),
+					array(
+						'type'  => 'button',
+						'label' => __( 'Let me back in', 'zero-spam' ),
+						'url'   => $link,
+						'paste' => true,
+					),
+					array(
+						'type' => 'text',
+						'size' => 'small',
+						'text' => __( 'The link works once and expires in 15 minutes. It works on any device, not only the one that asked for it.', 'zero-spam' ),
+					),
+					array(
+						'type' => 'text',
+						'size' => 'small',
+						// TODO(6.0 cutover): menu path ("IP Allowlist under Zero Spam → Rules").
+						'text' => __( 'After you log in, add your IP address to the IP Whitelist under Settings → Zero Spam → Settings so you aren\'t blocked again.', 'zero-spam' ),
+					),
+					array(
+						'type' => 'text',
+						'size' => 'small',
+						'text' => __( 'If you didn\'t ask for this, you can ignore this email. Nobody can use the link without access to this inbox.', 'zero-spam' ),
+					),
+				),
+			)
 		);
 	}
 
@@ -742,47 +734,27 @@ final class Rescue_Link {
 	 * Ends the request with the answer every valid submission gets.
 	 */
 	private static function respond_sent(): void {
-		self::render(
-			__( 'Check your email', 'zero-spam' ),
-			'<p>' . esc_html__( 'If that address belongs to a site administrator, a rescue link has been sent.', 'zero-spam' ) . '</p>' .
-			'<p>' . esc_html__( 'The link works once and expires in 15 minutes. It can take a few minutes to arrive. If it does not arrive, check the spam folder.', 'zero-spam' ) . '</p>',
-			200
-		);
+		Block_Page::render( 'rescue-sent', array(), __( 'Check your email', 'zero-spam' ), 200 );
 	}
 
 	/**
-	 * Ends the request with the form again and an error for the email field.
+	 * Ends the request with the form again, open, and an error for the email field.
 	 *
 	 * @param string $error Error message.
 	 * @param string $value Submitted value.
 	 * @param int    $code  HTTP status.
 	 */
 	private static function respond_form( string $error, string $value, int $code ): void {
-		self::render( __( 'Help for site owners', 'zero-spam' ), self::form_html( $error, $value, true ), $code );
-	}
+		$message = Settings::get_settings( 'blocked_message' );
 
-	/**
-	 * Ends the request with an uncached page.
-	 *
-	 * @param string $title   Page title.
-	 * @param string $html    Escaped markup.
-	 * @param int    $code    HTTP status.
-	 * @param bool   $heading Whether to start the page with the title as its heading.
-	 */
-	private static function render( string $title, string $html, int $code, bool $heading = true ): void {
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
-		}
-		nocache_headers();
-
-		if ( $heading ) {
-			$html = '<h1>' . esc_html( $title ) . '</h1>' . $html;
-		}
-
-		wp_die(
-			wp_kses( $html, self::allowed_html() ),
-			esc_html( $title ),
-			array( 'response' => absint( $code ) )
+		Block_Page::render(
+			'form-error',
+			array(
+				'message' => is_string( $message ) && '' !== $message ? $message : __( 'Your IP address has been blocked due to detected spam/malicious activity.', 'zero-spam' ),
+				'rescue'  => self::form_args( $error, $value, true ),
+			),
+			__( 'Help for site owners', 'zero-spam' ),
+			$code
 		);
 	}
 }

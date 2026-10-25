@@ -26,8 +26,10 @@ defined( 'ABSPATH' ) || die();
 				<li><?php esc_html_e( 'On the blocked page, open "Help for site owners".', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Enter the email address of an administrator account on this site and press "Email me a rescue link".', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Open the link in that email, on any device, and press "Let me back in". That browser is let in for one hour, so you can log in.', 'zero-spam' ); ?></li>
+				<?php // TODO(6.0 cutover): menu path. ?>
 				<li><?php esc_html_e( 'Add your IP address to the IP Whitelist under Settings → Zero Spam → Settings so it does not happen again.', 'zero-spam' ); ?></li>
 			</ol>
+			<p><?php esc_html_e( 'A link that was already used or has expired opens a "This link has expired" page with the same form, so you can ask for a new one. The email is HTML with a plain-text version for mail clients that need it.', 'zero-spam' ); ?></p>
 			<p><?php esc_html_e( 'The link works once and expires 15 minutes after it is sent. The page answers the same way whatever address is entered, and only an administrator\'s address ever receives an email. Requests are limited to 5 per hour per IP address, 3 emails per hour per address and 10 emails per hour per site.', 'zero-spam' ); ?></p>
 			<p><?php esc_html_e( 'Each use is recorded in the Detection Log as "Rescue link used", with the IP address that asked for the link and the one that used it. These entries are not detections: dashboard totals, charts, top lists, the dashboard widget and network statistics leave them out.', 'zero-spam' ); ?></p>
 			<p><?php esc_html_e( 'The email is sent by WP-Cron a moment after the request, so it can take a few minutes to arrive. If it never arrives, check Tools → Site Health: WP-Cron needs loopback requests to work (or a system cron that runs wp-cron.php).', 'zero-spam' ); ?></p>

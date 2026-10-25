@@ -440,6 +440,7 @@ describe( 'stylesheet scoping', () => {
 		join( srcDir, 'widget-refresh', 'index.css' ),
 		join( srcDir, 'blocked', 'tokens.css' ),
 		join( srcDir, 'blocked', 'index.css' ),
+		join( srcDir, 'blocked', 'page.css' ),
 	];
 
 	it.each( files )(

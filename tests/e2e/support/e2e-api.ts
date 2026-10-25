@@ -127,6 +127,11 @@ export class ZsApi {
 		return this.call( 'POST', 'reset', { preset, network: options.network ?? this.multisite, promo: Boolean( options.promo ), clearErrorLog: Boolean( options.clearErrorLog ) } );
 	}
 
+	/** A valid rescue-link token, as an emailed link carries (TEST-NET IPs only). */
+	async rescueToken( ip: string ): Promise< string > {
+		return ( await this.call< { token: string } >( 'POST', 'rescue-token', { ip } ) ).token;
+	}
+
 	/** Sets plugin settings by key (each goes to its module option). */
 	set( settings: Record< string, unknown > ) {
 		return this.call< Record< string, boolean > >( 'POST', 'settings', { settings } );
