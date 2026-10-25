@@ -10,6 +10,7 @@ declare( strict_types=1 );
 use ZeroSpam\Core\Settings_Schema;
 use ZeroSpam\Includes\Migrations;
 use ZeroSpam\Includes\Network_Settings;
+use ZeroSpam\Includes\Settings_Resolver;
 use ZeroSpam\Tests\TestCase;
 
 /**
@@ -264,14 +265,26 @@ class Test_Rest_Settings_Network extends TestCase {
 		);
 		$this->assertSame( 200, $response->get_status() );
 
-		$this->rest_on( get_main_site_id(), 'PATCH', self::ROUTE, array( 'max_logs' => 600 ), array( 'scope' => 'network' ) );
+		// The same request changes one setting and sends another unchanged: only the changed one is audited.
+		$second = $this->rest_on(
+			get_main_site_id(),
+			'PATCH',
+			self::ROUTE,
+			array(
+				'max_logs'        => 600,
+				'blocked_message' => 'Blocked again.',
+			),
+			array( 'scope' => 'network' )
+		);
+		$this->assertSame( 200, $second->get_status() );
 
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE audit_id > %d ORDER BY audit_id ASC', $table, $before ), ARRAY_A );
 
 		$keys = array_column( $rows, 'setting_key' );
 		sort( $keys );
-		$this->assertSame( array( 'blocked_message', 'log_blocked_ips', 'max_logs', 'zerospam_license' ), $keys, 'One entry per changed setting; an unchanged one adds none.' );
-		$rows = array_column( $rows, null, 'setting_key' );
+		$this->assertSame( array( 'blocked_message', 'blocked_message', 'log_blocked_ips', 'max_logs', 'zerospam_license' ), $keys, 'One entry per changed setting; the unchanged max_logs of the second request adds none.' );
+		$this->assertSame( 'Blocked again.', end( $rows )['new_value'] );
+		$rows = array_column( array_slice( $rows, 0, 4 ), null, 'setting_key' );
 		foreach ( $rows as $row ) {
 			$this->assertSame( 'set', $row['action_type'] );
 			$this->assertSame( (string) $user_id, (string) $row['user_id'] );
@@ -367,6 +380,33 @@ class Test_Rest_Settings_Network extends TestCase {
 
 		switch_to_blog( self::$site_b );
 		$this->assertSame( array( 'set' => false, 'source' => 'default' ), Settings_Schema::masked( 'zerospam_license' ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short expected value.
+		restore_current_blog();
+	}
+
+	/**
+	 * A locked network value of null still overrides the site's value, as
+	 * Network_Settings enforces it (the resolver used to drop it).
+	 */
+	public function test_locked_null_network_value_keeps_its_lock(): void {
+		switch_to_blog( self::$site_b );
+		update_option( 'zero-spam-settings', array( 'max_logs' => 20 ) );
+		$this->set_network_setting( 'max_logs', null, true );
+
+		$resolved = Settings_Resolver::get_resolved_with_sources( 'settings' );
+		$values   = Settings_Resolver::get_resolved_settings( 'settings' );
+		$network  = Settings_Resolver::get_network_values( 'settings' );
+		restore_current_blog();
+
+		$this->assertSame( 'locked', $resolved['sources']['max_logs'] );
+		$this->assertNull( $resolved['values']['max_logs'] );
+		$this->assertArrayHasKey( 'max_logs', $values );
+		$this->assertNull( $values['max_logs'], 'The site value no longer wins over the lock.' );
+		$this->assertContains( 'max_logs', $network['locked'] );
+
+		$this->set_network_setting( 'max_logs', null, false );
+		switch_to_blog( self::$site_b );
+		self::reset_static_caches();
+		$this->assertSame( 20, Settings_Resolver::get_resolved_settings( 'settings' )['max_logs'], 'An unlocked null is still no network value.' );
 		restore_current_blog();
 	}
 }

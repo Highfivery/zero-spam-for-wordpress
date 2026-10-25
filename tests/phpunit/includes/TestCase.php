@@ -148,12 +148,17 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_license_status',
 		'zerospam_ipinfo_test',
 		'zerospam_login_intent_test',
+		'zerospam_protection_detections',
 		'zerospam_rescue_ip_test',
 		'zerospam_rescue_job_test',
 		'zerospam_rescue_site_sends',
 		'zerospam_rescue_to_test',
 		'zerospam_rescue_token_test',
+		'zerospam_self_test_lock',
 		'zerospam_shared_ip_warning',
+		'zerospam_stats_summary',
+		'zerospam_stats_timeseries',
+		'zerospam_undo_test',
 		'zerospam_woo_options_migrated',
 	);
 
@@ -168,6 +173,15 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_network_notifications_enabled',
 		'zerospam_network_settings',
 		'zerospam_network_settings_notifications_enabled',
+	);
+
+	/**
+	 * Network (site) transients the plugin sets with fixed names.
+	 */
+	const PLUGIN_NETWORK_TRANSIENTS = array(
+		'zerospam_network_settings',
+		'zerospam_news',
+		'zerospam_news_backoff',
 	);
 
 	/**
@@ -470,6 +484,32 @@ abstract class TestCase extends WP_UnitTestCase {
 		}
 
 		return $queries;
+	}
+
+	/**
+	 * Runs a callback and returns how many times the settings registry was
+	 * built (each build applies the `zerospam_settings` filter once), after
+	 * clearing the per-request caches so the callback starts cold.
+	 *
+	 * @param callable $callback Code to run.
+	 */
+	protected function count_registry_builds( callable $callback ): int {
+		$builds  = 0;
+		$counter = static function ( $settings ) use ( &$builds ) {
+			++$builds;
+
+			return $settings;
+		};
+
+		self::reset_static_caches();
+		add_filter( 'zerospam_settings', $counter, PHP_INT_MIN );
+		try {
+			$callback();
+		} finally {
+			remove_filter( 'zerospam_settings', $counter, PHP_INT_MIN );
+		}
+
+		return $builds;
 	}
 
 	/**

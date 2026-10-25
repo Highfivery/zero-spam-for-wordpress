@@ -219,12 +219,17 @@ final class Settings_Schema {
 	/**
 	 * The full schema: sections and settings, in registry order.
 	 *
+	 * Working out each setting's default builds the registry a second time
+	 * (with nothing stored); callers that do not need `default` pass false
+	 * and get `default` as null, from the one registry build of the request.
+	 *
+	 * @param bool $with_defaults Whether to fill in `default` (since 6.0.0). Default true.
 	 * @return array{sections: array<int, array<string, mixed>>, settings: array<int, array<string, mixed>>}
 	 */
-	public static function get(): array {
+	public static function get( bool $with_defaults = true ): array {
 		return self::remember(
-			'schema',
-			static function (): array {
+			$with_defaults ? 'schema' : 'schema_without_defaults',
+			static function () use ( $with_defaults ): array {
 				$settings = array();
 				$order    = 0;
 
@@ -234,7 +239,7 @@ final class Settings_Schema {
 					}
 
 					$order     += 10;
-					$settings[] = self::setting_entry( (string) $key, $setting, $order );
+					$settings[] = self::setting_entry( (string) $key, $setting, $order, $with_defaults );
 				}
 
 				return array(
@@ -265,6 +270,21 @@ final class Settings_Schema {
 		);
 
 		return $by_key[ $key ] ?? null;
+	}
+
+	/**
+	 * A setting's value as Settings::get_settings( $key ) returns it (false
+	 * when empty), from the registry built once per request.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $key Setting key.
+	 * @return mixed
+	 */
+	public static function value( string $key ) {
+		$registry = self::registry();
+
+		return ! empty( $registry[ $key ]['value'] ) ? $registry[ $key ]['value'] : false;
 	}
 
 	/**
@@ -446,12 +466,13 @@ final class Settings_Schema {
 	 * is true for every type but `html`; `area` and `group` come from
 	 * MODULE_AREAS and KEY_AREAS; `order` is the registry position.
 	 *
-	 * @param string               $key     Setting key.
-	 * @param array<string, mixed> $setting Registry entry.
-	 * @param int                  $order   Registry position.
+	 * @param string               $key           Setting key.
+	 * @param array<string, mixed> $setting       Registry entry.
+	 * @param int                  $order         Registry position.
+	 * @param bool                 $with_defaults Whether to work out `default` (see get()).
 	 * @return array<string, mixed>
 	 */
-	private static function setting_entry( string $key, array $setting, int $order ): array {
+	private static function setting_entry( string $key, array $setting, int $order, bool $with_defaults = true ): array {
 		$module   = (string) $setting['module'];
 		$type     = (string) $setting['type'];
 		$is_html  = 'html' === $type;
@@ -490,8 +511,12 @@ final class Settings_Schema {
 		}
 
 		if ( ! $secret ) {
-			$entry['default'] = array_key_exists( 'default', $setting ) ? $setting['default'] : ( self::defaults()[ $key ] ?? null );
-			$entry['value']   = null !== $resolved ? $resolved['value'] : null;
+			if ( array_key_exists( 'default', $setting ) ) {
+				$entry['default'] = $setting['default'];
+			} elseif ( $with_defaults ) {
+				$entry['default'] = self::defaults()[ $key ] ?? null;
+			}
+			$entry['value'] = null !== $resolved ? $resolved['value'] : null;
 		} else {
 			$entry['value'] = self::masked( $key );
 		}

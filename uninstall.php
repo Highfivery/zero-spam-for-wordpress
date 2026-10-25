@@ -79,14 +79,19 @@ $zerospam_site_options = array(
 
 // Per-site transients with fixed names. Deleted through the API so a persistent object cache is cleared too.
 // Runtime-named transients that live only in a persistent object cache are out of reach of the SQL sweeps; they expire on their own.
+// Runtime-named ones in the options table (Zero Spam API query cache, `zerospam_undo_{token}` copies of deleted rows) go with the prefix sweep.
 $zerospam_site_transients = array(
 	'zero_spam_circuit_open',
 	'zero_spam_failure_count',
 	'zerospam_dashboard_data_network',
 	'zerospam_dashboard_data_site',
 	'zerospam_license_status',
+	'zerospam_protection_detections',
 	'zerospam_rescue_site_sends',
+	'zerospam_self_test_lock',
 	'zerospam_shared_ip_warning',
+	'zerospam_stats_summary',
+	'zerospam_stats_timeseries',
 	'zerospam_woo_options_migrated',
 );
 
@@ -164,6 +169,8 @@ $zerospam_network_options = array_merge(
 // Network (site) transients with fixed names.
 $zerospam_network_transients = array(
 	'zerospam_network_settings',
+	'zerospam_news',
+	'zerospam_news_backoff',
 );
 
 // Sitemeta key prefixes swept on a network after the named network options are gone.

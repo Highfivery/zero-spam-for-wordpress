@@ -99,7 +99,7 @@ class Shared_IP_Warning {
 		}
 
 		$verdict = self::get_verdict();
-		if ( null === $verdict || get_option( self::DISMISSED_OPTION ) === self::dismissal_key( $verdict ) ) {
+		if ( null === $verdict || self::is_dismissed( $verdict ) ) {
 			return;
 		}
 
@@ -217,6 +217,18 @@ class Shared_IP_Warning {
 			'ip'     => $verdict['ip'],
 			'reason' => isset( $verdict['reason'] ) && 'trusted_proxy' === $verdict['reason'] ? 'trusted_proxy' : 'shared_ip',
 		);
+	}
+
+	/**
+	 * Whether the administrator dismissed this warning (see dismissal_key()).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array{ip: string, reason: string} $verdict Verdict from get_verdict().
+	 * @return bool
+	 */
+	public static function is_dismissed( array $verdict ): bool {
+		return get_option( self::DISMISSED_OPTION ) === self::dismissal_key( $verdict );
 	}
 
 	/**

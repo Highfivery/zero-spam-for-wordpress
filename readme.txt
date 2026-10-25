@@ -140,6 +140,51 @@ If every visitor, including you, suddenly sees "Your IP has been flagged as spam
 
 As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation, or use the emailed rescue link on the blocked page (or the Rescue Mode key) to log in and whitelist your IP.
 
+== External services ==
+
+Zero Spam works without any external service. The services below are only contacted when the feature that uses them is turned on, and only send what is listed.
+
+= Zero Spam news (zerospam.org) =
+
+When the "Zero Spam News" setting is on (it is by default), the Zero Spam admin screens show the latest articles and security notices from zerospam.org. Your server downloads the public feed at https://www.zerospam.org/articles/feed/ at most once every six hours (once for a whole network), and at most once an hour after a failed download. The request carries only a generic user agent ("Zero Spam for WordPress/" and the plugin version): no site address, no user or visitor data. Turn it off under Settings, or with the `zerospam_news_feed_enabled` filter. [Terms of use](https://www.zerospam.org/terms/), [privacy policy](https://www.zerospam.org/privacy/).
+
+= Zero Spam API (zerospam.org) =
+
+Used for Enhanced Protection and for sharing detections. [Terms of use](https://www.zerospam.org/terms/), [privacy policy](https://www.zerospam.org/privacy/).
+
+* License check: when you save a license key, and to show its status in the admin (cached for up to 12 hours), the key is sent to https://www.zerospam.org/wp-json/v2/get-license.
+* Enhanced Protection: when it is on and a license key is set, the IP address of a visitor who is not logged in is sent with your license key to https://www.zerospam.org/wp-json/v3/query to check its reputation. Answers are cached on your site.
+* Usage Data Sharing: when "Usage Data Sharing" is on, each detection is reported to https://www.zerospam.org/wp-json/v6/report/ in the background: the detection type and reason, the visitor's IP address, the email address and names entered in the blocked submission (if any), and your site's domain, name, tagline, administrator email address, language, WordPress version and plugin version.
+
+= Stop Forum Spam =
+
+When the Stop Forum Spam check is on, the visitor's IP address (on page requests by visitors who are not logged in), the email address of a comment author, and the username and email address of a new registration are sent to https://api.stopforumspam.org/ to check their reputation. [Terms of use](https://www.stopforumspam.com/legal), [privacy policy](https://www.stopforumspam.com/privacy).
+
+= Project Honeypot =
+
+When a Project Honeypot http:BL access key is set, the visitor's IPv4 address (reversed) and your access key are looked up by DNS under dnsbl.httpbl.org. [Terms of use](https://www.projecthoneypot.org/terms_of_use.php), [privacy policy](https://www.projecthoneypot.org/privacy_policy.php).
+
+= Geolocation: ipbase, IPinfo and ipstack =
+
+When you enter an API key for one of these services, the IP address of visitors who are not logged in (on page requests, and for each logged detection) is sent with your key to look up its location (country, region, city), which is used for location blocks and stored with detections in the log. Answers are cached on your site for up to a week per address.
+
+* ipbase: https://api.ipbase.com/. [Terms of service](https://ipbase.com/terms-of-service/), [privacy policy](https://ipbase.com/privacy-policy/).
+* IPinfo: https://api.ipinfo.io/. [Terms](https://ipinfo.io/terms), [privacy policy](https://ipinfo.io/privacy).
+* ipstack: http://api.ipstack.com/ (ipstack's free plan does not offer HTTPS). [Terms](https://ipstack.com/terms), [privacy policy](https://ipstack.com/privacy).
+
+= Google Maps =
+
+When a Google API key is set, the detection details in the admin show a map: your browser loads it from www.google.com with your key and the detection's latitude and longitude. [Google Maps Platform terms](https://cloud.google.com/maps-platform/terms), [Google privacy policy](https://policies.google.com/privacy).
+
+= Admin dashboard: Facebook, X (Twitter) and jsDelivr =
+
+The Zero Spam dashboard screen shows Zero Spam's Facebook page and X (Twitter) timeline, which your browser loads from facebook.com and platform.twitter.com, and its charts load the Chart.js library from cdn.jsdelivr.net. Only administrators viewing that screen load them; those services see the visitor's browser request (IP address, user agent) as with any embedded content. [Facebook terms](https://www.facebook.com/terms.php) and [privacy policy](https://www.facebook.com/privacy/policy/), [X terms](https://x.com/en/tos) and [privacy policy](https://x.com/en/privacy), [jsDelivr terms](https://www.jsdelivr.com/terms) and [privacy policy](https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net).
+
+= Addresses you configure =
+
+* API usage alerts: when you enter a webhook address under API Monitoring, alerts are posted to it with the alert type, message, your site's address and name and the usage figures. Addresses on your own server or private network are refused unless a developer allows them.
+* Email checks: to tell whether an email address can receive mail, the domain of email addresses entered in protected forms is looked up through your server's DNS resolver.
+
 == Screenshots ==
 
 1. Dashboard

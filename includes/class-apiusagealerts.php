@@ -97,8 +97,8 @@ class API_Usage_Alerts {
 			$sites = get_sites( array( 'number' => 100 ) );
 
 			foreach ( $sites as $site ) {
-				switch_to_blog( $site->blog_id );
-				$this->check_site_anomalies( $site->blog_id );
+				switch_to_blog( (int) $site->blog_id );
+				$this->check_site_anomalies( (int) $site->blog_id );
 				restore_current_blog();
 			}
 
@@ -420,6 +420,7 @@ class API_Usage_Alerts {
 	 * @param array  $anomaly     Anomaly data.
 	 * @param int    $site_id     Site ID.
 	 * @param string $webhook_url Webhook URL.
+	 * @return array|\WP_Error The HTTP API response (since 6.0.0).
 	 */
 	private function send_webhook_alert( $anomaly, $site_id, $webhook_url ) {
 		$stats = API_Usage_Tracker::get_usage_stats( $site_id, 'today' );
@@ -435,7 +436,9 @@ class API_Usage_Alerts {
 			'stats'      => $stats,
 		);
 
-		wp_remote_post(
+		// The URL is an administrator setting: refuse local and private addresses
+		// (allow a trusted internal host with the http_request_host_is_external filter).
+		return wp_safe_remote_post(
 			$webhook_url,
 			array(
 				'body'    => wp_json_encode( $payload ),
@@ -474,8 +477,11 @@ class API_Usage_Alerts {
 			case 'webhook':
 				$settings = \ZeroSpam\Core\Settings::get_settings();
 				if ( ! empty( $settings['alert_webhook_url']['value'] ) ) {
-					$instance->send_webhook_alert( $test_anomaly, get_current_blog_id(), $settings['alert_webhook_url']['value'] );
-					return true;
+					$response = $instance->send_webhook_alert( $test_anomaly, get_current_blog_id(), $settings['alert_webhook_url']['value'] );
+					$code     = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
+
+					// Since 6.0.0 a webhook that fails or answers with an error is reported as not sent.
+					return $code >= 200 && $code < 300;
 				}
 				return false;
 

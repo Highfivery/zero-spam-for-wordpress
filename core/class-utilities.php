@@ -278,11 +278,9 @@ class Utilities {
 		 */
 		$htaccess_file = (string) apply_filters( 'zerospam_htaccess_file', get_home_path() . '.htaccess' );
 		if ( wp_is_writable( $htaccess_file ) ) {
+			// No IP is blocked any more: the empty list clears the rules between
+			// the markers, so the last unblocked address is not left denied.
 			$lines = self::htaccess_rules( (string) $settings );
-
-			if ( empty( $lines ) ) {
-				return false;
-			}
 
 			if ( insert_with_markers( $htaccess_file, 'Zero Spam for WordPress', $lines ) ) {
 				return true;
@@ -486,6 +484,17 @@ class Utilities {
 		 * @param array $excluded Array of field key names to skip.
 		 */
 		return apply_filters( 'zerospam_excluded_fields', $excluded );
+	}
+
+	/**
+	 * Forgets the allowed words and minimum word length read in this request
+	 * (after they are changed).
+	 *
+	 * @since 6.0.0
+	 */
+	public static function reset_word_caches(): void {
+		self::$allowed_words_cache = null;
+		self::$min_length_cache    = null;
 	}
 
 	/**

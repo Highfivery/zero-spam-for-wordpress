@@ -9,7 +9,9 @@ declare( strict_types=1 );
 
 namespace ZeroSpam\Core\Front;
 
+use ZeroSpam\Core\Access;
 use ZeroSpam\Core\Rescue_Link;
+use ZeroSpam\Core\Termination_Intercepted;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -179,8 +181,13 @@ final class Block_Page {
 	 * @param array  $args     Template arguments.
 	 * @param string $title    Page title (plain text).
 	 * @param int    $status   HTTP status.
+	 * @throws Termination_Intercepted Inside Access::intercept_termination() (the self-test): no page, no header.
 	 */
 	public static function render( string $template, array $args, string $title, int $status ): void {
+		if ( Access::is_intercepting_termination() ) {
+			throw new Termination_Intercepted( 'Zero Spam would have answered with a page.' );
+		}
+
 		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
 			define( 'DONOTCACHEPAGE', true );
 		}

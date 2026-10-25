@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps API_Monitoring to this file name.
 /**
  * API Monitoring Module
  *
@@ -116,7 +116,7 @@ class API_Monitoring {
 
 		$settings['alert_webhook_url'] = array(
 			'title'       => __( 'Webhook URL', 'zero-spam' ),
-			'desc'        => __( 'Optional: Enter a webhook URL to receive JSON-formatted alert notifications (e.g., Slack, Discord, PagerDuty).', 'zero-spam' ),
+			'desc'        => __( 'Optional: Enter a webhook URL to receive JSON-formatted alert notifications (e.g., Slack, Discord, PagerDuty). For safety, addresses on your own server or private network (localhost, 10.x, 192.168.x) are refused; a developer can allow a trusted internal host with WordPress\'s http_request_host_is_external filter.', 'zero-spam' ),
 			'section'     => 'api-monitoring',
 			'module'      => 'api-monitoring',
 			'type'        => 'url',

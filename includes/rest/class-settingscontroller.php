@@ -660,7 +660,7 @@ class Settings_Controller extends Base_Controller {
 	 * @param string[] $keys Setting keys.
 	 * @return string[] Locked keys (empty on a single site).
 	 */
-	private function get_locked_keys( array $keys ): array {
+	public function get_locked_keys( array $keys ): array {
 		if ( ! is_multisite() || ! $keys ) {
 			return array();
 		}
@@ -1018,6 +1018,37 @@ class Settings_Controller extends Base_Controller {
 			);
 		}
 
+		$result = $this->validate_values( $settings );
+
+		// Return errors if any.
+		if ( ! empty( $result['errors'] ) ) {
+			return new WP_Error(
+				'rest_invalid_settings',
+				__( 'One or more settings are invalid.', 'zero-spam' ),
+				array(
+					'status' => 400,
+					'errors' => $result['errors'],
+					'params' => $result['errors'],
+				)
+			);
+		}
+
+		return $result['valid'];
+	}
+
+	/**
+	 * Checks values against the rules PATCH /settings applies, key by key.
+	 *
+	 * Unlike PATCH, which refuses the whole request when one value is
+	 * invalid, this returns the valid values and the errors separately, so a
+	 * caller (the settings import) can keep the valid ones.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array<string|int, mixed> $settings Values by setting key.
+	 * @return array{valid: array<string, mixed>, errors: array<string, string>}
+	 */
+	public function validate_values( array $settings ): array {
 		$whitelist = $this->get_full_whitelist();
 		$validated = array();
 		$errors    = array();
@@ -1076,20 +1107,66 @@ class Settings_Controller extends Base_Controller {
 			$validated[ $key ] = $value;
 		}
 
-		// Return errors if any.
-		if ( ! empty( $errors ) ) {
+		return array(
+			'valid'  => $validated,
+			'errors' => $errors,
+		);
+	}
+
+	/**
+	 * Stores values on the current site the way PATCH /settings does, and
+	 * records one audit entry (secrets masked).
+	 *
+	 * The values must come from validate_values() and must not include locked
+	 * keys (see get_locked_keys()).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array<string, mixed> $validated Validated values.
+	 * @return array<string, array<string, mixed>>|WP_Error The changes (secrets masked), or why nothing was stored.
+	 */
+	public function write_site_values( array $validated ) {
+		if ( ! $validated ) {
+			return array();
+		}
+
+		$existing = $this->get_site_values( array_keys( $validated ) );
+		$changes  = array();
+
+		foreach ( $validated as $key => $new_value ) {
+			$old_value = isset( $existing[ $key ] ) ? $existing[ $key ] : null;
+			if ( $old_value !== $new_value ) {
+				$changes[ $key ] = array(
+					'old' => $old_value,
+					'new' => $new_value,
+				);
+			}
+		}
+
+		if ( ! $this->write_settings( 'site', $validated ) ) {
 			return new WP_Error(
-				'rest_invalid_settings',
-				__( 'One or more settings are invalid.', 'zero-spam' ),
-				array(
-					'status' => 400,
-					'errors' => $errors,
-					'params' => $errors,
-				)
+				'rest_update_failed',
+				__( 'Failed to update settings.', 'zero-spam' ),
+				array( 'status' => 500 )
 			);
 		}
 
-		return $validated;
+		$changes = $this->mask_changes( $changes, Settings_Schema::SOURCE_SITE );
+		$this->add_audit_entry( 'site', $changes, false );
+
+		return $changes;
+	}
+
+	/**
+	 * Records changes made on the current site outside PATCH /settings (for
+	 * example by the autoconfigure action) as one audit entry, secrets masked.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array<string, array<string, mixed>> $changes Changes by key (`old`, `new`).
+	 */
+	public function audit_site_changes( array $changes ): void {
+		$this->add_audit_entry( 'site', $this->mask_changes( $changes, Settings_Schema::SOURCE_SITE ), false );
 	}
 
 	/**

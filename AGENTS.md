@@ -87,6 +87,28 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   `DB_VERSION` bump.
 - Logged submission data is sanitized on write (keys and values) and must be
   escaped on read: it has carried a stored XSS before (CVE-2026-96752).
+  The REST routes (`activity/{id}`) return it as stored; the client escapes.
+- 6.0 data routes (`feat/rest-data`): `stats/*`, `activity*`, `undo/{token}`,
+  `rules/*`, `protection/modules`, `settings/actions|export|import`,
+  `self-test`, `news`. Log statistics are cached in the transients
+  `zerospam_stats_summary`, `zerospam_stats_timeseries` and
+  `zerospam_protection_detections`, tagged with `MAX(log_id)` (a new
+  detection refreshes them); code that deletes or restores log rows calls
+  `Stats_Controller::flush_cache()`. REST deletions keep the rows for two
+  minutes in `zerospam_undo_{token}` (`Includes\Undo_Store`, at most 500 rows,
+  bound to the user and the site, single use). The live feed (`activity?since_id=`)
+  must stay at three queries or fewer and never build the settings registry.
+  The self-test runs real checks inside `Access::intercept_termination()`,
+  which makes `terminate_execution()` and every `Front\Block_Page` page throw
+  (caught) instead of sending a page or headers; use it for any dry run.
+  Alert webhooks go through `wp_safe_remote_post()` (private addresses are
+  refused; the `http_request_host_is_external` filter allows a trusted host).
+  Read settings in per-request paths with `Settings_Schema::value()` (one
+  registry build per request), not `Settings::get_settings()`.
+  `Includes\News_Feed` is the only code that reads the zerospam.org feed
+  (site transients `zerospam_news` and `zerospam_news_backoff`); every outbound
+  service is listed in the readme's External services section: keep it
+  current when adding one.
 
 ## 3. Workflow
 
@@ -552,8 +574,9 @@ npm run env:stop                 # stop both wp-env sites
 
 - WPCS backlog at 5.7.14: 143 errors / 172 warnings in 32 files (176
   auto-fixable), down from 293 / 292 in 52 files at 5.7.13 and 429 / 367 in
-  62 files before; PHPStan level 5 baseline of 135 findings in 93 entries
-  (was 144 in 99 at 5.7.13), with no unmatched entries. Clearing them is planned work; do it
+  62 files before; PHPStan level 5 baseline of 108 findings in 69 entries
+  on develop for 6.0 (135 in 93 at 5.7.14, 144 in 99 at 5.7.13), with no
+  unmatched entries. Clearing them is planned work; do it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
   `build/`.
@@ -596,11 +619,25 @@ npm run env:stop                 # stop both wp-env sites
     hosts without a persistent object cache.
   - `core/admin/tables/class-blockedtable.php`: the bulk delete never deletes
     (`sanitize_text_field()` on the `ids` array returns `''`) and has no
-    capability check of its own; removing the last blocked IP leaves the old
-    rules in `.htaccess`.
+    capability check of its own; the legacy delete links never refresh
+    `.htaccess`. The Blocked Locations search looks at the empty IP column.
+    The 6.0 REST routes that replace these screens (`rules/blocks`,
+    `rules/blocks/bulk-delete`) delete,
+    search by location value or country name and refresh `.htaccess`, and
+    `Utilities::refresh_htaccess()` now clears the rules when no IP is
+    blocked any more; the legacy screens keep their bugs until the cutover
+    (PR 13) removes them.
   - `core/admin/tables/class-logtable.php`: the Actions column runs one
     blocked-IP query per row (about 50 per page); a page past the end shows
-    "No items found" with no pagination (clamp the page number).
+    "No items found" with no pagination. `GET activity` (6.0) resolves the
+    blocked state with one query per page and serves the last page instead;
+    the legacy table stays as it is until the cutover.
+  - `core/class-settings.php` `update_blocked_email_domains()` (the legacy
+    "Use Blocked Email Domains Recommendation" link) rewrites the whole
+    `zero-spam-settings` option with resolved values, which on a network
+    turns network defaults into site overrides; the REST action writes only
+    `zerospam_blocked_email_domains`.
+  - ipstack is queried over plain `http://`.
   - `modules/security/class-security.php`: the emoji setting is incomplete
     since WordPress 6.4 (`wp_enqueue_emoji_styles` on
     `wp_enqueue_scripts`/`admin_enqueue_scripts` and the `embed_head` script
