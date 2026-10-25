@@ -83,7 +83,7 @@ class Test_Zero_Spam_Network extends TestCase {
 		$reports = array_values( array_filter( \ZeroSpam\Tests\HttpMock::requests(), static fn ( $r ) => str_contains( $r['url'], 'wp-json/v6/report/' ) ) );
 		$this->assertCount( 1, $reports );
 		parse_str( (string) wp_parse_url( $reports[0]['url'], PHP_URL_QUERY ), $query );
-		$this->assertSame( 'wordpress', $query['data']['app_type'] );
+		$this->assertSame( 'wordpress', $query['data']['app_type'] ); // phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText -- The exact API value under test.
 		$this->assertSame( ( new Zero_Spam() )->global_api_data()['app_type'], $query['data']['app_type'] );
 	}
 }
