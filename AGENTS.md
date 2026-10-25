@@ -728,9 +728,6 @@ npm run env:stop                 # stop both wp-env sites
   source map.
 - Found by the 5.7.14 Local smoke test, not fixed yet (each needs its own
   PR):
-  - the e2e mu-plugin's canned Zero Spam `v3/query` answer has no
-    `body_response`, so `modules/class-zerospam.php` logs "problem querying
-    the Zero Spam Blacklist API" during e2e runs;
   - on a network subsite, a setting whose network value is empty shows
     "Using network default:" followed by an empty box;
   - Network Stats labels sites "Enhanced" even when they have no working
@@ -740,13 +737,16 @@ npm run env:stop                 # stop both wp-env sites
     `options-general.php?page=…`;
   - the network settings lock button's 🔓 emoji is replaced by WordPress's
     emoji script with an `s.w.org` image (an external asset in admin).
-- 6.0 Overview data gaps (PR 4): the log does not record which detections
-  only the Zero Spam network caught, so the Enhanced hero and Network
-  intelligence panel show the license's query usage instead of the
-  prototype's "caught only by the network" figures; the API reports no
-  renewal date (`License_Status` renewal.date is always null), so the
-  renewal reminder never shows yet; all-time totals are not kept, so the
-  milestone counts the last 30 days.
+- 6.0 Overview data (PR 4): "caught by the Zero Spam network" is derived
+  from the log (`Stats_Controller::network_only_sql()`: `blocked` rows whose
+  `failed` is `zero_spam`, or whose reason starts with the 5.x "High
+  Confidence Score:" sentence in English, the site language or the user's
+  language); a visitor the network blocks on several requests counts once
+  per blocked request, like every other detection, and a row logged in a
+  third language before 6.0 is not counted. Still missing: the API reports no
+  renewal date (`License_Status` renewal.date is always null), so the renewal
+  reminder never shows; all-time totals are not kept, so the milestone counts
+  the last 30 days (a lifetime counter is a follow-up).
 - `includes/templates/admin-bar-chart.php` and `admin-line-chart.php` still
   load Chart.js from a CDN (the e2e browser serves the bundled
   `assets/js/vendor/chart.umd.min.js` instead and lists the request in the
