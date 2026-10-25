@@ -59,6 +59,40 @@ class Migrations {
 	const BLOCKED_IP_CURSOR_OPTION = 'zerospam_migration_cursor_canonical_blocked_ips';
 
 	/**
+	 * Site option (sitemeta on a network) listing the network-wide migrations
+	 * that have run, so they run once per network rather than once per site.
+	 *
+	 * @var string
+	 */
+	const NETWORK_COMPLETED_OPTION = 'zerospam_network_completed_migrations';
+
+	/**
+	 * Lock option of the network-wide migrations, held in the main site's
+	 * options table (sitemeta has no unique key to lock on).
+	 *
+	 * @var string
+	 */
+	const NETWORK_LOCK_OPTION = 'zerospam_migration_lock_network';
+
+	/**
+	 * Copy of the 5.x settings taken before the 6.0 migrations: a
+	 * non-autoloaded option on each site, and a site option of the same name
+	 * for the network values. Removed in 6.1.
+	 *
+	 * @var string
+	 */
+	const BACKUP_5X_OPTION = 'zerospam_backup_5x';
+
+	/**
+	 * The network settings store used by the REST settings route before 6.0.
+	 * Merged into `zerospam_network_settings` and left in place, unread and
+	 * unwritten, so a downgrade to 5.7.x still finds it. Removed in 6.1.
+	 *
+	 * @var string
+	 */
+	const LEGACY_NETWORK_OPTION = 'zero-spam-network-zerospam';
+
+	/**
 	 * Seconds after which a migration lock is considered stale.
 	 *
 	 * @var int
@@ -154,6 +188,8 @@ class Migrations {
 			'canonical_blocked_ips'        => array( $this, 'canonicalize_blocked_ips' ),
 			// Stays pending until an administrator loads the site, see Admin_Safe_IPs::migrate().
 			'admin_safe_ip'                => array( \ZeroSpam\Core\Admin_Safe_IPs::class, 'migrate' ),
+			'v6_backup_5x'                 => array( $this, 'backup_5x_settings' ),
+			'v6_network_store'             => array( $this, 'merge_network_store' ),
 		);
 	}
 
@@ -535,5 +571,228 @@ class Migrations {
 		update_option( self::SETTINGS_REVIEW_NOTICE_OPTION, true, true );
 
 		return true;
+	}
+
+	/**
+	 * Copies the 5.x settings before 6.0 changes anything.
+	 *
+	 * Every `zero-spam-*` option of the site goes into the non-autoloaded
+	 * option `zerospam_backup_5x`; on a network, `zerospam_network_settings`
+	 * and the `zero-spam-network-*` options go once into the site option of
+	 * the same name (on a single site they are ordinary options and go into
+	 * the site's copy). An existing copy is never replaced, so running this
+	 * again changes nothing.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request (another request
+	 *              holds the network lock).
+	 */
+	public function backup_5x_settings(): bool {
+		global $wpdb;
+
+		if ( false === get_option( self::BACKUP_5X_OPTION ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration, bounded.
+			$rows = (array) $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name ASC LIMIT 500",
+					$wpdb->esc_like( 'zero-spam-' ) . '%'
+				),
+				ARRAY_A
+			);
+
+			$options = array();
+			foreach ( $rows as $row ) {
+				$options[ (string) $row['option_name'] ] = maybe_unserialize( $row['option_value'] );
+			}
+
+			if ( ! is_multisite() ) {
+				$options = array_merge( $options, self::network_options_to_back_up() );
+			}
+
+			if ( $options ) {
+				add_option( self::BACKUP_5X_OPTION, self::backup_payload( $options ), '', false );
+			}
+		}
+
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_backup_5x',
+			static function (): bool {
+				$options = self::network_options_to_back_up();
+
+				if ( $options && false === get_site_option( self::BACKUP_5X_OPTION ) ) {
+					add_site_option( self::BACKUP_5X_OPTION, self::backup_payload( $options ) );
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Merges the 5.x REST network settings into the network settings store.
+	 *
+	 * Before 6.0 the `zero-spam/v1/settings` route kept network values in
+	 * `zero-spam-network-zerospam` while everything else used
+	 * `zerospam_network_settings`, so the two could disagree. Each value of
+	 * the old option whose key the store does not have is added, unlocked;
+	 * the store's own values win. The old option stays in place for a
+	 * downgrade. Runs once per network.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request.
+	 */
+	public function merge_network_store(): bool {
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_network_store',
+			static function (): bool {
+				$legacy = get_site_option( self::LEGACY_NETWORK_OPTION );
+
+				if ( ! is_array( $legacy ) || ! $legacy ) {
+					return true;
+				}
+
+				$store   = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( Network_Settings::META_KEY, array() ) );
+				$changed = false;
+
+				foreach ( $legacy as $key => $value ) {
+					if ( ! is_string( $key ) || '' === $key || isset( $store['settings'][ $key ] ) ) {
+						continue;
+					}
+
+					$store['settings'][ $key ] = array(
+						'value'      => $value,
+						'locked'     => false,
+						'updated_by' => 0,
+						'updated_at' => current_time( 'mysql' ),
+					);
+
+					$changed = true;
+				}
+
+				if ( $changed ) {
+					update_site_option( Network_Settings::META_KEY, $store );
+					delete_site_transient( Network_Settings::CACHE_KEY );
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * The network-level options the 5.x backup keeps.
+	 *
+	 * @return array<string, mixed> Option name => value, only those that exist.
+	 */
+	private static function network_options_to_back_up(): array {
+		global $wpdb;
+
+		$names = array( Network_Settings::META_KEY, self::LEGACY_NETWORK_OPTION );
+
+		if ( is_multisite() ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration, bounded.
+			$more  = (array) $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT meta_key FROM {$wpdb->sitemeta} WHERE site_id = %d AND meta_key LIKE %s ORDER BY meta_key ASC LIMIT 100",
+					get_current_network_id(),
+					$wpdb->esc_like( 'zero-spam-network-' ) . '%'
+				)
+			);
+			$names = array_merge( $names, array_map( 'strval', $more ) );
+		}
+
+		$options = array();
+		foreach ( array_unique( $names ) as $name ) {
+			$value = get_site_option( $name );
+			if ( false !== $value ) {
+				$options[ $name ] = $value;
+			}
+		}
+
+		return $options;
+	}
+
+	/**
+	 * What a backup stores.
+	 *
+	 * @param array<string, mixed> $options Option name => value.
+	 * @return array{created: int, from_version: string, options: array<string, mixed>}
+	 */
+	private static function backup_payload( array $options ): array {
+		return array(
+			'created'      => time(),
+			'from_version' => (string) get_option( 'zero-spam-last-update', '' ),
+			'options'      => $options,
+		);
+	}
+
+	/**
+	 * Runs a network-wide migration once per network.
+	 *
+	 * Completed keys are kept in the site option NETWORK_COMPLETED_OPTION. A
+	 * lock in the main site's options table (acquire_lock()) keeps two sites
+	 * from running it at the same time.
+	 *
+	 * @param string   $key      Migration key.
+	 * @param callable $callback Does the work; returns false to try again later.
+	 * @return bool True once the migration has run for the network.
+	 */
+	private function run_network_once( string $key, callable $callback ): bool {
+		if ( in_array( $key, self::network_completed(), true ) ) {
+			return true;
+		}
+
+		$main = get_main_site_id();
+
+		switch_to_blog( $main );
+		$locked = self::acquire_lock( self::NETWORK_LOCK_OPTION );
+		restore_current_blog();
+
+		if ( ! $locked ) {
+			return false;
+		}
+
+		try {
+			// Another site may have finished it while this one waited for the lock.
+			wp_cache_delete( get_current_network_id() . ':' . self::NETWORK_COMPLETED_OPTION, 'site-options' );
+			if ( in_array( $key, self::network_completed(), true ) ) {
+				return true;
+			}
+
+			if ( false === $callback() ) {
+				return false;
+			}
+
+			$completed   = self::network_completed();
+			$completed[] = $key;
+			update_site_option( self::NETWORK_COMPLETED_OPTION, array_values( array_unique( $completed ) ) );
+
+			return true;
+		} finally {
+			switch_to_blog( $main );
+			delete_option( self::NETWORK_LOCK_OPTION );
+			restore_current_blog();
+		}
+	}
+
+	/**
+	 * Keys of the network-wide migrations that have run.
+	 *
+	 * @return string[]
+	 */
+	private static function network_completed(): array {
+		$completed = get_site_option( self::NETWORK_COMPLETED_OPTION, array() );
+
+		return is_array( $completed ) ? array_map( 'strval', $completed ) : array();
 	}
 }

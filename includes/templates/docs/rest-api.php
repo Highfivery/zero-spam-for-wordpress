@@ -393,6 +393,42 @@ console.log(result);</code></pre>
 		</div>
 	</div>
 
+	<!-- Since 6.0 -->
+	<div class="zerospam-docs-accordion">
+		<button class="zerospam-docs-accordion-toggle" type="button">
+			<span class="zerospam-docs-accordion-icon">▶</span>
+			<strong><?php esc_html_e( 'Every setting, the license and your preferences (since 6.0)', 'zero-spam' ); ?></strong>
+		</button>
+		<div class="zerospam-docs-accordion-content">
+			<h3><?php esc_html_e( 'Every setting through /settings', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'GET and PATCH /settings accept every Zero Spam setting that holds a value, not only Enhanced Protection. Values are checked against the setting\'s type, choices and limits. The zero_spam_rest_settings_whitelist filter can still add or remove settings.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'License keys, API keys and the alert webhook URL are write-only: PATCH stores them, but reads return only whether one is set, where it comes from (site, network, locked or constant) and, for a key this site stores, its last four characters. On a network site, keys set by the network or in wp-config.php are never hinted.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'Network values come from the Network Settings store, the same one the Network Settings screen and WP-CLI use. A locked network value wins over a site override and is reported with the source "locked".', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( 'GET /settings/schema — Describe Every Setting', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'Lists every section and setting with its type, choices, limits, default, recommended value, where it belongs in the admin, whether it can be or is locked, where its value comes from, and its value (secrets masked). Administrators only.', 'zero-spam' ); ?></p>
+			<div class="zerospam-docs-code-block">
+				<pre><code>curl -u "admin:APP_PASSWORD" \
+	"<?php echo esc_url( $site_url ); ?>/wp-json/zero-spam/v1/settings/schema"</code></pre>
+			</div>
+
+			<h3><?php esc_html_e( 'GET, PUT and DELETE /license — The Zero Spam License', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'GET returns the license status (none, valid, invalid, unreachable or quota_exceeded), the plan, query counts and the masked key; add refresh=1 to ask the Zero Spam API again. PUT with {"license_key": "…"} checks the key and saves it (a rejected key is not saved). DELETE removes the key this site stores; a key set by the network or in wp-config.php is refused with 409. Administrators only.', 'zero-spam' ); ?></p>
+			<div class="zerospam-docs-code-block">
+				<pre><code>curl -X PUT -u "admin:APP_PASSWORD" \
+	-H "Content-Type: application/json" \
+	-d '{"license_key":"YOUR-LICENSE-KEY"}' \
+	"<?php echo esc_url( $site_url ); ?>/wp-json/zero-spam/v1/license"</code></pre>
+			</div>
+
+			<h3><?php esc_html_e( 'GET and PATCH /ui/prefs — Your Admin Preferences', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'Used by the Zero Spam admin screens and may change between releases. Any logged-in user reads and changes their own preferences: theme (light, dark or auto), reduce_motion and live_paused (true or false), dismissed (a list of IDs), whats_new_seen (a version number) and onboarding_step (0 to 4).', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( 'Errors', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'Invalid input is answered with 400 and data.params, one message per parameter (PATCH /settings keeps its rest_invalid_settings code and errors list as well). A locked setting is answered with 403 rest_setting_locked and data.locked_keys. List routes accept at most 100 items per page and return the X-WP-Total and X-WP-TotalPages headers.', 'zero-spam' ); ?></p>
+		</div>
+	</div>
+
 	<!-- Multisite -->
 	<div class="zerospam-docs-accordion">
 		<button class="zerospam-docs-accordion-toggle" type="button">

@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Network_Settings_Manager to this file name.
 /**
  * Network Settings Manager - CRUD operations
  *
@@ -107,7 +107,7 @@ class Network_Settings_Manager {
 		if ( ! isset( $settings['settings'][ $setting_key ] ) ) {
 			$plugin_settings = \ZeroSpam\Core\Settings::get_settings();
 			$default_value   = $plugin_settings[ $setting_key ]['value'] ?? '';
-			
+
 			$settings['settings'][ $setting_key ] = array(
 				'value'      => $default_value,
 				'locked'     => false,
@@ -156,7 +156,7 @@ class Network_Settings_Manager {
 		if ( ! isset( $settings['settings'][ $setting_key ] ) ) {
 			$plugin_settings = \ZeroSpam\Core\Settings::get_settings();
 			$default_value   = $plugin_settings[ $setting_key ]['value'] ?? '';
-			
+
 			$settings['settings'][ $setting_key ] = array(
 				'value'      => $default_value,
 				'locked'     => false,
@@ -218,7 +218,7 @@ class Network_Settings_Manager {
 
 		// Get sites to process.
 		if ( empty( $site_ids ) ) {
-			$sites = get_sites( array( 'number' => 0 ) );
+			$sites    = get_sites( array( 'number' => 0 ) );
 			$site_ids = wp_list_pluck( $sites, 'blog_id' );
 		}
 
@@ -245,7 +245,7 @@ class Network_Settings_Manager {
 
 				// Get current module settings.
 				$module_settings = get_option( "zero-spam-{$module}", array() );
-				$setting_exists = isset( $module_settings[ $key ] );
+				$setting_exists  = isset( $module_settings[ $key ] );
 
 				// Determine if we should apply this setting.
 				switch ( $mode ) {
@@ -266,9 +266,8 @@ class Network_Settings_Manager {
 						break;
 				}
 
-				// Don't apply if:
-				// 1. We shouldn't apply based on mode
-				// 2. Setting is not locked AND not forcing AND site has an override
+				// Don't apply if we shouldn't apply based on mode, or if the setting
+				// is not locked, we are not forcing and the site has an override.
 				if ( ! $should_apply ) {
 					continue;
 				}
@@ -279,17 +278,17 @@ class Network_Settings_Manager {
 
 				// Apply the network setting.
 				$module_settings[ $key ] = $config['value'];
-				
+
 				// Save back to the module-specific option.
 				update_option( "zero-spam-{$module}", $module_settings );
 				$site_updated = true;
 			}
 
 			if ( $site_updated ) {
-				$updated_count++;
+				++$updated_count;
 				$updated_sites[] = $site_id;
 			} else {
-				$skipped_count++;
+				++$skipped_count;
 			}
 
 			restore_current_blog();
@@ -334,8 +333,8 @@ class Network_Settings_Manager {
 
 		// Get all plugin settings to know all modules.
 		$all_plugin_settings = \ZeroSpam\Core\Settings::get_settings();
-		$modules = array();
-		
+		$modules             = array();
+
 		// Collect all unique modules.
 		foreach ( $all_plugin_settings as $key => $config ) {
 			if ( isset( $config['module'] ) && ! in_array( $config['module'], $modules, true ) ) {
@@ -347,7 +346,7 @@ class Network_Settings_Manager {
 		$deleted_count = 0;
 		foreach ( $modules as $module ) {
 			if ( delete_option( "zero-spam-{$module}" ) ) {
-				$deleted_count++;
+				++$deleted_count;
 			}
 		}
 
@@ -371,7 +370,7 @@ class Network_Settings_Manager {
 			return array();
 		}
 
-		$network_settings = $this->network_settings->get_network_settings();
+		$network_settings     = $this->network_settings->get_network_settings();
 		$settings_with_status = array();
 
 		foreach ( $network_settings['settings'] as $key => $config ) {
@@ -452,9 +451,9 @@ class Network_Settings_Manager {
 					: ( isset( $value['locked'] ) ? $value['locked'] : false );
 
 				$this->set_setting( $key, $value['value'] ?? $value, $locked );
-				$imported_count++;
+				++$imported_count;
 			} else {
-				$skipped_count++;
+				++$skipped_count;
 			}
 		}
 
@@ -492,6 +491,25 @@ class Network_Settings_Manager {
 		}
 
 		return $settings['settings'];
+	}
+
+	/**
+	 * Records a change of one network setting in the network audit log, as the
+	 * current user.
+	 *
+	 * For writes that do not go through set_setting(), such as the
+	 * `zero-spam/v1/settings` route with `scope=network`. Mask secrets before
+	 * passing them.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $setting_key Setting key.
+	 * @param mixed  $old_value   Old value (null when there was none).
+	 * @param mixed  $new_value   New value.
+	 * @return bool Success.
+	 */
+	public function log_setting_change( string $setting_key, $old_value, $new_value ): bool {
+		return (bool) $this->log_audit( 0, 'set', $setting_key, $old_value, $new_value );
 	}
 
 	/**
@@ -588,15 +606,22 @@ class Network_Settings_Manager {
 		$where_clause = implode( ' AND ', $where );
 		$orderby      = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// An invalid order would leave "ORDER BY" empty.
+		if ( ! $orderby ) {
+			$orderby = 'date_created DESC';
+		}
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause only joins prepare()d fragments; $orderby passed sanitize_sql_orderby().
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE {$where_clause} ORDER BY {$orderby} LIMIT %d OFFSET %d",
+				"SELECT * FROM %i WHERE {$where_clause} ORDER BY {$orderby} LIMIT %d OFFSET %d",
+				$table,
 				$args['limit'],
 				$args['offset']
 			),
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		return $results;
 	}
