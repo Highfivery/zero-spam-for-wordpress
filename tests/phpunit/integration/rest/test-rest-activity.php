@@ -8,6 +8,7 @@
 declare( strict_types=1 );
 
 use ZeroSpam\Includes\DB;
+use ZeroSpam\Includes\Rest\Rules_Controller;
 use ZeroSpam\Includes\Undo_Store;
 use ZeroSpam\Tests\TestCase;
 
@@ -285,6 +286,153 @@ class Test_Rest_Activity extends TestCase {
 		$this->assertNotEmpty( preg_grep( '/`log_id` > ' . $ids[25] . '/', $queries ) );
 
 		$this->assertSame( array(), $this->rest( 'GET', self::ROUTE, array(), array( 'since_id' => end( $ids ) ) )->get_data() );
+	}
+
+	/**
+	 * `no_count` skips the total for callers that do not page: no COUNT
+	 * query, no paging headers, and a page past the end is empty.
+	 */
+	public function test_no_count_skips_the_total(): void {
+		$ids = $this->insert_log_rows( 30 );
+
+		$query = array(
+			'per_page' => 10,
+			'no_count' => true,
+			'_fields'  => 'id',
+		);
+		$this->rest( 'GET', self::ROUTE, array(), $query );
+
+		$response = null;
+		$queries  = $this->capture_queries(
+			function () use ( &$response, $query ) {
+				$response = $this->rest( 'GET', self::ROUTE, array(), $query );
+			}
+		);
+
+		$this->assertSame( array_slice( array_reverse( $ids ), 0, 10 ), array_column( $response->get_data(), 'id' ) );
+		$this->assertEmpty( preg_grep( '/COUNT\(\*\)/i', $queries ), implode( "\n", $queries ) );
+		$this->assertCount( 1, $queries, 'One read of the page.' );
+		$this->assertArrayNotHasKey( 'X-WP-Total', $response->get_headers() );
+		$this->assertArrayNotHasKey( 'X-WP-TotalPages', $response->get_headers() );
+
+		$past = $this->rest( 'GET', self::ROUTE, array(), array_merge( $query, array( 'page' => 9 ) ) );
+		$this->assertSame( array(), $past->get_data(), 'Without a count a page past the end is empty, not the last page.' );
+		$this->assertSame( '9', $past->get_headers()['X-ZeroSpam-Page'] );
+
+		$counted = $this->rest( 'GET', self::ROUTE, array(), array( 'per_page' => 10 ) );
+		$this->assertSame( '30', $counted->get_headers()['X-WP-Total'], 'Without no_count the total is still sent.' );
+	}
+
+	/**
+	 * `days` keeps the last N days of the site's calendar, today included,
+	 * and combines with `after` (the later start applies).
+	 */
+	public function test_days_filter(): void {
+		$now    = (int) current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- The log's clock.
+		$today  = $this->insert_log_rows( 2, array( 'date_recorded' => gmdate( 'Y-m-d', $now ) . ' 00:00:01' ) );
+		$sixth  = $this->insert_log_rows( 1, array( 'date_recorded' => gmdate( 'Y-m-d', $now - 6 * DAY_IN_SECONDS ) . ' 00:00:00' ) );
+		$eighth = $this->insert_log_rows( 1, array( 'date_recorded' => gmdate( 'Y-m-d', $now - 7 * DAY_IN_SECONDS ) . ' 23:59:59' ) );
+
+		$week = array_column( $this->rest( 'GET', self::ROUTE, array(), array( 'days' => 7 ) )->get_data(), 'id' );
+		sort( $week );
+		$this->assertSame( array_merge( $today, $sixth ), $week, 'Seven days: today and the six before it.' );
+
+		$this->assertSame( array_merge( $today, $sixth, $eighth ), $this->sorted_ids( array( 'days' => 30 ) ) );
+		$this->assertCount( 2, $this->rest( 'GET', self::ROUTE, array(), array( 'days' => 1 ) )->get_data(), 'One day is today.' );
+		$this->assertCount( 2, $this->rest( 'GET', self::ROUTE, array(), array( 'days' => 30, 'after' => gmdate( 'Y-m-d', $now ) ) )->get_data(), 'The later of after and days applies.' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+
+		$facets = $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true, 'days' => 7 ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( 3, $facets['total'] );
+
+		foreach ( array( 0, 366 ) as $days ) {
+			$this->assertSame( 400, $this->rest( 'GET', self::ROUTE, array(), array( 'days' => $days ) )->get_status(), "days={$days}" );
+		}
+	}
+
+	/**
+	 * IDs of a list, ascending.
+	 *
+	 * @param array<string, mixed> $query Query.
+	 * @return int[]
+	 */
+	private function sorted_ids( array $query ): array {
+		$ids = array_column( $this->rest( 'GET', self::ROUTE, array(), $query )->get_data(), 'id' );
+		sort( $ids );
+
+		return $ids;
+	}
+
+	/**
+	 * `detections_only` leaves out entries that are not detections (sent rescue links).
+	 */
+	public function test_detections_only(): void {
+		$this->insert_log_rows( 3 );
+		$this->insert_log_rows( 2, array( 'log_type' => 'rescue' ) );
+
+		$this->assertCount( 5, $this->rest( 'GET', self::ROUTE )->get_data() );
+		$this->assertCount( 3, $this->rest( 'GET', self::ROUTE, array(), array( 'detections_only' => true ) )->get_data() );
+
+		$facets = $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true, 'detections_only' => true ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( 3, $facets['total'] );
+		$this->assertSame( array( 'comment' ), array_column( $facets['type'], 'value' ) );
+	}
+
+	/**
+	 * Every row says whether the Zero Spam network made the detection (also
+	 * for rows logged before 6.0.0); `network_only` keeps those rows and the
+	 * facets count them.
+	 */
+	public function test_network_only(): void {
+		$network = $this->insert_log_rows( 2, array( 'log_type' => 'blocked', 'submission_data' => wp_json_encode( array( 'failed' => 'zero_spam' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$legacy  = $this->insert_log_rows( 1, array( 'log_type' => 'blocked', 'submission_data' => wp_json_encode( array( 'failed' => 'High Confidence Score: 91%' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$other   = $this->insert_log_rows( 1, array( 'log_type' => 'blocked', 'submission_data' => wp_json_encode( array( 'failed' => 'blocked' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$comment = $this->insert_log_rows( 1, array( 'log_type' => 'comment', 'submission_data' => wp_json_encode( array( 'failed' => 'zero_spam' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+
+		$flag = array_column( $this->rest( 'GET', self::ROUTE, array(), array( '_fields' => 'id,network' ) )->get_data(), 'network', 'id' );
+		foreach ( array_merge( $network, $legacy ) as $id ) {
+			$this->assertTrue( $flag[ $id ], "Entry {$id}." );
+		}
+		$this->assertFalse( $flag[ $other[0] ], 'Another blocked visit.' );
+		$this->assertFalse( $flag[ $comment[0] ], 'A comment that names the check is not a network detection.' );
+
+		$only = $this->sorted_ids( array( 'network_only' => true ) );
+		$this->assertSame( array_merge( $network, $legacy ), $only );
+
+		$facets = $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true ) )->get_data();
+		$this->assertSame( 3, $facets['network_only'] );
+		$this->assertSame( 5, $facets['total'] );
+
+		$typed = $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true, 'type' => array( 'comment' ) ) )->get_data(); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( 0, $typed['network_only'], 'The network count follows the other filters.' );
+	}
+
+	/**
+	 * The facets name the newest entry the filters match, where a live feed
+	 * for those filters starts (whatever order the list is shown in).
+	 */
+	public function test_facets_max_id(): void {
+		$logins   = $this->insert_log_rows( 2, array( 'log_type' => 'login' ) );
+		$comments = $this->insert_log_rows( 2, array( 'log_type' => 'comment' ) );
+
+		$this->assertSame( end( $comments ), $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true ) )->get_data()['max_id'] );
+		$this->assertSame( end( $logins ), $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true, 'type' => array( 'login' ) ) )->get_data()['max_id'] ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( 0, $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true, 'type' => array( 'registration' ) ) )->get_data()['max_id'] ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+	}
+
+	/**
+	 * The detail says whether the address is on the IP Allowlist, in any form.
+	 */
+	public function test_detail_says_whether_the_ip_is_allowed(): void {
+		$ids = $this->insert_log_rows( 1, array( 'user_ip' => '2001:db8::5' ) );
+		$this->insert_log_rows( 1, array( 'user_ip' => '203.0.113.8' ) );
+
+		$this->assertFalse( $this->rest( 'GET', self::ROUTE . '/' . $ids[0] )->get_data()['allowed'] );
+
+		$this->set_setting( 'ip_whitelist', "192.0.2.1\n2001:DB8:0:0::5" );
+		Rules_Controller::reset_request_cache();
+
+		$this->assertTrue( $this->rest( 'GET', self::ROUTE . '/' . $ids[0] )->get_data()['allowed'] );
+		$this->assertFalse( $this->rest( 'GET', self::ROUTE . '/' . ( $ids[0] + 1 ) )->get_data()['allowed'] );
 	}
 
 	/**

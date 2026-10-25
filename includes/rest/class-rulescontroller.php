@@ -1018,6 +1018,33 @@ class Rules_Controller extends Base_Controller {
 	}
 
 	/**
+	 * Whether an IP address is on the IP Allowlist (`ip_whitelist`),
+	 * compared in canonical form as Utilities::is_whitelisted() compares it,
+	 * without building the settings registry.
+	 *
+	 * @param string $ip IP address.
+	 */
+	public static function is_allowed_ip( string $ip ): bool {
+		$ip        = trim( $ip );
+		$canonical = User::normalize_ip( $ip );
+
+		if ( '' === $ip ) {
+			return false;
+		}
+
+		foreach ( self::list_items( self::LISTS['allowed-ips']['key'] ) as $entry ) {
+			$entry_canonical = User::normalize_ip( $entry );
+
+			// Values that are not addresses (a Debug IP mock, for example) are compared as entered.
+			if ( '' !== $canonical && '' !== $entry_canonical ? $entry_canonical === $canonical : $entry === $ip ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * The entries of a list setting, as the site uses them.
 	 *
 	 * @param string $key Setting key.
