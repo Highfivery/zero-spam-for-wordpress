@@ -265,6 +265,18 @@ class Plugin {
 		$ui_prefs_controller = new \ZeroSpam\Includes\Rest\UI_Prefs_Controller();
 		$ui_prefs_controller->register_routes();
 
+		// Detection statistics, the activity log, undo, rules and protection modules (since 6.0.0).
+		$data_controllers = array(
+			new \ZeroSpam\Includes\Rest\Stats_Controller(),
+			new \ZeroSpam\Includes\Rest\Activity_Controller(),
+			new \ZeroSpam\Includes\Rest\Undo_Controller(),
+			new \ZeroSpam\Includes\Rest\Rules_Controller(),
+			new \ZeroSpam\Includes\Rest\Protection_Controller(),
+		);
+		foreach ( $data_controllers as $data_controller ) {
+			$data_controller->register_routes();
+		}
+
 		// News and security notices from zerospam.org (since 6.0.0).
 		$news_controller = new \ZeroSpam\Includes\Rest\News_Controller();
 		$news_controller->register_routes();

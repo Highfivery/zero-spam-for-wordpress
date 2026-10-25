@@ -429,6 +429,56 @@ console.log(result);</code></pre>
 		</div>
 	</div>
 
+	<!-- Data routes, since 6.0 -->
+	<div class="zerospam-docs-accordion">
+		<button class="zerospam-docs-accordion-toggle" type="button">
+			<span class="zerospam-docs-accordion-icon">▶</span>
+			<strong><?php esc_html_e( 'Activity, statistics, rules, protection, actions, self-test and news (since 6.0)', 'zero-spam' ); ?></strong>
+		</button>
+		<div class="zerospam-docs-accordion-content">
+			<p><?php esc_html_e( 'These routes give the Zero Spam admin screens their data and work for your own tools too. They answer administrators of the current site only, and on a network every site sees its own data only. Lists accept page and per_page (1 to 100) and return the X-WP-Total, X-WP-TotalPages and X-ZeroSpam-Page headers; a page past the last one returns the last page. Every route accepts _fields.', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( 'GET /stats/summary and /stats/timeseries — Statistics', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'stats/summary?range=1, 7 or 30 (days) returns the detections of the period and of the period before it, the difference, the detections by type, the top countries, the busiest day, the daily average and how full the activity log is (entries and the Maximum Log Entries setting). stats/timeseries?range=1 to 30 returns every day of the period, today last, split by type, and the detections per hour of the day. Rescue-link entries are not detections and are left out. Times are in the site\'s time zone. Answers are cached for a minute (the summary) or five minutes (the time series) and refreshed as soon as a new detection is logged.', 'zero-spam' ); ?></p>
+			<div class="zerospam-docs-code-block">
+				<pre><code>curl -u "admin:APP_PASSWORD" \
+	"<?php echo esc_url( $site_url ); ?>/wp-json/zero-spam/v1/stats/summary?range=7"</code></pre>
+			</div>
+
+			<h3><?php esc_html_e( 'GET /activity — The Activity Log', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'Filters: type[] (detection types), country[] (two-letter codes), ip (any form of the address), after and before (a date such as 2026-10-01, which as before includes that day, or an ISO 8601 time), and search (IP address, page address, country, region or city). Sort with orderby (date_recorded, log_type, user_ip, country or region) and order (asc or desc). Every entry says whether its IP address is blocked right now. since_id returns only the entries newer than that ID, newest first and without a total, for live updates. facets=1 returns, instead of entries, the number of entries per type, country and IP address (the ten with most entries) for the same filters; each facet ignores its own filter.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'GET /activity/{id} adds the submitted data as it was logged (it was cleaned when it was saved; escape it before showing it), the geolocation, the failed check, the IP address\'s block and a link to the location on Google Maps. DELETE /activity/{id} deletes one entry. POST /activity/bulk-delete with {"ids": [...]} deletes up to 500 entries; {"all": true, "confirm": true} empties the log and cannot be undone.', 'zero-spam' ); ?></p>
+			<div class="zerospam-docs-code-block">
+				<pre><code>curl -u "admin:APP_PASSWORD" \
+	"<?php echo esc_url( $site_url ); ?>/wp-json/zero-spam/v1/activity?type[]=comment&amp;after=2026-10-01&amp;per_page=50"</code></pre>
+			</div>
+
+			<h3><?php esc_html_e( 'POST /undo/{token} — Undo a Deletion', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'Deleting activity entries or a block returns an undo_token. Within two minutes, the same user on the same site can send it to /undo/{token} once to put everything back with its original IDs.', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( '/rules/blocks — Blocked IP Addresses and Locations', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'GET lists the IP blocks (kind=ip, the default) or the location blocks (kind=location, optionally one key_type), with search on the address, the location, the country name or the reason. POST adds a block: {"ip": "203.0.113.5", "type": "permanent"} or {"kind": "location", "key_type": "country_code", "key": "DE", "type": "temporary", "end": "2026-12-31"}, with an optional start and reason. Addresses are stored in one canonical form; ranges are not supported for blocks. A temporary block needs an end in the future. Blocking an address or location that is already blocked replaces its block. GET, PUT and DELETE /rules/blocks/{id} read, change and remove one block; DELETE returns an undo_token. Block dates are UTC. When the IP block method is an .htaccess option, the rules are rewritten after every change.', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( '/rules/lists/{list} — Allowlist, Email Domains and Allowed Words', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'The lists are allowed-ips (the IP Allowlist), email-domains (blocked email domains) and allowed-words. GET returns a page of the entries (search to filter), the total, and whether the list is locked by the network administrator; allowed-words also returns min_length, the shortest disallowed word checked. PUT replaces the list with {"items": [...]} or changes it with {"add": [...], "remove": [...]}; allowed-words also accepts {"min_length": 4}. Invalid entries are listed in the error and nothing is saved. Changes are stored and audited like PATCH /settings; a locked list answers 403 rest_setting_locked.', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( '/rules/no-lockout — Addresses Never Locked Out', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'GET lists the administrator addresses Zero Spam never locks out on this site, marking the one you are using. DELETE /rules/no-lockout/{ip} removes one.', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( 'GET /protection/modules — What Protects the Site', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'Every settings section with whether it is on, the settings that switch it on, whether it needs an API key, its plugin and whether that plugin is active, which of its settings are locked, its last detection and its detections in the last seven days; integrations whose plugin is not active are listed as not available. attention lists what needs looking at: an active form plugin that is not protected, an activity log at least 90% full, visitors that seem to share one IP address, and a forwarding header from a proxy that is not trusted.', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( 'Settings actions, export and import', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'POST /settings/actions/{action} runs one of the settings screen\'s actions: autoconfigure, regenerate-honeypot, update-blocked-email-domains, update-disallowed-words, clear-error-log, test-alert-email, test-alert-notice or test-alert-webhook. Each answers with whether it worked and a message. Settings locked by the network administrator are never changed: autoconfigure skips them and lists them in skipped_locked. GET /settings/export returns every setting that holds a value, as the site uses it, grouped by module; license keys, API keys and webhook URLs are never exported. POST /settings/import accepts that export or the JSON from the 5.x Import/Export screen, up to 5 MB, checks every value like PATCH /settings, stores the valid ones and reports the rest (errors, ignored, skipped_locked).', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( 'POST /self-test — Test the Protection', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'Checks the honeypot, the browser check, the lists, the reputation services that are on (Stop Forum Spam, and the Zero Spam network with Enhanced Protection, asked about a documentation address) and where visitor addresses come from, then reports pass, warn or fail for each with a message and how long it took. It writes nothing to the activity log and runs at most once a minute per site (429 with data.retry_after).', 'zero-spam' ); ?></p>
+
+			<h3><?php esc_html_e( 'GET /news — Zero Spam News', 'zero-spam' ); ?></h3>
+			<p><?php esc_html_e( 'Returns the latest articles and security notices from zerospam.org as a list (title, excerpt, date, link, categories, security_notice), newest first, all plain text; limit is 1 to 8 (default 8). The feed is downloaded at most every six hours (once per network) with a generic user agent and no site data; after a failed download the last copy is served and the X-ZeroSpam-News-Stale header is 1 (X-ZeroSpam-News-Fetched says when it was downloaded). Answers 404 when the Zero Spam News setting is off or the zerospam_news_feed_enabled filter returns false, and 503 when no copy is available.', 'zero-spam' ); ?></p>
+		</div>
+	</div>
+
 	<!-- Multisite -->
 	<div class="zerospam-docs-accordion">
 		<button class="zerospam-docs-accordion-toggle" type="button">

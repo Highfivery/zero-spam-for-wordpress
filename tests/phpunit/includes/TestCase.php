@@ -148,6 +148,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_license_status',
 		'zerospam_ipinfo_test',
 		'zerospam_login_intent_test',
+		'zerospam_protection_detections',
 		'zerospam_rescue_ip_test',
 		'zerospam_rescue_job_test',
 		'zerospam_rescue_site_sends',
@@ -155,6 +156,9 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_rescue_token_test',
 		'zerospam_self_test_lock',
 		'zerospam_shared_ip_warning',
+		'zerospam_stats_summary',
+		'zerospam_stats_timeseries',
+		'zerospam_undo_test',
 		'zerospam_woo_options_migrated',
 	);
 

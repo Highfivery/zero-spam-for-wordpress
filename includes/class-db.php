@@ -326,8 +326,12 @@ class DB {
 	/**
 	 * Adds/returns a blocked IP
 	 *
-	 * @param array          $record   Record to add into the database.
-	 * @param boolean|string $key_type Type of record entry to add.
+	 * With an array, adds the record or updates the one for the same IP or
+	 * location key. Otherwise returns a record: by location key when a key
+	 * type is given, by ID for an int, or the longest-lasting one for an IP.
+	 *
+	 * @param array<string, mixed>|string|int $record   Record to add, or the location key, ID or IP to look up.
+	 * @param bool|string                     $key_type Location key type to look a string up by.
 	 */
 	public static function blocked( $record, $key_type = false ) {
 		global $wpdb;

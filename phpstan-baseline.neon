@@ -31,12 +31,6 @@ parameters:
 			path: core/admin/tables/class-blockedtable.php
 
 		-
-			message: '#^Parameter \#1 \$record of static method ZeroSpam\\Includes\\DB\:\:blocked\(\) expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: core/class-access.php
-
-		-
 			message: '#^Right side of \|\| is always false\.$#'
 			identifier: booleanOr.rightAlwaysFalse
 			count: 1
@@ -179,12 +173,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: includes/templates/admin-hours-list.php
-
-		-
-			message: '#^Parameter \#1 \$record of static method ZeroSpam\\Includes\\DB\:\:blocked\(\) expects array, \(int\<0, max\>\|string\) given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/templates/admin-ips.php
 
 		-
 			message: '#^Variable \$item might not be defined\.$#'
