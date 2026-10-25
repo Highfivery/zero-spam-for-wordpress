@@ -1,0 +1,149 @@
+/**
+ * The REST client: @wordpress/api-fetch (with WordPress's nonce and the
+ * preloading middleware the page adds, see Admin_App::enqueue()), plus a
+ * count of requests in flight that drives the mark's Thinking state.
+ */
+
+/**
+ * WordPress dependencies
+ */
+import apiFetch from '@wordpress/api-fetch';
+import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
+
+export const NS = '/zero-spam/v1';
+
+/** Paths, exactly as preloaded by Admin_App (the preload cache matches them). */
+export const PATHS = {
+	license: `${ NS }/license`,
+	prefs: `${ NS }/ui/prefs`,
+	schema: `${ NS }/settings/schema`,
+	summary: ( range ) => `${ NS }/stats/summary?range=${ range }`,
+	timeseries: `${ NS }/stats/timeseries`,
+	modules: `${ NS }/protection/modules`,
+	activity: `${ NS }/activity?per_page=6`,
+	news: `${ NS }/news`,
+	since: ( id ) =>
+		`${ NS }/activity?since_id=${ Number( id ) || 0 }&per_page=20&_fields=id,date,type,type_label,ip,country,country_name,failed,failed_label`,
+};
+
+/** The page's bootstrap data (Admin_App::bootstrap()). */
+export const boot = Object.assign(
+	{
+		area: 'overview',
+		tab: '',
+		version: '',
+		nowLocal: Date.now(),
+		site: { name: '', url: '' },
+		urls: {},
+		isMultisite: false,
+		newsEnabled: true,
+		environment: { wordpress: '', php: '', ipSource: 'direct' },
+	},
+	typeof window !== 'undefined' ? window.zeroSpamAdmin || {} : {}
+);
+
+const offset = boot.nowLocal - Date.now();
+
+/** @return {number} Site-local now in milliseconds (read as UTC). */
+export const nowLocal = () => Date.now() + offset;
+
+let inFlight = 0;
+const listeners = new Set();
+const notify = () => listeners.forEach( ( fn ) => fn( inFlight ) );
+
+/**
+ * Subscribes to the number of requests in flight.
+ *
+ * @param {Function} fn Listener.
+ * @return {Function} Unsubscribe.
+ */
+export function onBusy( fn ) {
+	listeners.add( fn );
+	return () => listeners.delete( fn );
+}
+
+/**
+ * apiFetch, counted.
+ *
+ * @param {Object} options apiFetch options.
+ * @return {Promise} Response.
+ */
+export function request( options ) {
+	inFlight++;
+	notify();
+	return apiFetch( options ).finally( () => {
+		inFlight--;
+		notify();
+	} );
+}
+
+/**
+ * Reads a route once (from the preload cache on first load).
+ *
+ * @param {string|null} path         Route, or null to skip.
+ * @param {Object}      [opts]       Options.
+ * @param {boolean}     [opts.parse] false to keep the response (headers).
+ * @return {{data: *, error: *, loading: boolean, headers: Object, reload: Function, setData: Function}} State.
+ */
+export function useResource( path, { parse = true } = {} ) {
+	const [ state, setState ] = useState( {
+		data: undefined,
+		error: null,
+		loading: Boolean( path ),
+		headers: {},
+	} );
+	const alive = useRef( true );
+
+	const load = useCallback( () => {
+		if ( ! path ) {
+			return Promise.resolve();
+		}
+		setState( ( s ) => ( { ...s, loading: true } ) );
+		const req = parse
+			? request( { path } ).then( ( data ) => ( { data, headers: {} } ) )
+			: request( { path, parse: false } ).then( ( response ) =>
+					response.json().then( ( data ) => ( {
+						data,
+						headers: Object.fromEntries(
+							response.headers.entries()
+						),
+					} ) )
+				);
+		return req.then(
+			( { data, headers } ) => {
+				if ( alive.current ) {
+					setState( { data, headers, error: null, loading: false } );
+				}
+			},
+			( error ) => {
+				if ( alive.current ) {
+					setState( ( s ) => ( {
+						...s,
+						error: error || {},
+						loading: false,
+					} ) );
+				}
+			}
+		);
+	}, [ path, parse ] );
+
+	useEffect( () => {
+		alive.current = true;
+		load();
+		return () => {
+			alive.current = false;
+		};
+	}, [ load ] );
+
+	const setData = useCallback(
+		( updater ) =>
+			setState( ( s ) => ( {
+				...s,
+				data:
+					'function' === typeof updater ? updater( s.data ) : updater,
+			} ) ),
+		[]
+	);
+
+	return { ...state, reload: load, setData };
+}

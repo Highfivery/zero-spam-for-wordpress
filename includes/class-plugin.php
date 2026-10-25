@@ -85,6 +85,8 @@ class Plugin {
 			new \ZeroSpam\Core\Admin_Safe_IPs();
 			// Warns when visitors appear to share one IP address (unknown proxy or CDN).
 			new \ZeroSpam\Core\Admin\Shared_IP_Warning();
+			// The 6.0 admin app, behind ZEROSPAM_ADMIN_V6 / zerospam_admin_v6 (since 6.0.0).
+			new \ZeroSpam\Core\Admin\Admin_App();
 		}
 
 		// Register REST API routes.
