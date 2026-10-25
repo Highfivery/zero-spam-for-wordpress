@@ -301,10 +301,8 @@ const V6_OVERVIEW: Screen[] = [
 		state: 'seeded',
 		theme: 'both',
 		path: () => AREA( 'overview' ),
-		prepare: async ( page ) => {
-			await overviewReady( page );
-			await page.locator( '.zs-milestone' ).waitFor();
-		},
+		// The tile shows from 100 threats in 30 days (the seeded state has 120).
+		prepare: overviewReady,
 		visual: { selector: '.zs-milestone' },
 	},
 	{
