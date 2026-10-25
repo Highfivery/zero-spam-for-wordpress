@@ -30,7 +30,7 @@ in the same PR.
 | `wordpress-zero-spam.php` | Bootstrap: constants, PHP/WP version gates, loads `includes/class-plugin.php`, activation hook (stores activation time only). |
 | `includes/class-plugin.php` | `Plugin::instance()` runs at include time: registers the autoloader, instantiates every module, registers REST routes. |
 | `includes/class-autoloader.php` | Custom SPL autoloader for `ZeroSpam\`: lowercases the class name, strips underscores, prefixes `class-`. `ZeroSpam\Modules\Zero_Spam` → `modules/class-zerospam.php`. New classes must follow this file-naming rule or they will not load. |
-| `core/` | `Access` (block checks on `template_redirect`, `login_init`, XML-RPC; rescue mode), `Settings` (registry built from the `zerospam_settings` filter), `Utilities`, `User::get_ip()`, `Rescue_Link` (emailed rescue link), `core/front/` (`Front\Block_Page`: the blocked, rescue, expired-link and comment-blocked pages, sent through `wp_die()` with its own document, inlined `assets/dist/blocked.css`, no JavaScript), `core/admin/` (settings page, dashboard, dashboard widget, `WP_List_Table`s). |
+| `core/` | `Access` (block checks on `template_redirect`, `login_init`, XML-RPC; rescue mode), `Settings` (registry built from the `zerospam_settings` filter), `Utilities`, `User::get_ip()`, `Rescue_Link` (emailed rescue link), `core/front/` (`Front\Block_Page`: the blocked, rescue, expired-link and comment-blocked pages, sent through `wp_die()` with its own document, inlined `assets/dist/blocked.css`, no JavaScript), `core/admin/` (settings page, dashboard, `WP_List_Table`s; `Dashboard_Widget`, the 6.0 site and network dashboard widgets rendered in PHP from `includes/templates/dashboard-widget.php` with a server-drawn `Sparkline`; `Icons::svg()` prints one symbol of `assets/dist/sprite.svg` as inline SVG for PHP-rendered screens). |
 | `includes/class-db.php` | Table definitions, `dbDelta` upgrades keyed on `zerospam_db_version`, `DB::log()`, `DB::query()`, `DB::blocked()`. |
 | `includes/class-migrations.php` | Run-once migrations tracked in `zerospam_completed_migrations`. Add one here for any data/option shape change. |
 | `includes/class-networksettings*.php`, `includes/admin/`, `includes/cli/`, `includes/rest/` | Multisite network settings, templates, stats, audit, notifications, REST controllers (`zero-spam/v1`), WP-CLI (`wp zerospam …`). |
@@ -38,7 +38,7 @@ in the same PR.
 | `includes/class-email.php` | `Includes\Email`: the one email template (HTML tables ≤ 600px, inline styles, the mark as coloured cells, no images) with a plain-text AltBody added by a one-shot `phpmailer_init` callback. The rescue link, API usage alerts and network notifications send through it; messages are data (`heading`, `blocks`), never markup. |
 | `modules/` | One directory or file per detection technique or integrated plugin. Third-party modules are only instantiated when that plugin is active (`includes/class-plugin.php`). |
 | `assets/` | Legacy (5.x) admin: hand-written CSS/JS (jQuery) in `assets/css/` and `assets/js/`, `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand (no build step for these), vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. Enqueue the plugin's own CSS/JS with `Utilities::asset_version( 'assets/…' )` as the version (file time with `SCRIPT_DEBUG`, else `ZEROSPAM_VERSION`); pinned vendored libraries keep their own version. |
-| `assets/src/`, `assets/dist/`, `webpack.config.js` | 6.0 admin front end, built with `@wordpress/scripts` (section 5, Front-end build). Sources in `assets/src/` (never shipped): entries `admin/index.js`, `network/index.js`, `widget-refresh/index.js` (plain JS, no WordPress dependencies) and `blocked/index.css` (CSS only); shared styles in `admin/styles/` (`tokens.css` design tokens scoped to `.zs-app` and `.zs-widget` with light, `data-zs-theme="dark"` and `"auto"`, plus `.zs-dark-block` for the hero and Enhanced Protection block; `base.css` reset, typography and reduced motion for `.zs-app`, `.zs-blocked`, `.zs-widget`; `logo.css` mark animation); `blocked/tokens.css` (the blocked pages' own minimal token subset, because `blocked.css` is inlined) and `blocked/page.css` (the pages' own reset and styles; it does not import `base.css`, to stay inside the 8 KB raw budget); `admin/icons/sprite.svg` (marks `zs-mark`, `zs-mark-flat`, `zs-mark-mono` and `zs-i-*` UI icons; no ids inside symbols, bricks are `.zs-b[data-i]`); Vitest tests in `**/test/*.test.js`. Output in `assets/dist/` (committed and shipped): `{entry}.js`, `{entry}.css`, `{entry}-rtl.css`, `{entry}.asset.php` (dependencies and version for enqueueing) and `sprite.svg`. Never edit `assets/dist/` by hand. |
+| `assets/src/`, `assets/dist/`, `webpack.config.js` | 6.0 admin front end, built with `@wordpress/scripts` (section 5, Front-end build). Sources in `assets/src/` (never shipped): entries `admin/index.js`, `network/index.js`, `widget-refresh/index.js` (the dashboard widget's Refresh: plain JS, no WordPress dependencies; `model.js` mirrors the PHP sparkline and figures, and both are tested with the same values) and `blocked/index.css` (CSS only); shared styles in `admin/styles/` (`tokens.css` design tokens scoped to `.zs-app` and `.zs-widget` with light, `data-zs-theme="dark"` and `"auto"`, plus `.zs-dark-block` for the hero and Enhanced Protection block; `base.css` reset, typography and reduced motion for `.zs-app`, `.zs-blocked`, `.zs-widget`; `logo.css` mark animation); `blocked/tokens.css` (the blocked pages' own minimal token subset, because `blocked.css` is inlined) and `blocked/page.css` (the pages' own reset and styles; it does not import `base.css`, to stay inside the 8 KB raw budget); `admin/icons/sprite.svg` (marks `zs-mark`, `zs-mark-flat`, `zs-mark-mono` and `zs-i-*` UI icons; no ids inside symbols, bricks are `.zs-b[data-i]`); Vitest tests in `**/test/*.test.js`. Output in `assets/dist/` (committed and shipped): `{entry}.js`, `{entry}.css`, `{entry}-rtl.css`, `{entry}.asset.php` (dependencies and version for enqueueing) and `sprite.svg`. Never edit `assets/dist/` by hand. |
 | `assets/fonts/` | Self-hosted Plus Jakarta Sans and JetBrains Mono (variable woff2, Latin and Latin Extended), `fonts.css` (`@font-face`, shipped as is) and each family's `OFL.txt`. Sources, versions and checksums in `assets/fonts/FONTS.md`. |
 | `assets/img/zero-spam-mark.svg`, `assets/img/zero-spam-menu-icon.svg` | The 6.0 mark (treatment B "Live core") on a 256 × 256 artboard (gradient ids prefixed `zs-mark-`), and the 20 × 20 one-colour admin menu icon with explicit `fill="#a7aaad"` attributes, which WordPress's svg-painter rewrites per colour scheme (`currentColor` does not work in a base64 data URI). Not used yet; `assets/img/icon.svg` is still the 5.x logo the legacy screens show. |
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
@@ -88,6 +88,16 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 - Logged submission data is sanitized on write (keys and values) and must be
   escaped on read: it has carried a stored XSS before (CVE-2026-96752).
   The REST routes (`activity/{id}`) return it as stored; the client escapes.
+- The dashboard widgets (6.0, `feat/dashboard-widget`) read the site's
+  figures from `Stats_Controller::timeseries_data()` (the same cache as
+  `GET stats/timeseries`) and the network's from every site's log table (one
+  `UNION ALL`, cached five minutes in `zerospam_dashboard_data_network`).
+  Refresh uses the REST routes; the 5.x AJAX action
+  `zerospam_refresh_dashboard` stays registered but is deprecated
+  (`_doing_it_wrong()` once per request). Links into the activity log go
+  through `Utilities::activity_url()`, which follows the 6.0 admin flag
+  (`Utilities::admin_v6()`: the `ZEROSPAM_ADMIN_V6` constant, else the
+  `zerospam_admin_v6` filter, off by default).
 - 6.0 data routes (`feat/rest-data`): `stats/*`, `activity*`, `undo/{token}`,
   `rules/*`, `protection/modules`, `settings/actions|export|import`,
   `self-test`, `news`. Log statistics are cached in the transients
@@ -574,7 +584,7 @@ npm run env:stop                 # stop both wp-env sites
 
 - WPCS backlog at 5.7.14: 143 errors / 172 warnings in 32 files (176
   auto-fixable), down from 293 / 292 in 52 files at 5.7.13 and 429 / 367 in
-  62 files before; PHPStan level 5 baseline of 108 findings in 69 entries
+  62 files before; PHPStan level 5 baseline of 93 findings in 61 entries
   on develop for 6.0 (135 in 93 at 5.7.14, 144 in 99 at 5.7.13), with no
   unmatched entries. Clearing them is planned work; do it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
@@ -652,8 +662,6 @@ npm run env:stop                 # stop both wp-env sites
 - Accessibility debt proven by the Playwright suite (each item has an
   expected-failure test or entries in `tests/e2e/a11y/allowlist.json`;
   GitHub issues still to be filed):
-  - the dashboard widget's Refresh result is shown by an icon swap only; the
-    "Data refreshed." string is never put in a live region (WCAG 4.1.3);
   - the add/update block modal (`assets/js/admin.js`) does not move focus
     into the modal or return it to the button that opened it;
   - the admin header logo (`<img width="250">` in
