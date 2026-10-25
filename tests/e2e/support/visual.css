@@ -34,3 +34,10 @@
 #welcome-panel {
 	display: none !important;
 }
+
+/* The 6.0 admin's fixed layers: the phone bottom navigation and the toast
+   region sit over whatever is scrolled under them in an element screenshot. */
+.zs-bnav,
+.zs-toasts {
+	visibility: hidden !important;
+}

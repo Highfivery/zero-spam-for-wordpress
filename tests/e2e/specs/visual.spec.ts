@@ -9,7 +9,7 @@
  */
 
 import { expect, test } from '../support/fixtures';
-import { openScreen, prepareState } from '../support/screen-runner';
+import { changesState, openScreen, prepareState } from '../support/screen-runner';
 import { screensFor, type ScreenState } from '../support/screens';
 import { E2E_DIR, resolveTarget } from '../support/targets';
 
@@ -39,7 +39,7 @@ for ( const state of [ 'empty', 'seeded' ] as ScreenState[] ) {
 						mask: ( options.mask ?? [] ).map( ( sel ) => shown.locator( sel ) ),
 						stylePath: STYLE,
 					} );
-					if ( screen.before ) {
+					if ( changesState( screen ) ) {
 						await prepareState( zs, state );
 					}
 				} );

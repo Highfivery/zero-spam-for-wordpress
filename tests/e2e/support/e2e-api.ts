@@ -8,6 +8,9 @@
 
 import type { ZsRequestUtils } from './request-utils';
 
+/** Protection level: Basic (no key) or Enhanced (canned Business license). */
+export type Level = 'basic' | 'enhanced';
+
 export type Preset = 'defaults' | 'recommended' | 'baseline';
 
 export interface LogRow {
@@ -122,9 +125,36 @@ export class ZsApi {
 	 * @param options.network       Reset the network settings and every site (super admin; default on a network).
 	 * @param options.promo         Let the Enhanced Protection promo notice show.
 	 * @param options.clearErrorLog Delete the plugin's error log file.
+	 * @param options.level         basic (no license key, the default) or enhanced (a key the canned API accepts as a Business license).
+	 *
+	 * Every reset also clears each user's 6.0 admin preferences (ui/prefs) and the cached news.
 	 */
-	reset( preset: Preset = 'baseline', options: { network?: boolean; promo?: boolean; clearErrorLog?: boolean } = {} ) {
-		return this.call( 'POST', 'reset', { preset, network: options.network ?? this.multisite, promo: Boolean( options.promo ), clearErrorLog: Boolean( options.clearErrorLog ) } );
+	reset( preset: Preset = 'baseline', options: { network?: boolean; promo?: boolean; clearErrorLog?: boolean; level?: Level } = {} ) {
+		return this.call( 'POST', 'reset', {
+			preset,
+			network: options.network ?? this.multisite,
+			promo: Boolean( options.promo ),
+			clearErrorLog: Boolean( options.clearErrorLog ),
+			level: options.level ?? 'basic',
+		} );
+	}
+
+	/**
+	 * Puts the site on a protection level without a reset (keeps seeded rows).
+	 *
+	 * @param level basic or enhanced.
+	 */
+	setLevel( level: Level ) {
+		return 'enhanced' === level ? this.set( { zerospam_license: 'e2e-license', zerospam: 'enabled' } ) : this.set( { zerospam_license: '', zerospam: false } );
+	}
+
+	/**
+	 * Merges preferences into the current user's ui/prefs (empty: back to the defaults).
+	 *
+	 * @param prefs Preferences, such as { theme: 'dark' }.
+	 */
+	uiPrefs( prefs: Record< string, unknown > = {} ) {
+		return this.call< Record< string, unknown > >( 'POST', 'ui-prefs', { prefs } );
 	}
 
 	/** A valid rescue-link token, as an emailed link carries (TEST-NET IPs only). */

@@ -5,7 +5,7 @@
 
 import { describeFailures, scanScreen } from '../support/a11y';
 import { expect, test } from '../support/fixtures';
-import { openScreen, prepareState } from '../support/screen-runner';
+import { changesState, openScreen, prepareState } from '../support/screen-runner';
 import { screensFor, type ScreenState } from '../support/screens';
 import { resolveTarget } from '../support/targets';
 
@@ -23,7 +23,7 @@ for ( const state of [ 'empty', 'seeded' ] as ScreenState[] ) {
 				const shown = await openScreen( screen, { page, zs, target, newRoleContext }, testInfo );
 				const result = await scanScreen( shown, screen, target, testInfo );
 				await gallery.capture( shown, screen.title );
-				if ( screen.before ) {
+				if ( changesState( screen ) ) {
 					await prepareState( zs, state );
 				}
 				if ( '1' !== process.env.E2E_A11Y_BASELINE ) {
