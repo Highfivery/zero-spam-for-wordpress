@@ -538,6 +538,8 @@ final class Admin_App {
 				'ipLookup'  => ZEROSPAM_URL . 'ip-lookup/',
 			),
 			'isMultisite'       => is_multisite(),
+			// Subsites cannot refresh the network's shared .htaccess (the Rules screen hides the button).
+			'isMainSite'        => is_main_site(),
 			// The Rules tabs' counts (one cheap query or option read each), on that page only.
 			'rules'             => 'rules' === $area ? array( 'counts' => Rules_Controller::counts() ) : null,
 			'newsEnabled'       => News_Feed::is_enabled(),

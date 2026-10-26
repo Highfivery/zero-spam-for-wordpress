@@ -623,10 +623,12 @@ class Test_Rest_Rules extends TestCase {
 				array(
 					'ip'      => self::DEFAULT_IP,
 					'current' => true,
+					'blocked' => false,
 				),
 				array(
 					'ip'      => '2001:db8::5',
 					'current' => false,
+					'blocked' => false,
 				),
 			),
 			$data['items']
@@ -711,14 +713,16 @@ class Test_Rest_Rules extends TestCase {
 	}
 
 	/**
-	 * Locations sorted A–Z go by the country's name (Germany before
-	 * Japan, after Austria), other locations by their value.
+	 * Locations sorted A–Z go by the country's name, not its code (by code
+	 * CH, DE, FR, SE would read Switzerland, Germany, France, Sweden), and
+	 * other locations by their value.
 	 */
 	public function test_locations_sort_by_country_name(): void {
 		foreach ( array(
 			array( 'country_code', 'DE' ),
-			array( 'country_code', 'AT' ),
-			array( 'country_code', 'JP' ),
+			array( 'country_code', 'FR' ),
+			array( 'country_code', 'CH' ),
+			array( 'country_code', 'SE' ),
 			array( 'city', 'Berlin' ),
 		) as $location ) {
 			$this->rest(
@@ -734,10 +738,130 @@ class Test_Rest_Rules extends TestCase {
 		}
 
 		$asc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'kind' => 'location', 'orderby' => 'key', 'order' => 'asc' ) )->get_data(), 'label' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
-		$this->assertSame( array( 'Austria', 'Berlin', 'Germany', 'Japan' ), $asc );
+		$this->assertSame( array( 'Berlin', 'France', 'Germany', 'Sweden', 'Switzerland' ), $asc );
 
 		$desc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'kind' => 'location', 'orderby' => 'key', 'order' => 'desc' ) )->get_data(), 'label' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
-		$this->assertSame( array( 'Japan', 'Germany', 'Berlin', 'Austria' ), $desc );
+		$this->assertSame( array( 'Switzerland', 'Sweden', 'Germany', 'France', 'Berlin' ), $desc );
+	}
+
+	/**
+	 * Removing your own no-lockout address while it is blocked locks you out
+	 * (in .htaccess mode the web server denies it at once, so Undo and the
+	 * rescue link never arrive): refused with 409 rest_would_lock_out
+	 * unless confirmed; the list and .htaccess are left alone until then.
+	 */
+	public function test_removing_your_own_blocked_address_needs_confirmation(): void {
+		$this->htaccess = get_temp_dir() . 'zerospam-lockout-' . wp_generate_password( 8, false ) . '.htaccess';
+		file_put_contents( $this->htaccess, "# BEGIN WordPress\n# END WordPress\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
+		$file = $this->htaccess;
+		add_filter(
+			'zerospam_htaccess_file',
+			static function () use ( $file ) {
+				return $file;
+			}
+		);
+		$this->set_setting( 'block_method', 'htaccess_modern' );
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		update_option( Admin_Safe_IPs::OPTION, array( self::DEFAULT_IP, '198.51.100.70' ), false );
+		$this->block( self::DEFAULT_IP );
+
+		$listed = $this->rest( 'GET', '/zero-spam/v1/rules/no-lockout' )->get_data()['items'];
+		$this->assertTrue( $listed[0]['current'] );
+		$this->assertTrue( $listed[0]['blocked'], 'The list says the address is blocked.' );
+		$this->assertFalse( $listed[1]['blocked'] );
+
+		$refused = $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/' . self::DEFAULT_IP );
+		$this->assertSame( 409, $refused->get_status() );
+		$this->assertSame( 'rest_would_lock_out', $refused->get_data()['code'] );
+		$this->assertStringContainsString( self::DEFAULT_IP, $refused->get_data()['message'] );
+		$this->assertSame( array( self::DEFAULT_IP, '198.51.100.70' ), Admin_Safe_IPs::get_ips() );
+		$this->assertStringNotContainsString( self::DEFAULT_IP, (string) file_get_contents( $file ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test file.
+
+		$confirmed = $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/' . self::DEFAULT_IP, array(), array( 'confirm' => '1' ) );
+		$this->assertSame( 200, $confirmed->get_status() );
+		$this->assertSame( array( '198.51.100.70' ), Admin_Safe_IPs::get_ips() );
+	}
+
+	/**
+	 * Another administrator's address, or your own while it is not blocked,
+	 * is removed at once.
+	 */
+	public function test_removing_other_or_unblocked_addresses_needs_no_confirmation(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		update_option( Admin_Safe_IPs::OPTION, array( self::DEFAULT_IP, '198.51.100.70' ), false );
+		$this->block( '198.51.100.70' );
+
+		$this->assertSame( 200, $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/198.51.100.70' )->get_status() );
+		$this->assertSame( 200, $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/' . self::DEFAULT_IP )->get_status() );
+		$this->assertSame( array(), Admin_Safe_IPs::get_ips() );
+	}
+
+	/**
+	 * Undo of a no-lockout removal compares addresses in canonical form: an
+	 * address saved again in another spelling is not listed twice.
+	 */
+	public function test_no_lockout_undo_compares_canonical_addresses(): void {
+		update_option( Admin_Safe_IPs::OPTION, array( '2001:db8:0:0::5' ), false );
+		$token = $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/2001:db8::5' )->get_data()['undo_token'];
+
+		update_option( Admin_Safe_IPs::OPTION, array( '2001:DB8::5' ), false );
+		$undo = $this->rest( 'POST', '/zero-spam/v1/undo/' . $token )->get_data();
+
+		$this->assertSame( 0, $undo['restored'] );
+		$this->assertSame( array( '2001:DB8::5' ), Admin_Safe_IPs::get_ips() );
+	}
+
+	/**
+	 * A city or region made only of markup is refused (it was saved as an
+	 * empty block), and so is a value with < or >.
+	 */
+	public function test_location_values_with_markup_are_refused(): void {
+		foreach ( array( '<b></b>', '<script>x</script>', 'Spring<field' ) as $key ) {
+			$response = $this->rest(
+				'POST',
+				self::BLOCKS,
+				array(
+					'kind'     => 'location',
+					'key_type' => 'city',
+					'key'      => $key,
+					'type'     => 'permanent',
+				)
+			);
+			$this->assertSame( 400, $response->get_status(), $key );
+			$this->assertArrayHasKey( 'key', $response->get_data()['data']['params'], $key );
+		}
+		$this->assertCount( 0, $this->rest( 'GET', self::BLOCKS, array(), array( 'kind' => 'location' ) )->get_data() );
+	}
+
+	/**
+	 * Words with < or > are refused, and the message lists them as sent
+	 * (it listed nothing for markup), instead of storing "a&lt;b".
+	 */
+	public function test_words_with_angle_brackets_are_refused_and_named(): void {
+		$response = $this->rest( 'PUT', '/zero-spam/v1/rules/lists/allowed-words', array( 'items' => array( 'ok', 'a<b', '<b>' ) ) );
+
+		$this->assertSame( 400, $response->get_status() );
+		$message = $response->get_data()['data']['params']['items'];
+		$this->assertStringContainsString( 'a<b', $message );
+		$this->assertStringContainsString( '<b>', $message );
+		$this->assertStringNotContainsString( '&lt;', $message );
+		$this->assertFalse( get_option( 'zero-spam-settings' ) );
+	}
+
+	/**
+	 * Blocked IPs sorted by address go by number (192.0.2.9 before
+	 * 192.0.2.10), IPv4 before IPv6.
+	 */
+	public function test_ip_blocks_sort_by_number(): void {
+		foreach ( array( '192.0.2.100', '2001:db8::1', '192.0.2.9', '192.0.2.10' ) as $ip ) {
+			$this->block( $ip );
+		}
+
+		$asc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'orderby' => 'key', 'order' => 'asc' ) )->get_data(), 'ip' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( array( '192.0.2.9', '192.0.2.10', '192.0.2.100', '2001:db8::1' ), $asc );
+
+		$desc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'orderby' => 'key', 'order' => 'desc' ) )->get_data(), 'ip' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( array( '2001:db8::1', '192.0.2.100', '192.0.2.10', '192.0.2.9' ), $desc );
 	}
 
 	/**
