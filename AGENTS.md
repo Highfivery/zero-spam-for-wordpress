@@ -31,7 +31,7 @@ in the same PR.
 | `includes/class-plugin.php` | `Plugin::instance()` runs at include time: registers the autoloader, instantiates every module, registers REST routes. |
 | `includes/class-autoloader.php` | Custom SPL autoloader for `ZeroSpam\`: lowercases the class name, strips underscores, prefixes `class-`. `ZeroSpam\Modules\Zero_Spam` → `modules/class-zerospam.php`. New classes must follow this file-naming rule or they will not load. |
 | `core/` | `Access` (block checks on `template_redirect`, `login_init`, XML-RPC; rescue mode), `Settings` (registry built from the `zerospam_settings` filter), `Utilities`, `User::get_ip()`, `Rescue_Link` (emailed rescue link), `core/front/` (`Front\Block_Page`: the blocked, rescue, expired-link and comment-blocked pages, sent through `wp_die()` with its own document, inlined `assets/dist/blocked.css`, no JavaScript), `core/admin/` (settings page, dashboard, `WP_List_Table`s; `Dashboard_Widget`, the 6.0 site and network dashboard widgets rendered in PHP from `includes/templates/dashboard-widget.php` with a server-drawn `Sparkline`; `Icons::svg()` prints one symbol of `assets/dist/sprite.svg` as inline SVG for PHP-rendered screens; and `Admin_App`: the 6.0 admin's menu, pages, shell and assets behind the flag). |
-| `core/admin/class-adminapp.php`, `includes/templates/admin-app-shell.php` | The 6.0 admin, only while `Utilities::admin_v6()` is true (the `ZEROSPAM_ADMIN_V6` constant wins, otherwise the `zerospam_admin_v6` filter; off by default until the cutover): top-level "Zero Spam" menu at position 26 (below Comments) with six `manage_options` pages (`zero-spam`, `zero-spam-activity`, `-rules`, `-protection`, `-settings`, `-help`) and the network page `zero-spam-network` (`manage_network_options`). Each page prints the shell (icon sprite, `#zerospam-app.zs-app[data-area]` with a skeleton and a `<noscript>` message), enqueues `assets/dist/admin.js`/`.css` with the `.asset.php` dependencies and version, `wp_set_script_translations( 'zerospam-admin', 'zero-spam' )` and the fonts, and preloads its first REST responses (`Admin_App::SHELL_PRELOADS`, `OVERVIEW_PRELOADS`, the news) through `rest_preload_api_request` and `createPreloadingMiddleware`, so the Overview makes no request of its own on load; the Activity page preloads `Admin_App::activity_preloads()` (the heading count, then the log's first page and facets, or with `&tab=reports` the 30-day series and breakdown, plus an `&item=` entry), and those paths must stay identical to `activity/query.js` and `reports-data.js` (the middleware matches query arguments in any order, so only the set matters). The Protection page adds `Admin_App::PROTECTION_PRELOADS` (`settings/schema`; the shell already has `license` and `protection/modules`). The theme and motion attributes come from `Utilities::display_prefs()` (the one place that resolves `ui/prefs`: "auto" follows the device on the plugin's screens and renders light elsewhere). The legacy screens stay registered until the cutover. |
+| `core/admin/class-adminapp.php`, `includes/templates/admin-app-shell.php` | The 6.0 admin, only while `Utilities::admin_v6()` is true (the `ZEROSPAM_ADMIN_V6` constant wins, otherwise the `zerospam_admin_v6` filter; off by default until the cutover): top-level "Zero Spam" menu at position 26 (below Comments) with six `manage_options` pages (`zero-spam`, `zero-spam-activity`, `-rules`, `-protection`, `-settings`, `-help`) and the network page `zero-spam-network` (`manage_network_options`). Each page prints the shell (icon sprite, `#zerospam-app.zs-app[data-area]` with a skeleton and a `<noscript>` message), enqueues `assets/dist/admin.js`/`.css` with the `.asset.php` dependencies and version, `wp_set_script_translations( 'zerospam-admin', 'zero-spam' )` and the fonts, and preloads its first REST responses (`Admin_App::SHELL_PRELOADS`, `OVERVIEW_PRELOADS`, the news) through `rest_preload_api_request` and `createPreloadingMiddleware`, so the Overview makes no request of its own on load; the Activity page preloads `Admin_App::activity_preloads()` (the heading count, then the log's first page and facets, or with `&tab=reports` the 30-day series and breakdown, plus an `&item=` entry), and those paths must stay identical to `activity/query.js` and `reports-data.js` (the middleware matches query arguments in any order, so only the set matters). The Protection page adds `Admin_App::PROTECTION_PRELOADS` (`settings/schema`; the shell already has `license` and `protection/modules`). The network page preloads `ui/prefs` and `Admin_App::network_preloads( $tab )` (network data only, never a site's license, modules or statistics); its bootstrap carries `network.sites`. The theme and motion attributes come from `Utilities::display_prefs()` (the one place that resolves `ui/prefs`: "auto" follows the device on the plugin's screens and renders light elsewhere). The legacy screens stay registered until the cutover. |
 | `includes/class-db.php` | Table definitions, `dbDelta` upgrades keyed on `zerospam_db_version`, `DB::log()`, `DB::query()`, `DB::blocked()`. |
 | `includes/class-migrations.php` | Run-once migrations tracked in `zerospam_completed_migrations`. Add one here for any data/option shape change. |
 | `includes/class-networksettings*.php`, `includes/admin/`, `includes/cli/`, `includes/rest/` | Multisite network settings, templates, stats, audit, notifications, REST controllers (`zero-spam/v1`), WP-CLI (`wp zerospam …`). |
@@ -42,9 +42,10 @@ in the same PR.
 | `assets/src/`, `assets/dist/`, `webpack.config.js` | 6.0 admin front end, built with `@wordpress/scripts` (section 5, Front-end build). Sources in `assets/src/` (never shipped): entries `admin/index.js`, `network/index.js`, `widget-refresh/index.js` (the dashboard widget's Refresh: plain JS, no WordPress dependencies; `model.js` mirrors the PHP sparkline and figures, and both are tested with the same values) and `blocked/index.css` (CSS only); the admin app in `admin/` (`index.js` mounts `app/app.js` on `#zerospam-app` by `data-area`; `app/` the shell, the in-app sidebar and its lower block, the top bar and level chip, the Compare levels drawer, the mark controller and the primitives in `app/primitives/` (Button, Badge, Chip, Switch, Tile, Drawer, toasts with Undo, live regions, unsaved-changes bar); `data/` the REST client and bootstrap (`api.js`, paths exactly as preloaded), formatting, `?tab=` routing with the History API, theme resolution, and the live feed's scheduler (`poll.js`, `use-live-feed.js`); `overview/` the Overview and its pure chart mapper; `activity/` the Activity area: `query.js` (the log's view ⇄ REST paths and the address, the paths Admin_App preloads), `reports-data.js`, `details-data.js` and `undo.js` (pure, unit tested), `log.js` (filters, bulk bar, table from 1,200px and cards below, pages, the "N new" bar), `details.js` (the details drawer), `reports.js` and `column-chart.js` (keyboard-readable charts with a table); `app/block-form.js` (with `block-data.js`) is the shared Block IP / Edit block drawer; `settings/` the Settings area (tabs and cards in `cards.js`, its own logic in `models.js`); `app/fields/` the generic settings field renderer every area uses for schema settings (`Field`, `SecretField`, `useSettings()`, the PATCH and error model, `fields.css`); `app/system-report.js` the system report; areas not built yet render a placeholder inside the shell), React through `@wordpress/element` with the plugin's own components (no `@wordpress/components`); shared styles in `admin/styles/` (`primitives.css`, `shell.css`, `overview.css`, `areas.css` for the app, every selector under a `zs-` class; `tokens.css` design tokens scoped to `.zs-app` and `.zs-widget` with light, `data-zs-theme="dark"` and `"auto"`, plus `.zs-dark-block` for the hero and Enhanced Protection block; `base.css` reset, typography and reduced motion for `.zs-app`, `.zs-blocked`, `.zs-widget`; `logo.css` mark animation); `blocked/tokens.css` (the blocked pages' own minimal token subset, because `blocked.css` is inlined) and `blocked/page.css` (the pages' own reset and styles; it does not import `base.css`, to stay inside the 8 KB raw budget); `admin/icons/sprite.svg` (marks `zs-mark`, `zs-mark-flat`, `zs-mark-mono` and `zs-i-*` UI icons; no ids inside symbols, bricks are `.zs-b[data-i]`); Vitest tests in `**/test/*.test.js`. Output in `assets/dist/` (committed and shipped): `{entry}.js`, `{entry}.css`, `{entry}-rtl.css`, `{entry}.asset.php` (dependencies and version for enqueueing) and `sprite.svg`. Never edit `assets/dist/` by hand. |
 | `assets/fonts/` | Self-hosted Plus Jakarta Sans and JetBrains Mono (variable woff2, Latin and Latin Extended), `fonts.css` (`@font-face`, shipped as is) and each family's `OFL.txt`. Sources, versions and checksums in `assets/fonts/FONTS.md`. |
 | `assets/src/admin/protection/`, `assets/src/admin/styles/protection.css` | The 6.0 Protection area (`?tab=` `detection`, `integrations`, `intelligence`; `?card=` opens a card): `protection.js` (heading, "Test my protection", tabs with unsaved counts, the unsaved-changes bar), `cards.js` (pure: one card per settings section of a tab from `settings/schema` + `protection/modules`, built-in looks, `visible` vs Fine-tune settings, status badges, detection lines; third-party sections get the same cards), `card.js`, `self-test.js` + `self-test-model.js` (the self-test state machine), `license.js` + `license-model.js` (Compare levels, the key form, the license panel; no prices or quotas). It renders settings with the shared renderer in `assets/src/admin/app/fields/` (next row). Browser tests: `tests/e2e/specs/protection.spec.ts` and the `v6-protection-*` screens. |
-| `assets/src/admin/app/fields/` | The generic settings field renderer, shared by Protection and Settings: `fields.js` (one row per schema entry for every type; secrets write-only, and read-only when they come from wp-config.php, a lock or the network; a number's unit from the schema `suffix`; a row title that repeats its card's title kept for screen readers only via `cardTitle`; a focused date field scrolls clear of the top bar), `settings-model.js` (pure: controls, dirty tracking, the `PATCH /settings` body, Undo, error mapping), `use-settings.js` (drafts and saving), `rich-text.js` (descriptions and help from an allowlist, never innerHTML), `fields.css` (rows, cards, tabs, "On this page" (not sticky), disclosures; scoped to `.zs-protection` and `.zs-settings`), tests and fixture in `test/`. |
+| `assets/src/admin/app/fields/` | The generic settings field renderer, shared by Protection and Settings: `fields.js` (one row per schema entry for every type; secrets write-only, and read-only when they come from wp-config.php, a lock or the network; a number's unit from the schema `suffix`; a row title that repeats its card's title kept for screen readers only via `cardTitle`; a focused date field scrolls clear of the top bar), `settings-model.js` (pure: controls, dirty tracking, the `PATCH /settings` body, Undo, error mapping), `use-settings.js` (drafts and saving), `rich-text.js` (descriptions and help from an allowlist, never innerHTML), `fields.css` (rows, cards, tabs, "On this page" (not sticky), disclosures; scoped to `.zs-protection`, `.zs-settings` and `.zs-network`), tests and fixture in `test/`. `Field` takes an `aside` (shown under the control; the network page's site count and lock switch) and shows an empty network default as "Using the network default: (none)". |
 | `assets/src/admin/settings/`, `assets/src/admin/styles/settings.css` | The 6.0 Settings area (`?tab=` `general`, `data`, `api`, `advanced`, `debug`, `io`; `?section=` a card or setting key opens its tab and card): `settings.js` (heading, tabs with unsaved counts, cards, the unsaved-changes bar with per-setting errors), `cards.js` (pure: the cards of each tab by setting key, settings of the area no card lists shown on their group's tab), `models.js` (pure: the quota period, live display preferences, import results and the export file name), `parts.js` (display preferences, rescue mode, no-lockout addresses, alert tests, the next quota reset, the system report), `io.js` (import/export and the error log). `Admin_App::settings_preloads()` preloads the schema plus the opening tab's data (`rules/no-lockout` on Advanced, `settings/error-log` on Import & errors); a `?section=` setting key maps to its tab through its schema group (`Admin_App::settings_tab_of()`). Browser tests: `tests/e2e/specs/settings-v6.spec.ts` and the `v6-settings-*` screens; focus checks shared with Protection in `tests/e2e/support/focus.ts`. |
 | `assets/src/admin/rules/`, `assets/src/admin/data/validate.js` | The 6.0 Rules area (`?tab=` `ips`, `locations`, `allowlist`, `email`, `words`, `no-lockout`): `rules.js` (heading, tabs with counts from the bootstrap's `rules.counts` = `Rules_Controller::counts()`, and the one unsaved-changes bar for every list), `blocks.js` (Blocked IPs and locations: table from 1,200px, cards below, bulk bar, the shared `BlockForm` drawer with `kind="ip"` or `"location"`), `list-editor.js` (IP Allowlist, email domains, allowed words: add field, paged list, network lock and network-list states), `no-lockout.js`, and the pure `query.js` (tabs and REST paths; `firstPath()` must equal what `Admin_App::rules_preloads()` preloads, `test/query.test.js` reads the PHP to check), `list-diff.js` (unsaved changes as `{ add, remove }`, sent to `PUT rules/lists/{list}`, so a 3,000-entry list is never loaded whole), `actions.js` (removals with Undo). `data/validate.js` mirrors the server's checks (canonical IPs as `User::normalize_ip()` writes them, no CIDR, locations, list entries); use it in every form that takes an address. Browser tests: `tests/e2e/specs/rules.spec.ts` and the `v6-rules-*` screens. |
+| `assets/src/admin/network/`, `includes/class-networkreport.php`, `includes/class-networkblocks.php`, `includes/rest/class-networkcontroller.php` | The 6.0 network page (`admin.php?page=zero-spam-network`, `manage_network_options`, `?tab=` `overview`, `settings`, `templates`, `audit`, `comparison`, `io`, `notifications`, `stats`; `&group=` on Settings: `detection`, `integrations`, `intelligence`, `settings`, `rules`): `network.js` (heading, tabs mirrored in the sidebar, Overview), `settings-tab.js` (cards from the settings schema rendered by the shared `Field` with an `aside`: site counts and the lock switch `.zs-lockbtn`; values saved from the unsaved-changes bar with `PATCH settings?scope=network`, locks at once with `network-settings/{key}/lock|unlock` and Undo), `templates.js` (cards and the template drawer), `audit.js`, `comparison.js`, `io.js`, `notifications.js`, `stats.js` (multi-site attackers and the network-wide block list), and the pure `model.js` (`PATHS` must equal `Admin_App::network_preloads()`; `networkCards()`, `sitesState()`, `valueText()` (an empty network value reads "(none)"), tested in `test/`). `Includes\Network_Report` reads the sites without loading them: stored settings straight from each site's options table (no `switch_to_blog()`, no registry per site; at most `CHUNK` 100 sites per query, `MAX_SITES` 1,000 in all), log statistics with one `UNION ALL` per question; the overview is cached five minutes (`zerospam_network_report`, cleared when network or site settings change), statistics ten minutes per period. `Includes\Network_Blocks` is the network-wide block list (`{base_prefix}wpzerospam_network_blocked`, DB 1.5): canonical single addresses like site blocks, enforced by `Access::check_blocked()` on every site after the site's own blocks (failed key `blocked_network`), with one cached read on the hot path (site transient `zerospam_network_blocks`: the count, and every block while there are at most `INDEX_MAX` 1,000; above it one indexed query). Site administrators see the network's blocks read-only (`rules/network-blocks`, `rules/network-blocks.js`). Browser tests: `tests/e2e/specs/network-v6.spec.ts` and the `v6-network-*` screens. |
 | `assets/img/zero-spam-mark.svg`, `assets/img/zero-spam-menu-icon.svg` | The 6.0 mark (treatment B "Live core") on a 256 × 256 artboard (gradient ids prefixed `zs-mark-`), and the 20 × 20 one-colour admin menu icon with explicit `fill="#a7aaad"` attributes, which WordPress's svg-painter rewrites per colour scheme (`currentColor` does not work in a base64 data URI). Not used yet; `assets/img/icon.svg` is still the 5.x logo the legacy screens show. |
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
@@ -93,13 +94,31 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   site option `zerospam_network_settings` (`value` + `locked` per key).
   Capabilities: `manage_network_options` for network pages and REST,
   `manage_options` for site pages. Never leak one site's data to another.
+- Two storage models on a network, and they never mix: **settings** are
+  options (each site's `zero-spam-{module}` options, the network's values in
+  the site option `zerospam_network_settings`, resolved by precedence), while
+  **records** are tables: per site (`{prefix}wpzerospam_log`,
+  `wpzerospam_blocked`) or for the whole network (`{base_prefix}`: audit,
+  templates, statistics, API usage and, since DB 1.5, the network-wide
+  blocks). A network-wide block is a record, not a setting: it has no lock
+  and no site override; a site's IP Allowlist still lets the address in
+  (`Access::process()` skips allowed addresses before any block check).
+- The network page's routes (`Includes\Rest\Network_Controller`,
+  `network/*`) and `network-settings/*` (`Network_Settings_Controller`) are
+  for `manage_network_options` only; a site administrator gets 403 on every
+  one, and sees the network's blocks only through `rules/network-blocks`
+  (read-only, without who added them). In `Network_Settings_Controller` the
+  fixed routes (`audit`, `export`, `import`, `templates`, `apply-all`, …) are
+  registered before `{key}`, which would otherwise match them.
 
 ### Data
 - Per-site tables `{prefix}wpzerospam_log`, `{prefix}wpzerospam_blocked`;
   network-wide (`base_prefix`) `wpzerospam_api_usage`,
   `wpzerospam_stats_daily`, `wpzerospam_stats_monthly`,
-  `wpzerospam_network_templates`, `wpzerospam_network_audit` (see
-  `DB::$tables`). `wpzerospam_blacklist` is listed there; 4.x created it and
+  `wpzerospam_network_templates`, `wpzerospam_network_audit`,
+  `wpzerospam_network_blocked` (since DB 1.5; see `DB::$tables`; the
+  statements are in `DB::schema()`, the audit actions in
+  `DB::AUDIT_ACTIONS`). `wpzerospam_blacklist` is listed there; 4.x created it and
   current versions do not, but uninstall still drops it. Schema changes go through `DB::update()` and a
   `DB_VERSION` bump.
 - Logged submission data is sanitized on write (keys and values) and must be
@@ -120,7 +139,8 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   (`Utilities::admin_v6()`: the `ZEROSPAM_ADMIN_V6` constant, else the
   `zerospam_admin_v6` filter, off by default); other admin links go through
   `Utilities::admin_link( $view )` (activity, api-monitoring, license,
-  network-activity, network-license), which maps legacy and 6.0 pages. The
+  settings, network-activity, network-license, network-settings), which
+  maps legacy and 6.0 pages. The
   `data-zs-theme` and `data-zs-motion` of a Zero Spam root come from
   `Utilities::display_prefs( $plugin_screen )` (defined by the 6.0 shell):
   an explicit light or dark ui/prefs theme everywhere; `auto` follows the OS
@@ -131,7 +151,17 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   `rules/*`, `protection/modules`, `settings/actions|export|import`,
   `self-test`, `news`; and (PR 8) `settings/error-log` (GET, `manage_options`:
   the last 64 KB of the site's own `uploads/zerospam.log` from a whole line,
-  read-only, no parameters, never follows a symbolic link). Log statistics are cached in the transients
+  read-only, no parameters, never follows a symbolic link); and (PR 9) the
+  network routes `network/overview|sites|comparison|stats|blocks[/{id}]|notifications`,
+  `rules/network-blocks`, `network-settings/templates/{slug}` PUT (custom
+  templates only; built-ins answer 403 `zerospam_template_built_in`),
+  `network-settings/audit` with `page`/`per_page` paging headers and
+  `site_id`, `user_id`, `setting_key`, `action_type`, `after`, `before`
+  filters (each entry gains `summary`, plain language, secrets masked),
+  `network-settings/export` without secrets and `import` with checked values
+  (`skipped_keys`, `invalid`). Network audit entries go through
+  `Network_Settings_Manager::record()`, which masks secrets; the settings
+  change emails show a secret as "••••". Log statistics are cached in the transients
   `zerospam_stats_summary`, `zerospam_stats_timeseries` and
   `zerospam_protection_detections`, tagged with `MAX(log_id)` (a new
   detection refreshes them); code that deletes or restores log rows calls
@@ -486,8 +516,10 @@ npm run env:stop                 # stop both wp-env sites
   log, the network's plugin options, and every `wpzerospam_*` table of the
   install with its schema (uninstall drops them; restore recreates them). A
   table above 50,000 rows stops the run before it starts instead of being
-  saved in part. The network reset empties `wpzerospam_network_audit` on
-  wp-env only; a Local network keeps its audit history.
+  saved in part. The network reset empties `wpzerospam_network_audit`,
+  `wpzerospam_network_blocked` and `wpzerospam_network_templates` on wp-env
+  only; a Local network keeps its audit history and loses only the
+  TEST-NET network blocks and the `e2e-` templates the tests made.
 - **Known defects:** a confirmed bug gets a test that asserts the correct
   behaviour, marked `test.fail( true, '<reason, AGENTS.md §8>' )`; the run
   stays green while the bug exists and fails once it is fixed ("Fixed (remove
@@ -649,8 +681,8 @@ npm run env:stop                 # stop both wp-env sites
 
 - WPCS backlog at 5.7.14: 143 errors / 172 warnings in 32 files (176
   auto-fixable), down from 293 / 292 in 52 files at 5.7.13 and 429 / 367 in
-  62 files before; PHPStan level 5 baseline of 93 findings in 61 entries
-  on develop for 6.0 (135 in 93 at 5.7.14, 144 in 99 at 5.7.13), with no
+  62 files before; PHPStan level 5 baseline of 81 findings in 53 entries
+  after PR 9 (87 in 57 before it, 135 in 93 at 5.7.14, 144 in 99 at 5.7.13), with no
   unmatched entries. Clearing them is planned work; do it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
@@ -791,10 +823,6 @@ npm run env:stop                 # stop both wp-env sites
   source map.
 - Found by the 5.7.14 Local smoke test, not fixed yet (each needs its own
   PR):
-  - on a network subsite, a setting whose network value is empty shows
-    "Using network default:" followed by an empty box;
-  - Network Stats labels sites "Enhanced" even when they have no working
-    license;
   - the API monitoring notice's links (Enable, Dismiss) point to
     `admin.php?page=wordpress-zero-spam-settings…` instead of
     `options-general.php?page=…`;
@@ -820,6 +848,33 @@ npm run env:stop                 # stop both wp-env sites
   (migration `v6_network_store`, guarded by the site option
   `zerospam_network_completed_migrations`) and kept, unread and unwritten,
   for a downgrade; remove it, and `zerospam_backup_5x`, in 6.1.
+- Fixed in PR 9 (tests in the gate): an empty network value reads "(none)"
+  on subsites (legacy screen and 6.0) instead of an empty box; network
+  statistics label a site Enhanced only when its license validates
+  (`License_Status::site_level()`, from the cached answer, no API request);
+  locking a secret the network does not set no longer copies the main
+  site's key to every site, and unlocking a key the network does not set no
+  longer creates a network value; the built-in templates use real keys
+  (`v6_template_orphans` removed the 18 orphan keys); the `{key}` route of
+  `network-settings` no longer swallows `audit`, `export`, `import`,
+  `templates`, `status`, `compare` and `apply-all`; the blocked table's
+  `key_type` enum no longer differs from what dbDelta reads (it re-ran an
+  ALTER on every DB version bump).
+- Network page (PR 9) limits and follow-ups: the overview's site-change
+  counts, the statistics and the multi-site attackers read at most 1,000
+  sites (the page says so when a network has more); network-wide blocks
+  are single addresses (no CIDR, like site blocks) and are enforced by the
+  PHP check only, also in an .htaccess block mode (they are not written to
+  .htaccess); a network value can be changed but not removed from the new
+  page (the legacy page cannot either); "Apply to all sites" now means
+  "sites follow the network again" (`apply-all` mode `follow` removes their
+  own values of unlocked network settings) instead of copying network
+  values into every site, which stopped later network defaults from
+  reaching them; settings change emails are still sent synchronously, one
+  per affected site, in the request that changed the setting; the
+  Activity drawer does not say when an address is blocked by the network
+  (only Rules and the block drawer do); the legacy network screens keep
+  their behaviour until the cutover (PR 13).
 - Copy pass (chore, one PR): setting titles in the registry are Title Case
   (5.x); 6.0 cards and headings use sentence case. Sentence-case every
   registry title in one PR (translated strings, so a content change in each

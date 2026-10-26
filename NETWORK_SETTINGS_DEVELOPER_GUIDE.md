@@ -346,6 +346,15 @@ add_filter('zerospam_settings', function($settings) {
 - **Audit.** A `scope=network` PATCH of `zero-spam/v1/settings` keeps each key's lock and adds one `wpzerospam_network_audit` entry per changed key, as the acting user, with secrets masked.
 - **Schema.** `GET zero-spam/v1/settings/schema` (site administrators) returns every section and setting with these keys plus `locked`, `source` and the value; `Settings_Schema::get()` gives the same in PHP, built once per request.
 
+## The 6.0 network page, templates and network-wide blocks
+
+- **Page.** With the 6.0 admin on, network administrators manage everything on `admin.php?page=zero-spam-network` (network admin), in eight tabs (`&tab=overview|settings|templates|audit|comparison|io|notifications|stats`). It uses the routes below; site administrators get 403 on all of them.
+- **Settings tab.** Every setting a network can lock (any type but `html`, unless its registry entry says `lockable => false`) is listed, grouped as in the site admin. Values are saved with `PATCH zero-spam/v1/settings?scope=network` (locks are kept); locks with `POST network-settings/{key}/lock|unlock`. Locking a secret the network does not set locks it empty. An extension's settings appear automatically, under Integrations unless their entry sets `area`/`group`.
+- **Templates.** Built-in templates use real setting keys (6.0.0). `POST network-settings/templates` takes `name`, `slug`, `description` and `settings` (values checked like `PATCH /settings`; secrets and help text are refused); `PUT network-settings/templates/{slug}` changes a custom template; `POST templates/{slug}/apply` takes `scope` (`network` or `sites`), `sites` (IDs; empty = every site, at most 1,000), `force` (replace values sites changed) and `lock`. Locked settings are never written to sites.
+- **Audit.** `GET network-settings/audit?page=1&per_page=25` (filters `action_type`, `setting_key`, `user_id`, `site_id`, `after`, `before`) answers with `X-WP-Total`; each entry has a plain-language `summary`. Actions: `set`, `lock`, `unlock`, `apply`, `bulk`, `template`, `import`, `reset`, `block`, `unblock`, `migrate`. Record your own with `( new \ZeroSpam\Includes\Network_Settings_Manager() )->record( $action, $key, $old, $new )` (secrets are masked).
+- **Network-wide blocks.** `GET|POST zero-spam/v1/network/blocks` and `DELETE network/blocks/{id}` (with an undo token) manage addresses blocked on every site (`{base_prefix}wpzerospam_network_blocked`). `Access::check_blocked()` applies them after the site's own blocks; the log reason is `blocked_network`. A site's IP Allowlist still lets an address in. Sites read them with `GET rules/network-blocks`.
+- **Apply to all sites.** `POST network-settings/apply-all` with `mode=follow` (the 6.0 page's "Apply to all sites") removes each site's own values of unlocked settings the network sets, so the site follows the network value (and later changes to it). The older modes (`all`, `locked_only`, `defaults_only`) copy network values into each site, which then stop following later network changes.
+
 ## Support
 
 For questions or issues with extensibility:
