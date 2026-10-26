@@ -299,8 +299,8 @@ const areaReady = async ( page: Page ) => {
 
 /*
  * Baseline policy for the Overview, as for the other areas (AREA_BODY): its
- * body only (the in-app sidebar and top bar are left out), light 1280px for
- * each state, 782px and dark 1280px for the key state (seeded) only.
+ * body only (the in-app sidebar and top bar have their own baselines, taken
+ * on Help), light 1280px for each state, 782px and dark 1280px for the key state (seeded) only.
  */
 const OVERVIEW_BODY = '.zs-overview';
 
@@ -405,8 +405,9 @@ const seedActivity =
 
 /*
  * Baseline policy for the area screens: the area body only (the in-app
- * sidebar and top bar have no baseline), 782px for one key screen, one dark
- * 1280px screen per area.
+ * sidebar and top bar have their own light and dark 1280px baselines, taken
+ * on Help: v6-help-sidebar and v6-help-topbar), 782px for one key screen, one
+ * dark 1280px screen per area.
  */
 const AREA_BODY = '.zs-areabody';
 
@@ -738,7 +739,16 @@ export const onboardingTo = ( step: number ) => async ( page: Page ) => {
  * and the What's new drawer at light 1280 only. The news is the mu-plugin's
  * canned feed (eight fixed articles); its fetch time is masked.
  */
+/**
+ * The shell's own baselines (light and dark 1280px), taken on Help: the
+ * in-app sidebar (nav, the Enhanced Protection card, Follow) with its
+ * Activity count and the latest news masked, and the top bar with its count.
+ */
+const SHELL_MASKS = [ '.zs-count', '.zs-sn', 'time' ];
+
 const V6_HELP: Screen[] = [
+	{ id: 'v6-help-sidebar', title: '6.0 shell › in-app sidebar (on Help)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'help' ), prepare: helpReady, visual: { dark: true, mask: SHELL_MASKS, selector: '.zs-side' } },
+	{ id: 'v6-help-topbar', title: '6.0 shell › top bar (on Help)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'help' ), prepare: helpReady, visual: { dark: true, mask: SHELL_MASKS, selector: '.zs-topbar' } },
 	{ id: 'v6-help', title: '6.0 Help (Basic, canned news)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'help' ), prepare: helpReady, visual: { mobile: true, dark: true, mask: HELP_MASKS, selector: '.zs-areabody' } },
 	{ id: 'v6-help-enhanced', title: '6.0 Help (Enhanced, member card)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', level: 'enhanced', path: () => AREA( 'help' ), prepare: helpReady },
 	{
