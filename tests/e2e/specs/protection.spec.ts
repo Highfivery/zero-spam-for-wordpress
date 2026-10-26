@@ -334,6 +334,8 @@ test.describe( '6.0 Protection', () => {
 		await expect( card.locator( '.zs-licpanel' ) ).toContainText( 'Business' );
 		await expect( card.locator( '.zs-licpanel' ) ).not.toContainText( /31,200|18,800|50,000/ );
 		await expect( card.locator( '.zs-badge' ).first() ).toContainText( 'Active' );
+		// The form is gone; focus is on the card, not the body.
+		await expect( card ).toBeFocused();
 		const options = await zs.options( 'zero-spam-zerospam' );
 		expect( ( options[ 'zero-spam-zerospam' ] as Record< string, unknown > ).zerospam ).toBe( 'enabled' );
 
@@ -342,6 +344,7 @@ test.describe( '6.0 Protection', () => {
 		await card.getByRole( 'button', { name: 'Remove key' } ).click();
 		await expect( page.locator( '.zs-toasts' ) ).toContainText( "You're on Basic protection" );
 		await expect( card.getByText( 'What Enhanced adds here' ) ).toBeVisible();
+		await expect( card ).toBeFocused();
 	} );
 
 	test( 'Enhanced: the license panel, early access and the self-test latency', async ( { page, zs } ) => {
