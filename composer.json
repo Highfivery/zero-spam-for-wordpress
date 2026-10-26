@@ -59,7 +59,7 @@
 		"lint:fix": "phpcbf --standard=phpcs.xml.dist",
 		"lint:changed": "bin/lint-changed.sh",
 		"lint:tests": "phpcs --standard=phpcs.tests.xml.dist",
-		"compat": "phpcs --standard=PHPCompatibilityWP --runtime-set testVersion 8.2- --extensions=php --ignore=*/vendor/*,*/tests/*,*/node_modules/*,*/.claude/*,*/artifacts/*,*/build/* .",
+		"compat": "phpcs --standard=phpcs.compat.xml.dist",
 		"analyse": "phpstan analyse --memory-limit=1G",
 		"analyse:baseline": "phpstan analyse --memory-limit=1G --generate-baseline phpstan-baseline.neon --allow-empty-baseline",
 		"version:check": "bin/check-version.sh",
