@@ -35,7 +35,7 @@ class Test_Rest_Protection extends TestCase {
 
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $this->log_table() ) );
 		delete_transient( Protection_Controller::TRANSIENT );
-		foreach ( array( 'settings', 'comments', 'ipstack', 'wpforms' ) as $module ) {
+		foreach ( array( 'settings', 'comments', 'ipstack', 'wpforms', 'security', 'zs_widgets' ) as $module ) {
 			delete_option( "zero-spam-{$module}" );
 		}
 		delete_option( Shared_IP_Warning::DISMISSED_OPTION );
@@ -266,5 +266,122 @@ class Test_Rest_Protection extends TestCase {
 
 		$this->set_setting( 'verify_comments', 'enabled', 'comments' );
 		$this->assertArrayNotHasKey( 'entry_point_off:comments', $this->attention() );
+	}
+
+	/**
+	 * The Security card's switches include the two added in 6.0; it is on by
+	 * default because they are.
+	 */
+	public function test_security_switches(): void {
+		$security = $this->modules()['security'];
+
+		$this->assertSame( array( 'disable_xmlrpc', 'hide_wp_version', 'remove_resource_query_parameters', 'disable_emojis', 'disable_rss_feed' ), $security['switches'] );
+		$this->assertTrue( $security['enabled'] );
+
+		update_option(
+			'zero-spam-security',
+			array(
+				'disable_xmlrpc'  => 'disabled',
+				'hide_wp_version' => 'disabled',
+			)
+		);
+		self::reset_static_caches();
+
+		$this->assertFalse( $this->modules()['security']['enabled'] );
+	}
+
+	/**
+	 * Registers a third-party section the way an extension would: a section
+	 * without an area, a switch named verify_*, and a few other settings.
+	 */
+	private function register_fake_section(): void {
+		add_filter(
+			'zerospam_setting_sections',
+			static function ( array $sections ): array {
+				$sections['zs_widgets'] = array( 'title' => 'Widget Forms' );
+
+				return $sections;
+			}
+		);
+		add_filter(
+			'zerospam_settings',
+			static function ( array $settings ): array {
+				$options = get_option( 'zero-spam-zs_widgets', array() );
+
+				$settings['verify_zs_widgets']  = array(
+					'title'   => 'Protect widget forms',
+					'section' => 'zs_widgets',
+					'module'  => 'zs_widgets',
+					'type'    => 'checkbox',
+					'options' => array( 'enabled' => 'Enabled' ),
+					'value'   => $options['verify_zs_widgets'] ?? false,
+				);
+				$settings['zs_widgets_message'] = array(
+					'title'   => 'Message',
+					'section' => 'zs_widgets',
+					'module'  => 'zs_widgets',
+					'type'    => 'text',
+					'value'   => $options['zs_widgets_message'] ?? '',
+				);
+				$settings['zs_widgets_mode']    = array(
+					'title'   => 'Mode',
+					'section' => 'zs_widgets',
+					'module'  => 'zs_widgets',
+					'type'    => 'radio',
+					'options' => array(
+						'strict'  => 'Strict',
+						'relaxed' => 'Relaxed',
+					),
+					'value'   => $options['zs_widgets_mode'] ?? 'strict',
+				);
+
+				return $settings;
+			}
+		);
+		self::reset_static_caches();
+	}
+
+	/**
+	 * A third-party section is listed in Protection › Integrations with its
+	 * switch and state, and its settings can be read and saved like any other.
+	 */
+	public function test_third_party_section_is_listed_generically(): void {
+		$this->register_fake_section();
+
+		$module = $this->modules()['zs_widgets'];
+
+		$this->assertSame( 'Widget Forms', $module['title'] );
+		$this->assertSame( array( 'protection', 'integrations' ), array( $module['area'], $module['group'] ) );
+		$this->assertTrue( $module['available'] );
+		$this->assertSame( array( 'verify_zs_widgets' ), $module['switches'] );
+		$this->assertFalse( $module['enabled'] );
+		$this->assertNull( $module['plugin'] );
+
+		$response = $this->rest(
+			'PATCH',
+			'/zero-spam/v1/settings',
+			array(
+				'verify_zs_widgets'  => true,
+				'zs_widgets_message' => 'Hello',
+				'zs_widgets_mode'    => 'relaxed',
+			)
+		);
+		$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+		$this->assertSame(
+			array(
+				'verify_zs_widgets'  => 'enabled',
+				'zs_widgets_message' => 'Hello',
+				'zs_widgets_mode'    => 'relaxed',
+			),
+			get_option( 'zero-spam-zs_widgets' )
+		);
+
+		self::reset_static_caches();
+		$this->assertTrue( $this->modules()['zs_widgets']['enabled'] );
+
+		$schema = array_column( $this->rest( 'GET', '/zero-spam/v1/settings/schema' )->get_data()['settings'], null, 'key' );
+		$this->assertSame( 'radio', $schema['zs_widgets_mode']['type'] );
+		$this->assertSame( 'zs_widgets', $schema['zs_widgets_mode']['section'] );
+		$this->assertSame( 'relaxed', $schema['zs_widgets_mode']['value'] );
 	}
 }
