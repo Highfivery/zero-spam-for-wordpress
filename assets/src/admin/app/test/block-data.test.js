@@ -82,7 +82,7 @@ describe( 'blockBody', () => {
 			ip: '203.0.113.9',
 			type: 'temporary',
 			reason: 'x',
-			end: '2026-11-01T09:30',
+			end: '2026-11-01T09:30:00',
 		} );
 		expect(
 			blockBody( {
@@ -97,7 +97,7 @@ describe( 'blockBody', () => {
 			ip: '2001:db8::1',
 			type: 'permanent',
 			reason: '',
-			start: '2026-10-25T10:00',
+			start: '2026-10-25T10:00:00',
 		} );
 	} );
 } );
@@ -154,7 +154,7 @@ describe( 'Block selected IPs', () => {
 				ip: '203.0.113.9',
 				type: 'temporary',
 				reason: '',
-				end: '2026-11-01T09:30',
+				end: '2026-11-01T09:30:00',
 			},
 			parse: false,
 		} );
