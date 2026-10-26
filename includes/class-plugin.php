@@ -289,6 +289,12 @@ class Plugin {
 		$self_test_controller = new \ZeroSpam\Includes\Rest\Self_Test_Controller();
 		$self_test_controller->register_routes();
 
+		// The Help screen's guides and first-run setup (since 6.0.0).
+		$help_docs_controller = new \ZeroSpam\Includes\Rest\Help_Docs_Controller();
+		$help_docs_controller->register_routes();
+		$onboarding_controller = new \ZeroSpam\Includes\Rest\Onboarding_Controller();
+		$onboarding_controller->register_routes();
+
 		// Network Settings REST API (multisite only).
 		if ( is_multisite() ) {
 			$network_settings_controller = new \ZeroSpam\Includes\Rest\Network_Settings_Controller();

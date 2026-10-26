@@ -211,6 +211,15 @@ function canned_feed(): string {
 }
 
 /**
+ * Whether a test made the zerospam.org feed fail (route `/news`).
+ *
+ * @return bool
+ */
+function news_down(): bool {
+	return (bool) ( is_multisite() ? get_site_option( 'zs_e2e_news_down' ) : get_option( 'zs_e2e_news_down' ) );
+}
+
+/**
  * Canned responses keyed by host (and path fragment).
  *
  * The license answer is a valid Business license (what a site on Enhanced
@@ -306,6 +315,11 @@ add_filter(
 
 		if ( '' === $host || $host === $site_host || in_array( $host, array( 'localhost', '127.0.0.1' ), true ) ) {
 			return $preempt;
+		}
+
+		// The news is "down" (Help's news-unavailable screen): the feed request fails.
+		if ( str_ends_with( $host, 'zerospam.org' ) && str_contains( $path, '/articles/feed' ) && news_down() ) {
+			return new WP_Error( 'zs_e2e_news_down', 'Zero Spam e2e: the news feed is down for this test.' );
 		}
 
 		$body = canned_body( $host, $path, (string) wp_parse_url( (string) $url, PHP_URL_QUERY ) );
@@ -1301,6 +1315,11 @@ add_action(
 					delete_metadata( 'user', 0, 'zerospam_ui', '', true );
 					delete_site_transient( 'zerospam_news' );
 					delete_site_transient( 'zerospam_news_backoff' );
+					if ( is_multisite() ) {
+						delete_site_option( 'zs_e2e_news_down' );
+					} else {
+						delete_option( 'zs_e2e_news_down' );
+					}
 
 					// level=enhanced: a saved license key (the canned answer is a valid
 					// Business license) with Enhanced Protection on; basic: no key.
@@ -1375,6 +1394,69 @@ add_action(
 					update_user_meta( get_current_user_id(), 'zerospam_ui', $merged );
 
 					return new WP_REST_Response( $merged );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/first-run',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					// fresh: a new install waiting for first-run setup (no settings, flag
+					// pending), as the activation hook leaves it; provisioned: the same,
+					// but with core and comment settings written straight to the options
+					// (as provisioning would, without any save hook: comments off);
+					// upgraded: a site the v6_whats_new migration flagged; none: neither.
+					$mode = (string) ( $request->get_param( 'mode' ) ?? 'none' );
+					if ( ! in_array( $mode, array( 'fresh', 'provisioned', 'upgraded', 'none' ), true ) ) {
+						return new WP_Error( 'zs_e2e_mode', 'Unknown mode.', array( 'status' => 400 ) );
+					}
+
+					delete_option( 'zerospam_onboarding' );
+					delete_option( 'zerospam_onboarding_steps' );
+					delete_option( 'zerospam_whats_new' );
+					delete_user_meta( get_current_user_id(), 'zerospam_ui' );
+
+					if ( 'fresh' === $mode || 'provisioned' === $mode ) {
+						reset_site( 'defaults' );
+						delete_option( 'zerospam_configured' );
+						update_option( 'zerospam_onboarding', 'pending', true );
+					}
+					if ( 'provisioned' === $mode ) {
+						update_option( 'zero-spam-settings', array( 'log_blocked_ips' => 'enabled' ) );
+						update_option( 'zero-spam-comments', array( 'verify_comments' => false ) );
+						update_option( 'zero-spam-login', array( 'verify_login' => 'enabled' ) );
+					} elseif ( 'upgraded' === $mode ) {
+						update_option( 'zerospam_whats_new', '6.0.0', true );
+					}
+
+					wp_cache_flush();
+
+					return new WP_REST_Response( array( 'mode' => $mode ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/news',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$down = rest_sanitize_boolean( $request->get_param( 'down' ) ?? false );
+					if ( is_multisite() ) {
+						update_site_option( 'zs_e2e_news_down', $down ? 1 : 0 );
+					} else {
+						update_option( 'zs_e2e_news_down', $down ? 1 : 0, false );
+					}
+					delete_site_transient( 'zerospam_news' );
+					delete_site_transient( 'zerospam_news_backoff' );
+
+					return new WP_REST_Response( array( 'down' => $down ) );
 				},
 			)
 		);

@@ -299,8 +299,8 @@ const areaReady = async ( page: Page ) => {
 
 /*
  * Baseline policy for the Overview, as for the other areas (AREA_BODY): its
- * body only (the in-app sidebar and top bar are left out), light 1280px for
- * each state, 782px and dark 1280px for the key state (seeded) only.
+ * body only (the in-app sidebar and top bar have their own baselines, taken
+ * on Help), light 1280px for each state, 782px and dark 1280px for the key state (seeded) only.
  */
 const OVERVIEW_BODY = '.zs-overview';
 
@@ -405,8 +405,9 @@ const seedActivity =
 
 /*
  * Baseline policy for the area screens: the area body only (the in-app
- * sidebar and top bar have no baseline), 782px for one key screen, one dark
- * 1280px screen per area.
+ * sidebar and top bar have their own light and dark 1280px baselines, taken
+ * on Help: v6-help-sidebar and v6-help-topbar), 782px for one key screen, one
+ * dark 1280px screen per area.
  */
 const AREA_BODY = '.zs-areabody';
 
@@ -593,20 +594,6 @@ const V6_PROTECTION: Screen[] = [
 	},
 ];
 
-/** The areas built in later PRs: the shell with a placeholder. */
-const V6_AREAS: Screen[] = [ 'help' ].map(
-	( area ): Screen => ( {
-		id: `v6-${ area }`,
-		title: `6.0 ${ area } (shell)`,
-		area: 'admin',
-		sites: 'both',
-		state: 'empty',
-		theme: 'both',
-		path: () => AREA( area ),
-		prepare: areaReady,
-	} )
-);
-
 /** Waits until Settings has its cards (the app replaced the skeleton). */
 export const settingsReady = async ( page: Page ) => {
 	await page.locator( '#zs-area-h' ).waitFor();
@@ -708,6 +695,108 @@ const V6_SETTINGS: Screen[] = [
 		},
 		path: ( t ) => subsiteURL( t, AREA( 'settings', 'data' ) ),
 		prepare: settingsReady,
+	},
+];
+
+/** Waits until Help has its guides and news (or the news's empty state). */
+export const helpReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+	await page.locator( '.zs-help-doc' ).first().waitFor();
+	await page.locator( '#zs-help-news :is(.zs-news-i, .zs-empty)' ).first().waitFor();
+	await page.locator( '.zs-help-level:not([aria-busy])' ).waitFor();
+};
+
+/** Help parts that change between runs: when the news was fetched. */
+export const HELP_MASKS = [ '.zs-news-upd .zs-hint' ];
+
+/** Waits until first-run setup shows a step (or the done screen). */
+export const onboardingReady = async ( page: Page ) => {
+	await page.locator( '.zs-onb #zs-ob-h' ).waitFor();
+};
+
+/**
+ * Goes through first-run setup up to a step (Basic, everything ticked).
+ *
+ * @param step 1, 2, 3 or 4 (the done screen).
+ */
+export const onboardingTo = ( step: number ) => async ( page: Page ) => {
+	await onboardingReady( page );
+	for ( let at = 1; at < step; at++ ) {
+		await page.locator( '.zs-onb form button[type="submit"]' ).click();
+		// The next step is current; after step 3 every step is done.
+		const next = at < 3 ? `.zs-ob-steps li:nth-child(${ at + 1 })[aria-current="step"]` : '.zs-ob-steps li:nth-child(3).zs-done';
+		await page.locator( next ).waitFor();
+	}
+	await onboardingReady( page );
+	// The mark's bricks drop in (not under reduced motion): wait for them to land.
+	await page.locator( '.zs-onb-mark' ).evaluate( ( el ) => Promise.all( el.getAnimations( { subtree: true } ).map( ( a ) => a.finished.catch( () => undefined ) ) ) );
+};
+
+/**
+ * Help, first-run setup and What's new. Baselines (area-PR policy): Help's
+ * area body (`.zs-areabody`) at 1280, plus 782 and dark 1280 for Help
+ * only; the setup steps (`.zs-onb`, a standalone view without an area body)
+ * and the What's new drawer at light 1280 only. The news is the mu-plugin's
+ * canned feed (eight fixed articles); its fetch time is masked.
+ */
+/**
+ * The shell's own baselines (light and dark 1280px), taken on Help: the
+ * in-app sidebar (nav, the Enhanced Protection card, Follow) with its
+ * Activity count and the latest news masked, and the top bar with its count.
+ */
+const SHELL_MASKS = [ '.zs-count', '.zs-sn', 'time' ];
+
+const V6_HELP: Screen[] = [
+	{ id: 'v6-help-sidebar', title: '6.0 shell › in-app sidebar (on Help)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'help' ), prepare: helpReady, visual: { dark: true, mask: SHELL_MASKS, selector: '.zs-side' } },
+	{ id: 'v6-help-topbar', title: '6.0 shell › top bar (on Help)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'help' ), prepare: helpReady, visual: { dark: true, mask: SHELL_MASKS, selector: '.zs-topbar' } },
+	{ id: 'v6-help', title: '6.0 Help (Basic, canned news)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'help' ), prepare: helpReady, visual: { mobile: true, dark: true, mask: HELP_MASKS, selector: '.zs-areabody' } },
+	{ id: 'v6-help-enhanced', title: '6.0 Help (Enhanced, member card)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', level: 'enhanced', path: () => AREA( 'help' ), prepare: helpReady },
+	{
+		id: 'v6-help-news-unavailable',
+		title: '6.0 Help › news unavailable',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: async ( zs ) => {
+			await zs.newsDown( true );
+		},
+		path: () => AREA( 'help', '', { section: 'news' } ),
+		prepare: helpReady,
+		visual: { mask: HELP_MASKS, selector: '.zs-areabody' },
+	},
+	{
+		id: 'v6-help-news-off',
+		title: '6.0 Help › Zero Spam News turned off',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: async ( zs ) => {
+			await zs.set( { show_news: 'disabled' } );
+		},
+		path: () => AREA( 'help', '', { section: 'news' } ),
+		prepare: helpReady,
+	},
+	{ id: 'v6-onboarding-1', title: '6.0 First-run setup › 1 protection level', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 1 ), visual: { selector: '.zs-onb' } },
+	{ id: 'v6-onboarding-2', title: '6.0 First-run setup › 2 what to protect', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 2 ), visual: { selector: '.zs-onb' } },
+	{ id: 'v6-onboarding-3', title: '6.0 First-run setup › 3 how to block', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 3 ), visual: { selector: '.zs-onb' } },
+	{ id: 'v6-onboarding-done', title: '6.0 First-run setup › done', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 4 ) },
+	{
+		id: 'v6-whats-new',
+		title: '6.0 Overview › "What\'s new in 6.0" drawer (upgraded site)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: ( zs ) => zs.firstRun( 'upgraded' ).then( () => undefined ),
+		path: () => AREA( 'overview' ),
+		prepare: async ( page ) => {
+			await overviewReady( page );
+			await page.locator( '.zs-whatsnew' ).getByRole( 'button', { name: "See what's new" } ).click();
+			await page.locator( '.zs-drawer.zs-whatsnew-drawer' ).waitFor();
+		},
+		visual: { selector: '.zs-drawer' },
 	},
 ];
 
@@ -854,7 +943,7 @@ function withDarkTwins( screens: Screen[] ): Screen[] {
 	} );
 }
 
-const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_ACTIVITY, ...V6_RULES, ...V6_PROTECTION, ...V6_AREAS, ...V6_SETTINGS, ...V6_NETWORK ] );
+const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_ACTIVITY, ...V6_RULES, ...V6_PROTECTION, ...V6_SETTINGS, ...V6_HELP, ...V6_NETWORK ] );
 
 export const SCREENS: Screen[] = [
 	...settingsScreens,
