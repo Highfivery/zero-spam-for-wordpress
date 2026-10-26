@@ -87,6 +87,11 @@ export function request( options ) {
  * it hands to apiFetch's preloading middleware as `zeroSpamPreload`). Read
  * once, so a later reload goes to the server.
  *
+ * The middleware keeps its own copy of the answers and serves each one to
+ * the first apiFetch() of its path: that copy is used up here too (it is
+ * answered from memory, no request is sent), or the first reload, after a
+ * change, would get the answer of the page load again.
+ *
  * @param {string|null} path Route, exactly as preloaded.
  * @return {{body: unknown, headers: Object}|undefined} The answer.
  */
@@ -98,6 +103,9 @@ export function takePreloaded( path ) {
 	}
 	const entry = store[ path ];
 	delete store[ path ];
+	if ( 'undefined' !== typeof window && window.wp?.apiFetch ) {
+		apiFetch( { path, parse: false } ).catch( () => {} );
+	}
 	return entry;
 }
 

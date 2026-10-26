@@ -194,6 +194,42 @@ export class ZsApi {
 		return this.call< { blocked: boolean } >( 'POST', 'block', { ip, reason } );
 	}
 
+	/**
+	 * Saves no-lockout addresses (Admin_Safe_IPs) as activation would; TEST-NET only.
+	 *
+	 * @param ips Addresses (an empty list clears them).
+	 */
+	noLockout( ips: string[] ) {
+		return this.call< { ips: string[] } >( 'POST', 'no-lockout', { ips } );
+	}
+
+	/**
+	 * Calls one of the plugin's own routes (zero-spam/v1) as the logged-in
+	 * administrator, for set-up through the same API the screens use.
+	 *
+	 * @param method HTTP method.
+	 * @param route  Route below zero-spam/v1, such as rules/blocks.
+	 * @param data   JSON body.
+	 */
+	async plugin< T >( method: 'GET' | 'POST' | 'PUT' | 'DELETE', route: string, data?: Record< string, unknown > ): Promise< T > {
+		const { requestUtils } = this;
+		if ( ! requestUtils.storageState?.nonce ) {
+			await requestUtils.setupRest();
+		}
+		const base = ( this.sitePath ? this.sitePath.replace( /^\//, '' ) : '' ) + 'index.php';
+		const response = await requestUtils.request.fetch( `${ base }?${ new URLSearchParams( { rest_route: `/zero-spam/v1/${ route }` } ).toString() }`, {
+			method,
+			headers: { 'X-WP-Nonce': requestUtils.storageState!.nonce },
+			data,
+			failOnStatusCode: false,
+		} );
+		const body = await response.json().catch( () => null );
+		if ( ! response.ok() ) {
+			throw new Error( `zero-spam/v1 ${ method } ${ route } failed (${ response.status() }): ${ JSON.stringify( body ) }` );
+		}
+		return body as T;
+	}
+
 	options( search = '' ) {
 		return this.call< Record< string, unknown > >( 'GET', 'options', search ? { search } : undefined );
 	}

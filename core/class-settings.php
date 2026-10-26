@@ -382,8 +382,8 @@ class Settings {
 		);
 
 		self::$settings['ip_whitelist'] = array(
-			'title'       => __( 'IP Whitelist', 'zero-spam' ),
-			'desc'        => __( 'IP addresses that should never be blocked. Put one IP address per line.', 'zero-spam' ),
+			'title'       => __( 'IP Allowlist', 'zero-spam' ),
+			'desc'        => __( 'IP addresses that should never be blocked, one per line. Recommended: your office\'s fixed address, if it has one.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'textarea',

@@ -440,6 +440,7 @@ describe( 'stylesheet scoping', () => {
 		join( stylesDir, 'primitives.css' ),
 		join( stylesDir, 'shell.css' ),
 		join( stylesDir, 'overview.css' ),
+		join( stylesDir, 'rules.css' ),
 		join( stylesDir, 'areas.css' ),
 		join( stylesDir, 'activity.css' ),
 		join( stylesDir, 'settings.css' ),

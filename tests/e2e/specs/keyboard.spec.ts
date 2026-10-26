@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import { expect, test } from '../support/fixtures';
-import { BlockIpModal, DashboardPage } from '../support/pages/dashboard-page';
+import { AREA, rulesReady } from '../support/screens';
 import { SettingsPage } from '../support/pages/settings-page';
 
 /**
@@ -65,23 +65,30 @@ test.describe( 'Keyboard and motion', () => {
 		await expect( toggle ).toBeChecked( { checked: ! before } );
 	} );
 
-	test( 'the blocked-IP modal takes focus, closes on Escape and returns focus to the button that opened it', async ( { page } ) => {
-		test.fail( true, 'AGENTS.md §8: the add/update block modal has no focus management (focus stays behind the modal and is not returned)' );
-		const dashboard = new DashboardPage( page );
-		const modal = new BlockIpModal( page );
-		await dashboard.goto( 'blocked-ips' );
-		const trigger = page.getByRole( 'button', { name: /Add Blocked IP Address/ } );
+	// AGENTS.md §8 listed the legacy add/update block modal (assets/js/admin.js) as
+	// having no focus management; the 6.0 Rules area replaces it with the shared
+	// block drawer, which this checks (the legacy screen is redirected at the cutover).
+	test( 'the block drawer takes focus, keeps Tab inside, closes on Escape and returns focus to the button that opened it', async ( { page } ) => {
+		await page.goto( AREA( 'rules', 'ips' ) );
+		await rulesReady( page );
+		const trigger = page.getByRole( 'button', { name: 'Block an IP' } );
+		const drawer = page.locator( '.zs-drawer.zs-blockform' );
 		await trigger.focus();
 		await page.keyboard.press( 'Enter' );
-		await expect( modal.root ).toHaveClass( /is-active/ );
+		await expect( drawer ).toBeVisible();
 
-		await test.step( 'focus moves into the modal', async () => {
-			expect( await modal.root.evaluate( ( el ) => el.contains( document.activeElement ) ) ).toBe( true );
+		await test.step( 'focus moves into the drawer and Tab stays there', async () => {
+			expect( await drawer.evaluate( ( el ) => el.contains( document.activeElement ) ) ).toBe( true );
+			for ( let i = 0; i < 25; i++ ) {
+				await page.keyboard.press( 'Tab' );
+				expect( await drawer.evaluate( ( el ) => el.contains( document.activeElement ) ), `Tab ${ i + 1 } left the drawer` ).toBe( true );
+			}
+			expect( await focusIndicator( page ) ).toBe( true );
 		} );
 
 		await test.step( 'Escape closes it and focus returns to the button', async () => {
 			await page.keyboard.press( 'Escape' );
-			await expect( modal.root ).not.toHaveClass( /is-active/ );
+			await expect( drawer ).toBeHidden();
 			await expect( trigger ).toBeFocused();
 		} );
 	} );

@@ -41,6 +41,7 @@ in the same PR.
 | `assets/` | Legacy (5.x) admin: hand-written CSS/JS (jQuery) in `assets/css/` and `assets/js/`, `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand (no build step for these), vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. Enqueue the plugin's own CSS/JS with `Utilities::asset_version( 'assets/…' )` as the version (file time with `SCRIPT_DEBUG`, else `ZEROSPAM_VERSION`); pinned vendored libraries keep their own version. |
 | `assets/src/`, `assets/dist/`, `webpack.config.js` | 6.0 admin front end, built with `@wordpress/scripts` (section 5, Front-end build). Sources in `assets/src/` (never shipped): entries `admin/index.js`, `network/index.js`, `widget-refresh/index.js` (the dashboard widget's Refresh: plain JS, no WordPress dependencies; `model.js` mirrors the PHP sparkline and figures, and both are tested with the same values) and `blocked/index.css` (CSS only); the admin app in `admin/` (`index.js` mounts `app/app.js` on `#zerospam-app` by `data-area`; `app/` the shell, the in-app sidebar and its lower block, the top bar and level chip, the Compare levels drawer, the mark controller and the primitives in `app/primitives/` (Button, Badge, Chip, Switch, Tile, Drawer, toasts with Undo, live regions, unsaved-changes bar); `data/` the REST client and bootstrap (`api.js`, paths exactly as preloaded), formatting, `?tab=` routing with the History API, theme resolution, and the live feed's scheduler (`poll.js`, `use-live-feed.js`); `overview/` the Overview and its pure chart mapper; `activity/` the Activity area: `query.js` (the log's view ⇄ REST paths and the address, the paths Admin_App preloads), `reports-data.js`, `details-data.js` and `undo.js` (pure, unit tested), `log.js` (filters, bulk bar, table from 1,200px and cards below, pages, the "N new" bar), `details.js` (the details drawer), `reports.js` and `column-chart.js` (keyboard-readable charts with a table); `app/block-form.js` (with `block-data.js`) is the shared Block IP / Edit block drawer; `settings/` the Settings area (tabs and cards in `cards.js`, its own logic in `models.js`); `app/fields/` the generic settings field renderer every area uses for schema settings (`Field`, `SecretField`, `useSettings()`, the PATCH and error model, `fields.css`); `app/system-report.js` the system report; areas not built yet render a placeholder inside the shell), React through `@wordpress/element` with the plugin's own components (no `@wordpress/components`); shared styles in `admin/styles/` (`primitives.css`, `shell.css`, `overview.css`, `areas.css` for the app, every selector under a `zs-` class; `tokens.css` design tokens scoped to `.zs-app` and `.zs-widget` with light, `data-zs-theme="dark"` and `"auto"`, plus `.zs-dark-block` for the hero and Enhanced Protection block; `base.css` reset, typography and reduced motion for `.zs-app`, `.zs-blocked`, `.zs-widget`; `logo.css` mark animation); `blocked/tokens.css` (the blocked pages' own minimal token subset, because `blocked.css` is inlined) and `blocked/page.css` (the pages' own reset and styles; it does not import `base.css`, to stay inside the 8 KB raw budget); `admin/icons/sprite.svg` (marks `zs-mark`, `zs-mark-flat`, `zs-mark-mono` and `zs-i-*` UI icons; no ids inside symbols, bricks are `.zs-b[data-i]`); Vitest tests in `**/test/*.test.js`. Output in `assets/dist/` (committed and shipped): `{entry}.js`, `{entry}.css`, `{entry}-rtl.css`, `{entry}.asset.php` (dependencies and version for enqueueing) and `sprite.svg`. Never edit `assets/dist/` by hand. |
 | `assets/fonts/` | Self-hosted Plus Jakarta Sans and JetBrains Mono (variable woff2, Latin and Latin Extended), `fonts.css` (`@font-face`, shipped as is) and each family's `OFL.txt`. Sources, versions and checksums in `assets/fonts/FONTS.md`. |
+| `assets/src/admin/rules/`, `assets/src/admin/data/validate.js` | The 6.0 Rules area (`?tab=` `ips`, `locations`, `allowlist`, `email`, `words`, `no-lockout`): `rules.js` (heading, tabs with counts from the bootstrap's `rules.counts` = `Rules_Controller::counts()`, and the one unsaved-changes bar for every list), `blocks.js` (Blocked IPs and locations: table from 1,200px, cards below, bulk bar, the shared `BlockForm` drawer with `kind="ip"` or `"location"`), `list-editor.js` (IP Allowlist, email domains, allowed words: add field, paged list, network lock and network-list states), `no-lockout.js`, and the pure `query.js` (tabs and REST paths; `firstPath()` must equal what `Admin_App::rules_preloads()` preloads, `test/query.test.js` reads the PHP to check), `list-diff.js` (unsaved changes as `{ add, remove }`, sent to `PUT rules/lists/{list}`, so a 3,000-entry list is never loaded whole), `actions.js` (removals with Undo). `data/validate.js` mirrors the server's checks (canonical IPs as `User::normalize_ip()` writes them, no CIDR, locations, list entries); use it in every form that takes an address. Browser tests: `tests/e2e/specs/rules.spec.ts` and the `v6-rules-*` screens. |
 | `assets/img/zero-spam-mark.svg`, `assets/img/zero-spam-menu-icon.svg` | The 6.0 mark (treatment B "Live core") on a 256 × 256 artboard (gradient ids prefixed `zs-mark-`), and the 20 × 20 one-colour admin menu icon with explicit `fill="#a7aaad"` attributes, which WordPress's svg-painter rewrites per colour scheme (`currentColor` does not work in a base64 data URI). Not used yet; `assets/img/icon.svg` is still the 5.x logo the legacy screens show. |
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
@@ -316,6 +317,11 @@ bin/check-dist.sh --twice   # build twice and require byte-identical output
   peach, and a root's `data-zs-theme` must win over an ancestor's.
   `admin/test/icons.test.js` checks the sprite (no ids in symbols, animation
   layers hidden by attributes) and the exported marks.
+  `vitest.config.mjs` transforms the admin sources' JSX (they are `.js`
+  files), so a test can render a component to markup with
+  `react-dom/server`'s `renderToStaticMarkup()` after putting the answers
+  it reads in `window.zeroSpamPreload` (`rules/test/render.test.js`); there
+  is no DOM, so effects and portals do not run.
 - **Design tokens** are the only source of colour, type, radius, spacing,
   motion and layer values for 6.0 screens: `var(--zs-…)`, never a literal.
   Everything is scoped (`.zs-app`, `.zs-blocked`, `.zs-widget`, or a `zs-`
@@ -633,7 +639,8 @@ npm run env:stop                 # stop both wp-env sites
   unmatched entries. Clearing them is planned work; do it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
-  `build/`.
+  `build/`; `composer compat` ignores the same directories (a half-merged
+  file in an agent worktree once failed the main checkout's gate).
 - Fixed in 5.7.13 (tests now in the gate): the multisite locked-settings UI
   and site-save rule (locked keys are never stored; a saved value equal to the
   network value follows the network; REST returns 403 `rest_setting_locked`
@@ -676,7 +683,7 @@ npm run env:stop                 # stop both wp-env sites
     capability check of its own; the legacy delete links never refresh
     `.htaccess`. The Blocked Locations search looks at the empty IP column.
     The 6.0 REST routes that replace these screens (`rules/blocks`,
-    `rules/blocks/bulk-delete`) delete,
+    `rules/blocks/bulk-delete`, used by the 6.0 Rules area) delete,
     search by location value or country name and refresh `.htaccess`, and
     `Utilities::refresh_htaccess()` now clears the rules when no IP is
     blocked any more; the legacy screens keep their bugs until the cutover
@@ -709,7 +716,10 @@ npm run env:stop                 # stop both wp-env sites
   expected-failure test or entries in `tests/e2e/a11y/allowlist.json`;
   GitHub issues still to be filed):
   - the add/update block modal (`assets/js/admin.js`) does not move focus
-    into the modal or return it to the button that opened it;
+    into the modal or return it to the button that opened it (the 6.0 Rules
+    area replaces it with the shared block drawer, whose focus handling
+    `keyboard.spec.ts` and `rules.spec.ts` check; the modal goes at the
+    cutover);
   - the admin header logo (`<img width="250">` in
     `includes/templates/admin-header.php`) makes the plugin screens 378px wide
     at a 320px viewport, where WordPress's own screens fit (WCAG 1.4.10); the
