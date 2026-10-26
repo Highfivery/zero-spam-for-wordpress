@@ -61,14 +61,31 @@
 	color: transparent !important;
 }
 
-/* An area body taller than the window is captured while scrolled: keep the
-   sticky top bar in place so it does not cover the body's first lines
-   (pages without an area body, such as the Overview, are not affected). */
-.zs-app:has(.zs-areabody) .zs-topbar {
+/* An area body (or the Overview's body) taller than the window is captured
+   while scrolled: keep the sticky top bar in place so it does not cover the
+   body's first lines. */
+.zs-app:has(.zs-areabody, .zs-overview) .zs-topbar {
 	position: static !important;
 }
 
 /* The busiest hours follow the clock (seeded rows are dated from now). */
 .zs-hours-note {
 	visibility: hidden !important;
+}
+
+/* The dark blocks' decorative gradients and grid (the Overview hero and the
+   Enhanced Protection tile) differ from a flat fill by less than the
+   comparison's per-pixel threshold, so a baseline never catches a change to
+   them, yet they made up a third of the Overview baselines' bytes: paint them
+   flat. The blocks' copy, buttons and borders stay compared. */
+.zs-hero {
+	background: var(--zs-dark-0) !important;
+}
+
+.zs-hero::after {
+	display: none !important;
+}
+
+.zs-enh {
+	background: var(--zs-dark-2) !important;
 }
