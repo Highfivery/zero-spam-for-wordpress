@@ -378,7 +378,9 @@ const V6_NETWORK: Screen[] = [
  * Rules parts that change between runs: dates of blocks (seeded relative to
  * now) and the card meta lines that carry them. Baselines are of the Rules
  * view (.zs-rules), not the whole app: the shell has its own baselines, and
- * it keeps the screenshots inside the 15 MB budget.
+ * it keeps the screenshots under 14 MB in total (light 1280 for every tab,
+ * 782 for the two block tabs, dark 1280 for Blocked IPs; drawers and the
+ * locked subsite light 1280 only).
  */
 export const RULES_MASKS = [ '.zs-c-date', '.zs-cm-m' ];
 
@@ -411,6 +413,9 @@ const RULES_TABS: Array< [ string, string ] > = [
 	[ 'no-lockout', 'No-lockout addresses' ],
 ];
 
+/** The tabs with block tables (cards below 1,200px), the only Rules tabs with a 782px baseline. */
+const BLOCK_TABS = [ 'ips', 'locations' ];
+
 /** Opens the block drawer from a button and waits for its form. */
 const openBlockDrawer = ( trigger: string ) => async ( page: Page ) => {
 	await rulesReady( page );
@@ -431,7 +436,8 @@ const V6_RULES: Screen[] = [
 			before: seedRules,
 			path: () => AREA( 'rules', tab ),
 			prepare: rulesReady,
-			visual: { mobile: true, dark: true, mask: RULES_MASKS, selector: '.zs-rules' },
+			// Light 1280 for every tab; 782 for the two block tabs (table vs cards); dark 1280 for Blocked IPs only.
+			visual: { mobile: BLOCK_TABS.includes( tab ), dark: 'ips' === tab, mask: RULES_MASKS, selector: '.zs-rules' },
 		},
 	] ),
 	{ id: 'v6-rules-block-add', title: '6.0 Rules › Block an IP drawer', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'rules', 'ips' ), prepare: openBlockDrawer( '.zs-rules .zs-tbar > .zs-btn' ), visual: { selector: '.zs-drawer' } },
