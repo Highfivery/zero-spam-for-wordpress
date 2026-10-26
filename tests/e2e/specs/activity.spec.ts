@@ -95,10 +95,9 @@ test.describe( '6.0 Activity', () => {
 		await expect( page.getByLabel( 'Search IPs' ) ).toBeFocused();
 		await expect( page ).not.toHaveURL( /type=/ );
 
-		const today = page.locator( '.zs-ranges' ).getByRole( 'button', { name: 'Today' } );
-		await today.click();
-		await expect( today ).toHaveAttribute( 'aria-pressed', 'true' );
-		await expect( page ).toHaveURL( /days=1/ );
+		// Dates come from the address (no date control on the screen).
+		await openLog( page, '&after=2000-01-01&before=2000-01-02' );
+		await expect( page.locator( '.zs-log .zs-empty' ) ).toContainText( 'No detections match these filters.' );
 	} );
 
 	test( 'sorting from the keyboard: column headers set aria-sort, the Location menu works with arrows', async ( { page, zs } ) => {
@@ -249,7 +248,9 @@ test.describe( '6.0 Activity', () => {
 	} );
 
 	test( 'logged markup is shown as text and never runs (stored XSS fixture)', async ( { page, zs } ) => {
+		// crafted: markup in failed, country_name, region_name, city and page_url; data: in the submission.
 		await zs.seedLog( 1, {
+			crafted: true,
 			data: {
 				comment_content: '<img src=x onerror="window.__zsXss=1"><script>window.__zsXss=2</script>',
 				comment_author: '</script><svg onload="window.__zsXss=3">',
@@ -260,21 +261,39 @@ test.describe( '6.0 Activity', () => {
 			dialogs.push( d.message() );
 			d.dismiss();
 		} );
+		const noXss = async () => {
+			await expect( page.locator( '.zs-app img[src="x"], .zs-app svg[onload], .zs-app b:text-is("zs-crafted")' ) ).toHaveCount( 0 );
+			expect( await page.evaluate( () => ( window as unknown as { __zsXss?: number } ).__zsXss ) ).toBeUndefined();
+		};
+
 		await openLog( page );
+		// The row: country and region in the table, as text.
+		await expect( rows( page ).first() ).toContainText( '<b>zs-crafted</b>' );
+		await noXss();
+
 		await page.locator( '[data-zs-open]' ).first().click();
-		const code = page.locator( '.zs-code' );
-		await expect( code ).toContainText( '<img src=x onerror="window.__zsXss=1">' );
-		await expect( code ).toContainText( '</script><svg onload="window.__zsXss=3">' );
-		await expect( page.locator( '.zs-app img[src="x"], .zs-app svg[onload]' ) ).toHaveCount( 0 );
-		expect( await page.evaluate( () => ( window as unknown as { __zsXss?: number } ).__zsXss ) ).toBeUndefined();
+		const drawer = page.locator( '.zs-drawer.zs-details' );
+		await expect( drawer.locator( '.zs-why' ) ).toContainText( '<b>zs-crafted</b>' );
+		await expect( drawer ).toContainText( '/e2e-comments/?q=<img src="x"' );
+		await expect( drawer.locator( '.zs-dkv' ).nth( 1 ) ).toContainText( '<b>zs-crafted</b>' );
+		await expect( drawer.locator( '.zs-code' ) ).toContainText( '<img src=x onerror="window.__zsXss=1">' );
+		await expect( drawer.locator( '.zs-code' ) ).toContainText( '</script><svg onload="window.__zsXss=3">' );
+		await noXss();
 
 		// The same entry preloaded into the page (&item=) is escaped in the inline script too.
 		const id = ( await zs.logRows() )[ 0 ].log_id;
 		await page.goto( AREA( 'activity', '', { item: String( id ) } ) );
 		await expect( page.locator( '.zs-code' ) ).toContainText( '<script>window.__zsXss=2</script>' );
-		expect( await page.evaluate( () => ( window as unknown as { __zsXss?: number } ).__zsXss ) ).toBeUndefined();
+		await noXss();
+
+		// Reports: the crafted country name in By location and Most detections.
+		await page.goto( AREA( 'activity', 'reports' ) );
+		await reportsReady( page );
+		await expect( page.locator( 'section[aria-labelledby="zs-rp-loc"]' ) ).toContainText( '<b>zs-crafted</b>' );
+		await noXss();
 		expect( dialogs ).toEqual( [] );
 	} );
+;
 
 	test( 'on a phone the log is a list of cards whose rows are buttons of at least 44px', async ( { page, zs } ) => {
 		await zs.seedLog( 30 );

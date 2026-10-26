@@ -285,7 +285,8 @@ bin/check-dist.sh --twice   # build twice and require byte-identical output
   temporary directory; refuses the push when that build differs from
   `assets/dist/` in any byte; checks that the admin bundle kept its
   `zero-spam` strings and `translators:` comments; and enforces the budgets
-  (KB = 1,024 bytes): gzip -9 admin JS 75, admin CSS 25, network JS 40,
+  (KB = 1,024 bytes): gzip -9 admin JS 110 (temporarily, until the
+  per-area entry split; it was 75), admin CSS 25, network JS 40,
   network CSS 25, widget JS 6 and CSS 6; raw `blocked.css` and
   `blocked-rtl.css` 8 each (inlined into every blocked response); fonts
   (woff2 as stored) 110. `sprite.svg` is reported without a budget.
@@ -780,3 +781,11 @@ npm run env:stop                 # stop both wp-env sites
   but never created.
 - Release pitfall: in March 2026 a release shipped as 5.5.8 instead of 5.7.8.
   `composer version:check` exists because of it.
+- Follow-up chore after PR 8 (6.0 admin): split `assets/dist/admin.js` into
+  per-area entry points (one bundle per page, shared code in a common
+  entry, translations per handle) and bring the admin JS budget in
+  `bin/check-dist.sh` back from the temporary 110 KB to 75 KB gz.
+- 6.0 area baselines (policy since PR 5): capture `.zs-areabody` only (the
+  shell is covered by the Overview baselines), 782px for one key screen per
+  area, one dark 1280px screen per area, 8–10 seeded rows (a screen's own
+  `before`), table and card text hidden by `tests/e2e/support/visual.css`.

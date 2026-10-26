@@ -48,3 +48,13 @@
 .zs-hero-art {
 	visibility: hidden !important;
 }
+
+/* The 6.0 area screens: table and card text (addresses, dates, places)
+   varies with the seeded rows and the clock; the layout, icons, badges and
+   buttons stay compared. */
+.zs-areabody .zs-t tbody td,
+.zs-areabody .zs-cards .zs-cardmain,
+.zs-areabody .zs-wk-row,
+.zs-areabody .zs-rep-bar .zs-hint {
+	color: transparent !important;
+}
