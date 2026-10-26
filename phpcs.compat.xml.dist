@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<ruleset name="Zero Spam for WordPress – PHP compatibility">
+	<description>PHP 8.2+ compatibility check (composer compat). Same exclusions as phpcs.xml.dist.</description>
+
+	<rule ref="PHPCompatibilityWP" />
+	<config name="testVersion" value="8.2-" />
+
+	<file>.</file>
+
+	<exclude-pattern>/vendor/</exclude-pattern>
+	<exclude-pattern>/node_modules/</exclude-pattern>
+	<exclude-pattern>/tests/</exclude-pattern>
+	<!-- Relative, so a checkout that itself lives under a .claude/ directory (an agent worktree) is still scanned. -->
+	<exclude-pattern type="relative">^\.claude/</exclude-pattern>
+	<exclude-pattern>/artifacts/</exclude-pattern>
+	<exclude-pattern>/build/</exclude-pattern>
+	<exclude-pattern>/assets/dist/</exclude-pattern>
+
+	<arg name="extensions" value="php" />
+	<arg name="basepath" value="." />
+	<arg value="p" />
+</ruleset>
