@@ -201,13 +201,7 @@
 	white-space: nowrap;
 }
 
-.zs-badge-lock {
-	border: 1px dashed var(--zs-control);
-	background: transparent;
-	color: var(--zs-ink-2);
-}
-
-/* The lock badge wraps instead of overflowing at phone width. */
+/* The lock badge (.zs-badge-lock in rules.css) wraps instead of overflowing at phone width. */
 .zs-protection .zs-lockbadge {
 	height: auto;
 	min-height: var(--zs-badge-height);
@@ -379,14 +373,6 @@
 	gap: 6px;
 }
 
-.zs-netnote {
-	display: flex;
-	gap: 6px;
-	align-items: flex-start;
-	color: var(--zs-ink-2);
-	font-size: var(--zs-text-sm);
-}
-
 .zs-field-err {
 	display: flex;
 	gap: 6px;
@@ -483,23 +469,6 @@
 	overflow-wrap: anywhere;
 	font-size: var(--zs-text-md);
 	font-weight: var(--zs-weight-semibold);
-}
-
-.zs-actres {
-	font-size: var(--zs-text-md);
-	font-weight: var(--zs-weight-semibold);
-}
-
-.zs-actres:empty {
-	display: none;
-}
-
-.zs-actres-ok {
-	color: var(--zs-ok-ink);
-}
-
-.zs-actres-err {
-	color: var(--zs-red);
 }
 
 /* Notices: the shared .zs-notice / .zs-notice-err (primitives.css) with an icon, plus a warning tone. */

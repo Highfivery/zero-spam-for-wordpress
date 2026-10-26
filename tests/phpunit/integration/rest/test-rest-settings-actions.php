@@ -159,6 +159,43 @@ class Test_Rest_Settings_Actions extends TestCase {
 	}
 
 	/**
+	 * Refresh .htaccess rewrites the deny rules in an .htaccess block mode,
+	 * and explains when the block method is PHP or the file cannot be written.
+	 */
+	public function test_refresh_htaccess(): void {
+		global $wpdb;
+
+		$file = get_temp_dir() . 'zerospam-actions-' . wp_generate_password( 8, false ) . '.htaccess';
+		file_put_contents( $file, "# BEGIN WordPress\n# END WordPress\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
+		$use_file = static function () use ( &$file ) {
+			return $file;
+		};
+		add_filter( 'zerospam_htaccess_file', $use_file );
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $wpdb->prefix . \ZeroSpam\Includes\DB::$tables['blocked'] ) );
+		$this->block( '192.0.2.61' );
+
+		$php = $this->rest( 'POST', self::ROUTE . 'refresh-htaccess' );
+		$this->assertSame( 400, $php->get_status() );
+		$this->assertSame( 'zerospam_htaccess_off', $php->get_data()['code'] );
+		$this->assertStringNotContainsString( '192.0.2.61', (string) file_get_contents( $file ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test file.
+
+		$this->set_setting( 'block_method', 'htaccess_modern' );
+		$done = $this->rest( 'POST', self::ROUTE . 'refresh-htaccess' );
+		$this->assertSame( 200, $done->get_status(), (string) wp_json_encode( $done->get_data() ) );
+		$this->assertSame( 'refresh-htaccess', $done->get_data()['action'] );
+		$this->assertStringContainsString( 'Require not ip 192.0.2.61', (string) file_get_contents( $file ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test file.
+
+		wp_delete_file( $file );
+		$file   = get_temp_dir() . 'zerospam-missing-dir-' . wp_generate_password( 8, false ) . '/.htaccess';
+		$failed = $this->rest( 'POST', self::ROUTE . 'refresh-htaccess' );
+		$this->assertSame( 500, $failed->get_status() );
+		$this->assertSame( 'zerospam_action_failed', $failed->get_data()['code'] );
+
+		$this->as_role( 'editor' );
+		$this->assertSame( 403, $this->rest( 'POST', self::ROUTE . 'refresh-htaccess' )->get_status() );
+	}
+
+	/**
 	 * WordPress's disallowed words are replaced by the recommended list.
 	 */
 	public function test_update_disallowed_words(): void {

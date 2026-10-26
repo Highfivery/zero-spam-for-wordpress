@@ -359,7 +359,25 @@ class Rules_Controller extends Base_Controller {
 		$table = self::blocked_table();
 		$where = ' WHERE ' . implode( ' AND ', $clauses );
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Paged list of the plugin's own table; $where holds only fixed fragments with placeholders and $order is ASC or DESC.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Paged list of the plugin's own table; $where, $permanent_last and $by hold only fixed fragments with placeholders and $order is ASC or DESC.
+		// By end: temporary blocks by their end, then permanent ones (they never end); the other way round when descending.
+		$permanent_last = 'end_block' === $orderby ? "`blocked_type` = 'permanent' {$order}, " : '';
+
+		// Locations by name: a country by its name (as listed), anything else by its value.
+		$by        = '%i';
+		$by_values = array( $orderby );
+		if ( 'blocked_key' === $orderby ) {
+			$names = self::blocked_country_names( $table );
+			if ( $names ) {
+				$by        = "CASE WHEN `key_type` = 'country_code' THEN CASE `blocked_key`" . str_repeat( ' WHEN %s THEN %s', count( $names ) ) . ' ELSE `blocked_key` END ELSE `blocked_key` END';
+				$by_values = array();
+				foreach ( $names as $code => $name ) {
+					$by_values[] = $code;
+					$by_values[] = $name;
+				}
+			}
+		}
+
 		$total     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i{$where}", array_merge( array( $table ), $values ) ) );
 		$last_page = max( 1, (int) ceil( $total / $per_page ) );
 		$page      = min( max( 1, (int) $request->get_param( 'page' ) ), $last_page );
@@ -368,8 +386,8 @@ class Rules_Controller extends Base_Controller {
 		if ( $total > 0 ) {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i{$where} ORDER BY %i {$order}, `blocked_id` {$order} LIMIT %d OFFSET %d",
-					array_merge( array( $table ), $values, array( $orderby, $per_page, ( $page - 1 ) * $per_page ) )
+					"SELECT * FROM %i{$where} ORDER BY {$permanent_last}{$by} {$order}, `blocked_id` {$order} LIMIT %d OFFSET %d",
+					array_merge( array( $table ), $values, $by_values, array( $per_page, ( $page - 1 ) * $per_page ) )
 				),
 				ARRAY_A
 			);
@@ -851,7 +869,8 @@ class Rules_Controller extends Base_Controller {
 	}
 
 	/**
-	 * Removes an address from the never-locked-out list.
+	 * Removes an address from the never-locked-out list; the response
+	 * carries a token that puts it back for two minutes.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
@@ -888,10 +907,47 @@ class Rules_Controller extends Base_Controller {
 			delete_option( Admin_Safe_IPs::NOTICE_OPTION );
 		}
 
-		$data            = $this->no_lockout_response();
-		$data['removed'] = $match;
+		$data               = $this->no_lockout_response();
+		$data['removed']    = $match;
+		$data['undo_token'] = Undo_Store::put( 'no-lockout', array( array( 'ip' => $match ) ) );
 
 		return rest_ensure_response( $this->filter_fields( $data, $request ) );
+	}
+
+	/**
+	 * How many entries each Rules tab has: blocked IP addresses, blocked
+	 * locations, the IP Allowlist, the blocked email domains, the allowed
+	 * words and the no-lockout addresses (Admin_App puts them in the Rules
+	 * page's bootstrap, so the tabs show their counts without a request).
+	 *
+	 * One aggregate query on the blocked table; the lists are read from the
+	 * settings registry, built once.
+	 *
+	 * @return array<string, int> By tab: ips, locations, allowlist, email, words, no-lockout.
+	 */
+	public static function counts(): array {
+		global $wpdb;
+
+		$in = implode( ', ', array_fill( 0, count( self::LOCATION_KEYS ), '%s' ) );
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One count over the plugin's own table; $in holds one %s per location key type.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT SUM( `key_type` = 'ip' ) AS ips, SUM( `key_type` IN ({$in}) ) AS locations FROM %i",
+				array_merge( self::LOCATION_KEYS, array( self::blocked_table() ) )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+
+		return array(
+			'ips'        => (int) ( $row['ips'] ?? 0 ),
+			'locations'  => (int) ( $row['locations'] ?? 0 ),
+			'allowlist'  => count( self::list_items( self::LISTS['allowed-ips']['key'] ) ),
+			'email'      => count( self::list_items( self::LISTS['email-domains']['key'] ) ),
+			'words'      => count( self::list_items( self::LISTS['allowed-words']['key'] ) ),
+			'no-lockout' => count( Admin_Safe_IPs::get_ips() ),
+		);
 	}
 
 	/**
@@ -1367,6 +1423,30 @@ class Rules_Controller extends Base_Controller {
 		$timestamp = strtotime( $value . ' UTC' );
 
 		return false === $timestamp ? null : gmdate( 'Y-m-d\TH:i:s\Z', $timestamp );
+	}
+
+	/**
+	 * The names of the countries blocked on this site, by code (at most 300,
+	 * the number of country codes), for sorting locations by name.
+	 *
+	 * @param string $table Full name of the blocked table.
+	 * @return array<string, string>
+	 */
+	private static function blocked_country_names( string $table ): array {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinct values of the plugin's own table, bounded.
+		$codes = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT `blocked_key` FROM %i WHERE `key_type` = 'country_code' LIMIT %d", $table, 300 ) );
+		$names = array();
+
+		foreach ( is_array( $codes ) ? $codes : array() as $code ) {
+			$name = Utilities::countries( strtoupper( (string) $code ) );
+			if ( is_string( $name ) && '' !== $name ) {
+				$names[ (string) $code ] = $name;
+			}
+		}
+
+		return $names;
 	}
 
 	/**

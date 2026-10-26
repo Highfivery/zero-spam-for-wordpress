@@ -643,6 +643,146 @@ class Test_Rest_Rules extends TestCase {
 	}
 
 	/**
+	 * Removing a no-lockout address can be undone once, by the administrator
+	 * who removed it, for two minutes; an address saved again meanwhile is
+	 * not added twice.
+	 */
+	public function test_no_lockout_removal_can_be_undone(): void {
+		update_option( Admin_Safe_IPs::OPTION, array( '203.0.113.10', '2001:db8::5' ), false );
+
+		$removed = $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/203.0.113.10' )->get_data();
+		$token   = $removed['undo_token'];
+		$this->assertMatchesRegularExpression( '/^[A-Za-z0-9]{32}$/', $token );
+		$this->assertSame( array( '2001:db8::5' ), Admin_Safe_IPs::get_ips() );
+
+		$admin = get_current_user_id();
+		$this->as_role( 'administrator' );
+		$this->assertSame( 404, $this->rest( 'POST', '/zero-spam/v1/undo/' . $token )->get_status(), 'Another administrator cannot redeem the token.' );
+
+		wp_set_current_user( $admin );
+		$undo = $this->rest( 'POST', '/zero-spam/v1/undo/' . $token );
+		$this->assertSame( 200, $undo->get_status() );
+		$this->assertSame(
+			array(
+				'kind'     => 'no-lockout',
+				'restored' => 1,
+				'skipped'  => 0,
+			),
+			$undo->get_data()
+		);
+		$this->assertSame( array( '2001:db8::5', '203.0.113.10' ), Admin_Safe_IPs::get_ips() );
+		$this->assertSame( 404, $this->rest( 'POST', '/zero-spam/v1/undo/' . $token )->get_status(), 'A token works once.' );
+
+		// Saved again before the undo: skipped, never listed twice.
+		$again = $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/2001:db8::5' )->get_data();
+		update_option( Admin_Safe_IPs::OPTION, array( '203.0.113.10', '2001:db8::5' ), false );
+		$undo = $this->rest( 'POST', '/zero-spam/v1/undo/' . $again['undo_token'] )->get_data();
+		$this->assertSame( 0, $undo['restored'] );
+		$this->assertSame( 1, $undo['skipped'] );
+		$this->assertSame( array( '203.0.113.10', '2001:db8::5' ), Admin_Safe_IPs::get_ips() );
+	}
+
+	/**
+	 * Sorted by end, temporary blocks come by their end date and permanent
+	 * ones (they never end) last; descending puts them first.
+	 */
+	public function test_sort_by_end_puts_permanent_blocks_last(): void {
+		$this->block( '198.51.100.70' );
+		foreach ( array(
+			'198.51.100.71' => 5,
+			'198.51.100.72' => 2,
+		) as $ip => $days ) {
+			$this->rest(
+				'POST',
+				self::BLOCKS,
+				array(
+					'ip'   => $ip,
+					'type' => 'temporary',
+					'end'  => gmdate( 'Y-m-d\TH:i:s\Z', time() + $days * DAY_IN_SECONDS ),
+				)
+			);
+		}
+
+		$asc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'orderby' => 'end', 'order' => 'asc' ) )->get_data(), 'ip' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( array( '198.51.100.72', '198.51.100.71', '198.51.100.70' ), $asc );
+
+		$desc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'orderby' => 'end', 'order' => 'desc' ) )->get_data(), 'ip' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( array( '198.51.100.70', '198.51.100.71', '198.51.100.72' ), $desc );
+	}
+
+	/**
+	 * Locations sorted A–Z go by the country's name (Germany before
+	 * Japan, after Austria), other locations by their value.
+	 */
+	public function test_locations_sort_by_country_name(): void {
+		foreach ( array(
+			array( 'country_code', 'DE' ),
+			array( 'country_code', 'AT' ),
+			array( 'country_code', 'JP' ),
+			array( 'city', 'Berlin' ),
+		) as $location ) {
+			$this->rest(
+				'POST',
+				self::BLOCKS,
+				array(
+					'kind'     => 'location',
+					'key_type' => $location[0],
+					'key'      => $location[1],
+					'type'     => 'permanent',
+				)
+			);
+		}
+
+		$asc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'kind' => 'location', 'orderby' => 'key', 'order' => 'asc' ) )->get_data(), 'label' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( array( 'Austria', 'Berlin', 'Germany', 'Japan' ), $asc );
+
+		$desc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'kind' => 'location', 'orderby' => 'key', 'order' => 'desc' ) )->get_data(), 'label' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( array( 'Japan', 'Germany', 'Berlin', 'Austria' ), $desc );
+	}
+
+	/**
+	 * The counts the Rules tabs show: blocked addresses and locations, the
+	 * three lists and the no-lockout addresses.
+	 */
+	public function test_counts(): void {
+		$this->assertSame(
+			array(
+				'ips'        => 0,
+				'locations'  => 0,
+				'allowlist'  => 0,
+				'email'      => 0,
+				'words'      => 0,
+				'no-lockout' => 0,
+			),
+			\ZeroSpam\Includes\Rest\Rules_Controller::counts()
+		);
+
+		$this->block( '198.51.100.80' );
+		$this->block( '198.51.100.81' );
+		$this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'kind'     => 'location',
+				'key_type' => 'zip',
+				'key'      => '90210',
+				'type'     => 'permanent',
+			)
+		);
+		$this->rest( 'PUT', '/zero-spam/v1/rules/lists/allowed-ips', array( 'items' => array( '192.0.2.1', '192.0.2.2', '192.0.2.3' ) ) );
+		$this->rest( 'PUT', '/zero-spam/v1/rules/lists/email-domains', array( 'items' => array( 'spam.example' ) ) );
+		update_option( Admin_Safe_IPs::OPTION, array( '203.0.113.10' ), false );
+
+		$counts = \ZeroSpam\Includes\Rest\Rules_Controller::counts();
+		$this->assertSame( 2, $counts['ips'] );
+		$this->assertSame( 1, $counts['locations'] );
+		$this->assertSame( 3, $counts['allowlist'] );
+		$this->assertSame( 1, $counts['email'] );
+		$this->assertSame( 0, $counts['words'] );
+		$this->assertSame( 1, $counts['no-lockout'] );
+	}
+
+	/**
 	 * Listing the never-locked-out addresses builds the settings registry at
 	 * most once (the visitor IP and the trusted proxies read through it).
 	 */
