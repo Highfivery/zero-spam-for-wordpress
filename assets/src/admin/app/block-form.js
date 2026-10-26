@@ -1,9 +1,12 @@
 /**
- * Block an IP address, or change its block, in a drawer (prototype §4.1):
- * the address, Temporary or Permanent, a reason, and the start and end in
- * the site's time. Saved through `zero-spam/v1/rules/blocks`; the server's
- * field errors are shown next to their fields. Shared by every screen that
- * offers "Block IP" or "Edit block".
+ * Block an IP address or a location, or change its block, in a drawer
+ * (prototype §4.1, §4.2): the address (or the location type and value),
+ * Temporary or Permanent, a reason, and the start and end in the site's
+ * time. Checked in the browser first (data/validate.js: an address in
+ * canonical form, no ranges), then saved through
+ * `zero-spam/v1/rules/blocks`; the server's field errors are shown next to
+ * their fields the same way. Shared by every screen that offers "Block IP",
+ * "Block a location" or "Edit block".
  */
 
 /**
@@ -18,7 +21,16 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 import { Button } from './primitives';
 import { Drawer } from './primitives/drawer';
 import { NS, nowLocal, request } from '../data/api';
-import { blockBody, initialValues } from './block-data';
+import { LOCATION_TYPES, checkBlockIp, checkLocation } from '../data/validate';
+import { blockBody, initialLocationValues, initialValues } from './block-data';
+
+/** @return {Object<string, string>} Location type names. */
+export const locationTypes = () => ( {
+	country_code: __( 'Country code', 'zero-spam' ),
+	region_code: __( 'Region code', 'zero-spam' ),
+	city: __( 'City name', 'zero-spam' ),
+	zip: __( 'Zip/Postal code', 'zero-spam' ),
+} );
 
 /**
  * Finds an address's block, if it has one.
@@ -42,6 +54,7 @@ export function findBlock( ip ) {
 /**
  * @param {Object}                          props               Props.
  * @param {boolean}                         props.open          Shown.
+ * @param {string}                          [props.kind]        ip (default) or location.
  * @param {string}                          [props.ip]          Address to block.
  * @param {Object|null}                     [props.block]       Block to change.
  * @param {boolean}                         [props.lookup]      Look the address's block up first (it is blocked, the block is not known).
@@ -51,6 +64,7 @@ export function findBlock( ip ) {
  */
 export function BlockForm( {
 	open,
+	kind = 'ip',
 	ip = '',
 	block = null,
 	lookup = false,
@@ -59,10 +73,13 @@ export function BlockForm( {
 	returnFocus,
 } ) {
 	const shift = nowLocal() - Date.now();
+	const isLocation = 'location' === kind;
 	const [ record, setRecord ] = useState( block );
 	const [ finding, setFinding ] = useState( lookup && ! block );
 	const [ values, setValues ] = useState( () =>
-		initialValues( block, ip, nowLocal(), shift )
+		isLocation
+			? initialLocationValues( block, nowLocal(), shift )
+			: initialValues( block, ip, nowLocal(), shift )
 	);
 	const [ errors, setErrors ] = useState( {} );
 	const [ failure, setFailure ] = useState( '' );
@@ -100,11 +117,11 @@ export function BlockForm( {
 	const submit = ( event ) => {
 		event.preventDefault();
 		const local = {};
-		if ( ! values.ip.trim() ) {
-			local.ip = __(
-				'Enter the IP address to block, like 203.0.113.9.',
-				'zero-spam'
-			);
+		const checked = isLocation
+			? checkLocation( values.key_type, values.key )
+			: checkBlockIp( values.ip );
+		if ( checked.error ) {
+			local[ isLocation ? 'key' : 'ip' ] = checked.error;
 		}
 		if ( 'temporary' === values.type && ! values.end ) {
 			local.end = __(
@@ -124,7 +141,10 @@ export function BlockForm( {
 				? `${ NS }/rules/blocks/${ record.id }`
 				: `${ NS }/rules/blocks`,
 			method: record ? 'PUT' : 'POST',
-			data: blockBody( values ),
+			data: blockBody( {
+				...values,
+				[ isLocation ? 'key' : 'ip' ]: checked.value,
+			} ),
 			parse: false,
 		} )
 			.then( ( response ) =>
@@ -186,9 +206,21 @@ export function BlockForm( {
 			.filter( Boolean )
 			.join( ' ' );
 
-	let eyebrow = __( 'Block an IP', 'zero-spam' );
+	let eyebrow = isLocation
+		? __( 'Block a location', 'zero-spam' )
+		: __( 'Block an IP', 'zero-spam' );
 	if ( record ) {
 		eyebrow = __( 'Edit block', 'zero-spam' );
+	}
+	let heading = values.ip || __( 'New IP block', 'zero-spam' );
+	if ( isLocation ) {
+		heading = values.key || __( 'New location block', 'zero-spam' );
+	}
+	let submitLabel = isLocation
+		? __( 'Block location', 'zero-spam' )
+		: __( 'Block IP', 'zero-spam' );
+	if ( record ) {
+		submitLabel = __( 'Save block', 'zero-spam' );
 	}
 
 	return (
@@ -207,13 +239,17 @@ export function BlockForm( {
 							aria-hidden="true"
 							focusable="false"
 						>
-							<use href="#zs-i-ban" />
+							<use
+								href={
+									isLocation ? '#zs-i-globe' : '#zs-i-ban'
+								}
+							/>
 						</svg>
 					</span>
 					<div className="zs-grow">
 						<div className="zs-eyebrow">{ eyebrow }</div>
 						<h2 id="zs-bf-title" className="zs-bigip">
-							{ values.ip || __( 'New IP block', 'zero-spam' ) }
+							{ heading }
 						</h2>
 					</div>
 				</div>
@@ -225,9 +261,7 @@ export function BlockForm( {
 						form="zs-block-form"
 						disabled={ saving || finding }
 					>
-						{ record
-							? __( 'Save block', 'zero-spam' )
-							: __( 'Block IP', 'zero-spam' ) }
+						{ submitLabel }
 					</Button>
 					<Button variant="ghost" onClick={ onClose }>
 						{ __( 'Cancel', 'zero-spam' ) }
@@ -247,22 +281,67 @@ export function BlockForm( {
 						{ failure }
 					</p>
 				) }
-				{ field(
-					'ip',
-					__( 'IP address', 'zero-spam' ),
-					<input
-						id="zs-bf-ip"
-						name="ip"
-						className="zs-input zs-mono"
-						value={ values.ip }
-						onChange={ set( 'ip' ) }
-						placeholder={ __( 'e.g. 203.0.113.9', 'zero-spam' ) }
-						autoComplete="off"
-						spellCheck="false"
-						aria-invalid={ errors.ip ? 'true' : 'false' }
-						aria-describedby={ described( 'ip' ) }
-					/>
-				) }
+				{ ! isLocation &&
+					field(
+						'ip',
+						__( 'IP address', 'zero-spam' ),
+						<input
+							id="zs-bf-ip"
+							name="ip"
+							className="zs-input zs-mono"
+							value={ values.ip }
+							onChange={ set( 'ip' ) }
+							placeholder={ __(
+								'e.g. 203.0.113.9',
+								'zero-spam'
+							) }
+							autoComplete="off"
+							spellCheck="false"
+							aria-invalid={ errors.ip ? 'true' : 'false' }
+							aria-describedby={ described( 'ip' ) }
+						/>
+					) }
+				{ isLocation &&
+					field(
+						'key_type',
+						__( 'Location type', 'zero-spam' ),
+						<select
+							id="zs-bf-key_type"
+							name="key_type"
+							className="zs-select"
+							value={ values.key_type }
+							onChange={ set( 'key_type' ) }
+							aria-invalid={ errors.key_type ? 'true' : 'false' }
+							aria-describedby={ described( 'key_type' ) }
+						>
+							{ LOCATION_TYPES.map( ( t ) => (
+								<option key={ t } value={ t }>
+									{ locationTypes()[ t ] }
+								</option>
+							) ) }
+						</select>
+					) }
+				{ isLocation &&
+					field(
+						'key',
+						__( 'Location', 'zero-spam' ),
+						<input
+							id="zs-bf-key"
+							name="key"
+							className="zs-input zs-mono"
+							value={ values.key }
+							onChange={ set( 'key' ) }
+							placeholder={ __( 'e.g. US', 'zero-spam' ) }
+							autoComplete="off"
+							spellCheck="false"
+							aria-invalid={ errors.key ? 'true' : 'false' }
+							aria-describedby={ described( 'key', true ) }
+						/>,
+						__(
+							'A two-letter country code, a region code, a city name or a postal code, as the type says.',
+							'zero-spam'
+						)
+					) }
 				<fieldset className="zs-field">
 					<legend>{ __( 'Type', 'zero-spam' ) }</legend>
 					<div className="zs-seg zs-seg-radios">

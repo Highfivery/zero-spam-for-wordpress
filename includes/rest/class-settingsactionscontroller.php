@@ -27,8 +27,9 @@ defined( 'ABSPATH' ) || die();
  * `settings/import`, for administrators of the current site.
  *
  * The actions do what the `zerospam-action` links and buttons of the 5.x
- * settings screens do, and respect the settings the network administrator
- * has locked.
+ * settings screens do (and `refresh-htaccess` what the Blocked IPs screen's
+ * "Refresh .htaccess" button does), and respect the settings the network
+ * administrator has locked.
  *
  * @since 6.0.0
  */
@@ -62,6 +63,7 @@ class Settings_Actions_Controller extends Base_Controller {
 		'test-alert-email',
 		'test-alert-notice',
 		'test-alert-webhook',
+		'refresh-htaccess',
 	);
 
 	/**
@@ -197,6 +199,14 @@ class Settings_Actions_Controller extends Base_Controller {
 					return $result;
 				}
 				$message = __( 'Test webhook sent successfully! Check your webhook endpoint.', 'zero-spam' );
+				break;
+
+			case 'refresh-htaccess':
+				$result = $this->refresh_htaccess();
+				if ( is_wp_error( $result ) ) {
+					return $result;
+				}
+				$message = __( '.htaccess refreshed.', 'zero-spam' );
 				break;
 
 			default:
@@ -502,6 +512,28 @@ class Settings_Actions_Controller extends Base_Controller {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Rewrites the .htaccess deny rules for the addresses blocked now.
+	 *
+	 * @return true|WP_Error
+	 */
+	private function refresh_htaccess() {
+		$resolved = Settings_Schema::resolve( 'block_method' );
+		$method   = null !== $resolved && is_string( $resolved['value'] ) ? $resolved['value'] : 'php';
+
+		if ( '' === $method || 'php' === $method ) {
+			return new WP_Error(
+				'zerospam_htaccess_off',
+				__( 'The IP block method is PHP, so there is no .htaccess file to refresh.', 'zero-spam' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		return Utilities::refresh_htaccess()
+			? true
+			: $this->action_failed( __( 'The .htaccess file was not updated. Check that the file is writable.', 'zero-spam' ), 500 );
 	}
 
 	/**

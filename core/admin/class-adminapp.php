@@ -11,6 +11,7 @@ namespace ZeroSpam\Core\Admin;
 
 use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\News_Feed;
+use ZeroSpam\Includes\Rest\Rules_Controller;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -75,6 +76,20 @@ final class Admin_App {
 	 * @var string
 	 */
 	const NETWORK_SLUG = 'zero-spam-network';
+
+	/**
+	 * Tabs of the Rules page (`&tab=`), in order; the first is the default.
+	 *
+	 * @var string[]
+	 */
+	const RULES_TABS = array( 'ips', 'locations', 'allowlist', 'email', 'words', 'no-lockout' );
+
+	/**
+	 * Rows per page of the Rules lists (assets/src/admin/rules/query.js).
+	 *
+	 * @var int
+	 */
+	const RULES_PER_PAGE = 50;
 
 	/**
 	 * REST paths preloaded on every site page (the shell: sidebar card,
@@ -427,6 +442,10 @@ final class Admin_App {
 			? array( '/zero-spam/v1/ui/prefs' )
 			: self::SHELL_PRELOADS;
 
+		if ( 'rules' === $area ) {
+			$paths = array_merge( $paths, self::rules_preloads( $view ) );
+		}
+
 		if ( 'overview' === $area ) {
 			$paths = array_merge( $paths, self::OVERVIEW_PRELOADS );
 		}
@@ -440,6 +459,37 @@ final class Admin_App {
 		}
 
 		return $paths;
+	}
+
+	/**
+	 * The REST paths the Rules page reads on load: the settings schema (the
+	 * block method and location services the notes mention) and the first
+	 * page of the tab the address opens.
+	 *
+	 * The paths are written exactly as the app asks for them
+	 * (assets/src/admin/rules/query.js, firstPath()), because the page's
+	 * preload store is read by path.
+	 *
+	 * @param array{tab?: string, item?: int} $view View.
+	 * @return string[]
+	 */
+	public static function rules_preloads( array $view = array() ): array {
+		$tab   = in_array( $view['tab'] ?? '', self::RULES_TABS, true ) ? (string) $view['tab'] : self::RULES_TABS[0];
+		$lists = array(
+			'allowlist' => 'allowed-ips',
+			'email'     => 'email-domains',
+			'words'     => 'allowed-words',
+		);
+
+		if ( 'ips' === $tab || 'locations' === $tab ) {
+			$first = '/zero-spam/v1/rules/blocks?kind=' . ( 'ips' === $tab ? 'ip' : 'location' ) . '&per_page=' . self::RULES_PER_PAGE . '&orderby=date_added&order=desc';
+		} elseif ( isset( $lists[ $tab ] ) ) {
+			$first = '/zero-spam/v1/rules/lists/' . $lists[ $tab ] . '?per_page=' . self::RULES_PER_PAGE;
+		} else {
+			$first = '/zero-spam/v1/rules/no-lockout';
+		}
+
+		return array( '/zero-spam/v1/settings/schema', $first );
 	}
 
 	/**
@@ -488,6 +538,8 @@ final class Admin_App {
 				'ipLookup'  => ZEROSPAM_URL . 'ip-lookup/',
 			),
 			'isMultisite'       => is_multisite(),
+			// The Rules tabs' counts (one cheap query or option read each), on that page only.
+			'rules'             => 'rules' === $area ? array( 'counts' => Rules_Controller::counts() ) : null,
 			'newsEnabled'       => News_Feed::is_enabled(),
 			// Log types that are not detections (rescue links): left out of the live counts, as in statistics.
 			'nonDetectionTypes' => \ZeroSpam\Includes\DB::NON_DETECTION_TYPES,
