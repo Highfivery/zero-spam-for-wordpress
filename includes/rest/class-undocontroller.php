@@ -78,7 +78,7 @@ class Undo_Controller extends Base_Controller {
 
 		if ( 'activity' === $result['kind'] ) {
 			Stats_Controller::flush_cache();
-		} else {
+		} elseif ( 'network_blocks' !== $result['kind'] ) {
 			// Restored IP blocks go back into the .htaccess rules (when that block method is used).
 			Utilities::refresh_htaccess();
 		}

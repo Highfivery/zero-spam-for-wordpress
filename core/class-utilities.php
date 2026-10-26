@@ -139,6 +139,14 @@ class Utilities {
 			'legacy' => array( 'settings.php?page=zerospam-network-settings', true ),
 			'v6'     => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
 		),
+		'settings'         => array(
+			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings', false ),
+			'v6'     => array( 'admin.php?page=zero-spam-settings', false ),
+		),
+		'network-settings' => array(
+			'legacy' => array( 'settings.php?page=zerospam-network-settings', true ),
+			'v6'     => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
+		),
 	);
 
 	/**
@@ -147,7 +155,7 @@ class Utilities {
 	 *
 	 * @since 6.0.0
 	 *
-	 * @param string $view activity, api-monitoring, license, network-activity or network-license.
+	 * @param string $view activity, api-monitoring, license, settings, network-activity, network-license or network-settings.
 	 * @return string Unescaped admin URL, or '' for an unknown view.
 	 */
 	public static function admin_link( string $view ): string {

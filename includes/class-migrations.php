@@ -100,6 +100,34 @@ class Migrations {
 	const MIGRATION_LOCK_TTL = 300;
 
 	/**
+	 * Keys the 5.x built-in network templates used that no setting has
+	 * (build plan §4): applying a template stored them as network values
+	 * that changed nothing. `v6_template_orphans` removes exactly these.
+	 *
+	 * @var string[]
+	 */
+	const TEMPLATE_ORPHAN_KEYS = array(
+		'comments_enabled',
+		'comments_log_flagged_attempts',
+		'registrations_enabled',
+		'registrations_log_flagged_attempts',
+		'cf7_enabled',
+		'cf7_log_flagged_attempts',
+		'wpforms_enabled',
+		'wpforms_log_flagged_attempts',
+		'gravityforms_enabled',
+		'gravityforms_log_flagged_attempts',
+		'fluentform_enabled',
+		'fluentform_log_flagged_attempts',
+		'woocommerce_enabled',
+		'woocommerce_log_flagged_attempts',
+		'api_monitoring_enabled',
+		'api_daily_limit',
+		'api_hourly_limit',
+		'api_anomaly_detection',
+	);
+
+	/**
 	 * Rows read per query by canonicalize_blocked_ips().
 	 *
 	 * @var int
@@ -193,6 +221,7 @@ class Migrations {
 			'v6_security_switches'         => array( $this, 'security_switches' ),
 			'v6_uninstall_flag'            => array( $this, 'uninstall_flag' ),
 			'v6_thresholds_sanitize'       => array( $this, 'sanitize_thresholds' ),
+			'v6_template_orphans'          => array( $this, 'remove_template_orphans' ),
 		);
 	}
 
@@ -827,6 +856,94 @@ class Migrations {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Removes the 18 keys of the 5.x built-in templates that no setting has
+	 * (TEMPLATE_ORPHAN_KEYS) from the network settings and from custom
+	 * templates, once per network, with one audit entry when anything was
+	 * removed.
+	 *
+	 * Only those keys: a key of a module that is not active (an integration
+	 * whose plugin is off) is a real setting and stays. The 5.x backup
+	 * (`v6_backup_5x`, which runs first) keeps the values removed here.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request.
+	 */
+	public function remove_template_orphans(): bool {
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_template_orphans',
+			static function (): bool {
+				global $wpdb;
+
+				$removed = array();
+				$store   = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( Network_Settings::META_KEY, array() ) );
+
+				foreach ( self::TEMPLATE_ORPHAN_KEYS as $key ) {
+					if ( array_key_exists( $key, $store['settings'] ) ) {
+						unset( $store['settings'][ $key ] );
+						$removed[ $key ] = true;
+					}
+				}
+
+				if ( $removed ) {
+					update_site_option( Network_Settings::META_KEY, $store );
+					delete_site_transient( Network_Settings::CACHE_KEY );
+				}
+
+				$table     = $wpdb->base_prefix . DB::$tables['network_templates'];
+				$templates = 0;
+
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
+				$exists = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table; templates are few (the screen lists 200).
+				$rows = $exists ? $wpdb->get_results( $wpdb->prepare( 'SELECT template_id, settings FROM %i LIMIT %d', $table, 1000 ), ARRAY_A ) : array();
+
+				foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+					$settings = json_decode( (string) $row['settings'], true );
+
+					if ( ! is_array( $settings ) ) {
+						continue;
+					}
+
+					$kept = array_diff_key( $settings, array_flip( self::TEMPLATE_ORPHAN_KEYS ) );
+
+					if ( count( $kept ) === count( $settings ) ) {
+						continue;
+					}
+
+					foreach ( array_keys( array_diff_key( $settings, $kept ) ) as $key ) {
+						$removed[ $key ] = true;
+					}
+
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own row.
+					$wpdb->update( $table, array( 'settings' => wp_json_encode( $kept ) ), array( 'template_id' => (int) $row['template_id'] ) );
+					++$templates;
+				}
+
+				if ( $removed ) {
+					( new Network_Settings_Manager() )->record(
+						'migrate',
+						null,
+						implode( ', ', array_keys( $removed ) ),
+						sprintf(
+							/* translators: 1: number of setting names, 2: number of custom templates */
+							__( 'Removed %1$s setting names that no Zero Spam setting uses (from the network settings and %2$s custom templates).', 'zero-spam' ),
+							number_format_i18n( count( $removed ) ),
+							number_format_i18n( $templates )
+						)
+					);
+				}
+
+				return true;
+			}
+		);
 	}
 
 	/**

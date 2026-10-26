@@ -115,34 +115,10 @@ parameters:
 			path: includes/class-cli.php
 
 		-
-			message: '#^Cannot access offset ''blocked_id'' on false\.$#'
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: includes/class-db.php
-
-		-
 			message: '#^Parameter \#2 \$site_id of method ZeroSpam\\Includes\\Network_Settings\:\:is_using_default\(\) expects int, string given\.$#'
 			identifier: argument.type
 			count: 2
 			path: includes/class-networksettings.php
-
-		-
-			message: '#^Parameter \#1 \$new_blog_id of function switch_to_blog expects int, string given\.$#'
-			identifier: argument.type
-			count: 3
-			path: includes/class-networkstatstracker.php
-
-		-
-			message: '#^Parameter \#1 \$site_id of static method ZeroSpam\\Includes\\Network_Stats_Tracker\:\:get_site_stats\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-networkstatstracker.php
-
-		-
-			message: '#^Parameter \#1 \$site_id of static method ZeroSpam\\Includes\\Network_Stats_Tracker\:\:has_enhanced_protection\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/class-networkstatstracker.php
 
 		-
 			message: '#^Parameter \#1 \$new_blog_id of function switch_to_blog expects int, string given\.$#'

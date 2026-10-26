@@ -63,6 +63,7 @@ class Plugin {
 		$types['honeypot']             = __( 'Honeypot', 'zero-spam' );
 		$types['blocked_email_domain'] = __( 'Blocked Email Domain', 'zero-spam' );
 		$types['blocked']              = __( 'Blocked IP', 'zero-spam' );
+		$types['blocked_network']      = __( 'Blocked by your network', 'zero-spam' );
 
 		return $types;
 	}
@@ -145,6 +146,8 @@ class Plugin {
 		if ( is_multisite() ) {
 			new \ZeroSpam\Includes\Network_Settings();
 			new \ZeroSpam\Includes\Network_Notifications();
+			// Keeps the network page's cached overview in step with network and site settings (since 6.0.0).
+			\ZeroSpam\Includes\Network_Report::register_hooks();
 		}
 
 		// Stop Forum Spam module.
@@ -293,6 +296,10 @@ class Plugin {
 		if ( is_multisite() ) {
 			$network_settings_controller = new \ZeroSpam\Includes\Rest\Network_Settings_Controller();
 			$network_settings_controller->register_routes();
+
+			// The 6.0 network page: overview, sites, comparison, statistics, network-wide blocks and notifications (since 6.0.0).
+			$network_controller = new \ZeroSpam\Includes\Rest\Network_Controller();
+			$network_controller->register_routes();
 		}
 	}
 

@@ -192,7 +192,7 @@ class Network_Stats_Tracker {
 			$ip_counts      = array();
 
 			foreach ( $sites as $site ) {
-				switch_to_blog( $site->blog_id );
+				switch_to_blog( (int) $site->blog_id );
 
 				$date_filter = self::log_filter( self::get_date_filter( $period, $start_date, $end_date ) );
 				$log_table   = $wpdb->prefix . DB::$tables['log'];
@@ -317,9 +317,9 @@ class Network_Stats_Tracker {
 			$breakdown = array();
 
 			foreach ( $sites as $site ) {
-				switch_to_blog( $site->blog_id );
+				switch_to_blog( (int) $site->blog_id );
 
-				$site_stats = self::get_site_stats( $site->blog_id, $period, $start_date, $end_date );
+				$site_stats = self::get_site_stats( (int) $site->blog_id, $period, $start_date, $end_date );
 
 				$breakdown[] = array(
 					'site_id'      => $site->blog_id,
@@ -330,7 +330,7 @@ class Network_Stats_Tracker {
 					'top_type'     => $site_stats['top_spam_type'],
 					'top_country'  => $site_stats['top_country'],
 					'trend'        => $site_stats['trend'],
-					'has_enhanced' => self::has_enhanced_protection( $site->blog_id ),
+					'has_enhanced' => self::has_enhanced_protection( (int) $site->blog_id ),
 				);
 
 				restore_current_blog();
@@ -566,17 +566,16 @@ class Network_Stats_Tracker {
 	}
 
 	/**
-	 * Check if site has Enhanced Protection enabled
+	 * Whether a site has working Enhanced Protection: switched on with a
+	 * license key its last license check found valid
+	 * (License_Status::site_level()). Before 6.0.0 a site with the setting on
+	 * and no working key was counted too.
 	 *
 	 * @param int $site_id Site ID.
-	 * @return bool True if enabled.
+	 * @return bool True if enabled and licensed.
 	 */
 	private static function has_enhanced_protection( $site_id ) {
-		switch_to_blog( $site_id );
-		$settings = \ZeroSpam\Core\Settings::get_settings();
-		$enabled  = ! empty( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
-		restore_current_blog();
-		return $enabled;
+		return \ZeroSpam\Core\License_Status::LEVEL_ENHANCED === \ZeroSpam\Core\License_Status::site_level( (int) $site_id );
 	}
 
 	/**
@@ -646,7 +645,7 @@ class Network_Stats_Tracker {
 			$ip_site_map = array();
 
 			foreach ( $sites as $site ) {
-				switch_to_blog( $site->blog_id );
+				switch_to_blog( (int) $site->blog_id );
 
 				global $wpdb;
 				$log_table  = $wpdb->prefix . DB::$tables['log'];

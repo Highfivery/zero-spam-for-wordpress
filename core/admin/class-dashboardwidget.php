@@ -720,30 +720,11 @@ class Dashboard_Widget {
 	 * @return array<int, string>
 	 */
 	private function network_log_tables(): array {
-		global $wpdb;
+		$found = \ZeroSpam\Includes\Network_Report::log_tables( self::MAX_SITES );
 
-		$suffix = DB::$tables['log'];
+		$this->tables_capped = $found['capped'];
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lists the plugin's own tables; cached with the widget data.
-		$names = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->base_prefix ) . '%' . $wpdb->esc_like( $suffix ) ) );
-		$main  = get_main_site_id();
-		$found = array();
-
-		foreach ( is_array( $names ) ? $names : array() as $name ) {
-			$name = (string) $name;
-
-			if ( $wpdb->base_prefix . $suffix === $name ) {
-				$found[ $main ] = $name;
-			} elseif ( preg_match( '/^' . preg_quote( $wpdb->base_prefix, '/' ) . '(\d+)_' . preg_quote( $suffix, '/' ) . '$/', $name, $match ) ) {
-				$found[ (int) $match[1] ] = $name;
-			}
-		}
-
-		ksort( $found );
-
-		$this->tables_capped = count( $found ) > self::MAX_SITES;
-
-		return array_slice( $found, 0, self::MAX_SITES, true );
+		return $found['tables'];
 	}
 
 	/**

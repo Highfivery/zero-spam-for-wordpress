@@ -283,6 +283,37 @@ class Rules_Controller extends Base_Controller {
 			)
 		);
 
+		if ( is_multisite() ) {
+			register_rest_route(
+				$this->namespace,
+				'/' . $this->rest_base . '/network-blocks',
+				array(
+					array(
+						'methods'             => WP_REST_Server::READABLE,
+						'callback'            => array( $this, 'get_network_blocks' ),
+						'permission_callback' => array( $this, 'site_permissions_check' ),
+						'args'                => array(
+							'search'   => array(
+								'type'      => 'string',
+								'maxLength' => 100,
+							),
+							'page'     => array(
+								'type'    => 'integer',
+								'minimum' => 1,
+								'default' => 1,
+							),
+							'per_page' => array(
+								'type'    => 'integer',
+								'minimum' => 1,
+								'maximum' => self::MAX_PER_PAGE,
+								'default' => 20,
+							),
+						),
+					),
+				)
+			);
+		}
+
 		register_rest_route(
 			$this->namespace,
 			'/' . $this->rest_base . '/no-lockout',
@@ -412,6 +443,23 @@ class Rules_Controller extends Base_Controller {
 
 		$response = $this->add_pagination_headers( rest_ensure_response( $items ), $total, $per_page );
 		$response->header( 'X-ZeroSpam-Page', (string) $page );
+
+		return $response;
+	}
+
+	/**
+	 * The addresses the network blocks on every site, read-only (since
+	 * 6.0.0, on a network): what the site's administrator sees as
+	 * "Blocked by your network". Who added a block is left out.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function get_network_blocks( $request ) {
+		$list = Network_Controller::list_blocks( (string) $request->get_param( 'search' ), (int) $request->get_param( 'page' ), $this->clamp_per_page( $request->get_param( 'per_page' ) ), false );
+
+		$response = $this->add_pagination_headers( rest_ensure_response( $list['items'] ), $list['total'], $list['per_page'] );
+		$response->header( 'X-ZeroSpam-Page', (string) $list['page'] );
 
 		return $response;
 	}
@@ -949,7 +997,7 @@ class Rules_Controller extends Base_Controller {
 	 * One aggregate query on the blocked table; the lists are read from the
 	 * settings registry, built once.
 	 *
-	 * @return array<string, int> By tab: ips, locations, allowlist, email, words, no-lockout.
+	 * @return array<string, int> By tab: ips, locations, allowlist, email, words, no-lockout; and network (network-wide blocks).
 	 */
 	public static function counts(): array {
 		global $wpdb;
@@ -973,6 +1021,8 @@ class Rules_Controller extends Base_Controller {
 			'email'      => count( self::list_items( self::LISTS['email-domains']['key'] ) ),
 			'words'      => count( self::list_items( self::LISTS['allowed-words']['key'] ) ),
 			'no-lockout' => count( Admin_Safe_IPs::get_ips() ),
+			// Addresses the network blocks on every site (0 on a single site; one cached read).
+			'network'    => \ZeroSpam\Includes\Network_Blocks::count(),
 		);
 	}
 
@@ -1456,7 +1506,7 @@ class Rules_Controller extends Base_Controller {
 	 * @param string $value  Date or time.
 	 * @param bool   $is_end Whether it is the end of a block.
 	 */
-	private static function parse_utc( string $value, bool $is_end ): ?int {
+	public static function parse_utc( string $value, bool $is_end ): ?int {
 		$value = trim( $value );
 
 		if ( 1 === preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $value, $parts ) ) {
@@ -1486,7 +1536,7 @@ class Rules_Controller extends Base_Controller {
 	 *
 	 * @param mixed $value Stored date.
 	 */
-	private static function utc_date( $value ): ?string {
+	public static function utc_date( $value ): ?string {
 		if ( ! is_string( $value ) || '' === $value || str_starts_with( $value, '0000-00-00' ) ) {
 			return null;
 		}

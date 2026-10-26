@@ -171,4 +171,47 @@ class Test_Network_Emails extends TestCase {
 			$this->assertContains( $string, $this->translated, "\"{$string}\" is not translated." );
 		}
 	}
+
+	/**
+	 * A changed key or webhook address is never written in the email: it reads "••••".
+	 */
+	public function test_settings_change_email_redacts_secrets(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		grant_super_admin( $admin );
+		wp_set_current_user( $admin );
+		delete_option( 'zero-spam-ipinfo' );
+		delete_option( 'zero-spam-api-monitoring' );
+		update_site_option( Network_Settings::META_KEY, array( 'settings' => array() ) );
+		reset_phpmailer_instance();
+
+		update_site_option(
+			Network_Settings::META_KEY,
+			array(
+				'settings' => array(
+					'ipinfo_access_token' => array(
+						'value'  => 'ipinfo-secret-9876',
+						'locked' => false,
+					),
+					'alert_webhook_url'   => array(
+						'value'  => 'https://hooks.example.com/abcdef-secret-hook',
+						'locked' => false,
+					),
+				),
+			)
+		);
+
+		$sent = $this->sent_mail();
+		$this->assertNotEmpty( $sent, 'No site administrator was told about the change.' );
+
+		foreach ( $sent as $mail ) {
+			$parts = $this->mail_parts( $mail );
+			foreach ( array( 'text/html', 'text/plain' ) as $type ) {
+				$this->assertArrayHasKey( $type, $parts );
+				$this->assertStringContainsString( "\u{2022}\u{2022}\u{2022}\u{2022}", $parts[ $type ], "{$type}: no mask." );
+				$this->assertStringNotContainsString( 'ipinfo-secret', $parts[ $type ], "{$type}: the key is in the email." );
+				$this->assertStringNotContainsString( 'secret-hook', $parts[ $type ], "{$type}: the webhook is in the email." );
+			}
+			$this->assertStringContainsString( esc_url( \ZeroSpam\Core\Utilities::admin_link( 'settings' ) ), $parts['text/html'] );
+		}
+	}
 }
