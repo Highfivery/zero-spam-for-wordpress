@@ -93,11 +93,13 @@ class Test_Rest_Settings_Schema extends TestCase {
 	 * Every entry has the documented fields, a known type and coherent flags.
 	 */
 	public function test_entries_are_well_formed(): void {
-		$fields = array( 'key', 'option', 'module', 'section', 'title', 'description', 'type', 'multiple', 'options', 'min', 'max', 'step', 'default', 'recommended', 'placeholder', 'lockable', 'secret', 'depends_on', 'area', 'group', 'order', 'locked', 'source', 'value', 'html' );
+		$fields = array( 'key', 'option', 'module', 'section', 'title', 'description', 'type', 'multiple', 'options', 'min', 'max', 'step', 'suffix', 'default', 'recommended', 'placeholder', 'lockable', 'secret', 'depends_on', 'area', 'group', 'order', 'locked', 'source', 'value', 'html' );
 
 		foreach ( Settings_Schema::get()['settings'] as $entry ) {
 			$this->assertSame( $fields, array_keys( $entry ), $entry['key'] );
 			$this->assertContains( $entry['type'], Settings_Schema::TYPES, $entry['key'] );
+			$this->assertIsString( $entry['suffix'], $entry['key'] );
+			$this->assertIsString( $entry['placeholder'], $entry['key'] );
 			$this->assertSame( 'html' !== $entry['type'], $entry['lockable'], "{$entry['key']}: only html settings cannot be locked." );
 			$this->assertContains( $entry['area'], array( 'protection', 'rules', 'settings' ), $entry['key'] );
 			$this->assertNotSame( '', $entry['group'], $entry['key'] );
@@ -252,7 +254,7 @@ class Test_Rest_Settings_Schema extends TestCase {
 		$this->assertSame( array( 'protection', 'detection' ), array( $settings['verify_comments']['area'], $settings['verify_comments']['group'] ) );
 		$this->assertSame( array( 'protection', 'intelligence' ), array( $settings['zerospam']['area'], $settings['zerospam']['group'] ) );
 		$this->assertSame( array( 'rules', 'allowed-ips' ), array( $settings['ip_whitelist']['area'], $settings['ip_whitelist']['group'] ) );
-		$this->assertSame( array( 'settings', 'general' ), array( $settings['max_logs']['area'], $settings['max_logs']['group'] ) );
+		$this->assertSame( array( 'settings', 'data' ), array( $settings['max_logs']['area'], $settings['max_logs']['group'] ) );
 		$this->assertSame( array( 'settings', 'proxies' ), array( $settings['trusted_proxies']['area'], $settings['trusted_proxies']['group'] ) );
 		$this->assertSame(
 			array(

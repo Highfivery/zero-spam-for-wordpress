@@ -1,6 +1,7 @@
 /**
  * The generic field renderer: one settings row per schema entry, whatever
- * section it comes from (built-in or an extension's).
+ * section it comes from (built-in or an extension's). Shared by the
+ * Protection and Settings areas (moved here from protection/ in #446).
  *
  * checkbox → switch; text, url, number, date → input; textarea; radio →
  * segmented control (native radios, so arrow keys move the choice); select
@@ -23,8 +24,8 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { Badge, Button, Icon, Switch, cx } from '../app/primitives';
-import { NS, request } from '../data/api';
+import { Badge, Button, Icon, Switch, cx } from '../primitives';
+import { NS, request } from '../../data/api';
 import { RichText, plainText } from './rich-text';
 import {
 	ACTIONS,
@@ -38,6 +39,39 @@ import {
 	optionLabel,
 	recommendedText,
 } from './settings-model';
+
+/**
+ * Whether a setting's title repeats its card's title (case and outer spaces aside).
+ *
+ * @param {string} title     Setting title.
+ * @param {string} cardTitle Card title.
+ * @return {boolean} Same.
+ */
+export const sameTitle = ( title, cardTitle ) =>
+	Boolean( cardTitle ) &&
+	String( title || '' )
+		.trim()
+		.toLocaleLowerCase() === String( cardTitle ).trim().toLocaleLowerCase();
+
+/**
+ * Keeps a focused control clear of the sticky top bar (WCAG 2.4.11). Chrome
+ * scrolls a date field's inner day, month or year part into view, not the
+ * field itself, so with Shift+Tab its top edge can stay under the bar.
+ *
+ * @param {FocusEvent} event Focus event.
+ */
+export function keepClearOfTopBar( event ) {
+	const el = event.currentTarget;
+	const bar = el?.ownerDocument?.querySelector( '.zs-topbar' );
+	if ( ! el || ! bar ) {
+		return;
+	}
+	const gap =
+		bar.getBoundingClientRect().bottom + 8 - el.getBoundingClientRect().top;
+	if ( gap > 0 ) {
+		el.ownerDocument.defaultView?.scrollBy( 0, -gap );
+	}
+}
 
 /** Descriptions longer than this (characters) are clamped behind "More". */
 const CLAMP_AT = 170;
@@ -517,14 +551,15 @@ function HelpField( { entry } ) {
 /**
  * One setting.
  *
- * @param {Object}                          props            Props.
- * @param {Object}                          props.entry      Schema entry.
- * @param {unknown}                         props.value      Current value (draft or saved; for secrets the draft).
- * @param {(...args: unknown[]) => unknown} props.onChange   Receives (key, value).
- * @param {Object<string, Object>}          props.entries    Every entry by key (dependencies).
- * @param {string}                          [props.error]    Error from the last save.
- * @param {boolean}                         [props.disabled] Disabled for another reason (the card).
- * @param {(...args: unknown[]) => unknown} [props.onAction] Called after an action ran.
+ * @param {Object}                          props             Props.
+ * @param {Object}                          props.entry       Schema entry.
+ * @param {unknown}                         props.value       Current value (draft or saved; for secrets the draft).
+ * @param {(...args: unknown[]) => unknown} props.onChange    Receives (key, value).
+ * @param {Object<string, Object>}          props.entries     Every entry by key (dependencies).
+ * @param {string}                          [props.error]     Error from the last save.
+ * @param {boolean}                         [props.disabled]  Disabled for another reason (the card).
+ * @param {(...args: unknown[]) => unknown} [props.onAction]  Called after an action ran.
+ * @param {string}                          [props.cardTitle] Title of the card the row is in: a row title that repeats it is kept for screen readers only.
  */
 export function Field( {
 	entry,
@@ -534,6 +569,7 @@ export function Field( {
 	error,
 	disabled = false,
 	onAction,
+	cardTitle = '',
 } ) {
 	const control = controlFor( entry );
 	const id = idOf( entry.key );
@@ -543,6 +579,7 @@ export function Field( {
 	const errId = `zs-e-${ id }`;
 	const lockId = `zs-l-${ id }`;
 	const statusId = `zs-s-${ id }`;
+	const suffixId = `zs-u-${ id }`;
 	const locked = Boolean( entry.locked );
 	const off = locked || disabled;
 
@@ -568,9 +605,14 @@ export function Field( {
 		'select',
 		'secret',
 	].includes( control );
+	const suffix =
+		[ 'text', 'number' ].includes( control ) && entry.suffix
+			? entry.suffix
+			: '';
 	const describedBy =
 		[
 			'switch' === control && statusId,
+			suffix && suffixId,
 			entry.description && descId,
 			locked && lockId,
 			error && errId,
@@ -580,6 +622,11 @@ export function Field( {
 	const invalid = error ? 'true' : undefined;
 	const rec = recommendedText( entry );
 	const dep = dependency( entry, entries );
+	// "Dashboard Widget" in the "Dashboard widget" card: the control keeps its label, the eye does not see it twice.
+	const titleClass = cx(
+		'zs-st-t',
+		sameTitle( entry.title, cardTitle ) && 'zs-sr-only'
+	);
 
 	let input = null;
 	switch ( control ) {
@@ -710,8 +757,8 @@ export function Field( {
 				/>
 			);
 			break;
-		default:
-			input = (
+		default: {
+			const field = (
 				<input
 					className={ cx(
 						'zs-input',
@@ -736,8 +783,22 @@ export function Field( {
 					aria-invalid={ invalid }
 					aria-describedby={ describedBy }
 					onChange={ ( event ) => set( event.target.value ) }
+					onFocus={
+						'date' === control ? keepClearOfTopBar : undefined
+					}
 				/>
 			);
+			input = suffix ? (
+				<span className="zs-inwrap">
+					{ field }
+					<span className="zs-sfx" id={ suffixId }>
+						{ suffix }
+					</span>
+				</span>
+			) : (
+				field
+			);
+		}
 	}
 
 	return (
@@ -748,14 +809,14 @@ export function Field( {
 			<div className="zs-desc">
 				{ labelled ? (
 					<label
-						className="zs-st-t"
+						className={ titleClass }
 						id={ titleId }
 						htmlFor={ inputId }
 					>
 						{ entry.title }
 					</label>
 				) : (
-					<b className="zs-st-t" id={ titleId }>
+					<b className={ titleClass } id={ titleId }>
 						{ entry.title }
 					</b>
 				) }

@@ -337,32 +337,6 @@ test.describe( '6.0 admin', () => {
 		await expect( page.locator( '.zs-milestone' ) ).toBeVisible();
 	} );
 
-	test( 'the unsaved-changes bar saves display preferences, and the theme follows', async ( { page } ) => {
-		// The switch is locked on while the device asks for reduced motion (the suite's default).
-		await page.emulateMedia( { reducedMotion: 'no-preference' } );
-		await page.goto( AREA( 'settings' ) );
-		await page.locator( '.zs-display' ).waitFor();
-		await page.getByRole( 'radio', { name: /^Dark/ } ).check();
-		const bar = page.locator( '.zs-savebar' );
-		await expect( bar ).toBeVisible();
-		await bar.getByRole( 'button', { name: 'Save changes' } ).click();
-		await expect( bar ).toHaveCount( 0 );
-		await expect( page.locator( '#zerospam-app' ) ).toHaveAttribute( 'data-zs-theme', 'dark' );
-		await expect( page.locator( '.zs-toasts' ) ).toContainText( 'Display preferences saved' );
-
-		await page.reload();
-		await expect( page.locator( '#zerospam-app' ) ).toHaveAttribute( 'data-zs-theme', 'dark' );
-
-		// The reduce animations switch.
-		await page.locator( '.zs-display' ).waitFor();
-		const toggle = page.getByRole( 'switch', { name: 'Reduce animations' } );
-		await toggle.focus();
-		await page.keyboard.press( 'Space' );
-		await expect( toggle ).toHaveAttribute( 'aria-checked', 'true' );
-		await page.locator( '.zs-savebar' ).getByRole( 'button', { name: 'Save changes' } ).click();
-		await expect( page.locator( '#zerospam-app' ) ).toHaveAttribute( 'data-zs-motion', 'reduce' );
-	} );
-
 	test( 'reduced motion: the wall stands still', async ( { page } ) => {
 		await openOverview( page );
 		await expect( page.locator( '.zs-hero-art' ) ).not.toHaveClass( /zs-drifting|zs-lay-in/ );

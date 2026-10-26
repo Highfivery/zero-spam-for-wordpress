@@ -191,6 +191,8 @@ class Migrations {
 			'v6_backup_5x'                 => array( $this, 'backup_5x_settings' ),
 			'v6_network_store'             => array( $this, 'merge_network_store' ),
 			'v6_security_switches'         => array( $this, 'security_switches' ),
+			'v6_uninstall_flag'            => array( $this, 'uninstall_flag' ),
+			'v6_thresholds_sanitize'       => array( $this, 'sanitize_thresholds' ),
 			// Upgraded sites show "What's new in 6.0" once per administrator; fresh installs get first-run setup instead.
 			'v6_whats_new'                 => array( \ZeroSpam\Core\Admin\Onboarding::class, 'migrate_whats_new' ),
 		);
@@ -728,6 +730,102 @@ class Migrations {
 
 		if ( $changed ) {
 			update_option( 'zero-spam-security', $options, true );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Turns "Delete Data on Uninstall" on, as uninstalling behaved before 6.0.
+	 *
+	 * 5.x never read the setting: deleting the plugin always removed all of
+	 * its data. Since 6.0 uninstall.php honours it, so every 5.x value that
+	 * is not `enabled` (none stored, or the `false` an unticked box saved) is
+	 * stored as `enabled`, and nothing is left behind unless an administrator
+	 * turns it off from now on. On a network, a site that stores no value
+	 * keeps following the network (the setting is on by default), and a
+	 * network value that is not `enabled` becomes `enabled`, locked or not.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request (another request
+	 *              holds the network lock).
+	 */
+	public function uninstall_flag(): bool {
+		$options = get_option( 'zero-spam-api-monitoring', array() );
+		$options = is_array( $options ) ? $options : array();
+		$stored  = array_key_exists( 'delete_data_on_uninstall', $options );
+
+		if ( ( $stored || ! is_multisite() ) && 'enabled' !== ( $options['delete_data_on_uninstall'] ?? null ) ) {
+			$options['delete_data_on_uninstall'] = 'enabled';
+			update_option( 'zero-spam-api-monitoring', $options );
+		}
+
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_uninstall_flag',
+			static function (): bool {
+				$store = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( Network_Settings::META_KEY, array() ) );
+				$entry = $store['settings']['delete_data_on_uninstall'] ?? null;
+
+				if ( is_array( $entry ) && array_key_exists( 'value', $entry ) && 'enabled' !== $entry['value'] ) {
+					$store['settings']['delete_data_on_uninstall']['value'] = 'enabled';
+					update_site_option( Network_Settings::META_KEY, $store );
+					delete_site_transient( Network_Settings::CACHE_KEY );
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Keeps the five API alert thresholds within their ranges.
+	 *
+	 * 5.x stored whatever the number fields sent and never read them. Since
+	 * 6.0 they drive API_Usage_Tracker::detect_anomalies(), so a stored
+	 * value outside its range is brought to the nearest limit, and one that
+	 * is not a number is removed (the default applies).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return true
+	 */
+	public function sanitize_thresholds(): bool {
+		$options = get_option( 'zero-spam-api-monitoring', array() );
+
+		if ( ! is_array( $options ) ) {
+			return true;
+		}
+
+		$changed = false;
+
+		foreach ( array_keys( API_Usage_Alerts::get_alert_types() ) as $type ) {
+			$key = 'threshold_' . $type;
+
+			if ( ! array_key_exists( $key, $options ) ) {
+				continue;
+			}
+
+			if ( is_bool( $options[ $key ] ) || ! is_numeric( $options[ $key ] ) ) {
+				unset( $options[ $key ] );
+				$changed = true;
+				continue;
+			}
+
+			$clamped = API_Usage_Alerts::clamp_threshold( $type, $options[ $key ] );
+
+			if ( $clamped != $options[ $key ] ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- A stored "80" equals 80; only a value outside the range changes.
+				$options[ $key ] = $clamped;
+				$changed         = true;
+			}
+		}
+
+		if ( $changed ) {
+			update_option( 'zero-spam-api-monitoring', $options );
 		}
 
 		return true;

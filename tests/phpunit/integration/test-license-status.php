@@ -191,14 +191,21 @@ class Test_License_Status extends TestCase {
 	}
 
 	/**
-	 * The reset date comes from the Quota Reset Date setting when it is a valid date.
+	 * The reset date comes from the Quota Reset Date setting when it is a
+	 * valid date: the next reset, rolled forward monthly once it has passed
+	 * (see Test_API_Usage_Thresholds::test_quota_period()).
 	 */
 	public function test_reset_date_honours_the_setting(): void {
 		$this->set_setting( 'zerospam_license', self::KEY );
 		$this->mock_http( self::ENDPOINT, self::valid_body() );
 
-		$this->set_setting( 'quota_reset_date', '2026-11-15' );
-		$this->assertSame( '2026-11-15', License_Status::get()['reset_date'] );
+		$this->set_setting( 'quota_reset_date', '2099-11-15' );
+		$this->assertSame( '2099-11-15', License_Status::get()['reset_date'] );
+
+		$this->set_setting( 'quota_reset_date', '2001-01-15' );
+		$next = License_Status::get()['reset_date'];
+		$this->assertSame( '15', substr( (string) $next, -2 ), 'A past date keeps its day of the month.' );
+		$this->assertGreaterThan( current_datetime()->format( 'Y-m-d' ), $next, 'A past date rolls forward.' );
 
 		$this->set_setting( 'quota_reset_date', '2026-02-31' );
 		$this->assertNull( License_Status::get()['reset_date'] );

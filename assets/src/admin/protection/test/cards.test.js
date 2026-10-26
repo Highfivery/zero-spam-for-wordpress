@@ -13,8 +13,13 @@ import { describe, expect, it } from 'vitest';
  * Internal dependencies
  */
 import { buildCards, cardStatus, detectionLine } from '../cards';
-import { byKey } from '../settings-model';
-import { basicLicense, enhancedLicense, modules, schema } from './fixture';
+import { byKey } from '../../app/fields/settings-model';
+import {
+	basicLicense,
+	enhancedLicense,
+	modules,
+	schema,
+} from '../../app/fields/test/fixture';
 
 const keys = ( list ) => list.map( ( c ) => c.key );
 const saved = byKey( schema() );

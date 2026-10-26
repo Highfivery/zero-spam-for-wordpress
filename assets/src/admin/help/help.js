@@ -210,13 +210,18 @@ function NewsTile() {
 			/>
 			{ 'disabled' === view.state && (
 				<div className="zs-empty">
-					<b>{ __( 'Zero Spam News is off', 'zero-spam' ) }</b>
+					<b>{ __( 'Zero Spam news is off', 'zero-spam' ) }</b>
 					<span className="zs-hint">
 						{ __(
 							'Nothing is downloaded from zerospam.org while it is off.',
 							'zero-spam'
 						) }{ ' ' }
-						<a href={ areaUrl( 'settings', { tab: 'general' } ) }>
+						<a
+							href={ areaUrl( 'settings', {
+								tab: 'general',
+								section: 'news',
+							} ) }
+						>
 							{ __(
 								'Turn it on in Settings › General',
 								'zero-spam'

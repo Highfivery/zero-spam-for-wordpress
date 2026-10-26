@@ -247,13 +247,13 @@ export const newSwitches = () => [
 		args: { tab: 'detection', card: 'security' },
 	},
 	{
-		title: __( 'Zero Spam News', 'zero-spam' ),
+		title: __( 'Zero Spam news', 'zero-spam' ),
 		text: __(
 			'Articles and security notices from zerospam.org. Turn it off to never download them.',
 			'zero-spam'
 		),
 		area: 'settings',
-		args: { tab: 'general' },
+		args: { tab: 'general', section: 'news' },
 	},
 	{
 		title: __( 'Theme and animations', 'zero-spam' ),
@@ -262,6 +262,6 @@ export const newSwitches = () => [
 			'zero-spam'
 		),
 		area: 'settings',
-		args: { tab: 'general' },
+		args: { tab: 'general', section: 'display' },
 	},
 ];

@@ -143,7 +143,7 @@ test.describe( 'Help', () => {
 		await zs.set( { show_news: 'disabled' } );
 		await page.goto( HELP );
 		await helpReady( page );
-		await expect( page.locator( '#zs-help-news .zs-empty' ) ).toContainText( 'Zero Spam News is off' );
+		await expect( page.locator( '#zs-help-news .zs-empty' ) ).toContainText( 'Zero Spam news is off' );
 		await expect( page.locator( '#zs-help-news' ).getByRole( 'link', { name: /Turn it on/ } ) ).toHaveAttribute( 'href', /page=zero-spam-settings&tab=general/ );
 	} );
 

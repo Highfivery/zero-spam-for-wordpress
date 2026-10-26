@@ -25,6 +25,12 @@ import {
 import { useFeedback } from '../app/primitives/feedback';
 import { Mark } from '../app/mark';
 import { FOLLOW, SocialIcon } from '../app/shell/side-extra';
+import {
+	copyText,
+	environmentLine,
+	systemReport,
+	systemRows,
+} from '../app/system-report';
 import { boot, nowLocal } from '../data/api';
 import { ago, day, minutesAgo, num, parseDate, signed } from '../data/format';
 import { areaUrl, utm } from '../data/routes';
@@ -1334,102 +1340,9 @@ export function NewsTile() {
 export function SystemTile( { schema, wide } ) {
 	const { modules, enhanced } = useApp();
 	const { toast } = useFeedback();
-	const list = modules?.modules || [];
-	const on = ( key ) => true === findModule( list, key )?.enabled;
-	const forms = list.filter(
-		( m ) =>
-			'integrations' === m.group && m.plugin?.active && true === m.enabled
-	).length;
-	const method = ( schema?.settings || [] ).find(
-		( s ) => 'block_method' === s.key
-	)?.value;
-	const methodLabel = String( method || 'php' ).startsWith( 'htaccess' )
-		? '.htaccess'
-		: 'PHP';
-	const ipLabels = {
-		cloudflare: __( 'Cloudflare', 'zero-spam' ),
-		trusted_proxy: __( 'Trusted proxy', 'zero-spam' ),
-		untrusted_proxy: __( 'Untrusted proxy', 'zero-spam' ),
-		direct: __( 'Direct connection', 'zero-spam' ),
-		none: __( 'Not available', 'zero-spam' ),
-	};
-	const ip = ipLabels[ boot.environment.ipSource ] || ipLabels.direct;
-	const checking = __( 'Checking', 'zero-spam' );
-	const off = __( 'Off', 'zero-spam' );
-
-	const rows = [
-		[
-			__( 'Comments', 'zero-spam' ),
-			on( 'comments' ) ? checking : off,
-			on( 'comments' ),
-		],
-		[
-			__( 'Login', 'zero-spam' ),
-			on( 'login' ) ? checking : off,
-			on( 'login' ),
-		],
-		[
-			__( 'Registration', 'zero-spam' ),
-			on( 'registration' ) ? checking : off,
-			on( 'registration' ),
-		],
-		[
-			__( 'Forms', 'zero-spam' ),
-			forms
-				? sprintf(
-						/* translators: %d: number of plugins */
-						_n( '%d plugin', '%d plugins', forms, 'zero-spam' ),
-						forms
-					)
-				: __( 'None active', 'zero-spam' ),
-			forms > 0,
-		],
-		[ __( 'Block method', 'zero-spam' ), methodLabel, true ],
-		[
-			__( 'IP source', 'zero-spam' ),
-			ip,
-			'untrusted_proxy' !== boot.environment.ipSource,
-		],
-		[
-			__( 'Stop Forum Spam', 'zero-spam' ),
-			on( 'stop_forum_spam' ) ? checking : off,
-			on( 'stop_forum_spam' ),
-		],
-		[
-			__( 'Zero Spam network', 'zero-spam' ),
-			enhanced ? checking : __( 'Not used (Basic)', 'zero-spam' ),
-			enhanced,
-		],
-	];
-
-	const env = sprintf(
-		/* translators: 1: Zero Spam version, 2: WordPress version, 3: PHP version */
-		__( 'Zero Spam %1$s · WordPress %2$s · PHP %3$s', 'zero-spam' ),
-		boot.version,
-		boot.environment.wordpress,
-		boot.environment.php
-	);
-	const report = [
-		env,
-		enhanced ? __( 'Enhanced', 'zero-spam' ) : __( 'Basic', 'zero-spam' ),
-		...rows.map( ( [ k, v ] ) => `${ k }: ${ v }` ),
-	].join( ' · ' );
-
-	const copy = () => {
-		const done = () => toast( __( 'Copied to clipboard', 'zero-spam' ) );
-		const fail = () =>
-			toast(
-				__(
-					'Copy did not work. Select the text and press Ctrl+C or Cmd+C.',
-					'zero-spam'
-				)
-			);
-		try {
-			window.navigator.clipboard.writeText( report ).then( done, fail );
-		} catch {
-			fail();
-		}
-	};
+	const rows = systemRows( { modules, enhanced, schema } );
+	const env = environmentLine();
+	const copy = () => copyText( systemReport( rows, enhanced ), toast );
 
 	return (
 		<Tile span={ wide ? 12 : 5 } labelledBy="zs-sy-h" className="zs-system">

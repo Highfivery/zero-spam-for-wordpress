@@ -10,6 +10,7 @@
 import type { Page, Request } from '@playwright/test';
 
 import { expect, test } from '../support/fixtures';
+import { focusObscured } from '../support/focus';
 import { AREA, protectionReady } from '../support/screens';
 import { subsiteURL } from '../support/targets';
 
@@ -370,29 +371,12 @@ test.describe( '6.0 Protection', () => {
 	} );
 
 	for ( const width of [ 1280, 782 ] ) {
-		test( `at ${ width }px no focused control is hidden under the top bar or the "On this page" chips (2.4.11)`, async ( { page } ) => {
+		test( `at ${ width }px no focused control is hidden under the top bar or the "On this page" chips, Tab and Shift+Tab (2.4.11)`, async ( { page } ) => {
 			await page.setViewportSize( { width, height: 800 } );
 			for ( const tab of [ '', 'intelligence' ] ) {
 				await open( page, tab );
 				await page.getByRole( 'tab', { selected: true } ).focus();
-				for ( let i = 0; i < 60; i++ ) {
-					await page.keyboard.press( 'Tab' );
-					const hidden = await page.evaluate( () => {
-						const el = document.activeElement as HTMLElement | null;
-						if ( ! el || ! el.closest( '#zs-prot-body' ) || el.closest( '.zs-jump' ) ) {
-							return null;
-						}
-						const box = el.getBoundingClientRect();
-						for ( const sel of [ '#wpadminbar', '.zs-topbar', '.zs-jump' ] ) {
-							const r = document.querySelector( sel )?.getBoundingClientRect();
-							if ( r && r.height > 0 && box.top < r.bottom && box.bottom > r.top && box.left < r.right && box.right > r.left ) {
-								return `${ el.outerHTML.slice( 0, 80 ) } (top ${ Math.round( box.top ) }) under ${ sel } (bottom ${ Math.round( r.bottom ) })`;
-							}
-						}
-						return null;
-					} );
-					expect( hidden, `focus step ${ i + 1 } on ${ tab || 'detection' } at ${ width }px` ).toBeNull();
-				}
+				expect( await focusObscured( page, '#zs-prot-body' ), `${ tab || 'detection' } at ${ width }px` ).toEqual( [] );
 			}
 		} );
 	}

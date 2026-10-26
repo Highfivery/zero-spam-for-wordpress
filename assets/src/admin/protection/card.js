@@ -16,8 +16,8 @@ import { useEffect, useState } from '@wordpress/element';
 import { Badge, Icon, cx } from '../app/primitives';
 import { boot, nowLocal } from '../data/api';
 import { cardStatus, detectionLine, signalNames } from './cards';
-import { Field } from './fields';
-import { holdsValue } from './settings-model';
+import { Field } from '../app/fields/fields';
+import { holdsValue } from '../app/fields/settings-model';
 
 /**
  * The address of a wp-admin screen, built from the Overview's.

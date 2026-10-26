@@ -109,12 +109,6 @@ parameters:
 			path: includes/admin/class-networkstatspage.php
 
 		-
-			message: '#^Call to function is_wp_error\(\) with mixed will always evaluate to false\.$#'
-			identifier: function.impossibleType
-			count: 3
-			path: includes/class-apiusagetracker.php
-
-		-
 			message: '#^Parameter \#1 \$months of static method ZeroSpam\\Includes\\Stats_Aggregator\:\:backfill_monthly\(\) expects int, float given\.$#'
 			identifier: argument.type
 			count: 1

@@ -53,7 +53,7 @@ export function filterNews( items, category ) {
 /**
  * What the news tile shows.
  *
- * - `disabled`: Zero Spam News is turned off (the setting, the filter, or
+ * - `disabled`: Zero Spam news is turned off (the setting, the filter, or
  *   the route answering 404 `zerospam_news_disabled`);
  * - `loading`: the first answer has not arrived;
  * - `unavailable`: no copy could be had (503, a network error);

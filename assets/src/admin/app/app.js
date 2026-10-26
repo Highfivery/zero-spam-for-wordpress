@@ -21,6 +21,7 @@ import { Overview } from '../overview/overview';
 import { Activity } from '../activity/activity';
 import { Protection } from '../protection/protection';
 import { Rules } from '../rules/rules';
+import { Settings } from '../settings/settings';
 import { Help } from '../help/help';
 import { Onboarding } from '../onboarding/onboarding';
 import { useTab } from '../data/routes';
@@ -55,12 +56,14 @@ function AreaView( { area } ) {
 			{ 'activity' === area && <Activity /> }
 			{ 'protection' === area && <Protection /> }
 			{ 'rules' === area && <Rules /> }
+			{ 'settings' === area && <Settings /> }
 			{ 'help' === area && <Help /> }
 			{ ! [
 				'overview',
 				'activity',
 				'protection',
 				'rules',
+				'settings',
 				'help',
 			].includes( area ) && (
 				<Placeholder

@@ -375,7 +375,14 @@ export function formatValue( entry, value ) {
 		return optionLabel( entry, value );
 	}
 	if ( 'number' === entry.type && Number.isFinite( Number( value ) ) ) {
-		return Number( value ).toLocaleString();
+		const number = Number( value ).toLocaleString();
+		if ( ! entry.suffix ) {
+			return number;
+		}
+		// "80%", "90 days", "5,000 ms".
+		return '%' === entry.suffix
+			? `${ number }%`
+			: `${ number } ${ entry.suffix }`;
 	}
 	return String( value );
 }

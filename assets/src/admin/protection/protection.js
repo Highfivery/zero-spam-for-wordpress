@@ -28,8 +28,8 @@ import { TABS, buildCards, tabNames } from './cards';
 import { LevelPanel } from './license';
 import { SelfTestPanel, TestButton, runSelfTest } from './self-test';
 import { initialTest, networkLatency, testReducer } from './self-test-model';
-import { isOn } from './settings-model';
-import { useSettings } from './use-settings';
+import { isOn } from '../app/fields/settings-model';
+import { useSettings } from '../app/fields/use-settings';
 
 /**
  * The card a ?card= argument asks for, if any.

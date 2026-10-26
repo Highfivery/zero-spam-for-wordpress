@@ -176,6 +176,8 @@ defined( 'ABSPATH' ) || die();
 				</tbody>
 			</table>
 
+			<p><?php esc_html_e( 'Each threshold can be changed next to its alert. Quota thresholds are the share of your quota used; with a Quota Reset Date set, quota alerts only count what the API reported since the last reset (the date repeats every month).', 'zero-spam' ); ?></p>
+
 			<h3><?php esc_html_e( 'Alert Channels', 'zero-spam' ); ?></h3>
 			<ul>
 				<li><strong><?php esc_html_e( 'Email Alerts:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'Sent to your site administrator email', 'zero-spam' ); ?></li>
@@ -186,7 +188,7 @@ defined( 'ABSPATH' ) || die();
 			<div class="zerospam-docs-note">
 				<p>
 					<strong><?php esc_html_e( 'Alert Throttling:', 'zero-spam' ); ?></strong>
-					<?php esc_html_e( 'To prevent alert fatigue, warning-level alerts are limited to 1 email per 24 hours. Critical alerts are sent immediately every time.', 'zero-spam' ); ?>
+					<?php esc_html_e( 'To prevent alert fatigue, warning-level alerts are limited to 1 email per 24 hours, and quota alerts to 1 per quota period (per day without a Quota Reset Date). Other critical alerts are sent immediately every time.', 'zero-spam' ); ?>
 				</p>
 			</div>
 		</div>
