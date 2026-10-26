@@ -1509,6 +1509,32 @@ add_action(
 
 		register_rest_route(
 			$ns,
+			'/no-lockout',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$ips = array_values( array_filter( array_map( 'strval', (array) $request->get_param( 'ips' ) ) ) );
+					foreach ( $ips as $ip ) {
+						if ( ! is_test_net( $ip ) ) {
+							return new WP_Error( 'zs_e2e_ip', 'Only TEST-NET addresses can be saved as no-lockout addresses by the e2e suite.', array( 'status' => 400 ) );
+						}
+					}
+
+					// What Admin_Safe_IPs saves when an administrator activates or updates the plugin.
+					if ( $ips ) {
+						update_option( \ZeroSpam\Core\Admin_Safe_IPs::OPTION, array_slice( $ips, -\ZeroSpam\Core\Admin_Safe_IPs::MAX_IPS ), false );
+					} else {
+						delete_option( \ZeroSpam\Core\Admin_Safe_IPs::OPTION );
+					}
+
+					return new WP_REST_Response( array( 'ips' => \ZeroSpam\Core\Admin_Safe_IPs::get_ips() ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			'/rescue-token',
 			array(
 				'methods'             => 'POST',
