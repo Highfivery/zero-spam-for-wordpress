@@ -356,8 +356,111 @@ const V6_OVERVIEW: Screen[] = [
 	},
 ];
 
+/**
+ * Protection parts that change between runs: relative times and counts,
+ * the license check time, the self-test timings, and the shell's count.
+ */
+export const PROTECTION_MASKS = [ '.zs-count', '.zs-pcard-st', '.zs-lic-live', '.zs-st-time', '.zs-st-result', '.zs-lvl-pop dd' ];
+
+/** Waits until Protection has its cards (the app replaced the skeleton). */
+export const protectionReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+	await page.locator( '#zs-prot-body .zs-pcard, #zs-prot-body .zs-empty' ).first().waitFor();
+};
+
+/** Runs "Test my protection" and waits for its result. */
+export const runSelfTest = async ( page: Page ) => {
+	await protectionReady( page );
+	await page.locator( '.zs-test-btn' ).click();
+	await page.locator( '#zs-selftest .zs-st-result:not(:empty)' ).waitFor();
+	await page.locator( '#zs-selftest[aria-busy="true"]' ).waitFor( { state: 'detached' } );
+};
+
+const V6_PROTECTION: Screen[] = [
+	{ id: 'v6-protection-detection', title: '6.0 Protection › Detection', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'protection' ), prepare: protectionReady, visual: { mobile: true, dark: true, mask: PROTECTION_MASKS, selector: '#zerospam-app' } },
+	{
+		id: 'v6-protection-integrations',
+		title: '6.0 Protection › Integrations (with a third-party section)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: async ( zs ) => {
+			await zs.fakeSection( true );
+		},
+		path: () => AREA( 'protection', 'integrations' ),
+		prepare: async ( page ) => {
+			await protectionReady( page );
+			await page.locator( '#zs-card-moreint > summary' ).click();
+		},
+		visual: { mask: PROTECTION_MASKS, selector: '#zerospam-app' },
+	},
+	{ id: 'v6-protection-intelligence', title: '6.0 Protection › Intelligence (Basic)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'protection', 'intelligence' ), prepare: protectionReady, visual: { mobile: true, mask: PROTECTION_MASKS, selector: '#zerospam-app' } },
+	{
+		id: 'v6-protection-intelligence-enhanced',
+		title: '6.0 Protection › Intelligence (Enhanced, license panel)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		level: 'enhanced',
+		path: () => AREA( 'protection', 'intelligence' ),
+		prepare: async ( page ) => {
+			await protectionReady( page );
+			await page.locator( '.zs-licpanel' ).waitFor();
+			await page.locator( '.zs-lic-adv > summary' ).click();
+		},
+		visual: { mask: PROTECTION_MASKS, selector: '#zerospam-app' },
+	},
+	{
+		id: 'v6-protection-compare',
+		title: '6.0 Protection › Compare levels drawer (from Intelligence)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		path: () => AREA( 'protection', 'intelligence' ),
+		prepare: async ( page ) => {
+			await protectionReady( page );
+			await page.locator( '.zs-enh-mini' ).getByRole( 'button', { name: 'Compare levels' } ).click();
+			await page.locator( '.zs-drawer.zs-compare' ).waitFor();
+		},
+		visual: { selector: '.zs-drawer' },
+	},
+	{
+		id: 'v6-protection-selftest',
+		title: '6.0 Protection › Test my protection (result)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: async ( zs ) => {
+			await zs.selfTestReset();
+		},
+		path: () => AREA( 'protection' ),
+		prepare: runSelfTest,
+		visual: { mask: PROTECTION_MASKS, selector: '#zs-selftest' },
+	},
+	{
+		id: 'v6-protection-locked',
+		title: '6.0 Protection on a subsite with locked settings',
+		area: 'admin',
+		sites: 'multisite',
+		state: 'empty',
+		theme: 'both',
+		as: 'siteadmin',
+		before: async ( zs ) => {
+			await zs.networkSetting( 'verify_comments', 'enabled', true );
+			await zs.networkSetting( 'davidwalsh_form_selectors', '.network-form', true );
+		},
+		path: ( t ) => subsiteURL( t, AREA( 'protection' ) ),
+		prepare: protectionReady,
+		visual: { mask: PROTECTION_MASKS, selector: '#zerospam-app' },
+	},
+];
+
 /** The areas built in later PRs: the shell with a placeholder (Settings carries the display preferences). */
-const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings', 'help' ].map(
+const V6_AREAS: Screen[] = [ 'activity', 'rules', 'settings', 'help' ].map(
 	( area ): Screen => ( {
 		id: `v6-${ area }`,
 		title: `6.0 ${ area } (shell)`,
@@ -401,7 +504,7 @@ function withDarkTwins( screens: Screen[] ): Screen[] {
 	} );
 }
 
-const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_AREAS, ...V6_NETWORK ] );
+const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_PROTECTION, ...V6_AREAS, ...V6_NETWORK ] );
 
 export const SCREENS: Screen[] = [
 	...settingsScreens,

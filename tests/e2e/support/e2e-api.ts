@@ -157,6 +157,32 @@ export class ZsApi {
 		return this.call< Record< string, unknown > >( 'POST', 'ui-prefs', { prefs } );
 	}
 
+	/**
+	 * Turns the fake third-party settings section on or off (Protection ›
+	 * Integrations renders it generically). Every reset turns it off.
+	 *
+	 * @param on On.
+	 */
+	fakeSection( on = true ) {
+		return this.call< { on: boolean } >( 'POST', 'fake-section', { on } );
+	}
+
+	/** Lets the self-test run again at once (it runs once a minute per site). */
+	selfTestReset() {
+		return this.call( 'POST', 'self-test-reset' );
+	}
+
+	/**
+	 * Sets a network value (super admin, multisite).
+	 *
+	 * @param key    Setting key.
+	 * @param value  Value.
+	 * @param locked Lock it for every site.
+	 */
+	networkSetting( key: string, value: unknown, locked = false ) {
+		return this.call< { saved: boolean } >( 'POST', 'network-setting', { key, value, locked } );
+	}
+
 	/** A valid rescue-link token, as an emailed link carries (TEST-NET IPs only). */
 	async rescueToken( ip: string ): Promise< string > {
 		return ( await this.call< { token: string } >( 'POST', 'rescue-token', { ip } ) ).token;
