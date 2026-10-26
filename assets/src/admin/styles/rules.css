@@ -254,6 +254,8 @@
 }
 
 .zs-cards.zs-elist li {
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-areas: "main side";
 	min-height: 52px;
 	padding-top: 8px;
 	padding-bottom: 8px;

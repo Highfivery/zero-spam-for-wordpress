@@ -46,6 +46,9 @@ export const tabNames = () => ( {
 } );
 
 const LISTS = Object.values( LIST_OF_TAB );
+const TAB_OF_LIST = Object.fromEntries(
+	Object.entries( LIST_OF_TAB ).map( ( [ tab, list ] ) => [ list, tab ] )
+);
 
 /** @return {Object} No changes to any list. */
 const noDrafts = () =>
@@ -184,12 +187,16 @@ export function Rules() {
 				continue;
 			}
 			try {
-				await request( {
+				const answer = await request( {
 					path: `${ NS }/rules/lists/${ list }`,
 					method: 'PUT',
 					data: requestBody( drafts[ list ], withMin ),
 				} );
 				saved++;
+				// The tab's count, also when its list is not on screen.
+				if ( Number.isFinite( answer?.total ) ) {
+					count( TAB_OF_LIST[ list ] )( answer.total );
+				}
 				setDrafts( ( d ) => ( { ...d, [ list ]: emptyDraft() } ) );
 				if ( null !== withMin ) {
 					setMinDraft( null );
