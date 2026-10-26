@@ -279,7 +279,7 @@ class Settings_Actions_Controller extends Base_Controller {
 		if ( $size > 0 ) {
 			$offset = max( 0, $size - self::ERROR_LOG_BYTES );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- The plugin's own local log file; only its end is read.
-			$log = (string) file_get_contents( $file, false, null, $offset );
+			$log = (string) file_get_contents( $file, false, null, $offset, self::ERROR_LOG_BYTES );
 
 			// Start at a whole line when the beginning was cut.
 			$break = $offset > 0 ? strpos( $log, "\n" ) : false;

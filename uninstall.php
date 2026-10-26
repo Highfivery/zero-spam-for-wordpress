@@ -221,29 +221,50 @@ $zerospam_network_entry = static function ( string $key ): ?array {
 };
 
 /**
+ * Whether a value of "Delete Data on Uninstall" says to delete.
+ *
+ * Only `enabled`, or any value 6.0's v6_uninstall_flag migration has not
+ * looked at yet: 5.x never read the setting and always deleted, so a 5.x
+ * `false` (an unticked box) on a site or network the migration never
+ * reached (a subsite nobody visited after the update) still means delete.
+ *
+ * @param mixed $value    Stored value.
+ * @param bool  $migrated Whether the migration ran where the value is stored.
+ * @return bool
+ */
+$zerospam_says_delete = static function ( $value, bool $migrated ): bool {
+	return 'enabled' === $value || ! $migrated;
+};
+
+/**
  * Whether data is deleted, by the "Delete Data on Uninstall" setting:
  * the network's locked value, else the current site's own value (unless
  * `$network_scope`), else the network's value, else on (the default).
+ * A value is only "keep" once the v6_uninstall_flag migration ran there.
  *
  * @param bool $network_scope Decide for the network-wide data (network value or the default only).
  * @return bool
  */
-$zerospam_deletes_data = static function ( bool $network_scope = false ) use ( $zerospam_network_entry ): bool {
-	$network = $zerospam_network_entry( 'delete_data_on_uninstall' );
+$zerospam_deletes_data = static function ( bool $network_scope = false ) use ( $zerospam_network_entry, $zerospam_says_delete ): bool {
+	$network          = $zerospam_network_entry( 'delete_data_on_uninstall' );
+	$network_done     = get_site_option( 'zerospam_network_completed_migrations', array() );
+	$network_migrated = is_array( $network_done ) && in_array( 'v6_uninstall_flag', $network_done, true );
 
 	if ( null !== $network && ! empty( $network['locked'] ) ) {
-		return 'enabled' === $network['value'];
+		return $zerospam_says_delete( $network['value'], $network_migrated );
 	}
 
 	if ( ! $network_scope || ! is_multisite() ) {
 		$options = get_option( 'zero-spam-api-monitoring' );
 
 		if ( is_array( $options ) && array_key_exists( 'delete_data_on_uninstall', $options ) ) {
-			return 'enabled' === $options['delete_data_on_uninstall'];
+			$site_done = get_option( 'zerospam_completed_migrations', array() );
+
+			return $zerospam_says_delete( $options['delete_data_on_uninstall'], is_array( $site_done ) && in_array( 'v6_uninstall_flag', $site_done, true ) );
 		}
 	}
 
-	return null === $network || 'enabled' === $network['value'];
+	return null === $network || $zerospam_says_delete( $network['value'], $network_migrated );
 };
 
 /**

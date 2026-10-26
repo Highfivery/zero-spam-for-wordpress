@@ -156,6 +156,16 @@ class Test_Admin_App_Settings extends TestCase {
 		$this->assertSame( Admin_App::settings_preloads( 'advanced' ), Admin_App::settings_preloads( '', 'proxies' ) );
 		$this->assertSame( Admin_App::settings_preloads( 'api' ), Admin_App::settings_preloads( 'api', 'proxies' ), 'An explicit tab wins.' );
 
+		// A setting key opens its group's tab (the schema), so its data is preloaded too.
+		$this->assertSame( Admin_App::settings_preloads( 'advanced' ), Admin_App::settings_preloads( '', 'rescue_mode' ) );
+		$this->assertSame( Admin_App::settings_preloads( 'advanced' ), Admin_App::settings_preloads( '', 'trusted_proxies' ) );
+		$this->assertSame( 'data', Admin_App::settings_tab_of( 'max_logs' ) );
+		$this->assertSame( 'data', Admin_App::settings_tab_of( 'delete_data_on_uninstall' ) );
+		$this->assertSame( 'api', Admin_App::settings_tab_of( 'threshold_slow_response' ) );
+		$this->assertSame( 'debug', Admin_App::settings_tab_of( 'debug_ip' ) );
+		$this->assertSame( 'general', Admin_App::settings_tab_of( 'verify_comments' ), 'Another area\'s setting: General.' );
+		$this->assertSame( 'general', Admin_App::settings_tab_of( 'nope' ) );
+
 		$_GET['tab'] = 'io';
 		$this->registered_app()->enqueue( self::HOOK );
 		$answers = $this->preloaded();

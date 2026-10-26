@@ -43,7 +43,8 @@ describe( 'the quota reset date', () => {
 		const html = renderToStaticMarkup(
 			<QuotaHint value="2099-01-15" onClear={ () => {} } />
 		);
-		expect( html ).toContain( 'aria-live="polite"' );
+		// Not a live region: the settled value is announced once, not every keystroke.
+		expect( html ).not.toContain( 'aria-live' );
 		expect( html ).toMatch(
 			/Next reset: Jan 15, 2099\. Quota alerts count from Dec 15, 2098\./
 		);
@@ -117,7 +118,8 @@ describe( 'rescue mode', () => {
 	it( 'says Active when wp-config.php defines the key', () => {
 		boot.settings = { rescueKey: true };
 		const html = renderToStaticMarkup( <RescuePanel /> );
-		expect( html ).toContain( '<b>Active</b>' );
+		expect( html ).toContain( '<b>Always-on rescue key</b>' );
+		expect( html ).toContain( 'Key defined in wp-config.php' );
 		expect( html ).not.toContain( 'Rescue key not set' );
 	} );
 } );

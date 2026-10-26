@@ -361,6 +361,55 @@ class Test_Uninstall_Network extends TestCase {
 	}
 
 	/**
+	 * Records the v6_uninstall_flag migration as run for the network and the
+	 * given sites (default: every site).
+	 *
+	 * @param int[]|null $sites Sites.
+	 */
+	private function migrated( ?array $sites = null ): void {
+		update_site_option( 'zerospam_network_completed_migrations', array( 'v6_uninstall_flag' ) );
+		foreach ( $sites ?? $this->all_sites() as $blog_id ) {
+			update_blog_option( $blog_id, 'zerospam_completed_migrations', array( 'v6_uninstall_flag' ) );
+		}
+	}
+
+	/**
+	 * A dormant subsite (no request since the update, so v6_uninstall_flag
+	 * never ran there) that stored a 5.x false still has its data deleted,
+	 * as 5.x always did; a migrated subsite that turned it off keeps it.
+	 */
+	public function test_dormant_subsite_still_deletes(): void {
+		global $wpdb;
+
+		update_site_option( 'zerospam_network_completed_migrations', array( 'v6_uninstall_flag' ) );
+		update_blog_option( self::$sites[0], 'zero-spam-api-monitoring', array( 'delete_data_on_uninstall' => false ) );
+		update_blog_option( self::$sites[0], 'zerospam_completed_migrations', array( 'v6_backup_5x' ) );
+		update_blog_option( self::$sites[1], 'zero-spam-api-monitoring', array( 'delete_data_on_uninstall' => false ) );
+		update_blog_option( self::$sites[1], 'zerospam_completed_migrations', array( 'v6_uninstall_flag' ) );
+
+		$dropped = $this->dropped_tables();
+
+		$this->assertContains( $wpdb->get_blog_prefix( self::$sites[0] ) . 'wpzerospam_log', $dropped, 'The dormant subsite\'s 5.x false still deletes.' );
+		$this->assertNotContains( $wpdb->get_blog_prefix( self::$sites[1] ) . 'wpzerospam_log', $dropped, 'A migrated subsite that turned it off keeps its data.' );
+	}
+
+	/**
+	 * A network value the migration never saw (a locked 5.x false) still deletes.
+	 */
+	public function test_unmigrated_network_false_still_deletes(): void {
+		global $wpdb;
+
+		$this->network_flag( false, true );
+		delete_site_option( 'zerospam_network_completed_migrations' );
+
+		$dropped = $this->dropped_tables();
+
+		foreach ( self::NETWORK_TABLES as $table ) {
+			$this->assertContains( $wpdb->base_prefix . $table, $dropped );
+		}
+	}
+
+	/**
 	 * Each site follows its own value, then the network's; the network-wide
 	 * data follows the network's value.
 	 */
@@ -368,6 +417,7 @@ class Test_Uninstall_Network extends TestCase {
 		global $wpdb;
 
 		$this->network_flag( false, false );
+		$this->migrated();
 		update_blog_option( get_main_site_id(), 'zero-spam-api-monitoring', array( 'delete_data_on_uninstall' => 'enabled' ) );
 		update_blog_option( self::$sites[0], 'zero-spam-settings', array( 'max_logs' => 500 ) );
 		update_blog_option( self::$sites[1], 'zero-spam-api-monitoring', array( 'delete_data_on_uninstall' => false ) );

@@ -125,18 +125,31 @@ final class Admin_App {
 	const SETTINGS_TABS = array( 'general', 'data', 'api', 'advanced', 'debug', 'io' );
 
 	/**
-	 * Cards of the Settings tabs that read a route of their own, by
-	 * `&section=` (assets/src/admin/settings/cards.js): the tab they are on.
+	 * Settings cards (assets/src/admin/settings/cards.js) that are not a
+	 * setting, by `&section=`: the tab they are on. A setting key's tab
+	 * comes from its schema group (see settings_tab_of()).
 	 *
 	 * @var array<string, string>
 	 */
-	const SETTINGS_SECTIONS = array(
-		'proxies'         => 'advanced',
-		'trusted_proxies' => 'advanced',
-		'rescue'          => 'advanced',
-		'nolockout'       => 'advanced',
-		'io'              => 'io',
-		'errlog'          => 'io',
+	const SETTINGS_CARDS = array(
+		'quick'      => 'general',
+		'blocking'   => 'general',
+		'widget'     => 'general',
+		'news'       => 'general',
+		'display'    => 'general',
+		'logging'    => 'data',
+		'sharing'    => 'data',
+		'uninstall'  => 'data',
+		'apimon'     => 'api',
+		'alertch'    => 'api',
+		'alertrules' => 'api',
+		'proxies'    => 'advanced',
+		'rescue'     => 'advanced',
+		'nolockout'  => 'advanced',
+		'debug'      => 'debug',
+		'system'     => 'debug',
+		'io'         => 'io',
+		'errlog'     => 'io',
 	);
 
 	/**
@@ -512,7 +525,7 @@ final class Admin_App {
 	 */
 	public static function settings_preloads( string $tab = '', string $section = '' ): array {
 		if ( ! in_array( $tab, self::SETTINGS_TABS, true ) ) {
-			$tab = self::SETTINGS_SECTIONS[ $section ] ?? self::SETTINGS_TABS[0];
+			$tab = self::settings_tab_of( $section );
 		}
 
 		$paths = array( '/zero-spam/v1/settings/schema' );
@@ -524,6 +537,25 @@ final class Admin_App {
 		}
 
 		return $paths;
+	}
+
+	/**
+	 * The Settings tab a `&section=` opens: a card's, or a setting's from its
+	 * schema group (the groups of the Settings area are its tabs; Trusted
+	 * Proxy IPs, group `proxies`, is on Advanced). General when unknown.
+	 *
+	 * @param string $section Card or setting key.
+	 */
+	public static function settings_tab_of( string $section ): string {
+		if ( isset( self::SETTINGS_CARDS[ $section ] ) ) {
+			return self::SETTINGS_CARDS[ $section ];
+		}
+
+		$entry = '' !== $section ? \ZeroSpam\Core\Settings_Schema::setting( $section ) : null;
+		$group = null !== $entry && 'settings' === $entry['area'] ? (string) $entry['group'] : '';
+		$group = 'proxies' === $group ? 'advanced' : $group;
+
+		return in_array( $group, self::SETTINGS_TABS, true ) ? $group : self::SETTINGS_TABS[0];
 	}
 
 	/**

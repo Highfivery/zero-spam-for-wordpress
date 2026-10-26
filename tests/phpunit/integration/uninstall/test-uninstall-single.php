@@ -308,6 +308,23 @@ class Test_Uninstall_Single extends TestCase {
 	}
 
 	/**
+	 * A 5.x false the v6_uninstall_flag migration never saw (no request
+	 * after the update) still deletes everything, as 5.x always did.
+	 */
+	public function test_unmigrated_five_x_false_still_deletes(): void {
+		global $wpdb;
+
+		update_option( 'zero-spam-api-monitoring', array( 'delete_data_on_uninstall' => false ) );
+		update_option( 'zerospam_completed_migrations', array( 'v6_backup_5x' ) );
+
+		$dropped = $this->dropped_tables();
+
+		$this->assertContains( $wpdb->prefix . 'wpzerospam_log', $dropped );
+		wp_cache_flush();
+		$this->assertFalse( get_option( 'zero-spam-api-monitoring' ) );
+	}
+
+	/**
 	 * Values that mean off: false (an unticked 5.x box, or PATCH /settings)
 	 * and `disabled` (a switch that is on unless turned off).
 	 *

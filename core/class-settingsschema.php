@@ -116,6 +116,11 @@ final class Settings_Schema {
 		'allowed_words'         => array( 'rules', 'allowed-words' ),
 		'disallowed_min_length' => array( 'rules', 'allowed-words' ),
 		'trusted_proxies'       => array( 'settings', 'proxies' ),
+		// The Settings tabs (6.0): the activity log and data sharing on Logging & data, Rescue Mode on Advanced.
+		'log_blocked_ips'       => array( 'settings', 'data' ),
+		'max_logs'              => array( 'settings', 'data' ),
+		'share_data'            => array( 'settings', 'data' ),
+		'rescue_mode'           => array( 'settings', 'advanced' ),
 		// The honeypot has a card of its own in Protection › Detection.
 		'regenerate_honeypot'   => array( 'protection', 'detection' ),
 	);

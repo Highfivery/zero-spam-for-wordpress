@@ -252,11 +252,11 @@ class API_Monitoring {
 	 */
 	private function get_threshold_description( $type ) {
 		$descriptions = array(
-			'quota_warning'   => __( 'Alert when this much of your monthly quota is used. Recommended: 80%.', 'zero-spam' ),
-			'quota_critical'  => __( 'Alert when this much of your monthly quota is used. Recommended: 90%.', 'zero-spam' ),
-			'usage_spike'     => __( 'Alert when today\'s calls pass this share of your normal daily use. Recommended: 300%.', 'zero-spam' ),
-			'high_error_rate' => __( 'Alert when this share of requests fail. Recommended: 10%.', 'zero-spam' ),
-			'slow_response'   => __( 'Alert when the average response time is slower than this. Recommended: 5000 ms.', 'zero-spam' ),
+			'quota_warning'   => __( 'Alert when this much of your monthly quota is used.', 'zero-spam' ),
+			'quota_critical'  => __( 'Alert when this much of your monthly quota is used.', 'zero-spam' ),
+			'usage_spike'     => __( 'Alert when today\'s calls pass this share of your normal daily use.', 'zero-spam' ),
+			'high_error_rate' => __( 'Alert when this share of requests fail.', 'zero-spam' ),
+			'slow_response'   => __( 'Alert when the average response time is slower than this.', 'zero-spam' ),
 		);
 
 		return isset( $descriptions[ $type ] ) ? $descriptions[ $type ] : '';

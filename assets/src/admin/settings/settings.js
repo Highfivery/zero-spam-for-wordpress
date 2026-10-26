@@ -91,11 +91,12 @@ function useSectionTab( schema ) {
  * @param {string}  card    Card key.
  * @param {string}  key     Setting key ('' for the card).
  * @param {boolean} reduced Reduced motion.
+ * @return {boolean} Whether something took focus (false: the setting's controls are disabled).
  */
 const goTo = ( card, key, reduced ) => {
 	const box = document.getElementById( `zs-card-${ card }` );
 	if ( ! box ) {
-		return;
+		return false;
 	}
 	const row = key
 		? document.getElementById( `zs-row-${ idOf( key ) }` )
@@ -104,11 +105,30 @@ const goTo = ( card, key, reduced ) => {
 		block: 'start',
 		behavior: reduced ? 'auto' : 'smooth',
 	} );
-	// The setting's own control, not the description's "More" button before it.
+	// The setting's own control (never a disabled one), not the description's "More" button before it.
+	const enabled =
+		'input:not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled])';
 	const control =
-		row?.querySelector( '.zs-ctl :is(input,select,textarea,button)' ) ||
-		row?.querySelector( 'input,select,textarea,button' );
+		row?.querySelector(
+			`.zs-ctl :is(${ enabled.replace( /,/g, ', ' ) })`
+		) || row?.querySelector( enabled );
+	if ( row && ! control ) {
+		return false;
+	}
 	( control || box ).focus( { preventScroll: true } );
+	return true;
+};
+
+/**
+ * Focuses the unsaved-changes bar (it says what happened when the setting
+ * cannot take focus: locked, or not on this page).
+ */
+const focusSaveBar = () => {
+	const bar = document.querySelector( '.zs-savebar' );
+	if ( bar ) {
+		bar.setAttribute( 'tabindex', '-1' );
+		bar.focus();
+	}
 };
 
 /**
@@ -381,8 +401,9 @@ export function Settings() {
 					setTab( found.tab );
 				}
 				window.setTimeout( () => {
-					if ( found ) {
-						goTo( found.card, first, app.reduced );
+					// A locked setting (disabled), or one shown in another area: the bar explains.
+					if ( ! found || ! goTo( found.card, first, app.reduced ) ) {
+						focusSaveBar();
 					}
 				}, 60 );
 			} );

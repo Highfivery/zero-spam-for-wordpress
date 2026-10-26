@@ -254,7 +254,7 @@ class Test_Rest_Settings_Schema extends TestCase {
 		$this->assertSame( array( 'protection', 'detection' ), array( $settings['verify_comments']['area'], $settings['verify_comments']['group'] ) );
 		$this->assertSame( array( 'protection', 'intelligence' ), array( $settings['zerospam']['area'], $settings['zerospam']['group'] ) );
 		$this->assertSame( array( 'rules', 'allowed-ips' ), array( $settings['ip_whitelist']['area'], $settings['ip_whitelist']['group'] ) );
-		$this->assertSame( array( 'settings', 'general' ), array( $settings['max_logs']['area'], $settings['max_logs']['group'] ) );
+		$this->assertSame( array( 'settings', 'data' ), array( $settings['max_logs']['area'], $settings['max_logs']['group'] ) );
 		$this->assertSame( array( 'settings', 'proxies' ), array( $settings['trusted_proxies']['area'], $settings['trusted_proxies']['group'] ) );
 		$this->assertSame(
 			array(

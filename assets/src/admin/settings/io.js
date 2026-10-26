@@ -9,7 +9,7 @@
  * WordPress dependencies
  */
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { useRef, useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -21,6 +21,29 @@ import { exportFileName, importResult, readImport, todayOf } from './models';
 
 /** The error log route (preloaded on the Import & errors tab). */
 export const ERROR_LOG_PATH = `${ NS }/settings/error-log`;
+
+/**
+ * Moves focus once the element it waits for can take it: after a
+ * confirmation closes, focus returns to the button that opened it (or to
+ * what replaced the question), never to the top of the page.
+ *
+ * @param {Array<unknown>} deps Re-check when these change.
+ * @return {(target: {current: HTMLElement|null}) => void} Asks for focus on a ref.
+ */
+function useFocusAfter( deps ) {
+	const pending = useRef( null );
+	useEffect( () => {
+		const el = pending.current?.current;
+		if ( el && ! el.disabled ) {
+			el.focus();
+			pending.current = null;
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- The callers pass what changes the targets.
+	}, deps );
+	return ( target ) => {
+		pending.current = target;
+	};
+}
 
 /**
  * One group of import results.
@@ -72,6 +95,9 @@ export function ImportExport( { entries, onApplied, unsaved } ) {
 	const [ confirm, setConfirm ] = useState( false );
 	const [ problem, setProblem ] = useState( '' );
 	const [ result, setResult ] = useState( null );
+	const importBtn = useRef( null );
+	const results = useRef( null );
+	const focusAfter = useFocusAfter( [ confirm, busy, result, problem ] );
 
 	const download = () => {
 		setBusy( 'export' );
@@ -137,6 +163,7 @@ export function ImportExport( { entries, onApplied, unsaved } ) {
 
 	const run = () => {
 		setConfirm( false );
+		focusAfter( importBtn );
 		setBusy( 'import' );
 		setProblem( '' );
 		request( {
@@ -164,6 +191,7 @@ export function ImportExport( { entries, onApplied, unsaved } ) {
 							mapped.errors.length
 					)
 				);
+				focusAfter( results );
 				if ( mapped.changed > 0 ) {
 					onApplied();
 				}
@@ -181,6 +209,7 @@ export function ImportExport( { entries, onApplied, unsaved } ) {
 						'zero-spam'
 					);
 				setProblem( message );
+				focusAfter( importBtn );
 				announce( message, 'assertive' );
 			} )
 			.finally( () => setBusy( '' ) );
@@ -301,7 +330,10 @@ export function ImportExport( { entries, onApplied, unsaved } ) {
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={ () => setConfirm( false ) }
+							onClick={ () => {
+								setConfirm( false );
+								focusAfter( importBtn );
+							} }
 						>
 							{ __( 'Cancel', 'zero-spam' ) }
 						</Button>
@@ -311,6 +343,7 @@ export function ImportExport( { entries, onApplied, unsaved } ) {
 						<Button
 							variant="secondary"
 							size="sm"
+							ref={ importBtn }
 							icon="up"
 							disabled={ ! chosen || 'import' === busy }
 							onClick={ () => setConfirm( true ) }
@@ -328,6 +361,8 @@ export function ImportExport( { entries, onApplied, unsaved } ) {
 					</p>
 				) }
 				<div
+					ref={ results }
+					tabIndex={ -1 }
 					className="zs-imp-res"
 					role="region"
 					aria-label={ __( 'Import results', 'zero-spam' ) }
@@ -405,11 +440,15 @@ export function ErrorLog() {
 	const log = useResource( ERROR_LOG_PATH );
 	const [ confirm, setConfirm ] = useState( false );
 	const [ busy, setBusy ] = useState( false );
+	const clearBtn = useRef( null );
+	const refreshBtn = useRef( null );
 	const text = log.data?.log || '';
+	const focusAfter = useFocusAfter( [ confirm, busy, text ] );
 	const kb = Math.ceil( ( log.data?.size || 0 ) / 1024 );
 
 	const clear = () => {
 		setConfirm( false );
+		focusAfter( clearBtn );
 		setBusy( true );
 		request( {
 			path: `${ NS }/settings/actions/clear-error-log`,
@@ -417,6 +456,8 @@ export function ErrorLog() {
 		} )
 			.then( () => {
 				log.setData( { log: '', size: 0, truncated: false } );
+				// "Clear error log" is off once the log is empty.
+				focusAfter( refreshBtn );
 				toast( __( 'Error log cleared', 'zero-spam' ) );
 			} )
 			.catch( ( error ) =>
@@ -511,7 +552,10 @@ export function ErrorLog() {
 					<Button
 						variant="ghost"
 						size="sm"
-						onClick={ () => setConfirm( false ) }
+						onClick={ () => {
+							setConfirm( false );
+							focusAfter( clearBtn );
+						} }
 					>
 						{ __( 'Cancel', 'zero-spam' ) }
 					</Button>
@@ -521,6 +565,7 @@ export function ErrorLog() {
 					<Button
 						variant="secondary"
 						size="sm"
+						ref={ refreshBtn }
 						icon="refresh"
 						disabled={ log.loading }
 						onClick={ () => log.reload() }
@@ -530,6 +575,7 @@ export function ErrorLog() {
 					<Button
 						variant="secondary"
 						size="sm"
+						ref={ clearBtn }
 						icon="trash"
 						disabled={ ! text || busy }
 						onClick={ () => setConfirm( true ) }

@@ -237,6 +237,7 @@ export const cardList = () => [
 const GROUP_TABS = {
 	general: 'general',
 	data: 'data',
+	advanced: 'advanced',
 	api: 'api',
 	debug: 'debug',
 	proxies: 'advanced',

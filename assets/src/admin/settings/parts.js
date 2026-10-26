@@ -8,7 +8,7 @@
  * WordPress dependencies
  */
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -60,18 +60,27 @@ export function DisplayPrefs() {
 	 */
 	const change = ( changes, message ) => {
 		const before = { theme, reduce_motion: reduce };
-		const next = applyDisplay( prefs, changes, osDark, osReduce );
-		setRootAttributes( root, next.attributes );
-		savePrefs( changes ).catch( () => {} );
-		toast( message, {
-			undo: () => {
-				setRootAttributes(
-					root,
-					applyDisplay( prefs, before, osDark, osReduce ).attributes
-				);
-				savePrefs( before ).catch( () => {} );
-			},
-		} );
+		const restore = () =>
+			setRootAttributes(
+				root,
+				applyDisplay( prefs, before, osDark, osReduce ).attributes
+			);
+		setRootAttributes(
+			root,
+			applyDisplay( prefs, changes, osDark, osReduce ).attributes
+		);
+		// "Saved" only once it is; on failure the app context reloads the
+		// saved preferences and says so, and the root goes back at once.
+		savePrefs( changes ).then(
+			() =>
+				toast( message, {
+					undo: () => {
+						restore();
+						savePrefs( before ).catch( () => {} );
+					},
+				} ),
+			restore
+		);
 	};
 
 	let motionHint = __( 'Off', 'zero-spam' );
@@ -237,7 +246,7 @@ export function RescuePanel() {
 				<div className="zs-notice zs-notice-ok" id="zs-rescue-key">
 					<Icon name="key" />
 					<div>
-						<b>{ __( 'Active', 'zero-spam' ) }</b>
+						<b>{ __( 'Always-on rescue key', 'zero-spam' ) }</b>
 						<span>
 							{ __(
 								'Key defined in wp-config.php. Visit any page with ?zerospam_rescue={KEY} appended to get back in for one hour.',
@@ -457,27 +466,40 @@ export function TestAlerts( { entry, disabled } ) {
  * @param {boolean}                         props.disabled Disabled (locked).
  */
 export function QuotaHint( { value, onClear, disabled } ) {
+	const { announce } = useFeedback();
 	const period = quotaPeriod( String( value || '' ), todayOf( nowLocal() ) );
 	const set = isDate( value );
+	const text = period
+		? sprintf(
+				/* translators: 1: date of the next quota reset, 2: date of the last one */
+				__(
+					'Next reset: %1$s. Quota alerts count from %2$s.',
+					'zero-spam'
+				),
+				formatDay( period.next ),
+				formatDay( period.start )
+			)
+		: __(
+				'No reset date set. Quota alerts count today’s use only.',
+				'zero-spam'
+			);
+
+	// Spoken once the date settles (a date field changes with every part
+	// typed), and not on load.
+	const first = useRef( true );
+	useEffect( () => {
+		if ( first.current ) {
+			first.current = false;
+			return undefined;
+		}
+		const timer = window.setTimeout( () => announce( text ), 1200 );
+		return () => window.clearTimeout( timer );
+	}, [ text, announce ] );
+
 	return (
 		<div className="zs-subnote" id="zs-quota-next">
 			<div className="zs-subnote-b">
-				<p className="zs-hint" aria-live="polite">
-					{ period
-						? sprintf(
-								/* translators: 1: date of the next quota reset, 2: date of the last one */
-								__(
-									'Next reset: %1$s. Quota alerts count from %2$s.',
-									'zero-spam'
-								),
-								formatDay( period.next ),
-								formatDay( period.start )
-							)
-						: __(
-								'No reset date set. Quota alerts count today’s use only.',
-								'zero-spam'
-							) }
-				</p>
+				<p className="zs-hint">{ text }</p>
 				{ set && ! disabled && (
 					<Button variant="ghost" size="sm" onClick={ onClear }>
 						{ __( 'Clear date', 'zero-spam' ) }
