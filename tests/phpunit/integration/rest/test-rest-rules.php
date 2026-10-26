@@ -378,6 +378,40 @@ class Test_Rest_Rules extends TestCase {
 	}
 
 	/**
+	 * A failed INSERT is a 500 (rest_db_error), not a success that created nothing.
+	 */
+	public function test_bulk_add_reports_a_failed_insert(): void {
+		global $wpdb;
+
+		$table = $wpdb->prefix . DB::$tables['blocked'];
+		$break = static function ( $query ) use ( $table ) {
+			return str_starts_with( (string) $query, 'INSERT INTO `' . $table . '`' )
+				? str_replace( '`' . $table . '`', '`' . $table . '_missing`', (string) $query )
+				: $query;
+		};
+		add_filter( 'query', $break );
+		$suppressed = $wpdb->suppress_errors( true );
+
+		try {
+			$response = $this->rest(
+				'POST',
+				self::BLOCKS . '/bulk',
+				array(
+					'ips'  => array( '192.0.2.61', '192.0.2.62' ),
+					'type' => 'permanent',
+				)
+			);
+		} finally {
+			remove_filter( 'query', $break );
+			$wpdb->suppress_errors( $suppressed );
+		}
+
+		$this->assertSame( 500, $response->get_status() );
+		$this->assertSame( 'rest_db_error', $response->get_data()['code'] );
+		$this->assertSame( array(), $this->rest( 'GET', self::BLOCKS )->get_data() );
+	}
+
+	/**
 	 * A problem with the shared fields refuses the whole request; nothing is written.
 	 */
 	public function test_bulk_add_refuses_bad_shared_fields(): void {

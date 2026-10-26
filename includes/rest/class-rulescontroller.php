@@ -528,7 +528,17 @@ class Rules_Controller extends Base_Controller {
 			$placeholders = implode( ', ', array_fill( 0, count( $ips ), '%s' ) );
 
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One INSERT of the plugin's own rows: a fixed column list and tuples of %s placeholders and NULL (at most 500); then their IDs.
-			$wpdb->query( $wpdb->prepare( "INSERT INTO %i ({$column_list}) VALUES {$tuple_list}", $values ) );
+			$inserted = $wpdb->query( $wpdb->prepare( "INSERT INTO %i ({$column_list}) VALUES {$tuple_list}", $values ) );
+
+			if ( false === $inserted ) {
+				// Blocks replaced above keep their new dates; nothing new was written.
+				if ( $previous ) {
+					Utilities::refresh_htaccess();
+				}
+
+				return new WP_Error( 'rest_db_error', __( 'The blocks could not be saved. Please try again.', 'zero-spam' ), array( 'status' => 500 ) );
+			}
+
 			$created = array_map(
 				'intval',
 				(array) $wpdb->get_col(
