@@ -763,7 +763,7 @@ export function Reports() {
 									num( c.value ),
 								] }
 							/>
-							<p className="zs-hint">
+							<p className="zs-hint zs-hours-note">
 								{ sprintf(
 									/* translators: %s: list of the busiest hours with their counts */
 									__(
