@@ -441,6 +441,7 @@ describe( 'stylesheet scoping', () => {
 		join( stylesDir, 'shell.css' ),
 		join( stylesDir, 'overview.css' ),
 		join( stylesDir, 'areas.css' ),
+		join( stylesDir, 'activity.css' ),
 		join( stylesDir, 'settings.css' ),
 		join( srcDir, 'admin', 'app', 'fields', 'fields.css' ),
 		join( srcDir, 'widget-refresh', 'index.css' ),

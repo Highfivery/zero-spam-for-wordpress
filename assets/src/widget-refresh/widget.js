@@ -142,8 +142,10 @@ export function initWidget( root, config, deps = {} ) {
 					range: String( config.days || 30 ),
 					_fields: 'days',
 				} ),
+				// The latest entries are not paged: no_count skips the total.
 				get( 'activity', {
 					per_page: '10',
+					no_count: '1',
 					_fields: 'id,type,type_label,ip,date_gmt',
 				} ),
 			] );

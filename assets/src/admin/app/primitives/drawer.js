@@ -35,16 +35,18 @@ export function focusables( root ) {
 }
 
 /**
- * @param {Object}                          props             Props.
- * @param {boolean}                         props.open        Shown.
- * @param {(...args: unknown[]) => unknown} props.onClose     Called by Escape, the scrim and the close button.
- * @param {string}                          props.labelledBy  ID of the drawer's heading.
- * @param {boolean}                         [props.wide]      760px instead of 440px.
- * @param {string}                          [props.className] Extra classes.
- * @param {unknown}                         [props.header]    Header content (left of the close button); omit for a floating close button.
- * @param {unknown}                         [props.footer]    Footer content.
- * @param {Object}                          [props.nav]       { position, total, onPrev, onNext } for previous/next.
- * @param {unknown}                         props.children    Body.
+ * @param {Object}                          props               Props.
+ * @param {boolean}                         props.open          Shown.
+ * @param {(...args: unknown[]) => unknown} props.onClose       Called by Escape, the scrim and the close button.
+ * @param {string}                          props.labelledBy    ID of the drawer's heading.
+ * @param {boolean}                         [props.wide]        760px instead of 440px.
+ * @param {string}                          [props.className]   Extra classes.
+ * @param {unknown}                         [props.header]      Header content (left of the close button); omit for a floating close button.
+ * @param {unknown}                         [props.footer]      Footer content.
+ * @param {Object}                          [props.nav]         { label, onPrev, onNext, prevLabel, nextLabel, groupLabel } for previous/next (an action is missing at either end).
+ * @param {(...args: unknown[]) => unknown} [props.returnFocus] Returns the element focus goes back to on close (the row now shown, after previous/next); the control that opened the drawer when it returns nothing.
+ * @param {string}                          [props.busy]        aria-busy while the body loads.
+ * @param {unknown}                         props.children      Body.
  */
 export function Drawer( {
 	open,
@@ -55,12 +57,16 @@ export function Drawer( {
 	header,
 	footer,
 	nav,
+	returnFocus,
+	busy,
 	children,
 } ) {
 	const panel = useRef( null );
 	const opener = useRef( null );
 	const onCloseRef = useRef( onClose );
+	const returnRef = useRef( returnFocus );
 	onCloseRef.current = onClose;
+	returnRef.current = returnFocus;
 
 	useEffect( () => {
 		if ( ! open ) {
@@ -117,7 +123,8 @@ export function Drawer( {
 			doc.removeEventListener( 'keydown', onKey, true );
 			frame?.removeAttribute( 'inert' );
 			app?.classList.remove( 'zs-drawer-open' );
-			const back = opener.current;
+			const wanted = returnRef.current ? returnRef.current() : null;
+			const back = wanted && wanted.isConnected ? wanted : opener.current;
 			if ( back && back.isConnected ) {
 				back.focus();
 			}
@@ -128,16 +135,42 @@ export function Drawer( {
 		return null;
 	}
 
+	/**
+	 * Moves through the list, then keeps focus in the drawer: on the same
+	 * button while it can still be used, else on the other one or Close.
+	 *
+	 * @param {(...args: unknown[]) => unknown} action Previous or next.
+	 * @param {string}                          dir    prev or next.
+	 */
+	const step = ( action, dir ) => {
+		action();
+		window.requestAnimationFrame( () => {
+			const p = panel.current;
+			if ( ! p ) {
+				return;
+			}
+			const active = p.ownerDocument.activeElement;
+			if ( active && p.contains( active ) && ! active.disabled ) {
+				return;
+			}
+			(
+				p.querySelector( `[data-zs-nav="${ dir }"]:not([disabled])` ) ||
+				p.querySelector( '[data-zs-nav]:not([disabled])' ) ||
+				p.querySelector( '[data-close]' )
+			)?.focus();
+		} );
+	};
+
 	const onNavKey = ( event ) => {
 		if ( ! nav || ! event.altKey ) {
 			return;
 		}
 		if ( 'ArrowUp' === event.key && nav.onPrev ) {
 			event.preventDefault();
-			nav.onPrev();
+			step( nav.onPrev, 'prev' );
 		} else if ( 'ArrowDown' === event.key && nav.onNext ) {
 			event.preventDefault();
-			nav.onNext();
+			step( nav.onNext, 'next' );
 		}
 	};
 
@@ -181,23 +214,26 @@ export function Drawer( {
 							<div
 								className="zs-detnav"
 								role="group"
-								aria-label={ __(
-									'Move through the list',
-									'zero-spam'
-								) }
+								aria-label={
+									nav.groupLabel ||
+									__( 'Move through the list', 'zero-spam' )
+								}
 							>
 								<Button
 									variant="ghost"
 									iconOnly
 									icon="chev"
 									className="zs-chev-up"
-									aria-label={ __(
-										'Previous (Alt+Up)',
-										'zero-spam'
-									) }
+									data-zs-nav="prev"
+									aria-label={
+										nav.prevLabel ||
+										__( 'Previous (Alt+Up)', 'zero-spam' )
+									}
 									aria-keyshortcuts="Alt+ArrowUp"
 									disabled={ ! nav.onPrev }
-									onClick={ nav.onPrev }
+									onClick={ () =>
+										nav.onPrev && step( nav.onPrev, 'prev' )
+									}
 								/>
 								<span className="zs-detpos" aria-live="polite">
 									{ nav.label }
@@ -207,13 +243,16 @@ export function Drawer( {
 									iconOnly
 									icon="chev"
 									className="zs-chev-down"
-									aria-label={ __(
-										'Next (Alt+Down)',
-										'zero-spam'
-									) }
+									data-zs-nav="next"
+									aria-label={
+										nav.nextLabel ||
+										__( 'Next (Alt+Down)', 'zero-spam' )
+									}
 									aria-keyshortcuts="Alt+ArrowDown"
 									disabled={ ! nav.onNext }
-									onClick={ nav.onNext }
+									onClick={ () =>
+										nav.onNext && step( nav.onNext, 'next' )
+									}
 								/>
 							</div>
 						) }
@@ -221,7 +260,12 @@ export function Drawer( {
 				) : (
 					<div className="zs-drawer-close">{ close }</div>
 				) }
-				<div className="zs-drawer-b">{ children }</div>
+				<div
+					className="zs-drawer-b"
+					aria-busy={ busy ? 'true' : undefined }
+				>
+					{ children }
+				</div>
 				{ footer && <div className="zs-drawer-f">{ footer }</div> }
 			</div>
 		</>
