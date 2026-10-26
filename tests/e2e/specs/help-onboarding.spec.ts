@@ -93,8 +93,9 @@ test.describe( 'Help', () => {
 		await page.keyboard.press( 'Enter' );
 		await expect( hooks ).toHaveAttribute( 'aria-expanded', 'true' );
 		const body = page.locator( '#zs-doc-p-developer-hooks' );
-		await expect( body.locator( 'code', { hasText: 'zerospam_login_skip_check' } ) ).toBeVisible();
+		// The guide's parts are native disclosures.
 		await body.locator( 'summary', { hasText: 'Login protection' } ).click();
+		await expect( body.locator( 'code', { hasText: 'zerospam_login_skip_check' } ) ).toBeVisible();
 		// External links open in a new tab and say so.
 		const wiki = body.locator( 'a[href*="github.com/Highfivery/zero-spam-for-wordpress/wiki/Hooks"]' );
 		await expect( wiki ).toHaveAttribute( 'target', '_blank' );
