@@ -349,7 +349,7 @@ class Test_Admin_App extends TestCase {
 	public function test_other_areas_preload_only_the_shell(): void {
 		$this->flag_on();
 		$this->as_role( 'administrator' );
-		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-protection' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-settings' );
 
 		$paths = $this->preloaded_paths();
 		$this->assertSame( Admin_App::SHELL_PRELOADS, $paths );
