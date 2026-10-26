@@ -357,7 +357,7 @@ const V6_OVERVIEW: Screen[] = [
 ];
 
 /** The areas built in later PRs: the shell with a placeholder (Settings carries the display preferences). */
-const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings', 'help' ].map(
+const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings' ].map(
 	( area ): Screen => ( {
 		id: `v6-${ area }`,
 		title: `6.0 ${ area } (shell)`,
@@ -369,6 +369,92 @@ const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings', 'hel
 		prepare: areaReady,
 	} )
 );
+
+/** Waits until Help has its guides and news (or the news's empty state). */
+export const helpReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+	await page.locator( '.zs-help-doc' ).first().waitFor();
+	await page.locator( '#zs-help-news :is(.zs-news-i, .zs-empty)' ).first().waitFor();
+	await page.locator( '.zs-help-level:not([aria-busy])' ).waitFor();
+};
+
+/** Help parts that change between runs: when the news was fetched. */
+export const HELP_MASKS = [ '.zs-news-upd .zs-hint' ];
+
+/** Waits until first-run setup shows a step (or the done screen). */
+export const onboardingReady = async ( page: Page ) => {
+	await page.locator( '.zs-onb #zs-ob-h' ).waitFor();
+};
+
+/**
+ * Goes through first-run setup up to a step (Basic, everything ticked).
+ *
+ * @param step 1, 2, 3 or 4 (the done screen).
+ */
+export const onboardingTo = ( step: number ) => async ( page: Page ) => {
+	await onboardingReady( page );
+	for ( let at = 1; at < step; at++ ) {
+		await page.locator( '.zs-onb form button[type="submit"]' ).click();
+		// The next step is current; after step 3 every step is done.
+		const next = at < 3 ? `.zs-ob-steps li:nth-child(${ at + 1 })[aria-current="step"]` : '.zs-ob-steps li:nth-child(3).zs-done';
+		await page.locator( next ).waitFor();
+	}
+	await onboardingReady( page );
+	// The mark's bricks drop in (not under reduced motion): wait for them to land.
+	await page.locator( '.zs-onb-mark' ).evaluate( ( el ) => Promise.all( el.getAnimations( { subtree: true } ).map( ( a ) => a.finished.catch( () => undefined ) ) ) );
+};
+
+const V6_HELP: Screen[] = [
+	{ id: 'v6-help', title: '6.0 Help (Basic, canned news)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'help' ), prepare: helpReady, visual: { mobile: true, dark: true, mask: HELP_MASKS, selector: '#zerospam-app' } },
+	{ id: 'v6-help-enhanced', title: '6.0 Help (Enhanced, member card)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', level: 'enhanced', path: () => AREA( 'help' ), prepare: helpReady },
+	{
+		id: 'v6-help-news-unavailable',
+		title: '6.0 Help › news unavailable',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: async ( zs ) => {
+			await zs.newsDown( true );
+		},
+		path: () => AREA( 'help', '', { section: 'news' } ),
+		prepare: helpReady,
+		visual: { selector: '#zs-help-news' },
+	},
+	{
+		id: 'v6-help-news-off',
+		title: '6.0 Help › Zero Spam News turned off',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: async ( zs ) => {
+			await zs.set( { show_news: 'disabled' } );
+		},
+		path: () => AREA( 'help', '', { section: 'news' } ),
+		prepare: helpReady,
+	},
+	{ id: 'v6-onboarding-1', title: '6.0 First-run setup › 1 protection level', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 1 ), visual: { mobile: true, selector: '#zerospam-app' } },
+	{ id: 'v6-onboarding-2', title: '6.0 First-run setup › 2 what to protect', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 2 ), visual: { selector: '#zerospam-app' } },
+	{ id: 'v6-onboarding-3', title: '6.0 First-run setup › 3 how to block', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 3 ), visual: { selector: '#zerospam-app' } },
+	{ id: 'v6-onboarding-done', title: '6.0 First-run setup › done', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 4 ) },
+	{
+		id: 'v6-whats-new',
+		title: '6.0 Overview › "What\'s new in 6.0" drawer (upgraded site)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: ( zs ) => zs.firstRun( 'upgraded' ).then( () => undefined ),
+		path: () => AREA( 'overview' ),
+		prepare: async ( page ) => {
+			await overviewReady( page );
+			await page.locator( '.zs-whatsnew' ).getByRole( 'button', { name: "See what's new" } ).click();
+			await page.locator( '.zs-drawer.zs-whatsnew-drawer' ).waitFor();
+		},
+		visual: { selector: '.zs-drawer' },
+	},
+];
 
 const V6_NETWORK: Screen[] = [
 	{ id: 'v6-network', title: '6.0 Network (shell)', area: 'network', sites: 'multisite', state: 'empty', theme: 'both', path: () => AREA( 'network' ), prepare: areaReady },
@@ -401,7 +487,7 @@ function withDarkTwins( screens: Screen[] ): Screen[] {
 	} );
 }
 
-const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_AREAS, ...V6_NETWORK ] );
+const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_HELP, ...V6_AREAS, ...V6_NETWORK ] );
 
 export const SCREENS: Screen[] = [
 	...settingsScreens,

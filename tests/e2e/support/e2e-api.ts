@@ -157,6 +157,26 @@ export class ZsApi {
 		return this.call< Record< string, unknown > >( 'POST', 'ui-prefs', { prefs } );
 	}
 
+	/**
+	 * Puts the site in a first-run state.
+	 *
+	 * @param mode fresh (a new install waiting for first-run setup: no settings, `zerospam_onboarding` pending),
+	 *             upgraded (`zerospam_whats_new` = 6.0.0, as the v6_whats_new migration leaves an upgraded site)
+	 *             or none. Every mode clears the current user's 6.0 preferences.
+	 */
+	firstRun( mode: 'fresh' | 'upgraded' | 'none' ) {
+		return this.call( 'POST', 'first-run', { mode } );
+	}
+
+	/**
+	 * Makes the zerospam.org feed fail (true) or answer again (false); clears the cached news.
+	 *
+	 * @param down Whether the feed fails.
+	 */
+	newsDown( down: boolean ) {
+		return this.call( 'POST', 'news', { down } );
+	}
+
 	/** A valid rescue-link token, as an emailed link carries (TEST-NET IPs only). */
 	async rescueToken( ip: string ): Promise< string > {
 		return ( await this.call< { token: string } >( 'POST', 'rescue-token', { ip } ) ).token;
