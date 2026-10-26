@@ -160,7 +160,13 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   agree and never go backwards (`composer version:check`). Bump
   `Tested up to` only after testing on that WordPress release.
 - **Docs:** when behavior changes, update `readme.txt` (description, FAQ) and
-  the in-admin docs in `includes/templates/docs/`. Network settings
+  the in-admin docs in `includes/templates/docs/`. The 6.0 Help screen shows
+  them through `Core\Admin\Documentation` (`zero-spam/v1/ui/help/docs`): keep
+  the accordion markup (`.zerospam-docs-accordion` with a toggle button and a
+  content block), which becomes `<details>`; headings are moved below the
+  screen's own and the HTML always goes through `wp_kses_post()`. A new guide
+  is added to `Documentation::defaults()` (the classic Documentation tab keeps
+  its own list until the cutover). Network settings
   extensibility is documented in `NETWORK_SETTINGS_DEVELOPER_GUIDE.md`.
 - **Public contract:** option keys, table names, hook names and REST routes are
   public API for site owners and developers. Changing or removing one needs a
