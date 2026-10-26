@@ -149,10 +149,11 @@ test.describe( '6.0 Protection', () => {
 		await expect( bar ).toContainText( 'You have 1 unsaved change.' );
 		await expect( page.getByRole( 'tab', { name: /Detection/ } ) ).toContainText( '1 unsaved change' );
 
-		const patch = page.waitForRequest( ( r ) => 'PATCH' === r.method() && /zero-spam(\/|%2F)v1(\/|%2F)settings/.test( r.url() ) );
+		// apiFetch sends PATCH as POST with X-HTTP-Method-Override.
+		const patch = page.waitForRequest( ( r ) => /zero-spam(\/|%2F)v1(\/|%2F)settings(\?|&|$)/.test( r.url() ) && 'PATCH' === ( r.headers()[ 'x-http-method-override' ] ?? r.method() ) );
 		await bar.getByRole( 'button', { name: 'Save changes' } ).click();
 		expect( ( await patch ).postDataJSON() ).toEqual( { disable_xmlrpc: false } );
-		await expect( page.locator( '.zs-toast' ) ).toContainText( '1 setting saved' );
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( '1 setting saved' );
 		await expect( bar ).toHaveCount( 0 );
 
 		const options = await zs.options( 'zero-spam-security' );
@@ -173,9 +174,9 @@ test.describe( '6.0 Protection', () => {
 
 		await login.click();
 		await page.getByRole( 'form', { name: 'Unsaved changes' } ).getByRole( 'button', { name: 'Save changes' } ).click();
-		await expect( page.locator( '.zs-toast' ) ).toContainText( '1 setting saved' );
-		await page.locator( '.zs-toast' ).getByRole( 'button', { name: 'Undo' } ).click();
-		await expect( page.locator( '.zs-toast' ).last() ).toContainText( 'Changes undone' );
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( '1 setting saved' );
+		await page.locator( '.zs-toast', { hasText: '1 setting saved' } ).getByRole( 'button', { name: 'Undo' } ).click();
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( 'Changes undone' );
 		await expect( login ).toHaveAttribute( 'aria-checked', 'true' );
 		const options = await zs.options( 'zero-spam-login' );
 		expect( ( options[ 'zero-spam-login' ] as Record< string, unknown > ).verify_login ).toBe( 'enabled' );
@@ -205,9 +206,9 @@ test.describe( '6.0 Protection', () => {
 		const field = card.getByLabel( 'Custom Form Selectors' );
 		await expect( field ).toHaveAttribute( 'type', 'text' );
 		await field.fill( '.e2e-form, #e2e-signup' );
-		await expect( card.locator( '.zs-help > summary' ) ).toContainText( /How to Find Your Form/i );
+		await expect( card.locator( '.zs-help > summary', { hasText: /How to Find Your Form/i } ) ).toBeVisible();
 		await page.getByRole( 'form', { name: 'Unsaved changes' } ).getByRole( 'button', { name: 'Save changes' } ).click();
-		await expect( page.locator( '.zs-toast' ) ).toContainText( 'saved' );
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( 'saved' );
 		const options = await zs.options( 'zero-spam-davidwalsh' );
 		expect( ( options[ 'zero-spam-davidwalsh' ] as Record< string, unknown > ).davidwalsh_form_selectors ).toBe( '.e2e-form, #e2e-signup' );
 	} );
@@ -235,7 +236,7 @@ test.describe( '6.0 Protection', () => {
 		await expect( card.locator( 'a[href="https://example.com/docs"]' ) ).toHaveAttribute( 'rel', 'noopener noreferrer' );
 
 		await page.getByRole( 'form', { name: 'Unsaved changes' } ).getByRole( 'button', { name: 'Save changes' } ).click();
-		await expect( page.locator( '.zs-toast' ) ).toContainText( '4 settings saved' );
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( '4 settings saved' );
 		const options = await zs.options( 'zero-spam-zs_e2e_widgets' );
 		expect( options[ 'zero-spam-zs_e2e_widgets' ] ).toEqual( {
 			verify_zs_e2e_widgets: 'enabled',
@@ -328,7 +329,7 @@ test.describe( '6.0 Protection', () => {
 		await input.fill( 'e2e-license' );
 		await card.getByRole( 'button', { name: 'Verify and save' } ).click();
 		await expect( card.locator( '.zs-licpanel' ) ).toBeVisible();
-		await expect( page.locator( '.zs-toast' ) ).toContainText( 'License verified · Business plan. Enhanced Protection is on.' );
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( 'License verified · Business plan. Enhanced Protection is on.' );
 		await expect( card.locator( '.zs-licpanel' ) ).toContainText( 'Business' );
 		await expect( card.locator( '.zs-licpanel' ) ).not.toContainText( /31,200|18,800|50,000/ );
 		await expect( card.locator( '.zs-badge' ).first() ).toContainText( 'Active' );
@@ -338,7 +339,7 @@ test.describe( '6.0 Protection', () => {
 		await card.locator( '.zs-lic-adv > summary' ).click();
 		await card.getByRole( 'button', { name: 'Remove license key' } ).click();
 		await card.getByRole( 'button', { name: 'Remove key' } ).click();
-		await expect( page.locator( '.zs-toast' ).last() ).toContainText( "You're on Basic protection" );
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( "You're on Basic protection" );
 		await expect( card.getByText( 'What Enhanced adds here' ) ).toBeVisible();
 	} );
 

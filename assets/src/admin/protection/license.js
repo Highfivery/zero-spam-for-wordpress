@@ -113,7 +113,8 @@ export function KeyForm( {
 			.catch( ( failure ) => {
 				setBusy( false );
 				setError( keyError( failure ) );
-				input.current?.focus();
+				// After the field is enabled again.
+				window.requestAnimationFrame( () => input.current?.focus() );
 			} );
 	};
 

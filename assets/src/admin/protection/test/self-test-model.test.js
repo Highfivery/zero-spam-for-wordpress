@@ -154,6 +154,15 @@ describe( 'testReducer', () => {
 		} );
 		expect( again.phase ).toBe( 'limited' );
 		expect( again.retryAfter ).toBe( 42 );
+		// The last result is shown again.
+		expect( again.steps.map( ( s ) => s.status ) ).toEqual( [
+			'pass',
+			'pass',
+			'pass',
+			'pass',
+			'pass',
+		] );
+		expect( networkLatency( again ) ).toBe( 38 );
 		expect( summary( again ) ).toEqual( {
 			tone: 'warn',
 			text: 'The self-test just ran. Try again in 42 seconds.',

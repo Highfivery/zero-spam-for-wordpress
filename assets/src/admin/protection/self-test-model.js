@@ -76,6 +76,10 @@ export function testReducer( state, action ) {
 			return {
 				...initialTest,
 				phase: 'running',
+				// The last result stays at hand, so a refused run (rate limit) can show it again.
+				previous: state.result
+					? { steps: state.steps, result: state.result }
+					: state.previous || null,
 				steps: STEPS.map( ( id, i ) => ( {
 					id,
 					status: 0 === i ? 'running' : 'pending',
@@ -141,11 +145,14 @@ export function testReducer( state, action ) {
 		case 'fail': {
 			const error = action.error || {};
 			if ( 'zerospam_self_test_rate_limited' === error.code ) {
-				const done = 'done' === state.phase || null !== state.result;
+				const last = state.result
+					? { steps: state.steps, result: state.result }
+					: state.previous;
 				return {
 					...state,
 					phase: 'limited',
-					steps: done ? state.steps : [],
+					steps: last ? last.steps : [],
+					result: last ? last.result : null,
 					message:
 						error.message ||
 						__(
