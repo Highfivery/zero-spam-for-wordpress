@@ -131,6 +131,24 @@ class Test_Rest_Settings_Page extends TestCase {
 	}
 
 	/**
+	 * A symbolic link in place of the log is never followed.
+	 */
+	public function test_error_log_never_follows_a_link(): void {
+		$this->as_role( 'administrator' );
+		$target = trailingslashit( get_temp_dir() ) . 'zerospam-not-the-log.txt';
+		file_put_contents( $target, "SECRET\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Seeds a fixture file.
+		wp_mkdir_p( dirname( self::log_file() ) );
+		symlink( $target, self::log_file() );
+
+		$data = $this->rest( 'GET', self::ERROR_LOG )->get_data();
+		unlink( self::log_file() ); // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Removes the fixture link itself (wp_delete_file() would too, after a filter).
+		wp_delete_file( $target );
+
+		$this->assertSame( '', $data['log'] );
+		$this->assertSame( 0, $data['size'] );
+	}
+
+	/**
 	 * Clear error log empties what the route returns.
 	 */
 	public function test_clear_error_log(): void {

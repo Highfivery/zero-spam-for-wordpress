@@ -315,4 +315,38 @@ class Test_API_Usage_Thresholds extends TestCase {
 		$this->set_setting( 'api_monitoring', 'enabled', 'api-monitoring' );
 		$this->assertTrue( API_Usage_Tracker::is_monitoring_enabled() );
 	}
+
+	/**
+	 * A used-up quota sends its critical alert once per quota period, not on
+	 * every hourly check; a new period (the quota reset) sends it again.
+	 */
+	public function test_quota_alert_once_per_period(): void {
+		$this->set_setting( 'api_monitoring', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_quota_critical', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_email', 'enabled', 'api-monitoring' );
+		$this->usage(
+			1,
+			array(
+				'queries_limit'     => 1000,
+				'queries_remaining' => 0,
+			)
+		);
+		reset_phpmailer_instance();
+		$alerts = new API_Usage_Alerts();
+
+		$alerts->check_anomalies();
+		API_Usage_Tracker::clear_usage_cache();
+		$alerts->check_anomalies();
+		$alerts->check_anomalies();
+
+		$this->assertCount( 1, $this->sent_mail(), 'One email for the period, however often the check runs.' );
+
+		// Another quota period (here: one that began yesterday, so the report of today is in it).
+		$yesterday = ( new DateTimeImmutable( substr( current_time( 'mysql' ), 0, 10 ) ) )->modify( '-1 day' )->format( 'Y-m-d' );
+		$this->set_setting( 'quota_reset_date', $yesterday, 'api-monitoring' );
+		$alerts->check_anomalies();
+		$alerts->check_anomalies();
+
+		$this->assertCount( 2, $this->sent_mail() );
+	}
 }

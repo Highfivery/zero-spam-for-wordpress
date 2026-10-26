@@ -244,7 +244,9 @@ class Settings_Actions_Controller extends Base_Controller {
 	 * Answers `{ log, size, truncated }`: the last ERROR_LOG_BYTES of the
 	 * file starting at a whole line, its size in bytes, and whether earlier
 	 * lines were left out. An empty `log` and a size of 0 when there is no
-	 * log. The log can hold visitor IP addresses: administrators only.
+	 * log, or when the path is a symbolic link (it is never followed). The
+	 * path is fixed; the route takes no parameter. The log can hold visitor
+	 * IP addresses: administrators only.
 	 *
 	 * @since 6.0.0
 	 *
@@ -258,7 +260,9 @@ class Settings_Actions_Controller extends Base_Controller {
 
 		// The log may have been written or cleared earlier in this request.
 		clearstatcache( true, $file );
-		$size = is_readable( $file ) ? (int) filesize( $file ) : 0;
+
+		// Only the plugin's own regular file: never a symbolic link to something else.
+		$size = ! is_link( $file ) && is_file( $file ) && is_readable( $file ) ? (int) filesize( $file ) : 0;
 		$log  = '';
 
 		if ( $size > 0 ) {

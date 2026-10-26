@@ -213,8 +213,15 @@ class API_Usage_Alerts {
 			return;
 		}
 
-		// Check throttling (max 1 email per alert type per 24 hours, except critical).
-		if ( 'critical' !== $anomaly['severity'] ) {
+		// Quota alerts: once per quota period (the hourly check would repeat a used-up quota until it resets).
+		$quota = self::quota_throttle( "zerospam_alert_sent_{$site_id}_{$anomaly['type']}" );
+		if ( null !== $quota ) {
+			if ( get_transient( $quota['key'] ) ) {
+				return;
+			}
+			set_transient( $quota['key'], true, $quota['ttl'] );
+		} elseif ( 'critical' !== $anomaly['severity'] ) {
+			// Other alerts: at most one per type per 24 hours, except critical ones.
 			$throttle_key = "zerospam_alert_sent_{$site_id}_{$anomaly['type']}";
 			if ( get_transient( $throttle_key ) ) {
 				// Alert already sent recently.
@@ -257,13 +264,13 @@ class API_Usage_Alerts {
 			return;
 		}
 
-		// Check throttling.
-		if ( 'critical' !== $anomaly['severity'] ) {
-			$throttle_key = "zerospam_network_alert_sent_{$anomaly['type']}";
-			if ( get_transient( $throttle_key ) ) {
+		// Check throttling: the network's quota alert once per quota period and severity.
+		$quota = self::quota_throttle( "zerospam_network_alert_sent_{$anomaly['type']}_{$anomaly['severity']}" );
+		if ( null !== $quota ) {
+			if ( get_transient( $quota['key'] ) ) {
 				return;
 			}
-			set_transient( $throttle_key, true, DAY_IN_SECONDS );
+			set_transient( $quota['key'], true, $quota['ttl'] );
 		}
 
 		// Send to network admin email.
@@ -543,6 +550,41 @@ class API_Usage_Alerts {
 	 */
 	public function aggregate_data() {
 		API_Usage_Tracker::aggregate_old_data();
+	}
+
+	/**
+	 * The throttle of a quota alert: one per quota period.
+	 *
+	 * The period is the one of the Quota Reset Date (License_Status::
+	 * quota_period()); without a date, quota alerts judge today's reports
+	 * only, so the period is the day. The key ends with the period's first
+	 * day, so the alert can be sent again once the quota has reset.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $prefix Transient name without the period.
+	 * @return array{key: string, ttl: int}|null Null for an alert that is not about the quota.
+	 */
+	private static function quota_throttle( string $prefix ): ?array {
+		if ( false === strpos( $prefix, '_quota_' ) ) {
+			return null;
+		}
+
+		$period = \ZeroSpam\Core\License_Status::quota_period();
+
+		if ( null === $period ) {
+			return array(
+				'key' => $prefix . '_' . current_time( 'Ymd' ),
+				'ttl' => DAY_IN_SECONDS,
+			);
+		}
+
+		$until = (int) strtotime( $period['next'] . ' 23:59:59' ) - (int) strtotime( current_time( 'mysql' ) );
+
+		return array(
+			'key' => $prefix . '_' . str_replace( '-', '', $period['start'] ),
+			'ttl' => max( HOUR_IN_SECONDS, $until ),
+		);
 	}
 
 	/**

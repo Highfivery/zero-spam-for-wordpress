@@ -105,6 +105,38 @@ class Test_Migrations_V6_Settings extends TestCase {
 	}
 
 	/**
+	 * An explicit 5.x "off" (false) becomes on once; a site that turns it
+	 * off after the upgrade keeps it off, because the migration never runs
+	 * again.
+	 */
+	public function test_off_saved_after_the_migration_is_kept(): void {
+		update_option( 'zero-spam-api-monitoring', array( 'delete_data_on_uninstall' => false ) );
+		delete_option( Migrations::COMPLETED_OPTION );
+
+		$this->as_role( 'administrator' );
+		( new Migrations() )->run();
+		$this->assertSame( 'enabled', $this->stored_flag(), 'The 5.x false is turned on.' );
+
+		$response = $this->rest( 'PATCH', '/zero-spam/v1/settings', array( 'delete_data_on_uninstall' => false ) );
+		$this->assertSame( 200, $response->get_status() );
+		$off = $this->stored_flag();
+		$this->assertNotSame( 'enabled', $off );
+
+		( new Migrations() )->run();
+		$this->assertSame( $off, $this->stored_flag(), 'A later run leaves the choice alone.' );
+		$this->assertFalse( \ZeroSpam\Core\Settings::get_settings( 'delete_data_on_uninstall' ) );
+	}
+
+	/**
+	 * The 6.0 admin shows it with the data settings; its option is unchanged.
+	 */
+	public function test_shown_with_the_data_settings(): void {
+		$entry = \ZeroSpam\Core\Settings_Schema::setting( 'delete_data_on_uninstall' );
+
+		$this->assertSame( array( 'settings', 'data', 'zero-spam-api-monitoring' ), array( $entry['area'], $entry['group'], $entry['option'] ) );
+	}
+
+	/**
 	 * Through the registry, a site that never stored it is on (the default).
 	 */
 	public function test_setting_is_on_by_default(): void {

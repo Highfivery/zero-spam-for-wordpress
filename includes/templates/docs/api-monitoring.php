@@ -188,7 +188,7 @@ defined( 'ABSPATH' ) || die();
 			<div class="zerospam-docs-note">
 				<p>
 					<strong><?php esc_html_e( 'Alert Throttling:', 'zero-spam' ); ?></strong>
-					<?php esc_html_e( 'To prevent alert fatigue, warning-level alerts are limited to 1 email per 24 hours. Critical alerts are sent immediately every time.', 'zero-spam' ); ?>
+					<?php esc_html_e( 'To prevent alert fatigue, warning-level alerts are limited to 1 email per 24 hours, and quota alerts to 1 per quota period (per day without a Quota Reset Date). Other critical alerts are sent immediately every time.', 'zero-spam' ); ?>
 				</p>
 			</div>
 		</div>
