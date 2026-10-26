@@ -221,6 +221,8 @@ class Migrations {
 			'v6_security_switches'         => array( $this, 'security_switches' ),
 			'v6_uninstall_flag'            => array( $this, 'uninstall_flag' ),
 			'v6_thresholds_sanitize'       => array( $this, 'sanitize_thresholds' ),
+			// Upgraded sites show "What's new in 6.0" once per administrator; fresh installs get first-run setup instead.
+			'v6_whats_new'                 => array( \ZeroSpam\Core\Admin\Onboarding::class, 'migrate_whats_new' ),
 			'v6_template_orphans'          => array( $this, 'remove_template_orphans' ),
 		);
 	}

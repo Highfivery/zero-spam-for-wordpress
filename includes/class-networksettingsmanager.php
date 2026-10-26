@@ -299,6 +299,8 @@ class Network_Settings_Manager {
 			}
 
 			if ( $site_updated ) {
+				// The site's own settings changed: it counts as configured (and a pending first-run setup ends), as with any settings writer.
+				\ZeroSpam\Core\Admin\Onboarding::settings_saved();
 				++$updated_count;
 				$updated_sites[] = $site_id;
 			} else {

@@ -23,6 +23,8 @@ import { Protection } from '../protection/protection';
 import { Rules } from '../rules/rules';
 import { Settings } from '../settings/settings';
 import { Network } from '../network/network';
+import { Help } from '../help/help';
+import { Onboarding } from '../onboarding/onboarding';
 import { useTab } from '../data/routes';
 import { boot } from '../data/api';
 
@@ -57,6 +59,7 @@ function AreaView( { area } ) {
 			{ 'rules' === area && <Rules /> }
 			{ 'settings' === area && <Settings /> }
 			{ network && <Network tab={ netTab } setTab={ setNetTab } /> }
+			{ 'help' === area && <Help /> }
 			{ ! [
 				'overview',
 				'activity',
@@ -64,6 +67,7 @@ function AreaView( { area } ) {
 				'rules',
 				'settings',
 				'network',
+				'help',
 			].includes( area ) && (
 				<Placeholder area={ area } title={ titles[ area ] } />
 			) }
@@ -121,7 +125,12 @@ export function App( { root, area } ) {
 		<ErrorBoundary legacy={ boot.urls.legacy }>
 			<FeedbackProvider>
 				<AppProvider root={ root }>
-					<AreaView area={ area } />
+					{ /* First-run setup replaces the Overview of a fresh install (Admin_App::view_for()). */ }
+					{ boot.onboarding ? (
+						<Onboarding />
+					) : (
+						<AreaView area={ area } />
+					) }
 					<div id="zs-layer" className="zs-layer">
 						<CompareDrawer />
 					</div>

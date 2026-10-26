@@ -175,6 +175,27 @@ final class Admin_App {
 	const REPORTS_DAYS = 30;
 
 	/**
+	 * REST paths the Help page reads on load besides the shell's (the news
+	 * comes with the shell when it is on: eight articles, all Help shows).
+	 *
+	 * @var string[]
+	 */
+	const HELP_PRELOADS = array(
+		'/zero-spam/v1/ui/help/docs',
+	);
+
+	/**
+	 * REST paths first-run setup reads on load besides the shell's (which
+	 * has the license, the preferences and the protection modules): the
+	 * settings, for the block methods.
+	 *
+	 * @var string[]
+	 */
+	const ONBOARDING_PRELOADS = array(
+		'/zero-spam/v1/settings/schema',
+	);
+
+	/**
 	 * REST paths the Protection page reads on load besides the shell's
 	 * (which already has the license and the protection modules).
 	 *
@@ -416,7 +437,7 @@ final class Admin_App {
 			'before'
 		);
 
-		$preloaded = array_reduce( self::preload_paths( $area, self::view_args() ), 'rest_preload_api_request', array() );
+		$preloaded = array_reduce( self::preload_paths( self::view_for( $area ), self::view_args() ), 'rest_preload_api_request', array() );
 
 		wp_add_inline_script(
 			'wp-api-fetch',
@@ -436,6 +457,16 @@ final class Admin_App {
 			'<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
 			esc_url( plugin_dir_url( ZEROSPAM ) . 'assets/fonts/plus-jakarta-sans/plus-jakarta-sans-latin.woff2' )
 		);
+	}
+
+	/**
+	 * What an area's page shows: the area, or `onboarding` on the Overview
+	 * while first-run setup is pending (the setup replaces it).
+	 *
+	 * @param string $area Area.
+	 */
+	public static function view_for( string $area ): string {
+		return 'overview' === $area && Onboarding::is_pending() ? 'onboarding' : $area;
 	}
 
 	/**
@@ -511,13 +542,17 @@ final class Admin_App {
 	}
 
 	/**
-	 * The REST paths preloaded for an area.
+	 * The REST paths preloaded for an area (or `onboarding`, see view_for()).
 	 *
 	 * @param string                                                         $area Area.
 	 * @param array{tab?: string, item?: int, filtered?: bool, moved?: bool} $view View the address asks for (see view_args()).
 	 * @return string[]
 	 */
 	public static function preload_paths( string $area, array $view = array() ): array {
+		if ( 'onboarding' === $area ) {
+			return array_merge( self::SHELL_PRELOADS, self::ONBOARDING_PRELOADS );
+		}
+
 		$paths = 'network' === $area
 			? array_merge( array( '/zero-spam/v1/ui/prefs' ), self::network_preloads( $view['tab'] ?? '' ) )
 			: self::SHELL_PRELOADS;
@@ -540,6 +575,10 @@ final class Admin_App {
 
 		if ( 'protection' === $area ) {
 			$paths = array_merge( $paths, self::PROTECTION_PRELOADS );
+		}
+
+		if ( 'help' === $area ) {
+			$paths = array_merge( $paths, self::HELP_PRELOADS );
 		}
 
 		if ( News_Feed::is_enabled() ) {
@@ -742,6 +781,13 @@ final class Admin_App {
 				'name'  => wp_specialchars_decode( (string) get_network()->site_name, ENT_QUOTES ),
 			) : null,
 			'newsEnabled'       => News_Feed::is_enabled(),
+			// First-run setup (fresh installs) and the "What's new" release (upgraded sites).
+			'onboarding'        => 'onboarding' === self::view_for( $area ),
+			'safeIp'            => 'onboarding' === self::view_for( $area ) ? Onboarding::safe_ip() : '',
+			// The site's own settings (Skip and step 1 keep them) and this administrator's step here.
+			'configured'        => Onboarding::is_configured(),
+			'onboardingStep'    => 'onboarding' === self::view_for( $area ) ? Onboarding::step() : 0,
+			'whatsNew'          => 'network' === $area ? '' : Onboarding::whats_new(),
 			// Log types that are not detections (rescue links): left out of the live counts, as in statistics.
 			'nonDetectionTypes' => \ZeroSpam\Includes\DB::NON_DETECTION_TYPES,
 			'environment'       => array(
@@ -801,8 +847,9 @@ final class Admin_App {
 			echo file_get_contents( $sprite );
 		}
 
-		$titles = self::area_titles();
-		$title  = 'network' === $area ? __( 'Network', 'zero-spam' ) : $titles[ $area ];
+		$titles     = self::area_titles();
+		$title      = 'network' === $area ? __( 'Network', 'zero-spam' ) : $titles[ $area ];
+		$onboarding = 'onboarding' === self::view_for( $area );
 
 		include ZEROSPAM_PATH . 'includes/templates/admin-app-shell.php';
 	}

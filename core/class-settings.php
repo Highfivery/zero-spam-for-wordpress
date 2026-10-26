@@ -184,6 +184,9 @@ class Settings {
 		}
 
 		update_option( 'zerospam_configured', 1 );
+
+		// Ends a pending first-run setup, unless the setup applied them itself.
+		\ZeroSpam\Core\Admin\Onboarding::settings_saved();
 	}
 
 	/**

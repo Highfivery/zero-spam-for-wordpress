@@ -232,4 +232,60 @@ class Test_Network_Templates extends TestCase {
 
 		$this->assertSame( 2, $this->applications( 'mine' ), 'One audit entry per apply.' );
 	}
+
+	/**
+	 * Writing a site's own settings from the network counts as a settings
+	 * save there: the site is configured and its pending first-run setup
+	 * ends (Onboarding::settings_saved()), for templates and for apply-all.
+	 */
+	public function test_network_writes_end_a_pending_setup(): void {
+		$state   = static function (): array {
+			switch_to_blog( self::$site_b );
+			$found = array( get_option( 'zerospam_configured' ), get_option( \ZeroSpam\Core\Admin\Onboarding::OPTION ) );
+			restore_current_blog();
+
+			return $found;
+		};
+		$pending = static function (): void {
+			switch_to_blog( self::$site_b );
+			delete_option( 'zerospam_configured' );
+			delete_option( 'zero-spam-settings' );
+			update_option( \ZeroSpam\Core\Admin\Onboarding::OPTION, \ZeroSpam\Core\Admin\Onboarding::PENDING );
+			restore_current_blog();
+		};
+
+		$pending();
+		( new Network_Templates() )->create_template( 'Mine', 'mine', array( 'max_logs' => 5000 ), '' );
+		$this->assertSame(
+			200,
+			$this->rest(
+				'POST',
+				'/zero-spam/v1/network-settings/templates/mine/apply',
+				array(
+					'scope' => 'sites',
+					'sites' => array( self::$site_b ),
+				)
+			)->get_status()
+		);
+		list( $configured, $onboarding ) = $state();
+		$this->assertNotEmpty( $configured, 'A template applied to the site did not mark it configured.' );
+		$this->assertNotSame( \ZeroSpam\Core\Admin\Onboarding::PENDING, $onboarding );
+
+		$pending();
+		$this->set_network_setting( 'max_logs', 7000 );
+		$this->assertSame(
+			200,
+			$this->rest(
+				'POST',
+				'/zero-spam/v1/network-settings/apply-all',
+				array(
+					'mode'  => 'all',
+					'sites' => array( self::$site_b ),
+				)
+			)->get_status()
+		);
+		list( $configured, $onboarding ) = $state();
+		$this->assertNotEmpty( $configured, 'apply-all did not mark the site configured.' );
+		$this->assertNotSame( \ZeroSpam\Core\Admin\Onboarding::PENDING, $onboarding );
+	}
 }

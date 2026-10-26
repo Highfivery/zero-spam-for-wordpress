@@ -109,6 +109,9 @@ function zerospam_plugin_activation( $network_wide = false ) {
 		update_option( 'zerospam_activation_time', time() );
 	}
 
+	// A fresh install (no settings yet) activated on its own gets the first-run setup (6.0 admin).
+	\ZeroSpam\Core\Admin\Onboarding::on_activation( (bool) $network_wide );
+
 	// Save the activating administrator's IP so Zero Spam never locks them out (it is still checked for spam).
 	\ZeroSpam\Core\Admin_Safe_IPs::on_activation( (bool) $network_wide );
 }
