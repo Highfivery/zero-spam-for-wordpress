@@ -157,6 +157,17 @@ export class ZsApi {
 		return this.call< Record< string, unknown > >( 'POST', 'ui-prefs', { prefs } );
 	}
 
+	/**
+	 * Sets a network value (super admin, multisite).
+	 *
+	 * @param key    Setting key.
+	 * @param value  Value.
+	 * @param locked Lock it for every site.
+	 */
+	networkSetting( key: string, value: unknown, locked = false ) {
+		return this.call< { saved: boolean } >( 'POST', 'network-setting', { key, value, locked } );
+	}
+
 	/** A valid rescue-link token, as an emailed link carries (TEST-NET IPs only). */
 	async rescueToken( ip: string ): Promise< string > {
 		return ( await this.call< { token: string } >( 'POST', 'rescue-token', { ip } ) ).token;

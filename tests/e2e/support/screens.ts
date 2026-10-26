@@ -356,8 +356,8 @@ const V6_OVERVIEW: Screen[] = [
 	},
 ];
 
-/** The areas built in later PRs: the shell with a placeholder (Settings carries the display preferences). */
-const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings', 'help' ].map(
+/** The areas built in later PRs: the shell with a placeholder. */
+const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'help' ].map(
 	( area ): Screen => ( {
 		id: `v6-${ area }`,
 		title: `6.0 ${ area } (shell)`,
@@ -370,6 +370,110 @@ const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings', 'hel
 	} )
 );
 
+/** Waits until Settings has its cards (the app replaced the skeleton). */
+export const settingsReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+	await page.locator( '#zs-set-body .zs-pcard, #zs-set-body .zs-empty' ).first().waitFor();
+};
+
+/**
+ * Settings parts that change between runs or versions: the error log, the
+ * system report's versions, the no-lockout addresses (the runner's IP).
+ */
+export const SETTINGS_MASKS = [ '#zs-errlog-box', '.zs-errlog .zs-hint', '.zs-sysrep > .zs-hint', '.zs-iplist', '.zs-nolock > p:first-child' ];
+
+/** Baselines capture the tab panel: light 1280 for every tab, 782 and dark for General (decision 9). */
+const SETTINGS_VISUAL = { mask: SETTINGS_MASKS, selector: '#zs-set-body' };
+
+const SETTINGS_TABS = [
+	[ 'general', 'General' ],
+	[ 'data', 'Logging & data' ],
+	[ 'api', 'API monitoring' ],
+	[ 'advanced', 'Advanced' ],
+	[ 'debug', 'Debug' ],
+	[ 'io', 'Import & errors' ],
+] as const;
+
+const V6_SETTINGS: Screen[] = [
+	...SETTINGS_TABS.map(
+		( [ tab, name ] ): Screen => ( {
+			id: `v6-settings-${ tab }`,
+			title: `6.0 Settings › ${ name }`,
+			area: 'admin',
+			sites: 'both',
+			state: 'empty',
+			theme: 'both',
+			path: () => AREA( 'settings', 'general' === tab ? '' : tab ),
+			prepare: settingsReady,
+			visual: 'general' === tab ? { ...SETTINGS_VISUAL, mobile: true, dark: true } : SETTINGS_VISUAL,
+		} )
+	),
+	{
+		id: 'v6-settings-error-log',
+		title: '6.0 Settings › Import & errors with an error log',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: async ( zs ) => {
+			await zs.call( 'POST', 'error-log', { message: 'Zero Spam e2e: sample error log entry.' } );
+		},
+		path: () => AREA( 'settings', 'io' ),
+		prepare: async ( page ) => {
+			await settingsReady( page );
+			await page.locator( 'textarea#zs-errlog-box' ).waitFor();
+		},
+	},
+	{
+		id: 'v6-settings-unsaved',
+		title: '6.0 Settings › unsaved changes on two tabs',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		path: () => AREA( 'settings', 'data' ),
+		prepare: async ( page ) => {
+			await settingsReady( page );
+			await page.locator( '#zs-f-max_logs' ).fill( '5000' );
+			await page.locator( '#zs-st-debug' ).click();
+			await page.locator( '#zs-f-debug_ip' ).fill( '192.0.2.10' );
+			await page.locator( '.zs-savebar' ).waitFor();
+		},
+	},
+	{
+		id: 'v6-settings-proxies-error',
+		title: '6.0 Settings › Trusted proxies with dropped entries',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		path: () => AREA( 'settings', '', { section: 'proxies' } ),
+		prepare: async ( page ) => {
+			await settingsReady( page );
+			await page.locator( '#zs-f-trusted_proxies' ).fill( 'not-an-ip\n0.0.0.0/0' );
+			await page.locator( '.zs-savebar' ).getByRole( 'button', { name: 'Save changes' } ).click();
+			await page.locator( '#zs-e-trusted_proxies' ).waitFor();
+		},
+	},
+	{
+		id: 'v6-settings-locked',
+		title: '6.0 Settings on a subsite with locked and network-provided settings',
+		area: 'admin',
+		sites: 'multisite',
+		state: 'empty',
+		theme: 'both',
+		as: 'siteadmin',
+		before: async ( zs ) => {
+			await zs.networkSetting( 'share_data', 'enabled', true );
+			await zs.networkSetting( 'log_blocked_ips', 'enabled', true );
+			await zs.networkSetting( 'max_logs', 20000 );
+			await zs.networkSetting( 'alert_webhook_url', 'https://hooks.example.com/e2e-network-hook' );
+		},
+		path: ( t ) => subsiteURL( t, AREA( 'settings', 'data' ) ),
+		prepare: settingsReady,
+	},
+];
+
 const V6_NETWORK: Screen[] = [
 	{ id: 'v6-network', title: '6.0 Network (shell)', area: 'network', sites: 'multisite', state: 'empty', theme: 'both', path: () => AREA( 'network' ), prepare: areaReady },
 ];
@@ -377,7 +481,8 @@ const V6_NETWORK: Screen[] = [
 /**
  * Adds the dark twin of every screen that follows the theme ("both"): the
  * same screen under prefers-color-scheme dark (the default theme is
- * "auto"). Only Overview keeps a dark baseline (build plan decision 9).
+ * "auto"). Only the screens that ask for one (`visual.dark`) keep a dark
+ * baseline (build plan decision 9).
  *
  * @param screens Screens.
  */
@@ -401,7 +506,7 @@ function withDarkTwins( screens: Screen[] ): Screen[] {
 	} );
 }
 
-const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_AREAS, ...V6_NETWORK ] );
+const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_AREAS, ...V6_SETTINGS, ...V6_NETWORK ] );
 
 export const SCREENS: Screen[] = [
 	...settingsScreens,
