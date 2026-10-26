@@ -396,7 +396,10 @@ test.describe( "What's new in 6.0", () => {
 		await expect( open ).toBeFocused();
 
 		await page.keyboard.press( 'Enter' );
+		// The dismissal is saved in the background (ui/prefs): wait for it before reloading.
+		const saved = page.waitForResponse( ( r ) => /ui(%2F|\/)prefs/.test( r.url() ) && 'GET' !== r.request().method() );
 		await drawer.getByRole( 'button', { name: 'Got it' } ).click();
+		expect( ( await saved ).ok() ).toBe( true );
 		await expect( tile ).toHaveCount( 0 );
 		await expect( page.locator( '#zs-ov-h' ) ).toBeFocused();
 
