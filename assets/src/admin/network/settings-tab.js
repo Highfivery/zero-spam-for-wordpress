@@ -34,6 +34,10 @@ import { Badge, Button, Chip, Icon, cx } from '../app/primitives';
 import { UnsavedBar, useFeedback } from '../app/primitives/feedback';
 import { NS, request, useResource } from '../data/api';
 import {
+	focusIfEnabled,
+	useFocusAfterRender,
+} from '../app/use-focus-after-render';
+import {
 	PATHS,
 	lockToast,
 	networkCards,
@@ -225,6 +229,7 @@ export function NetworkSettings() {
 	const [ message, setMessage ] = useState( '' );
 	const [ saving, setSaving ] = useState( false );
 	const [ locking, setLocking ] = useState( '' );
+	const focusAfter = useFocusAfterRender();
 
 	const cards = useMemo(
 		() => networkCards( schema.data, layer.data ),
@@ -403,14 +408,21 @@ export function NetworkSettings() {
 						writeGroup( '' );
 					}
 					setOpen( new Set( [ ...open, card.key ] ) );
-					window.setTimeout(
+					// Once the card is open (and its group shown), its field takes focus; else the save bar explains.
+					focusAfter(
 						() =>
-							document
-								.querySelector(
+							focusIfEnabled(
+								document.querySelector(
 									`#zs-row-${ idOf( first ) } .zs-ctl :is(input, select, textarea, button)`
 								)
-								?.focus(),
-						60
+							),
+						() => {
+							const bar = document.querySelector( '.zs-savebar' );
+							if ( bar ) {
+								bar.setAttribute( 'tabindex', '-1' );
+								bar.focus();
+							}
+						}
 					);
 				}
 			} )

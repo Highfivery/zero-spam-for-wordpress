@@ -28,6 +28,10 @@ import { Badge, Button, Icon, cx } from '../app/primitives';
 import { Drawer } from '../app/primitives/drawer';
 import { useFeedback } from '../app/primitives/feedback';
 import { NS, boot, nowLocal, request, useResource } from '../data/api';
+import {
+	focusIfEnabled,
+	useFocusAfterRender,
+} from '../app/use-focus-after-render';
 import { day, num } from '../data/format';
 import {
 	PATHS,
@@ -110,6 +114,7 @@ function TemplateDrawer( {
 	const [ errors, setErrors ] = useState( {} );
 	const [ failure, setFailure ] = useState( '' );
 	const [ saving, setSaving ] = useState( false );
+	const focusAfter = useFocusAfterRender();
 	const sites = useResource(
 		'choose' === target ? PATHS.sites( siteSearch ) : null,
 		{ parse: false }
@@ -166,8 +171,8 @@ function TemplateDrawer( {
 		setFailure( '' );
 		if ( Object.keys( local ).length ) {
 			const first = Object.keys( local )[ 0 ];
-			window.requestAnimationFrame( () =>
-				document.getElementById( `zs-tp-${ first }` )?.focus()
+			focusAfter( () =>
+				focusIfEnabled( document.getElementById( `zs-tp-${ first }` ) )
 			);
 			return;
 		}

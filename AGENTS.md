@@ -374,7 +374,19 @@ bin/check-dist.sh --twice   # build twice and require byte-identical output
   files), so a test can render a component to markup with
   `react-dom/server`'s `renderToStaticMarkup()` after putting the answers
   it reads in `window.zeroSpamPreload` (`rules/test/render.test.js`, `protection/test/protection.test.js`); there
-  is no DOM, so effects and portals do not run.
+  is no DOM, so effects and portals do not run. A test that needs effects,
+  focus or events renders with `react-dom/client` in happy-dom (pinned dev
+  dependency) by starting the file with `// @vitest-environment happy-dom`
+  and wrapping updates in React's `act()`
+  (`protection/test/key-form-focus.test.js`).
+- **Moving focus after a state change** (a field enabled again, a tab shown,
+  a panel replaced): request it with `useFocusAfterRender()`
+  (`admin/app/use-focus-after-render.js`), which runs after the change is
+  committed and falls back when the target is missing or disabled. Never
+  focus in a `requestAnimationFrame` or a timer after a state update made
+  outside an event handler (a promise callback, an effect): React may
+  commit after the frame, `focus()` then hits a disabled or missing control
+  and focus falls to the body.
 - **Design tokens** are the only source of colour, type, radius, spacing,
   motion and layer values for 6.0 screens: `var(--zs-…)`, never a literal.
   Everything is scoped (`.zs-app`, `.zs-blocked`, `.zs-widget`, or a `zs-`

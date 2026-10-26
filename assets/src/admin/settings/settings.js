@@ -20,6 +20,7 @@ import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
  * Internal dependencies
  */
 import { useApp } from '../app/context';
+import { useFocusAfterRender } from '../app/use-focus-after-render';
 import { Field } from '../app/fields/fields';
 import { byKey, holdsValue, idOf } from '../app/fields/settings-model';
 import { useSettings } from '../app/fields/use-settings';
@@ -312,6 +313,7 @@ export function Settings() {
 	const settings = useSettings( schema );
 	const [ tab, setTab ] = useTab( 'general', TABS );
 	const opened = useRef( false );
+	const focusAfterRender = useFocusAfterRender();
 
 	const cards = useMemo( () => buildCards( schema.data ), [ schema.data ] );
 	const counts = useMemo(
@@ -340,10 +342,9 @@ export function Settings() {
 		if ( found.tab !== tab ) {
 			setTab( found.tab );
 		}
-		window.requestAnimationFrame( () =>
-			goTo( found.card, found.key, app.reduced )
-		);
-	}, [ schema.data, cards, tab, setTab, app.reduced ] );
+		// Once that tab is shown.
+		focusAfterRender( () => goTo( found.card, found.key, app.reduced ) );
+	}, [ schema.data, cards, tab, setTab, app.reduced, focusAfterRender ] );
 
 	const reloadAll = () => {
 		schema.reload();
@@ -400,12 +401,14 @@ export function Settings() {
 				if ( found && found.tab !== tab ) {
 					setTab( found.tab );
 				}
-				window.setTimeout( () => {
-					// A locked setting (disabled), or one shown in another area: the bar explains.
-					if ( ! found || ! goTo( found.card, first, app.reduced ) ) {
-						focusSaveBar();
-					}
-				}, 60 );
+				// Once that tab is shown (the save ran outside an event, so the change may render late).
+				// A locked setting (disabled), or one shown in another area: the bar explains.
+				focusAfterRender(
+					() =>
+						Boolean( found ) &&
+						goTo( found.card, first, app.reduced ),
+					focusSaveBar
+				);
 			} );
 	};
 

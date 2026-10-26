@@ -23,6 +23,10 @@ import { Button, Icon } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { networkTabs } from '../app/shell/shell';
 import { NS, boot, request, useResource } from '../data/api';
+import {
+	focusIfEnabled,
+	useFocusAfterRender,
+} from '../app/use-focus-after-render';
 import { num } from '../data/format';
 import { PATHS } from './model';
 import {
@@ -49,6 +53,7 @@ import { NetworkStats } from './stats';
  */
 function Tabs( { tab, setTab } ) {
 	const list = useRef( null );
+	const focusAfter = useFocusAfterRender();
 	const tabs = networkTabs();
 	const keys = tabs.map( ( [ k ] ) => k );
 
@@ -63,8 +68,10 @@ function Tabs( { tab, setTab } ) {
 		if ( next ) {
 			event.preventDefault();
 			setTab( next );
-			window.requestAnimationFrame( () =>
-				list.current?.querySelector( `#zs-nt-${ next }` )?.focus()
+			focusAfter( () =>
+				focusIfEnabled(
+					list.current?.querySelector( `#zs-nt-${ next }` )
+				)
 			);
 		}
 	};
@@ -111,7 +118,14 @@ function Overview( { setTab } ) {
 	const [ busy, setBusy ] = useState( false );
 	const [ result, setResult ] = useState( null );
 	const applyBtn = useRef( null );
+	const focusAfter = useFocusAfterRender();
 	const data = overview.data;
+	// The Apply button is shown again once the question is gone: focus it after that render.
+	const focusApply = () =>
+		focusAfter(
+			() => focusIfEnabled( applyBtn.current ),
+			() => document.getElementById( 'zs-net-body' )?.focus()
+		);
 
 	if ( ! data ) {
 		return (
@@ -167,7 +181,7 @@ function Overview( { setTab } ) {
 			.finally( () => {
 				setBusy( false );
 				setAsking( false );
-				window.requestAnimationFrame( () => applyBtn.current?.focus() );
+				focusApply();
 			} );
 	};
 
@@ -262,9 +276,7 @@ function Overview( { setTab } ) {
 						onYes={ apply }
 						onCancel={ () => {
 							setAsking( false );
-							window.requestAnimationFrame( () =>
-								applyBtn.current?.focus()
-							);
+							focusApply();
 						} }
 					/>
 				) : (
@@ -313,11 +325,13 @@ function Overview( { setTab } ) {
  */
 export function Network( { tab, setTab } ) {
 	const sites = Number( boot.network?.sites ) || 0;
+	const focusAfter = useFocusAfterRender();
 
+	// After the other tab is on screen, its panel takes focus.
 	const open = ( next ) => {
 		setTab( next );
-		window.requestAnimationFrame( () =>
-			document.getElementById( 'zs-net-body' )?.focus()
+		focusAfter( () =>
+			focusIfEnabled( document.getElementById( 'zs-net-body' ) )
 		);
 	};
 
