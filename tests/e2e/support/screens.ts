@@ -10,11 +10,16 @@
  *   blocked IPs; each spec prepares a state once before its group.
  * - `prepare`: what to do after the page loads (open a modal, expand a group).
  * - `visual`: whether a baseline is kept (true, or options).
+ * - `theme`: the 6.0 screens follow the user's theme; "both" (their default)
+ *   adds a dark twin (`{id}-dark`, prefers-color-scheme dark with the
+ *   "auto" theme) that is scanned too. Legacy screens are light only.
+ * - `level`: basic (default) or enhanced (a license key the canned API
+ *   accepts; set before the page opens, undone by the next state reset).
  */
 
 import type { Locator, Page } from '@playwright/test';
 
-import type { ZsApi } from './e2e-api';
+import type { Level, ZsApi } from './e2e-api';
 import { COMMENTS_POST_PATH } from './pages/front';
 import { subsiteURL, type Target } from './targets';
 
@@ -37,9 +42,29 @@ export interface Screen {
 	include?: string[];
 	/** Expected HTTP status (blocked pages answer 403). */
 	status?: number;
-	visual?: boolean | { mobile?: boolean; mask?: string[]; selector?: string };
+	visual?: boolean | { mobile?: boolean; mask?: string[]; selector?: string; dark?: boolean };
 	/** prefers-color-scheme to emulate (default: the fixtures' light). Screens that follow the OS add a dark twin. */
 	colorScheme?: 'light' | 'dark';
+	/** Themes scanned (6.0 screens): both (default for them) adds a `-dark` twin. */
+	theme?: 'light' | 'dark' | 'both';
+	/** Protection level the screen is shown with (default basic). */
+	level?: Level;
+}
+
+/**
+ * Address of a 6.0 admin page: an area (overview, activity, rules,
+ * protection, settings, help, or network for the network admin page), an
+ * optional tab and extra query arguments.
+ *
+ * @param area  Area.
+ * @param tab   Tab (?tab=).
+ * @param extra Extra query arguments.
+ */
+export function AREA( area: string, tab = '', extra: Record< string, string > = {} ): string {
+	const page = 'overview' === area ? 'zero-spam' : `zero-spam-${ area }`;
+	const base = 'network' === area ? 'wp-admin/network/admin.php' : 'wp-admin/admin.php';
+	const args = new URLSearchParams( { page, ...( tab ? { tab } : {} ), ...extra } );
+	return `${ base }?${ args.toString() }`;
 }
 
 const SETTINGS = 'wp-admin/options-general.php?page=wordpress-zero-spam-settings&subview=';
@@ -232,6 +257,152 @@ const FRONT_PAGES: Screen[] = [
 	},
 ];
 
+/**
+ * Overview parts that change between runs: relative times, the chart's
+ * day boundaries (seeded rows are dated relative to "now"), the 24-hour
+ * count (a row can sit right on the boundary), and the license and news
+ * check times.
+ */
+export const OVERVIEW_MASKS = [
+	'.zs-when',
+	'.zs-hero-meta',
+	'.zs-chartbox',
+	'.zs-axis-m',
+	'.zs-chart-foot',
+	'.zs-stat:first-child .zs-stat-v',
+	'.zs-count',
+	'.zs-week .zs-kv',
+	'.zs-news-upd .zs-hint',
+	'.zs-sysfoot .zs-hint',
+	'.zs-ni-pulse',
+	'.zs-lvl-pop dd',
+];
+
+/** Waits until the Overview has its data (the app replaced the skeleton). */
+const overviewReady = async ( page: Page ) => {
+	await page.locator( '#zs-ov-h' ).waitFor();
+	await page.locator( '.zs-zc, .zs-zc-member' ).first().waitFor( { state: 'attached' } );
+	await page.locator( '.zs-feed, .zs-feed-tile .zs-empty' ).first().waitFor();
+};
+
+/** Seeds 15 blocked visits that only the Zero Spam network caught (TEST-NET IPs). */
+export const seedNetworkCatches = async ( zs: ZsApi ) => {
+	await zs.seedLog( 15, { type: 'blocked', failed: 'zero_spam', ipPrefix: '192.0.2.', spacingMinutes: 180 } );
+};
+
+/** Waits until a placeholder area has rendered. */
+const areaReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+};
+
+const V6_OVERVIEW: Screen[] = [
+	{ id: 'v6-overview-empty', title: '6.0 Overview (fresh site)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'overview' ), prepare: overviewReady, visual: { mobile: true, mask: OVERVIEW_MASKS, selector: '#zerospam-app' } },
+	{ id: 'v6-overview-seeded', title: '6.0 Overview (Basic, with detections)', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'overview' ), prepare: overviewReady, visual: { mobile: true, dark: true, mask: OVERVIEW_MASKS, selector: '#zerospam-app' } },
+	{
+		id: 'v6-overview-enhanced',
+		title: '6.0 Overview (Enhanced, with detections)',
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		level: 'enhanced',
+		// 15 visits only the Zero Spam network caught (failed check zero_spam).
+		before: seedNetworkCatches,
+		path: () => AREA( 'overview' ),
+		prepare: overviewReady,
+		visual: { mobile: true, mask: [ ...OVERVIEW_MASKS, '.zs-hn-spark', '.zs-ni-spark', '.zs-spark-mini', '.zs-ni-tiles li:nth-child(3)' ], selector: '#zerospam-app' },
+	},
+	{
+		id: 'v6-overview-milestone',
+		title: '6.0 Overview › milestone and review ask',
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		path: () => AREA( 'overview' ),
+		// The tile shows from 100 threats in 30 days (the seeded state has 120).
+		prepare: overviewReady,
+		visual: { selector: '.zs-milestone' },
+	},
+	{
+		id: 'v6-overview-compare',
+		title: '6.0 Overview › Compare levels drawer',
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		path: () => AREA( 'overview' ),
+		prepare: async ( page ) => {
+			await overviewReady( page );
+			await page.locator( '.zs-zc-cta' ).click();
+			await page.locator( '.zs-drawer.zs-compare' ).waitFor();
+		},
+		visual: { selector: '.zs-drawer' },
+	},
+	{
+		id: 'v6-overview-level-popover',
+		title: '6.0 Overview › license health popover (Enhanced)',
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		level: 'enhanced',
+		path: () => AREA( 'overview' ),
+		prepare: async ( page ) => {
+			await overviewReady( page );
+			await page.locator( '.zs-topbar .zs-lvl-enh' ).click();
+			await page.locator( '.zs-topbar .zs-lvl-pop' ).waitFor();
+		},
+	},
+];
+
+/** The areas built in later PRs: the shell with a placeholder (Settings carries the display preferences). */
+const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings', 'help' ].map(
+	( area ): Screen => ( {
+		id: `v6-${ area }`,
+		title: `6.0 ${ area } (shell)`,
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		path: () => AREA( area ),
+		prepare: areaReady,
+	} )
+);
+
+const V6_NETWORK: Screen[] = [
+	{ id: 'v6-network', title: '6.0 Network (shell)', area: 'network', sites: 'multisite', state: 'empty', theme: 'both', path: () => AREA( 'network' ), prepare: areaReady },
+];
+
+/**
+ * Adds the dark twin of every screen that follows the theme ("both"): the
+ * same screen under prefers-color-scheme dark (the default theme is
+ * "auto"). Only Overview keeps a dark baseline (build plan decision 9).
+ *
+ * @param screens Screens.
+ */
+function withDarkTwins( screens: Screen[] ): Screen[] {
+	return screens.flatMap( ( screen ): Screen[] => {
+		if ( 'both' !== ( screen.theme ?? 'light' ) ) {
+			return [ screen ];
+		}
+		const options = 'object' === typeof screen.visual ? screen.visual : {};
+		return [
+			{ ...screen, theme: 'light' },
+			{
+				...screen,
+				id: `${ screen.id }-dark`,
+				title: `${ screen.title } (dark)`,
+				theme: 'dark',
+				colorScheme: 'dark',
+				visual: options.dark ? { mask: options.mask, selector: options.selector } : false,
+			},
+		];
+	} );
+}
+
+const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_AREAS, ...V6_NETWORK ] );
+
 export const SCREENS: Screen[] = [
 	...settingsScreens,
 	{
@@ -270,6 +441,9 @@ export const SCREENS: Screen[] = [
 		include: [ '.zerospam-promo-notice' ],
 		visual: { selector: '.zerospam-promo-notice' },
 	},
+
+	// The 6.0 admin (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json).
+	...V6_SCREENS,
 
 	// Network admin.
 	...[ 'overview', 'settings', 'templates', 'audit', 'comparison', 'import-export', 'notifications' ].map(

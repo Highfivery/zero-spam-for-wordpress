@@ -12,7 +12,8 @@ test.describe( 'Smoke', () => {
 	test( 'every Zero Spam admin screen loads without PHP notices', async ( { page, target, zs } ) => {
 		// About 30 screens in one test.
 		test.setTimeout( 180_000 );
-		const screens = screensFor( target ).filter( ( s ) => 'front' !== s.area && ! s.as && ! s.before );
+		// Screens that need a set-up (a role, data, a protection level) are covered by a11y.spec and visual.spec.
+		const screens = screensFor( target ).filter( ( s ) => 'front' !== s.area && ! s.as && ! s.before && ! s.level );
 		const problems: string[] = [];
 
 		for ( const screen of screens ) {

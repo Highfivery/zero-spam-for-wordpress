@@ -1,22 +1,37 @@
 /**
- * Zero Spam admin app (6.0). Placeholder entry point.
- *
- * Nothing enqueues this file yet, and it registers nothing: on a page that has
- * the app root (<div id="zerospam-app" class="zs-app">) it only labels it.
- * The admin screens arrive in later pull requests.
+ * Zero Spam admin app (6.0): mounts on the page shell printed by
+ * Admin_App::render_page() (<div id="zerospam-app" class="zs-app"
+ * data-area="…">). The area comes from the root; views inside an area are
+ * ?tab= arguments kept with the History API (data/routes.js).
  */
+
+/**
+ * WordPress dependencies
+ */
+import { createRoot } from '@wordpress/element';
 
 /**
  * Internal dependencies
  */
-import { getAppLabel } from './app-label';
+import { App } from './app/app';
 import './styles/index.css';
+
+const AREAS = [
+	'overview',
+	'activity',
+	'rules',
+	'protection',
+	'settings',
+	'help',
+	'network',
+];
 
 const root = document.getElementById( 'zerospam-app' );
 
 if ( root ) {
-	root.setAttribute(
-		'aria-label',
-		getAppLabel( root.dataset.version || '' )
-	);
+	const area = AREAS.includes( root.dataset.area )
+		? root.dataset.area
+		: 'overview';
+	root.textContent = '';
+	createRoot( root ).render( <App root={ root } area={ area } /> );
 }

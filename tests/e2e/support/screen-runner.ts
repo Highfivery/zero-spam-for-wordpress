@@ -29,6 +29,16 @@ export async function prepareState( zs: ZsApi, state: ScreenState ): Promise< vo
 }
 
 /**
+ * Whether a screen changes the site's state, so its group's state must be
+ * prepared again after it.
+ *
+ * @param screen Screen.
+ */
+export function changesState( screen: Screen ): boolean {
+	return Boolean( screen.before ) || 'enhanced' === screen.level;
+}
+
+/**
  * Opens a screen and returns the page showing it.
  *
  * @param screen         Screen.
@@ -47,6 +57,9 @@ export async function openScreen(
 	viewport?: { width: number; height: number }
 ): Promise< Page > {
 	const ip = visitorIp( testInfo, screen.id );
+	if ( 'enhanced' === screen.level ) {
+		await ctx.zs.setLevel( 'enhanced' );
+	}
 	if ( screen.before ) {
 		await screen.before( ctx.zs, ctx.target, ip );
 	}

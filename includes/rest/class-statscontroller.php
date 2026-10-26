@@ -24,7 +24,9 @@ defined( 'ABSPATH' ) || die();
  * detections by type, country and day, and how full the activity log is.
  *
  * Only detections count: log types in DB::NON_DETECTION_TYPES (rescue links)
- * are left out. Dates are in the site's time zone, as the log stores them.
+ * are left out. `network_only` counts the detections made by the Zero Spam
+ * network check (Enhanced Protection; see network_only_sql()): what Basic
+ * protection alone would have let through. Dates are in the site's time zone, as the log stores them.
  * Answers are cached in a transient tagged with the highest log ID, so a new
  * detection refreshes them at once; deletions through the REST API clear
  * them (flush_cache()).
@@ -90,6 +92,15 @@ class Stats_Controller extends Base_Controller {
 	 * @var int
 	 */
 	const DEFAULT_MAX_LOGS = 10000;
+
+	/**
+	 * Failed-check key the Zero Spam network check logs (since 6.0.0).
+	 * Before 6.0.0 it logged the sentence "High Confidence Score: N%"
+	 * instead, which network_only_sql() also recognises.
+	 *
+	 * @var string
+	 */
+	const NETWORK_FAILED = 'zero_spam';
 
 	/**
 	 * Registers the routes.
@@ -271,6 +282,7 @@ class Stats_Controller extends Base_Controller {
 		$start      = gmdate( 'Y-m-d H:i:s', $now - $range * DAY_IN_SECONDS );
 		$prev_start = gmdate( 'Y-m-d H:i:s', $now - 2 * $range * DAY_IN_SECONDS );
 		$detections = DB::detections_sql();
+		$network    = self::network_only_sql();
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Statistics of the plugin's own table, cached above; $detections is prepared by DB::detections_sql().
 
@@ -278,7 +290,8 @@ class Stats_Controller extends Base_Controller {
 		// types, the busiest day and the daily average, from one grouped read.
 		$days = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT DATE(date_recorded) AS day, log_type, SUM(date_recorded >= %s) AS current, COUNT(*) AS total FROM %i WHERE date_recorded >= %s AND {$detections} GROUP BY day, log_type LIMIT 10000",
+				"SELECT DATE(date_recorded) AS day, log_type, SUM(date_recorded >= %s) AS current, COUNT(*) AS total, SUM(date_recorded >= %s AND {$network}) AS network_current, SUM({$network}) AS network_total FROM %i WHERE date_recorded >= %s AND {$detections} GROUP BY day, log_type LIMIT 10000",
+				$start,
 				$start,
 				$table,
 				$prev_start
@@ -301,15 +314,19 @@ class Stats_Controller extends Base_Controller {
 
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-		$total    = 0;
-		$previous = 0;
-		$per_day  = array();
-		$per_type = array();
+		$total            = 0;
+		$previous         = 0;
+		$network          = 0;
+		$network_previous = 0;
+		$per_day          = array();
+		$per_type         = array();
 
 		foreach ( is_array( $days ) ? $days : array() as $row ) {
-			$current   = (int) $row['current'];
-			$total    += $current;
-			$previous += (int) $row['total'] - $current;
+			$current           = (int) $row['current'];
+			$total            += $current;
+			$previous         += (int) $row['total'] - $current;
+			$network          += (int) $row['network_current'];
+			$network_previous += (int) $row['network_total'] - (int) $row['network_current'];
 
 			if ( $current > 0 ) {
 				$per_day[ (string) $row['day'] ]       = ( $per_day[ (string) $row['day'] ] ?? 0 ) + $current;
@@ -366,6 +383,11 @@ class Stats_Controller extends Base_Controller {
 			'delta'          => $total - $previous,
 			'delta_percent'  => $previous > 0 ? round( ( $total - $previous ) / $previous * 100, 1 ) : null,
 			'daily_average'  => round( $total / $range, 1 ),
+			'network_only'   => array(
+				'total'          => $network,
+				'previous_total' => $network_previous,
+				'basic_total'    => $total - $network,
+			),
 			'by_type'        => $by_type,
 			'top_country'    => $top_countries[0] ?? null,
 			'top_countries'  => $top_countries,
@@ -388,11 +410,12 @@ class Stats_Controller extends Base_Controller {
 		$now        = (int) current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- The log stores site-local times.
 		$first_day  = gmdate( 'Y-m-d', $now - ( $range - 1 ) * DAY_IN_SECONDS );
 		$detections = DB::detections_sql();
+		$network    = self::network_only_sql();
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Statistics of the plugin's own table, cached above; $detections is prepared by DB::detections_sql().
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT DATE(date_recorded) AS day, log_type, COUNT(*) AS count FROM %i WHERE date_recorded >= %s AND {$detections} GROUP BY day, log_type LIMIT 5000",
+				"SELECT DATE(date_recorded) AS day, log_type, COUNT(*) AS count, SUM({$network}) AS network FROM %i WHERE date_recorded >= %s AND {$detections} GROUP BY day, log_type LIMIT 5000",
 				$table,
 				$first_day . ' 00:00:00'
 			),
@@ -413,9 +436,10 @@ class Stats_Controller extends Base_Controller {
 		for ( $i = $range - 1; $i >= 0; $i-- ) {
 			$date          = gmdate( 'Y-m-d', $now - $i * DAY_IN_SECONDS );
 			$days[ $date ] = array(
-				'date'    => $date,
-				'total'   => 0,
-				'by_type' => array(),
+				'date'         => $date,
+				'total'        => 0,
+				'network_only' => 0,
+				'by_type'      => array(),
 			);
 		}
 
@@ -430,6 +454,7 @@ class Stats_Controller extends Base_Controller {
 			$count = (int) $row['count'];
 
 			$days[ $date ]['total']           += $count;
+			$days[ $date ]['network_only']    += (int) $row['network'];
 			$days[ $date ]['by_type'][ $type ] = $count;
 			$seen[ $type ]                     = ( $seen[ $type ] ?? 0 ) + $count;
 		}
@@ -465,6 +490,54 @@ class Stats_Controller extends Base_Controller {
 			'days'   => array_values( $days ),
 			'hours'  => $hours,
 		);
+	}
+
+	/**
+	 * SQL condition (prepared) matching the detections the Zero Spam network
+	 * check made: blocked visits whose failed check is NETWORK_FAILED, or,
+	 * for rows logged before 6.0.0, the "High Confidence Score:" sentence in
+	 * English or in the site's language. A visit that another check (Stop
+	 * Forum Spam, Project Honeypot, the block list) also stopped is logged
+	 * once per check, so it is counted by the others too.
+	 */
+	public static function network_only_sql(): string {
+		return self::request_cache(
+			'network_only_sql',
+			static function (): string {
+				global $wpdb;
+
+				// Old rows hold the sentence in the language the site used when
+				// it logged them: English, the site language, and (for a user
+				// who reads the admin in another language) the user's.
+				$prefixes = array( 'High Confidence Score: ', self::legacy_prefix() );
+				if ( get_locale() !== determine_locale() && switch_to_locale( get_locale() ) ) {
+					$prefixes[] = self::legacy_prefix();
+					restore_previous_locale();
+				}
+				$prefixes = array_filter( $prefixes, static fn ( string $prefix ): bool => '' !== trim( $prefix ) );
+
+				// As DB::log() stores it: wp_json_encode() of the details.
+				$patterns = array( '%' . $wpdb->esc_like( '"failed":' . wp_json_encode( self::NETWORK_FAILED ) ) . '%' );
+				foreach ( array_unique( $prefixes ) as $prefix ) {
+					$patterns[] = '%' . $wpdb->esc_like( '"failed":' . substr( (string) wp_json_encode( $prefix ), 0, -1 ) ) . '%';
+				}
+
+				$likes = implode( ' OR ', array_fill( 0, count( $patterns ), '`submission_data` LIKE %s' ) );
+
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $likes holds only placeholders.
+				return $wpdb->prepare( "(`log_type` = %s AND ({$likes}))", array_merge( array( 'blocked' ), $patterns ) );
+			}
+		);
+	}
+
+	/**
+	 * The text before the score in the pre-6.0 sentence, in the current language.
+	 */
+	private static function legacy_prefix(): string {
+		/* translators: %s: The calculated confidence score. */
+		$parts = preg_split( '/%(\d+\$)?s/', __( 'High Confidence Score: %s%%', 'zero-spam' ) );
+
+		return is_array( $parts ) ? (string) $parts[0] : '';
 	}
 
 	/**

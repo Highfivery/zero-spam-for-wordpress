@@ -177,25 +177,70 @@ function clear_records( string $option ): void {
  */
 
 /**
+ * The canned zerospam.org article feed (RSS), so the news tile, the sidebar
+ * and the Help news have the same eight articles on every run. Fixed dates;
+ * "Incident Response" marks a security notice (News_Feed::SECURITY_CATEGORY).
+ *
+ * @return string RSS.
+ */
+function canned_feed(): string {
+	$articles = array(
+		array( 'AI Is Finding Critical Bugs Fast: Is Your Website Ready?', 'ai-found-vulnerabilities-website-owners', 'Fri, 23 Oct 2026 09:00:00 +0000', 'Site Security', 'AI tools found PHP2Shell and a Node.js flaw this month. What that means for site owners, and a plan for the next patch emergency.' ),
+		array( 'PHP2Shell Explained: What to Do Now (Live Updates)', 'php2shell-php-vulnerability-live-updates', 'Thu, 22 Oct 2026 15:00:00 +0000', 'Incident Response', 'A pair of critical PHP flaws lets attackers run code without logging in. Who is affected, and what to do, updated daily.' ),
+		array( 'A Fake Store Every 3 Minutes: How to Protect Your Brand', 'fake-online-stores-brand-clones', 'Thu, 22 Oct 2026 09:00:00 +0000', 'Site Security', 'Fake online stores copying real brands appear about every 3 minutes. How to find clones and report them.' ),
+		array( 'How to Stop Calendar Invite Phishing (2026)', 'stop-calendar-invite-phishing', 'Wed, 21 Oct 2026 09:00:00 +0000', 'Site Security', 'Fake meeting invites can land on your calendar even when the email is filtered. How to lock it down.' ),
+		array( 'Meta’s Muse AI Agent Is Filling Out Your Website Forms', 'meta-muse-ai-agent-website-forms', 'Tue, 20 Oct 2026 09:00:00 +0000', 'Spam Protection', 'An AI agent is hitting forms from cloud IPs without naming itself. Five decisions site owners should make now.' ),
+		array( 'Rank Math PRO 3.0.123 Malware: Check Your Update Time', 'rank-math-pro-3-0-123-malware', 'Mon, 19 Oct 2026 09:00:00 +0000', 'Incident Response', 'Some downloads carried malware in an 11-hour window on Oct 15–16. How to tell if your site got one.' ),
+		array( 'Ghostscript CVE-2026-39919: Check WordPress PDF Uploads', 'ghostscript-cve-2026-39919-wordpress-pdf-uploads', 'Wed, 14 Oct 2026 09:00:00 +0000', 'Incident Response', 'Crafted PDFs can corrupt memory when servers make thumbnails. How to check your uploads.' ),
+		array( 'Google Flags Fake Author Profiles: 5 Checks for Your Site', 'google-fake-author-profiles-ai-content', 'Mon, 12 Oct 2026 09:00:00 +0000', 'Spam Protection', 'Google now treats fake author profiles as deception. What changed, and five checks for your site.' ),
+	);
+
+	$items = '';
+	foreach ( $articles as $a ) {
+		$items .= sprintf(
+			'<item><title>%1$s</title><link>https://www.zerospam.org/%2$s/</link><pubDate>%3$s</pubDate><category><![CDATA[%4$s]]></category><description><![CDATA[%5$s]]></description></item>',
+			esc_xml( $a[0] ),
+			$a[1],
+			$a[2],
+			$a[3],
+			$a[4]
+		);
+	}
+
+	return '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Zero Spam</title><link>https://www.zerospam.org/articles/</link>' . $items . '</channel></rss>';
+}
+
+/**
  * Canned responses keyed by host (and path fragment).
+ *
+ * The license answer is a valid Business license (what a site on Enhanced
+ * Protection sees); a site is on Basic until a test saves a key.
  *
  * @param string $host Request host.
  * @param string $path Request path.
- * @return array|null Body array, or null when the host is not a known service.
+ * @return array|string|null Body array (sent as JSON), raw body string, or null when the host is not a known service.
  */
-function canned_body( string $host, string $path ): ?array {
+function canned_body( string $host, string $path ) {
 	if ( str_ends_with( $host, 'zerospam.org' ) ) {
 		if ( str_contains( $path, 'get-license' ) ) {
 			return array(
-				'license_key'       => 'e2e-license',
-				'queries_remaining' => 1000,
+				'license_key'         => 'e2e-license',
+				'product_id'          => 'ZEROSPAMBUSINESS',
+				'queries_limit'       => 50000,
+				'queries_made'        => 31200,
+				'queries_remaining'   => 18800,
+				'subscription_status' => 'active',
 			);
 		}
 		if ( str_contains( $path, 'v3/query' ) ) {
+			// The shape Zero_Spam::query() reads: a 200 status and a body_response.
 			return array(
-				'status' => 200,
-				'result' => array(),
+				'status'        => 200,
+				'body_response' => array( 'ip_addresses' => array() ),
 			);
+		}
+		if ( str_contains( $path, '/articles/feed' ) ) {
+			return canned_feed();
 		}
 		return array( 'status' => 'success' );
 	}
@@ -277,8 +322,8 @@ add_filter(
 		}
 
 		return array(
-			'headers'  => array( 'content-type' => 'application/json' ),
-			'body'     => (string) wp_json_encode( $body ),
+			'headers'  => array( 'content-type' => is_string( $body ) ? 'application/rss+xml; charset=UTF-8' : 'application/json' ),
+			'body'     => is_string( $body ) ? $body : (string) wp_json_encode( $body ),
 			'response' => array(
 				'code'    => 200,
 				'message' => 'OK',
@@ -767,6 +812,11 @@ function plugin_cron_hooks(): array {
 }
 
 /**
+ * Markup the crafted seed writes into log rows; it sets window.__zsXss if it ever runs.
+ */
+const CRAFTED_MARKUP = '<img src="x" onerror="window.__zsXss=1"><b>zs-crafted</b>';
+
+/**
  * Resets the current site's plugin state.
  *
  * @param string $preset defaults|recommended|baseline.
@@ -1167,12 +1217,50 @@ add_action(
 						reset_site( $preset );
 					}
 
+					// The 6.0 admin's per-user preferences (theme, live feed, dismissed
+					// tiles) and the cached news start fresh too.
+					delete_metadata( 'user', 0, 'zerospam_ui', '', true );
+					delete_site_transient( 'zerospam_news' );
+					delete_site_transient( 'zerospam_news_backoff' );
+
+					// level=enhanced: a saved license key (the canned answer is a valid
+					// Business license) with Enhanced Protection on; basic: no key.
+					$level = (string) ( $request->get_param( 'level' ) ?? 'basic' );
+					if ( 'enhanced' === $level && 'defaults' !== $preset && class_exists( '\ZeroSpam\Core\Utilities' ) ) {
+						\ZeroSpam\Core\Utilities::update_setting( 'zerospam_license', 'e2e-license' );
+						\ZeroSpam\Core\Utilities::update_setting( 'zerospam', 'enabled' );
+						delete_transient( 'zerospam_license_status' );
+						wp_cache_flush();
+					}
+
 					return new WP_REST_Response(
 						array(
 							'preset'  => $preset,
 							'network' => $network,
+							'level'   => 'enhanced' === $level ? 'enhanced' : 'basic',
 						)
 					);
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/ui-prefs',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$prefs = $request->get_param( 'prefs' );
+					if ( ! is_array( $prefs ) || ! $prefs ) {
+						delete_user_meta( get_current_user_id(), 'zerospam_ui' );
+						return new WP_REST_Response( array() );
+					}
+					$current = get_user_meta( get_current_user_id(), 'zerospam_ui', true );
+					$merged  = array_merge( is_array( $current ) ? $current : array(), $prefs );
+					update_user_meta( get_current_user_id(), 'zerospam_ui', $merged );
+
+					return new WP_REST_Response( $merged );
 				},
 			)
 		);
@@ -1211,6 +1299,7 @@ add_action(
 					$ip_prefix = (string) ( $request->get_param( 'ipPrefix' ) ?? '203.0.113.' );
 					$minutes   = max( 1, (int) ( $request->get_param( 'spacingMinutes' ) ?? 60 ) );
 					$fixed_ip  = (string) ( $request->get_param( 'ip' ) ?? '' );
+					$crafted   = rest_sanitize_boolean( $request->get_param( 'crafted' ) ?? false );
 					$locations = sample_locations();
 					$now       = time();
 
@@ -1224,6 +1313,13 @@ add_action(
 
 					for ( $i = 0; $i < $count; $i++ ) {
 						$loc = $locations[ $i % count( $locations ) ];
+						// crafted: markup written straight to the table (as an old or tampered row could hold) to prove the screens print it as text.
+						$row_failed = $failed;
+						if ( $crafted ) {
+							$row_failed = CRAFTED_MARKUP;
+							$loc[1]     = CRAFTED_MARKUP;
+							$loc[3]     = CRAFTED_MARKUP;
+						}
 						$wpdb->insert(
 							$wpdb->prefix . 'wpzerospam_log',
 							array(
@@ -1235,7 +1331,7 @@ add_action(
 								'submission_data' => wp_json_encode(
 									array(
 										'type'   => $type,
-										'failed' => $failed,
+										'failed' => $row_failed,
 										'seq'    => $i + 1,
 									)
 								),

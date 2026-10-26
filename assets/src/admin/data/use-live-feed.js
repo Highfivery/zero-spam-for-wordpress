@@ -1,0 +1,202 @@
+/**
+ * The Overview's live feed (build plan §6): polls `activity?since_id=` with
+ * the scheduler in poll.js while the tab is visible, the user has not
+ * paused it and they were active in the last 30 minutes. Under reduced
+ * motion new entries wait behind an "N new · Show" button instead of
+ * sliding in.
+ */
+
+/**
+ * WordPress dependencies
+ */
+import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
+import { boot, PATHS, request } from './api';
+import {
+	createIdleTracker,
+	createPoller,
+	detectionsOnly,
+	highestId,
+	IDLE_LIMIT,
+	pauseReason,
+	watchVisibility,
+} from './poll';
+
+const INPUT_EVENTS = [
+	'pointerdown',
+	'keydown',
+	'wheel',
+	'touchstart',
+	'mousemove',
+];
+
+/**
+ * @param {Object}                          options            Options.
+ * @param {Array}                           options.initial    Entries already shown (newest first), or undefined while loading.
+ * @param {boolean}                         options.userPaused The user's live_paused preference.
+ * @param {boolean}                         options.reduced    Animations are off.
+ * @param {(...args: unknown[]) => unknown} options.onNew      Receives every batch of new entries (counts, mark, announcements).
+ * @param {number}                          [options.keep]     Entries kept.
+ * @return {Object} { items, fresh, queued, showQueued, reason }.
+ */
+export function useLiveFeed( {
+	initial,
+	userPaused,
+	reduced,
+	onNew,
+	keep = 6,
+} ) {
+	const [ items, setItems ] = useState( [] );
+	const [ fresh, setFresh ] = useState( () => new Set() );
+	const [ queued, setQueued ] = useState( [] );
+	const [ hidden, setHidden ] = useState(
+		() => 'undefined' !== typeof document && document.hidden
+	);
+	const [ idle, setIdle ] = useState( false );
+	const poller = useRef( null );
+	const tracker = useRef( null );
+	const onNewRef = useRef( onNew );
+	const reducedRef = useRef( reduced );
+	onNewRef.current = onNew;
+	reducedRef.current = reduced;
+
+	const loaded = Array.isArray( initial );
+
+	useEffect( () => {
+		if ( loaded ) {
+			setItems(
+				detectionsOnly( initial, boot.nonDetectionTypes ).slice(
+					0,
+					keep
+				)
+			);
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- Seed once, when the first list arrives.
+	}, [ loaded ] );
+
+	const insert = useCallback(
+		( entries ) => {
+			setItems( ( list ) => [ ...entries, ...list ].slice( 0, keep ) );
+			setFresh( new Set( entries.map( ( e ) => e.id ) ) );
+		},
+		[ keep ]
+	);
+
+	// One poller for the page.
+	useEffect( () => {
+		if ( ! loaded ) {
+			return undefined;
+		}
+		poller.current = createPoller( {
+			sinceId: highestId( initial, 0 ),
+			fetch: ( since ) =>
+				request( { path: PATHS.since( since ), parse: false } ).then(
+					( response ) =>
+						response.json().then( ( list ) => ( {
+							items: list,
+							total: Number(
+								response.headers.get(
+									'X-ZeroSpam-New-Detections'
+								)
+							),
+						} ) )
+				),
+			onItems: ( all, total ) => {
+				const entries = detectionsOnly( all, boot.nonDetectionTypes );
+				// The server's count leaves non-detections out already.
+				const count = Math.max(
+					entries.length,
+					total - ( all.length - entries.length )
+				);
+				if ( ! entries.length && count <= 0 ) {
+					return;
+				}
+				onNewRef.current( entries, count );
+				if ( reducedRef.current ) {
+					setQueued( ( q ) => [ ...entries, ...q ] );
+				} else {
+					insert( entries );
+				}
+			},
+		} );
+		return () => poller.current?.stop();
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- Created once the first list is in.
+	}, [ loaded ] );
+
+	// Tab visibility and inactivity.
+	useEffect( () => {
+		tracker.current = createIdleTracker( { onChange: setIdle } );
+		const onInput = () => tracker.current.input();
+		const stopVisibility = watchVisibility( document, setHidden );
+		INPUT_EVENTS.forEach( ( e ) =>
+			window.addEventListener( e, onInput, { passive: true } )
+		);
+		const check = window.setInterval(
+			() => tracker.current.check(),
+			60000
+		);
+		return () => {
+			stopVisibility();
+			INPUT_EVENTS.forEach( ( e ) =>
+				window.removeEventListener( e, onInput )
+			);
+			window.clearInterval( check );
+		};
+	}, [] );
+
+	/** Restarts a feed the page paused (hidden tab, inactivity). */
+	const wake = useCallback( () => tracker.current?.wake(), [] );
+
+	/** True while a press still belongs to the input that woke the feed. */
+	const justWoke = useCallback(
+		() => Boolean( tracker.current?.justWoke() ),
+		[]
+	);
+
+	const reason = pauseReason( {
+		userPaused,
+		hidden,
+		idleFor: idle ? IDLE_LIMIT : 0,
+	} );
+
+	// Start, stop and resume as the conditions change. The first start waits
+	// one interval (the list was just loaded); a resume fetches at once.
+	const started = useRef( false );
+	useEffect( () => {
+		const p = poller.current;
+		if ( ! p ) {
+			return;
+		}
+		if ( null !== reason ) {
+			p.pause();
+		} else if ( started.current ) {
+			p.resume();
+		} else {
+			started.current = true;
+			p.start();
+		}
+	}, [ reason, loaded ] );
+
+	const showQueued = useCallback( () => {
+		setQueued( ( q ) => {
+			if ( q.length ) {
+				insert( q );
+			}
+			return [];
+		} );
+	}, [ insert ] );
+
+	return {
+		items,
+		fresh,
+		queued,
+		showQueued,
+		reason,
+		loaded,
+		wake,
+		justWoke,
+	};
+}

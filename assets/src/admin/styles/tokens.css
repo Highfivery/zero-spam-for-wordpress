@@ -105,7 +105,27 @@
 	--zs-halo: rgba(255, 41, 41, 0.34);
 	--zs-halo-0: rgba(255, 41, 41, 0);
 
+	/*
+	 * Dark surfaces and decoration (the same in both themes): the sidebar
+	 * card, the hero's fade, the Compare drawer's head, the milestone plaque.
+	 * Translucent variants are made with color-mix() where they are used.
+	 */
+	--zs-white: #fff;
+	--zs-dark-0: #0f0203;
+	--zs-dark-1: #140405;
+	--zs-dark-2: #1a0506;
+	--zs-dark-3: #2a0508;
+	--zs-dark-line: #3a1015;
+	--zs-dark-text: #e3c4c7;
+	--zs-dark-muted: #9ca3af;
+	--zs-ok-bright: #4ade80;
+	--zs-cta-bg: linear-gradient(180deg, #ff2929 0%, #e01414 28%, #c80303 72%, #be0000 100%);
+	--zs-plaque-bg: linear-gradient(135deg, #63000d, #be0000);
+	--zs-plaque-ink: #ffd9cb;
+	--zs-star: #e8a400;
+
 	/* Elevation */
+	--zs-shadow-ink: #1a0506;
 	--zs-shadow: 0 1px 2px rgba(26, 5, 6, 0.05), 0 10px 28px -16px rgba(26, 5, 6, 0.18);
 	--zs-glow: 0 6px 16px -8px rgba(190, 0, 0, 0.45);
 
@@ -286,6 +306,7 @@
 	--zs-spark: #ffa17c;
 	--zs-spark-fill: rgba(255, 161, 124, 0.14);
 	--zs-scan: #ffa17c;
+	--zs-shadow-ink: #000;
 	--zs-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 20px 40px -20px rgba(0, 0, 0, 0.6);
 	--zs-glow: 0 0 20px -5px rgba(255, 41, 41, 0.45);
 	--zs-focus: #ffa17c;
@@ -339,6 +360,7 @@
 		--zs-spark: #ffa17c;
 		--zs-spark-fill: rgba(255, 161, 124, 0.14);
 		--zs-scan: #ffa17c;
+		--zs-shadow-ink: #000;
 		--zs-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 20px 40px -20px rgba(0, 0, 0, 0.6);
 		--zs-glow: 0 0 20px -5px rgba(255, 41, 41, 0.45);
 		--zs-focus: #ffa17c;

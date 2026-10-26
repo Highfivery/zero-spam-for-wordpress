@@ -303,7 +303,9 @@ class Activity_Controller extends Base_Controller {
 
 	/**
 	 * Entries newer than `since_id`, newest first: one primary-key range read
-	 * and one query for the blocked state.
+	 * and one query for the blocked state. When the page is full, the
+	 * `X-ZeroSpam-New-Detections` header gives how many detections are newer
+	 * than `since_id` in all (one count).
 	 *
 	 * @param WP_REST_Request                                                                                       $request  Request.
 	 * @param array{type: string[], country: string[], ip: string[], after: string, before: string, search: string} $filters  Filters.
@@ -326,9 +328,27 @@ class Activity_Controller extends Base_Controller {
 			),
 			ARRAY_A
 		);
+		// A full page means there may be more: count the new detections
+		// (rescue rows left out, as statistics do), so the live counters
+		// stay right after a burst. One primary-key range count.
+		$new_count = null;
+		if ( is_array( $rows ) && count( $rows ) >= $per_page ) {
+			$detections = DB::detections_sql();
+			$new_count  = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(*) FROM %i WHERE `log_id` > %d AND {$detections}{$cond}",
+					array_merge( array( self::log_table(), $since_id ), $where['values'] )
+				)
+			);
+		}
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
-		return rest_ensure_response( $this->prepare_rows( is_array( $rows ) ? $rows : array(), $request ) );
+		$response = rest_ensure_response( $this->prepare_rows( is_array( $rows ) ? $rows : array(), $request ) );
+		if ( null !== $new_count ) {
+			$response->header( 'X-ZeroSpam-New-Detections', (string) $new_count );
+		}
+
+		return $response;
 	}
 
 	/**
