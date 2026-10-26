@@ -103,6 +103,28 @@ final class Admin_App {
 	);
 
 	/**
+	 * Tabs of the Settings page (`&tab=`), in order; the first is the default.
+	 *
+	 * @var string[]
+	 */
+	const SETTINGS_TABS = array( 'general', 'data', 'api', 'advanced', 'debug', 'io' );
+
+	/**
+	 * Cards of the Settings tabs that read a route of their own, by
+	 * `&section=` (assets/src/admin/settings/cards.js): the tab they are on.
+	 *
+	 * @var array<string, string>
+	 */
+	const SETTINGS_SECTIONS = array(
+		'proxies'         => 'advanced',
+		'trusted_proxies' => 'advanced',
+		'rescue'          => 'advanced',
+		'nolockout'       => 'advanced',
+		'io'              => 'io',
+		'errlog'          => 'io',
+	);
+
+	/**
 	 * The news route, preloaded when the news is on.
 	 *
 	 * @var string
@@ -289,7 +311,7 @@ final class Admin_App {
 			'before'
 		);
 
-		$preloaded = array_reduce( self::preload_paths( $area ), 'rest_preload_api_request', array() );
+		$preloaded = array_reduce( self::preload_paths( $area, self::view_args() ), 'rest_preload_api_request', array() );
 
 		wp_add_inline_script(
 			'wp-api-fetch',
@@ -312,12 +334,27 @@ final class Admin_App {
 	}
 
 	/**
+	 * The view the address asks for: the tab and the activity entry to open.
+	 *
+	 * @return array{tab: string, item: int}
+	 */
+	public static function view_args(): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only view state.
+		return array(
+			'tab'  => isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '',
+			'item' => isset( $_GET['item'] ) ? absint( wp_unslash( $_GET['item'] ) ) : 0,
+		);
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
 	 * The REST paths preloaded for an area.
 	 *
-	 * @param string $area Area.
+	 * @param string                          $area Area.
+	 * @param array{tab?: string, item?: int} $view View the address asks for (see view_args()).
 	 * @return string[]
 	 */
-	public static function preload_paths( string $area ): array {
+	public static function preload_paths( string $area, array $view = array() ): array {
 		$paths = 'network' === $area
 			? array( '/zero-spam/v1/ui/prefs' )
 			: self::SHELL_PRELOADS;
@@ -326,11 +363,67 @@ final class Admin_App {
 			$paths = array_merge( $paths, self::OVERVIEW_PRELOADS );
 		}
 
+		if ( 'settings' === $area ) {
+			$paths = array_merge( $paths, self::settings_preloads( $view['tab'] ?? '', self::section_arg() ) );
+		}
+
 		if ( News_Feed::is_enabled() ) {
 			$paths[] = self::NEWS_PRELOAD;
 		}
 
 		return $paths;
+	}
+
+	/**
+	 * The REST paths the Settings page reads on load: the settings schema
+	 * (every card) and the data of the tab the address opens, written
+	 * exactly as the app asks for them (the preload store is read by path).
+	 *
+	 * @param string $tab     Tab the address asks for (`&tab=`).
+	 * @param string $section Card or setting the address asks for (`&section=`), which picks the tab when there is none.
+	 * @return string[]
+	 */
+	public static function settings_preloads( string $tab = '', string $section = '' ): array {
+		if ( ! in_array( $tab, self::SETTINGS_TABS, true ) ) {
+			$tab = self::SETTINGS_SECTIONS[ $section ] ?? self::SETTINGS_TABS[0];
+		}
+
+		$paths = array( '/zero-spam/v1/settings/schema' );
+
+		if ( 'advanced' === $tab ) {
+			$paths[] = '/zero-spam/v1/rules/no-lockout';
+		} elseif ( 'io' === $tab ) {
+			$paths[] = '/zero-spam/v1/settings/error-log';
+		}
+
+		return $paths;
+	}
+
+	/**
+	 * The `&section=` (or `&card=`) the address asks for, as a key.
+	 */
+	private static function section_arg(): string {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only view state.
+		if ( isset( $_GET['section'] ) && is_string( $_GET['section'] ) ) {
+			return sanitize_key( wp_unslash( $_GET['section'] ) );
+		}
+
+		return isset( $_GET['card'] ) && is_string( $_GET['card'] ) ? sanitize_key( wp_unslash( $_GET['card'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Whether the always-on rescue key is set: ZEROSPAM_RESCUE_KEY holds
+	 * text, as Access reads it.
+	 *
+	 * @param mixed $key The key to judge (default: the constant's value).
+	 */
+	public static function rescue_key_set( $key = null ): bool {
+		if ( null === $key ) {
+			$key = defined( 'ZEROSPAM_RESCUE_KEY' ) ? constant( 'ZEROSPAM_RESCUE_KEY' ) : '';
+		}
+
+		return is_string( $key ) && '' !== trim( $key );
 	}
 
 	/**
@@ -361,11 +454,9 @@ final class Admin_App {
 			$urls[ $key ] = admin_url( 'admin.php?page=' . $slug );
 		}
 
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view state.
-
 		return array(
 			'area'              => $area,
-			'tab'               => $tab,
+			'tab'               => self::view_args()['tab'],
 			'version'           => ZEROSPAM_VERSION,
 			// Site-local "now" in milliseconds (read as UTC), so relative times match the log's site-local dates.
 			'nowLocal'          => ( time() + ( new \DateTimeImmutable( 'now', wp_timezone() ) )->getOffset() ) * 1000,
@@ -379,6 +470,8 @@ final class Admin_App {
 				'legacy'    => admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ),
 			),
 			'isMultisite'       => is_multisite(),
+			// What the Settings page shows besides the schema, on that page only.
+			'settings'          => 'settings' === $area ? array( 'rescueKey' => self::rescue_key_set() ) : null,
 			'newsEnabled'       => News_Feed::is_enabled(),
 			// Log types that are not detections (rescue links): left out of the live counts, as in statistics.
 			'nonDetectionTypes' => \ZeroSpam\Includes\DB::NON_DETECTION_TYPES,

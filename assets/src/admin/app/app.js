@@ -18,6 +18,7 @@ import { CompareDrawer } from './compare';
 import { Placeholder } from './placeholder';
 import { Shell, areaTitles, networkTabs } from './shell/shell';
 import { Overview } from '../overview/overview';
+import { Settings } from '../settings/settings';
 import { useTab } from '../data/routes';
 import { boot } from '../data/api';
 
@@ -46,9 +47,9 @@ function AreaView( { area } ) {
 					: undefined
 			}
 		>
-			{ 'overview' === area ? (
-				<Overview />
-			) : (
+			{ 'overview' === area && <Overview /> }
+			{ 'settings' === area && <Settings /> }
+			{ ! [ 'overview', 'settings' ].includes( area ) && (
 				<Placeholder
 					area={ area }
 					title={

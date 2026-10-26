@@ -9,3 +9,5 @@
 @import "./shell.css";
 @import "./overview.css";
 @import "./areas.css";
+@import "../app/fields/fields.css";
+@import "./settings.css";

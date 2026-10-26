@@ -1,0 +1,271 @@
+/**
+ * Settings (prototype v18): the parts of the area that are its own. The
+ * tabs, cards and settings rows come from app/fields/fields.css. Scoped to
+ * .zs-settings; values come from the design tokens only.
+ */
+
+/* Focused controls never hide under the sticky top bar, "On this page" or the unsaved bar (WCAG 2.4.11). */
+.zs-settings :is(a, button, input, select, textarea, summary, [tabindex]) {
+	scroll-margin-top: calc(var(--zs-wpbar-h) + 124px);
+	scroll-margin-bottom: 96px;
+}
+
+.zs-settings :is(.zs-pcard, .zs-setrow) {
+	scroll-margin-top: calc(var(--zs-wpbar-h) + 116px);
+}
+
+.zs-settings .zs-subnav {
+	margin-bottom: var(--zs-space-3);
+}
+
+.zs-settings .zs-notice > .zs-icon {
+	flex: none;
+	margin-top: 2px;
+}
+
+.zs-settings .zs-notice > div {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.zs-settings .zs-notice-ok {
+	border-color: transparent;
+	background: var(--zs-ok-soft);
+	color: var(--zs-ok-ink);
+}
+
+.zs-settings .zs-notice-info {
+	border-color: var(--zs-line);
+	background: var(--zs-surface-2);
+	color: var(--zs-ink);
+}
+
+.zs-settings .zs-netact {
+	margin-bottom: var(--zs-space-3);
+}
+
+/* Quota Reset Date: the next reset under the date control. */
+.zs-settings .zs-withnote > .zs-setrow {
+	padding-bottom: 6px;
+}
+
+.zs-settings .zs-subnote {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+	column-gap: 20px;
+	padding: 0 0 16px;
+}
+
+.zs-settings .zs-subnote-b {
+	display: flex;
+	grid-column: 2;
+	flex-wrap: wrap;
+	gap: var(--zs-space-2);
+	align-items: center;
+}
+
+/* Rescue mode */
+.zs-rescue {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-2);
+	padding: 16px 0 4px;
+}
+
+/* No-lockout addresses */
+.zs-nolock {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-3);
+	padding: 16px 0 4px;
+}
+
+.zs-nolock p {
+	margin: 0;
+}
+
+.zs-iplist {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--zs-space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.zs-iplist li {
+	display: inline-flex;
+	gap: var(--zs-space-2);
+	align-items: center;
+	min-height: var(--zs-control-sm);
+	padding: 2px 10px;
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-pill);
+	background: var(--zs-surface-2);
+	font-size: var(--zs-text-md);
+}
+
+/* System report */
+.zs-sysrep {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-3);
+	padding: 16px 0 4px;
+}
+
+.zs-sysrep p {
+	margin: 0;
+}
+
+.zs-sysrep-l {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 6px var(--zs-space-6);
+	margin: 0;
+}
+
+.zs-sysrep-l > .zs-sysrep-r {
+	display: flex;
+	gap: var(--zs-space-2);
+	justify-content: space-between;
+	padding: 6px 0;
+	border-bottom: 1px solid var(--zs-line);
+	font-size: var(--zs-text-md);
+}
+
+.zs-sysrep-l dt {
+	color: var(--zs-ink-2);
+}
+
+.zs-sysrep-l dd {
+	display: inline-flex;
+	gap: var(--zs-space-2);
+	align-items: center;
+	margin: 0;
+	font-weight: var(--zs-weight-bold);
+	text-align: right;
+}
+
+/* Import & errors */
+.zs-io {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--zs-space-6);
+	padding: 16px 0 4px;
+}
+
+.zs-errlog {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-3);
+	padding: 16px 0 4px;
+}
+
+.zs-settings .zs-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-2);
+	min-width: 0;
+}
+
+.zs-settings .zs-field p {
+	margin: 0;
+}
+
+.zs-settings .zs-lbl-strong {
+	font-size: var(--zs-text-base);
+	font-weight: var(--zs-weight-bold);
+}
+
+.zs-settings .zs-file {
+	max-width: 100%;
+	min-height: var(--zs-tap-min);
+	color: var(--zs-ink);
+	font: inherit;
+	font-size: var(--zs-text-md);
+}
+
+.zs-settings .zs-check {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: flex-start;
+	min-height: 24px;
+	font-size: var(--zs-text-md);
+	cursor: pointer;
+}
+
+.zs-settings .zs-check input {
+	flex: none;
+	width: 18px;
+	height: 18px;
+	margin: 2px 0 0;
+	accent-color: var(--zs-ink);
+}
+
+.zs-settings .zs-file:focus-visible,
+.zs-settings .zs-check input:focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
+.zs-settings .zs-empty-line {
+	padding: 12px;
+	border: 1px dashed var(--zs-control);
+	border-radius: var(--zs-radius-inner);
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-md);
+}
+
+.zs-imp-res {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-3);
+}
+
+.zs-imp-res[hidden] {
+	display: none;
+}
+
+.zs-imp-sum {
+	font-weight: var(--zs-weight-bold);
+}
+
+.zs-imp-g {
+	padding: 10px 12px;
+	border-left: 3px solid var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-surface-2);
+}
+
+.zs-imp-g ul {
+	margin: 6px 0 0;
+	padding-left: 18px;
+	font-size: var(--zs-text-md);
+}
+
+.zs-imp-ok {
+	border-left-color: var(--zs-ok);
+}
+
+.zs-imp-warn {
+	border-left-color: var(--zs-warn);
+}
+
+.zs-imp-err {
+	border-left-color: var(--zs-red);
+}
+
+/* Tablets and phones */
+@media (max-width: 760px) {
+
+	.zs-io,
+	.zs-sysrep-l,
+	.zs-settings .zs-subnote {
+		grid-template-columns: 1fr;
+	}
+
+	.zs-settings .zs-subnote-b {
+		grid-column: 1;
+	}
+}
