@@ -11,6 +11,7 @@ namespace ZeroSpam\Core\Admin;
 
 use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\News_Feed;
+use ZeroSpam\Includes\Rest\Rules_Controller;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -77,6 +78,20 @@ final class Admin_App {
 	const NETWORK_SLUG = 'zero-spam-network';
 
 	/**
+	 * Tabs of the Rules page (`&tab=`), in order; the first is the default.
+	 *
+	 * @var string[]
+	 */
+	const RULES_TABS = array( 'ips', 'locations', 'allowlist', 'email', 'words', 'no-lockout' );
+
+	/**
+	 * Rows per page of the Rules lists (assets/src/admin/rules/query.js).
+	 *
+	 * @var int
+	 */
+	const RULES_PER_PAGE = 50;
+
+	/**
 	 * REST paths preloaded on every site page (the shell: sidebar card,
 	 * level chip, theme, the Activity count and the status pill).
 	 *
@@ -108,6 +123,16 @@ final class Admin_App {
 	 * @var string
 	 */
 	const NEWS_PRELOAD = '/zero-spam/v1/news';
+
+	/**
+	 * JSON flags for data printed into inline scripts: `<`, `>` and `&` are
+	 * written as \u escapes, so logged text such as `</script>` or `<!--`
+	 * (preloaded activity entries carry what visitors sent) can never end
+	 * or change the script element.
+	 *
+	 * @var int
+	 */
+	const JSON_FLAGS = JSON_HEX_TAG | JSON_HEX_AMP;
 
 	/**
 	 * Hook suffixes of the registered pages, by area.
@@ -285,16 +310,16 @@ final class Admin_App {
 
 		wp_add_inline_script(
 			self::HANDLE,
-			'var zeroSpamAdmin = ' . wp_json_encode( $this->bootstrap( $area ) ) . ';',
+			'var zeroSpamAdmin = ' . wp_json_encode( $this->bootstrap( $area ), self::JSON_FLAGS ) . ';',
 			'before'
 		);
 
-		$preloaded = array_reduce( self::preload_paths( $area ), 'rest_preload_api_request', array() );
+		$preloaded = array_reduce( self::preload_paths( $area, self::view_args() ), 'rest_preload_api_request', array() );
 
 		wp_add_inline_script(
 			'wp-api-fetch',
 			// One copy: the middleware answers apiFetch, useResource() paints the first render from it.
-			sprintf( 'var zeroSpamPreload = %s; wp.apiFetch.use( wp.apiFetch.createPreloadingMiddleware( zeroSpamPreload ) );', wp_json_encode( $preloaded ) ),
+			sprintf( 'var zeroSpamPreload = %s; wp.apiFetch.use( wp.apiFetch.createPreloadingMiddleware( zeroSpamPreload ) );', wp_json_encode( $preloaded, self::JSON_FLAGS ) ),
 			'after'
 		);
 
@@ -312,15 +337,34 @@ final class Admin_App {
 	}
 
 	/**
+	 * The view the address asks for: the tab and the activity entry to open.
+	 *
+	 * @return array{tab: string, item: int}
+	 */
+	public static function view_args(): array {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only view state.
+		return array(
+			'tab'  => isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '',
+			'item' => isset( $_GET['item'] ) ? absint( wp_unslash( $_GET['item'] ) ) : 0,
+		);
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
 	 * The REST paths preloaded for an area.
 	 *
-	 * @param string $area Area.
+	 * @param string                          $area Area.
+	 * @param array{tab?: string, item?: int} $view View the address asks for (see view_args()).
 	 * @return string[]
 	 */
-	public static function preload_paths( string $area ): array {
+	public static function preload_paths( string $area, array $view = array() ): array {
 		$paths = 'network' === $area
 			? array( '/zero-spam/v1/ui/prefs' )
 			: self::SHELL_PRELOADS;
+
+		if ( 'rules' === $area ) {
+			$paths = array_merge( $paths, self::rules_preloads( $view ) );
+		}
 
 		if ( 'overview' === $area ) {
 			$paths = array_merge( $paths, self::OVERVIEW_PRELOADS );
@@ -331,6 +375,37 @@ final class Admin_App {
 		}
 
 		return $paths;
+	}
+
+	/**
+	 * The REST paths the Rules page reads on load: the settings schema (the
+	 * block method and location services the notes mention) and the first
+	 * page of the tab the address opens.
+	 *
+	 * The paths are written exactly as the app asks for them
+	 * (assets/src/admin/rules/query.js, firstPath()), because the page's
+	 * preload store is read by path.
+	 *
+	 * @param array{tab?: string, item?: int} $view View.
+	 * @return string[]
+	 */
+	public static function rules_preloads( array $view = array() ): array {
+		$tab   = in_array( $view['tab'] ?? '', self::RULES_TABS, true ) ? (string) $view['tab'] : self::RULES_TABS[0];
+		$lists = array(
+			'allowlist' => 'allowed-ips',
+			'email'     => 'email-domains',
+			'words'     => 'allowed-words',
+		);
+
+		if ( 'ips' === $tab || 'locations' === $tab ) {
+			$first = '/zero-spam/v1/rules/blocks?kind=' . ( 'ips' === $tab ? 'ip' : 'location' ) . '&per_page=' . self::RULES_PER_PAGE . '&orderby=date_added&order=desc';
+		} elseif ( isset( $lists[ $tab ] ) ) {
+			$first = '/zero-spam/v1/rules/lists/' . $lists[ $tab ] . '?per_page=' . self::RULES_PER_PAGE;
+		} else {
+			$first = '/zero-spam/v1/rules/no-lockout';
+		}
+
+		return array( '/zero-spam/v1/settings/schema', $first );
 	}
 
 	/**
@@ -361,11 +436,9 @@ final class Admin_App {
 			$urls[ $key ] = admin_url( 'admin.php?page=' . $slug );
 		}
 
-		$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view state.
-
 		return array(
 			'area'              => $area,
-			'tab'               => $tab,
+			'tab'               => self::view_args()['tab'],
 			'version'           => ZEROSPAM_VERSION,
 			// Site-local "now" in milliseconds (read as UTC), so relative times match the log's site-local dates.
 			'nowLocal'          => ( time() + ( new \DateTimeImmutable( 'now', wp_timezone() ) )->getOffset() ) * 1000,
@@ -377,8 +450,12 @@ final class Admin_App {
 				'network'   => is_multisite() && current_user_can( 'manage_network_options' ) ? network_admin_url( 'admin.php?page=' . self::NETWORK_SLUG ) : '',
 				'siteAdmin' => admin_url( 'admin.php?page=' . self::AREAS['overview'] ),
 				'legacy'    => admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ),
+				'flags'     => plugins_url( 'assets/img/flags/', ZEROSPAM ),
+				'ipLookup'  => ZEROSPAM_URL . 'ip-lookup/',
 			),
 			'isMultisite'       => is_multisite(),
+			// The Rules tabs' counts (one cheap query or option read each), on that page only.
+			'rules'             => 'rules' === $area ? array( 'counts' => Rules_Controller::counts() ) : null,
 			'newsEnabled'       => News_Feed::is_enabled(),
 			// Log types that are not detections (rescue links): left out of the live counts, as in statistics.
 			'nonDetectionTypes' => \ZeroSpam\Includes\DB::NON_DETECTION_TYPES,

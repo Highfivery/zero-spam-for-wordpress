@@ -346,6 +346,103 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
+	 * The Rules page preloads the settings schema and the first page of the
+	 * tab the address opens (the Blocked IPs by default), exactly as the app
+	 * asks for them, with real answers.
+	 */
+	public function test_rules_preloads_its_tab_and_the_schema(): void {
+		$expected = array(
+			''           => '/zero-spam/v1/rules/blocks?kind=ip&per_page=50&orderby=date_added&order=desc',
+			'ips'        => '/zero-spam/v1/rules/blocks?kind=ip&per_page=50&orderby=date_added&order=desc',
+			'locations'  => '/zero-spam/v1/rules/blocks?kind=location&per_page=50&orderby=date_added&order=desc',
+			'allowlist'  => '/zero-spam/v1/rules/lists/allowed-ips?per_page=50',
+			'email'      => '/zero-spam/v1/rules/lists/email-domains?per_page=50',
+			'words'      => '/zero-spam/v1/rules/lists/allowed-words?per_page=50',
+			'no-lockout' => '/zero-spam/v1/rules/no-lockout',
+			'bogus'      => '/zero-spam/v1/rules/blocks?kind=ip&per_page=50&orderby=date_added&order=desc',
+		);
+		foreach ( $expected as $tab => $path ) {
+			$this->assertSame( array( '/zero-spam/v1/settings/schema', $path ), Admin_App::rules_preloads( array( 'tab' => $tab ) ), "Tab \"{$tab}\"." );
+		}
+
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$this->block( '198.51.100.90' );
+		$_GET['tab'] = 'ips';
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-rules' );
+		unset( $_GET['tab'] );
+
+		$paths = $this->preloaded_paths();
+		foreach ( array_merge( Admin_App::SHELL_PRELOADS, Admin_App::rules_preloads( array( 'tab' => 'ips' ) ) ) as $path ) {
+			$this->assertContains( $path, $paths, "{$path} is preloaded on the Rules page." );
+		}
+		foreach ( Admin_App::OVERVIEW_PRELOADS as $path ) {
+			if ( '/zero-spam/v1/settings/schema' !== $path ) {
+				$this->assertNotContains( $path, $paths );
+			}
+		}
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( '198.51.100.90', $inline, 'The blocks answer is real.' );
+		$this->assertStringContainsString( '"X-WP-Total":"1"', $inline, 'With its total, for the count and the pages.' );
+	}
+
+	/**
+	 * The Rules tabs' counts come with the page (no request of their own);
+	 * other pages do not compute them.
+	 */
+	public function test_rules_bootstrap_carries_the_tab_counts(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$this->block( '198.51.100.91' );
+		$this->block( '198.51.100.92' );
+		$this->set_setting( 'ip_whitelist', "192.0.2.1\n192.0.2.2\n192.0.2.3" );
+
+		$app = $this->registered_app();
+		$this->assertSame( 2, $app->bootstrap( 'rules' )['rules']['counts']['ips'] );
+		$this->assertSame( 3, $app->bootstrap( 'rules' )['rules']['counts']['allowlist'] );
+		$this->assertNull( $app->bootstrap( 'overview' )['rules'] );
+	}
+
+	/**
+	 * What visitors and administrators typed (a block's reason) is printed
+	 * into the page's inline scripts with <, > and & escaped, so it can never
+	 * end the script element.
+	 */
+	public function test_rules_preloads_escape_markup(): void {
+		global $wpdb;
+
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$id = $this->block( '198.51.100.93' );
+		$wpdb->update( $wpdb->prefix . \ZeroSpam\Includes\DB::$tables['blocked'], array( 'reason' => '</script><script>alert(1)</script>' ), array( 'blocked_id' => $id ) );
+
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-rules' );
+		$inline = $this->inline( 'wp-api-fetch', 'after' ) . $this->inline( Admin_App::HANDLE, 'before' );
+
+		$this->assertStringContainsString( '198.51.100.93', $inline );
+		$this->assertStringNotContainsString( '</script>', $inline );
+		$this->assertStringNotContainsString( '<script>', $inline );
+		$this->assertStringContainsString( '\u003C\/script\u003E', $inline );
+	}
+
+	/**
+	 * The classic Blocked IPs and Blocked Locations screens stay reachable
+	 * while the 6.0 Rules page is on (they are redirected at the cutover).
+	 */
+	public function test_flag_on_keeps_the_legacy_blocked_screens(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+
+		( new \ZeroSpam\Core\Admin\Dashboard() )->admin_menu();
+		$this->registered_app();
+
+		$legacy = preg_grep( '/_page_wordpress-zero-spam-dashboard$/', array_keys( $GLOBALS['_registered_pages'] ) );
+		$this->assertNotEmpty( $legacy, 'The legacy dashboard (Blocked IPs and Locations subviews) is still registered.' );
+		$this->assertArrayHasKey( 'zero-spam_page_zero-spam-rules', $GLOBALS['_registered_pages'] );
+	}
+
+	/**
 	 * The news is preloaded when it is on.
 	 */
 	public function test_news_is_preloaded_when_on(): void {
