@@ -506,6 +506,56 @@ class Stats_Controller extends Base_Controller {
 			static function (): string {
 				global $wpdb;
 
+				// As DB::log() stores it: wp_json_encode() of the details.
+				$patterns = array( '%' . $wpdb->esc_like( '"failed":' . wp_json_encode( self::NETWORK_FAILED ) ) . '%' );
+				foreach ( self::legacy_network_prefixes() as $prefix ) {
+					$patterns[] = '%' . $wpdb->esc_like( '"failed":' . substr( (string) wp_json_encode( $prefix ), 0, -1 ) ) . '%';
+				}
+
+				$likes = implode( ' OR ', array_fill( 0, count( $patterns ), '`submission_data` LIKE %s' ) );
+
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $likes holds only placeholders.
+				return $wpdb->prepare( "(`log_type` = %s AND ({$likes}))", array_merge( array( 'blocked' ), $patterns ) );
+			}
+		);
+	}
+
+	/**
+	 * Whether a log entry is a detection the Zero Spam network made, as
+	 * network_only_sql() decides it for a row.
+	 *
+	 * @param string      $type   Log type.
+	 * @param string|null $failed Failed check (the `failed` key of the stored details).
+	 */
+	public static function is_network_detection( string $type, ?string $failed ): bool {
+		if ( 'blocked' !== $type || null === $failed ) {
+			return false;
+		}
+
+		if ( self::NETWORK_FAILED === $failed ) {
+			return true;
+		}
+
+		foreach ( self::legacy_network_prefixes() as $prefix ) {
+			if ( str_starts_with( $failed, $prefix ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * How the network check described its detections before 6.0.0: the
+	 * start of "High Confidence Score: N%", in English, the site's language
+	 * and the user's (computed once per request).
+	 *
+	 * @return string[]
+	 */
+	private static function legacy_network_prefixes(): array {
+		return self::request_cache(
+			'legacy_network_prefixes',
+			static function (): array {
 				// Old rows hold the sentence in the language the site used when
 				// it logged them: English, the site language, and (for a user
 				// who reads the admin in another language) the user's.
@@ -516,16 +566,7 @@ class Stats_Controller extends Base_Controller {
 				}
 				$prefixes = array_filter( $prefixes, static fn ( string $prefix ): bool => '' !== trim( $prefix ) );
 
-				// As DB::log() stores it: wp_json_encode() of the details.
-				$patterns = array( '%' . $wpdb->esc_like( '"failed":' . wp_json_encode( self::NETWORK_FAILED ) ) . '%' );
-				foreach ( array_unique( $prefixes ) as $prefix ) {
-					$patterns[] = '%' . $wpdb->esc_like( '"failed":' . substr( (string) wp_json_encode( $prefix ), 0, -1 ) ) . '%';
-				}
-
-				$likes = implode( ' OR ', array_fill( 0, count( $patterns ), '`submission_data` LIKE %s' ) );
-
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $likes holds only placeholders.
-				return $wpdb->prepare( "(`log_type` = %s AND ({$likes}))", array_merge( array( 'blocked' ), $patterns ) );
+				return array_values( array_unique( $prefixes ) );
 			}
 		);
 	}

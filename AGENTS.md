@@ -31,7 +31,7 @@ in the same PR.
 | `includes/class-plugin.php` | `Plugin::instance()` runs at include time: registers the autoloader, instantiates every module, registers REST routes. |
 | `includes/class-autoloader.php` | Custom SPL autoloader for `ZeroSpam\`: lowercases the class name, strips underscores, prefixes `class-`. `ZeroSpam\Modules\Zero_Spam` → `modules/class-zerospam.php`. New classes must follow this file-naming rule or they will not load. |
 | `core/` | `Access` (block checks on `template_redirect`, `login_init`, XML-RPC; rescue mode), `Settings` (registry built from the `zerospam_settings` filter), `Utilities`, `User::get_ip()`, `Rescue_Link` (emailed rescue link), `core/front/` (`Front\Block_Page`: the blocked, rescue, expired-link and comment-blocked pages, sent through `wp_die()` with its own document, inlined `assets/dist/blocked.css`, no JavaScript), `core/admin/` (settings page, dashboard, `WP_List_Table`s; `Dashboard_Widget`, the 6.0 site and network dashboard widgets rendered in PHP from `includes/templates/dashboard-widget.php` with a server-drawn `Sparkline`; `Icons::svg()` prints one symbol of `assets/dist/sprite.svg` as inline SVG for PHP-rendered screens; and `Admin_App`: the 6.0 admin's menu, pages, shell and assets behind the flag). |
-| `core/admin/class-adminapp.php`, `includes/templates/admin-app-shell.php` | The 6.0 admin, only while `Utilities::admin_v6()` is true (the `ZEROSPAM_ADMIN_V6` constant wins, otherwise the `zerospam_admin_v6` filter; off by default until the cutover): top-level "Zero Spam" menu at position 26 (below Comments) with six `manage_options` pages (`zero-spam`, `zero-spam-activity`, `-rules`, `-protection`, `-settings`, `-help`) and the network page `zero-spam-network` (`manage_network_options`). Each page prints the shell (icon sprite, `#zerospam-app.zs-app[data-area]` with a skeleton and a `<noscript>` message), enqueues `assets/dist/admin.js`/`.css` with the `.asset.php` dependencies and version, `wp_set_script_translations( 'zerospam-admin', 'zero-spam' )` and the fonts, and preloads its first REST responses (`Admin_App::SHELL_PRELOADS`, `OVERVIEW_PRELOADS`, the news) through `rest_preload_api_request` and `createPreloadingMiddleware`, so the Overview makes no request of its own on load. The theme and motion attributes come from `Utilities::display_prefs()` (the one place that resolves `ui/prefs`: "auto" follows the device on the plugin's screens and renders light elsewhere). The legacy screens stay registered until the cutover. |
+| `core/admin/class-adminapp.php`, `includes/templates/admin-app-shell.php` | The 6.0 admin, only while `Utilities::admin_v6()` is true (the `ZEROSPAM_ADMIN_V6` constant wins, otherwise the `zerospam_admin_v6` filter; off by default until the cutover): top-level "Zero Spam" menu at position 26 (below Comments) with six `manage_options` pages (`zero-spam`, `zero-spam-activity`, `-rules`, `-protection`, `-settings`, `-help`) and the network page `zero-spam-network` (`manage_network_options`). Each page prints the shell (icon sprite, `#zerospam-app.zs-app[data-area]` with a skeleton and a `<noscript>` message), enqueues `assets/dist/admin.js`/`.css` with the `.asset.php` dependencies and version, `wp_set_script_translations( 'zerospam-admin', 'zero-spam' )` and the fonts, and preloads its first REST responses (`Admin_App::SHELL_PRELOADS`, `OVERVIEW_PRELOADS`, the news) through `rest_preload_api_request` and `createPreloadingMiddleware`, so the Overview makes no request of its own on load; the Activity page preloads `Admin_App::activity_preloads()` (the heading count, then the log's first page and facets, or with `&tab=reports` the 30-day series and breakdown, plus an `&item=` entry), and those paths must stay identical to `activity/query.js` and `reports-data.js` (the middleware matches query arguments in any order, so only the set matters). The theme and motion attributes come from `Utilities::display_prefs()` (the one place that resolves `ui/prefs`: "auto" follows the device on the plugin's screens and renders light elsewhere). The legacy screens stay registered until the cutover. |
 | `includes/class-db.php` | Table definitions, `dbDelta` upgrades keyed on `zerospam_db_version`, `DB::log()`, `DB::query()`, `DB::blocked()`. |
 | `includes/class-migrations.php` | Run-once migrations tracked in `zerospam_completed_migrations`. Add one here for any data/option shape change. |
 | `includes/class-networksettings*.php`, `includes/admin/`, `includes/cli/`, `includes/rest/` | Multisite network settings, templates, stats, audit, notifications, REST controllers (`zero-spam/v1`), WP-CLI (`wp zerospam …`). |
@@ -39,7 +39,7 @@ in the same PR.
 | `includes/class-email.php` | `Includes\Email`: the one email template (HTML tables ≤ 600px, inline styles, the mark as coloured cells, no images) with a plain-text AltBody added by a one-shot `phpmailer_init` callback. The rescue link, API usage alerts and network notifications send through it; messages are data (`heading`, `blocks`), never markup. |
 | `modules/` | One directory or file per detection technique or integrated plugin. Third-party modules are only instantiated when that plugin is active (`includes/class-plugin.php`). |
 | `assets/` | Legacy (5.x) admin: hand-written CSS/JS (jQuery) in `assets/css/` and `assets/js/`, `assets/src/scss/admin.scss` compiled to `assets/css/admin.css` by hand (no build step for these), vendored Chart.js and jvectormap, flag images, `blacklist.txt`, `disposable-email-domains.txt`. Enqueue the plugin's own CSS/JS with `Utilities::asset_version( 'assets/…' )` as the version (file time with `SCRIPT_DEBUG`, else `ZEROSPAM_VERSION`); pinned vendored libraries keep their own version. |
-| `assets/src/`, `assets/dist/`, `webpack.config.js` | 6.0 admin front end, built with `@wordpress/scripts` (section 5, Front-end build). Sources in `assets/src/` (never shipped): entries `admin/index.js`, `network/index.js`, `widget-refresh/index.js` (the dashboard widget's Refresh: plain JS, no WordPress dependencies; `model.js` mirrors the PHP sparkline and figures, and both are tested with the same values) and `blocked/index.css` (CSS only); the admin app in `admin/` (`index.js` mounts `app/app.js` on `#zerospam-app` by `data-area`; `app/` the shell, the in-app sidebar and its lower block, the top bar and level chip, the Compare levels drawer, the mark controller and the primitives in `app/primitives/` (Button, Badge, Chip, Switch, Tile, Drawer, toasts with Undo, live regions, unsaved-changes bar); `data/` the REST client and bootstrap (`api.js`, paths exactly as preloaded), formatting, `?tab=` routing with the History API, theme resolution, and the live feed's scheduler (`poll.js`, `use-live-feed.js`); `overview/` the Overview and its pure chart mapper; areas not built yet render a placeholder inside the shell), React through `@wordpress/element` with the plugin's own components (no `@wordpress/components`); shared styles in `admin/styles/` (`primitives.css`, `shell.css`, `overview.css`, `areas.css` for the app, every selector under a `zs-` class; `tokens.css` design tokens scoped to `.zs-app` and `.zs-widget` with light, `data-zs-theme="dark"` and `"auto"`, plus `.zs-dark-block` for the hero and Enhanced Protection block; `base.css` reset, typography and reduced motion for `.zs-app`, `.zs-blocked`, `.zs-widget`; `logo.css` mark animation); `blocked/tokens.css` (the blocked pages' own minimal token subset, because `blocked.css` is inlined) and `blocked/page.css` (the pages' own reset and styles; it does not import `base.css`, to stay inside the 8 KB raw budget); `admin/icons/sprite.svg` (marks `zs-mark`, `zs-mark-flat`, `zs-mark-mono` and `zs-i-*` UI icons; no ids inside symbols, bricks are `.zs-b[data-i]`); Vitest tests in `**/test/*.test.js`. Output in `assets/dist/` (committed and shipped): `{entry}.js`, `{entry}.css`, `{entry}-rtl.css`, `{entry}.asset.php` (dependencies and version for enqueueing) and `sprite.svg`. Never edit `assets/dist/` by hand. |
+| `assets/src/`, `assets/dist/`, `webpack.config.js` | 6.0 admin front end, built with `@wordpress/scripts` (section 5, Front-end build). Sources in `assets/src/` (never shipped): entries `admin/index.js`, `network/index.js`, `widget-refresh/index.js` (the dashboard widget's Refresh: plain JS, no WordPress dependencies; `model.js` mirrors the PHP sparkline and figures, and both are tested with the same values) and `blocked/index.css` (CSS only); the admin app in `admin/` (`index.js` mounts `app/app.js` on `#zerospam-app` by `data-area`; `app/` the shell, the in-app sidebar and its lower block, the top bar and level chip, the Compare levels drawer, the mark controller and the primitives in `app/primitives/` (Button, Badge, Chip, Switch, Tile, Drawer, toasts with Undo, live regions, unsaved-changes bar); `data/` the REST client and bootstrap (`api.js`, paths exactly as preloaded), formatting, `?tab=` routing with the History API, theme resolution, and the live feed's scheduler (`poll.js`, `use-live-feed.js`); `overview/` the Overview and its pure chart mapper; `activity/` the Activity area: `query.js` (the log's view ⇄ REST paths and the address, the paths Admin_App preloads), `reports-data.js`, `details-data.js` and `undo.js` (pure, unit tested), `log.js` (filters, bulk bar, table from 1,200px and cards below, pages, the "N new" bar), `details.js` (the details drawer), `reports.js` and `column-chart.js` (keyboard-readable charts with a table); `app/block-form.js` (with `block-data.js`) is the shared Block IP / Edit block drawer; areas not built yet render a placeholder inside the shell), React through `@wordpress/element` with the plugin's own components (no `@wordpress/components`); shared styles in `admin/styles/` (`primitives.css`, `shell.css`, `overview.css`, `areas.css` for the app, every selector under a `zs-` class; `tokens.css` design tokens scoped to `.zs-app` and `.zs-widget` with light, `data-zs-theme="dark"` and `"auto"`, plus `.zs-dark-block` for the hero and Enhanced Protection block; `base.css` reset, typography and reduced motion for `.zs-app`, `.zs-blocked`, `.zs-widget`; `logo.css` mark animation); `blocked/tokens.css` (the blocked pages' own minimal token subset, because `blocked.css` is inlined) and `blocked/page.css` (the pages' own reset and styles; it does not import `base.css`, to stay inside the 8 KB raw budget); `admin/icons/sprite.svg` (marks `zs-mark`, `zs-mark-flat`, `zs-mark-mono` and `zs-i-*` UI icons; no ids inside symbols, bricks are `.zs-b[data-i]`); Vitest tests in `**/test/*.test.js`. Output in `assets/dist/` (committed and shipped): `{entry}.js`, `{entry}.css`, `{entry}-rtl.css`, `{entry}.asset.php` (dependencies and version for enqueueing) and `sprite.svg`. Never edit `assets/dist/` by hand. |
 | `assets/fonts/` | Self-hosted Plus Jakarta Sans and JetBrains Mono (variable woff2, Latin and Latin Extended), `fonts.css` (`@font-face`, shipped as is) and each family's `OFL.txt`. Sources, versions and checksums in `assets/fonts/FONTS.md`. |
 | `assets/img/zero-spam-mark.svg`, `assets/img/zero-spam-menu-icon.svg` | The 6.0 mark (treatment B "Live core") on a 256 × 256 artboard (gradient ids prefixed `zs-mark-`), and the 20 × 20 one-colour admin menu icon with explicit `fill="#a7aaad"` attributes, which WordPress's svg-painter rewrites per colour scheme (`currentColor` does not work in a base64 data URI). Not used yet; `assets/img/icon.svg` is still the 5.x logo the legacy screens show. |
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
@@ -88,7 +88,11 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   `DB_VERSION` bump.
 - Logged submission data is sanitized on write (keys and values) and must be
   escaped on read: it has carried a stored XSS before (CVE-2026-96752).
-  The REST routes (`activity/{id}`) return it as stored; the client escapes.
+  The REST routes (`activity/{id}`) return it as stored; the client escapes
+  (JSX text only, never `dangerouslySetInnerHTML`). Data printed into an
+  inline script (the app's bootstrap and preloaded answers) is encoded with
+  `Admin_App::JSON_FLAGS` (`JSON_HEX_TAG | JSON_HEX_AMP`), so logged text
+  such as `</script>` or `<!--` cannot end or change the script.
 - The dashboard widgets (6.0, `feat/dashboard-widget`) read the site's
   figures from `Stats_Controller::timeseries_data()` (the same cache as
   `GET stats/timeseries`) and the network's from every site's log table (one
@@ -117,6 +121,14 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   minutes in `zerospam_undo_{token}` (`Includes\Undo_Store`, at most 500 rows,
   bound to the user and the site, single use). The live feed (`activity?since_id=`)
   must stay at three queries or fewer and never build the settings registry.
+  `activity` also takes `no_count` (no COUNT and no paging headers, for
+  lists that are not paged: the Overview's latest blocks and the widget's
+  Refresh), `days` (last N days of the site's calendar, as
+  `stats/timeseries` counts them), `detections_only` and `network_only`;
+  rows carry `network` (`Stats_Controller::is_network_detection()`, the
+  row-level twin of `network_only_sql()`), facets carry `network_only` and
+  `max_id` (where a filtered live feed starts), and `activity/{id}` carries
+  `allowed` (`Rules_Controller::is_allowed_ip()`, no settings registry).
   The self-test runs real checks inside `Access::intercept_termination()`,
   which makes `terminate_execution()` and every `Front\Block_Page` page throw
   (caught) instead of sending a page or headers; use it for any dry run.
@@ -273,7 +285,8 @@ bin/check-dist.sh --twice   # build twice and require byte-identical output
   temporary directory; refuses the push when that build differs from
   `assets/dist/` in any byte; checks that the admin bundle kept its
   `zero-spam` strings and `translators:` comments; and enforces the budgets
-  (KB = 1,024 bytes): gzip -9 admin JS 75, admin CSS 25, network JS 40,
+  (KB = 1,024 bytes): gzip -9 admin JS 110 (temporarily, until the
+  per-area entry split; it was 75), admin CSS 25, network JS 40,
   network CSS 25, widget JS 6 and CSS 6; raw `blocked.css` and
   `blocked-rtl.css` 8 each (inlined into every blocked response); fonts
   (woff2 as stored) 110. `sprite.svg` is reported without a budget.
@@ -493,7 +506,10 @@ npm run env:stop                 # stop both wp-env sites
   context runs with reduced motion; `specs/admin-v6.spec.ts` covers the
   shell's keyboard paths and measures an idle Overview's main-thread time
   (Chrome DevTools Protocol TaskDuration over 10 s: at most 0.3 s animated,
-  0.05 s reduced).
+  0.05 s reduced). `specs/activity.spec.ts` covers the Activity area
+  (no requests on load, filters, sorting, the drawer's focus paths, Undo,
+  the stored-XSS fixture through the mu-plugin's `seed-log` `data`
+  argument, cards at 375px, the live bar, Reports).
 
 ## 6. Local environment
 
@@ -664,8 +680,10 @@ npm run env:stop                 # stop both wp-env sites
   - `core/admin/tables/class-logtable.php`: the Actions column runs one
     blocked-IP query per row (about 50 per page); a page past the end shows
     "No items found" with no pagination. `GET activity` (6.0) resolves the
-    blocked state with one query per page and serves the last page instead;
-    the legacy table stays as it is until the cutover.
+    blocked state with one query per page and serves the last page instead
+    (PHPUnit `test-rest-activity.php`; the 6.0 Activity screen's page clamp
+    in `specs/activity.spec.ts`); the legacy table stays as it is until the
+    cutover.
   - `core/class-settings.php` `update_blocked_email_domains()` (the legacy
     "Use Blocked Email Domains Recommendation" link) rewrites the whole
     `zero-spam-settings` option with resolved values, which on a network
@@ -763,3 +781,14 @@ npm run env:stop                 # stop both wp-env sites
   but never created.
 - Release pitfall: in March 2026 a release shipped as 5.5.8 instead of 5.7.8.
   `composer version:check` exists because of it.
+- Follow-up for PR 13: `rules/blocks` and `rules/blocks/bulk` accept
+  loopback (127.0.0.1, ::1) and private ranges as blocked addresses (as the
+  5.x screens do); decide whether to refuse them.
+- Follow-up chore after PR 8 (6.0 admin): split `assets/dist/admin.js` into
+  per-area entry points (one bundle per page, shared code in a common
+  entry, translations per handle) and bring the admin JS budget in
+  `bin/check-dist.sh` back from the temporary 110 KB to 75 KB gz.
+- 6.0 area baselines (policy since PR 5): capture `.zs-areabody` only (the
+  shell is covered by the Overview baselines), 782px for one key screen per
+  area, one dark 1280px screen per area, 8–10 seeded rows (a screen's own
+  `before`), table and card text hidden by `tests/e2e/support/visual.css`.
