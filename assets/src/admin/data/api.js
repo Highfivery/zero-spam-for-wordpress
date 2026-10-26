@@ -22,6 +22,8 @@ export const PATHS = {
 	modules: `${ NS }/protection/modules`,
 	activity: `${ NS }/activity?per_page=6`,
 	news: `${ NS }/news`,
+	helpDocs: `${ NS }/ui/help/docs`,
+	onboarding: `${ NS }/ui/onboarding`,
 	since: ( id ) =>
 		`${ NS }/activity?since_id=${ Number( id ) || 0 }&per_page=20&_fields=id,date,type,type_label,ip,country,country_name,failed,failed_label`,
 };
@@ -37,6 +39,9 @@ export const boot = Object.assign(
 		urls: {},
 		isMultisite: false,
 		newsEnabled: true,
+		onboarding: false,
+		safeIp: '',
+		whatsNew: '',
 		environment: { wordpress: '', php: '', ipSource: 'direct' },
 	},
 	typeof window !== 'undefined' ? window.zeroSpamAdmin || {} : {}

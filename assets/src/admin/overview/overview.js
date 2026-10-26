@@ -41,6 +41,7 @@ import {
 import { Spark } from './spark';
 import { ThreatsChart } from './chart';
 import { HeroWall } from './hero-wall';
+import { WhatsNewTile } from '../whats-new/whats-new';
 import {
 	EnhancedTile,
 	LatestBlocks,
@@ -499,6 +500,7 @@ export function Overview() {
 					summary={ s30.data }
 					days={ days }
 				/>
+				<WhatsNewTile />
 				{ enhanced && (
 					<NetworkPanel summary={ s30.data } days={ days } />
 				) }
