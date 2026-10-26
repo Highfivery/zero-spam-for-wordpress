@@ -48,3 +48,10 @@
 .zs-hero-art {
 	visibility: hidden !important;
 }
+
+/* Rules: table-body text and the cards' meta lines carry dates seeded
+   relative to "now"; hide the text, keep the layout, badges and buttons. */
+.zs-rules-t tbody td,
+.zs-rules .zs-cm-m {
+	color: transparent !important;
+}
