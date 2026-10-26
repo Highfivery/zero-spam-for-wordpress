@@ -865,6 +865,15 @@ npm run env:stop                 # stop both wp-env sites
 - Follow-up for PR 13: `rules/blocks` and `rules/blocks/bulk` accept
   loopback (127.0.0.1, ::1) and private ranges as blocked addresses (as the
   5.x screens do); decide whether to refuse them.
+- Follow-up (6.0 admin build): split the area CSS per entry point. Every
+  `admin-{area}.css` is still all of `styles/index.css` (the same file under
+  seven URLs, so pages cannot share a cached copy). `settings.css` and
+  `protection.css` are only used by their own areas and can move into their
+  entries; `overview.css`, `activity.css`, `rules.css`, `areas.css` and
+  `app/fields/fields.css` hold rules other areas or the shared drawers use
+  (`.zs-legend`, `.zs-wk-*`, `.zs-newbar`, `.zs-cards`, `.zs-pcard`, `.zs-dh`,
+  `.zs-netnote` …), so moving them changes the cascade and needs the visual
+  baselines re-checked on every area.
 - 6.0 area baselines (policy since PR 5): capture `.zs-areabody` only (the
   shell is covered by the Overview baselines), 782px for one key screen per
   area, one dark 1280px screen per area, 8–10 seeded rows (a screen's own
