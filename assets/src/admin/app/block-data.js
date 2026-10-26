@@ -52,18 +52,46 @@ export function initialValues( block, ip, now, shift ) {
 }
 
 /**
- * The request body (times without an offset are the site's time).
+ * The first values of the location form: as initialValues(), with the
+ * location type (a country by default) and the location instead of an
+ * address.
+ *
+ * @param {Object|null} block Location block being changed, or null.
+ * @param {number}      now   Site-local now in milliseconds (read as UTC).
+ * @param {number}      shift Site time minus browser time, in milliseconds.
+ * @return {{key_type: string, key: string, type: string, reason: string, start: string, end: string}} Values.
+ */
+export function initialLocationValues( block, now, shift ) {
+	const { ip, ...rest } = initialValues( block, '', now, shift );
+	return {
+		key_type: block?.key_type || 'country_code',
+		key: block ? block.key || '' : ip,
+		...rest,
+	};
+}
+
+/**
+ * The request body (times without an offset are the site's time). Values
+ * with a `key_type` are a location block (initialLocationValues()).
  *
  * @param {Object} values Values.
  * @return {Object} Body.
  */
 export function blockBody( values ) {
-	const body = {
-		kind: 'ip',
-		ip: values.ip.trim(),
-		type: values.type,
-		reason: values.reason.trim(),
-	};
+	const body = values.key_type
+		? {
+				kind: 'location',
+				key_type: values.key_type,
+				key: values.key.trim(),
+				type: values.type,
+				reason: values.reason.trim(),
+			}
+		: {
+				kind: 'ip',
+				ip: values.ip.trim(),
+				type: values.type,
+				reason: values.reason.trim(),
+			};
 	if ( values.start ) {
 		body.start = values.start;
 	}
