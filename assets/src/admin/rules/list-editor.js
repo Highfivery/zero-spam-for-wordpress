@@ -261,6 +261,8 @@ export function ConfirmAction( {
  * @param {{add: string[], remove: string[]}} props.draft       Unsaved changes.
  * @param {(...args: unknown[]) => unknown}   props.setDraft    Receives the new draft.
  * @param {string}                            [props.saveError] Error of the last save.
+ * @param {boolean}                           [props.custom]    "Customize for this site" was chosen (kept by the area).
+ * @param {(...args: unknown[]) => unknown}   [props.setCustom] Receives true when it is chosen.
  * @param {(...args: unknown[]) => unknown}   props.onCount     Receives the number of entries.
  * @param {(...args: unknown[]) => unknown}   props.onReload    Receives the reload function (after a save).
  * @param {(...args: unknown[]) => unknown}   [props.onState]   Receives the list's { locked, source, min_length }.
@@ -271,6 +273,8 @@ export function ListEditor( {
 	draft,
 	setDraft,
 	saveError = '',
+	custom = false,
+	setCustom = () => {},
 	onCount,
 	onReload,
 	onState,
@@ -281,7 +285,6 @@ export function ListEditor( {
 	const [ view, setView ] = useState( { search: '', page: 1 } );
 	const [ text, setText ] = useState( '' );
 	const [ error, setError ] = useState( '' );
-	const [ custom, setCustom ] = useState( false );
 	const searchRef = useRef( null );
 	const addRef = useRef( null );
 	const ids = `zs-le-${ list }`;

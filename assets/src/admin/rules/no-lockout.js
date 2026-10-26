@@ -9,7 +9,7 @@
  * WordPress dependencies
  */
 import { __, sprintf } from '@wordpress/i18n';
-import { useEffect } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -19,7 +19,7 @@ import { useFeedback } from '../app/primitives/feedback';
 import { request, useResource } from '../data/api';
 import { num } from '../data/format';
 import { errorMessage } from '../activity/undo';
-import { removeNoLockout } from './actions';
+import { lockoutWarning, removeNoLockout } from './actions';
 import { EmptyState } from './parts';
 import { NO_LOCKOUT_PATH } from './query';
 
@@ -42,9 +42,33 @@ export function NoLockout( { onCount, panel } ) {
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- onCount is a setter.
 	}, [ loaded, items.length ] );
 
-	const remove = ( ip ) => {
+	// The address waiting for "Remove anyway", and what removing it does.
+	const [ asking, setAsking ] = useState( null );
+	const confirmRef = useRef( null );
+
+	useEffect( () => {
+		if ( asking ) {
+			confirmRef.current?.focus();
+		}
+	}, [ asking ] );
+
+	const remove = ( item, confirm = false ) => {
+		const warning = confirm ? '' : lockoutWarning( item );
+		if ( warning ) {
+			setAsking( { ip: item.ip, message: warning } );
+			return;
+		}
+		setAsking( null );
 		window.requestAnimationFrame( () => panel?.current?.focus() );
-		removeNoLockout( { ip, request, toast, refresh: res.reload } );
+		removeNoLockout( {
+			ip: item.ip,
+			confirm,
+			request,
+			toast,
+			refresh: res.reload,
+			// The list was out of date: the server asks for the same confirmation.
+			onLockout: ( message ) => setAsking( { ip: item.ip, message } ),
+		} );
 	};
 
 	return (
@@ -97,10 +121,68 @@ export function NoLockout( { onCount, panel } ) {
 											</Badge>
 										</span>
 									) }
+									{ item.current && item.blocked && (
+										<span className="zs-hint">
+											<Badge tone="danger" icon="ban">
+												{ __( 'Blocked', 'zero-spam' ) }
+											</Badge>{ ' ' }
+											{ __(
+												'This list is what keeps you in: removing it locks you out.',
+												'zero-spam'
+											) }
+										</span>
+									) }
+									{ asking?.ip === item.ip && (
+										<div
+											className="zs-confirm-q zs-lockout-q"
+											role="group"
+											aria-labelledby={ `zs-nl-q-${ item.ip }` }
+										>
+											<span id={ `zs-nl-q-${ item.ip }` }>
+												{ asking.message }
+											</span>
+											<span className="zs-inline-row">
+												<Button
+													ref={ confirmRef }
+													variant="secondary"
+													size="sm"
+													onClick={ () =>
+														remove( item, true )
+													}
+												>
+													{ __(
+														'Remove anyway',
+														'zero-spam'
+													) }
+												</Button>
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={ () => {
+														setAsking( null );
+														window.requestAnimationFrame(
+															() =>
+																document
+																	.querySelector(
+																		`[data-zs-remove="${ item.ip }"]`
+																	)
+																	?.focus()
+														);
+													} }
+												>
+													{ __(
+														'Cancel',
+														'zero-spam'
+													) }
+												</Button>
+											</span>
+										</div>
+									) }
 								</div>
 								<Button
 									variant="ghost"
 									size="sm"
+									data-zs-remove={ item.ip }
 									aria-label={ sprintf(
 										/* translators: %s: IP address */
 										__(
@@ -109,7 +191,7 @@ export function NoLockout( { onCount, panel } ) {
 										),
 										item.ip
 									) }
-									onClick={ () => remove( item.ip ) }
+									onClick={ () => remove( item ) }
 								>
 									{ __( 'Remove', 'zero-spam' ) }
 								</Button>

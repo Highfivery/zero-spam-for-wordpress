@@ -196,6 +196,35 @@ class Test_Rest_Settings_Actions extends TestCase {
 	}
 
 	/**
+	 * On a network, Refresh .htaccess is refused on a subsite: the network
+	 * shares one .htaccess, which a subsite would rewrite with only its own
+	 * addresses (AGENTS.md §8).
+	 *
+	 * @group ms-required
+	 */
+	public function test_refresh_htaccess_is_refused_on_a_subsite(): void {
+		$blog = self::factory()->blog->create();
+		switch_to_blog( $blog );
+		$this->as_role( 'administrator' );
+		$this->set_setting( 'block_method', 'htaccess_modern' );
+		$written = false;
+		add_filter(
+			'insert_with_markers_inline_instructions',
+			static function ( $lines ) use ( &$written ) {
+				$written = true;
+				return $lines;
+			}
+		);
+
+		$response = $this->rest( 'POST', self::ROUTE . 'refresh-htaccess' );
+		restore_current_blog();
+
+		$this->assertSame( 403, $response->get_status() );
+		$this->assertSame( 'zerospam_htaccess_subsite', $response->get_data()['code'] );
+		$this->assertFalse( $written, 'Nothing was written.' );
+	}
+
+	/**
 	 * WordPress's disallowed words are replaced by the recommended list.
 	 */
 	public function test_update_disallowed_words(): void {
