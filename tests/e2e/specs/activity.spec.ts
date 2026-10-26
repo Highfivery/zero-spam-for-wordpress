@@ -295,7 +295,6 @@ test.describe( '6.0 Activity', () => {
 		await noXss();
 		expect( dialogs ).toEqual( [] );
 	} );
-;
 
 	test( 'on a phone the log is a list of cards whose rows are buttons of at least 44px', async ( { page, zs } ) => {
 		await zs.seedLog( 30 );
@@ -381,5 +380,42 @@ test.describe( '6.0 Activity', () => {
 		await reportsReady( page );
 		await expect( page.locator( '#zs-rp-ev' ) ).toHaveText( 'Enhanced vs Basic' );
 		await expect( page.locator( '#zs-evc-sum' ) ).toContainText( 'caught 15 more' );
+	} );
+} );
+
+test.describe( '6.0 Activity on a network', { tag: '@multisite' }, () => {
+	test.beforeEach( async ( { zs } ) => {
+		await zs.reset( 'baseline' );
+	} );
+
+	test( 'with the IP allowlist locked, every drawer action fits inside the drawer at 1280 and 375px', async ( { page, zs } ) => {
+		await zs.seedLog( 3 );
+		await zs.call( 'POST', 'network-setting', { key: 'ip_whitelist', value: '', locked: true } );
+
+		for ( const size of [
+			{ width: 1280, height: 900 },
+			{ width: 375, height: 812 },
+		] ) {
+			await page.setViewportSize( size );
+			await openLog( page );
+			await page.locator( '[data-zs-open]' ).first().click();
+			const footer = page.locator( '.zs-drawer.zs-details .zs-drawer-f' );
+			await expect( footer.locator( '.zs-lockbadge' ) ).toContainText( 'Allowlist locked by network' );
+			await expect( footer.getByRole( 'button', { name: 'Always allow' } ) ).toHaveCount( 0 );
+
+			const clipped = await page.evaluate( () => {
+				const drawer = document.querySelector( '.zs-drawer.zs-details' )!.getBoundingClientRect();
+				return Array.from( document.querySelectorAll( '.zs-drawer.zs-details .zs-drawer-f :is(.zs-btn, .zs-badge)' ) )
+					.map( ( el ) => {
+						const box = el.getBoundingClientRect();
+						const inside = box.left >= drawer.left - 1 && box.right <= drawer.right + 1;
+						const whole = ( el as HTMLElement ).scrollWidth <= ( el as HTMLElement ).clientWidth + 1;
+						return inside && whole ? '' : `${ el.textContent?.trim() } (${ Math.round( box.left ) }–${ Math.round( box.right ) } in ${ Math.round( drawer.left ) }–${ Math.round( drawer.right ) })`;
+					} )
+					.filter( Boolean );
+			} );
+			expect( clipped, `at ${ size.width }px` ).toEqual( [] );
+			await page.keyboard.press( 'Escape' );
+		}
 	} );
 } );

@@ -781,6 +781,9 @@ npm run env:stop                 # stop both wp-env sites
   but never created.
 - Release pitfall: in March 2026 a release shipped as 5.5.8 instead of 5.7.8.
   `composer version:check` exists because of it.
+- Follow-up for PR 13: `rules/blocks` and `rules/blocks/bulk` accept
+  loopback (127.0.0.1, ::1) and private ranges as blocked addresses (as the
+  5.x screens do); decide whether to refuse them.
 - Follow-up chore after PR 8 (6.0 admin): split `assets/dist/admin.js` into
   per-area entry points (one bundle per page, shared code in a common
   entry, translations per handle) and bring the admin JS budget in
