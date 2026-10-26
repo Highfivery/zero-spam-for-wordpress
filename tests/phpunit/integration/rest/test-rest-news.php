@@ -416,13 +416,14 @@ class Test_Rest_News extends TestCase {
 	}
 
 	/**
-	 * The settings route turns the news off with false.
+	 * The settings route turns the news off with false, stored as `disabled`
+	 * (a switch that is on unless turned off).
 	 */
 	public function test_settings_route_turns_it_off(): void {
 		$response = $this->rest( 'PATCH', '/zero-spam/v1/settings', array( 'show_news' => false ) );
 
 		$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
-		$this->assertFalse( $response->get_data()['settings']['show_news'] );
+		$this->assertSame( 'disabled', $response->get_data()['settings']['show_news'] );
 		self::reset_static_caches();
 		$this->assertFalse( News_Feed::is_enabled() );
 	}

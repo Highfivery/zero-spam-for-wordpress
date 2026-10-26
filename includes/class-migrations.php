@@ -190,6 +190,7 @@ class Migrations {
 			'admin_safe_ip'                => array( \ZeroSpam\Core\Admin_Safe_IPs::class, 'migrate' ),
 			'v6_backup_5x'                 => array( $this, 'backup_5x_settings' ),
 			'v6_network_store'             => array( $this, 'merge_network_store' ),
+			'v6_security_switches'         => array( $this, 'security_switches' ),
 		);
 	}
 
@@ -687,6 +688,47 @@ class Migrations {
 				return true;
 			}
 		);
+	}
+
+	/**
+	 * Records the two Security switches added in 6.0.0, "Disable XML-RPC"
+	 * and "Hide the WordPress Version", as on.
+	 *
+	 * Before 6.0 the Security module always disabled XML-RPC and removed the
+	 * generator tag; the switches are on unless turned off, and turning one
+	 * off stores `disabled`. On a single site each switch the site has not
+	 * stored yet is stored as `enabled`, so the behaviour it had is written
+	 * down. A value already stored (`disabled` included) is kept. On a
+	 * network nothing is stored: a stored value would be a site override,
+	 * and the sites would stop following a network default set later; the
+	 * switches are on there by default all the same (decided 2026-10-25 for
+	 * PR #446; build plan §4 had listed this migration as per site).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return true
+	 */
+	public function security_switches(): bool {
+		if ( is_multisite() ) {
+			return true;
+		}
+
+		$options = get_option( 'zero-spam-security', array() );
+		$options = is_array( $options ) ? $options : array();
+		$changed = false;
+
+		foreach ( \ZeroSpam\Modules\Security\Security::DEFAULT_ON as $key ) {
+			if ( ! array_key_exists( $key, $options ) ) {
+				$options[ $key ] = 'enabled';
+				$changed         = true;
+			}
+		}
+
+		if ( $changed ) {
+			update_option( 'zero-spam-security', $options, true );
+		}
+
+		return true;
 	}
 
 	/**

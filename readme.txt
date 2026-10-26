@@ -140,6 +140,8 @@ If every visitor, including you, suddenly sees "Your IP has been flagged as spam
 
 As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation, or use the emailed rescue link on the blocked page (or the Rescue Mode key) to log in and whitelist your IP.
 
+Zero Spam also turns XML-RPC off for everyone by default, because bots use it to try many passwords at once. If an app you use needs it, such as the WordPress mobile app or Jetpack, turn off "Disable XML-RPC" in Zero Spam's Security settings.
+
 == External services ==
 
 Zero Spam works without any external service. The services below are only contacted when the feature that uses them is turned on, and only send what is listed.
