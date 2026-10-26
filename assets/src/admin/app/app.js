@@ -19,6 +19,7 @@ import { Placeholder } from './placeholder';
 import { Shell, areaTitles, networkTabs } from './shell/shell';
 import { Overview } from '../overview/overview';
 import { Activity } from '../activity/activity';
+import { Protection } from '../protection/protection';
 import { Rules } from '../rules/rules';
 import { Settings } from '../settings/settings';
 import { useTab } from '../data/routes';
@@ -51,11 +52,16 @@ function AreaView( { area } ) {
 		>
 			{ 'overview' === area && <Overview /> }
 			{ 'activity' === area && <Activity /> }
+			{ 'protection' === area && <Protection /> }
 			{ 'rules' === area && <Rules /> }
 			{ 'settings' === area && <Settings /> }
-			{ ! [ 'overview', 'activity', 'rules', 'settings' ].includes(
-				area
-			) && (
+			{ ! [
+				'overview',
+				'activity',
+				'protection',
+				'rules',
+				'settings',
+			].includes( area ) && (
 				<Placeholder
 					area={ area }
 					title={

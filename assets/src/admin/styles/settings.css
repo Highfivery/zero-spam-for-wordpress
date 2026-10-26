@@ -4,16 +4,6 @@
  * .zs-settings; values come from the design tokens only.
  */
 
-/* Focused controls never hide under the sticky top bar, "On this page" or the unsaved bar (WCAG 2.4.11). */
-.zs-settings :is(a, button, input, select, textarea, summary, [tabindex]) {
-	scroll-margin-top: calc(var(--zs-wpbar-h) + 124px);
-	scroll-margin-bottom: 96px;
-}
-
-.zs-settings :is(.zs-pcard, .zs-setrow) {
-	scroll-margin-top: calc(var(--zs-wpbar-h) + 116px);
-}
-
 .zs-settings .zs-subnav {
 	margin-bottom: var(--zs-space-3);
 }

@@ -24,39 +24,51 @@ class Security {
 	}
 
 	/**
+	 * Settings that are on unless a site turns them off (since 6.0.0). Off is
+	 * stored as `disabled`, so "never set" (on) and "turned off" differ.
+	 *
+	 * @var string[]
+	 */
+	const DEFAULT_ON = array( 'disable_xmlrpc', 'hide_wp_version' );
+
+	/**
 	 * Fires after WordPress has finished loading but before any headers are sent
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 
-		// It can be considered a security risk to make your WP version visible &
-		// public you should hide it.
-		remove_action( 'wp_head', 'wp_generator' );
-		remove_action( 'opml_head', 'the_generator' );
-
-		// XML-RPC can significantly amplify the brute-force attacks.
-		add_filter( 'xmlrpc_enabled', '__return_false' );
-
 		// Fired on detections.
 		add_action( 'zero_spam_detection', array( $this, 'handle_detection' ), 10, 2 );
 
-		// Block XMLRPC. Accessing this file can allow an attacker to exhaust your
-		// server’s resources quite easily as well as potentially enumerate your
-		// WordPress authors and brute force your WordPress logins among other
-		// vectors.
-		add_action( 'init', array( $this, 'block_xmlrpc' ) );
+		// The registry is rebuilt on every Settings::get_settings() call: read it once.
+		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$enabled  = static function ( string $key ) use ( $settings ): bool {
+			return isset( $settings[ $key ]['value'] ) && 'enabled' === $settings[ $key ]['value'];
+		};
 
-		if (
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'remove_resource_query_parameters' )
-		) {
+		// It can be considered a security risk to make your WP version visible &
+		// public you should hide it.
+		if ( $enabled( 'hide_wp_version' ) ) {
+			remove_action( 'wp_head', 'wp_generator' );
+			remove_action( 'opml_head', 'the_generator' );
+		}
+
+		// XML-RPC can significantly amplify the brute-force attacks. Accessing
+		// xmlrpc.php can allow an attacker to exhaust your server’s resources
+		// quite easily as well as potentially enumerate your WordPress authors
+		// and brute force your WordPress logins among other vectors.
+		if ( $enabled( 'disable_xmlrpc' ) ) {
+			add_filter( 'xmlrpc_enabled', '__return_false' );
+			add_action( 'init', array( $this, 'block_xmlrpc' ) );
+		}
+
+		if ( $enabled( 'remove_resource_query_parameters' ) ) {
 			add_filter( 'style_loader_src', array( $this, 'remove_resource_query_params' ), 10, 2 );
 			add_filter( 'script_loader_src', array( $this, 'remove_resource_query_params' ), 10, 2 );
 		}
 
-		if (
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'disable_emojis' )
-		) {
+		if ( $enabled( 'disable_emojis' ) ) {
 			remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
 			remove_action( 'admin_print_scripts', 'print_emoji_detection_script' );
 			remove_action( 'wp_print_styles', 'print_emoji_styles' );
@@ -67,9 +79,7 @@ class Security {
 			add_filter( 'tiny_mce_plugins', array( $this, 'disable_emojis' ) );
 		}
 
-		if (
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'disable_rss_feed' )
-		) {
+		if ( $enabled( 'disable_rss_feed' ) ) {
 			add_action( 'do_feed', array( $this, 'disable_rss' ), 1 );
 			add_action( 'do_feed_rdf', array( $this, 'disable_rss' ), 1 );
 			add_action( 'do_feed_rss', array( $this, 'disable_rss' ), 1 );
@@ -84,6 +94,21 @@ class Security {
 				}
 			);
 		}
+	}
+
+	/**
+	 * The value of a setting that is on unless turned off: the stored value
+	 * when the site stored one (`disabled`, or `false` from an older save,
+	 * is off), else `enabled`.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param mixed  $options The module option.
+	 * @param string $key     Setting key.
+	 * @return mixed
+	 */
+	public static function default_on_value( $options, string $key ) {
+		return is_array( $options ) && array_key_exists( $key, $options ) ? $options[ $key ] : 'enabled';
 	}
 
 	/**
@@ -108,6 +133,32 @@ class Security {
 	public function settings( $settings ) {
 		$options = get_option( 'zero-spam-security' );
 
+		$settings['disable_xmlrpc'] = array(
+			'title'       => __( 'Disable XML-RPC', 'zero-spam' ),
+			'desc'        => __( 'XML-RPC lets apps and other sites talk to WordPress, and bots use it to try many passwords in one request. Turn it off unless an app you use, such as the WordPress mobile app or Jetpack, needs it.', 'zero-spam' ),
+			'module'      => 'security',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => self::default_on_value( $options, 'disable_xmlrpc' ),
+			'default'     => 'enabled',
+			'recommended' => 'enabled',
+		);
+
+		$settings['hide_wp_version'] = array(
+			'title'       => __( 'Hide the WordPress Version', 'zero-spam' ),
+			'desc'        => __( 'Removes the WordPress version from your pages and feeds, so scanners cannot easily tell which known weaknesses to try.', 'zero-spam' ),
+			'module'      => 'security',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => false,
+			),
+			'value'       => self::default_on_value( $options, 'hide_wp_version' ),
+			'default'     => 'enabled',
+			'recommended' => 'enabled',
+		);
+
 		$settings['remove_resource_query_parameters'] = array(
 			'title'   => __( 'Remove Resource Query Parameters', 'zero-spam' ),
 			'desc'    => wp_kses(
@@ -131,7 +182,7 @@ class Security {
 		);
 
 		$settings['disable_emojis'] = array(
-			'title'       => __( 'Disable WordPress Emoj\'s', 'zero-spam' ),
+			'title'       => __( 'Disable WordPress Emojis', 'zero-spam' ),
 			'desc'        => wp_kses(
 				__( 'WordPress emoji’s are one of the vectors scanners use in order to enumerate version information, disable them if you\'re not using them.', 'zero-spam' ),
 				array(

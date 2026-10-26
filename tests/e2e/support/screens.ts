@@ -459,8 +459,142 @@ const V6_ACTIVITY: Screen[] = [
 	},
 ];
 
+/**
+ * Protection parts that change between runs: relative times and counts,
+ * the license check time and the self-test timings.
+ */
+export const PROTECTION_MASKS = [ '.zs-pcard-st', '.zs-lic-live', '.zs-st-time', '.zs-st-result', '#zs-row-regenerate_honeypot .zs-fdesc code' ];
+
+/** Baseline policy (see AREA_BODY): 782px and the dark shot on Protection › Detection only. */
+const PROTECTION_VISUAL = { mask: PROTECTION_MASKS, selector: AREA_BODY };
+
+/** Phone width for the accessibility scans (label-in-name, 2.5.3, and reflow of the cards). */
+const PHONE = { width: 375, height: 812 };
+
+/** A few detections (8–10 rows per the baseline policy), so the cards' detection lines have data. */
+const seedFew = async ( zs: ZsApi ) => {
+	await zs.seedLog( 9 );
+};
+
+/** Waits until Protection has its cards (the app replaced the skeleton). */
+export const protectionReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+	await page.locator( '#zs-prot-body .zs-pcard, #zs-prot-body .zs-empty' ).first().waitFor();
+};
+
+/** Runs "Test my protection" and waits for its result. */
+export const runSelfTest = async ( page: Page ) => {
+	await protectionReady( page );
+	await page.locator( '.zs-test-btn' ).click();
+	await page.locator( '#zs-selftest .zs-st-result:not(:empty)' ).waitFor();
+	await page.locator( '#zs-selftest[aria-busy="true"]' ).waitFor( { state: 'detached' } );
+};
+
+const V6_PROTECTION: Screen[] = [
+	{ id: 'v6-protection-detection', title: '6.0 Protection › Detection', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: seedFew, path: () => AREA( 'protection' ), prepare: protectionReady, visual: { ...PROTECTION_VISUAL, mobile: true, dark: true } },
+	{
+		id: 'v6-protection-integrations',
+		title: '6.0 Protection › Integrations (with a third-party section)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: async ( zs ) => {
+			await seedFew( zs );
+			await zs.fakeSection( true );
+		},
+		path: () => AREA( 'protection', 'integrations' ),
+		prepare: async ( page ) => {
+			await protectionReady( page );
+			await page.locator( '#zs-card-moreint > summary' ).click();
+		},
+		visual: PROTECTION_VISUAL,
+	},
+	{ id: 'v6-protection-intelligence', title: '6.0 Protection › Intelligence (Basic)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'protection', 'intelligence' ), prepare: protectionReady, visual: PROTECTION_VISUAL },
+	{
+		id: 'v6-protection-intelligence-enhanced',
+		title: '6.0 Protection › Intelligence (Enhanced, license panel)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		level: 'enhanced',
+		path: () => AREA( 'protection', 'intelligence' ),
+		prepare: async ( page ) => {
+			await protectionReady( page );
+			await page.locator( '.zs-licpanel' ).waitFor();
+			await page.locator( '.zs-lic-adv > summary' ).click();
+		},
+		visual: PROTECTION_VISUAL,
+	},
+	// Outside the area body: scanned, no baseline.
+	{
+		id: 'v6-protection-compare',
+		title: '6.0 Protection › Compare levels drawer (from Intelligence)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		path: () => AREA( 'protection', 'intelligence' ),
+		prepare: async ( page ) => {
+			await protectionReady( page );
+			await page.locator( '.zs-enh-mini' ).getByRole( 'button', { name: 'Compare levels' } ).click();
+			await page.locator( '.zs-drawer.zs-compare' ).waitFor();
+		},
+	},
+	{
+		id: 'v6-protection-selftest',
+		title: '6.0 Protection › Test my protection (result)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: async ( zs ) => {
+			await zs.selfTestReset();
+		},
+		path: () => AREA( 'protection' ),
+		prepare: runSelfTest,
+	},
+	// Phone width (375px): accessibility only.
+	{ id: 'v6-protection-detection-375', title: '6.0 Protection › Detection at 375px', area: 'admin', sites: 'both', state: 'empty', theme: 'light', viewport: PHONE, path: () => AREA( 'protection' ), prepare: protectionReady },
+	{
+		id: 'v6-protection-intelligence-375',
+		title: '6.0 Protection › Intelligence at 375px (key fields, Enhanced)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'light',
+		level: 'enhanced',
+		viewport: PHONE,
+		before: async ( zs ) => {
+			await zs.set( { ipstack_api: 'e2e-ipstack-key-1234' } );
+		},
+		path: () => AREA( 'protection', 'intelligence' ),
+		prepare: async ( page ) => {
+			await protectionReady( page );
+			await page.locator( '#zs-card-ipstack' ).waitFor();
+		},
+	},
+	{
+		id: 'v6-protection-locked',
+		title: '6.0 Protection on a subsite with locked settings',
+		area: 'admin',
+		sites: 'multisite',
+		state: 'empty',
+		theme: 'both',
+		as: 'siteadmin',
+		before: async ( zs ) => {
+			await zs.networkSetting( 'verify_comments', 'enabled', true );
+			await zs.networkSetting( 'davidwalsh_form_selectors', '.network-form', true );
+		},
+		path: ( t ) => subsiteURL( t, AREA( 'protection' ) ),
+		prepare: protectionReady,
+		visual: PROTECTION_VISUAL,
+	},
+];
+
 /** The areas built in later PRs: the shell with a placeholder. */
-const V6_AREAS: Screen[] = [ 'protection', 'help' ].map(
+const V6_AREAS: Screen[] = [ 'help' ].map(
 	( area ): Screen => ( {
 		id: `v6-${ area }`,
 		title: `6.0 ${ area } (shell)`,
@@ -485,8 +619,8 @@ export const settingsReady = async ( page: Page ) => {
  */
 export const SETTINGS_MASKS = [ '#zs-errlog-box', '.zs-errlog .zs-hint', '.zs-sysrep > .zs-hint', '.zs-iplist', '.zs-nolock > p:first-child' ];
 
-/** Baselines capture the tab panel: light 1280 for every tab, 782 and dark for General (decision 9). */
-const SETTINGS_VISUAL = { mask: SETTINGS_MASKS, selector: '#zs-set-body' };
+/** Baseline policy (see AREA_BODY): light 1280 for every tab; 782px and the dark shot on General only. */
+const SETTINGS_VISUAL = { mask: SETTINGS_MASKS, selector: AREA_BODY };
 
 const SETTINGS_TABS = [
 	[ 'general', 'General' ],
@@ -720,7 +854,7 @@ function withDarkTwins( screens: Screen[] ): Screen[] {
 	} );
 }
 
-const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_ACTIVITY, ...V6_RULES, ...V6_AREAS, ...V6_SETTINGS, ...V6_NETWORK ] );
+const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_ACTIVITY, ...V6_RULES, ...V6_PROTECTION, ...V6_AREAS, ...V6_SETTINGS, ...V6_NETWORK ] );
 
 export const SCREENS: Screen[] = [
 	...settingsScreens,

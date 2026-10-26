@@ -175,7 +175,8 @@ class Settings_Actions_Controller extends Base_Controller {
 				break;
 
 			case 'regenerate-honeypot':
-				Utilities::get_honeypot( true );
+				// The new ID is the name of the hidden field in public forms, not a secret.
+				$extra   = array( 'honeypot' => (string) Utilities::get_honeypot( true ) );
 				$message = __( 'Zero Spam for WordPress honeypot ID has been successfully reset.', 'zero-spam' );
 				break;
 

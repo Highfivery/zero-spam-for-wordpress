@@ -11,5 +11,6 @@
 @import "./rules.css";
 @import "./areas.css";
 @import "./activity.css";
+@import "./protection.css";
 @import "../app/fields/fields.css";
 @import "./settings.css";

@@ -23,19 +23,21 @@ class Google {
 
 	/**
 	 * Fires after WordPress has finished loading but before any headers are sent.
+	 *
+	 * Loaded on every request since 6.0.0 (the REST settings routes read its
+	 * setting), so it only registers hooks here: the API key is read when a
+	 * map is printed.
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
 		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
-
-		$api_key = \ZeroSpam\Core\Settings::get_settings( 'google_api' );
-		if ( ! empty( $api_key ) ) {
-			add_action( 'zerospam_google_map', array( $this, 'map' ), 10, 2 );
-		}
+		add_action( 'zerospam_google_map', array( $this, 'map' ), 10, 1 );
 	}
 
 	/**
-	 * Embeds a map
+	 * Embeds a map when a Google API key is set.
+	 *
+	 * @param string $coordinates Latitude and longitude ("lat,long").
 	 */
 	public function map( $coordinates ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings();
@@ -47,8 +49,6 @@ class Google {
 				'q'   => $coordinates,
 			);
 			$url       .= http_build_query( $url_params );
-
-			$api_key
 			?>
 			<iframe
 				width="100%"

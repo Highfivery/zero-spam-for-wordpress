@@ -543,46 +543,30 @@ class DavidWalsh {
 			$custom_help_html .= '<li>' . $help_item . '</li>';
 		}
 
+		// A plain text setting (since 6.0.0; it was an html field before), so a
+		// network can lock it. The stored value is unchanged.
 		$settings['davidwalsh_form_selectors'] = array(
-			'title'   => __( 'Custom Form Selectors', 'zero-spam' ),
+			'title'       => __( 'Custom Form Selectors', 'zero-spam' ),
+			'desc'        => sprintf(
+				/* translators: %s: example CSS selectors */
+				__( 'For advanced users: the CSS selectors of custom-built forms to protect, separated by commas, for example %s. Most popular form plugins are already protected automatically.', 'zero-spam' ),
+				'<code>' . esc_html__( '.my-custom-form, #newsletter-signup, .theme-contact-form', 'zero-spam' ) . '</code>'
+			),
+			'section'     => 'davidwalsh',
+			'module'      => 'davidwalsh',
+			'type'        => 'text',
+			'value'       => $custom_form_selector_value,
+			'placeholder' => _x( '.my-custom-form, #newsletter-form', 'Placeholder text for custom form selectors input.', 'zero-spam' ),
+			'field_class' => 'large-text',
+		);
+
+		$settings['davidwalsh_form_selectors_help'] = array(
+			'title'   => __( 'How to Find Your Form\'s Selector', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'davidwalsh',
 			'module'  => 'davidwalsh',
 			'type'    => 'html',
-			'html'    => sprintf(
-				'<h3 class="zero-spam-heading-3" id="davidwalsh_form_selectors_heading">%1$s</h3>
-				<ol class="zerospam-list zerospam-list--decimal" id="davidwalsh_form_selectors_help">%2$s</ol>
-
-				<label class="zero-spam-label" for="davidwalsh_form_selectors">%3$s</label>
-
-				<input type="text"
-					name="zero-spam-davidwalsh[davidwalsh_form_selectors]"
-					id="davidwalsh_form_selectors"
-					value="%4$s"
-					class="large-text"
-					placeholder="%5$s"
-					aria-describedby="davidwalsh_form_selectors_help davidwalsh_form_selectors_example davidwalsh_form_selectors_desc" />
-
-				<p class="zero-spam-field-example" id="davidwalsh_form_selectors_example">
-					<strong>%6$s</strong> <code>%7$s</code>
-				</p>
-
-				<p class="zero-spam-field-desc" id="davidwalsh_form_selectors_desc">
-					<strong>%8$s</strong> %9$s
-				</p>',
-				esc_html__( 'How to Find Your Form\'s Selector:', 'zero-spam' ),
-				$custom_help_html,
-				esc_html__( 'Define Custom Form Selectors', 'zero-spam' ),
-				esc_attr( $custom_form_selector_value ),
-				esc_attr_x( '.my-custom-form, #newsletter-form', 'Placeholder text for custom form selectors input.', 'zero-spam' ),
-				esc_html__( 'Examples:', 'zero-spam' ),
-				esc_html__( '.my-custom-form, #newsletter-signup, .theme-contact-form', 'zero-spam' ),
-				esc_html__( 'For advanced users:', 'zero-spam' ),
-				esc_html__(
-					'Add CSS selectors for custom forms that should be protected. Separate multiple selectors with commas. Most popular form plugins are already protected automatically. Only add selectors for custom-built forms or unsupported themes.',
-					'zero-spam'
-				)
-			),
+			'html'    => '<ol class="zerospam-list zerospam-list--decimal">' . $custom_help_html . '</ol>',
 		);
 
 		return $settings;
@@ -649,8 +633,7 @@ class DavidWalsh {
 		);
 
 		// Add custom selectors from settings (retrieved directly to avoid recursion).
-		$options          = get_option( 'zero-spam-davidwalsh', array() );
-		$custom_selectors = ! empty( $options['davidwalsh_form_selectors'] ) ? $options['davidwalsh_form_selectors'] : false;
+		$custom_selectors = self::custom_selectors();
 
 		if ( ! empty( $custom_selectors ) ) {
 			$custom_array = array_map( 'trim', explode( ',', (string) $custom_selectors ) );
@@ -663,6 +646,32 @@ class DavidWalsh {
 		 * @param array $selectors Array of CSS selectors.
 		 */
 		return apply_filters( 'zerospam_davidwalsh_selectors', $selectors );
+	}
+
+	/**
+	 * The Custom Form Selectors setting, read without building the settings
+	 * registry (which calls get_all_selectors()). On a network the same
+	 * precedence applies as everywhere else: a locked network value, then the
+	 * site's own value, then the network default.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return string Comma-separated selectors, or ''.
+	 */
+	private static function custom_selectors(): string {
+		$options = get_option( 'zero-spam-davidwalsh', array() );
+		$site    = is_array( $options ) && isset( $options['davidwalsh_form_selectors'] ) && is_scalar( $options['davidwalsh_form_selectors'] ) ? (string) $options['davidwalsh_form_selectors'] : null;
+
+		if ( is_multisite() ) {
+			$store   = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( \ZeroSpam\Includes\Network_Settings::META_KEY, array() ) );
+			$network = $store['settings']['davidwalsh_form_selectors'] ?? null;
+
+			if ( is_array( $network ) && isset( $network['value'] ) && is_scalar( $network['value'] ) && ( ! empty( $network['locked'] ) || null === $site ) ) {
+				return (string) $network['value'];
+			}
+		}
+
+		return (string) $site;
 	}
 
 	/**

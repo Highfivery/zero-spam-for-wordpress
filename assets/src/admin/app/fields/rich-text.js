@@ -93,8 +93,8 @@ export function safeHref( href ) {
 	if ( /^(https?:\/\/|mailto:)/i.test( value ) ) {
 		return value;
 	}
-	// Relative to the site (one slash, not a protocol-relative address) or a fragment.
-	if ( /^(\/(?!\/)|#|\?)/.test( value ) ) {
+	// Relative to the site (one slash, not a protocol-relative address: browsers read "/\" as "//") or a fragment.
+	if ( /^(\/(?![\/\\])|#|\?)/.test( value ) ) {
 		return value;
 	}
 	return null;

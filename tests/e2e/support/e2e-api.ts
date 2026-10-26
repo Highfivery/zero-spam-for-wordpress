@@ -158,6 +158,21 @@ export class ZsApi {
 	}
 
 	/**
+	 * Turns the fake third-party settings section on or off (Protection ›
+	 * Integrations renders it generically). Every reset turns it off.
+	 *
+	 * @param on On.
+	 */
+	fakeSection( on = true ) {
+		return this.call< { on: boolean } >( 'POST', 'fake-section', { on } );
+	}
+
+	/** Lets the self-test run again at once (it runs once a minute per site). */
+	selfTestReset() {
+		return this.call( 'POST', 'self-test-reset' );
+	}
+
+	/**
 	 * Sets a network value (super admin, multisite).
 	 *
 	 * @param key    Setting key.

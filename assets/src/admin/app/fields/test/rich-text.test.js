@@ -42,6 +42,8 @@ describe( 'safeHref', () => {
 		[ 'JaVaScRiPt&#58;alert(1)', null ],
 		[ 'data:text/html,x', null ],
 		[ '//evil.example', null ],
+		[ '/\\evil.example/', null ],
+		[ '\\\\evil.example', null ],
 	] )( '%s → %s', ( href, expected ) => {
 		expect( safeHref( href ) ).toBe( expected );
 	} );

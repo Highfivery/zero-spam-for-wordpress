@@ -131,7 +131,8 @@ const comparison = () => [
 	[ __( 'API usage monitoring and alerts', 'zero-spam' ), false, true ],
 ];
 
-const roadmap = () => [
+/** @return {Array<[string, string, string, boolean]>} Roadmap: icon, title, text, early access. */
+export const roadmap = () => [
 	[
 		'hub',
 		__( 'MCP integration', 'zero-spam' ),

@@ -7,6 +7,16 @@
  * Moved here from styles/protection.css (#446) so both areas use one copy.
  */
 
+/* Focused controls never hide under the sticky top bar or the unsaved bar, Tab or Shift+Tab (WCAG 2.4.11); "On this page" is not sticky. */
+:is(.zs-protection, .zs-settings) :is(a, button, input, select, textarea, summary, [tabindex]) {
+	scroll-margin-top: calc(var(--zs-wpbar-h) + 76px);
+	scroll-margin-bottom: 96px;
+}
+
+:is(.zs-protection, .zs-settings) :is(.zs-pcard, .zs-setrow) {
+	scroll-margin-top: calc(var(--zs-wpbar-h) + 72px);
+}
+
 /* Tag picker (multi-selects) */
 .zs-tagpick {
 	display: flex;
@@ -58,61 +68,8 @@
 	outline-offset: 1px;
 }
 
-/* Tabs */
-:is(.zs-protection, .zs-settings) .zs-seg {
-	display: inline-flex;
-	flex-wrap: wrap;
-	gap: 4px;
-	max-width: 100%;
-	padding: 4px;
-	border: 1px solid var(--zs-line);
-	border-radius: 12px;
-	background: var(--zs-sunken);
-}
-
-:is(.zs-protection, .zs-settings) .zs-seg button,
-:is(.zs-protection, .zs-settings) .zs-segr {
-	display: inline-flex;
-	position: relative;
-	gap: var(--zs-space-2);
-	align-items: center;
-	min-height: var(--zs-control-sm);
-	margin: 0;
-	padding: 4px 12px;
-	border: 0;
-	border-radius: 9px;
-	background: transparent;
-	color: var(--zs-ink-2);
-	font-size: var(--zs-text-sm);
-	font-weight: var(--zs-weight-semibold);
-	white-space: nowrap;
-	cursor: pointer;
-}
-
-:is(.zs-protection, .zs-settings) .zs-seg button:hover,
-:is(.zs-protection, .zs-settings) .zs-segr:hover {
-	background: var(--zs-surface);
-	color: var(--zs-ink);
-}
-
-:is(.zs-protection, .zs-settings) .zs-seg button[aria-selected="true"],
-:is(.zs-protection, .zs-settings) .zs-segr:has(input:checked) {
-	background: var(--zs-ink);
-	color: var(--zs-bg);
-}
-
+/* Segmented controls and tabs: the shared .zs-seg / .zs-segr (primitives.css), plus */
 :is(.zs-protection, .zs-settings) .zs-seg button:focus-visible {
-	outline: var(--zs-focus-width) solid var(--zs-focus);
-	outline-offset: var(--zs-focus-offset);
-}
-
-:is(.zs-protection, .zs-settings) .zs-segr input {
-	position: absolute;
-	opacity: 0;
-	pointer-events: none;
-}
-
-:is(.zs-protection, .zs-settings) .zs-segr:has(input:focus-visible) {
 	outline: var(--zs-focus-width) solid var(--zs-focus);
 	outline-offset: var(--zs-focus-offset);
 }
@@ -122,10 +79,6 @@
 	opacity: 0.6;
 }
 
-:is(.zs-protection, .zs-settings) .zs-tabs {
-	margin-bottom: var(--zs-space-3);
-}
-
 :is(.zs-protection, .zs-settings) .zs-c {
 	font-family: var(--zs-font-data);
 	font-size: var(--zs-text-2xs);
@@ -133,26 +86,12 @@
 	font-weight: var(--zs-weight-semibold);
 }
 
-:is(.zs-protection, .zs-settings) .zs-areabody {
-	display: flex;
-	flex-direction: column;
-	gap: var(--zs-mortar);
-}
-
-:is(.zs-protection, .zs-settings) .zs-areabody:focus {
-	outline: none;
-}
-
-/* "On this page" */
+/* "On this page": not sticky, chips that wrap to two rows would cover focused controls (WCAG 2.4.11). */
 .zs-jump {
 	display: flex;
-	position: sticky;
-	z-index: var(--zs-z-jump);
-	top: calc(var(--zs-wpbar-h) + 60px);
 	flex-wrap: wrap;
 	gap: 6px;
 	padding: 8px 2px;
-	background: color-mix(in srgb, var(--zs-bg) 92%, transparent);
 }
 
 .zs-jump .zs-chip:focus-visible {
@@ -271,10 +210,12 @@
 	white-space: nowrap;
 }
 
-.zs-badge-lock {
-	border: 1px dashed var(--zs-control);
-	background: transparent;
-	color: var(--zs-ink-2);
+/* The lock badge (.zs-badge-lock in rules.css) wraps instead of overflowing at phone width. */
+:is(.zs-protection, .zs-settings) .zs-lockbadge {
+	height: auto;
+	min-height: var(--zs-badge-height);
+	max-width: 100%;
+	white-space: normal;
 }
 
 /* Disclosures: Fine-tune, More integrations, help */
@@ -434,14 +375,6 @@
 	gap: 6px;
 }
 
-.zs-netnote {
-	display: flex;
-	gap: 6px;
-	align-items: flex-start;
-	color: var(--zs-ink-2);
-	font-size: var(--zs-text-sm);
-}
-
 .zs-field-err {
 	display: flex;
 	gap: 6px;
@@ -453,6 +386,7 @@
 
 .zs-sw-row {
 	display: flex;
+	flex-wrap: wrap;
 	gap: var(--zs-space-3);
 	align-items: center;
 }
@@ -461,52 +395,47 @@
 	display: inline;
 }
 
-:is(.zs-protection, .zs-settings) :is(.zs-input, .zs-select, .zs-textarea) {
+/* Fields: the shared .zs-input / .zs-select (primitives.css), plus the textarea and disabled state. */
+:is(.zs-protection, .zs-settings) .zs-textarea {
+	box-sizing: border-box;
 	width: 100%;
-	min-width: 0;
-	min-height: var(--zs-control-md);
+	min-height: 112px;
 	margin: 0;
-	padding: 6px 10px;
+	padding: 8px 12px;
 	border: 1px solid var(--zs-control);
 	border-radius: var(--zs-radius-control);
 	background: var(--zs-surface);
 	box-shadow: none;
 	color: var(--zs-ink);
-	font-size: var(--zs-text-md);
-}
-
-:is(.zs-protection, .zs-settings) .zs-textarea {
-	min-height: 112px;
 	font-family: var(--zs-font-data);
 	font-size: var(--zs-text-sm);
 	line-height: 1.5;
 	resize: vertical;
 }
 
+:is(.zs-protection, .zs-settings) .zs-textarea:focus-visible {
+	border-color: var(--zs-focus);
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: 1px;
+}
+
+:is(.zs-protection, .zs-settings) .zs-textarea[aria-invalid="true"] {
+	border-color: var(--zs-red);
+}
+
+:is(.zs-protection, .zs-settings) .zs-textarea::placeholder {
+	color: var(--zs-ink-3);
+}
+
 :is(.zs-protection, .zs-settings) .zs-select {
 	max-width: 320px;
 }
 
-:is(.zs-protection, .zs-settings) :is(.zs-input, .zs-select, .zs-textarea):focus {
-	border-color: var(--zs-ink);
-	outline: var(--zs-focus-width) solid var(--zs-focus);
-	outline-offset: 1px;
-	box-shadow: none;
-}
-
-:is(.zs-protection, .zs-settings) :is(.zs-input, .zs-select, .zs-textarea)[aria-invalid="true"] {
-	border-color: var(--zs-red);
-}
-
-:is(.zs-protection, .zs-settings) :is(.zs-input, .zs-select, .zs-textarea):disabled {
-	background: var(--zs-sunken);
+:is(.zs-protection, .zs-settings)
+	:is(.zs-input, .zs-select, .zs-textarea):disabled {
+	background-color: var(--zs-sunken);
 	color: var(--zs-ink-2);
 	cursor: not-allowed;
-}
-
-:is(.zs-protection, .zs-settings) .zs-input::placeholder,
-:is(.zs-protection, .zs-settings) .zs-textarea::placeholder {
-	color: var(--zs-ink-3);
 }
 
 :is(.zs-protection, .zs-settings) .zs-num-in {
@@ -545,32 +474,11 @@
 	font-weight: var(--zs-weight-semibold);
 }
 
-.zs-actres {
-	font-size: var(--zs-text-md);
-	font-weight: var(--zs-weight-semibold);
-}
-
-.zs-actres:empty {
-	display: none;
-}
-
-.zs-actres-ok {
-	color: var(--zs-ok-ink);
-}
-
-.zs-actres-err {
-	color: var(--zs-red);
-}
-
+/* Notices: the shared .zs-notice / .zs-notice-err (primitives.css) with an icon, plus a warning tone. */
 :is(.zs-protection, .zs-settings) .zs-notice {
 	display: flex;
 	gap: var(--zs-space-2);
 	align-items: flex-start;
-	padding: 10px 12px;
-	border: 1px solid var(--zs-line);
-	border-radius: var(--zs-radius-inner);
-	background: var(--zs-surface-2);
-	font-size: var(--zs-text-md);
 }
 
 :is(.zs-protection, .zs-settings) .zs-notice-warn {
@@ -578,13 +486,6 @@
 	background: var(--zs-warn-soft);
 	color: var(--zs-warn-ink);
 }
-
-:is(.zs-protection, .zs-settings) .zs-notice-err {
-	border-color: var(--zs-red);
-	background: var(--zs-red-soft);
-	color: var(--zs-red-soft-ink);
-}
-
 
 /* Tablets and phones */
 @media (max-width: 760px) {
@@ -601,12 +502,6 @@
 
 @media (max-width: 600px) {
 
-	.zs-jump {
-		position: static;
-	}
-
-	:is(.zs-protection, .zs-settings) .zs-seg button,
-	:is(.zs-protection, .zs-settings) .zs-segr,
 	.zs-morebtn,
 	.zs-tchip-x {
 		min-height: var(--zs-tap-min);

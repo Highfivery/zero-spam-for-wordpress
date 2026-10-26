@@ -12,6 +12,7 @@
 import type { Page, Request } from '@playwright/test';
 
 import { expect, test } from '../support/fixtures';
+import { focusObscured } from '../support/focus';
 import { AREA, settingsReady } from '../support/screens';
 import { subsiteURL } from '../support/targets';
 
@@ -324,6 +325,17 @@ test.describe( '6.0 Settings', () => {
 		await expect( page.locator( '#wpbody-content form' ).first() ).toBeVisible();
 	} );
 
+	for ( const width of [ 1280, 782 ] ) {
+		test( `at ${ width }px no focused control is hidden under the admin bar, top bar or "On this page" chips, Tab and Shift+Tab (2.4.11)`, async ( { page } ) => {
+			await page.setViewportSize( { width, height: 800 } );
+			for ( const tab of [ '', 'api' ] ) {
+				await openSettings( page, tab );
+				await page.getByRole( 'tab', { selected: true } ).focus();
+				expect( await focusObscured( page, '#zs-set-body' ), `${ tab || 'general' } at ${ width }px` ).toEqual( [] );
+			}
+		} );
+	}
+
 	test( 'phones: no sideways scrolling, 24px targets, focus never hidden behind the bars', async ( { page } ) => {
 		await page.setViewportSize( { width: 375, height: 812 } );
 		for ( const tab of [ '', 'api', 'io' ] ) {
@@ -383,7 +395,8 @@ test.describe( '6.0 Settings on a subsite', { tag: '@multisite' }, () => {
 		await page.getByRole( 'tab', { name: 'API monitoring' } ).click();
 		const hook = page.locator( '#zs-row-alert_webhook_url' );
 		await expect( hook ).toContainText( '••••' );
-		await expect( hook ).toContainText( 'Set by your network administrator' );
+		await expect( hook ).toContainText( 'Provided by your network' );
+		await expect( hook.getByRole( 'button', { name: /Replace|Remove/ } ) ).toHaveCount( 0 );
 		await expect( hook ).not.toContainText( 'e2e-network-hook' );
 		expect( await page.content() ).not.toContain( 'e2e-network-hook' );
 	} );

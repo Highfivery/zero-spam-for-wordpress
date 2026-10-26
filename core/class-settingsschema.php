@@ -27,9 +27,16 @@ defined( 'ABSPATH' ) || die();
  * `default` (value when nothing is stored), `secret` (bool), `lockable`
  * (bool), `area` and `group` (where the setting belongs in the admin),
  * `depends_on` (array with `key` and `value`) and `order` (int). Without them
- * the schema derives a value: see setting_entry(). The `suffix` (the unit
- * shown after a number, such as `days`) and `placeholder` registry keys are
- * passed on as text ('' when none).
+ * the schema derives a value: see setting_entry(). Every entry has a
+ * `suffix` (the unit shown after a number, such as `days`) and a
+ * `placeholder` (text, '' when none) and an `html` field: for settings of
+ * type `html` their markup, limited to text formatting, lists and links (see
+ * help_html()), '' when the markup is made on the settings page only (such
+ * as action buttons); null for every other type.
+ *
+ * A checkbox whose `default` is its own "on" choice is on unless turned off
+ * (see is_default_on()): when it is turned off, `disabled` is stored, so a
+ * site that never saved it and a site that turned it off differ.
  *
  * Values are resolved with the precedence Network_Settings applies: locked
  * network value, then site override, then network default, then (for the
@@ -109,6 +116,8 @@ final class Settings_Schema {
 		'allowed_words'         => array( 'rules', 'allowed-words' ),
 		'disallowed_min_length' => array( 'rules', 'allowed-words' ),
 		'trusted_proxies'       => array( 'settings', 'proxies' ),
+		// The honeypot has a card of its own in Protection › Detection.
+		'regenerate_honeypot'   => array( 'protection', 'detection' ),
 	);
 
 	/**
@@ -486,7 +495,7 @@ final class Settings_Schema {
 			'key'         => $key,
 			'option'      => self::option_name( $key, $module ),
 			'module'      => $module,
-			'section'     => isset( $setting['section'] ) ? (string) $setting['section'] : $module,
+			'section'     => self::section_of( $setting, $module ),
 			'title'       => self::plain_text( $setting['title'] ?? '' ),
 			'description' => self::rich_text( $setting['desc'] ?? '' ),
 			'type'        => $type,
@@ -508,9 +517,12 @@ final class Settings_Schema {
 			'locked'      => null !== $resolved && $resolved['locked'],
 			'source'      => null !== $resolved ? $resolved['source'] : self::SOURCE_DEFAULT,
 			'value'       => null,
+			'html'        => null,
 		);
 
 		if ( $is_html ) {
+			$entry['html'] = self::help_html( $setting['html'] ?? '' );
+
 			return $entry;
 		}
 
@@ -526,6 +538,25 @@ final class Settings_Schema {
 		}
 
 		return $entry;
+	}
+
+	/**
+	 * The section a setting belongs to. Settings::get_settings() puts a
+	 * setting registered without one in `general`; when its module has a
+	 * section of its own (the Security and ipbase modules, extensions), it
+	 * belongs there, as the settings page shows it.
+	 *
+	 * @param array<string, mixed> $setting Registry entry.
+	 * @param string               $module  Module key.
+	 */
+	private static function section_of( array $setting, string $module ): string {
+		$section = isset( $setting['section'] ) && is_scalar( $setting['section'] ) && '' !== (string) $setting['section'] ? (string) $setting['section'] : $module;
+
+		if ( 'general' === $section && 'settings' !== $module && isset( self::sections()[ $module ] ) ) {
+			return $module;
+		}
+
+		return $section;
 	}
 
 	/**
@@ -805,6 +836,60 @@ final class Settings_Schema {
 	 */
 	private static function plain_text( $text ): string {
 		return is_string( $text ) ? html_entity_decode( wp_strip_all_tags( $text ), ENT_QUOTES, 'UTF-8' ) : '';
+	}
+
+	/**
+	 * Whether a registry entry is a checkbox that is on unless turned off:
+	 * its `default` is one of its own choices.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param mixed $setting Registry entry.
+	 */
+	public static function is_default_on( $setting ): bool {
+		if ( ! is_array( $setting ) || 'checkbox' !== ( $setting['type'] ?? '' ) || empty( $setting['default'] ) || ! is_scalar( $setting['default'] ) ) {
+			return false;
+		}
+
+		$choices = isset( $setting['options'] ) && is_array( $setting['options'] ) ? array_map( 'strval', array_keys( $setting['options'] ) ) : array();
+
+		return in_array( (string) $setting['default'], $choices, true );
+	}
+
+	/**
+	 * Markup of an `html` setting, keeping only paragraphs, lists, text
+	 * formatting and links.
+	 *
+	 * @param mixed $html Markup.
+	 */
+	private static function help_html( $html ): string {
+		if ( ! is_string( $html ) || '' === trim( $html ) ) {
+			return '';
+		}
+
+		$link = array(
+			'href'   => true,
+			'target' => true,
+			'rel'    => true,
+		);
+
+		return trim(
+			wp_kses(
+				$html,
+				array(
+					'a'      => $link,
+					'b'      => array(),
+					'br'     => array(),
+					'code'   => array(),
+					'em'     => array(),
+					'li'     => array(),
+					'ol'     => array(),
+					'p'      => array(),
+					'strong' => array(),
+					'ul'     => array(),
+				)
+			)
+		);
 	}
 
 	/**
