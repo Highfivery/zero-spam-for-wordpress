@@ -221,6 +221,7 @@
 	--zs-mark-dip: 200ms; /* reduced motion: opacity only */
 	--zs-mark-course-delay: 140ms;
 	--zs-mark-row-delay: 160ms;
+	--zs-setup-brick-delay: 400ms; /* first-run setup: stagger of a course's bricks across the row */
 	--zs-ease-land: cubic-bezier(0.2, 0.9, 0.3, 1);
 	--zs-ease-ring: cubic-bezier(0.2, 0.7, 0.3, 1);
 
