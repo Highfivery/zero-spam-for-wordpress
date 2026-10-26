@@ -521,6 +521,15 @@ class Settings_Actions_Controller extends Base_Controller {
 	 * @return true|WP_Error
 	 */
 	private function refresh_htaccess() {
+		// A network shares one .htaccess; a subsite would rewrite it with only its own addresses.
+		if ( is_multisite() && ! is_main_site() ) {
+			return new WP_Error(
+				'zerospam_htaccess_subsite',
+				__( 'On a network, .htaccess can only be refreshed from the main site, because every site shares the same file.', 'zero-spam' ),
+				array( 'status' => 403 )
+			);
+		}
+
 		$resolved = Settings_Schema::resolve( 'block_method' );
 		$method   = null !== $resolved && is_string( $resolved['value'] ) ? $resolved['value'] : 'php';
 

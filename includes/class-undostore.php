@@ -231,7 +231,11 @@ final class Undo_Store {
 		foreach ( $rows as $row ) {
 			$ip = is_string( $row['ip'] ?? null ) ? trim( $row['ip'] ) : '';
 
-			if ( '' === $ip || '' === User::normalize_ip( $ip ) || in_array( $ip, $ips, true ) ) {
+			$canonical = User::normalize_ip( $ip );
+			$saved     = array_map( array( User::class, 'normalize_ip' ), $ips );
+
+			// Compared in canonical form: "2001:DB8::5" saved again is the same address.
+			if ( '' === $ip || '' === $canonical || in_array( $canonical, $saved, true ) ) {
 				continue;
 			}
 

@@ -100,6 +100,13 @@ describe( 'blocks', () => {
 		expect( checkLocation( 'city', '  ' ).error ).toBe(
 			'Enter the location to block.'
 		);
+		// Markup is refused, as list entries refuse it (the server saved it as an empty block).
+		expect( checkLocation( 'city', '<b></b>' ).error ).toBe(
+			'Must not contain < or >.'
+		);
+		expect( checkLocation( 'region_code', 'Spring<field' ).error ).toBe(
+			'Must not contain < or >.'
+		);
 	} );
 } );
 

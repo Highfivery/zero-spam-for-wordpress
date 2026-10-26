@@ -84,7 +84,14 @@ function MinLength( { saved, custom, value, onChange, error } ) {
 				</p>
 			</div>
 			<div className="zs-ctl">
-				{ state.locked && <LockBadge /> }
+				{ state.locked && (
+					<LockBadge
+						sentence={ __(
+							'The minimum word length is locked by the network administrator, so it cannot be changed on this site.',
+							'zero-spam'
+						) }
+					/>
+				) }
 				<input
 					id={ id }
 					className="zs-input zs-mono zs-num-in"
@@ -94,7 +101,7 @@ function MinLength( { saved, custom, value, onChange, error } ) {
 					step="1"
 					inputMode="numeric"
 					value={ value ?? String( saved?.value ?? 0 ) }
-					disabled={ ! state.editable }
+					readOnly={ ! state.editable }
 					aria-invalid={ error ? 'true' : 'false' }
 					aria-describedby={ `${ id }-d ${ id }-e` }
 					onChange={ ( e ) => onChange( e.target.value ) }
@@ -122,6 +129,8 @@ export function Rules() {
 	const [ errors, setErrors ] = useState( {} );
 	const [ saving, setSaving ] = useState( false );
 	const [ wordState, setWordState ] = useState( null );
+	// "Customize for this site", per list: kept here with the drafts, so a change of tab keeps it.
+	const [ customs, setCustoms ] = useState( {} );
 	const reloaders = useRef( {} );
 	const tabs = useRef( null );
 	const panel = useRef( null );
@@ -260,6 +269,10 @@ export function Rules() {
 			key={ list }
 			list={ list }
 			draft={ drafts[ list ] }
+			custom={ Boolean( customs[ list ] ) }
+			setCustom={ ( on ) =>
+				setCustoms( ( c ) => ( { ...c, [ list ]: on } ) )
+			}
 			setDraft={ ( d ) =>
 				setDrafts( ( all ) => ( { ...all, [ list ]: d } ) )
 			}
@@ -474,7 +487,11 @@ export function Rules() {
 					>
 						{ names[ t ] }
 						{ undefined !== counts[ t ] && (
-							<span className="zs-c">{ num( counts[ t ] ) }</span>
+							<span className="zs-c">
+								{ /* Read as "Blocked IPs, 8", not "Blocked IPs8". */ }
+								<span className="zs-sr-only">, </span>
+								{ num( counts[ t ] ) }
+							</span>
 						) }
 					</button>
 				) ) }

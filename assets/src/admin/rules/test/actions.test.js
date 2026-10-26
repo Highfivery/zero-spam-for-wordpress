@@ -14,6 +14,7 @@ import { describe, expect, it, vi } from 'vitest';
  */
 import {
 	blockName,
+	lockoutWarning,
 	removeBlock,
 	removeBlocks,
 	removeNoLockout,
@@ -162,5 +163,73 @@ describe( 'removeNoLockout', () => {
 			'Removed 2001:db8::1/../x. It can be blocked again.'
 		);
 		expect( typeof toasts[ 0 ].undo ).toBe( 'function' );
+	} );
+} );
+
+describe( 'removing your own blocked address', () => {
+	it( 'asks first: a 409 rest_would_lock_out calls onLockout with the message and shows no error', async () => {
+		const { toast, toasts } = toaster();
+		const onLockout = vi.fn();
+		const answer = await removeNoLockout( {
+			ip: '203.0.113.10',
+			request: () =>
+				Promise.reject( {
+					code: 'rest_would_lock_out',
+					message:
+						'Your address 203.0.113.10 is blocked; removing it here locks you out of this site.',
+				} ),
+			toast,
+			refresh: vi.fn(),
+			onLockout,
+		} );
+		expect( answer ).toBeNull();
+		expect( onLockout ).toHaveBeenCalledWith(
+			'Your address 203.0.113.10 is blocked; removing it here locks you out of this site.'
+		);
+		expect( toasts ).toEqual( [] );
+	} );
+
+	it( 'sends confirm=1 once confirmed', async () => {
+		const { toast } = toaster();
+		const request = vi.fn( () =>
+			Promise.resolve( { items: [], undo_token: null } )
+		);
+		await removeNoLockout( {
+			ip: '203.0.113.10',
+			confirm: true,
+			request,
+			toast,
+			refresh: vi.fn(),
+		} );
+		expect( request ).toHaveBeenCalledWith( {
+			path: '/zero-spam/v1/rules/no-lockout/203.0.113.10?confirm=1',
+			method: 'DELETE',
+		} );
+	} );
+
+	it( 'names the consequence before anything is sent', () => {
+		expect(
+			lockoutWarning( {
+				ip: '203.0.113.10',
+				current: true,
+				blocked: true,
+			} )
+		).toBe(
+			'Your address 203.0.113.10 is blocked; removing it here locks you out of this site.'
+		);
+		expect(
+			lockoutWarning( {
+				ip: '203.0.113.10',
+				current: true,
+				blocked: false,
+			} )
+		).toBe( '' );
+		expect(
+			lockoutWarning( {
+				ip: '203.0.113.11',
+				current: false,
+				blocked: true,
+			} )
+		).toBe( '' );
 	} );
 } );

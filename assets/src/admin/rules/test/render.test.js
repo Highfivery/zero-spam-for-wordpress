@@ -21,6 +21,7 @@ import { Blocks } from '../blocks';
 import { NoLockout } from '../no-lockout';
 import { Rules } from '../rules';
 import { blocksPath, listPath, NO_LOCKOUT_PATH } from '../query';
+import { boot } from '../../data/api';
 
 /**
  * Renders with preloaded answers (path => body, or { body, headers }).
@@ -284,5 +285,78 @@ describe( 'the Rules area', () => {
 	it( 'an unknown tab falls back to Blocked IPs', () => {
 		const html = render( <Rules />, {}, '?tab=nope' );
 		expect( html ).toContain( 'aria-labelledby="zs-rt-ips"' );
+	} );
+} );
+
+describe( 'review fixes', () => {
+	it( 'tab counts are separated from their names for screen readers', () => {
+		boot.rules = { counts: { ips: 8 } };
+		const html = render( <Rules />, {}, '?tab=ips' );
+		boot.rules = null;
+		expect( html ).toMatch(
+			/Blocked IPs<span class="zs-c"><span class="zs-sr-only">, <\/span>/
+		);
+	} );
+
+	it( '"Customize for this site" is kept by the area (a change of tab does not reset it)', () => {
+		const html = render( editor( { custom: true, setCustom: noop } ), {
+			[ listPath( 'allowed-ips' ) ]: list( { source: 'network' } ),
+		} );
+		expect( html ).toContain( 'Add IP addresses' );
+		expect( html ).not.toContain( 'Customize for this site' );
+	} );
+
+	it( 'a locked minimum length is read-only (still focusable) and says what is locked', () => {
+		const html = render(
+			<Rules />,
+			{
+				[ listPath( 'allowed-words' ) ]: list( {
+					list: 'allowed-words',
+					items: [],
+					total: 0,
+					min_length: {
+						key: 'disallowed_min_length',
+						value: 4,
+						locked: true,
+						source: 'locked',
+					},
+				} ),
+			},
+			'?tab=words'
+		);
+		const input = html.match( /<input[^>]*id="zs-minlen"[^>]*>/ )[ 0 ];
+		expect( input ).toContain( 'readonly' );
+		expect( input ).not.toContain( 'disabled' );
+		expect( html ).toContain(
+			'The minimum word length is locked by the network administrator'
+		);
+		expect( html ).not.toContain(
+			'This list cannot be changed on this site.'
+		);
+	} );
+
+	it( 'your own blocked no-lockout address is marked before you remove it', () => {
+		const html = render( <NoLockout onCount={ noop } />, {
+			[ NO_LOCKOUT_PATH ]: {
+				items: [ { ip: '203.0.113.10', current: true, blocked: true } ],
+				max: 10,
+			},
+		} );
+		expect( html ).toContain( 'Blocked' );
+		expect( html ).toContain( 'removing it locks you out' );
+	} );
+
+	it( 'on a subsite the .htaccess note has no Refresh button', () => {
+		const schema = {
+			settings: [ { key: 'block_method', value: 'htaccess_modern' } ],
+		};
+		boot.isMainSite = false;
+		const html = render(
+			<Blocks kind="ip" schema={ schema } onCount={ noop } />
+		);
+		boot.isMainSite = true;
+		expect( html ).toContain( '.htaccess blocking is on' );
+		expect( html ).not.toContain( 'Refresh .htaccess' );
+		expect( html ).toContain( 'main site' );
 	} );
 } );

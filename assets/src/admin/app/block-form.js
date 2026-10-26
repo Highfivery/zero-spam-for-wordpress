@@ -24,6 +24,25 @@ import { NS, nowLocal, request } from '../data/api';
 import { LOCATION_TYPES, checkBlockIp, checkLocation } from '../data/validate';
 import { blockBody, initialLocationValues, initialValues } from './block-data';
 
+/**
+ * An example value for a location type (the Location field's placeholder).
+ *
+ * @param {string} type Location type.
+ * @return {string} Example.
+ */
+export function locationExample( type ) {
+	switch ( type ) {
+		case 'region_code':
+			return __( 'e.g. CA', 'zero-spam' );
+		case 'city':
+			return __( 'e.g. Springfield', 'zero-spam' );
+		case 'zip':
+			return __( 'e.g. 90210', 'zero-spam' );
+		default:
+			return __( 'e.g. US', 'zero-spam' );
+	}
+}
+
 /** @return {Object<string, string>} Location type names. */
 export const locationTypes = () => ( {
 	country_code: __( 'Country code', 'zero-spam' ),
@@ -331,7 +350,7 @@ export function BlockForm( {
 							className="zs-input zs-mono"
 							value={ values.key }
 							onChange={ set( 'key' ) }
-							placeholder={ __( 'e.g. US', 'zero-spam' ) }
+							placeholder={ locationExample( values.key_type ) }
 							autoComplete="off"
 							spellCheck="false"
 							aria-invalid={ errors.key ? 'true' : 'false' }

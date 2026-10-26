@@ -123,16 +123,45 @@ export const removeBlocks = ( { ids, request, toast, refresh } ) =>
 	} );
 
 /**
+ * What removing a no-lockout address would do to you: your own address
+ * while it is blocked locks you out at once (the server asks for the same
+ * confirmation, 409 rest_would_lock_out).
+ *
+ * @param {{ip: string, current: boolean, blocked: boolean}} item Address.
+ * @return {string} The warning, or '' when removing it is safe.
+ */
+export const lockoutWarning = ( item ) =>
+	item?.current && item?.blocked
+		? sprintf(
+				/* translators: %s: IP address */
+				__(
+					'Your address %s is blocked; removing it here locks you out of this site.',
+					'zero-spam'
+				),
+				item.ip
+			)
+		: '';
+
+/**
  * Removes a no-lockout address, with Undo.
  *
- * @param {Object}                          options         Options.
- * @param {string}                          options.ip      Address.
- * @param {(...args: unknown[]) => unknown} options.request apiFetch-like.
- * @param {(...args: unknown[]) => unknown} options.toast   ( message, { undo } ) => void.
- * @param {(...args: unknown[]) => unknown} options.refresh Reloads the list.
+ * @param {Object}                          options             Options.
+ * @param {string}                          options.ip          Address.
+ * @param {boolean}                         [options.confirm]   Remove your own blocked address anyway.
+ * @param {(...args: unknown[]) => unknown} options.request     apiFetch-like.
+ * @param {(...args: unknown[]) => unknown} options.toast       ( message, { undo } ) => void.
+ * @param {(...args: unknown[]) => unknown} options.refresh     Reloads the list.
+ * @param {(...args: unknown[]) => unknown} [options.onLockout] Receives the server's warning when it asks for confirmation.
  * @return {Promise<Object|null>} The answer, or null.
  */
-export const removeNoLockout = ( { ip, request, toast, refresh } ) =>
+export const removeNoLockout = ( {
+	ip,
+	confirm = false,
+	request,
+	toast,
+	refresh,
+	onLockout,
+} ) =>
 	runUndoable( {
 		run: () =>
 			request( {
@@ -140,12 +169,19 @@ export const removeNoLockout = ( { ip, request, toast, refresh } ) =>
 				path: `${ NS }/rules/no-lockout/${ String( ip ).replace(
 					/[^0-9A-Fa-f:.]/g,
 					''
-				) }`,
+				) }${ confirm ? '?confirm=1' : '' }`,
 				method: 'DELETE',
+			} ).catch( ( error ) => {
+				if ( 'rest_would_lock_out' === error?.code && onLockout ) {
+					onLockout( error.message );
+					throw { lockout: true };
+				}
+				throw error;
 			} ),
 		canUndo: ( answer ) => Boolean( answer?.undo_token ),
 		request,
-		toast,
+		// The confirmation replaces the error message.
+		toast: ( message, options ) => message && toast( message, options ),
 		refresh,
 		messages: {
 			done: () =>
@@ -156,13 +192,15 @@ export const removeNoLockout = ( { ip, request, toast, refresh } ) =>
 				),
 			undone: () => __( 'Address restored', 'zero-spam' ),
 			failed: ( error ) =>
-				errorMessage(
-					error,
-					__(
-						'The address could not be removed. Please try again.',
-						'zero-spam'
-					)
-				),
+				error?.lockout
+					? ''
+					: errorMessage(
+							error,
+							__(
+								'The address could not be removed. Please try again.',
+								'zero-spam'
+							)
+						),
 			undoFailed: ( error ) =>
 				errorMessage(
 					error,
