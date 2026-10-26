@@ -89,3 +89,26 @@
 .zs-enh {
 	background: var(--zs-dark-2) !important;
 }
+
+/* Help: the guides, the canned news, the developer lists and the Follow
+   handles are long runs of fixed text (about 480 KB per Help baseline);
+   help-onboarding.spec.ts checks that text, so the baselines keep the
+   layout, headings, badges, chips, icons and buttons only. */
+.zs-help .zs-doc,
+.zs-help .zs-doc *,
+.zs-help .zs-help-b > .zs-hint,
+.zs-help .zs-news-t,
+.zs-help .zs-news-t *,
+.zs-help .zs-news-x,
+.zs-help .zs-hooks code,
+.zs-help .zs-hooks code *,
+.zs-help .zs-hooks-d,
+.zs-help .zs-soc-txt .zs-hint {
+	color: transparent !important;
+}
+
+/* First-run setup: the dark panel's decorative gradient, painted flat as
+   the other dark blocks are (the mark and its caption stay compared). */
+.zs-onb-r {
+	background: var(--zs-dark-0) !important;
+}

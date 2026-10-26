@@ -64,10 +64,12 @@ class Admin {
 			$this->display_promo_notice();
 		}
 
-		// Check if the plugin has been auto-configured.
+		// Check if the plugin has been auto-configured. With the 6.0 admin, a
+		// fresh install waiting for first-run setup gets the setup instead.
 		$configured = get_option( 'zerospam_configured' );
+		$onboarding = \ZeroSpam\Core\Utilities::admin_v6() && \ZeroSpam\Core\Admin\Onboarding::is_pending();
 
-		if ( ! $configured ) {
+		if ( ! $configured && ! $onboarding ) {
 			?>
 			<div class="notice notice-info">
 				<p>

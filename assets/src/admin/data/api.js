@@ -27,6 +27,8 @@ export const PATHS = {
 	// The latest entries are not paged: no_count skips the total.
 	activity: `${ NS }/activity?per_page=6&no_count=1&_fields=${ FEED_FIELDS }`,
 	news: `${ NS }/news`,
+	helpDocs: `${ NS }/ui/help/docs`,
+	onboarding: `${ NS }/ui/onboarding`,
 	since: ( id ) =>
 		`${ NS }/activity?since_id=${ Number( id ) || 0 }&per_page=20&_fields=${ FEED_FIELDS }`,
 };
@@ -42,6 +44,9 @@ export const boot = Object.assign(
 		urls: {},
 		isMultisite: false,
 		newsEnabled: true,
+		onboarding: false,
+		safeIp: '',
+		whatsNew: '',
 		environment: { wordpress: '', php: '', ipSource: 'direct' },
 	},
 	typeof window !== 'undefined' ? window.zeroSpamAdmin || {} : {}
@@ -166,11 +171,14 @@ export function useResource( path, { parse = true } = {} ) {
 						),
 					} ) )
 				);
+		// Resolves true when the route answered, false when it failed (the
+		// data shown before is kept), so a Refresh can say which.
 		return req.then(
 			( { data, headers } ) => {
 				if ( alive.current ) {
 					setState( { data, headers, error: null, loading: false } );
 				}
+				return true;
 			},
 			( error ) => {
 				if ( alive.current ) {
@@ -180,6 +188,7 @@ export function useResource( path, { parse = true } = {} ) {
 						loading: false,
 					} ) );
 				}
+				return false;
 			}
 		);
 	}, [ path, parse ] );

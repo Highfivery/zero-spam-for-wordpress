@@ -9,6 +9,7 @@
  * @var string                                  $title  Area title.
  * @var array<string, string>                   $titles Area titles.
  * @var array{theme: string, reduce_motion: bool} $prefs Display preferences.
+ * @var bool                                    $onboarding First-run setup replaces the Overview.
  *
  * @package ZeroSpam
  */
@@ -34,6 +35,15 @@ $zerospam_icons = array(
 	data-zs-theme="<?php echo esc_attr( $prefs['theme'] ); ?>"
 	<?php echo $prefs['reduce_motion'] ? 'data-zs-motion="reduce"' : ''; ?>
 >
+	<?php if ( ! empty( $onboarding ) ) : ?>
+		<div class="zs-skel zs-skel-onb" aria-busy="true">
+			<div class="zs-skel-body">
+				<p class="zs-sr-only" role="status"><?php esc_html_e( 'Loading Zero Spam setup…', 'zero-spam' ); ?></p>
+				<span class="zs-skel-block zs-skel-wide"></span>
+				<span class="zs-skel-block zs-skel-narrow"></span>
+			</div>
+		</div>
+	<?php else : ?>
 	<div class="zs-skel" aria-busy="true">
 		<div class="zs-skel-side">
 			<span class="zs-skel-brand"><?php esc_html_e( 'Zero Spam', 'zero-spam' ); ?></span>
@@ -62,6 +72,7 @@ $zerospam_icons = array(
 			</div>
 		</div>
 	</div>
+	<?php endif; ?>
 	<noscript>
 		<div class="zs-noscript">
 			<h1 class="zs-h2"><?php esc_html_e( 'Zero Spam needs JavaScript for this screen', 'zero-spam' ); ?></h1>

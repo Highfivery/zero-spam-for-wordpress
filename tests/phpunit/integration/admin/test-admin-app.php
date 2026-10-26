@@ -445,15 +445,12 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
-	 * Areas not built yet (Help) preload only what the shell needs.
+	 * The network page, the one view still built later (PR 9), preloads
+	 * only the user's preferences; every site area adds its own reads to the
+	 * shell's (Help: test_help_preloads_its_guides()).
 	 */
-	public function test_other_areas_preload_only_the_shell(): void {
-		$this->flag_on();
-		$this->as_role( 'administrator' );
-		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-help' );
-
-		$paths = $this->preloaded_paths();
-		$this->assertSame( Admin_App::SHELL_PRELOADS, $paths );
+	public function test_network_page_preloads_only_the_preferences(): void {
+		$this->assertSame( array( '/zero-spam/v1/ui/prefs' ), Admin_App::preload_paths( 'network' ) );
 	}
 
 	/**
@@ -595,6 +592,27 @@ class Test_Admin_App extends TestCase {
 
 		$data = $this->preloaded();
 		$this->assertSame( '</script><script>alert(3)</script>', $data[ '/zero-spam/v1/activity/' . $ids[0] ]['body']['city'], 'It decodes to the logged text.' );
+	}
+
+	/**
+	 * Help preloads its guides on top of the shell (the news comes with the
+	 * shell), and nothing of the Overview's.
+	 */
+	public function test_help_preloads_its_guides(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-help' );
+
+		$paths = $this->preloaded_paths();
+		foreach ( array_merge( Admin_App::SHELL_PRELOADS, Admin_App::HELP_PRELOADS ) as $path ) {
+			$this->assertContains( $path, $paths, "{$path} is preloaded on Help." );
+		}
+		foreach ( Admin_App::OVERVIEW_PRELOADS as $path ) {
+			$this->assertNotContains( $path, $paths );
+		}
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( 'developer-hooks', $inline, 'The guides are real answers.' );
 	}
 
 	/**

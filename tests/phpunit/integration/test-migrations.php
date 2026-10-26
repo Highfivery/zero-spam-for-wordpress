@@ -33,6 +33,7 @@ class Test_Migrations extends TestCase {
 		'v6_security_switches',
 		'v6_uninstall_flag',
 		'v6_thresholds_sanitize',
+		'v6_whats_new',
 	);
 
 	/**
