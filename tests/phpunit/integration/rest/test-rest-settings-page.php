@@ -37,10 +37,26 @@ class Test_Rest_Settings_Page extends TestCase {
 	}
 
 	/**
+	 * An uploads folder of this test process only: the cached test
+	 * WordPress shares wp-content/uploads with every checkout, so another
+	 * checkout's run could write or delete the log mid-test.
+	 *
+	 * @param array<string, mixed> $uploads wp_upload_dir() answer.
+	 * @return array<string, mixed>
+	 */
+	public static function own_uploads( array $uploads ): array {
+		$uploads['basedir'] = trailingslashit( get_temp_dir() ) . 'zerospam-tests-uploads-' . getmypid();
+
+		return $uploads;
+	}
+
+	/**
 	 * No error log, no settings the tests write.
 	 */
 	public function set_up(): void {
 		parent::set_up();
+
+		add_filter( 'upload_dir', array( self::class, 'own_uploads' ) );
 
 		wp_delete_file( self::log_file() );
 		foreach ( array( 'settings', 'zerospam', 'api-monitoring' ) as $module ) {
@@ -53,6 +69,7 @@ class Test_Rest_Settings_Page extends TestCase {
 	 */
 	public function tear_down(): void {
 		wp_delete_file( self::log_file() );
+		remove_filter( 'upload_dir', array( self::class, 'own_uploads' ) );
 
 		parent::tear_down();
 	}

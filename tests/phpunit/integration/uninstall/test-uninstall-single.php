@@ -262,6 +262,14 @@ class Test_Uninstall_Single extends TestCase {
 	 * @param mixed $off Stored "off" value.
 	 */
 	public function test_keeps_data_when_turned_off( $off ): void {
+		// This process's own uploads folder: the cached test WordPress shares wp-content/uploads with every checkout.
+		$own_uploads = static function ( array $uploads ): array {
+			$uploads['basedir'] = trailingslashit( get_temp_dir() ) . 'zerospam-tests-uploads-' . getmypid();
+
+			return $uploads;
+		};
+		add_filter( 'upload_dir', $own_uploads );
+
 		update_option(
 			'zero-spam-api-monitoring',
 			array(
@@ -296,6 +304,7 @@ class Test_Uninstall_Single extends TestCase {
 
 		$this->assertFalse( get_transient( 'zerospam_stats_summary' ), 'Caches go either way.' );
 		$this->assertFalse( wp_next_scheduled( 'zerospam_check_api_anomalies' ), 'Scheduled events go either way.' );
+		remove_filter( 'upload_dir', $own_uploads );
 	}
 
 	/**
