@@ -52,6 +52,16 @@ export function initialValues( block, ip, now, shift ) {
 }
 
 /**
+ * A datetime-local value (YYYY-MM-DDTHH:MM) as the API reads it: with
+ * seconds (rest_parse_date() needs them), still without an offset.
+ *
+ * @param {string} value Input value.
+ * @return {string} Date and time.
+ */
+export const withSeconds = ( value ) =>
+	/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test( value ) ? `${ value }:00` : value;
+
+/**
  * The request body (times without an offset are the site's time).
  *
  * @param {Object} values Values.
@@ -65,10 +75,10 @@ export function blockBody( values ) {
 		reason: values.reason.trim(),
 	};
 	if ( values.start ) {
-		body.start = values.start;
+		body.start = withSeconds( values.start );
 	}
 	if ( 'temporary' === values.type ) {
-		body.end = values.end;
+		body.end = withSeconds( values.end );
 	}
 	return body;
 }

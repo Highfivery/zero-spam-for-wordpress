@@ -216,15 +216,15 @@
 	background: transparent;
 }
 
-.zs-c-w,
-.zs-c-ip,
-.zs-c-ct {
+.zs-log-t .zs-c-w,
+.zs-log-t .zs-c-ip,
+.zs-log-t .zs-c-ct {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.zs-c-w > span:first-child {
+.zs-log-t .zs-c-w > span:first-child {
 	display: block;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -239,7 +239,7 @@
 	white-space: nowrap;
 }
 
-.zs-c-ip {
+.zs-log-t .zs-c-ip {
 	font-size: var(--zs-text-sm);
 }
 

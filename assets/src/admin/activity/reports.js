@@ -211,7 +211,7 @@ export function Reports() {
 						)
 					: sprintf(
 							/* translators: %s: IP address */ __(
-								'Block %s',
+								'Block IP %s',
 								'zero-spam'
 							),
 							row.ip
