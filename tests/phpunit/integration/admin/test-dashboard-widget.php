@@ -156,19 +156,74 @@ class Test_Dashboard_Widget extends TestCase {
 	 */
 	private function site_clock_at( string $hhmm ): void {
 		list( $hours, $minutes ) = array_map( 'intval', explode( ':', $hhmm ) );
-
-		// Whole minutes (wp_timezone() turns a UTC offset into +HH:MM): the
-		// site clock then reads HH:MM and the current second.
-		$wanted = $hours * 60 + $minutes;
-		$shift  = ( ( $wanted - intdiv( time() % DAY_IN_SECONDS, MINUTE_IN_SECONDS ) ) % 1440 + 1440 ) % 1440;
-		$shift  = $shift > 720 ? $shift - 1440 : $shift;
+		$wanted                  = $hours * 60 + $minutes;
 
 		update_option( 'timezone_string', '' );
-		update_option( 'gmt_offset', $shift / 60 );
+		update_option( 'gmt_offset', self::clock_offset( time(), $wanted ) );
 
 		// The clock keeps running: a second may tick into the next minute.
 		$now = (int) wp_date( 'G' ) * 60 + (int) wp_date( 'i' );
 		$this->assertContains( $now, array( $wanted, ( $wanted + 1 ) % 1440 ), 'The site clock reads the wanted time.' );
+	}
+
+	/**
+	 * The `gmt_offset` (hours) that makes the site clock read a minute of
+	 * the day at a UTC time.
+	 *
+	 * The shift is a whole number of minutes. wp_timezone() writes the
+	 * offset as +HH:MM and truncates its minutes, and 11 h 58 min is not
+	 * exact in hours (11.9666…): it would read +11:57. Half a minute away
+	 * from zero keeps the truncated value on the right minute; current_time()
+	 * then runs 30 seconds ahead, still in the same day for the tests.
+	 *
+	 * @param int $utc    UTC timestamp.
+	 * @param int $wanted Minute of the day (0 to 1439).
+	 */
+	private static function clock_offset( int $utc, int $wanted ): float {
+		$shift = ( ( $wanted - intdiv( $utc % DAY_IN_SECONDS, MINUTE_IN_SECONDS ) ) % 1440 + 1440 ) % 1440;
+		$shift = $shift > 720 ? $shift - 1440 : $shift;
+
+		return ( $shift + ( $shift < 0 ? -0.5 : 0.5 ) ) / 60;
+	}
+
+	/**
+	 * The clock helper reaches its minute from every UTC minute of the day
+	 * (and both ends of each minute), through wp_timezone() as wp_date()
+	 * uses it.
+	 *
+	 * @dataProvider data_site_clock
+	 *
+	 * @param string|null $clock Site time (H:i), or null.
+	 */
+	public function test_site_clock_helper_reaches_every_minute( ?string $clock ): void {
+		list( $hours, $minutes ) = array_map( 'intval', explode( ':', $clock ?? '12:00' ) );
+		$wanted                  = $hours * 60 + $minutes;
+		$offset                  = 0.0;
+		$misses                  = array();
+
+		$use_offset = static function () use ( &$offset ) {
+			return $offset;
+		};
+		add_filter( 'pre_option_timezone_string', '__return_empty_string' );
+		add_filter( 'pre_option_gmt_offset', $use_offset );
+
+		$day = (int) gmmktime( 0, 0, 0, 1, 1, 2026 );
+		for ( $minute = 0; $minute < 1440; $minute++ ) {
+			foreach ( array( 0, 59 ) as $second ) {
+				$utc    = $day + $minute * MINUTE_IN_SECONDS + $second;
+				$offset = self::clock_offset( $utc, $wanted );
+				$site   = intdiv( ( $utc + wp_timezone()->getOffset( new DateTimeImmutable( '@' . $utc ) ) ) % DAY_IN_SECONDS, MINUTE_IN_SECONDS );
+
+				if ( $site !== $wanted ) {
+					$misses[] = gmdate( 'H:i:s', $utc ) . ' → ' . sprintf( '%02d:%02d', intdiv( $site, 60 ), $site % 60 );
+				}
+			}
+		}
+
+		remove_filter( 'pre_option_timezone_string', '__return_empty_string' );
+		remove_filter( 'pre_option_gmt_offset', $use_offset );
+
+		$this->assertSame( array(), $misses );
 	}
 
 	/**
