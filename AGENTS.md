@@ -629,7 +629,8 @@ npm run env:stop                 # stop both wp-env sites
   unmatched entries. Clearing them is planned work; do it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
-  `build/`.
+  `build/`; `composer compat` ignores the same directories (a half-merged
+  file in an agent worktree once failed the main checkout's gate).
 - Fixed in 5.7.13 (tests now in the gate): the multisite locked-settings UI
   and site-save rule (locked keys are never stored; a saved value equal to the
   network value follows the network; REST returns 403 `rest_setting_locked`
