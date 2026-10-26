@@ -32,6 +32,7 @@ class Test_Settings_Save extends TestCase {
 		$this->as_role( 'administrator' );
 		delete_option( 'zero-spam-comments' );
 		delete_option( 'zero-spam-settings' );
+		delete_option( 'zero-spam-security' );
 
 		( new Settings_Page() )->register_settings();
 	}
@@ -153,5 +154,21 @@ class Test_Settings_Save extends TestCase {
 
 		$autoload = $wpdb->get_var( $wpdb->prepare( "SELECT autoload FROM {$wpdb->options} WHERE option_name = %s", 'zerospam_blocked_email_domains' ) );
 		$this->assertContains( $autoload, array( 'no', 'off' ), 'The large domain list is not autoloaded.' );
+	}
+
+	/**
+	 * An unticked switch that is on unless turned off is stored as `disabled`,
+	 * so it stays off; an unticked ordinary switch is still false.
+	 */
+	public function test_unticked_default_on_switch_is_stored_as_disabled(): void {
+		$this->submit_form( 'zero-spam-security', array( 'hide_wp_version' => 'enabled' ) );
+
+		$stored = get_option( 'zero-spam-security' );
+
+		$this->assertSame( 'disabled', $stored['disable_xmlrpc'] );
+		$this->assertSame( 'enabled', $stored['hide_wp_version'] );
+		$this->assertFalse( $stored['disable_emojis'] );
+		self::reset_static_caches();
+		$this->assertSame( 'disabled', Settings::get_settings( 'disable_xmlrpc' ) );
 	}
 }

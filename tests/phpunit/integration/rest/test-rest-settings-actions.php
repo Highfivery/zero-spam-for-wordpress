@@ -135,6 +135,7 @@ class Test_Rest_Settings_Actions extends TestCase {
 		$this->assertTrue( $response->get_data()['success'] );
 		$this->assertNotSame( '', $response->get_data()['message'] );
 		$this->assertNotSame( 'old01', get_option( 'wpzerospam_honeypot' ) );
+		$this->assertSame( get_option( 'wpzerospam_honeypot' ), $response->get_data()['honeypot'], 'The answer carries the new ID.' );
 	}
 
 	/**

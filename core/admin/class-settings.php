@@ -382,7 +382,8 @@ class Settings {
 	 *
 	 * On a settings form submission, the unticked checkboxes and empty
 	 * multi-selects of the module being saved, which browsers do not submit,
-	 * are stored as `false` and an empty array. Other writes are stored as
+	 * are stored as `false` (`disabled` for a switch that is on unless turned
+	 * off) and an empty array. Other writes are stored as
 	 * given, so on a network they never turn settings they did not mention
 	 * into site overrides.
 	 *
@@ -404,8 +405,8 @@ class Settings {
 				}
 
 				if ( 'checkbox' === $setting_config['type'] ) {
-					// Browsers don't submit unticked checkboxes.
-					$input[ $setting_key ] = false;
+					// Browsers don't submit unticked checkboxes. A switch that is on unless turned off stores `disabled`.
+					$input[ $setting_key ] = \ZeroSpam\Core\Settings_Schema::is_default_on( $setting_config ) ? 'disabled' : false;
 				} elseif ( 'select' === $setting_config['type'] && ! empty( $setting_config['multiple'] ) ) {
 					// Nor multi-selects with nothing selected: store "none selected", not "never configured".
 					$input[ $setting_key ] = array();

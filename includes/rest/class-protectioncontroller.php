@@ -82,7 +82,7 @@ class Protection_Controller extends Base_Controller {
 		'registration'     => array( 'verify_registrations' ),
 		'login'            => array( 'verify_login' ),
 		'davidwalsh'       => array( 'davidwalsh' ),
-		'security'         => array( 'remove_resource_query_parameters', 'disable_emojis', 'disable_rss_feed' ),
+		'security'         => array( 'disable_xmlrpc', 'hide_wp_version', 'remove_resource_query_parameters', 'disable_emojis', 'disable_rss_feed' ),
 		'zerospam'         => array( 'zerospam' ),
 		'stop_forum_spam'  => array( 'stop_forum_spam' ),
 		'project_honeypot' => array( 'project_honeypot' ),
