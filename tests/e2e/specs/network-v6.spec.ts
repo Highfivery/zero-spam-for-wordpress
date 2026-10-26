@@ -87,7 +87,9 @@ test.describe( '6.0 Network', { tag: '@multisite' }, () => {
 		await expect( page.getByRole( 'tab', { name: 'Network stats' } ) ).toHaveAttribute( 'aria-selected', 'true' );
 	} );
 
-	test( 'a value saved and locked here is what a subsite gets; unlocking hands it back', async ( { page, asSiteAdmin, target, gallery } ) => {
+	test( 'a value saved and locked here is what a subsite gets; unlocking hands it back', async ( { page, zs, asSiteAdmin, target, gallery } ) => {
+		// The subsite keeps no settings of its own (the baseline stores some), so the network's value reaches it.
+		await zs.forSite( target.subsitePath! ).call( 'POST', 'reset', { preset: 'defaults', network: false } );
 		await openNetwork( page, 'settings', { group: 'settings' } );
 		const card = page.locator( '#zs-ncard-settings-data' );
 		await expect( card.locator( '.zs-ngh' ) ).toHaveAttribute( 'aria-expanded', 'true' );
@@ -124,6 +126,7 @@ test.describe( '6.0 Network', { tag: '@multisite' }, () => {
 	} );
 
 	test( 'an empty network value reads "(none)" here and on the subsite, never an empty box', async ( { page, zs, asSiteAdmin, target } ) => {
+		await zs.forSite( target.subsitePath! ).call( 'POST', 'reset', { preset: 'defaults', network: false } );
 		await zs.networkSetting( 'blocked_message', '' );
 		await openNetwork( page, 'settings', { group: 'settings' } );
 		await page.getByRole( 'button', { name: 'Expand all' } ).click();
@@ -213,7 +216,7 @@ test.describe( '6.0 Network', { tag: '@multisite' }, () => {
 		await test.step( 'unblock with Undo', async () => {
 			await page.locator( '.zs-nblocks' ).getByRole( 'button', { name: `Unblock ${ ip } on every site` } ).click();
 			await expect( page.locator( '.zs-toasts' ) ).toContainText( `${ ip } unblocked on all sites` );
-			await page.locator( '.zs-toasts' ).getByRole( 'button', { name: 'Undo' } ).click();
+			await page.locator( '.zs-toast', { hasText: 'unblocked on all sites' } ).getByRole( 'button', { name: 'Undo' } ).click();
 			await expect( page.locator( '.zs-nblocks' ) ).toContainText( ip );
 		} );
 	} );
@@ -237,7 +240,9 @@ test.describe( '6.0 Network', { tag: '@multisite' }, () => {
 		await expect( body ).toContainText( 'Changed' );
 		await expect( body ).toContainText( 'Locked' );
 		await page.locator( '#zs-cmp-sort' ).selectOption( 'overrides' );
-		await expect( body.locator( 'tbody tr, .zs-cards > li' ).first() ).toContainText( /Maximum|Max/ );
+		// Most site changes first: the first setting is one a site changed.
+		await expect( body.locator( 'tbody tr, .zs-cards > li' ).first() ).toContainText( 'Changed' );
+		await expect( body.locator( 'tbody tr, .zs-cards > li' ).last() ).not.toContainText( 'Changed' );
 	} );
 
 	test( 'notifications save and stay saved', async ( { page } ) => {

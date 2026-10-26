@@ -44,10 +44,11 @@ export function LockButton( {
 			aria-label={ text.aria }
 			aria-describedby={ describedBy }
 			aria-disabled={ busy ? 'true' : undefined }
+			title={ text.state }
 			onClick={ busy ? undefined : onToggle }
 		>
 			<Icon name={ locked ? 'lock' : 'unlock' } size="sm" />
-			<span aria-hidden="true">{ text.label }</span>
+			<span>{ text.label }</span>
 		</button>
 	);
 }

@@ -193,11 +193,14 @@ describe( 'the Sites column and the lock switch', () => {
 	} );
 
 	it( 'names the lock switch by its setting and says what it did', () => {
+		// The name holds the visible word and stays the same in both states (WCAG 2.5.3); aria-pressed says which.
 		expect( lockText( entries.share_data, true ) ).toEqual( {
-			label: 'Locked',
+			label: 'Lock',
+			state: 'Locked',
 			aria: 'Lock “Share data” for every site',
 		} );
-		expect( lockText( entries.max_logs, false ).label ).toBe( 'Unlocked' );
+		expect( lockText( entries.max_logs, false ).label ).toBe( 'Lock' );
+		expect( lockText( entries.max_logs, false ).state ).toBe( 'Unlocked' );
 		expect( lockToast( entries.max_logs, true ) ).toBe(
 			'Maximum logs: locked for every site'
 		);

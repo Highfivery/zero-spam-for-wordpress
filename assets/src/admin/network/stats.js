@@ -508,7 +508,7 @@ export function NetworkStats() {
 				data-zs-netblock={ a.ip }
 				aria-label={ sprintf(
 					/* translators: %s: IP address */
-					__( 'Block %s on every site', 'zero-spam' ),
+					__( 'Block network-wide: %s', 'zero-spam' ),
 					a.ip
 				) }
 				onClick={ () => blockIp( a.ip ) }

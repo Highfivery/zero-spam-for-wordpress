@@ -221,7 +221,7 @@ export function NetworkSettings() {
 	const schema = useResource( PATHS.schema );
 	const layer = useResource( PATHS.values );
 	const overview = useResource( PATHS.overview );
-	const [ group, setGroupState ] = useState( groupArg );
+	const [ groupState, setGroupState ] = useState( groupArg );
 	// null until a card is opened or closed: the first card of the view starts open.
 	const [ openState, setOpen ] = useState( null );
 	const [ draft, setDraft ] = useState( {} );
@@ -253,6 +253,10 @@ export function NetworkSettings() {
 		[ entries, draft ]
 	);
 	const count = Object.keys( payload ).length;
+	// A group with no settings here (such as Integrations when no integrated plugin is active) shows every group.
+	const group = cards.some( ( c ) => c.group === groupState )
+		? groupState
+		: '';
 	const shown = cards.filter( ( c ) => ! group || c.group === group );
 	const open = openState || new Set( shown.length ? [ shown[ 0 ].key ] : [] );
 

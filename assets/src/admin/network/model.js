@@ -335,11 +335,15 @@ export function valueText( entry, value ) {
  *
  * @param {Object}  entry  Network entry.
  * @param {boolean} locked Locked now.
- * @return {{label: string, aria: string}} Visible text and accessible name.
+ * @return {{label: string, state: string, aria: string}} Visible text, the state in words (tooltip) and accessible name.
  */
 export function lockText( entry, locked ) {
+	// The visible word stays "Lock" (pressed when locked, with a closed lock): a
+	// toggle's name does not change with its state, and it must contain its
+	// visible text (WCAG 2.5.3).
 	return {
-		label: locked
+		label: __( 'Lock', 'zero-spam' ),
+		state: locked
 			? __( 'Locked', 'zero-spam' )
 			: __( 'Unlocked', 'zero-spam' ),
 		aria: sprintf(
