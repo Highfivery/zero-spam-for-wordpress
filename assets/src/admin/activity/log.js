@@ -665,10 +665,15 @@ export function Log( { onChanged, summary } ) {
 						) }
 					</b>
 					<span className="zs-hint">
-						{ __(
-							'Clear the search, type, country and date filters to see every detection.',
-							'zero-spam'
-						) }
+						{ view.filters.after || view.filters.before
+							? __(
+									'Clear the search, type and country filters and any date in the address to see every detection.',
+									'zero-spam'
+								)
+							: __(
+									'Clear the search, type and country filters to see every detection.',
+									'zero-spam'
+								) }
 					</span>
 					<Button
 						variant="secondary"

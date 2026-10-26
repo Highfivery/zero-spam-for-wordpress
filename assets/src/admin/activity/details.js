@@ -198,11 +198,16 @@ export function DetailsDrawer( {
 					</Badge>
 				) }
 				{ ! item.allowed && item.allowlist_locked && (
-					<Badge icon="lock">
-						{ __(
-							'IP allowlist locked by the network',
-							'zero-spam'
-						) }
+					<Badge icon="lock" className="zs-lockbadge">
+						<span aria-hidden="true">
+							{ __( 'Allowlist locked by network', 'zero-spam' ) }
+						</span>
+						<span className="zs-sr-only">
+							{ __(
+								'The IP allowlist is locked by the network administrator, so this address cannot be added here.',
+								'zero-spam'
+							) }
+						</span>
 					</Badge>
 				) }
 				{ ! item.allowed && ! item.allowlist_locked && (

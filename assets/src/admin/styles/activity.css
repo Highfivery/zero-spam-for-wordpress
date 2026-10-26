@@ -674,9 +674,9 @@ button.zs-cardmain:hover .zs-cm-t {
 	align-self: flex-start;
 }
 
-/* The drawer's actions stay on one row; they wrap only on phones. */
+/* The drawer's actions fit one row in the usual case (compact ghost
+   buttons); they wrap whenever they must, so nothing is ever clipped. */
 .zs-details .zs-drawer-f .zs-inline-row {
-	flex-wrap: nowrap;
 	gap: 4px;
 }
 
@@ -684,11 +684,11 @@ button.zs-cardmain:hover .zs-cm-t {
 	padding: 0 10px;
 }
 
-@media (max-width: 600px) {
-
-	.zs-details .zs-drawer-f .zs-inline-row {
-		flex-wrap: wrap;
-	}
+.zs-details .zs-drawer-f .zs-lockbadge {
+	height: auto;
+	min-height: var(--zs-badge-height);
+	max-width: 100%;
+	white-space: normal;
 }
 
 /* Reports */
