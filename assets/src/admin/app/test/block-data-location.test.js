@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
  * Internal dependencies
  */
 import { blockBody, initialLocationValues } from '../block-data';
+import { locationExample } from '../block-form';
 
 const NOW = Date.UTC( 2026, 9, 22, 12, 0 );
 
@@ -90,5 +91,14 @@ describe( 'blockBody', () => {
 			start: '2026-10-22T12:00:00',
 			end: '2026-10-29T12:00:00',
 		} );
+	} );
+} );
+
+describe( 'locationExample', () => {
+	it( 'gives an example for each location type', () => {
+		expect( locationExample( 'country_code' ) ).toBe( 'e.g. US' );
+		expect( locationExample( 'region_code' ) ).toBe( 'e.g. CA' );
+		expect( locationExample( 'city' ) ).toBe( 'e.g. Springfield' );
+		expect( locationExample( 'zip' ) ).toBe( 'e.g. 90210' );
 	} );
 } );

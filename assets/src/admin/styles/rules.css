@@ -291,7 +291,8 @@
 }
 
 .zs-app .zs-input.zs-num-in:disabled,
-.zs-app .zs-input:disabled {
+.zs-app .zs-input:disabled,
+.zs-app .zs-input.zs-num-in:read-only {
 	background: var(--zs-surface-2);
 	color: var(--zs-ink-2);
 	cursor: not-allowed;
@@ -342,6 +343,11 @@
 	flex-wrap: wrap;
 	gap: var(--zs-space-2);
 	align-items: center;
+}
+
+.zs-safelist .zs-li-body > .zs-hint,
+.zs-lockout-q {
+	flex-basis: 100%;
 }
 
 @media (max-width: 700px) {

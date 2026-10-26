@@ -1101,6 +1101,8 @@ export function Log( { onChanged, summary } ) {
 						{ __( 'Network-only', 'zero-spam' ) }
 						{ null !== ( facets.data?.network_only ?? null ) && (
 							<span className="zs-c">
+								{ /* Read as "Network-only, 12", not "Network-only12". */ }
+								<span className="zs-sr-only">, </span>
 								{ num( facets.data.network_only ) }
 							</span>
 						) }

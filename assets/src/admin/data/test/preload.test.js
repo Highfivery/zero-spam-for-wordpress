@@ -6,12 +6,21 @@
 /**
  * External dependencies
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/**
+ * WordPress dependencies
+ */
+import apiFetch from '@wordpress/api-fetch';
 
 /**
  * Internal dependencies
  */
-import { PATHS, takePreloaded } from '../api';
+import { PATHS, request, takePreloaded } from '../api';
+
+vi.mock( '@wordpress/api-fetch', () => ( {
+	default: vi.fn( () => Promise.resolve( {} ) ),
+} ) );
 
 describe( 'takePreloaded', () => {
 	afterEach( () => {
@@ -32,5 +41,48 @@ describe( 'takePreloaded', () => {
 		globalThis.window = { zeroSpamPreload: [] };
 		expect( takePreloaded( null ) ).toBeUndefined();
 		expect( takePreloaded( PATHS.prefs ) ).toBeUndefined();
+	} );
+} );
+
+describe( 'the preloading middleware’s copy', () => {
+	beforeEach( () => {
+		apiFetch.mockClear();
+	} );
+
+	afterEach( () => {
+		delete globalThis.window;
+	} );
+
+	it( 'is used up with one apiFetch of the same path, once (answered from memory)', () => {
+		globalThis.window = {
+			wp: { apiFetch },
+			zeroSpamPreload: { [ PATHS.prefs ]: { body: {}, headers: {} } },
+		};
+		takePreloaded( PATHS.prefs );
+		takePreloaded( PATHS.prefs );
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+		expect( apiFetch ).toHaveBeenCalledWith( {
+			path: PATHS.prefs,
+			parse: false,
+		} );
+	} );
+
+	it( 'is left alone outside WordPress (no wp.apiFetch, no middleware)', () => {
+		globalThis.window = {
+			zeroSpamPreload: { [ PATHS.prefs ]: { body: {}, headers: {} } },
+		};
+		expect( takePreloaded( PATHS.prefs ) ).toBeDefined();
+		expect( apiFetch ).not.toHaveBeenCalled();
+	} );
+
+	it( 'is never drained after request() read the path (that would be a real GET)', async () => {
+		globalThis.window = {
+			wp: { apiFetch },
+			zeroSpamPreload: { [ PATHS.license ]: { body: {}, headers: {} } },
+		};
+		await request( { path: PATHS.license } );
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
+		expect( takePreloaded( PATHS.license ) ).toBeUndefined();
+		expect( apiFetch ).toHaveBeenCalledTimes( 1 );
 	} );
 } );
