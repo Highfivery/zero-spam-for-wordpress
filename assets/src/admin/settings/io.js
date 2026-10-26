@@ -214,24 +214,42 @@ export function ImportExport( { entries, onApplied, unsaved } ) {
 				</div>
 			</div>
 			<div className="zs-field">
-				<label className="zs-lbl-strong" htmlFor="zs-imp-file">
+				<b className="zs-lbl-strong" id="zs-imp-l">
 					{ __( 'Import settings', 'zero-spam' ) }
-				</label>
+				</b>
 				<p className="zs-hint" id="zs-imp-d">
 					{ __(
 						'Choose a settings file exported from Zero Spam on this or another site. The settings in the file replace yours; settings your network administrator locked are skipped.',
 						'zero-spam'
 					) }
 				</p>
-				<input
-					ref={ file }
-					id="zs-imp-file"
-					className="zs-file"
-					type="file"
-					accept="application/json,.json"
-					aria-describedby="zs-imp-d"
-					onChange={ pick }
-				/>
+				<div className="zs-filepick">
+					{ /* The real file input, visually hidden inside a button-styled label: keyboard, screen readers and the browser's picker work as usual. */ }
+					<label
+						className="zs-btn zs-btn-secondary zs-btn-sm zs-filebtn"
+						htmlFor="zs-imp-file"
+					>
+						<input
+							ref={ file }
+							id="zs-imp-file"
+							className="zs-file"
+							type="file"
+							accept="application/json,.json"
+							aria-labelledby="zs-imp-l zs-imp-t"
+							aria-describedby="zs-imp-n zs-imp-d"
+							onChange={ pick }
+						/>
+						<Icon name="up" size="sm" />
+						<span id="zs-imp-t">
+							{ __( 'Choose a file…', 'zero-spam' ) }
+						</span>
+					</label>
+					<span className="zs-hint zs-mono" id="zs-imp-n">
+						{ chosen
+							? chosen.name
+							: __( 'No file chosen', 'zero-spam' ) }
+					</span>
+				</div>
 				<label className="zs-check" htmlFor="zs-imp-secrets">
 					<input
 						id="zs-imp-secrets"

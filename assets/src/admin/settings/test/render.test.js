@@ -132,11 +132,14 @@ describe( 'import and export', () => {
 	);
 
 	it( 'labels the file input and the keys opt-in', () => {
-		expect( html ).toContain(
-			'<label class="zs-lbl-strong" for="zs-imp-file">'
+		// The input sits inside its button-styled label and is named by the field and the button text.
+		expect( html ).toMatch(
+			/<label class="zs-btn zs-btn-secondary zs-btn-sm zs-filebtn" for="zs-imp-file"><input[^>]*id="zs-imp-file"[^>]*type="file"/
 		);
-		expect( html ).toMatch( /<input[^>]*id="zs-imp-file"[^>]*type="file"/ );
-		expect( html ).toMatch( /<input[^>]*aria-describedby="zs-imp-d"/ );
+		expect( html ).toContain( 'aria-labelledby="zs-imp-l zs-imp-t"' );
+		expect( html ).toContain( 'aria-describedby="zs-imp-n zs-imp-d"' );
+		expect( html ).toContain( 'id="zs-imp-t">Choose a file…</span>' );
+		expect( html ).toContain( 'id="zs-imp-n">No file chosen</span>' );
 		expect( html ).toContain( 'for="zs-imp-secrets"' );
 		expect( html ).toMatch( /id="zs-imp-secrets" type="checkbox"/ );
 	} );

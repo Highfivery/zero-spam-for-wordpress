@@ -109,7 +109,9 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   `date_gmt` carries `+00:00`; clients read an offset-less time as UTC.
 - 6.0 data routes (`feat/rest-data`): `stats/*`, `activity*`, `undo/{token}`,
   `rules/*`, `protection/modules`, `settings/actions|export|import`,
-  `self-test`, `news`. Log statistics are cached in the transients
+  `self-test`, `news`; and (PR 8) `settings/error-log` (GET, `manage_options`:
+  the last 64 KB of the site's own `uploads/zerospam.log` from a whole line,
+  read-only, no parameters, never follows a symbolic link). Log statistics are cached in the transients
   `zerospam_stats_summary`, `zerospam_stats_timeseries` and
   `zerospam_protection_detections`, tagged with `MAX(log_id)` (a new
   detection refreshes them); code that deletes or restores log rows calls
@@ -759,6 +761,11 @@ npm run env:stop                 # stop both wp-env sites
   (migration `v6_network_store`, guarded by the site option
   `zerospam_network_completed_migrations`) and kept, unread and unwritten,
   for a downgrade; remove it, and `zerospam_backup_5x`, in 6.1.
+- Copy pass (chore, one PR): setting titles in the registry are Title Case
+  (5.x); 6.0 cards and headings use sentence case. Sentence-case every
+  registry title in one PR (translated strings, so a content change in each
+  module; the legacy screens benefit too). Until then the shared field
+  renderer hides a row title that repeats its card's title (`cardTitle`).
 - `DavidWalsh::validate_token()` caches accepted tokens in a function-level
   `static $accepted`, which tests cannot reset; use a fresh token per test.
 - `core/class-cli.php` is dead code; the `zerospam_blacklist` table is defined

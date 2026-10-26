@@ -418,6 +418,7 @@ export function Settings() {
 					entries={ settings.entries }
 					error={ settings.errors[ entry.key ] }
 					onAction={ reloadAll }
+					cardTitle={ card.title }
 				/>
 			);
 			if ( 'quota_reset_date' === entry.key ) {

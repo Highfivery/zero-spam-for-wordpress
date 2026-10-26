@@ -40,6 +40,19 @@ import {
 	recommendedText,
 } from './settings-model';
 
+/**
+ * Whether a setting's title repeats its card's title (case and outer spaces aside).
+ *
+ * @param {string} title     Setting title.
+ * @param {string} cardTitle Card title.
+ * @return {boolean} Same.
+ */
+export const sameTitle = ( title, cardTitle ) =>
+	Boolean( cardTitle ) &&
+	String( title || '' )
+		.trim()
+		.toLocaleLowerCase() === String( cardTitle ).trim().toLocaleLowerCase();
+
 /** Descriptions longer than this (characters) are clamped behind "More". */
 const CLAMP_AT = 170;
 
@@ -516,14 +529,15 @@ function HelpField( { entry } ) {
 /**
  * One setting.
  *
- * @param {Object}                          props            Props.
- * @param {Object}                          props.entry      Schema entry.
- * @param {unknown}                         props.value      Current value (draft or saved; for secrets the draft).
- * @param {(...args: unknown[]) => unknown} props.onChange   Receives (key, value).
- * @param {Object<string, Object>}          props.entries    Every entry by key (dependencies).
- * @param {string}                          [props.error]    Error from the last save.
- * @param {boolean}                         [props.disabled] Disabled for another reason (the card).
- * @param {(...args: unknown[]) => unknown} [props.onAction] Called after an action ran.
+ * @param {Object}                          props             Props.
+ * @param {Object}                          props.entry       Schema entry.
+ * @param {unknown}                         props.value       Current value (draft or saved; for secrets the draft).
+ * @param {(...args: unknown[]) => unknown} props.onChange    Receives (key, value).
+ * @param {Object<string, Object>}          props.entries     Every entry by key (dependencies).
+ * @param {string}                          [props.error]     Error from the last save.
+ * @param {boolean}                         [props.disabled]  Disabled for another reason (the card).
+ * @param {(...args: unknown[]) => unknown} [props.onAction]  Called after an action ran.
+ * @param {string}                          [props.cardTitle] Title of the card the row is in: a row title that repeats it is kept for screen readers only.
  */
 export function Field( {
 	entry,
@@ -533,6 +547,7 @@ export function Field( {
 	error,
 	disabled = false,
 	onAction,
+	cardTitle = '',
 } ) {
 	const control = controlFor( entry );
 	const id = idOf( entry.key );
@@ -585,6 +600,11 @@ export function Field( {
 	const invalid = error ? 'true' : undefined;
 	const rec = recommendedText( entry );
 	const dep = dependency( entry, entries );
+	// "Dashboard Widget" in the "Dashboard widget" card: the control keeps its label, the eye does not see it twice.
+	const titleClass = cx(
+		'zs-st-t',
+		sameTitle( entry.title, cardTitle ) && 'zs-sr-only'
+	);
 
 	let input = null;
 	switch ( control ) {
@@ -764,14 +784,14 @@ export function Field( {
 			<div className="zs-desc">
 				{ labelled ? (
 					<label
-						className="zs-st-t"
+						className={ titleClass }
 						id={ titleId }
 						htmlFor={ inputId }
 					>
 						{ entry.title }
 					</label>
 				) : (
-					<b className="zs-st-t" id={ titleId }>
+					<b className={ titleClass } id={ titleId }>
 						{ entry.title }
 					</b>
 				) }

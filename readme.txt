@@ -138,7 +138,7 @@ If every visitor, including you, suddenly sees "Your IP has been flagged as spam
 
 = Does deleting Zero Spam remove its data? =
 
-Yes, by default: deleting the plugin on the Plugins screen removes its settings, activity log, blocked IPs and locations, API usage data and statistics. To keep them for a later reinstall, turn off "Delete Data on Uninstall" (API Monitoring settings) before you delete the plugin. On a network, each site follows its own setting, and the network's setting decides for the network-wide data.
+Yes, by default: deleting the plugin on the Plugins screen removes its settings, activity log, blocked IPs and locations, API usage data and statistics. To keep them for a later reinstall, turn off "Delete Data on Uninstall" in Zero Spam's settings (Logging & data) before you delete the plugin. On a network, each site follows its own setting, and the network's setting decides for the network-wide data.
 
 = Why can't I access `wp-login.php` or XML-RPC anymore? =
 

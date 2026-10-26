@@ -70,12 +70,15 @@ describe( 'buildCards', () => {
 	it( 'puts the seven settings that now take effect on real controls', () => {
 		const api = cards.find( ( c ) => 'apimon' === c.key );
 		const rules = cards.find( ( c ) => 'alertrules' === c.key );
-		expect( api.entries.map( ( e ) => e.key ) ).toEqual(
-			expect.arrayContaining( [
-				'quota_reset_date',
-				'delete_data_on_uninstall',
-			] )
+		const data = cards.find( ( c ) => 'uninstall' === c.key );
+		expect( api.entries.map( ( e ) => e.key ) ).toContain(
+			'quota_reset_date'
 		);
+		// A data setting: on Logging & data, not with API monitoring.
+		expect( data.tab ).toBe( 'data' );
+		expect( data.entries.map( ( e ) => e.key ) ).toEqual( [
+			'delete_data_on_uninstall',
+		] );
 		expect(
 			rules.entries
 				.filter( ( e ) => e.key.startsWith( 'threshold_' ) )

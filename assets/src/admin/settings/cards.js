@@ -126,6 +126,18 @@ export const cardList = () => [
 		main: 'share_data',
 	},
 	{
+		key: 'uninstall',
+		tab: 'data',
+		icon: 'trash',
+		title: __( 'Plugin data', 'zero-spam' ),
+		blurb: __(
+			'What happens to Zero Spam’s data when the plugin is deleted.',
+			'zero-spam'
+		),
+		keys: [ 'delete_data_on_uninstall' ],
+		main: 'delete_data_on_uninstall',
+	},
+	{
 		key: 'apimon',
 		tab: 'api',
 		icon: 'activity',
@@ -134,12 +146,7 @@ export const cardList = () => [
 			'Track Enhanced Protection API calls, quota and response times.',
 			'zero-spam'
 		),
-		keys: [
-			'api_monitoring',
-			'api_retention',
-			'quota_reset_date',
-			'delete_data_on_uninstall',
-		],
+		keys: [ 'api_monitoring', 'api_retention', 'quota_reset_date' ],
 		main: 'api_monitoring',
 	},
 	{
@@ -229,6 +236,7 @@ export const cardList = () => [
 /** Tabs a schema group belongs to (the schema's groups of the Settings area). */
 const GROUP_TABS = {
 	general: 'general',
+	data: 'data',
 	api: 'api',
 	debug: 'debug',
 	proxies: 'advanced',

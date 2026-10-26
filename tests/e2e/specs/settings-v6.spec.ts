@@ -220,7 +220,8 @@ test.describe( '6.0 Settings', () => {
 	} );
 
 	test( 'Delete Data on Uninstall is on by default and can be turned off', async ( { page, zs } ) => {
-		await openSettings( page, 'api' );
+		await openSettings( page, 'data' );
+		await expect( page.locator( '#zs-card-uninstall' ) ).toBeVisible();
 		const toggle = page.getByRole( 'switch', { name: 'Delete Data on Uninstall' } );
 		await expect( toggle ).toHaveAttribute( 'aria-checked', 'true' );
 		await toggle.click();
@@ -250,7 +251,10 @@ test.describe( '6.0 Settings', () => {
 				} )
 			),
 		};
-		await page.getByLabel( 'Import settings' ).setInputFiles( file );
+		const picker = page.getByLabel( /Import settings Choose a file/ );
+		await expect( picker ).toHaveAttribute( 'type', 'file' );
+		await picker.setInputFiles( file );
+		await expect( page.locator( '#zs-imp-n' ) ).toHaveText( 'settings.json' );
 		await page.locator( '.zs-io button', { hasText: 'Import settings' } ).click();
 		await page.getByRole( 'group' ).getByRole( 'button', { name: 'Import' } ).click();
 
@@ -263,7 +267,7 @@ test.describe( '6.0 Settings', () => {
 
 		// With the opt-in, the webhook address is imported too.
 		await page.getByLabel( 'Also import license and API keys and webhook addresses found in the file' ).check();
-		await page.getByLabel( 'Import settings' ).setInputFiles( file );
+		await picker.setInputFiles( file );
 		await page.locator( '.zs-io button', { hasText: 'Import settings' } ).click();
 		await page.getByRole( 'group' ).getByRole( 'button', { name: 'Import' } ).click();
 		await expect( results ).toContainText( '3 settings applied' );
@@ -271,6 +275,15 @@ test.describe( '6.0 Settings', () => {
 
 		await page.getByRole( 'tab', { name: 'Logging & data' } ).click();
 		await expect( page.locator( '#zs-f-max_logs' ) ).toHaveValue( '600' );
+	} );
+
+	test( 'the file picker is reached with the keyboard and shows its focus on the button', async ( { page } ) => {
+		await openSettings( page, 'io' );
+		await page.getByRole( 'button', { name: 'Download settings' } ).focus();
+		await page.keyboard.press( 'Tab' );
+		await expect( page.locator( '#zs-imp-file' ) ).toBeFocused();
+		const ring = await page.locator( '.zs-filebtn' ).evaluate( ( el ) => getComputedStyle( el ).outlineStyle );
+		expect( ring ).not.toBe( 'none' );
 	} );
 
 	test( 'the error log shows the latest entries and can be cleared after a confirmation', async ( { page, zs } ) => {

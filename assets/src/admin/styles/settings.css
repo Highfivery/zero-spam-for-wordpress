@@ -178,12 +178,31 @@
 	font-weight: var(--zs-weight-bold);
 }
 
+.zs-settings .zs-filepick {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--zs-space-2);
+	align-items: center;
+	min-width: 0;
+}
+
+.zs-settings .zs-filebtn {
+	position: relative;
+	cursor: pointer;
+}
+
+/* Visually hidden, still focusable and announced; the label is the visible button. */
 .zs-settings .zs-file {
-	max-width: 100%;
-	min-height: var(--zs-tap-min);
-	color: var(--zs-ink);
-	font: inherit;
-	font-size: var(--zs-text-md);
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.zs-settings .zs-filepick .zs-hint {
+	overflow-wrap: anywhere;
 }
 
 .zs-settings .zs-check {
@@ -203,7 +222,7 @@
 	accent-color: var(--zs-ink);
 }
 
-.zs-settings .zs-file:focus-visible,
+.zs-settings .zs-filebtn:has(.zs-file:focus-visible),
 .zs-settings .zs-check input:focus-visible {
 	outline: var(--zs-focus-width) solid var(--zs-focus);
 	outline-offset: var(--zs-focus-offset);
@@ -254,6 +273,32 @@
 
 .zs-imp-err {
 	border-left-color: var(--zs-red);
+}
+
+/*
+ * Theme cards: three equal columns when the control column has room for
+ * them (wide screens), else two and one, or one column on phones.
+ */
+.zs-settings .zs-setrow > .zs-ctl {
+	container-type: inline-size;
+}
+
+.zs-settings .zs-rcard span {
+	min-width: 0;
+	overflow-wrap: break-word;
+}
+
+@container (min-width: 380px) {
+
+	.zs-settings .zs-radios {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	/* The radio above its text, so each word fits the narrower card. */
+	.zs-settings .zs-rcard {
+		flex-direction: column;
+		gap: var(--zs-space-2);
+	}
 }
 
 /* Tablets and phones */

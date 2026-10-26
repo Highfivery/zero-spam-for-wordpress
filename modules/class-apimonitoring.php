@@ -210,6 +210,9 @@ class API_Monitoring {
 			'title'       => __( 'Delete Data on Uninstall', 'zero-spam' ),
 			'section'     => 'api-monitoring',
 			'module'      => 'api-monitoring',
+			// It covers all of the plugin's data: the 6.0 admin shows it with the data settings (option key unchanged).
+			'area'        => 'settings',
+			'group'       => 'data',
 			'type'        => 'checkbox',
 			'options'     => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
