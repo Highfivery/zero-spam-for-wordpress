@@ -171,7 +171,7 @@ export class ZsApi {
 		return this.set( { [ key ]: on ? 'enabled' : false } );
 	}
 
-	seedLog( count: number, options: { type?: string; failed?: string; ipPrefix?: string; ip?: string; spacingMinutes?: number; keepCache?: boolean; data?: Record< string, string > } = {} ) {
+	seedLog( count: number, options: { type?: string; failed?: string; ipPrefix?: string; ip?: string; spacingMinutes?: number; keepCache?: boolean; crafted?: boolean; data?: Record< string, string > } = {} ) {
 		return this.call< { inserted: number } >( 'POST', 'seed-log', { count, ...options } );
 	}
 

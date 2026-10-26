@@ -547,8 +547,8 @@ class Stats_Controller extends Base_Controller {
 
 	/**
 	 * How the network check described its detections before 6.0.0: the
-	 * start of "High Confidence Score: N%", in English and in the site's
-	 * language.
+	 * start of "High Confidence Score: N%", in English, the site's language
+	 * and the user's (computed once per request).
 	 *
 	 * @return string[]
 	 */
@@ -556,17 +556,29 @@ class Stats_Controller extends Base_Controller {
 		return self::request_cache(
 			'legacy_network_prefixes',
 			static function (): array {
-				/* translators: %s: The calculated confidence score. */
-				$localized = __( 'High Confidence Score: %s%%', 'zero-spam' );
-				$prefixes  = array( 'High Confidence Score: ' );
-				$parts     = preg_split( '/%(\d+\$)?s/', $localized );
-				if ( is_array( $parts ) && '' !== trim( (string) $parts[0] ) ) {
-					$prefixes[] = (string) $parts[0];
+				// Old rows hold the sentence in the language the site used when
+				// it logged them: English, the site language, and (for a user
+				// who reads the admin in another language) the user's.
+				$prefixes = array( 'High Confidence Score: ', self::legacy_prefix() );
+				if ( get_locale() !== determine_locale() && switch_to_locale( get_locale() ) ) {
+					$prefixes[] = self::legacy_prefix();
+					restore_previous_locale();
 				}
+				$prefixes = array_filter( $prefixes, static fn ( string $prefix ): bool => '' !== trim( $prefix ) );
 
 				return array_values( array_unique( $prefixes ) );
 			}
 		);
+	}
+
+	/**
+	 * The text before the score in the pre-6.0 sentence, in the current language.
+	 */
+	private static function legacy_prefix(): string {
+		/* translators: %s: The calculated confidence score. */
+		$parts = preg_split( '/%(\d+\$)?s/', __( 'High Confidence Score: %s%%', 'zero-spam' ) );
+
+		return is_array( $parts ) ? (string) $parts[0] : '';
 	}
 
 	/**

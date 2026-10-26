@@ -7,7 +7,7 @@
  * WordPress dependencies
  */
 import { __ } from '@wordpress/i18n';
-import { Component } from '@wordpress/element';
+import { Component, createInterpolateElement } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -86,13 +86,16 @@ class ErrorBoundary extends Component {
 					{ __( 'This screen could not be shown', 'zero-spam' ) }
 				</h1>
 				<p>
-					{ __(
-						'Your site is still protected. Reload the page, or use the classic settings screen.',
-						'zero-spam'
-					) }{ ' ' }
-					<a href={ this.props.legacy }>
-						{ __( 'Open the classic settings', 'zero-spam' ) }
-					</a>
+					{ createInterpolateElement(
+						__(
+							'Your site is still protected. Reload the page, or use the classic settings screen. <a>Open the classic settings</a>',
+							'zero-spam'
+						),
+						{
+							// eslint-disable-next-line jsx-a11y/anchor-has-content -- createInterpolateElement puts the translated link text inside.
+							a: <a href={ this.props.legacy } />,
+						}
+					) }
 				</p>
 			</div>
 		);

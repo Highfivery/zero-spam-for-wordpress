@@ -294,4 +294,42 @@ class Test_Rest_Stats extends TestCase {
 		$this->assertCount( 4, preg_grep( '/wpzerospam_log/', $cold ), implode( "\n", $cold ) );
 		$this->assertSame( 2, $data['network_only']['total'] );
 	}
+
+	/**
+	 * Rows logged before 6.0 hold the sentence in the site's language; it is
+	 * matched while a user reads the admin in another language.
+	 */
+	public function test_network_only_matches_the_site_language_sentence(): void {
+		global $wp_locale_switcher;
+
+		$user = $this->as_role( 'administrator' );
+		update_user_meta( $user, 'locale', 'en_US' );
+		// In wp-admin the user's language applies (determine_locale()).
+		$this->admin_screen();
+		$site_locale = static fn (): string => 'de_DE';
+		add_filter( 'locale', $site_locale );
+		$german      = static function ( $translation, $text, $domain ) {
+			return 'zero-spam' === $domain && 'High Confidence Score: %s%%' === $text && 'de_DE' === determine_locale() ? 'Hohe Konfidenz: %s%%' : $translation;
+		};
+		add_filter( 'gettext', $german, 10, 3 );
+		$languages = new ReflectionProperty( WP_Locale_Switcher::class, 'available_languages' );
+		$languages->setAccessible( true );
+		$before = $languages->getValue( $wp_locale_switcher );
+		$languages->setValue( $wp_locale_switcher, array_merge( (array) $before, array( 'de_DE' ) ) );
+		Stats_Controller::reset_request_cache();
+
+		try {
+			$this->insert_log_rows( 2, array( 'log_type' => 'blocked', 'submission_data' => (string) wp_json_encode( array( 'failed' => 'Hohe Konfidenz: 90%' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+			$this->insert_log_rows( 1, array( 'log_type' => 'blocked', 'submission_data' => (string) wp_json_encode( array( 'failed' => 'High Confidence Score: 80%' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+
+			$this->assertSame( 'en_US', determine_locale() );
+			$data = $this->rest( 'GET', self::SUMMARY, array(), array( 'range' => 7 ) )->get_data();
+			$this->assertSame( 3, $data['network_only']['total'] );
+			$this->assertSame( 'en_US', determine_locale(), 'The previous locale is restored.' );
+		} finally {
+			$languages->setValue( $wp_locale_switcher, $before );
+			remove_filter( 'locale', $site_locale );
+			remove_filter( 'gettext', $german, 10 );
+		}
+	}
 }

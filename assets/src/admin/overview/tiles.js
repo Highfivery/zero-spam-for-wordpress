@@ -6,7 +6,7 @@
  * WordPress dependencies
  */
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { useState } from '@wordpress/element';
+import { createInterpolateElement, useState } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -217,6 +217,13 @@ const findModule = ( modules, key ) =>
  * @return {{label: string, href: string}|null} Action.
  */
 function attentionAction( item, modules ) {
+	if ( item.id.startsWith( 'entry_point_off:' ) ) {
+		// The classic screen until the 6.0 Protection area lands (PR 7).
+		return {
+			label: __( 'Turn it on', 'zero-spam' ),
+			href: `${ boot.urls.legacy }&subview=${ encodeURIComponent( item.module ) }`,
+		};
+	}
 	if ( item.id.startsWith( 'integration_unprotected:' ) ) {
 		const name =
 			findModule( modules, item.module )?.plugin?.name || item.module;
@@ -298,7 +305,11 @@ export function NeedsAttention( { wide } ) {
 		<Tile
 			span={ wide ? 12 : 6 }
 			labelledBy="zs-na-h"
-			className={ cx( 'zs-na', wide && 'zs-na-wide' ) }
+			className={ cx(
+				'zs-na',
+				wide && 'zs-na-wide',
+				! items.length && 'zs-na-empty'
+			) }
 		>
 			<TileHead
 				eyebrow={ __( 'Needs attention', 'zero-spam' ) }
@@ -382,35 +393,42 @@ export function NeedsAttention( { wide } ) {
 												{ action.label }
 											</Button>
 										) }
-										{ 'log_fill' !== item.id && (
-											<Button
-												variant="ghost"
-												size="sm"
-												onClick={ () => {
-													dismiss( key ).then( () =>
-														toast(
-															__(
-																'Dismissed. It comes back if something changes.',
-																'zero-spam'
-															),
-															{
-																undo: () =>
-																	undismiss(
-																		key
+										{ 'log_fill' !== item.id &&
+											! item.id.startsWith(
+												'entry_point_off:'
+											) && (
+												<Button
+													variant="ghost"
+													size="sm"
+													onClick={ () => {
+														dismiss( key ).then(
+															() =>
+																toast(
+																	__(
+																		'Dismissed. It comes back if something changes.',
+																		'zero-spam'
 																	),
-															}
-														)
-													);
-													document
-														.getElementById(
-															'zs-na-h'
-														)
-														?.focus();
-												} }
-											>
-												{ __( 'Dismiss', 'zero-spam' ) }
-											</Button>
-										) }
+																	{
+																		undo: () =>
+																			undismiss(
+																				key
+																			),
+																	}
+																)
+														);
+														document
+															.getElementById(
+																'zs-na-h'
+															)
+															?.focus();
+													} }
+												>
+													{ __(
+														'Dismiss',
+														'zero-spam'
+													) }
+												</Button>
+											) }
 									</div>
 								</div>
 							</li>
@@ -438,26 +456,23 @@ export function EnhancedTile( { total } ) {
 				</div>
 				<h2 id="zs-en-h" className="zs-tile-title">
 					{ total > 0
-						? __( 'Enhanced would also have checked', 'zero-spam' )
-						: __(
-								'Enhanced checks every visitor',
-								'zero-spam'
-							) }{ ' ' }
-					{ total > 0 && (
-						<span>
-							{ sprintf(
-								/* translators: %s: number of submissions */
-								_n(
-									'%s submission',
-									'%s submissions',
-									total,
-									'zero-spam'
+						? createInterpolateElement(
+								sprintf(
+									/* translators: %s: number of submissions */
+									_n(
+										"Enhanced would also have checked <em>%s submission</em> against Zero Spam's threat network.",
+										"Enhanced would also have checked <em>%s submissions</em> against Zero Spam's threat network.",
+										total,
+										'zero-spam'
+									),
+									num( total )
 								),
-								num( total )
+								{ em: <span /> }
+							)
+						: __(
+								"Enhanced checks every visitor against Zero Spam's threat network.",
+								'zero-spam'
 							) }
-						</span>
-					) }{ ' ' }
-					{ __( "against Zero Spam's threat network.", 'zero-spam' ) }
 				</h2>
 				<ul className="zs-enh-ben">
 					<li>
@@ -530,8 +545,11 @@ export function EnhancedTile( { total } ) {
 }
 
 /**
- * Network intelligence (Enhanced): what only the network caught in the last
- * 30 days, against what Basic protection alone would have stopped.
+ * Network intelligence (Enhanced): what the Zero Spam network caught in the
+ * last 30 days next to what the site's own checks stopped. The data name is
+ * `network_only` (stats/summary), but a visit blocked by two checks is
+ * logged once per check, so the copy says "caught by the network", never
+ * "Basic would have missed".
  *
  * @param {Object} props         Props.
  * @param {Object} props.summary stats/summary?range=30.
@@ -645,41 +663,49 @@ export function NetworkPanel( { summary, days } ) {
 						className="zs-ni-vs"
 						role="img"
 						aria-label={ sprintf(
-							/* translators: 1: threats Basic alone would have stopped, 2: threats stopped with Enhanced */
+							/* translators: 1: threats your site's own checks stopped, 2: threats the Zero Spam network caught, 3: percentage of all threats */
 							__(
-								'Last 30 days: Basic alone would have stopped %1$s; with Enhanced %2$s',
+								"Last 30 days: your site's own checks stopped %1$s threats; the Zero Spam network caught %2$s (%3$d%% of all).",
 								'zero-spam'
 							),
 							num( net.basic ),
-							num( net.total )
+							num( net.network ),
+							net.share
 						) }
 					>
 						<div className="zs-ni-vs-row">
-							<span>{ __( 'Basic alone', 'zero-spam' ) }</span>
+							<span>
+								{ __( "Your site's own checks", 'zero-spam' ) }
+							</span>
 							<span className="zs-ni-bar">
 								<i style={ { width: width( net.basic ) } } />
 							</span>
 							<b className="zs-mono">{ num( net.basic ) }</b>
 						</div>
 						<div className="zs-ni-vs-row">
-							<span>{ __( 'With Enhanced', 'zero-spam' ) }</span>
+							<span>
+								{ __( 'Zero Spam network', 'zero-spam' ) }
+							</span>
 							<span className="zs-ni-bar">
-								<i style={ { width: width( net.basic ) } } />
 								<i
 									className="zs-plus"
 									style={ { width: width( net.network ) } }
 								/>
 							</span>
-							<b className="zs-mono">{ num( net.total ) }</b>
+							<b className="zs-mono">{ num( net.network ) }</b>
 						</div>
 						<p className="zs-ni-vs-note">
-							<span className="zs-ni-plus">
-								{ `+${ num( net.network ) }` }
-							</span>{ ' ' }
-							{ sprintf(
-								/* translators: %d: percentage */
-								__( 'more stopped (+%d%%)', 'zero-spam' ),
-								net.plus
+							{ createInterpolateElement(
+								sprintf(
+									/* translators: 1: threats the network caught, 2: percentage of all threats */
+									__(
+										'<b>%1$s</b> caught by the network, %2$d%% of all threats.',
+										'zero-spam'
+									),
+									num( net.network ),
+									net.share
+								),
+								{ b: <span className="zs-ni-plus" /> }
 							) }
 						</p>
 					</div>
@@ -697,7 +723,7 @@ export function NetworkPanel( { summary, days } ) {
 							label={ sprintf(
 								/* translators: %s: number of threats */
 								__(
-									'Threats only the network caught, per day over the last 30 days: %s in all',
+									'Threats the Zero Spam network caught, per day over the last 30 days: %s in all',
 									'zero-spam'
 								),
 								num( net.network )
@@ -803,22 +829,26 @@ export function LevelTile() {
 					<li className="zs-yes">
 						<Icon name="buoy" size="sm" />
 						<span>
-							{ __(
-								'Support from the team that builds Zero Spam.',
-								'zero-spam'
-							) }{ ' ' }
-							<ExtLink
-								href={ utm(
-									'https://www.zerospam.org/contact/',
-									'membership'
-								) }
-								newTab={ __(
-									'(opens in a new tab)',
+							{ createInterpolateElement(
+								__(
+									'Support from the team that builds Zero Spam. <a>Contact support</a>',
 									'zero-spam'
-								) }
-							>
-								{ __( 'Contact support', 'zero-spam' ) }
-							</ExtLink>
+								),
+								{
+									a: (
+										<ExtLink
+											href={ utm(
+												'https://www.zerospam.org/contact/',
+												'membership'
+											) }
+											newTab={ __(
+												'(opens in a new tab)',
+												'zero-spam'
+											) }
+										/>
+									),
+								}
+							) }
 						</span>
 					</li>
 				</ul>
@@ -959,7 +989,6 @@ export function WeekTile( { summary, wide, flash } ) {
 					<dd>
 						{ top ? (
 							<span className="zs-cty">
-								<CountryCode code={ top.code } />
 								<span>
 									{ sprintf(
 										/* translators: 1: country name, 2: number of blocks */

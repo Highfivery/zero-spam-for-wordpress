@@ -29,6 +29,7 @@ import {
  */
 import { Button } from './index';
 import {
+	bindToastHold,
 	createToastTimer,
 	TOAST_DURATION,
 	UNDO_DURATION,
@@ -54,6 +55,7 @@ let nextId = 1;
  */
 function Toast( { toast, onClose } ) {
 	const timer = useRef( null );
+	const box = useRef( null );
 
 	useEffect( () => {
 		timer.current = createToastTimer( {
@@ -61,21 +63,18 @@ function Toast( { toast, onClose } ) {
 			onExpire: onClose,
 		} );
 		timer.current.start();
-		return () => timer.current.cancel();
+		const unbind = box.current
+			? bindToastHold( box.current, timer.current )
+			: () => {};
+		return () => {
+			unbind();
+			timer.current.cancel();
+		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- One timer per toast.
 	}, [] );
 
-	const hold = () => timer.current?.pause();
-	const release = () => timer.current?.resume();
-
 	return (
-		<div
-			className="zs-toast"
-			onMouseEnter={ hold }
-			onMouseLeave={ release }
-			onFocus={ hold }
-			onBlur={ release }
-		>
+		<div className="zs-toast" ref={ box }>
 			<span>{ toast.message }</span>
 			{ toast.undo && (
 				<button

@@ -52,7 +52,9 @@
 }
 
 .zs-hero .zs-h1 {
+	max-width: 100%;
 	font-size: clamp(2rem, 1.1rem + 3vw, 3.25rem);
+	overflow-wrap: anywhere;
 }
 
 .zs-hero.zs-has-net .zs-h1 {
@@ -318,8 +320,9 @@
 
 @media (max-width: 760px) {
 
+	/* Copy at the top, over the wall (prototype at 375); the overlay keeps it legible. */
 	.zs-hero {
-		padding: 150px 20px 20px;
+		padding: 20px;
 	}
 
 	.zs-hero .zs-hero-copy {
@@ -337,7 +340,7 @@
 	}
 
 	.zs-hero::after {
-		background: linear-gradient(180deg, transparent 0, color-mix(in srgb, var(--zs-dark-0) 80%, transparent) 120px, var(--zs-dark-0) 170px);
+		background: linear-gradient(180deg, color-mix(in srgb, var(--zs-dark-0) 60%, transparent) 0, color-mix(in srgb, var(--zs-dark-0) 85%, transparent) 120px, var(--zs-dark-0) 170px);
 	}
 }
 
@@ -790,7 +793,27 @@
 	animation: zs-row-in 0.5s var(--zs-ease-out) both;
 }
 
-.zs-feed li.zs-fresh a {
+/*
+ * New rows flash a tint that fades out: an overlay behind the content whose
+ * opacity animates (composited), never the background colour. At rest, and
+ * under reduced motion, the overlay is invisible.
+ */
+.zs-feed li.zs-fresh a,
+.zs-wk-row.zs-fresh {
+	position: relative;
+	isolation: isolate;
+}
+
+.zs-feed li.zs-fresh a::after,
+.zs-wk-row.zs-fresh::after {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	inset: 0;
+	border-radius: inherit;
+	background: var(--zs-red-soft);
+	opacity: 0;
+	pointer-events: none;
 	animation: zs-highlight 2.4s ease-out;
 }
 
@@ -809,12 +832,12 @@
 
 @keyframes zs-highlight {
 
-	0% {
-		background: var(--zs-red-soft);
+	from {
+		opacity: 1;
 	}
 
-	100% {
-		background: transparent;
+	to {
+		opacity: 0;
 	}
 }
 
@@ -1159,8 +1182,13 @@
 	color: var(--zs-ink-3);
 }
 
-.zs-membership .zs-levels {
-	margin-top: auto;
+/*
+ * Short tiles keep their own height instead of stretching to the tallest
+ * tile of the row, so no card shows an empty middle.
+ */
+.zs-membership,
+.zs-na-empty {
+	align-self: start;
 }
 
 .zs-tile > .zs-linkbtn.zs-tile-foot {
@@ -1203,10 +1231,6 @@
 	height: 12px;
 	border-radius: 3px;
 	background: repeating-linear-gradient(90deg, var(--zs-ch2) 0 10px, transparent 10px 12px);
-}
-
-.zs-wk-row.zs-fresh {
-	animation: zs-highlight 2.4s ease-out;
 }
 
 .zs-week .zs-kv {
@@ -1449,6 +1473,12 @@
 	height: 56px;
 }
 
+.zs-ni-spark .zs-spark-big {
+	flex: 1;
+	height: auto;
+	min-height: 56px;
+}
+
 .zs-spark-mini {
 	width: 96px;
 	height: 22px;
@@ -1565,7 +1595,12 @@
 	color: var(--zs-eyebrow);
 }
 
+/* The trend fills the column, as tall as the tiles beside it. */
 .zs-ni-spark {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 96px;
 	padding: 12px;
 	border: 1px solid var(--zs-line);
 	border-radius: var(--zs-radius-inner);

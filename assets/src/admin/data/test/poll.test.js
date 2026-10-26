@@ -123,13 +123,39 @@ describe( 'createPoller', () => {
 		await vi.advanceTimersByTimeAsync( 1 );
 		await flush();
 		expect( fetch ).toHaveBeenCalledWith( 9 );
-		expect( onItems ).toHaveBeenCalledWith( [ { id: 11 }, { id: 10 } ] );
+		expect( onItems ).toHaveBeenCalledWith( [ { id: 11 }, { id: 10 } ], 2 );
 		expect( poller.sinceId() ).toBe( 11 );
 
 		await vi.advanceTimersByTimeAsync( POLL_INTERVAL );
 		await flush();
 		expect( fetch ).toHaveBeenLastCalledWith( 11 );
 		expect( onItems ).toHaveBeenCalledTimes( 1 );
+		poller.stop();
+	} );
+
+	it( 'passes the server total of a burst larger than one page', async () => {
+		const fetch = vi
+			.fn()
+			.mockResolvedValueOnce( {
+				items: [ { id: 40 }, { id: 39 } ],
+				total: 31,
+			} )
+			.mockResolvedValue( { items: [], total: 0 } );
+		const onItems = vi.fn();
+		const poller = createPoller( {
+			fetch,
+			onItems,
+			sinceId: 9,
+			random: () => 0.5,
+		} );
+		poller.start();
+		await vi.advanceTimersByTimeAsync( POLL_INTERVAL );
+		await flush();
+		expect( onItems ).toHaveBeenCalledWith(
+			[ { id: 40 }, { id: 39 } ],
+			31
+		);
+		expect( poller.sinceId() ).toBe( 40 );
 		poller.stop();
 	} );
 

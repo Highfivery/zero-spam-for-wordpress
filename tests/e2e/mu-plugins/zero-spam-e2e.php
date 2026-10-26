@@ -812,6 +812,11 @@ function plugin_cron_hooks(): array {
 }
 
 /**
+ * Markup the crafted seed writes into log rows; it sets window.__zsXss if it ever runs.
+ */
+const CRAFTED_MARKUP = '<img src="x" onerror="window.__zsXss=1"><b>zs-crafted</b>';
+
+/**
  * Resets the current site's plugin state.
  *
  * @param string $preset defaults|recommended|baseline.
@@ -1296,6 +1301,7 @@ add_action(
 					$fixed_ip  = (string) ( $request->get_param( 'ip' ) ?? '' );
 					$extra     = $request->get_param( 'data' );
 					$extra     = is_array( $extra ) ? array_map( 'strval', array_filter( $extra, 'is_scalar' ) ) : array();
+					$crafted   = rest_sanitize_boolean( $request->get_param( 'crafted' ) ?? false );
 					$locations = sample_locations();
 					$now       = time();
 
@@ -1309,6 +1315,13 @@ add_action(
 
 					for ( $i = 0; $i < $count; $i++ ) {
 						$loc = $locations[ $i % count( $locations ) ];
+						// crafted: markup written straight to the table (as an old or tampered row could hold) to prove the screens print it as text.
+						$row_failed = $failed;
+						if ( $crafted ) {
+							$row_failed = CRAFTED_MARKUP;
+							$loc[1]     = CRAFTED_MARKUP;
+							$loc[3]     = CRAFTED_MARKUP;
+						}
 						$wpdb->insert(
 							$wpdb->prefix . 'wpzerospam_log',
 							array(
@@ -1323,7 +1336,7 @@ add_action(
 										$extra,
 										array(
 											'type'   => $type,
-											'failed' => $failed,
+											'failed' => $row_failed,
 											'seq'    => $i + 1,
 										)
 									)

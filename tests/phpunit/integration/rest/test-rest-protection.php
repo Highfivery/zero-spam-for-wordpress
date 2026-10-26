@@ -245,4 +245,26 @@ class Test_Rest_Protection extends TestCase {
 
 		$this->assertLessThanOrEqual( 1, $builds );
 	}
+
+	/**
+	 * Each core entry point (comments, login, registration) that is off needs
+	 * attention, first; turned on, it goes away.
+	 */
+	public function test_core_entry_point_off_needs_attention(): void {
+		$this->set_setting( 'verify_comments', false, 'comments' );
+		$this->set_setting( 'verify_login', 'enabled', 'login' );
+		$this->set_setting( 'verify_registrations', false, 'registration' );
+
+		$items = $this->attention();
+		$this->assertArrayHasKey( 'entry_point_off:comments', $items );
+		$this->assertArrayHasKey( 'entry_point_off:registration', $items );
+		$this->assertArrayNotHasKey( 'entry_point_off:login', $items );
+		$this->assertSame( 'warning', $items['entry_point_off:comments']['severity'] );
+		$this->assertSame( 'comments', $items['entry_point_off:comments']['module'] );
+		$this->assertSame( 'Comment protection is off', $items['entry_point_off:comments']['title'] );
+		$this->assertStringStartsWith( 'entry_point_off:', array_key_first( $items ), 'Entry points come first.' );
+
+		$this->set_setting( 'verify_comments', 'enabled', 'comments' );
+		$this->assertArrayNotHasKey( 'entry_point_off:comments', $this->attention() );
+	}
 }

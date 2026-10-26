@@ -8,6 +8,7 @@
  * WordPress dependencies
  */
 import { __, sprintf } from '@wordpress/i18n';
+import { createInterpolateElement } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -185,16 +186,24 @@ function LevelCard() {
 				<span aria-hidden="true">→</span>
 			</button>
 			<p className="zs-zc-quiet">
-				{ __( 'Plans for every site size', 'zero-spam' ) } ·{ ' ' }
-				<a
-					className="zs-zc-link"
-					href={ areaUrl( 'protection', {
-						tab: 'intelligence',
-						card: 'zerospam',
-					} ) }
-				>
-					{ __( 'Have a key?', 'zero-spam' ) }
-				</a>
+				{ createInterpolateElement(
+					__(
+						'Plans for every site size · <a>Have a key?</a>',
+						'zero-spam'
+					),
+					{
+						a: (
+							// eslint-disable-next-line jsx-a11y/anchor-has-content -- createInterpolateElement puts the translated link text inside.
+							<a
+								className="zs-zc-link"
+								href={ areaUrl( 'protection', {
+									tab: 'intelligence',
+									card: 'zerospam',
+								} ) }
+							/>
+						),
+					}
+				) }
 			</p>
 		</section>
 	);

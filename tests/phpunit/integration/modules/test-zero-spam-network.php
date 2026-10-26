@@ -57,4 +57,33 @@ class Test_Zero_Spam_Network extends TestCase {
 
 		$this->assertSame( 'Zero Spam network (high confidence)', $types['zero_spam'] );
 	}
+
+	/**
+	 * Detection reports name the app type exactly as the zerospam.org API
+	 * expects it (`wordpress`, lower case; anything else is refused).
+	 */
+	public function test_reports_send_the_exact_app_type(): void {
+		$this->mock_http( '#wp-json/v6/report/#', array( 'status' => 'success' ) );
+		update_option(
+			Zero_Spam::SHARE_QUEUE_OPTION,
+			array(
+				'k' => array(
+					'type'   => 'comment',
+					'failed' => 'honeypot',
+					'ip'     => '203.0.113.60',
+					'email'  => '',
+					'names'  => array(),
+				),
+			),
+			false
+		);
+
+		( new Zero_Spam() )->process_share_detection();
+
+		$reports = array_values( array_filter( \ZeroSpam\Tests\HttpMock::requests(), static fn ( $r ) => str_contains( $r['url'], 'wp-json/v6/report/' ) ) );
+		$this->assertCount( 1, $reports );
+		parse_str( (string) wp_parse_url( $reports[0]['url'], PHP_URL_QUERY ), $query );
+		$this->assertSame( 'wordpress', $query['data']['app_type'] ); // phpcs:ignore WordPress.WP.CapitalPDangit.MisspelledInText -- The exact API value under test.
+		$this->assertSame( ( new Zero_Spam() )->global_api_data()['app_type'], $query['data']['app_type'] );
+	}
 }

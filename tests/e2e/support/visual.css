@@ -41,3 +41,10 @@
 .zs-toasts {
 	visibility: hidden !important;
 }
+
+/* The Overview hero's brick wall is random (its pattern, the landing brick
+   and the scan line change per load); the hero's copy, status and network
+   module stay compared. */
+.zs-hero-art {
+	visibility: hidden !important;
+}

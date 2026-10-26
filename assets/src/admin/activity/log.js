@@ -207,9 +207,8 @@ export function Log( { onChanged, summary } ) {
 		// The table never moves under the pointer: new entries always wait behind the bar.
 		reduced: true,
 		keep: 0,
-		fetch: ( since ) =>
-			request( { path: sincePath( view.filters, since ) } ),
-		onNew: ( items ) => {
+		path: ( since ) => sincePath( view.filters, since ),
+		onNew: ( items, count = items.length ) => {
 			if ( gate.current() ) {
 				announce(
 					sprintf(
@@ -217,10 +216,10 @@ export function Log( { onChanged, summary } ) {
 						_n(
 							'%s new detection. Use Show to see it.',
 							'%s new detections. Use Show to see them.',
-							items.length,
+							count,
 							'zero-spam'
 						),
-						num( items.length )
+						num( count )
 					)
 				);
 			}
@@ -1006,7 +1005,7 @@ export function Log( { onChanged, summary } ) {
 
 	return (
 		<div className="zs-log" id="zs-log-top">
-			{ feed.queued.length > 0 && (
+			{ feed.queuedCount > 0 && (
 				<div className="zs-newbar">
 					<Button variant="secondary" size="sm" onClick={ showNew }>
 						{ sprintf(
@@ -1014,10 +1013,10 @@ export function Log( { onChanged, summary } ) {
 							_n(
 								'%s new · Show',
 								'%s new · Show',
-								feed.queued.length,
+								feed.queuedCount,
 								'zero-spam'
 							),
-							num( feed.queued.length )
+							num( feed.queuedCount )
 						) }
 					</Button>
 				</div>

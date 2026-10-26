@@ -685,4 +685,33 @@ class Test_Rest_Activity extends TestCase {
 		$this->assertSame( 0, $undo['skipped'] );
 		$this->assertSame( 5, $this->count_log_rows() );
 	}
+
+	/**
+	 * A full live-feed page says how many detections are new in all (rescue
+	 * rows left out), so a burst bigger than a page is counted; one count.
+	 */
+	public function test_since_id_full_page_counts_new_detections(): void {
+		$ids = $this->insert_log_rows( 30 );
+		$this->insert_log_rows( 4, array( 'log_type' => 'rescue' ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+
+		$response = null;
+		$queries  = $this->capture_queries(
+			function () use ( &$response, $ids ) {
+				$response = $this->rest(
+					'GET',
+					self::ROUTE,
+					array(),
+					array(
+						'since_id' => $ids[0],
+						'per_page' => 20,
+					)
+				);
+			}
+		);
+
+		$this->assertCount( 20, $response->get_data() );
+		$this->assertSame( '29', $response->get_headers()['X-ZeroSpam-New-Detections'] );
+		$this->assertCount( 1, preg_grep( '/COUNT\(\*\)/i', $queries ), implode( "\n", $queries ) );
+		$this->assertLessThanOrEqual( 4, count( $queries ), implode( "\n", $queries ) );
+	}
 }

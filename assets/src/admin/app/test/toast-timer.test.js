@@ -14,6 +14,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
 	TOAST_DURATION,
 	UNDO_DURATION,
+	bindToastHold,
 	createToastTimer,
 } from '../toast-timer';
 
@@ -87,5 +88,48 @@ describe( 'createToastTimer', () => {
 		timer.resume();
 		vi.advanceTimersByTime( 5000 );
 		expect( onExpire ).not.toHaveBeenCalled();
+	} );
+} );
+
+describe( 'bindToastHold', () => {
+	beforeEach( () => {
+		vi.useFakeTimers();
+	} );
+	afterEach( () => {
+		vi.useRealTimers();
+	} );
+
+	it( 'pauses on hover and focus, resumes on leave and blur, and unbinds', () => {
+		const onExpire = vi.fn();
+		const timer = createToastTimer( {
+			duration: 1000,
+			onExpire,
+			now: () => Date.now(),
+		} );
+		const box = new EventTarget();
+		const unbind = bindToastHold( box, timer );
+		timer.start();
+
+		vi.advanceTimersByTime( 500 );
+		box.dispatchEvent( new Event( 'mouseenter' ) );
+		box.dispatchEvent( new Event( 'focusin' ) );
+		vi.advanceTimersByTime( 5000 );
+		expect( onExpire ).not.toHaveBeenCalled();
+
+		box.dispatchEvent( new Event( 'mouseleave' ) );
+		vi.advanceTimersByTime( 5000 );
+		expect( onExpire ).not.toHaveBeenCalled(); // still focused
+
+		box.dispatchEvent( new Event( 'focusout' ) );
+		vi.advanceTimersByTime( 499 );
+		expect( onExpire ).not.toHaveBeenCalled();
+		vi.advanceTimersByTime( 1 );
+		expect( onExpire ).toHaveBeenCalledTimes( 1 );
+
+		unbind();
+		const spy = vi.spyOn( timer, 'pause' );
+		box.dispatchEvent( new Event( 'mouseenter' ) );
+		box.dispatchEvent( new Event( 'focusin' ) );
+		expect( spy ).not.toHaveBeenCalled();
 	} );
 } );
