@@ -34,7 +34,7 @@ class Test_Rest_Settings extends TestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		foreach ( array( 'zerospam', 'settings', 'comments', 'api-monitoring', 'ipstack' ) as $module ) {
+		foreach ( array( 'zerospam', 'settings', 'comments', 'api-monitoring', 'ipstack', 'security', 'davidwalsh' ) as $module ) {
 			delete_option( "zero-spam-{$module}" );
 		}
 		delete_option( 'zerospam_blocked_email_domains' );
@@ -353,5 +353,115 @@ class Test_Rest_Settings extends TestCase {
 
 		$this->assertSame( $user_id, get_current_user_id() );
 		$this->assertSame( 200, $response->get_status() );
+	}
+
+	/**
+	 * A switch that is on unless turned off stores `disabled` when turned
+	 * off (false, '' or `disabled`), and `enabled` when turned on.
+	 */
+	public function test_default_on_switch_stores_disabled(): void {
+		foreach ( array( false, '', 'disabled' ) as $off ) {
+			$response = $this->rest( 'PATCH', self::ROUTE, array( 'disable_xmlrpc' => $off ) );
+
+			$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+			$this->assertSame( 'disabled', get_option( 'zero-spam-security' )['disable_xmlrpc'], (string) wp_json_encode( $off ) );
+			$this->assertSame( 'disabled', $response->get_data()['settings']['disable_xmlrpc'] );
+		}
+
+		$this->rest( 'PATCH', self::ROUTE, array( 'disable_xmlrpc' => true ) );
+		$this->assertSame( 'enabled', get_option( 'zero-spam-security' )['disable_xmlrpc'] );
+	}
+
+	/**
+	 * Turning a switch off through the route turns its behaviour off.
+	 */
+	public function test_switch_off_through_the_route_enables_xmlrpc(): void {
+		$this->rest( 'PATCH', self::ROUTE, array( 'disable_xmlrpc' => false ) );
+		self::reset_static_caches();
+		Test_Security::restore_core_hooks();
+
+		( new \ZeroSpam\Modules\Security\Security() )->init();
+
+		$this->assertTrue( (bool) apply_filters( 'xmlrpc_enabled', true ) );
+	}
+
+	/**
+	 * An ordinary switch still stores false, and `disabled` is accepted as off.
+	 */
+	public function test_off_by_default_switch_still_stores_false(): void {
+		$this->rest( 'PATCH', self::ROUTE, array( 'verify_comments' => 'disabled' ) );
+
+		$this->assertFalse( get_option( 'zero-spam-comments' )['verify_comments'] );
+	}
+
+	/**
+	 * Custom Form Selectors is a text setting: the route reads the stored
+	 * value as it is and writes plain text.
+	 */
+	public function test_form_selectors_are_text(): void {
+		update_option( 'zero-spam-davidwalsh', array( 'davidwalsh_form_selectors' => '.legacy-form, #old' ) );
+		self::reset_static_caches();
+
+		$this->assertSame( '.legacy-form, #old', $this->rest( 'GET', self::ROUTE )->get_data()['settings']['davidwalsh_form_selectors'] );
+
+		$response = $this->rest( 'PATCH', self::ROUTE, array( 'davidwalsh_form_selectors' => '.my-form, #signup<script>' ) );
+
+		$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+		$this->assertSame( '.my-form, #signup', get_option( 'zero-spam-davidwalsh' )['davidwalsh_form_selectors'] );
+		self::reset_static_caches();
+		$this->assertContains( '#signup', \ZeroSpam\Modules\DavidWalsh\DavidWalsh::get_all_selectors() );
+	}
+
+	/**
+	 * A network can lock Custom Form Selectors: the site cannot change it,
+	 * and the locked value is the one the forms use.
+	 *
+	 * @group ms-required
+	 */
+	public function test_form_selectors_can_be_locked_by_the_network(): void {
+		update_option( 'zero-spam-davidwalsh', array( 'davidwalsh_form_selectors' => '.site-form' ) );
+		$this->set_network_setting( 'davidwalsh_form_selectors', '.network-form', true );
+
+		$response = $this->rest( 'PATCH', self::ROUTE, array( 'davidwalsh_form_selectors' => '.mine' ) );
+
+		$this->assertSame( 403, $response->get_status() );
+		$this->assertSame( 'rest_setting_locked', $response->get_data()['code'] );
+		$selectors = \ZeroSpam\Modules\DavidWalsh\DavidWalsh::get_all_selectors();
+		$this->assertContains( '.network-form', $selectors );
+		$this->assertNotContains( '.site-form', $selectors );
+	}
+
+	/**
+	 * On a network, a site without its own value uses the network default
+	 * selectors; its own value wins while the network value is unlocked.
+	 *
+	 * @group ms-required
+	 */
+	public function test_form_selectors_follow_the_network_default(): void {
+		$this->set_network_setting( 'davidwalsh_form_selectors', '.network-form' );
+
+		$this->assertContains( '.network-form', \ZeroSpam\Modules\DavidWalsh\DavidWalsh::get_all_selectors() );
+
+		update_option( 'zero-spam-davidwalsh', array( 'davidwalsh_form_selectors' => '.site-form' ) );
+
+		$selectors = \ZeroSpam\Modules\DavidWalsh\DavidWalsh::get_all_selectors();
+		$this->assertContains( '.site-form', $selectors );
+		$this->assertNotContains( '.network-form', $selectors );
+	}
+
+	/**
+	 * The Google API key can be saved through the route (the Google module
+	 * is loaded outside wp-admin too), and it stays write-only.
+	 */
+	public function test_google_key_is_a_writable_secret(): void {
+		delete_option( 'zero-spam-google' );
+		self::reset_static_caches();
+
+		$response = $this->rest( 'PATCH', self::ROUTE, array( 'google_api' => 'AIza-test-key-9z8y' ) );
+
+		$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+		$this->assertSame( 'AIza-test-key-9z8y', get_option( 'zero-spam-google' )['google_api'] );
+		$this->assertTrue( $response->get_data()['settings']['google_api']['set'] );
+		$this->assertStringNotContainsString( 'AIza-test-key', (string) wp_json_encode( $response->get_data() ) );
 	}
 }

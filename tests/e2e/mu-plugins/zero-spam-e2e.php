@@ -223,14 +223,19 @@ function news_down(): bool {
  * Canned responses keyed by host (and path fragment).
  *
  * The license answer is a valid Business license (what a site on Enhanced
- * Protection sees); a site is on Basic until a test saves a key.
+ * Protection sees); a site is on Basic until a test saves a key. The key
+ * `e2e-invalid` is answered as unknown (an invalid key).
  *
- * @param string $host Request host.
- * @param string $path Request path.
+ * @param string $host  Request host.
+ * @param string $path  Request path.
+ * @param string $query Request query string.
  * @return array|string|null Body array (sent as JSON), raw body string, or null when the host is not a known service.
  */
-function canned_body( string $host, string $path ) {
+function canned_body( string $host, string $path, string $query = '' ) {
 	if ( str_ends_with( $host, 'zerospam.org' ) ) {
+		if ( str_contains( $path, 'get-license' ) && str_contains( $query, 'license_key=e2e-invalid' ) ) {
+			return array( 'error' => 'invalid_license' );
+		}
 		if ( str_contains( $path, 'get-license' ) ) {
 			return array(
 				'license_key'         => 'e2e-license',
@@ -317,7 +322,7 @@ add_filter(
 			return new WP_Error( 'zs_e2e_news_down', 'Zero Spam e2e: the news feed is down for this test.' );
 		}
 
-		$body = canned_body( $host, $path );
+		$body = canned_body( $host, $path, (string) wp_parse_url( (string) $url, PHP_URL_QUERY ) );
 
 		append_record(
 			HTTP_CALLS_OPTION,
@@ -1107,6 +1112,79 @@ function restore_snapshot( array $snapshot ): void {
 }
 
 /**
+ * Option that turns the fake third-party settings section on (POST /fake-section).
+ */
+const FAKE_SECTION_OPTION = 'zs_e2e_fake_section';
+
+/*
+ * A settings section registered the way an extension would (no area, a
+ * verify_* switch, text, radio and multi-select settings), shown in
+ * Protection › Integrations by the generic renderer. Off unless a test
+ * turns it on; every reset turns it off.
+ */
+add_filter(
+	'zerospam_setting_sections',
+	static function ( $sections ) {
+		if ( get_option( FAKE_SECTION_OPTION ) && is_array( $sections ) ) {
+			$sections['zs_e2e_widgets'] = array( 'title' => 'E2E Widget Forms' );
+		}
+
+		return $sections;
+	}
+);
+
+add_filter(
+	'zerospam_settings',
+	static function ( $settings ) {
+		if ( ! get_option( FAKE_SECTION_OPTION ) || ! is_array( $settings ) ) {
+			return $settings;
+		}
+
+		$stored = get_option( 'zero-spam-zs_e2e_widgets', array() );
+		$stored = is_array( $stored ) ? $stored : array();
+		$common = array(
+			'section' => 'zs_e2e_widgets',
+			'module'  => 'zs_e2e_widgets',
+		);
+
+		$settings['verify_zs_e2e_widgets']  = $common + array(
+			'title'   => 'Protect widget forms',
+			'desc'    => 'Checks every widget form for spam.',
+			'type'    => 'checkbox',
+			'options' => array( 'enabled' => 'Enabled' ),
+			'value'   => $stored['verify_zs_e2e_widgets'] ?? false,
+		);
+		$settings['zs_e2e_widgets_message'] = $common + array(
+			'title' => 'Blocked message',
+			'desc'  => 'Shown when a widget form is blocked. <a href="https://example.com/docs">Learn more</a>',
+			'type'  => 'text',
+			'value' => $stored['zs_e2e_widgets_message'] ?? 'Blocked.',
+		);
+		$settings['zs_e2e_widgets_mode']    = $common + array(
+			'title'   => 'Mode',
+			'type'    => 'radio',
+			'options' => array(
+				'strict'  => 'Strict',
+				'relaxed' => 'Relaxed',
+			),
+			'value'   => $stored['zs_e2e_widgets_mode'] ?? 'strict',
+		);
+		$settings['zs_e2e_widgets_roles']   = $common + array(
+			'title'    => 'Roles that skip the check',
+			'type'     => 'select',
+			'multiple' => true,
+			'options'  => array(
+				'administrator' => 'Administrator',
+				'editor'        => 'Editor',
+			),
+			'value'    => $stored['zs_e2e_widgets_roles'] ?? array(),
+		);
+
+		return $settings;
+	}
+);
+
+/**
  * Sample locations for seeded log rows (deterministic).
  *
  * @return array<int, array<string, string>>
@@ -1195,6 +1273,7 @@ add_action(
 					}
 
 					$network = is_multisite() && rest_sanitize_boolean( $request->get_param( 'network' ) ?? false );
+					delete_option( FAKE_SECTION_OPTION );
 					// Every capability check before the first write.
 					if ( $network && ! current_user_can( 'manage_network_options' ) ) {
 						return new WP_Error( 'zs_e2e_forbidden', 'Network reset needs manage_network_options.', array( 'status' => 403 ) );
@@ -1259,6 +1338,41 @@ add_action(
 							'level'   => 'enhanced' === $level ? 'enhanced' : 'basic',
 						)
 					);
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/fake-section',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$on = rest_sanitize_boolean( $request->get_param( 'on' ) ?? true );
+					if ( $on ) {
+						update_option( FAKE_SECTION_OPTION, 1, false );
+					} else {
+						delete_option( FAKE_SECTION_OPTION );
+						delete_option( 'zero-spam-zs_e2e_widgets' );
+					}
+
+					return new WP_REST_Response( array( 'on' => $on ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/self-test-reset',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function () {
+					// The self-test runs once a minute per site; screens and specs each start fresh.
+					delete_transient( 'zerospam_self_test_lock' );
+
+					return new WP_REST_Response( array( 'reset' => true ) );
 				},
 			)
 		);

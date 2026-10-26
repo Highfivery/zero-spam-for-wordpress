@@ -180,23 +180,8 @@ parameters:
 			count: 8
 			path: includes/templates/admin-modal-details.php
 
-		-
-			message: '#^Callback expects 1 parameter, \$accepted_args is set to 2\.$#'
-			identifier: arguments.count
-			count: 1
-			path: modules/class-google.php
 
-		-
-			message: '#^Expression "\$api_key" on a separate line does not do anything\.$#'
-			identifier: expr.resultUnused
-			count: 1
-			path: modules/class-google.php
 
-		-
-			message: '#^Undefined variable\: \$api_key$#'
-			identifier: variable.undefined
-			count: 1
-			path: modules/class-google.php
 
 		-
 			message: '#^Action callback returns true but should not return anything\.$#'

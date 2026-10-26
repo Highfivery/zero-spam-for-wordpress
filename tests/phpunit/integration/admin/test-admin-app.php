@@ -349,7 +349,7 @@ class Test_Admin_App extends TestCase {
 	public function test_other_areas_preload_only_the_shell(): void {
 		$this->flag_on();
 		$this->as_role( 'administrator' );
-		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-protection' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-settings' );
 
 		$paths = $this->preloaded_paths();
 		$this->assertSame( Admin_App::SHELL_PRELOADS, $paths );
@@ -668,5 +668,45 @@ class Test_Admin_App extends TestCase {
 		$this->assertStringContainsString( 'v1\\/license', $page, 'The license answer is preloaded (JSON-escaped path).' );
 		$this->assertStringNotContainsString( $key, $page );
 		$this->assertStringNotContainsString( 'SECRET-LICENSE', $page );
+	}
+
+	/**
+	 * The Protection page preloads the shell (license, protection modules)
+	 * and the settings schema, so it makes no request of its own on load.
+	 */
+	public function test_protection_preloads_schema_modules_and_license(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-protection' );
+
+		$paths = $this->preloaded_paths();
+		foreach ( array( '/zero-spam/v1/settings/schema', '/zero-spam/v1/protection/modules', '/zero-spam/v1/license', '/zero-spam/v1/ui/prefs' ) as $path ) {
+			$this->assertContains( $path, $paths, "{$path} is preloaded on Protection." );
+		}
+		foreach ( Admin_App::OVERVIEW_PRELOADS as $path ) {
+			if ( ! in_array( $path, Admin_App::PROTECTION_PRELOADS, true ) ) {
+				$this->assertNotContains( $path, $paths );
+			}
+		}
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( '"disable_xmlrpc"', $inline, 'The schema answer is real.' );
+	}
+
+	/**
+	 * Only administrators open the Protection page.
+	 */
+	public function test_editor_cannot_open_protection(): void {
+		$this->flag_on();
+		$this->as_role( 'editor' );
+		$_GET['page'] = 'zero-spam-protection';
+
+		$this->expectException( WPDieException::class );
+
+		try {
+			$this->registered_app()->render_page();
+		} finally {
+			unset( $_GET['page'] );
+		}
 	}
 }

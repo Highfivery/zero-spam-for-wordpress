@@ -798,8 +798,9 @@ class Settings_Controller extends Base_Controller {
 
 		switch ( $entry['type'] ) {
 			case 'checkbox':
-				if ( false === $value || '' === $value || null === $value ) {
-					return false;
+				// Off. A switch that is on unless turned off stores `disabled` (see Settings_Schema::is_default_on()).
+				if ( false === $value || '' === $value || null === $value || 'disabled' === $value ) {
+					return Settings_Schema::is_default_on( Settings_Schema::registry()[ $key ] ?? null ) ? 'disabled' : false;
 				}
 				if ( true === $value && $options ) {
 					return $options[0];

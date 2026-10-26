@@ -162,10 +162,8 @@ class Plugin {
 		// ipstack module.
 		new \ZeroSpam\Modules\ipstack();
 
-		if ( is_admin() ) {
-			// Google API module.
-			new \ZeroSpam\Modules\Google();
-		}
+		// Google API module (on every request since 6.0.0: the REST settings routes read its key).
+		new \ZeroSpam\Modules\Google();
 
 		// David Walsh module.
 		new \ZeroSpam\Modules\DavidWalsh\DavidWalsh();

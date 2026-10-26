@@ -201,6 +201,9 @@ export function AppProvider( { root, children } ) {
 			reduced: motionReduced( reduceValue, osReduce ),
 			osReduce,
 			license: license.data,
+			// The license route answers PUT and DELETE with the new state (Protection's key panel).
+			setLicense: license.setData,
+			reloadLicense: license.reload,
 			licenseLoaded:
 				undefined !== license.data || Boolean( license.error ),
 			enhanced: isEnhanced( license.data ),

@@ -18,6 +18,7 @@ use ZeroSpam\Tests\TestCase;
  *
  * @covers \ZeroSpam\Includes\Migrations::backup_5x_settings
  * @covers \ZeroSpam\Includes\Migrations::merge_network_store
+ * @covers \ZeroSpam\Includes\Migrations::security_switches
  */
 class Test_Migrations_V6 extends TestCase {
 
@@ -229,5 +230,93 @@ class Test_Migrations_V6 extends TestCase {
 	public function test_network_store_merge_on_a_single_site(): void {
 		$this->assertTrue( ( new Migrations() )->merge_network_store() );
 		$this->assertSame( self::NETWORK_STORE_FIXTURE, get_site_option( Network_Settings::META_KEY ) );
+	}
+
+	/**
+	 * The v6_security_switches migration records both new switches as on, next to the
+	 * module's other settings, on a single site.
+	 *
+	 * @group ms-excluded
+	 */
+	public function test_security_switches_are_stored_as_on(): void {
+		update_option( 'zero-spam-security', array( 'disable_emojis' => 'enabled' ) );
+
+		$this->assertTrue( ( new Migrations() )->security_switches() );
+
+		$this->assertSame(
+			array(
+				'disable_emojis'  => 'enabled',
+				'disable_xmlrpc'  => 'enabled',
+				'hide_wp_version' => 'enabled',
+			),
+			get_option( 'zero-spam-security' )
+		);
+	}
+
+	/**
+	 * A switch the site already turned off stays off (`disabled`), and a
+	 * second run changes nothing.
+	 *
+	 * @group ms-excluded
+	 */
+	public function test_security_switches_keep_stored_values_and_run_twice(): void {
+		update_option( 'zero-spam-security', array( 'disable_xmlrpc' => 'disabled' ) );
+
+		$migrations = new Migrations();
+		$migrations->security_switches();
+		$after_first = get_option( 'zero-spam-security' );
+		$migrations->security_switches();
+
+		$this->assertSame( 'disabled', $after_first['disable_xmlrpc'] );
+		$this->assertSame( 'enabled', $after_first['hide_wp_version'] );
+		$this->assertSame( $after_first, get_option( 'zero-spam-security' ) );
+	}
+
+	/**
+	 * Without the module option the migration creates it.
+	 *
+	 * @group ms-excluded
+	 */
+	public function test_security_switches_without_an_option(): void {
+		delete_option( 'zero-spam-security' );
+
+		( new Migrations() )->security_switches();
+
+		$this->assertSame(
+			array(
+				'disable_xmlrpc'  => 'enabled',
+				'hide_wp_version' => 'enabled',
+			),
+			get_option( 'zero-spam-security' )
+		);
+	}
+
+	/**
+	 * On a network nothing is stored (a stored value would be a site override
+	 * of a later network default); the switches are on all the same.
+	 *
+	 * @group ms-required
+	 */
+	public function test_security_switches_store_nothing_on_a_network(): void {
+		delete_option( 'zero-spam-security' );
+
+		$this->assertTrue( ( new Migrations() )->security_switches() );
+
+		$this->assertFalse( get_option( 'zero-spam-security' ) );
+		self::reset_static_caches();
+		$this->assertSame( 'enabled', \ZeroSpam\Core\Settings_Schema::value( 'disable_xmlrpc' ) );
+		$this->assertSame( 'enabled', \ZeroSpam\Core\Settings_Schema::value( 'hide_wp_version' ) );
+	}
+
+	/**
+	 * The migration is registered after the 5.x backup, which keeps the
+	 * settings as they were before it.
+	 */
+	public function test_security_switches_run_after_the_backup(): void {
+		$method = new ReflectionMethod( Migrations::class, 'get_migrations' );
+		$keys   = array_keys( $method->invoke( new Migrations() ) );
+
+		$this->assertContains( 'v6_security_switches', $keys );
+		$this->assertGreaterThan( array_search( 'v6_backup_5x', $keys, true ), array_search( 'v6_security_switches', $keys, true ) );
 	}
 }

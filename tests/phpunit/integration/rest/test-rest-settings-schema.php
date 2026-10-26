@@ -85,7 +85,7 @@ class Test_Rest_Settings_Schema extends TestCase {
 
 		$this->assertSame( $registry, $keys );
 		$this->assertSame( $keys, array_values( array_unique( $keys ) ), 'A setting appears twice.' );
-		// Integration modules are only registered while their plugin is active, and Google only in wp-admin.
+		// Integration modules are only registered while their plugin is active.
 		$this->assertGreaterThan( 75, count( $keys ) );
 	}
 
@@ -93,7 +93,7 @@ class Test_Rest_Settings_Schema extends TestCase {
 	 * Every entry has the documented fields, a known type and coherent flags.
 	 */
 	public function test_entries_are_well_formed(): void {
-		$fields = array( 'key', 'option', 'module', 'section', 'title', 'description', 'type', 'multiple', 'options', 'min', 'max', 'step', 'default', 'recommended', 'lockable', 'secret', 'depends_on', 'area', 'group', 'order', 'locked', 'source', 'value' );
+		$fields = array( 'key', 'option', 'module', 'section', 'title', 'description', 'type', 'multiple', 'options', 'min', 'max', 'step', 'default', 'recommended', 'placeholder', 'lockable', 'secret', 'depends_on', 'area', 'group', 'order', 'locked', 'source', 'value', 'html' );
 
 		foreach ( Settings_Schema::get()['settings'] as $entry ) {
 			$this->assertSame( $fields, array_keys( $entry ), $entry['key'] );
@@ -105,6 +105,13 @@ class Test_Rest_Settings_Schema extends TestCase {
 
 			if ( in_array( $entry['type'], array( 'checkbox', 'radio', 'select' ), true ) ) {
 				$this->assertIsArray( $entry['options'], "{$entry['key']} has no choices." );
+			}
+
+			$this->assertIsString( $entry['placeholder'], $entry['key'] );
+			if ( 'html' === $entry['type'] ) {
+				$this->assertIsString( $entry['html'], $entry['key'] );
+			} else {
+				$this->assertNull( $entry['html'], $entry['key'] );
 			}
 		}
 	}
@@ -125,12 +132,12 @@ class Test_Rest_Settings_Schema extends TestCase {
 			}
 		}
 
-		// The Google module only registers its key in wp-admin.
-		$expected = array_values( array_intersect( Settings_Schema::SECRET_KEYS, array_keys( Settings::get_settings() ) ) );
+		// Every listed secret is registered (the Google module is loaded outside wp-admin too since 6.0.0).
+		$expected = Settings_Schema::SECRET_KEYS;
 		sort( $secrets );
 		sort( $expected );
 		$this->assertSame( $expected, $secrets );
-		$this->assertCount( 6, $secrets );
+		$this->assertCount( 7, $secrets );
 		$this->assertContains( 'alert_webhook_url', $secrets, 'Webhook URLs work as credentials.' );
 
 		$license = self::by_key( Settings_Schema::get()['settings'] )['zerospam_license'];
@@ -193,6 +200,29 @@ class Test_Rest_Settings_Schema extends TestCase {
 			),
 			Settings_Schema::masked( 'zerospam_license' )
 		);
+	}
+
+	/**
+	 * A key a network site gets from a network default is reported as
+	 * coming from the network, without a hint: the site administrator never
+	 * entered it (the 6.0 screens show it read-only).
+	 *
+	 * @group ms-required
+	 */
+	public function test_network_provided_secret_has_no_hint(): void {
+		delete_option( 'zero-spam-ipstack' );
+		$this->set_network_setting( 'ipstack_api', 'network-ipstack-key-5678' );
+
+		$this->assertSame(
+			array(
+				'set'    => true,
+				'source' => 'network',
+			),
+			Settings_Schema::masked( 'ipstack_api' )
+		);
+		$entry = self::by_key( Settings_Schema::get()['settings'] )['ipstack_api'];
+		$this->assertSame( 'network', $entry['source'] );
+		$this->assertStringNotContainsString( '5678', (string) wp_json_encode( $entry ) );
 	}
 
 	/**
@@ -404,5 +434,81 @@ class Test_Rest_Settings_Schema extends TestCase {
 			20
 		);
 		Settings_Schema::reset_cache();
+	}
+
+	/**
+	 * Custom Form Selectors is a lockable text setting with a placeholder,
+	 * and its how-to is an html entry carrying its list.
+	 */
+	public function test_form_selectors_are_a_lockable_text_setting(): void {
+		update_option( 'zero-spam-davidwalsh', array( 'davidwalsh_form_selectors' => '.kept-form' ) );
+		self::reset_static_caches();
+
+		$settings = self::by_key( Settings_Schema::get()['settings'] );
+		$entry    = $settings['davidwalsh_form_selectors'];
+
+		$this->assertSame( 'text', $entry['type'] );
+		$this->assertTrue( $entry['lockable'] );
+		$this->assertSame( '.kept-form', $entry['value'], 'The stored value is read as it was.' );
+		$this->assertNotSame( '', $entry['placeholder'] );
+		$this->assertStringNotContainsString( '<input', $entry['description'] );
+		$this->assertContains( 'davidwalsh_form_selectors', Settings_Schema::value_keys() );
+
+		$help = $settings['davidwalsh_form_selectors_help'];
+		$this->assertSame( 'html', $help['type'] );
+		$this->assertStringContainsString( '<ol>', $help['html'] );
+		$this->assertStringContainsString( '<code>', $help['html'] );
+		$this->assertStringNotContainsString( 'zerospam-list', $help['html'], 'Only formatting is kept, not attributes.' );
+	}
+
+	/**
+	 * Html settings carry their help markup, limited to formatting, lists and
+	 * links; the ones made on the settings page (action buttons) carry ''.
+	 */
+	public function test_html_settings_carry_safe_help(): void {
+		add_filter(
+			'zerospam_settings',
+			static function ( array $settings ): array {
+				$settings['zs_test_help'] = array(
+					'title'   => 'Help',
+					'section' => 'davidwalsh',
+					'module'  => 'davidwalsh',
+					'type'    => 'html',
+					'html'    => '<p onclick="x()">Hi <a href="https://example.com/" style="color:red">there</a><script>alert(1)</script><input name="x"></p><ul><li>One</li></ul>',
+				);
+
+				return $settings;
+			}
+		);
+		self::reset_static_caches();
+
+		$settings = self::by_key( Settings_Schema::get()['settings'] );
+
+		$this->assertSame( '<p>Hi <a href="https://example.com/">there</a>alert(1)</p><ul><li>One</li></ul>', $settings['zs_test_help']['html'] );
+		$this->assertSame( '', $settings['regenerate_honeypot']['html'] );
+		$this->assertNull( $settings['verify_comments']['html'] );
+	}
+
+	/**
+	 * The new Security switches and the honeypot belong to Protection › Detection.
+	 */
+	public function test_protection_detection_entries(): void {
+		$settings = self::by_key( Settings_Schema::get()['settings'] );
+
+		foreach ( array( 'disable_xmlrpc', 'hide_wp_version', 'regenerate_honeypot', 'davidwalsh_form_selectors' ) as $key ) {
+			$this->assertSame( array( 'protection', 'detection' ), array( $settings[ $key ]['area'], $settings[ $key ]['group'] ), $key );
+		}
+	}
+
+	/**
+	 * A module that registers its settings without a section (Security,
+	 * ipbase, extensions) has them in its own section, not in General.
+	 */
+	public function test_settings_without_a_section_belong_to_their_module(): void {
+		$settings = self::by_key( Settings_Schema::get()['settings'] );
+
+		$this->assertSame( 'security', $settings['disable_emojis']['section'] );
+		$this->assertSame( 'ipbase', $settings['ipbase_api_key']['section'] );
+		$this->assertSame( 'general', $settings['max_logs']['section'] );
 	}
 }
