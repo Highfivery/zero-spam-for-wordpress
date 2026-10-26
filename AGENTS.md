@@ -61,6 +61,17 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   option. Read through `Settings::get_settings( $key )`.
 - `Settings::get_settings()` rebuilds the whole registry on every call and is
   expensive. Do not call it in loops or hot paths; read once and reuse.
+- A switch that is on unless turned off declares `'default' => 'enabled'`
+  (its own "on" choice) and reads an absent key as `enabled`; turning it off
+  stores `disabled` (the settings form and `PATCH /settings` do this through
+  `Settings_Schema::is_default_on()`), so "never set" and "off" differ.
+  Examples: `show_news`, `disable_xmlrpc`, `hide_wp_version`.
+- The 6.0 admin renders settings from `settings/schema` with one generic
+  renderer (`assets/src/admin/protection/fields.js`): give new settings a
+  `title`, a plain-language `desc`, a `section` (else they belong to their
+  module's section) and, for switches, `recommended`; `html` settings are
+  shown as help (paragraphs, lists, formatting and links only) or, when
+  listed in `settings-model.js` `ACTIONS`, as a `settings/actions` button.
 - Since 6.0 (`feat/rest-foundation`) `Core\Settings_Schema` builds the
   registry once per request and site and describes every setting (type,
   choices, default, area/group, locked, source, secrets masked); prefer
@@ -300,7 +311,11 @@ bin/check-dist.sh --twice   # build twice and require byte-identical output
   pixels off), the focus ring and eyebrow inside `.zs-dark-block` must be
   peach, and a root's `data-zs-theme` must win over an ancestor's.
   `admin/test/icons.test.js` checks the sprite (no ids in symbols, animation
-  layers hidden by attributes) and the exported marks.
+  layers hidden by attributes) and the exported marks. `vitest.config.mjs`
+  compiles the sources' JSX (automatic runtime), so component tests render
+  with `react-dom/server` (`renderToStaticMarkup`; effects do not run);
+  stub `window` before importing modules that read it at load
+  (`admin/protection/test/protection.test.js`).
 - **Design tokens** are the only source of colour, type, radius, spacing,
   motion and layer values for 6.0 screens: `var(--zs-…)`, never a literal.
   Everything is scoped (`.zs-app`, `.zs-blocked`, `.zs-widget`, or a `zs-`
