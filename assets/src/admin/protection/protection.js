@@ -19,6 +19,10 @@ import { useEffect, useMemo, useReducer, useRef } from '@wordpress/element';
  * Internal dependencies
  */
 import { useApp } from '../app/context';
+import {
+	focusIfEnabled,
+	useFocusAfterRender,
+} from '../app/use-focus-after-render';
 import { Button, Icon, cx } from '../app/primitives';
 import { UnsavedBar, useFeedback } from '../app/primitives/feedback';
 import { PATHS, useResource } from '../data/api';
@@ -201,6 +205,7 @@ export function Protection() {
 	const [ tab, setTab ] = useTab( 'detection', TABS );
 	const [ test, dispatch ] = useReducer( testReducer, initialTest );
 	const opened = useRef( false );
+	const focusAfterRender = useFocusAfterRender();
 
 	const cards = useMemo(
 		() => buildCards( schema.data, app.modules, tab ),
@@ -289,26 +294,29 @@ export function Protection() {
 				if ( group && group !== tab ) {
 					setTab( group );
 				}
-				window.setTimeout( () => {
-					const row =
-						first &&
-						document.getElementById(
-							`zs-row-${ first.replace( /[^A-Za-z0-9_-]/g, '-' ) }`
+				// Once the tab is shown (the save ran outside an event, so the change may render late).
+				focusAfterRender(
+					() => {
+						const row =
+							first &&
+							document.getElementById(
+								`zs-row-${ first.replace( /[^A-Za-z0-9_-]/g, '-' ) }`
+							);
+						return focusIfEnabled(
+							row?.querySelector(
+								'input:not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled])'
+							)
 						);
-					const control = row?.querySelector(
-						'input:not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled])'
-					);
-					if ( control ) {
-						control.focus();
-						return;
-					}
+					},
 					// Locked (disabled) settings cannot take focus: the bar says what happened.
-					const bar = document.querySelector( '.zs-savebar' );
-					if ( bar ) {
-						bar.setAttribute( 'tabindex', '-1' );
-						bar.focus();
+					() => {
+						const bar = document.querySelector( '.zs-savebar' );
+						if ( bar ) {
+							bar.setAttribute( 'tabindex', '-1' );
+							bar.focus();
+						}
 					}
-				}, 60 );
+				);
 			} );
 	};
 
