@@ -73,8 +73,7 @@
 	font-weight: var(--zs-weight-semibold);
 }
 
-/* "On this page" */
-/* Not sticky: chips that wrap to two rows would cover focused controls (WCAG 2.4.11). */
+/* "On this page": not sticky, chips that wrap to two rows would cover focused controls (WCAG 2.4.11). */
 .zs-jump {
 	display: flex;
 	flex-wrap: wrap;

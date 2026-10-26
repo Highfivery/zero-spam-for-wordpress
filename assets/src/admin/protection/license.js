@@ -103,7 +103,10 @@ export function KeyForm( {
 								...answer,
 								enableError:
 									failure?.message ||
-									__( 'It could not be switched on.', 'zero-spam' ),
+									__(
+										'It could not be switched on.',
+										'zero-spam'
+									),
 							} )
 						)
 					: Promise.resolve( answer );
@@ -173,7 +176,9 @@ export function KeyForm( {
 					disabled={ busy }
 					onClick={ () => setShow( ! show ) }
 				>
-					{ show ? __( 'Hide', 'zero-spam' ) : __( 'Show', 'zero-spam' ) }
+					{ show
+						? __( 'Hide', 'zero-spam' )
+						: __( 'Show', 'zero-spam' ) }
 				</Button>
 				<Button variant="secondary" type="submit" disabled={ busy }>
 					{ busy && <span className="zs-spin" aria-hidden="true" /> }

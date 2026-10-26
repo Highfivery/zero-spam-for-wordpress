@@ -212,7 +212,11 @@ export function SelfTestPanel( { state, dispatch } ) {
 										<b>
 											{ STATUS_TEXT()[ step.status ] && (
 												<span className="zs-sr-only">
-													{ STATUS_TEXT()[ step.status ] }{ ' ' }
+													{
+														STATUS_TEXT()[
+															step.status
+														]
+													}{ ' ' }
 												</span>
 											) }
 											{ name }
