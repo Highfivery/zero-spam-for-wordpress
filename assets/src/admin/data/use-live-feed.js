@@ -37,10 +37,13 @@ const INPUT_EVENTS = [
  * @param {Object}                          options            Options.
  * @param {Array}                           options.initial    Entries already shown (newest first), or undefined while loading.
  * @param {boolean}                         options.userPaused The user's live_paused preference.
- * @param {boolean}                         options.reduced    Animations are off.
- * @param {(...args: unknown[]) => unknown} options.onNew      Receives every batch of new entries (counts, mark, announcements).
+ * @param {boolean}                         options.reduced    Animations are off (new entries always wait behind the button).
+ * @param {(...args: unknown[]) => unknown} options.onNew      Receives every batch of new entries and their count (counts, mark, announcements).
  * @param {number}                          [options.keep]     Entries kept.
- * @return {Object} { items, fresh, queued, showQueued, reason }.
+ * @param {(...args: unknown[]) => unknown} [options.path]     ( sinceId ) => path: another request than the Overview's (filters, fewer fields); its X-ZeroSpam-New-Detections header is read the same way.
+ * @param {number}                          [options.sinceId]  Highest ID already shown, when it is not the highest of `initial` (a filtered or sorted list).
+ * @param {string}                          [options.resetKey] Changing it starts over from `sinceId` with nothing queued (new filters).
+ * @return {Object} { items, fresh, queued, queuedCount, showQueued, reason, loaded, wake, justWoke }.
  */
 export function useLiveFeed( {
 	initial,
@@ -48,10 +51,15 @@ export function useLiveFeed( {
 	reduced,
 	onNew,
 	keep = 6,
+	path,
+	sinceId,
+	resetKey = '',
 } ) {
 	const [ items, setItems ] = useState( [] );
 	const [ fresh, setFresh ] = useState( () => new Set() );
 	const [ queued, setQueued ] = useState( [] );
+	// New detections waiting, counted by the server after a burst bigger than a page.
+	const [ queuedCount, setQueuedCount ] = useState( 0 );
 	const [ hidden, setHidden ] = useState(
 		() => 'undefined' !== typeof document && document.hidden
 	);
@@ -60,8 +68,11 @@ export function useLiveFeed( {
 	const tracker = useRef( null );
 	const onNewRef = useRef( onNew );
 	const reducedRef = useRef( reduced );
+	const pathRef = useRef( path );
+	const started = useRef( false );
 	onNewRef.current = onNew;
 	reducedRef.current = reduced;
+	pathRef.current = path;
 
 	const loaded = Array.isArray( initial );
 
@@ -85,24 +96,32 @@ export function useLiveFeed( {
 		[ keep ]
 	);
 
-	// One poller for the page.
+	// One poller for the page (a new one when resetKey changes).
 	useEffect( () => {
 		if ( ! loaded ) {
 			return undefined;
 		}
+		started.current = false;
+		setQueued( [] );
+		setQueuedCount( 0 );
 		poller.current = createPoller( {
-			sinceId: highestId( initial, 0 ),
+			sinceId:
+				undefined !== sinceId
+					? Number( sinceId ) || 0
+					: highestId( initial, 0 ),
 			fetch: ( since ) =>
-				request( { path: PATHS.since( since ), parse: false } ).then(
-					( response ) =>
-						response.json().then( ( list ) => ( {
-							items: list,
-							total: Number(
-								response.headers.get(
-									'X-ZeroSpam-New-Detections'
-								)
-							),
-						} ) )
+				request( {
+					path: pathRef.current
+						? pathRef.current( since )
+						: PATHS.since( since ),
+					parse: false,
+				} ).then( ( response ) =>
+					response.json().then( ( list ) => ( {
+						items: list,
+						total: Number(
+							response.headers.get( 'X-ZeroSpam-New-Detections' )
+						),
+					} ) )
 				),
 			onItems: ( all, total ) => {
 				const entries = detectionsOnly( all, boot.nonDetectionTypes );
@@ -117,14 +136,15 @@ export function useLiveFeed( {
 				onNewRef.current( entries, count );
 				if ( reducedRef.current ) {
 					setQueued( ( q ) => [ ...entries, ...q ] );
+					setQueuedCount( ( n ) => n + count );
 				} else {
 					insert( entries );
 				}
 			},
 		} );
 		return () => poller.current?.stop();
-		// eslint-disable-next-line react-hooks/exhaustive-deps -- Created once the first list is in.
-	}, [ loaded ] );
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- Created once the first list is in, again on a reset.
+	}, [ loaded, resetKey ] );
 
 	// Tab visibility and inactivity.
 	useEffect( () => {
@@ -164,7 +184,6 @@ export function useLiveFeed( {
 
 	// Start, stop and resume as the conditions change. The first start waits
 	// one interval (the list was just loaded); a resume fetches at once.
-	const started = useRef( false );
 	useEffect( () => {
 		const p = poller.current;
 		if ( ! p ) {
@@ -178,9 +197,10 @@ export function useLiveFeed( {
 			started.current = true;
 			p.start();
 		}
-	}, [ reason, loaded ] );
+	}, [ reason, loaded, resetKey ] );
 
 	const showQueued = useCallback( () => {
+		setQueuedCount( 0 );
 		setQueued( ( q ) => {
 			if ( q.length ) {
 				insert( q );
@@ -193,6 +213,7 @@ export function useLiveFeed( {
 		items,
 		fresh,
 		queued,
+		queuedCount,
 		showQueued,
 		reason,
 		loaded,

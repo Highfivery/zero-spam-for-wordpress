@@ -122,41 +122,43 @@ describe( 'Block selected IPs', () => {
 		} );
 	} );
 
-	it( 'sends temporary blocks and reports new, replaced and failed ones', async () => {
+	it( 'sends one request and reports new, replaced, skipped and invalid addresses', async () => {
 		const calls = [];
-		const answers = {
-			'203.0.113.9': { status: 201, body: { id: 11 } },
-			'2001:DB8::1': { status: 200, body: { id: 12 } },
-		};
 		const request = ( options ) => {
 			calls.push( options );
-			const a = answers[ options.data.ip ];
-			return a
-				? Promise.resolve( {
-						status: a.status,
-						json: () => Promise.resolve( a.body ),
-					} )
-				: Promise.reject( new Error( 'nope' ) );
+			return Promise.resolve( {
+				created: 1,
+				replaced: 1,
+				skipped: [ '198.51.100.4' ],
+				invalid: { nope: 'Must be an IPv4 or IPv6 address.' },
+				undo_token: 'a'.repeat( 32 ),
+			} );
 		};
 
 		const result = await blockAll( {
-			ips: [ '203.0.113.9', '2001:DB8::1', '192.0.2.1' ],
+			ips: [ '203.0.113.9', '2001:DB8::1', 'nope' ],
 			end: '2026-11-01T09:30',
 			request,
 		} );
 
-		expect( result ).toEqual( { created: [ 11 ], replaced: 1, failed: 1 } );
-		expect( calls[ 0 ] ).toEqual( {
-			path: '/zero-spam/v1/rules/blocks',
-			method: 'POST',
-			data: {
-				kind: 'ip',
-				ip: '203.0.113.9',
-				type: 'temporary',
-				reason: '',
-				end: '2026-11-01T09:30:00',
-			},
-			parse: false,
+		expect( result ).toEqual( {
+			created: 1,
+			replaced: 1,
+			skipped: [ '198.51.100.4' ],
+			failed: 1,
+			undo_token: 'a'.repeat( 32 ),
 		} );
+		expect( calls ).toEqual( [
+			{
+				path: '/zero-spam/v1/rules/blocks/bulk',
+				method: 'POST',
+				data: {
+					type: 'temporary',
+					reason: '',
+					end: '2026-11-01T09:30:00',
+					ips: [ '203.0.113.9', '2001:DB8::1', 'nope' ],
+				},
+			},
+		] );
 	} );
 } );

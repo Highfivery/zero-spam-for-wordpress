@@ -176,21 +176,27 @@ export function EmptyState( { title, hint, onClear } ) {
 }
 
 /**
- * The "Locked by network" badge, with the full sentence for screen readers.
+ * The network lock badge, as the Activity drawer shows it: a short visible
+ * label, and the full sentence for screen readers.
+ *
+ * @param {Object} props            Props.
+ * @param {string} [props.label]    Visible label.
+ * @param {string} [props.sentence] What it means, read instead of the label.
  */
-export function LockBadge() {
+export function LockBadge( { label, sentence } ) {
 	return (
-		<>
-			<Badge className="zs-badge-lock" icon="lock">
-				{ __( 'Locked by network', 'zero-spam' ) }
-			</Badge>
-			<span className="zs-sr-only">
-				{ __(
-					'Locked by the network administrator. This list cannot be changed on this site.',
-					'zero-spam'
-				) }
+		<Badge className="zs-badge-lock zs-lockbadge" icon="lock">
+			<span aria-hidden="true">
+				{ label || __( 'Locked by network', 'zero-spam' ) }
 			</span>
-		</>
+			<span className="zs-sr-only">
+				{ sentence ||
+					__(
+						'Locked by the network administrator. This list cannot be changed on this site.',
+						'zero-spam'
+					) }
+			</span>
+		</Badge>
 	);
 }
 

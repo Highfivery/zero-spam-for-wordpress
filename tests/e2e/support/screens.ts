@@ -49,6 +49,8 @@ export interface Screen {
 	theme?: 'light' | 'dark' | 'both';
 	/** Protection level the screen is shown with (default basic). */
 	level?: Level;
+	/** Viewport the screen is opened at (accessibility scans of phone layouts). */
+	viewport?: { width: number; height: number };
 }
 
 /**
@@ -356,8 +358,101 @@ const V6_OVERVIEW: Screen[] = [
 	},
 ];
 
+/**
+ * Activity parts that change between runs: relative times, the sidebar
+ * count, detection IDs and hour-of-day charts. Table and card text is
+ * hidden by visual.css.
+ */
+export const ACTIVITY_MASKS = [ '.zs-cchart-wrap', '.zs-drawer .zs-eyebrow', '.zs-drawer .zs-dkv' ];
+
+/** Waits until the Activity log has its rows (or its empty state). */
+export const activityReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+	await page.locator( '.zs-log-t tbody tr, .zs-cards li, .zs-log .zs-empty' ).first().waitFor();
+};
+
+/** Waits until the Reports tab has its cards. */
+export const reportsReady = async ( page: Page ) => {
+	await page.locator( '.zs-reports' ).waitFor();
+	await page.locator( '.zs-rep:not([aria-busy])' ).waitFor();
+	await page.locator( '#zs-rp-type' ).waitFor();
+};
+
+/**
+ * The Activity screens' data (baseline policy: 8–10 rows): nine detections
+ * from nine addresses, one of them blocked; with `network`, three of them
+ * caught by the Zero Spam network.
+ *
+ * @param network Seed network catches too.
+ */
+const seedActivity =
+	( network = false ) =>
+	async ( zs: ZsApi ) => {
+		await zs.seedLog( network ? 6 : 9, { spacingMinutes: 90 } );
+		if ( network ) {
+			await zs.seedLog( 3, { type: 'blocked', failed: 'zero_spam', ipPrefix: '192.0.2.', spacingMinutes: 240 } );
+		}
+		await zs.block( '203.0.113.2', 'Seeded block' );
+	};
+
+/*
+ * Baseline policy for the area screens: the area body only (the shell is
+ * covered by the Overview baselines), 782px for one key screen, one dark
+ * 1280px screen per area.
+ */
+const AREA_BODY = '.zs-areabody';
+
+const V6_ACTIVITY: Screen[] = [
+	{ id: 'v6-activity-empty', title: '6.0 Activity (no detections)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'activity' ), prepare: activityReady, visual: { mask: ACTIVITY_MASKS, selector: AREA_BODY } },
+	{ id: 'v6-activity-seeded', title: '6.0 Activity (with detections)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: seedActivity(), path: () => AREA( 'activity' ), prepare: activityReady, visual: { mobile: true, dark: true, mask: ACTIVITY_MASKS, selector: AREA_BODY } },
+	{ id: 'v6-activity-phone', title: '6.0 Activity at 375px (cards)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', viewport: { width: 375, height: 812 }, before: seedActivity(), path: () => AREA( 'activity' ), prepare: activityReady },
+	{
+		id: 'v6-activity-drawer',
+		title: '6.0 Activity › details drawer',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		before: seedActivity(),
+		path: () => AREA( 'activity' ),
+		prepare: async ( page ) => {
+			await activityReady( page );
+			await page.locator( '[data-zs-open]' ).first().click();
+			await page.locator( '.zs-drawer.zs-details .zs-drawer-f .zs-btn' ).first().waitFor();
+		},
+		visual: { mask: ACTIVITY_MASKS, selector: '.zs-drawer' },
+	},
+	{
+		id: 'v6-activity-enhanced-network',
+		title: '6.0 Activity (Enhanced, Network-only filter)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		level: 'enhanced',
+		before: seedActivity( true ),
+		path: () => AREA( 'activity', '', { network: '1' } ),
+		prepare: activityReady,
+		visual: { mask: ACTIVITY_MASKS, selector: AREA_BODY },
+	},
+	{ id: 'v6-reports-seeded', title: '6.0 Activity › Reports (with detections)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: seedActivity(), path: () => AREA( 'activity', 'reports' ), prepare: reportsReady, visual: { mask: ACTIVITY_MASKS, selector: AREA_BODY } },
+	{
+		id: 'v6-reports-enhanced',
+		title: '6.0 Activity › Reports (Enhanced)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'both',
+		level: 'enhanced',
+		before: seedActivity( true ),
+		path: () => AREA( 'activity', 'reports' ),
+		prepare: reportsReady,
+		visual: { mask: ACTIVITY_MASKS, selector: AREA_BODY },
+	},
+];
+
 /** The areas built in later PRs: the shell with a placeholder (Settings carries the display preferences). */
-const V6_AREAS: Screen[] = [ 'activity', 'protection', 'settings', 'help' ].map(
+const V6_AREAS: Screen[] = [ 'protection', 'settings', 'help' ].map(
 	( area ): Screen => ( {
 		id: `v6-${ area }`,
 		title: `6.0 ${ area } (shell)`,
@@ -386,6 +481,10 @@ export const rulesReady = async ( page: Page ) => {
  * dates are hidden by support/visual.css.
  */
 export const seedRules = async ( zs: ZsApi ) => {
+	// 8 blocked IPs in all on the key screen (the seeded state has two).
+	for ( const ip of [ '198.51.100.21', '198.51.100.22', '203.0.113.31', '203.0.113.32', '192.0.2.41', '2001:db8::51' ] ) {
+		await zs.block( ip, 'E2E: rules sample' );
+	}
 	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'country_code', key: 'DE', type: 'permanent', reason: 'E2E: steady comment spam' } );
 	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'zip', key: '90210', type: 'temporary', end: new Date( Date.now() + 7 * 864e5 ).toISOString(), reason: 'E2E: card testing' } );
 	await zs.plugin( 'PUT', 'rules/lists/allowed-ips', { items: [ '203.0.113.5', '2001:db8::1' ] } );
@@ -470,7 +569,7 @@ const V6_RULES: Screen[] = [
 /**
  * Adds the dark twin of every screen that follows the theme ("both"): the
  * same screen under prefers-color-scheme dark (the default theme is
- * "auto"). Only Overview keeps a dark baseline (build plan decision 9).
+ * "auto"). Only key screens keep a dark baseline (`dark: true`; build plan decision 9).
  *
  * @param screens Screens.
  */
@@ -494,7 +593,7 @@ function withDarkTwins( screens: Screen[] ): Screen[] {
 	} );
 }
 
-const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_AREAS, ...V6_NETWORK, ...V6_RULES ] );
+const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_ACTIVITY, ...V6_RULES, ...V6_AREAS, ...V6_NETWORK ] );
 
 export const SCREENS: Screen[] = [
 	...settingsScreens,

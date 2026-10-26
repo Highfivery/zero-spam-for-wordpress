@@ -39,10 +39,6 @@
 	min-width: 160px;
 }
 
-.zs-ranges {
-	gap: 4px;
-}
-
 .zs-netchip {
 	display: inline-flex;
 	gap: 6px;
@@ -61,7 +57,7 @@
 
 .zs-netchip .zs-c {
 	padding: 3px 6px;
-	border-radius: 6px;
+	border-radius: var(--zs-radius-sm);
 	background: var(--zs-sunken);
 	font: var(--zs-weight-semibold) var(--zs-text-2xs) var(--zs-font-data);
 }
@@ -77,11 +73,16 @@
 	color: var(--zs-enh-ink);
 }
 
+/* The light inline chip that marks a detection the Zero Spam network made. */
 .zs-netbadge {
 	flex: none;
-	border: 1px solid var(--zs-enh-line);
-	background: var(--zs-enh-bg);
-	color: var(--zs-enh-ink);
+	border: 1px solid var(--zs-line);
+	background: var(--zs-ni-tint);
+	color: var(--zs-ink-2);
+}
+
+.zs-netbadge svg {
+	color: var(--zs-brick-5);
 }
 
 /* Bulk bar */
@@ -255,7 +256,7 @@
 .zs-typec .zs-ico {
 	width: 30px;
 	height: 30px;
-	border-radius: 8px;
+	border-radius: var(--zs-radius-control);
 }
 
 .zs-typet {
@@ -328,7 +329,7 @@
 	margin: 0;
 	padding: 0;
 	border: 0;
-	border-radius: 4px;
+	border-radius: var(--zs-radius-sm);
 	background: none;
 	color: inherit;
 	font: inherit;
@@ -355,7 +356,7 @@
 
 .zs-caret {
 	margin-left: 2px;
-	font-size: 10px;
+	font-size: var(--zs-text-2xs);
 }
 
 .zs-menu {
@@ -381,7 +382,7 @@
 	min-height: 32px;
 	padding: 6px 10px;
 	border: 0;
-	border-radius: 6px;
+	border-radius: var(--zs-radius-sm);
 	background: none;
 	color: var(--zs-ink-2);
 	font-size: var(--zs-text-sm);
@@ -442,7 +443,7 @@
 	margin: 0;
 	padding: 0;
 	border: 0;
-	border-radius: 8px;
+	border-radius: var(--zs-radius-control);
 	background: none;
 	color: inherit;
 	font: inherit;
@@ -598,7 +599,7 @@ button.zs-cardmain:hover .zs-cm-t {
 .zs-dkv code,
 .zs-details .zs-sect code {
 	padding: 1px 5px;
-	border-radius: 4px;
+	border-radius: var(--zs-radius-sm);
 	background: var(--zs-sunken);
 	font-family: var(--zs-font-data);
 	font-size: var(--zs-text-xs);
@@ -673,6 +674,23 @@ button.zs-cardmain:hover .zs-cm-t {
 	align-self: flex-start;
 }
 
+/* The drawer's actions fit one row in the usual case (compact ghost
+   buttons); they wrap whenever they must, so nothing is ever clipped. */
+.zs-details .zs-drawer-f .zs-inline-row {
+	gap: 4px;
+}
+
+.zs-details .zs-drawer-f .zs-btn-ghost {
+	padding: 0 10px;
+}
+
+.zs-details .zs-drawer-f .zs-lockbadge {
+	height: auto;
+	min-height: var(--zs-badge-height);
+	max-width: 100%;
+	white-space: normal;
+}
+
 /* Reports */
 .zs-rep-bar {
 	display: flex;
@@ -739,7 +757,7 @@ button.zs-cardmain:hover .zs-cm-t {
 	align-items: end;
 	height: 180px;
 	padding-bottom: 20px;
-	border-radius: 6px;
+	border-radius: var(--zs-radius-sm);
 }
 
 .zs-ccol {
@@ -801,6 +819,10 @@ button.zs-cardmain:hover .zs-cm-t {
 
 @media (max-width: 700px) {
 
+	.zs-cchart-wrap .zs-data summary {
+		min-height: var(--zs-tap-min);
+	}
+
 	.zs-logbar {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -812,8 +834,7 @@ button.zs-cardmain:hover .zs-cm-t {
 		min-width: 0;
 	}
 
-	.zs-logbar .zs-search,
-	.zs-logbar .zs-ranges {
+	.zs-logbar .zs-search {
 		grid-column: 1 / -1;
 	}
 

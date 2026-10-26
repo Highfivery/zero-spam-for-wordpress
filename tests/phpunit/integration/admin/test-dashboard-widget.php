@@ -108,10 +108,23 @@ class Test_Dashboard_Widget extends TestCase {
 
 	/**
 	 * The sparkline is drawn on the server from the daily totals, hidden from
-	 * assistive technology, with a text alternative.
+	 * assistive technology, with a text alternative, whatever the time of day
+	 * (rows pinned to midday of the site's today; the site clock is moved to
+	 * just before and just after midnight).
+	 *
+	 * @dataProvider data_site_clock
+	 *
+	 * @param string|null $clock Site time to run at (H:i), or null for the real time.
 	 */
-	public function test_sparkline_is_rendered_from_the_daily_totals(): void {
-		$this->insert_log_rows( 4 );
+	public function test_sparkline_is_rendered_from_the_daily_totals( ?string $clock ): void {
+		if ( null !== $clock ) {
+			$this->site_clock_at( $clock );
+		}
+
+		$today = gmdate( 'Y-m-d', (int) current_time( 'timestamp' ) ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- The log's clock.
+		for ( $i = 0; $i < 4; $i++ ) {
+			$this->insert_log_rows( 1, array( 'date_recorded' => "{$today} 12:00:0{$i}" ) );
+		}
 
 		$html  = $this->render();
 		$paths = Sparkline::paths( array_merge( array_fill( 0, 29, 0 ), array( 4 ) ) );
@@ -120,6 +133,97 @@ class Test_Dashboard_Widget extends TestCase {
 		$this->assertStringContainsString( 'd="' . esc_attr( $paths['area'] ) . '"', $html );
 		$this->assertMatchesRegularExpression( '#<svg class="zs-w-spark-svg"[^>]*aria-hidden="true"#', $html );
 		$this->assertStringContainsString( 'at most 4 on one day, 4 today.', $html );
+	}
+
+	/**
+	 * Site times the sparkline test runs at.
+	 *
+	 * @return array<string, array{0: string|null}>
+	 */
+	public function data_site_clock(): array {
+		return array(
+			'now'                  => array( null ),
+			'just before midnight' => array( '23:59' ),
+			'just after midnight'  => array( '00:01' ),
+		);
+	}
+
+	/**
+	 * Moves the site's clock to a time of day through its UTC offset (no
+	 * time zone name), so current_time() and wp_date() read that time.
+	 *
+	 * @param string $hhmm Site time (H:i).
+	 */
+	private function site_clock_at( string $hhmm ): void {
+		list( $hours, $minutes ) = array_map( 'intval', explode( ':', $hhmm ) );
+		$wanted                  = $hours * 60 + $minutes;
+
+		update_option( 'timezone_string', '' );
+		update_option( 'gmt_offset', self::clock_offset( time(), $wanted ) );
+
+		// The clock keeps running: a second may tick into the next minute.
+		$now = (int) wp_date( 'G' ) * 60 + (int) wp_date( 'i' );
+		$this->assertContains( $now, array( $wanted, ( $wanted + 1 ) % 1440 ), 'The site clock reads the wanted time.' );
+	}
+
+	/**
+	 * The `gmt_offset` (hours) that makes the site clock read a minute of
+	 * the day at a UTC time.
+	 *
+	 * The shift is a whole number of minutes. wp_timezone() writes the
+	 * offset as +HH:MM and truncates its minutes, and 11 h 58 min is not
+	 * exact in hours (11.9666…): it would read +11:57. Half a minute away
+	 * from zero keeps the truncated value on the right minute; current_time()
+	 * then runs 30 seconds ahead, still in the same day for the tests.
+	 *
+	 * @param int $utc    UTC timestamp.
+	 * @param int $wanted Minute of the day (0 to 1439).
+	 */
+	private static function clock_offset( int $utc, int $wanted ): float {
+		$shift = ( ( $wanted - intdiv( $utc % DAY_IN_SECONDS, MINUTE_IN_SECONDS ) ) % 1440 + 1440 ) % 1440;
+		$shift = $shift > 720 ? $shift - 1440 : $shift;
+
+		return ( $shift + ( $shift < 0 ? -0.5 : 0.5 ) ) / 60;
+	}
+
+	/**
+	 * The clock helper reaches its minute from every UTC minute of the day
+	 * (and both ends of each minute), through wp_timezone() as wp_date()
+	 * uses it.
+	 *
+	 * @dataProvider data_site_clock
+	 *
+	 * @param string|null $clock Site time (H:i), or null.
+	 */
+	public function test_site_clock_helper_reaches_every_minute( ?string $clock ): void {
+		list( $hours, $minutes ) = array_map( 'intval', explode( ':', $clock ?? '12:00' ) );
+		$wanted                  = $hours * 60 + $minutes;
+		$offset                  = 0.0;
+		$misses                  = array();
+
+		$use_offset = static function () use ( &$offset ) {
+			return $offset;
+		};
+		add_filter( 'pre_option_timezone_string', '__return_empty_string' );
+		add_filter( 'pre_option_gmt_offset', $use_offset );
+
+		$day = (int) gmmktime( 0, 0, 0, 1, 1, 2026 );
+		for ( $minute = 0; $minute < 1440; $minute++ ) {
+			foreach ( array( 0, 59 ) as $second ) {
+				$utc    = $day + $minute * MINUTE_IN_SECONDS + $second;
+				$offset = self::clock_offset( $utc, $wanted );
+				$site   = intdiv( ( $utc + wp_timezone()->getOffset( new DateTimeImmutable( '@' . $utc ) ) ) % DAY_IN_SECONDS, MINUTE_IN_SECONDS );
+
+				if ( $site !== $wanted ) {
+					$misses[] = gmdate( 'H:i:s', $utc ) . ' → ' . sprintf( '%02d:%02d', intdiv( $site, 60 ), $site % 60 );
+				}
+			}
+		}
+
+		remove_filter( 'pre_option_timezone_string', '__return_empty_string' );
+		remove_filter( 'pre_option_gmt_offset', $use_offset );
+
+		$this->assertSame( array(), $misses );
 	}
 
 	/**

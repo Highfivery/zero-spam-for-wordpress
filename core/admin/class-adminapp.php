@@ -114,8 +114,30 @@ final class Admin_App {
 		'/zero-spam/v1/stats/summary?range=7',
 		'/zero-spam/v1/stats/summary?range=30',
 		'/zero-spam/v1/stats/timeseries',
-		'/zero-spam/v1/activity?per_page=6',
+		'/zero-spam/v1/activity?per_page=6&no_count=1&_fields=id,date,type,type_label,ip,country,country_name,failed,failed_label',
 	);
+
+	/**
+	 * Fields of an Activity log row (assets/src/admin/activity/query.js asks
+	 * for the same list, so the preloaded answer is used).
+	 *
+	 * @var string
+	 */
+	const ACTIVITY_FIELDS = 'id,date,type,type_label,ip,blocked,network,failed,failed_label,country,country_name,region,region_name,city';
+
+	/**
+	 * Rows per page of the Activity log.
+	 *
+	 * @var int
+	 */
+	const ACTIVITY_PER_PAGE = 25;
+
+	/**
+	 * Period of the Reports tab on load, in days.
+	 *
+	 * @var int
+	 */
+	const REPORTS_DAYS = 30;
 
 	/**
 	 * The news route, preloaded when the news is on.
@@ -337,24 +359,82 @@ final class Admin_App {
 	}
 
 	/**
-	 * The view the address asks for: the tab and the activity entry to open.
+	 * Address arguments that change the Activity log's list (assets/src/admin/activity/query.js).
 	 *
-	 * @return array{tab: string, item: int}
+	 * @var string[]
+	 */
+	const ACTIVITY_VIEW_ARGS = array( 'type', 'country', 'ip', 'after', 'before', 'network', 'sort', 'paged' );
+
+	/**
+	 * The view the address asks for: the tab, the activity entry to open,
+	 * whether the log is filtered (its first page is then not the default
+	 * one) and whether it is only sorted or paged.
+	 *
+	 * @return array{tab: string, item: int, filtered: bool, moved: bool}
 	 */
 	public static function view_args(): array {
+		$set = array();
+		foreach ( self::ACTIVITY_VIEW_ARGS as $arg ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view state; only whether it is set is used.
+			$set[ $arg ] = isset( $_GET[ $arg ] ) && '' !== $_GET[ $arg ];
+		}
+
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only view state.
 		return array(
-			'tab'  => isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '',
-			'item' => isset( $_GET['item'] ) ? absint( wp_unslash( $_GET['item'] ) ) : 0,
+			'tab'      => isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '',
+			'item'     => isset( $_GET['item'] ) ? absint( wp_unslash( $_GET['item'] ) ) : 0,
+			'filtered' => $set['type'] || $set['country'] || $set['ip'] || $set['after'] || $set['before'] || $set['network'],
+			'moved'    => $set['sort'] || $set['paged'],
 		);
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
 
 	/**
+	 * The REST paths the Activity page reads on load: the heading's 30-day
+	 * count; on the Log tab the first page of entries and the filter counts;
+	 * on the Reports tab the 30-day series and breakdowns; and the entry an
+	 * address opens (`&item=`, from the Overview's feed).
+	 *
+	 * The paths are written exactly as the app asks for them
+	 * (assets/src/admin/activity/query.js); the preloading middleware
+	 * matches them with their query arguments in any order.
+	 *
+	 * Paths that only the default view asks for are left out when the
+	 * address filters, sorts or pages the log (the app asks for those
+	 * itself): the first page needs no filter, sort or page; the filter
+	 * counts need no filter.
+	 *
+	 * @param array{tab?: string, item?: int, filtered?: bool, moved?: bool} $view View.
+	 * @return string[]
+	 */
+	public static function activity_preloads( array $view = array() ): array {
+		$paths    = array( '/zero-spam/v1/stats/summary?range=30' );
+		$filtered = ! empty( $view['filtered'] );
+
+		if ( 'reports' === ( $view['tab'] ?? '' ) ) {
+			$paths[] = '/zero-spam/v1/stats/timeseries';
+			$paths[] = '/zero-spam/v1/activity?facets=1&detections_only=1&days=' . self::REPORTS_DAYS;
+		} else {
+			if ( ! $filtered && empty( $view['moved'] ) ) {
+				$paths[] = '/zero-spam/v1/activity?per_page=' . self::ACTIVITY_PER_PAGE . '&_fields=' . self::ACTIVITY_FIELDS;
+			}
+			if ( ! $filtered ) {
+				$paths[] = '/zero-spam/v1/activity?facets=1';
+			}
+		}
+
+		if ( ! empty( $view['item'] ) ) {
+			$paths[] = '/zero-spam/v1/activity/' . (int) $view['item'];
+		}
+
+		return $paths;
+	}
+
+	/**
 	 * The REST paths preloaded for an area.
 	 *
-	 * @param string                          $area Area.
-	 * @param array{tab?: string, item?: int} $view View the address asks for (see view_args()).
+	 * @param string                                                         $area Area.
+	 * @param array{tab?: string, item?: int, filtered?: bool, moved?: bool} $view View the address asks for (see view_args()).
 	 * @return string[]
 	 */
 	public static function preload_paths( string $area, array $view = array() ): array {
@@ -368,6 +448,10 @@ final class Admin_App {
 
 		if ( 'overview' === $area ) {
 			$paths = array_merge( $paths, self::OVERVIEW_PRELOADS );
+		}
+
+		if ( 'activity' === $area ) {
+			$paths = array_merge( $paths, self::activity_preloads( $view ) );
 		}
 
 		if ( News_Feed::is_enabled() ) {

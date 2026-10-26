@@ -1299,6 +1299,8 @@ add_action(
 					$ip_prefix = (string) ( $request->get_param( 'ipPrefix' ) ?? '203.0.113.' );
 					$minutes   = max( 1, (int) ( $request->get_param( 'spacingMinutes' ) ?? 60 ) );
 					$fixed_ip  = (string) ( $request->get_param( 'ip' ) ?? '' );
+					$extra     = $request->get_param( 'data' );
+					$extra     = is_array( $extra ) ? array_map( 'strval', array_filter( $extra, 'is_scalar' ) ) : array();
 					$crafted   = rest_sanitize_boolean( $request->get_param( 'crafted' ) ?? false );
 					$locations = sample_locations();
 					$now       = time();
@@ -1315,10 +1317,13 @@ add_action(
 						$loc = $locations[ $i % count( $locations ) ];
 						// crafted: markup written straight to the table (as an old or tampered row could hold) to prove the screens print it as text.
 						$row_failed = $failed;
+						$page_url   = home_url( '/e2e-comments/' );
 						if ( $crafted ) {
 							$row_failed = CRAFTED_MARKUP;
 							$loc[1]     = CRAFTED_MARKUP;
 							$loc[3]     = CRAFTED_MARKUP;
+							$loc[4]     = CRAFTED_MARKUP;
+							$page_url   = home_url( '/e2e-comments/?q=' ) . CRAFTED_MARKUP;
 						}
 						$wpdb->insert(
 							$wpdb->prefix . 'wpzerospam_log',
@@ -1327,12 +1332,16 @@ add_action(
 								'log_type'        => $type,
 								'user_ip'         => $ips[ $i ],
 								'date_recorded'   => gmdate( 'Y-m-d H:i:s', $now - ( $i * $minutes * MINUTE_IN_SECONDS ) ),
-								'page_url'        => home_url( '/e2e-comments/' ),
+								'page_url'        => $page_url,
+								// `data` adds fields as a form would submit them, stored as given (the XSS fixtures).
 								'submission_data' => wp_json_encode(
-									array(
-										'type'   => $type,
-										'failed' => $row_failed,
-										'seq'    => $i + 1,
+									array_merge(
+										$extra,
+										array(
+											'type'   => $type,
+											'failed' => $row_failed,
+											'seq'    => $i + 1,
+										)
 									)
 								),
 								'country'         => $loc[0],

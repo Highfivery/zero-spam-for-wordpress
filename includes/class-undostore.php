@@ -58,15 +58,20 @@ final class Undo_Store {
 	 * @var array<string, array{table: string, columns: string[]}>
 	 */
 	const KINDS = array(
-		'activity'   => array(
+		'activity'     => array(
 			'table'   => 'log',
 			'columns' => array( 'log_id', 'blog_id', 'log_type', 'user_ip', 'date_recorded', 'page_url', 'submission_data', 'country', 'country_name', 'region', 'region_name', 'city', 'zip', 'latitude', 'longitude' ),
 		),
-		'blocks'     => array(
+		'blocks'       => array(
 			'table'   => 'blocked',
 			'columns' => array( 'blocked_id', 'blocked_type', 'user_ip', 'blocked_key', 'key_type', 'date_added', 'start_block', 'end_block', 'reason' ),
 		),
-		'no-lockout' => array(
+		// Blocks just added (put_added_blocks()): undo removes new ones and writes replaced ones back.
+		'blocks_added' => array(
+			'table'   => 'blocked',
+			'columns' => array( 'blocked_id', 'blocked_type', 'user_ip', 'blocked_key', 'key_type', 'date_added', 'start_block', 'end_block', 'reason' ),
+		),
+		'no-lockout'   => array(
 			'table'   => '',
 			'columns' => array( 'ip' ),
 		),
@@ -98,6 +103,27 @@ final class Undo_Store {
 		);
 
 		return $token;
+	}
+
+	/**
+	 * Keeps what undoes blocks that were just added: the IDs of new blocks
+	 * (removed on undo) and the earlier state of blocks that were replaced
+	 * (written back on undo).
+	 *
+	 * @param int[]                            $created  IDs of new blocks.
+	 * @param array<int, array<string, mixed>> $previous Replaced block rows as they were.
+	 * @return string|null Token, or null for nothing or too many rows.
+	 */
+	public static function put_added_blocks( array $created, array $previous ): ?string {
+		$rows = array();
+		foreach ( $created as $id ) {
+			$rows[] = array( 'blocked_id' => (int) $id );
+		}
+		foreach ( $previous as $row ) {
+			$rows[] = array_merge( $row, array( 'previous' => true ) );
+		}
+
+		return self::put( 'blocks_added', $rows );
 	}
 
 	/**
@@ -160,6 +186,14 @@ final class Undo_Store {
 		$columns = self::KINDS[ $kind ]['columns'];
 		$rows    = array_values( array_filter( $entry['rows'], 'is_array' ) );
 
+		if ( 'blocks_added' === $kind ) {
+			return array(
+				'kind'     => $kind,
+				'restored' => self::undo_added_blocks( $table, $columns, $rows ),
+				'skipped'  => 0,
+			);
+		}
+
 		// A block whose address or location was blocked again in the meantime
 		// is not restored next to the new block.
 		if ( 'blocks' === $kind ) {
@@ -210,6 +244,41 @@ final class Undo_Store {
 		}
 
 		return $restored;
+	}
+
+	/**
+	 * Removes blocks that were added and writes replaced ones back.
+	 *
+	 * @param string                           $table   Full name of the blocked table.
+	 * @param string[]                         $columns Columns of a block row.
+	 * @param array<int, array<string, mixed>> $rows    { blocked_id } for new blocks, full rows with `previous` for replaced ones.
+	 * @return int Blocks undone.
+	 */
+	private static function undo_added_blocks( string $table, array $columns, array $rows ): int {
+		global $wpdb;
+
+		$done = 0;
+		$ids  = array();
+		foreach ( $rows as $row ) {
+			if ( empty( $row['previous'] ) ) {
+				$ids[] = (int) ( $row['blocked_id'] ?? 0 );
+				continue;
+			}
+
+			$data = array_intersect_key( $row, array_flip( $columns ) );
+			unset( $data['blocked_id'] );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes the plugin's own row back.
+			$done += (int) $wpdb->update( $table, $data, array( 'blocked_id' => (int) $row['blocked_id'] ) );
+		}
+
+		$ids = array_values( array_filter( $ids ) );
+		if ( $ids ) {
+			$placeholders = implode( ', ', array_fill( 0, count( $ids ), '%d' ) );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders holds one %d per ID (at most MAX_ROWS).
+			$done += (int) $wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE `blocked_id` IN ({$placeholders})", array_merge( array( $table ), $ids ) ) );
+		}
+
+		return $done;
 	}
 
 	/**

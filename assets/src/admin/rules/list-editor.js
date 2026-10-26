@@ -40,6 +40,11 @@ export const listCopy = () => ( {
 		icon: 'checkc',
 		title: __( 'IP Allowlist', 'zero-spam' ),
 		row: __( 'IP allowlist', 'zero-spam' ),
+		locked: __( 'Allowlist locked by network', 'zero-spam' ),
+		lockedSentence: __(
+			'The IP allowlist is locked by the network administrator, so it cannot be changed on this site.',
+			'zero-spam'
+		),
 		rowHidden: true,
 		hint: __(
 			'IP addresses that should never be blocked. Allowed addresses skip every check.',
@@ -384,7 +389,12 @@ export function ListEditor( {
 					</h2>
 				</div>
 				<span className="zs-scard-s">
-					{ state.locked && <LockBadge /> }
+					{ state.locked && (
+						<LockBadge
+							label={ copy.locked }
+							sentence={ copy.lockedSentence }
+						/>
+					) }
 				</span>
 			</div>
 

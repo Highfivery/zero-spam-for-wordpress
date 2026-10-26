@@ -334,7 +334,7 @@ test.describe( '6.0 Rules', () => {
 			if ( 375 === width ) {
 				await narrow.goto( AREA( 'rules', 'ips' ) );
 				await rulesReady( narrow );
-				await expect( narrow.locator( '.zs-cards li' ) ).toHaveCount( 2 );
+				await expect( narrow.locator( '.zs-cards li' ) ).toHaveCount( 6 );
 				await expect( narrow.getByLabel( 'Select all' ) ).toBeVisible();
 				await narrow.getByLabel( 'Sort' ).selectOption( 'key:asc' );
 				await narrow.locator( '.zs-cardmain' ).first().click();
@@ -357,7 +357,7 @@ test.describe( '6.0 Rules on a subsite', { tag: '@multisite' }, () => {
 			await zs.call( 'POST', 'network-setting', { key: 'ip_whitelist', value: '203.0.113.5', locked: true } );
 			await asSiteAdmin.goto( subsiteURL( target, AREA( 'rules', 'allowlist' ) ) );
 			await rulesReady( asSiteAdmin );
-			await expect( asSiteAdmin.locator( '.zs-badge-lock' ) ).toHaveText( 'Locked by network' );
+			await expect( asSiteAdmin.locator( '.zs-badge-lock [aria-hidden="true"]' ) ).toHaveText( 'Allowlist locked by network' );
 			await expect( asSiteAdmin.locator( '.zs-elist' ) ).toContainText( '203.0.113.5' );
 			await expect( asSiteAdmin.getByLabel( 'Add IP addresses' ) ).toHaveCount( 0 );
 			await expect( asSiteAdmin.getByRole( 'button', { name: /^Remove / } ) ).toHaveCount( 0 );

@@ -49,9 +49,26 @@
 	visibility: hidden !important;
 }
 
-/* Rules: table-body text and the cards' meta lines carry dates seeded
-   relative to "now"; hide the text, keep the layout, badges and buttons. */
-.zs-rules-t tbody td,
-.zs-rules .zs-cm-m {
+/* The 6.0 area screens: table and card text (addresses, dates, places)
+   varies with the seeded rows and the clock; the layout, icons, badges and
+   buttons stay compared. */
+.zs-areabody .zs-t tbody td,
+.zs-areabody .zs-t tbody td :not(.zs-btn, .zs-btn *),
+.zs-areabody .zs-cards .zs-cardmain,
+.zs-areabody .zs-cards .zs-cardmain *,
+.zs-areabody .zs-wk-row,
+.zs-areabody .zs-rep-bar .zs-hint {
 	color: transparent !important;
+}
+
+/* An area body taller than the window is captured while scrolled: keep the
+   sticky top bar in place so it does not cover the body's first lines
+   (pages without an area body, such as the Overview, are not affected). */
+.zs-app:has(.zs-areabody) .zs-topbar {
+	position: static !important;
+}
+
+/* The busiest hours follow the clock (seeded rows are dated from now). */
+.zs-hours-note {
+	visibility: hidden !important;
 }

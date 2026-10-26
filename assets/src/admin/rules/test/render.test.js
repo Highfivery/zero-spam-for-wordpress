@@ -90,9 +90,9 @@ describe( 'list editors', () => {
 				source: 'locked',
 			} ),
 		} );
-		expect( html ).toContain( 'Locked by network' );
+		expect( html ).toContain( 'Allowlist locked by network' );
 		expect( html ).toContain(
-			'Locked by the network administrator. This list cannot be changed on this site.'
+			'The IP allowlist is locked by the network administrator, so it cannot be changed on this site.'
 		);
 		expect( html ).toContain( '203.0.113.5' );
 		expect( html ).not.toContain( 'zs-addrow' );

@@ -106,6 +106,19 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
+	 * The preloaded answers, by path.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function preloaded(): array {
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		preg_match( '/var zeroSpamPreload = (\{.*\}|\[\]);/s', $inline, $match );
+		$data = json_decode( $match[1] ?? '', true );
+
+		return is_array( $data ) ? $data : array();
+	}
+
+	/**
 	 * Off by default; the filter switches it on.
 	 */
 	public function test_flag_is_off_by_default_and_the_filter_turns_it_on(): void {
@@ -336,13 +349,151 @@ class Test_Admin_App extends TestCase {
 	public function test_other_areas_preload_only_the_shell(): void {
 		$this->flag_on();
 		$this->as_role( 'administrator' );
-		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-activity' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-rules' );
 
 		$paths = $this->preloaded_paths();
-		$this->assertSame( Admin_App::SHELL_PRELOADS, array_values( array_intersect( $paths, Admin_App::SHELL_PRELOADS ) ) );
-		foreach ( Admin_App::OVERVIEW_PRELOADS as $path ) {
-			$this->assertNotContains( $path, $paths );
+		$this->assertSame( Admin_App::SHELL_PRELOADS, $paths );
+	}
+
+	/**
+	 * The Activity page preloads what its Log tab reads on load: the
+	 * heading's 30-day count, the first page of entries (with the paging
+	 * headers) and the filter counts.
+	 */
+	public function test_activity_preloads_the_log(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$this->insert_log_rows( 30 );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-activity' );
+
+		$list  = '/zero-spam/v1/activity?per_page=25&_fields=' . Admin_App::ACTIVITY_FIELDS;
+		$paths = $this->preloaded_paths();
+
+		$this->assertSame( array_merge( Admin_App::SHELL_PRELOADS, array( '/zero-spam/v1/stats/summary?range=30', $list, '/zero-spam/v1/activity?facets=1' ) ), $paths );
+
+		$data = $this->preloaded();
+		$this->assertCount( 25, $data[ $list ]['body'] );
+		$this->assertSame( '30', $data[ $list ]['headers']['X-WP-Total'], 'The paging headers are preloaded too.' );
+		$this->assertEqualsCanonicalizing( explode( ',', Admin_App::ACTIVITY_FIELDS ), array_keys( $data[ $list ]['body'][0] ) );
+		$this->assertSame( 30, $data['/zero-spam/v1/activity?facets=1']['body']['total'] );
+	}
+
+	/**
+	 * The Reports tab preloads its 30-day series and breakdowns instead of the log.
+	 */
+	public function test_activity_reports_tab_preloads_the_reports(): void {
+		$paths = Admin_App::preload_paths( 'activity', array( 'tab' => 'reports' ) );
+
+		$this->assertContains( '/zero-spam/v1/stats/timeseries', $paths );
+		$this->assertContains( '/zero-spam/v1/activity?facets=1&detections_only=1&days=30', $paths );
+		$this->assertContains( '/zero-spam/v1/stats/summary?range=30', $paths );
+		$this->assertNotContains( '/zero-spam/v1/activity?facets=1', $paths );
+		$this->assertEmpty( preg_grep( '/per_page=25/', $paths ) );
+	}
+
+	/**
+	 * A filtered, sorted or paged address does not preload the default
+	 * list (the app asks for its own); filter counts are preloaded only
+	 * without filters.
+	 */
+	public function test_activity_preloads_only_the_default_view(): void {
+		$list   = '/zero-spam/v1/activity?per_page=25&_fields=' . Admin_App::ACTIVITY_FIELDS;
+		$facets = '/zero-spam/v1/activity?facets=1';
+
+		$sorted = Admin_App::preload_paths( 'activity', array( 'moved' => true ) );
+		$this->assertNotContains( $list, $sorted );
+		$this->assertContains( $facets, $sorted );
+
+		$filtered = Admin_App::preload_paths( 'activity', array( 'filtered' => true ) );
+		$this->assertNotContains( $list, $filtered );
+		$this->assertNotContains( $facets, $filtered );
+
+		$item = Admin_App::preload_paths( 'activity', array( 'item' => 7 ) );
+		$this->assertContains( $list, $item, 'An entry link opens the default list.' );
+
+		$_GET['type'] = 'comment';
+		$_GET['sort'] = 'ip:asc';
+		try {
+			$view = Admin_App::view_args();
+		} finally {
+			unset( $_GET['type'], $_GET['sort'] );
 		}
+		$this->assertTrue( $view['filtered'] );
+		$this->assertTrue( $view['moved'] );
+		$this->assertFalse( Admin_App::view_args()['filtered'] );
+	}
+
+	/**
+	 * An address that opens an entry (`&item=`, the Overview's feed links)
+	 * preloads that entry.
+	 */
+	public function test_activity_item_is_preloaded(): void {
+		$this->assertContains( '/zero-spam/v1/activity/42', Admin_App::preload_paths( 'activity', array( 'item' => 42 ) ) );
+		$this->assertEmpty( preg_grep( '#activity/\d#', Admin_App::preload_paths( 'activity' ) ) );
+		$this->assertEmpty( preg_grep( '#activity/\d#', Admin_App::preload_paths( 'overview', array( 'item' => 42 ) ) ), 'Only on the Activity page.' );
+	}
+
+	/**
+	 * The Overview (the shell from PR 4) prints its bootstrap and preloads
+	 * through the same encoding: a site name and a logged country name with
+	 * markup stay inside their scripts.
+	 */
+	public function test_overview_inline_scripts_escape_markup(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		update_option( 'blogname', 'Shop </script><!--<script>' );
+		$this->insert_log_rows(
+			2,
+			array(
+				'country'      => 'DE',
+				'country_name' => '</script><img src=x onerror=alert(1)>',
+			)
+		);
+
+		$this->registered_app()->enqueue( 'toplevel_page_zero-spam' );
+
+		foreach ( array( $this->inline( Admin_App::HANDLE, 'before' ), $this->inline( 'wp-api-fetch', 'after' ) ) as $inline ) {
+			$this->assertNotSame( '', $inline );
+			$this->assertStringNotContainsStringIgnoringCase( '</script', $inline );
+			$this->assertStringNotContainsString( '<!--', $inline );
+			$this->assertStringNotContainsString( '<img', $inline );
+		}
+
+		$this->assertStringContainsString( 'Shop \u003C\/script\u003E\u003C!--', $this->inline( Admin_App::HANDLE, 'before' ), 'The site name is kept, escaped.' );
+		$this->assertContains( '</script><img src=x onerror=alert(1)>', array_column( $this->preloaded()[ Admin_App::OVERVIEW_PRELOADS[4] ]['body'], 'country_name' ), 'The preloaded entry decodes to the logged text.' );
+	}
+
+	/**
+	 * Logged submissions are preloaded into an inline script: markup in them
+	 * (a closing script tag, an HTML comment opener) is escaped so it can
+	 * never end or change the script element.
+	 */
+	public function test_preloaded_logged_data_cannot_end_the_script(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$ids = $this->insert_log_rows(
+			1,
+			array(
+				'submission_data' => wp_json_encode( array( 'comment' => '<!--<script>alert(1)</script><img src=x onerror=alert(2)>&amp;' ) ),
+				'city'            => '</script><script>alert(3)</script>',
+			)
+		);
+
+		$_GET['item'] = (string) $ids[0];
+		try {
+			$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-activity' );
+		} finally {
+			unset( $_GET['item'] );
+		}
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringNotContainsStringIgnoringCase( '</script', $inline );
+		$this->assertStringNotContainsString( '<!--', $inline );
+		$this->assertStringNotContainsString( '<img', $inline );
+		$this->assertStringContainsString( '\u003Cimg src=x onerror=alert(2)\u003E', $inline, 'The text is kept, escaped.' );
+
+		$data = $this->preloaded();
+		$this->assertSame( '</script><script>alert(3)</script>', $data[ '/zero-spam/v1/activity/' . $ids[0] ]['body']['city'], 'It decodes to the logged text.' );
 	}
 
 	/**

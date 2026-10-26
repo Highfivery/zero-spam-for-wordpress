@@ -14,6 +14,8 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 use ZeroSpam\Core\Access;
+use ZeroSpam\Core\License_Status;
+use ZeroSpam\Core\Settings_Schema;
 use ZeroSpam\Core\User;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Undo_Store;
@@ -30,7 +32,15 @@ defined( 'ABSPATH' ) || die();
  * is blocked right now; that is worked out with one query for the whole page.
  *
  * The live feed asks for `since_id`: entries newer than the last one it has,
- * newest first, without a total (a primary-key range read).
+ * newest first, without a total (a primary-key range read). A caller that
+ * does not page (a short "latest" list) sends `no_count` to skip the total.
+ *
+ * `days` limits a list to the last N days of the site's calendar (today
+ * included, as stats/timeseries counts them), `detections_only` leaves out
+ * entries that are not detections (DB::NON_DETECTION_TYPES), and
+ * `network_only` keeps the detections only the Zero Spam network made
+ * (Stats_Controller::network_only_sql()); every row says whether it is one
+ * (`network`).
  *
  * @since 6.0.0
  */
@@ -55,7 +65,7 @@ class Activity_Controller extends Base_Controller {
 	 *
 	 * @var string[]
 	 */
-	const ORDERBY = array( 'date_recorded', 'log_type', 'user_ip', 'country', 'region' );
+	const ORDERBY = array( 'date_recorded', 'log_type', 'user_ip', 'country', 'region', 'country_name', 'region_name' );
 
 	/**
 	 * Columns of a list row (submission_data is added when `failed` is asked for).
@@ -79,8 +89,15 @@ class Activity_Controller extends Base_Controller {
 	const FACET_LIMITS = array(
 		'type'    => 100,
 		'country' => 250,
-		'ip'      => 10,
+		'ip'      => 12,
 	);
+
+	/**
+	 * Longest `days` period.
+	 *
+	 * @var int
+	 */
+	const MAX_DAYS = 365;
 
 	/**
 	 * Registers the routes.
@@ -164,7 +181,7 @@ class Activity_Controller extends Base_Controller {
 	 */
 	public function get_collection_params() {
 		return array(
-			'type'     => array(
+			'type'            => array(
 				'description' => __( 'Only these detection types.', 'zero-spam' ),
 				'type'        => 'array',
 				'items'       => array(
@@ -173,7 +190,7 @@ class Activity_Controller extends Base_Controller {
 				),
 				'maxItems'    => 50,
 			),
-			'country'  => array(
+			'country'         => array(
 				'description' => __( 'Only these countries (two-letter codes).', 'zero-spam' ),
 				'type'        => 'array',
 				'items'       => array(
@@ -182,58 +199,79 @@ class Activity_Controller extends Base_Controller {
 				),
 				'maxItems'    => 250,
 			),
-			'ip'       => array(
+			'ip'              => array(
 				'description' => __( 'Only this IP address.', 'zero-spam' ),
 				'type'        => 'string',
 				'maxLength'   => 64,
 			),
-			'after'    => array(
+			'after'           => array(
 				'description' => __( 'Only entries recorded at or after this date (YYYY-MM-DD) or time (ISO 8601).', 'zero-spam' ),
 				'type'        => 'string',
 				'maxLength'   => 40,
 			),
-			'before'   => array(
+			'before'          => array(
 				'description' => __( 'Only entries recorded before this time (ISO 8601); a date (YYYY-MM-DD) includes that whole day.', 'zero-spam' ),
 				'type'        => 'string',
 				'maxLength'   => 40,
 			),
-			'search'   => array(
+			'search'          => array(
 				'description' => __( 'Text to look for in the IP address, page address, country, region or city.', 'zero-spam' ),
 				'type'        => 'string',
 				'maxLength'   => 100,
 			),
-			'page'     => array(
+			'page'            => array(
 				'description' => __( 'Page of results; a page past the last one returns the last page.', 'zero-spam' ),
 				'type'        => 'integer',
 				'minimum'     => 1,
 				'default'     => 1,
 			),
-			'per_page' => array(
+			'per_page'        => array(
 				'description' => __( 'Entries per page (1 to 100).', 'zero-spam' ),
 				'type'        => 'integer',
 				'minimum'     => 1,
 				'maximum'     => self::MAX_PER_PAGE,
 				'default'     => 20,
 			),
-			'orderby'  => array(
+			'orderby'         => array(
 				'description' => __( 'Sort column.', 'zero-spam' ),
 				'type'        => 'string',
 				'enum'        => self::ORDERBY,
 				'default'     => 'date_recorded',
 			),
-			'order'    => array(
+			'order'           => array(
 				'description' => __( 'Sort direction.', 'zero-spam' ),
 				'type'        => 'string',
 				'enum'        => array( 'asc', 'desc' ),
 				'default'     => 'desc',
 			),
-			'since_id' => array(
+			'since_id'        => array(
 				'description' => __( 'Only entries newer than this ID, newest first, without a total (the live feed).', 'zero-spam' ),
 				'type'        => 'integer',
 				'minimum'     => 0,
 			),
-			'facets'   => array(
+			'facets'          => array(
 				'description' => __( 'Return the number of entries per type, country and IP address for the filters instead of the entries.', 'zero-spam' ),
+				'type'        => 'boolean',
+				'default'     => false,
+			),
+			'no_count'        => array(
+				'description' => __( 'Skip counting every matching entry: no X-WP-Total or X-WP-TotalPages headers, and a page past the last one is empty (for lists that are not paged).', 'zero-spam' ),
+				'type'        => 'boolean',
+				'default'     => false,
+			),
+			'days'            => array(
+				'description' => __( 'Only entries of the last N days of the site\'s calendar, today included (1 to 365).', 'zero-spam' ),
+				'type'        => 'integer',
+				'minimum'     => 1,
+				'maximum'     => self::MAX_DAYS,
+			),
+			'detections_only' => array(
+				'description' => __( 'Only detections: leave out entries such as sent rescue links.', 'zero-spam' ),
+				'type'        => 'boolean',
+				'default'     => false,
+			),
+			'network_only'    => array(
+				'description' => __( 'Only the detections the Zero Spam network made (Enhanced Protection).', 'zero-spam' ),
 				'type'        => 'boolean',
 				'default'     => false,
 			),
@@ -273,16 +311,19 @@ class Activity_Controller extends Base_Controller {
 		$columns  = $this->select_columns( $request );
 		$page     = max( 1, (int) $request->get_param( 'page' ) );
 		$sql_cond = '' !== $where['sql'] ? ' WHERE ' . $where['sql'] : '';
+		$total    = null;
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Paged list of the plugin's own table; $sql_cond holds only fixed fragments with placeholders, $columns the fixed LIST_COLUMNS and $order ASC or DESC; every value is bound by prepare().
-		$total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i{$sql_cond}", array_merge( array( $table ), $where['values'] ) ) );
+		if ( ! $request->get_param( 'no_count' ) ) {
+			$total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i{$sql_cond}", array_merge( array( $table ), $where['values'] ) ) );
 
-		// A page past the last one shows the last page.
-		$last_page = max( 1, (int) ceil( $total / $per_page ) );
-		$page      = min( $page, $last_page );
-		$rows      = array();
+			// A page past the last one shows the last page.
+			$page = min( $page, max( 1, (int) ceil( $total / $per_page ) ) );
+		}
 
-		if ( $total > 0 ) {
+		$rows = array();
+
+		if ( null === $total || $total > 0 ) {
 			// The log ID breaks ties, so equal sort values never repeat or go missing between pages.
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
@@ -295,7 +336,11 @@ class Activity_Controller extends Base_Controller {
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		$response = rest_ensure_response( $this->prepare_rows( is_array( $rows ) ? $rows : array(), $request ) );
-		$response = $this->add_pagination_headers( $response, $total, $per_page );
+
+		if ( null !== $total ) {
+			$response = $this->add_pagination_headers( $response, $total, $per_page );
+		}
+
 		$response->header( 'X-ZeroSpam-Page', (string) $page );
 
 		return $response;
@@ -307,10 +352,10 @@ class Activity_Controller extends Base_Controller {
 	 * `X-ZeroSpam-New-Detections` header gives how many detections are newer
 	 * than `since_id` in all (one count).
 	 *
-	 * @param WP_REST_Request                                                                                       $request  Request.
-	 * @param array{type: string[], country: string[], ip: string[], after: string, before: string, search: string} $filters  Filters.
-	 * @param int                                                                                                   $since_id Last ID the client has.
-	 * @param int                                                                                                   $per_page Most entries.
+	 * @param WP_REST_Request                                                                                                                        $request  Request.
+	 * @param array{type: string[], country: string[], ip: string[], after: string, before: string, search: string, detections: bool, network: bool} $filters  Filters.
+	 * @param int                                                                                                                                    $since_id Last ID the client has.
+	 * @param int                                                                                                                                    $per_page Most entries.
 	 * @return WP_REST_Response
 	 */
 	private function live_feed( WP_REST_Request $request, array $filters, int $since_id, int $per_page ): WP_REST_Response {
@@ -371,7 +416,12 @@ class Activity_Controller extends Base_Controller {
 
 		$item['details'] = is_array( $details ) ? $details : null;
 		$item['block']   = null === $record ? null : Rules_Controller::prepare_block( $record['record'] );
-		$item['map_url'] = self::map_url( $row['latitude'] ?? null, $row['longitude'] ?? null );
+		$item['allowed'] = Rules_Controller::is_allowed_ip( (string) $row['user_ip'] );
+
+		// Whether the network administrator locked the IP Allowlist (no Always allow then).
+		$allowlist                = Settings_Schema::resolve( 'ip_whitelist' );
+		$item['allowlist_locked'] = null !== $allowlist && ! empty( $allowlist['locked'] );
+		$item['map_url']          = self::map_url( $row['latitude'] ?? null, $row['longitude'] ?? null );
 
 		return rest_ensure_response( $this->filter_fields( $item, $request ) );
 	}
@@ -470,14 +520,17 @@ class Activity_Controller extends Base_Controller {
 	}
 
 	/**
-	 * Counts per type, country and IP address (the ten with most entries) for the filters.
+	 * Counts per type, country and IP address (the twelve with most entries) for the filters.
 	 *
-	 * `total` counts the entries every filter matches.
+	 * `total` counts the entries every filter matches, `max_id` is the newest
+	 * of them (where a live feed for these filters starts), and
+	 * `network_only` how many of them the Zero Spam network caught (null
+	 * without Enhanced Protection).
 	 *
 	 * Each facet ignores its own filter, so a client can show how many
 	 * entries every choice would give.
 	 *
-	 * @param array{type: string[], country: string[], ip: string[], after: string, before: string, search: string} $filters Filters.
+	 * @param array{type: string[], country: string[], ip: string[], after: string, before: string, search: string, detections: bool, network: bool} $filters Filters.
 	 * @return array<string, mixed>
 	 */
 	private function facets( array $filters ): array {
@@ -489,6 +542,7 @@ class Activity_Controller extends Base_Controller {
 		$type_where    = $this->where( $filters, array( 'type' ) );
 		$country_where = $this->where( $filters, array( 'country' ) );
 		$ip_where      = $this->where( $filters, array( 'ip' ) );
+		$network_where = $this->where( array_merge( $filters, array( 'network' => true ) ) );
 
 		$type_cond    = '' !== $type_where['sql'] ? ' WHERE ' . $type_where['sql'] : '';
 		$country_cond = ' WHERE `country` IS NOT NULL AND `country` <> \'\'' . ( '' !== $country_where['sql'] ? ' AND ' . $country_where['sql'] : '' );
@@ -497,7 +551,7 @@ class Activity_Controller extends Base_Controller {
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Grouped counts of the plugin's own table, each bounded by LIMIT; the conditions hold only fixed fragments with placeholders.
 		$types = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT `log_type` AS value, COUNT(*) AS count FROM %i{$type_cond} GROUP BY `log_type` ORDER BY count DESC, value ASC LIMIT %d",
+				"SELECT `log_type` AS value, COUNT(*) AS count, MAX(`log_id`) AS max_id FROM %i{$type_cond} GROUP BY `log_type` ORDER BY count DESC, value ASC LIMIT %d",
 				array_merge( array( $table ), $type_where['values'], array( self::FACET_LIMITS['type'] ) )
 			),
 			ARRAY_A
@@ -518,20 +572,30 @@ class Activity_Controller extends Base_Controller {
 			),
 			ARRAY_A
 		);
+
+		// Only Enhanced Protection has network detections to count (no request is made to find out).
+		$network_only = null;
+		if ( License_Status::has_key() && License_Status::is_enabled() ) {
+			$network_only = (int) $wpdb->get_var(
+				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$network_where['sql']}", array_merge( array( $table ), $network_where['values'] ) )
+			);
+		}
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		$types     = is_array( $types ) ? $types : array();
 		$countries = is_array( $countries ) ? $countries : array();
 		$ips       = is_array( $ips ) ? $ips : array();
 
-		$total = 0;
-		$type  = array();
+		$total  = 0;
+		$max_id = 0;
+		$type   = array();
 		foreach ( $types as $row ) {
 			$value = (string) $row['value'];
 			$count = (int) $row['count'];
 
 			if ( ! $filters['type'] || in_array( $value, $filters['type'], true ) ) {
 				$total += $count;
+				$max_id = max( $max_id, (int) $row['max_id'] );
 			}
 
 			$type[] = array(
@@ -564,10 +628,12 @@ class Activity_Controller extends Base_Controller {
 		}
 
 		return array(
-			'total'   => $total,
-			'type'    => $type,
-			'country' => $country,
-			'ip'      => $ip,
+			'total'        => $total,
+			'max_id'       => $max_id,
+			'network_only' => $network_only,
+			'type'         => $type,
+			'country'      => $country,
+			'ip'           => $ip,
 		);
 	}
 
@@ -575,17 +641,19 @@ class Activity_Controller extends Base_Controller {
 	 * The filters of a request, checked.
 	 *
 	 * @param WP_REST_Request $request Request.
-	 * @return array{type: string[], country: string[], ip: string[], after: string, before: string, search: string}|WP_Error
+	 * @return array{type: string[], country: string[], ip: string[], after: string, before: string, search: string, detections: bool, network: bool}|WP_Error
 	 */
 	private function filters( WP_REST_Request $request ) {
 		$errors  = array();
 		$filters = array(
-			'type'    => array_values( array_unique( array_map( 'strval', (array) ( $request->get_param( 'type' ) ?? array() ) ) ) ),
-			'country' => array_values( array_unique( array_map( 'strtoupper', array_map( 'strval', (array) ( $request->get_param( 'country' ) ?? array() ) ) ) ) ),
-			'ip'      => array(),
-			'after'   => '',
-			'before'  => '',
-			'search'  => '',
+			'type'       => array_values( array_unique( array_map( 'strval', (array) ( $request->get_param( 'type' ) ?? array() ) ) ) ),
+			'country'    => array_values( array_unique( array_map( 'strtoupper', array_map( 'strval', (array) ( $request->get_param( 'country' ) ?? array() ) ) ) ) ),
+			'ip'         => array(),
+			'after'      => '',
+			'before'     => '',
+			'search'     => '',
+			'detections' => (bool) $request->get_param( 'detections_only' ),
+			'network'    => (bool) $request->get_param( 'network_only' ),
 		);
 
 		$ip = $request->get_param( 'ip' );
@@ -615,6 +683,15 @@ class Activity_Controller extends Base_Controller {
 			}
 
 			$filters[ $bound ] = $date;
+		}
+
+		$days = $request->get_param( 'days' );
+		if ( null !== $days ) {
+			// The first day of the period, as stats/timeseries counts it; the later of it and `after` applies.
+			$now   = (int) current_time( 'timestamp' ); // phpcs:ignore WordPress.DateTime.CurrentTimeTimestamp.Requested -- The log stores site-local times; the period is measured on the same clock.
+			$start = gmdate( 'Y-m-d', $now - ( max( 1, (int) $days ) - 1 ) * DAY_IN_SECONDS ) . ' 00:00:00';
+
+			$filters['after'] = max( $filters['after'], $start );
 		}
 
 		$search = $request->get_param( 'search' );
@@ -662,8 +739,8 @@ class Activity_Controller extends Base_Controller {
 	/**
 	 * WHERE fragments and values for the filters.
 	 *
-	 * @param array{type: string[], country: string[], ip: string[], after: string, before: string, search: string} $filters Filters.
-	 * @param string[]                                                                                              $skip    Filters to leave out.
+	 * @param array{type: string[], country: string[], ip: string[], after: string, before: string, search: string, detections: bool, network: bool} $filters Filters.
+	 * @param string[]                                                                                                                               $skip    Filters to leave out.
 	 * @return array{sql: string, values: array<int, string>}
 	 */
 	private function where( array $filters, array $skip = array() ): array {
@@ -695,6 +772,14 @@ class Activity_Controller extends Base_Controller {
 			$values[]  = $filters['before'];
 		}
 
+		if ( $filters['detections'] ) {
+			$clauses[] = DB::detections_sql();
+		}
+
+		if ( $filters['network'] ) {
+			$clauses[] = Stats_Controller::network_only_sql();
+		}
+
 		if ( '' !== $filters['search'] ) {
 			$contains  = '%' . $wpdb->esc_like( $filters['search'] ) . '%';
 			$clauses[] = '(`user_ip` LIKE %s OR `page_url` LIKE %s OR `country_name` LIKE %s OR `region_name` LIKE %s OR `city` LIKE %s)';
@@ -708,7 +793,8 @@ class Activity_Controller extends Base_Controller {
 	}
 
 	/**
-	 * The column list to read: submission_data only when `failed` is wanted.
+	 * The column list to read: submission_data only when `failed` (or what
+	 * is worked out from it) is wanted.
 	 *
 	 * @param WP_REST_Request $request Request.
 	 */
@@ -716,7 +802,7 @@ class Activity_Controller extends Base_Controller {
 		$columns = self::LIST_COLUMNS;
 		$fields  = $this->requested_fields( $request );
 
-		if ( ! $fields || rest_is_field_included( 'failed', $fields ) || rest_is_field_included( 'failed_label', $fields ) ) {
+		if ( ! $fields || rest_is_field_included( 'failed', $fields ) || rest_is_field_included( 'failed_label', $fields ) || rest_is_field_included( 'network', $fields ) ) {
 			$columns[] = 'submission_data';
 		}
 
@@ -776,6 +862,7 @@ class Activity_Controller extends Base_Controller {
 			'blocked'      => ! empty( $blocked[ User::normalize_ip( $ip ) ]['active'] ),
 			'failed'       => $failed,
 			'failed_label' => null === $failed ? null : self::failed_label( $failed ),
+			'network'      => Stats_Controller::is_network_detection( $type, $failed ),
 			'page_url'     => self::nullable( $row['page_url'] ?? null ),
 			'country'      => self::nullable( $row['country'] ?? null ),
 			'country_name' => self::nullable( $row['country_name'] ?? null ),

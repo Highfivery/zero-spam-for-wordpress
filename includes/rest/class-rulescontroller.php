@@ -172,6 +172,31 @@ class Rules_Controller extends Base_Controller {
 
 		register_rest_route(
 			$this->namespace,
+			'/' . $this->rest_base . '/blocks/bulk',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'bulk_create_blocks' ),
+					'permission_callback' => array( $this, 'site_permissions_check' ),
+					'args'                => array(
+						'ips' => array(
+							'description' => __( 'IP addresses to block (at most 500), each with the same type, dates and reason.', 'zero-spam' ),
+							'type'        => 'array',
+							'items'       => array(
+								'type'      => 'string',
+								'maxLength' => 64,
+							),
+							'minItems'    => 1,
+							'maxItems'    => Undo_Store::MAX_ROWS,
+							'required'    => true,
+						),
+					),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			'/' . $this->rest_base . '/blocks/bulk-delete',
 			array(
 				array(
@@ -334,9 +359,24 @@ class Rules_Controller extends Base_Controller {
 		$table = self::blocked_table();
 		$where = ' WHERE ' . implode( ' AND ', $clauses );
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Paged list of the plugin's own table; $where and $permanent_last hold only fixed fragments with placeholders and $order is ASC or DESC.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Paged list of the plugin's own table; $where, $permanent_last and $by hold only fixed fragments with placeholders and $order is ASC or DESC.
 		// By end: temporary blocks by their end, then permanent ones (they never end); the other way round when descending.
 		$permanent_last = 'end_block' === $orderby ? "`blocked_type` = 'permanent' {$order}, " : '';
+
+		// Locations by name: a country by its name (as listed), anything else by its value.
+		$by        = '%i';
+		$by_values = array( $orderby );
+		if ( 'blocked_key' === $orderby ) {
+			$names = self::blocked_country_names( $table );
+			if ( $names ) {
+				$by        = "CASE WHEN `key_type` = 'country_code' THEN CASE `blocked_key`" . str_repeat( ' WHEN %s THEN %s', count( $names ) ) . ' ELSE `blocked_key` END ELSE `blocked_key` END';
+				$by_values = array();
+				foreach ( $names as $code => $name ) {
+					$by_values[] = $code;
+					$by_values[] = $name;
+				}
+			}
+		}
 
 		$total     = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i{$where}", array_merge( array( $table ), $values ) ) );
 		$last_page = max( 1, (int) ceil( $total / $per_page ) );
@@ -346,8 +386,8 @@ class Rules_Controller extends Base_Controller {
 		if ( $total > 0 ) {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i{$where} ORDER BY {$permanent_last}%i {$order}, `blocked_id` {$order} LIMIT %d OFFSET %d",
-					array_merge( array( $table ), $values, array( $orderby, $per_page, ( $page - 1 ) * $per_page ) )
+					"SELECT * FROM %i{$where} ORDER BY {$permanent_last}{$by} {$order}, `blocked_id` {$order} LIMIT %d OFFSET %d",
+					array_merge( array( $table ), $values, $by_values, array( $per_page, ( $page - 1 ) * $per_page ) )
 				),
 				ARRAY_A
 			);
@@ -407,6 +447,141 @@ class Rules_Controller extends Base_Controller {
 		$response->set_status( $status );
 
 		return $response;
+	}
+
+	/**
+	 * Blocks several IP addresses at once with the same type, dates and
+	 * reason: one read of the existing blocks, one multi-row INSERT (one
+	 * statement, so all or none), one .htaccess refresh.
+	 *
+	 * An address that is blocked right now is skipped (`skipped`); one whose
+	 * block has ended gets the new block (`replaced`); an invalid one is
+	 * reported (`invalid`, address => message). The undo token removes the
+	 * new blocks and puts replaced ones back as they were.
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public function bulk_create_blocks( $request ) {
+		global $wpdb;
+
+		$body    = $this->body( $request );
+		$shared  = array_intersect_key( $body, array_flip( array( 'type', 'start', 'end', 'reason' ) ) );
+		$records = array();
+		$invalid = array();
+
+		foreach ( (array) ( $request->get_param( 'ips' ) ?? array() ) as $ip ) {
+			$ip     = trim( (string) $ip );
+			$record = $this->check_block(
+				array_merge(
+					$shared,
+					array(
+						'kind' => 'ip',
+						'ip'   => $ip,
+					)
+				),
+				null
+			);
+
+			if ( is_wp_error( $record ) ) {
+				$params = (array) ( $record->get_error_data()['params'] ?? array() );
+
+				// A problem with the shared fields applies to every address: refuse the request.
+				$shared_errors = array_diff_key( $params, array( 'ip' => true ) );
+				if ( $shared_errors ) {
+					return $this->invalid_params_error( $shared_errors );
+				}
+
+				$invalid[ $ip ] = (string) ( $params['ip'] ?? $record->get_error_message() );
+				continue;
+			}
+
+			$records[ $record['user_ip'] ] = $record;
+		}
+
+		$existing = $records ? Activity_Controller::blocked_ips( array_keys( $records ) ) : array();
+		$skipped  = array();
+		$previous = array();
+		$new      = array();
+		$now      = current_time( 'mysql' );
+
+		foreach ( $records as $ip => $record ) {
+			$record['date_added'] = $now;
+			$state                = $existing[ $ip ] ?? null;
+
+			if ( null !== $state && $state['active'] ) {
+				$skipped[] = $ip;
+			} elseif ( null !== $state ) {
+				// An ended block gets the new dates; Undo puts it back as it was.
+				$previous[] = $state['record'];
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Updates the plugin's own row.
+				$wpdb->update( self::blocked_table(), $record, array( 'blocked_id' => (int) $state['record']['blocked_id'] ) );
+			} else {
+				$new[] = $record;
+			}
+		}
+
+		$created = array();
+		if ( $new ) {
+			$columns = array( 'blocked_type', 'user_ip', 'blocked_key', 'key_type', 'date_added', 'start_block', 'end_block', 'reason' );
+			$tuples  = array();
+			$values  = array( self::blocked_table() );
+
+			foreach ( $new as $record ) {
+				$placeholders = array();
+				foreach ( $columns as $column ) {
+					if ( null === ( $record[ $column ] ?? null ) ) {
+						$placeholders[] = 'NULL';
+						continue;
+					}
+					$placeholders[] = '%s';
+					$values[]       = (string) $record[ $column ];
+				}
+				$tuples[] = '(' . implode( ', ', $placeholders ) . ')';
+			}
+
+			$ips          = array_column( $new, 'user_ip' );
+			$column_list  = '`' . implode( '`, `', $columns ) . '`';
+			$tuple_list   = implode( ', ', $tuples );
+			$placeholders = implode( ', ', array_fill( 0, count( $ips ), '%s' ) );
+
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- One INSERT of the plugin's own rows: a fixed column list and tuples of %s placeholders and NULL (at most 500); then their IDs.
+			$inserted = $wpdb->query( $wpdb->prepare( "INSERT INTO %i ({$column_list}) VALUES {$tuple_list}", $values ) );
+
+			if ( false === $inserted ) {
+				// Blocks replaced above keep their new dates; nothing new was written.
+				if ( $previous ) {
+					Utilities::refresh_htaccess();
+				}
+
+				return new WP_Error( 'rest_db_error', __( 'The blocks could not be saved. Please try again.', 'zero-spam' ), array( 'status' => 500 ) );
+			}
+
+			$created = array_map(
+				'intval',
+				(array) $wpdb->get_col(
+					$wpdb->prepare(
+						"SELECT `blocked_id` FROM %i WHERE `key_type` = 'ip' AND `user_ip` IN ({$placeholders}) AND `date_added` = %s ORDER BY `blocked_id` ASC LIMIT %d",
+						array_merge( array( self::blocked_table() ), $ips, array( $now, count( $ips ) ) )
+					)
+				)
+			);
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
+		}
+
+		if ( $created || $previous ) {
+			Utilities::refresh_htaccess();
+		}
+
+		return rest_ensure_response(
+			array(
+				'created'    => count( $created ),
+				'replaced'   => count( $previous ),
+				'skipped'    => $skipped,
+				'invalid'    => (object) $invalid,
+				'undo_token' => $created || $previous ? Undo_Store::put_added_blocks( $created, $previous ) : null,
+			)
+		);
 	}
 
 	/**
@@ -1059,6 +1234,33 @@ class Rules_Controller extends Base_Controller {
 	}
 
 	/**
+	 * Whether an IP address is on the IP Allowlist (`ip_whitelist`),
+	 * compared in canonical form as Utilities::is_whitelisted() compares it,
+	 * without building the settings registry.
+	 *
+	 * @param string $ip IP address.
+	 */
+	public static function is_allowed_ip( string $ip ): bool {
+		$ip        = trim( $ip );
+		$canonical = User::normalize_ip( $ip );
+
+		if ( '' === $ip ) {
+			return false;
+		}
+
+		foreach ( self::list_items( self::LISTS['allowed-ips']['key'] ) as $entry ) {
+			$entry_canonical = User::normalize_ip( $entry );
+
+			// Values that are not addresses (a Debug IP mock, for example) are compared as entered.
+			if ( '' !== $canonical && '' !== $entry_canonical ? $entry_canonical === $canonical : $entry === $ip ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * The entries of a list setting, as the site uses them.
 	 *
 	 * @param string $key Setting key.
@@ -1221,6 +1423,30 @@ class Rules_Controller extends Base_Controller {
 		$timestamp = strtotime( $value . ' UTC' );
 
 		return false === $timestamp ? null : gmdate( 'Y-m-d\TH:i:s\Z', $timestamp );
+	}
+
+	/**
+	 * The names of the countries blocked on this site, by code (at most 300,
+	 * the number of country codes), for sorting locations by name.
+	 *
+	 * @param string $table Full name of the blocked table.
+	 * @return array<string, string>
+	 */
+	private static function blocked_country_names( string $table ): array {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Distinct values of the plugin's own table, bounded.
+		$codes = $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT `blocked_key` FROM %i WHERE `key_type` = 'country_code' LIMIT %d", $table, 300 ) );
+		$names = array();
+
+		foreach ( is_array( $codes ) ? $codes : array() as $code ) {
+			$name = Utilities::countries( strtoupper( (string) $code ) );
+			if ( is_string( $name ) && '' !== $name ) {
+				$names[ (string) $code ] = $name;
+			}
+		}
+
+		return $names;
 	}
 
 	/**
