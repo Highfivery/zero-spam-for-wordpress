@@ -701,7 +701,8 @@ class Migrations {
 	 * down. A value already stored (`disabled` included) is kept. On a
 	 * network nothing is stored: a stored value would be a site override,
 	 * and the sites would stop following a network default set later; the
-	 * switches are on there by default all the same.
+	 * switches are on there by default all the same (decided 2026-10-25 for
+	 * PR #446; build plan §4 had listed this migration as per site).
 	 *
 	 * @since 6.0.0
 	 *
