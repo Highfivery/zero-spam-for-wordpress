@@ -89,6 +89,37 @@ export function day( value, now = new Date() ) {
 }
 
 /**
+ * "2:12 PM" (the time of a site-local date).
+ *
+ * @param {string|Date} value Date.
+ * @return {string} Formatted time.
+ */
+export function time( value ) {
+	const date = value instanceof Date ? value : parseDate( value );
+	if ( ! date ) {
+		return '';
+	}
+	return date.toLocaleTimeString( locale(), {
+		hour: 'numeric',
+		minute: '2-digit',
+		timeZone: 'UTC',
+	} );
+}
+
+/**
+ * "Thu, Oct 22 · 2:12 PM": the day pattern with the time, for when the
+ * time matters.
+ *
+ * @param {string|Date} value Date.
+ * @param {Date}        now   Today.
+ * @return {string} Formatted date and time.
+ */
+export function dayTime( value, now = new Date() ) {
+	const d = day( value, now );
+	return d ? `${ d } · ${ time( value ) }` : '';
+}
+
+/**
  * "Oct 22" for chart axes.
  *
  * @param {string} value Date.

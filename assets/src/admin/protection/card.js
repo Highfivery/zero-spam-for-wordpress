@@ -192,8 +192,23 @@ export function Card( {
 				</div>
 				<span className="zs-pcard-badges">
 					{ card.locked && (
-						<Badge className="zs-badge-lock" icon="lock">
-							{ __( 'Locked by network', 'zero-spam' ) }
+						<Badge
+							className="zs-badge-lock zs-lockbadge"
+							icon="lock"
+						>
+							<span aria-hidden="true">
+								{ __( 'Locked by network', 'zero-spam' ) }
+							</span>
+							<span className="zs-sr-only">
+								{ sprintf(
+									/* translators: %s: card name, such as Comments */
+									__(
+										'%s is locked by the network administrator, so its switch cannot be changed on this site.',
+										'zero-spam'
+									),
+									card.title
+								) }
+							</span>
 						</Badge>
 					) }
 					{ status && (

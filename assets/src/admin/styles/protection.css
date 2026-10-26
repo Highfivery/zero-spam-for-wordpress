@@ -55,61 +55,8 @@
 	outline-offset: 1px;
 }
 
-/* Tabs */
-.zs-protection .zs-seg {
-	display: inline-flex;
-	flex-wrap: wrap;
-	gap: 4px;
-	max-width: 100%;
-	padding: 4px;
-	border: 1px solid var(--zs-line);
-	border-radius: 12px;
-	background: var(--zs-sunken);
-}
-
-.zs-protection .zs-seg button,
-.zs-protection .zs-segr {
-	display: inline-flex;
-	position: relative;
-	gap: var(--zs-space-2);
-	align-items: center;
-	min-height: var(--zs-control-sm);
-	margin: 0;
-	padding: 4px 12px;
-	border: 0;
-	border-radius: 9px;
-	background: transparent;
-	color: var(--zs-ink-2);
-	font-size: var(--zs-text-sm);
-	font-weight: var(--zs-weight-semibold);
-	white-space: nowrap;
-	cursor: pointer;
-}
-
-.zs-protection .zs-seg button:hover,
-.zs-protection .zs-segr:hover {
-	background: var(--zs-surface);
-	color: var(--zs-ink);
-}
-
-.zs-protection .zs-seg button[aria-selected="true"],
-.zs-protection .zs-segr:has(input:checked) {
-	background: var(--zs-ink);
-	color: var(--zs-bg);
-}
-
+/* Segmented controls and tabs: the shared .zs-seg / .zs-segr (primitives.css), plus */
 .zs-protection .zs-seg button:focus-visible {
-	outline: var(--zs-focus-width) solid var(--zs-focus);
-	outline-offset: var(--zs-focus-offset);
-}
-
-.zs-protection .zs-segr input {
-	position: absolute;
-	opacity: 0;
-	pointer-events: none;
-}
-
-.zs-protection .zs-segr:has(input:focus-visible) {
 	outline: var(--zs-focus-width) solid var(--zs-focus);
 	outline-offset: var(--zs-focus-offset);
 }
@@ -119,25 +66,11 @@
 	opacity: 0.6;
 }
 
-.zs-protection .zs-tabs {
-	margin-bottom: var(--zs-space-3);
-}
-
 .zs-protection .zs-c {
 	font-family: var(--zs-font-data);
 	font-size: var(--zs-text-2xs);
 	font-variant-numeric: tabular-nums;
 	font-weight: var(--zs-weight-semibold);
-}
-
-.zs-protection .zs-areabody {
-	display: flex;
-	flex-direction: column;
-	gap: var(--zs-mortar);
-}
-
-.zs-protection .zs-areabody:focus {
-	outline: none;
 }
 
 /* "On this page" */
@@ -272,6 +205,14 @@
 	border: 1px dashed var(--zs-control);
 	background: transparent;
 	color: var(--zs-ink-2);
+}
+
+/* The lock badge wraps instead of overflowing at phone width. */
+.zs-protection .zs-lockbadge {
+	height: auto;
+	min-height: var(--zs-badge-height);
+	max-width: 100%;
+	white-space: normal;
 }
 
 /* Disclosures: Fine-tune, More integrations, help */
@@ -457,6 +398,7 @@
 
 .zs-sw-row {
 	display: flex;
+	flex-wrap: wrap;
 	gap: var(--zs-space-3);
 	align-items: center;
 }
@@ -465,52 +407,46 @@
 	display: inline;
 }
 
-.zs-protection :is(.zs-input, .zs-select, .zs-textarea) {
+/* Fields: the shared .zs-input / .zs-select (primitives.css), plus the textarea and disabled state. */
+.zs-protection .zs-textarea {
+	box-sizing: border-box;
 	width: 100%;
-	min-width: 0;
-	min-height: var(--zs-control-md);
+	min-height: 112px;
 	margin: 0;
-	padding: 6px 10px;
+	padding: 8px 12px;
 	border: 1px solid var(--zs-control);
 	border-radius: var(--zs-radius-control);
 	background: var(--zs-surface);
 	box-shadow: none;
 	color: var(--zs-ink);
-	font-size: var(--zs-text-md);
-}
-
-.zs-protection .zs-textarea {
-	min-height: 112px;
 	font-family: var(--zs-font-data);
 	font-size: var(--zs-text-sm);
 	line-height: 1.5;
 	resize: vertical;
 }
 
+.zs-protection .zs-textarea:focus-visible {
+	border-color: var(--zs-focus);
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: 1px;
+}
+
+.zs-protection .zs-textarea[aria-invalid="true"] {
+	border-color: var(--zs-red);
+}
+
+.zs-protection .zs-textarea::placeholder {
+	color: var(--zs-ink-3);
+}
+
 .zs-protection .zs-select {
 	max-width: 320px;
 }
 
-.zs-protection :is(.zs-input, .zs-select, .zs-textarea):focus {
-	border-color: var(--zs-ink);
-	outline: var(--zs-focus-width) solid var(--zs-focus);
-	outline-offset: 1px;
-	box-shadow: none;
-}
-
-.zs-protection :is(.zs-input, .zs-select, .zs-textarea)[aria-invalid="true"] {
-	border-color: var(--zs-red);
-}
-
 .zs-protection :is(.zs-input, .zs-select, .zs-textarea):disabled {
-	background: var(--zs-sunken);
+	background-color: var(--zs-sunken);
 	color: var(--zs-ink-2);
 	cursor: not-allowed;
-}
-
-.zs-protection .zs-input::placeholder,
-.zs-protection .zs-textarea::placeholder {
-	color: var(--zs-ink-3);
 }
 
 .zs-protection .zs-num-in {
@@ -566,27 +502,17 @@
 	color: var(--zs-red);
 }
 
+/* Notices: the shared .zs-notice / .zs-notice-err (primitives.css) with an icon, plus a warning tone. */
 .zs-protection .zs-notice {
 	display: flex;
 	gap: var(--zs-space-2);
 	align-items: flex-start;
-	padding: 10px 12px;
-	border: 1px solid var(--zs-line);
-	border-radius: var(--zs-radius-inner);
-	background: var(--zs-surface-2);
-	font-size: var(--zs-text-md);
 }
 
 .zs-protection .zs-notice-warn {
 	border-color: transparent;
 	background: var(--zs-warn-soft);
 	color: var(--zs-warn-ink);
-}
-
-.zs-protection .zs-notice-err {
-	border-color: var(--zs-red);
-	background: var(--zs-red-soft);
-	color: var(--zs-red-soft-ink);
 }
 
 /* Enhanced Protection: what it adds (Basic), the key form, the license panel */
@@ -950,8 +876,6 @@
 		position: static;
 	}
 
-	.zs-protection .zs-seg button,
-	.zs-protection .zs-segr,
 	.zs-morebtn,
 	.zs-tchip-x {
 		min-height: var(--zs-tap-min);

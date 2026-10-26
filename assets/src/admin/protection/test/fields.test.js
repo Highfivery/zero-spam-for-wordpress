@@ -202,9 +202,11 @@ describe( 'Field', () => {
 		const sw = tagOf( html, 'button' );
 		expect( sw ).toContain( 'disabled=""' );
 		expect( sw ).toContain( 'zs-l-verify_login' );
-		expect( html ).toContain( 'Locked by network' );
 		expect( html ).toContain(
-			'Locked by the network administrator. This setting cannot be changed on this site.'
+			'<span aria-hidden="true">Locked by network</span>'
+		);
+		expect( html ).toContain(
+			'id="zs-l-verify_login">“Protect logins” is locked by the network administrator, so it cannot be changed on this site.</span>'
 		);
 	} );
 

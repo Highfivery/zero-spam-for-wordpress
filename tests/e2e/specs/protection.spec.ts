@@ -397,7 +397,7 @@ test.describe( '6.0 Protection on a subsite', { tag: '@multisite' }, () => {
 		await expect( card.locator( '.zs-pcard-badges' ) ).toContainText( 'Locked by network' );
 		const described = ( await sw.getAttribute( 'aria-describedby' ) ) ?? '';
 		expect( described ).toMatch( /zs-l-verify_comments/ );
-		await expect( asSiteAdmin.locator( '#zs-l-verify_comments' ) ).toHaveText( /Locked by the network administrator/ );
+		await expect( asSiteAdmin.locator( '#zs-l-verify_comments' ) ).toHaveText( /is locked by the network administrator, so it cannot be changed on this site/ );
 
 		const dw = asSiteAdmin.locator( '#zs-card-davidwalsh' );
 		await dw.locator( '.zs-fine > summary' ).click();
