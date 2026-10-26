@@ -22,6 +22,10 @@ import { useEffect, useRef, useState } from '@wordpress/element';
  * Internal dependencies
  */
 import { useApp } from '../app/context';
+import {
+	focusIfEnabled,
+	useFocusAfterRender,
+} from '../app/use-focus-after-render';
 import { roadmap } from '../app/compare';
 import { Badge, Button, Icon, cx } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
@@ -35,13 +39,14 @@ import {
 } from './license-model';
 
 /**
- * Focuses a card's heading.
+ * Focuses a card (its heading cannot take focus; the card can, and it stays
+ * in place while its level panel changes from Basic to Enhanced).
  *
  * @param {string} key Card key.
  */
 const focusCard = ( key ) =>
 	window.requestAnimationFrame( () =>
-		document.getElementById( `zs-ch-${ key }` )?.focus()
+		document.getElementById( `zs-card-${ key }` )?.focus()
 	);
 
 /**
@@ -66,6 +71,7 @@ export function KeyForm( {
 	const [ error, setError ] = useState( '' );
 	const [ show, setShow ] = useState( false );
 	const input = useRef( null );
+	const focusAfterRender = useFocusAfterRender();
 
 	useEffect( () => {
 		if ( focus ) {
@@ -133,8 +139,8 @@ export function KeyForm( {
 			.catch( ( failure ) => {
 				setBusy( false );
 				setError( keyError( failure ) );
-				// After the field is enabled again.
-				window.requestAnimationFrame( () => input.current?.focus() );
+				// Once the field is enabled again (it is disabled while checking).
+				focusAfterRender( () => focusIfEnabled( input.current ) );
 			} );
 	};
 
