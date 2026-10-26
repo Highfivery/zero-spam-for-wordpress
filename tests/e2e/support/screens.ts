@@ -571,7 +571,9 @@ const V6_RULES: Screen[] = [
 		state: 'empty',
 		theme: 'both',
 		as: 'siteadmin',
-		before: async ( zs ) => {
+		before: async ( zs, t ) => {
+			// The subsite keeps no settings of its own, so the network's value applies.
+			await zs.forSite( t.subsitePath! ).call( 'POST', 'reset', { preset: 'defaults', network: false } );
 			await zs.call( 'POST', 'network-setting', { key: 'ip_whitelist', value: '203.0.113.5', locked: false } );
 		},
 		path: ( t ) => subsiteURL( t, AREA( 'rules', 'allowlist' ) ),

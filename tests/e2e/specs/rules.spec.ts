@@ -366,7 +366,36 @@ test.describe( '6.0 Rules on a subsite', { tag: '@multisite' }, () => {
 			await expect( asSiteAdmin.getByRole( 'button', { name: /^Remove / } ) ).toHaveCount( 0 );
 		} );
 
+		await test.step( 'locked, the badge, the list and the block drawer fit at 1280 and 375px', async () => {
+			for ( const [ width, height ] of [
+				[ 1280, 900 ],
+				[ 375, 812 ],
+			] ) {
+				await asSiteAdmin.setViewportSize( { width, height } );
+				await asSiteAdmin.goto( subsiteURL( target, AREA( 'rules', 'allowlist' ) ) );
+				await rulesReady( asSiteAdmin );
+				await expect( asSiteAdmin.locator( '.zs-badge-lock' ) ).toBeVisible();
+				expect( await asSiteAdmin.evaluate( () => document.documentElement.scrollWidth - window.innerWidth ), `allowlist at ${ width }px` ).toBeLessThanOrEqual( 1 );
+
+				await asSiteAdmin.goto( subsiteURL( target, AREA( 'rules', 'ips' ) ) );
+				await rulesReady( asSiteAdmin );
+				await asSiteAdmin.getByRole( 'button', { name: 'Block an IP' } ).click();
+				const footer = asSiteAdmin.locator( '.zs-drawer.zs-blockform .zs-drawer-f' );
+				await expect( footer ).toBeVisible();
+				const fits = await footer.evaluate( ( el ) => Array.from( el.querySelectorAll( '.zs-btn' ) ).every( ( b ) => {
+					const r = b.getBoundingClientRect();
+					const f = el.getBoundingClientRect();
+					return r.left >= f.left - 1 && r.right <= f.right + 1;
+				} ) );
+				expect( fits, `drawer footer buttons fit at ${ width }px` ).toBe( true );
+				await asSiteAdmin.keyboard.press( 'Escape' );
+			}
+			await asSiteAdmin.setViewportSize( { width: 1280, height: 900 } );
+		} );
+
 		await test.step( 'network default: read-only until Customize for this site', async () => {
+			// The subsite keeps no settings of its own (the baseline stores the recommended ones), so the network's value applies.
+			await zs.forSite( target.subsitePath! ).call( 'POST', 'reset', { preset: 'defaults', network: false } );
 			await zs.call( 'POST', 'network-setting', { key: 'ip_whitelist', value: '203.0.113.5', locked: false } );
 			await asSiteAdmin.goto( subsiteURL( target, AREA( 'rules', 'allowlist' ) ) );
 			await rulesReady( asSiteAdmin );
