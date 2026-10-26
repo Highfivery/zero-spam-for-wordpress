@@ -141,7 +141,8 @@ class Test_Admin_App extends TestCase {
 		$this->assertSame( array(), $GLOBALS['menu'] );
 
 		$app->enqueue( 'toplevel_page_zero-spam' );
-		$this->assertFalse( wp_script_is( Admin_App::HANDLE, 'enqueued' ) );
+		$this->assertSame( array(), $this->app_handles( 'script' ) );
+		$this->assertSame( array(), $this->app_handles( 'style' ) );
 		$this->assertFalse( wp_style_is( Admin_App::FONTS_HANDLE, 'enqueued' ) );
 	}
 
@@ -281,30 +282,129 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
-	 * The bundle, its stylesheet and the fonts, with the dependencies and
-	 * version from admin.asset.php and the zero-spam translations.
+	 * The page's entry point, its stylesheet and the fonts, with the
+	 * dependencies and version from admin-help.asset.php and the zero-spam
+	 * translations.
 	 */
 	public function test_assets_come_from_the_asset_file_with_translations(): void {
 		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-help' );
 
-		$asset  = require ZEROSPAM_PATH . 'assets/dist/admin.asset.php';
-		$script = wp_scripts()->registered[ Admin_App::HANDLE ];
+		$handle = Admin_App::handle( 'help' );
+		$asset  = require ZEROSPAM_PATH . 'assets/dist/admin-help.asset.php';
+		$script = wp_scripts()->registered[ $handle ];
 
-		$this->assertTrue( wp_script_is( Admin_App::HANDLE, 'enqueued' ) );
-		$this->assertStringEndsWith( 'assets/dist/admin.js', $script->src );
+		$this->assertSame( 'zerospam-admin-help', $handle );
+		$this->assertTrue( wp_script_is( $handle, 'enqueued' ) );
+		$this->assertStringEndsWith( 'assets/dist/admin-help.js', $script->src );
 		$this->assertSame( $asset['dependencies'], $script->deps );
 		$this->assertSame( $asset['version'], $script->ver );
 		$this->assertSame( 'zero-spam', $script->textdomain );
-		$this->assertTrue( wp_style_is( Admin_App::HANDLE, 'enqueued' ) );
-		$this->assertStringEndsWith( 'assets/dist/admin.css', wp_styles()->registered[ Admin_App::HANDLE ]->src );
-		$this->assertSame( $asset['version'], wp_styles()->registered[ Admin_App::HANDLE ]->ver );
+		$this->assertTrue( wp_style_is( $handle, 'enqueued' ) );
+		$this->assertStringEndsWith( 'assets/dist/admin-help.css', wp_styles()->registered[ $handle ]->src );
+		$this->assertSame( $asset['version'], wp_styles()->registered[ $handle ]->ver );
+		$this->assertSame( 'replace', wp_styles()->get_data( $handle, 'rtl' ) );
 		$this->assertTrue( wp_style_is( Admin_App::FONTS_HANDLE, 'enqueued' ) );
 
-		$boot = $this->inline( Admin_App::HANDLE, 'before' );
+		$boot = $this->inline( $handle, 'before' );
 		$this->assertStringContainsString( 'var zeroSpamAdmin = ', $boot );
 		$this->assertStringContainsString( '"area":"help"', $boot );
+	}
+
+	/**
+	 * Areas and the hook suffixes of their pages (the network page is
+	 * registered by register_network_menu()).
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function data_area_pages(): array {
+		return array(
+			'overview'   => array( 'overview', 'toplevel_page_zero-spam' ),
+			'activity'   => array( 'activity', 'zero-spam_page_zero-spam-activity' ),
+			'rules'      => array( 'rules', 'zero-spam_page_zero-spam-rules' ),
+			'protection' => array( 'protection', 'zero-spam_page_zero-spam-protection' ),
+			'settings'   => array( 'settings', 'zero-spam_page_zero-spam-settings' ),
+			'help'       => array( 'help', 'zero-spam_page_zero-spam-help' ),
+			'network'    => array( 'network', 'toplevel_page_zero-spam-network' ),
+		);
+	}
+
+	/**
+	 * Each page enqueues exactly its own area's entry point (script and
+	 * style, with that entry's .asset.php dependencies and version) and no
+	 * other area's, and sets the zero-spam translations for that handle.
+	 *
+	 * @dataProvider data_area_pages
+	 *
+	 * @param string $area Area.
+	 * @param string $hook Hook suffix of its page.
+	 */
+	public function test_each_page_enqueues_only_its_own_entry( string $area, string $hook ): void {
+		$this->flag_on();
+		$user = $this->as_role( 'administrator' );
+		// The network page needs manage_network_options (single site and network alike).
+		get_userdata( $user )->add_cap( 'manage_network_options' );
+		$app = $this->registered_app();
+		$app->register_network_menu();
+		$this->assertSame( $hook, $app->hooks()[ $area ] ?? null, 'The page is registered under the expected hook suffix.' );
+
+		$app->enqueue( $hook );
+
+		$handle = "zerospam-admin-{$area}";
+		$this->assertSame( $handle, Admin_App::handle( $area ) );
+		$this->assertSame( array( $handle ), $this->app_handles( 'script' ), "Only the page's own script is enqueued." );
+		$this->assertSame( array( $handle ), $this->app_handles( 'style' ), "Only the page's own stylesheet is enqueued." );
+
+		$asset  = require ZEROSPAM_PATH . "assets/dist/admin-{$area}.asset.php";
+		$script = wp_scripts()->registered[ $handle ];
+		$this->assertStringEndsWith( "assets/dist/admin-{$area}.js", $script->src );
+		$this->assertSame( $asset['dependencies'], $script->deps );
+		$this->assertSame( $asset['version'], $script->ver );
+		$this->assertSame( 'zero-spam', $script->textdomain, 'wp_set_script_translations() ran for this handle.' );
+		$this->assertStringEndsWith( "assets/dist/admin-{$area}.css", wp_styles()->registered[ $handle ]->src );
+		$this->assertStringContainsString( "\"area\":\"{$area}\"", $this->inline( $handle, 'before' ), "The bootstrap is printed before the page's own script." );
+	}
+
+	/**
+	 * Every area's entry point is built and committed (assets/dist/), with
+	 * the files the enqueue reads: script, stylesheet, its RTL copy and the
+	 * asset file.
+	 *
+	 * @dataProvider data_area_pages
+	 *
+	 * @param string $area Area.
+	 */
+	public function test_each_area_entry_is_built( string $area ): void {
+		$entry = Admin_App::entry( $area );
+		$this->assertSame( "admin-{$area}", $entry );
+
+		foreach ( array( '.js', '.css', '-rtl.css', '.asset.php' ) as $suffix ) {
+			$this->assertFileExists( ZEROSPAM_PATH . 'assets/dist/' . $entry . $suffix );
+		}
+
+		$asset = Admin_App::asset_file( $area );
+		$this->assertContains( 'wp-i18n', $asset['dependencies'] );
+		$this->assertNotSame( ZEROSPAM_VERSION, $asset['version'], 'The version comes from the asset file.' );
+	}
+
+	/**
+	 * Handles of the app's area entry points in the script or style queue.
+	 *
+	 * @param string $type script or style.
+	 * @return string[]
+	 */
+	private function app_handles( string $type ): array {
+		$queue = 'script' === $type ? wp_scripts()->queue : wp_styles()->queue;
+
+		return array_values(
+			array_filter(
+				$queue,
+				static function ( $handle ): bool {
+					return str_starts_with( (string) $handle, Admin_App::HANDLE_PREFIX );
+				}
+			)
+		);
 	}
 
 	/**
@@ -319,7 +419,8 @@ class Test_Admin_App extends TestCase {
 			$app->enqueue( $hook );
 		}
 
-		$this->assertFalse( wp_script_is( Admin_App::HANDLE, 'enqueued' ) );
+		$this->assertSame( array(), $this->app_handles( 'script' ) );
+		$this->assertSame( array(), $this->app_handles( 'style' ) );
 		$this->assertFalse( wp_style_is( Admin_App::FONTS_HANDLE, 'enqueued' ) );
 	}
 
@@ -452,14 +553,14 @@ class Test_Admin_App extends TestCase {
 
 		$this->registered_app()->enqueue( 'toplevel_page_zero-spam' );
 
-		foreach ( array( $this->inline( Admin_App::HANDLE, 'before' ), $this->inline( 'wp-api-fetch', 'after' ) ) as $inline ) {
+		foreach ( array( $this->inline( Admin_App::handle( 'overview' ), 'before' ), $this->inline( 'wp-api-fetch', 'after' ) ) as $inline ) {
 			$this->assertNotSame( '', $inline );
 			$this->assertStringNotContainsStringIgnoringCase( '</script', $inline );
 			$this->assertStringNotContainsString( '<!--', $inline );
 			$this->assertStringNotContainsString( '<img', $inline );
 		}
 
-		$this->assertStringContainsString( 'Shop \u003C\/script\u003E\u003C!--', $this->inline( Admin_App::HANDLE, 'before' ), 'The site name is kept, escaped.' );
+		$this->assertStringContainsString( 'Shop \u003C\/script\u003E\u003C!--', $this->inline( Admin_App::handle( 'overview' ), 'before' ), 'The site name is kept, escaped.' );
 		$this->assertContains( '</script><img src=x onerror=alert(1)>', array_column( $this->preloaded()[ Admin_App::OVERVIEW_PRELOADS[4] ]['body'], 'country_name' ), 'The preloaded entry decodes to the logged text.' );
 	}
 
@@ -569,7 +670,7 @@ class Test_Admin_App extends TestCase {
 		$wpdb->update( $wpdb->prefix . \ZeroSpam\Includes\DB::$tables['blocked'], array( 'reason' => '</script><script>alert(1)</script>' ), array( 'blocked_id' => $id ) );
 
 		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-rules' );
-		$inline = $this->inline( 'wp-api-fetch', 'after' ) . $this->inline( Admin_App::HANDLE, 'before' );
+		$inline = $this->inline( 'wp-api-fetch', 'after' ) . $this->inline( Admin_App::handle( 'rules' ), 'before' );
 
 		$this->assertStringContainsString( '198.51.100.93', $inline );
 		$this->assertStringNotContainsString( '</script>', $inline );
@@ -653,7 +754,7 @@ class Test_Admin_App extends TestCase {
 		$html = (string) ob_get_clean();
 		unset( $_GET['page'] );
 
-		$page = $html . $this->inline( Admin_App::HANDLE, 'before' ) . $this->inline( 'wp-api-fetch', 'after' );
+		$page = $html . $this->inline( Admin_App::handle( 'overview' ), 'before' ) . $this->inline( 'wp-api-fetch', 'after' );
 		$this->assertStringContainsString( 'v1\\/license', $page, 'The license answer is preloaded (JSON-escaped path).' );
 		$this->assertStringNotContainsString( $key, $page );
 		$this->assertStringNotContainsString( 'SECRET-LICENSE', $page );
