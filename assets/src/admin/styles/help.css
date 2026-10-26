@@ -513,12 +513,24 @@
 	cursor: pointer;
 }
 
-.zs-ocard-l input {
+/* Native radios and checkboxes in the plugin's colour (wp-admin draws its own blue ones). */
+.zs-app .zs-ocard-l input[type="radio"],
+.zs-app .zs-ob-checks input[type="checkbox"] {
 	flex: none;
 	width: 18px;
+	min-width: 18px;
 	height: 18px;
 	margin: 0;
+	border: 0;
+	box-shadow: none;
 	accent-color: var(--zs-action);
+	appearance: auto;
+	cursor: pointer;
+}
+
+.zs-app .zs-ocard-l input[type="radio"]:checked::before,
+.zs-app .zs-ob-checks input[type="checkbox"]:checked::before {
+	content: none;
 }
 
 .zs-ocard-d {
@@ -614,14 +626,6 @@
 
 .zs-ob-checks label.zs-is-locked {
 	cursor: default;
-}
-
-.zs-ob-checks input {
-	flex: none;
-	width: 18px;
-	height: 18px;
-	margin: 0;
-	accent-color: var(--zs-action);
 }
 
 .zs-ocard-l input:focus-visible,
