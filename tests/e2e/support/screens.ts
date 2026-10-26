@@ -357,7 +357,7 @@ const V6_OVERVIEW: Screen[] = [
 ];
 
 /** The areas built in later PRs: the shell with a placeholder (Settings carries the display preferences). */
-const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings', 'help' ].map(
+const V6_AREAS: Screen[] = [ 'activity', 'protection', 'settings', 'help' ].map(
 	( area ): Screen => ( {
 		id: `v6-${ area }`,
 		title: `6.0 ${ area } (shell)`,
@@ -372,6 +372,100 @@ const V6_AREAS: Screen[] = [ 'activity', 'rules', 'protection', 'settings', 'hel
 
 const V6_NETWORK: Screen[] = [
 	{ id: 'v6-network', title: '6.0 Network (shell)', area: 'network', sites: 'multisite', state: 'empty', theme: 'both', path: () => AREA( 'network' ), prepare: areaReady },
+];
+
+/**
+ * Rules parts that change between runs: dates of blocks (seeded relative to
+ * now) and the card meta lines that carry them. Baselines are of the Rules
+ * view (.zs-rules), not the whole app: the shell has its own baselines, and
+ * it keeps the screenshots inside the 15 MB budget.
+ */
+export const RULES_MASKS = [ '.zs-c-date', '.zs-cm-m' ];
+
+/** Waits until a Rules tab has its list (rows, cards, entries or its empty state). */
+export const rulesReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+	await page.locator( '#zs-rules-body :is(tbody tr, .zs-cards li, .zs-safelist li, .zs-empty)' ).first().waitFor();
+};
+
+/** Seeds what each Rules tab shows (the seeded state already has two blocked IPs). */
+export const seedRules = async ( zs: ZsApi ) => {
+	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'country_code', key: 'DE', type: 'permanent', reason: 'E2E: steady comment spam' } );
+	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'zip', key: '90210', type: 'temporary', end: new Date( Date.now() + 7 * 864e5 ).toISOString(), reason: 'E2E: card testing' } );
+	await zs.plugin( 'PUT', 'rules/lists/allowed-ips', { items: [ '203.0.113.5', '2001:db8::1' ] } );
+	await zs.plugin( 'PUT', 'rules/lists/allowed-words', { items: [ 'patel', 'van gogh' ], min_length: 4 } );
+	await zs.noLockout( [ '198.51.100.200', '192.0.2.10' ] );
+};
+
+/** Empties the lists the baseline fills (the recommended email domains). */
+export const emptyRules = async ( zs: ZsApi ) => {
+	await zs.plugin( 'PUT', 'rules/lists/email-domains', { items: [] } );
+};
+
+const RULES_TABS: Array< [ string, string ] > = [
+	[ 'ips', 'Blocked IPs' ],
+	[ 'locations', 'Blocked locations' ],
+	[ 'allowlist', 'Allowed IPs' ],
+	[ 'email', 'Email domains' ],
+	[ 'words', 'Words' ],
+	[ 'no-lockout', 'No-lockout addresses' ],
+];
+
+/** Opens the block drawer from a button and waits for its form. */
+const openBlockDrawer = ( trigger: string ) => async ( page: Page ) => {
+	await rulesReady( page );
+	await page.locator( trigger ).filter( { visible: true } ).first().click();
+	await page.locator( '.zs-drawer.zs-blockform form' ).waitFor();
+};
+
+const V6_RULES: Screen[] = [
+	...RULES_TABS.flatMap( ( [ tab, name ] ): Screen[] => [
+		{ id: `v6-rules-${ tab }-empty`, title: `6.0 Rules › ${ name } (empty)`, area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: emptyRules, path: () => AREA( 'rules', tab ), prepare: rulesReady },
+		{
+			id: `v6-rules-${ tab }-seeded`,
+			title: `6.0 Rules › ${ name }`,
+			area: 'admin',
+			sites: 'both',
+			state: 'seeded',
+			theme: 'both',
+			before: seedRules,
+			path: () => AREA( 'rules', tab ),
+			prepare: rulesReady,
+			visual: { mobile: true, dark: true, mask: RULES_MASKS, selector: '.zs-rules' },
+		},
+	] ),
+	{ id: 'v6-rules-block-add', title: '6.0 Rules › Block an IP drawer', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'rules', 'ips' ), prepare: openBlockDrawer( '.zs-rules .zs-tbar > .zs-btn' ), visual: { selector: '.zs-drawer' } },
+	{ id: 'v6-rules-block-edit', title: '6.0 Rules › Edit block drawer', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'rules', 'ips' ), prepare: openBlockDrawer( '[data-zs-edit]' ), visual: { selector: '.zs-drawer', mask: [ 'input[type="datetime-local"]' ] } },
+	{ id: 'v6-rules-location-add', title: '6.0 Rules › Block a location drawer', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'rules', 'locations' ), prepare: openBlockDrawer( '.zs-rules .zs-tbar > .zs-btn' ), visual: { selector: '.zs-drawer' } },
+	{
+		id: 'v6-rules-subsite-locked',
+		title: '6.0 Rules › Allowed IPs on a subsite, locked by the network',
+		area: 'admin',
+		sites: 'multisite',
+		state: 'empty',
+		theme: 'both',
+		as: 'siteadmin',
+		before: async ( zs ) => {
+			await zs.call( 'POST', 'network-setting', { key: 'ip_whitelist', value: '203.0.113.5', locked: true } );
+		},
+		path: ( t ) => subsiteURL( t, AREA( 'rules', 'allowlist' ) ),
+		prepare: rulesReady,
+		visual: { selector: '.zs-rules' },
+	},
+	{
+		id: 'v6-rules-subsite-network-list',
+		title: '6.0 Rules › Allowed IPs on a subsite that uses the network list',
+		area: 'admin',
+		sites: 'multisite',
+		state: 'empty',
+		theme: 'both',
+		as: 'siteadmin',
+		before: async ( zs ) => {
+			await zs.call( 'POST', 'network-setting', { key: 'ip_whitelist', value: '203.0.113.5', locked: false } );
+		},
+		path: ( t ) => subsiteURL( t, AREA( 'rules', 'allowlist' ) ),
+		prepare: rulesReady,
+	},
 ];
 
 /**
@@ -401,7 +495,7 @@ function withDarkTwins( screens: Screen[] ): Screen[] {
 	} );
 }
 
-const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_AREAS, ...V6_NETWORK ] );
+const V6_SCREENS: Screen[] = withDarkTwins( [ ...V6_OVERVIEW, ...V6_AREAS, ...V6_NETWORK, ...V6_RULES ] );
 
 export const SCREENS: Screen[] = [
 	...settingsScreens,
