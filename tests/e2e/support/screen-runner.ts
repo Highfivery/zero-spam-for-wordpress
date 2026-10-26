@@ -57,6 +57,7 @@ export async function openScreen(
 	viewport?: { width: number; height: number }
 ): Promise< Page > {
 	const ip = visitorIp( testInfo, screen.id );
+	viewport = viewport ?? screen.viewport;
 	if ( 'enhanced' === screen.level ) {
 		await ctx.zs.setLevel( 'enhanced' );
 	}

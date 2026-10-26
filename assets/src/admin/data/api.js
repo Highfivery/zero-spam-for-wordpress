@@ -12,6 +12,10 @@ import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 
 export const NS = '/zero-spam/v1';
 
+/** Fields of a live feed entry (the Overview's latest blocks). */
+const FEED_FIELDS =
+	'id,date,type,type_label,ip,country,country_name,failed,failed_label';
+
 /** Paths, exactly as preloaded by Admin_App (the preload cache matches them). */
 export const PATHS = {
 	license: `${ NS }/license`,
@@ -20,12 +24,13 @@ export const PATHS = {
 	summary: ( range ) => `${ NS }/stats/summary?range=${ range }`,
 	timeseries: `${ NS }/stats/timeseries`,
 	modules: `${ NS }/protection/modules`,
-	activity: `${ NS }/activity?per_page=6`,
+	// The latest entries are not paged: no_count skips the total.
+	activity: `${ NS }/activity?per_page=6&no_count=1&_fields=${ FEED_FIELDS }`,
 	news: `${ NS }/news`,
 	helpDocs: `${ NS }/ui/help/docs`,
 	onboarding: `${ NS }/ui/onboarding`,
 	since: ( id ) =>
-		`${ NS }/activity?since_id=${ Number( id ) || 0 }&per_page=20&_fields=id,date,type,type_label,ip,country,country_name,failed,failed_label`,
+		`${ NS }/activity?since_id=${ Number( id ) || 0 }&per_page=20&_fields=${ FEED_FIELDS }`,
 };
 
 /** The page's bootstrap data (Admin_App::bootstrap()). */

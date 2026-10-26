@@ -1076,3 +1076,195 @@
 		font-size: var(--zs-text-xs);
 	}
 }
+
+/*
+ * Form controls (prototype v18): fields, inputs, selects, the search box,
+ * segmented controls (tabs, periods, radios) and inline notices. 40px tall
+ * (44px on phones); one focus ring. Inputs and selects carry .zs-app in
+ * front: wp-admin styles them with element and attribute selectors
+ * (.wp-core-ui select, input[type="search"]).
+ */
+.zs-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.zs-field > label,
+.zs-field > legend,
+.zs-lbl-strong {
+	padding: 0;
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-bold);
+}
+
+.zs-app .zs-input,
+.zs-app .zs-select {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: var(--zs-control-lg);
+	margin: 0;
+	padding: 8px 12px;
+	border: 1px solid var(--zs-control);
+	border-radius: var(--zs-radius-control);
+	background-color: var(--zs-surface);
+	box-shadow: none;
+	color: var(--zs-ink);
+	font: inherit;
+	font-size: var(--zs-text-md);
+	line-height: 1.3;
+}
+
+.zs-app .zs-input.zs-mono {
+	font-family: var(--zs-font-data);
+}
+
+.zs-app .zs-select {
+	max-width: none;
+	padding-right: 34px;
+	background-image: linear-gradient(45deg, transparent 50%, var(--zs-ink-3) 50%), linear-gradient(135deg, var(--zs-ink-3) 50%, transparent 50%);
+	background-repeat: no-repeat;
+	background-position: calc(100% - 17px) 52%, calc(100% - 12px) 52%;
+	background-size: 5px 5px;
+	appearance: none;
+	cursor: pointer;
+}
+
+.zs-app .zs-select-auto {
+	width: auto;
+	min-height: var(--zs-control-md);
+}
+
+.zs-app .zs-input:focus,
+.zs-app .zs-select:focus {
+	border-color: var(--zs-control);
+	box-shadow: none;
+	color: var(--zs-ink);
+}
+
+.zs-app .zs-input:focus-visible,
+.zs-app .zs-select:focus-visible {
+	border-color: var(--zs-focus);
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: 1px;
+}
+
+.zs-app .zs-input[aria-invalid="true"] {
+	border-color: var(--zs-red);
+}
+
+.zs-app .zs-input::placeholder {
+	color: var(--zs-ink-3);
+	opacity: 1;
+}
+
+.zs-ferr {
+	color: var(--zs-red);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-ferr:empty {
+	display: none;
+}
+
+.zs-search {
+	position: relative;
+}
+
+.zs-search > .zs-icon {
+	position: absolute;
+	bottom: 12px;
+	left: 12px;
+	color: var(--zs-ink-3);
+	pointer-events: none;
+}
+
+.zs-app .zs-search .zs-input {
+	padding-left: 36px;
+}
+
+.zs-seg {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	max-width: 100%;
+	padding: 4px;
+	border: 1px solid var(--zs-line);
+	border-radius: 12px;
+	background: var(--zs-sunken);
+}
+
+.zs-seg button,
+.zs-segr {
+	display: inline-flex;
+	gap: var(--zs-space-2);
+	align-items: center;
+	min-height: var(--zs-control-sm);
+	margin: 0;
+	padding: 4px 12px;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-semibold);
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.zs-seg button:hover,
+.zs-segr:hover {
+	background: var(--zs-surface);
+	color: var(--zs-ink);
+}
+
+.zs-seg button[aria-selected="true"],
+.zs-seg button[aria-pressed="true"],
+.zs-segr:has(input:checked) {
+	background: var(--zs-ink);
+	color: var(--zs-bg);
+}
+
+.zs-segr {
+	position: relative;
+}
+
+.zs-segr input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.zs-segr:has(input:focus-visible) {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: 2px;
+}
+
+.zs-notice {
+	padding: 10px 12px;
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-surface-2);
+	font-size: var(--zs-text-md);
+}
+
+.zs-notice-err {
+	border-color: var(--zs-red);
+	background: var(--zs-red-soft);
+	color: var(--zs-red-soft-ink);
+}
+
+@media (max-width: 700px) {
+
+	.zs-app .zs-input,
+	.zs-app .zs-select,
+	.zs-seg button,
+	.zs-segr {
+		min-height: var(--zs-tap-min);
+	}
+}

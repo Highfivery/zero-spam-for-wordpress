@@ -18,6 +18,7 @@ import { CompareDrawer } from './compare';
 import { Placeholder } from './placeholder';
 import { Shell, areaTitles, networkTabs } from './shell/shell';
 import { Overview } from '../overview/overview';
+import { Activity } from '../activity/activity';
 import { Help } from '../help/help';
 import { Onboarding } from '../onboarding/onboarding';
 import { useTab } from '../data/routes';
@@ -49,8 +50,9 @@ function AreaView( { area } ) {
 			}
 		>
 			{ 'overview' === area && <Overview /> }
+			{ 'activity' === area && <Activity /> }
 			{ 'help' === area && <Help /> }
-			{ ! [ 'overview', 'help' ].includes( area ) && (
+			{ ! [ 'overview', 'activity', 'help' ].includes( area ) && (
 				<Placeholder
 					area={ area }
 					title={
