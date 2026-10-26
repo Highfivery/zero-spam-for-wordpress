@@ -53,6 +53,26 @@ export const sameTitle = ( title, cardTitle ) =>
 		.trim()
 		.toLocaleLowerCase() === String( cardTitle ).trim().toLocaleLowerCase();
 
+/**
+ * Keeps a focused control clear of the sticky top bar (WCAG 2.4.11). Chrome
+ * scrolls a date field's inner day, month or year part into view, not the
+ * field itself, so with Shift+Tab its top edge can stay under the bar.
+ *
+ * @param {FocusEvent} event Focus event.
+ */
+export function keepClearOfTopBar( event ) {
+	const el = event.currentTarget;
+	const bar = el?.ownerDocument?.querySelector( '.zs-topbar' );
+	if ( ! el || ! bar ) {
+		return;
+	}
+	const gap =
+		bar.getBoundingClientRect().bottom + 8 - el.getBoundingClientRect().top;
+	if ( gap > 0 ) {
+		el.ownerDocument.defaultView?.scrollBy( 0, -gap );
+	}
+}
+
 /** Descriptions longer than this (characters) are clamped behind "More". */
 const CLAMP_AT = 170;
 
@@ -763,6 +783,9 @@ export function Field( {
 					aria-invalid={ invalid }
 					aria-describedby={ describedBy }
 					onChange={ ( event ) => set( event.target.value ) }
+					onFocus={
+						'date' === control ? keepClearOfTopBar : undefined
+					}
 				/>
 			);
 			input = suffix ? (

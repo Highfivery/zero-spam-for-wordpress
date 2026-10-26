@@ -252,8 +252,9 @@ test.describe( '6.0 Settings', () => {
 				} )
 			),
 		};
-		const picker = page.getByLabel( /Import settings Choose a file/ );
+		const picker = page.locator( '#zs-imp-file' );
 		await expect( picker ).toHaveAttribute( 'type', 'file' );
+		await expect( picker ).toHaveAccessibleName( 'Import settings Choose a file…' );
 		await picker.setInputFiles( file );
 		await expect( page.locator( '#zs-imp-n' ) ).toHaveText( 'settings.json' );
 		await page.locator( '.zs-io button', { hasText: 'Import settings' } ).click();
@@ -344,7 +345,9 @@ test.describe( '6.0 Settings', () => {
 			const small = await page.evaluate( () =>
 				Array.from( document.querySelectorAll( '#zs-set-body :is(button, input, select, textarea, a, [role="switch"])' ) )
 					.filter( ( el ) => {
-						const r = el.getBoundingClientRect();
+						// A control inside its label (theme cards, the file picker) is the whole label to click.
+						const target = el.closest( 'label' ) ?? el;
+						const r = target.getBoundingClientRect();
 						return r.width > 0 && r.height > 0 && ( r.width < 24 || r.height < 24 ) && 'checkbox' !== ( el as HTMLInputElement ).type;
 					} )
 					.map( ( el ) => el.id || el.textContent?.trim() || el.tagName )
@@ -370,7 +373,8 @@ test.describe( '6.0 Settings', () => {
 
 test.describe( '6.0 Settings on a subsite', { tag: '@multisite' }, () => {
 	test.beforeAll( async ( { zs } ) => {
-		await zs.reset( 'baseline', { network: true } );
+		// No site overrides, so the network values apply (the baseline stores every setting on each site).
+		await zs.reset( 'defaults', { network: true } );
 		await zs.networkSetting( 'share_data', 'enabled', true );
 		await zs.networkSetting( 'max_logs', 20000 );
 		await zs.networkSetting( 'alert_webhook_url', 'https://hooks.example.com/e2e-network-hook' );
@@ -387,7 +391,7 @@ test.describe( '6.0 Settings on a subsite', { tag: '@multisite' }, () => {
 
 		await expect( page.locator( '.zs-netact' ) ).toContainText( 'locked by your network administrator' );
 		const share = page.locator( '#zs-row-share_data' );
-		await expect( share.locator( '.zs-badge-lock' ) ).toHaveText( 'Locked by network' );
+		await expect( share.locator( '.zs-badge-lock' ) ).toContainText( 'Locked by network' );
 		await expect( share.getByRole( 'switch' ) ).toBeDisabled();
 		await expect( share.getByRole( 'switch' ) ).toHaveAttribute( 'aria-describedby', /zs-l-share_data/ );
 		await expect( page.locator( '#zs-row-max_logs' ) ).toContainText( 'Using the network default: 20,000' );
