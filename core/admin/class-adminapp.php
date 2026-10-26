@@ -103,6 +103,16 @@ final class Admin_App {
 	);
 
 	/**
+	 * REST paths the Protection page reads on load besides the shell's
+	 * (which already has the license and the protection modules).
+	 *
+	 * @var string[]
+	 */
+	const PROTECTION_PRELOADS = array(
+		'/zero-spam/v1/settings/schema',
+	);
+
+	/**
 	 * The news route, preloaded when the news is on.
 	 *
 	 * @var string
@@ -324,6 +334,10 @@ final class Admin_App {
 
 		if ( 'overview' === $area ) {
 			$paths = array_merge( $paths, self::OVERVIEW_PRELOADS );
+		}
+
+		if ( 'protection' === $area ) {
+			$paths = array_merge( $paths, self::PROTECTION_PRELOADS );
 		}
 
 		if ( News_Feed::is_enabled() ) {
