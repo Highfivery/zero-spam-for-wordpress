@@ -79,19 +79,6 @@ const endOf = ( block ) =>
 		: __( 'Never', 'zero-spam' );
 
 /**
- * The opener of a row's drawer (its Edit block button, or its card).
- *
- * @param {number} id Block.
- * @return {Element|null} Element.
- */
-const editButton = ( id ) =>
-	Array.from(
-		document.querySelectorAll(
-			`.zs-rules [data-zs-edit="${ Number( id ) }"]`
-		)
-	).find( ( el ) => null !== el.offsetParent ) || null;
-
-/**
  * @param {Object}                          props         Props.
  * @param {string}                          props.kind    ip or location.
  * @param {Object|undefined}                props.schema  settings/schema (block method, location services).
@@ -110,7 +97,6 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 	const [ selected, setSelected ] = useState( () => new Set() );
 	const [ drawer, setDrawer ] = useState( null );
 	const searchRef = useRef( null );
-	const addRef = useRef( null );
 
 	const list = useResource( blocksPath( { kind, ...view } ), {
 		parse: false,
@@ -687,7 +673,6 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 				/>
 				<span className="zs-grow" />
 				<Button
-					ref={ addRef }
 					icon="plus"
 					onClick={ () => setDrawer( { block: null } ) }
 				>
@@ -800,11 +785,6 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 					block={ drawer.block }
 					onClose={ () => setDrawer( null ) }
 					onSaved={ onSaved }
-					returnFocus={ () =>
-						drawer.block
-							? editButton( drawer.block.id )
-							: addRef.current
-					}
 				/>
 			) }
 		</div>
