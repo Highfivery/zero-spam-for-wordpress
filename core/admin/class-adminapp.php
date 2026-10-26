@@ -25,8 +25,9 @@ defined( 'ABSPATH' ) || die();
  * Activity, Rules, Protection, Settings and Help (`zero-spam-{area}`); the
  * network admin gets one page (`zero-spam-network`). Every page prints the
  * same shell (the app root with a skeleton and a <noscript> message) and
- * loads the admin bundle from assets/dist/, with the first REST responses
- * preloaded so the Overview makes no request of its own on load.
+ * loads its own area's entry point from assets/dist/ (admin-{area}.js and
+ * .css), with the first REST responses preloaded so the Overview makes no
+ * request of its own on load.
  *
  * The legacy screens are not touched: they stay registered and reachable
  * until the cutover (build plan PR 13).
@@ -36,11 +37,12 @@ defined( 'ABSPATH' ) || die();
 final class Admin_App {
 
 	/**
-	 * Script and style handle of the admin bundle.
+	 * Prefix of the script and style handles of the areas' entry points:
+	 * `zerospam-admin-{area}` (see handle()).
 	 *
 	 * @var string
 	 */
-	const HANDLE = 'zerospam-admin';
+	const HANDLE_PREFIX = 'zerospam-admin-';
 
 	/**
 	 * Style handle of the self-hosted fonts.
@@ -353,8 +355,28 @@ final class Admin_App {
 	}
 
 	/**
-	 * Enqueues the bundle, its translations, the fonts and the preloaded
-	 * REST responses on the app's pages only.
+	 * Script and style handle of an area's entry point.
+	 *
+	 * @param string $area Area: a key of AREAS, or `network`.
+	 */
+	public static function handle( string $area ): string {
+		return self::HANDLE_PREFIX . $area;
+	}
+
+	/**
+	 * Name of an area's entry point in assets/dist/ (admin-{area}.js, .css,
+	 * -rtl.css and .asset.php), as webpack.config.js builds it.
+	 *
+	 * @param string $area Area: a key of AREAS, or `network`.
+	 */
+	public static function entry( string $area ): string {
+		return 'admin-' . $area;
+	}
+
+	/**
+	 * Enqueues the page's own entry point (no other area's code), its
+	 * translations, the fonts and the preloaded REST responses on the app's
+	 * pages only.
 	 *
 	 * @param string $hook_suffix Hook suffix of the screen.
 	 */
@@ -368,8 +390,10 @@ final class Admin_App {
 			return;
 		}
 
-		$asset = self::asset_file();
-		$base  = plugin_dir_url( ZEROSPAM );
+		$handle = self::handle( $area );
+		$entry  = self::entry( $area );
+		$asset  = self::asset_file( $area );
+		$base   = plugin_dir_url( ZEROSPAM );
 
 		wp_enqueue_style(
 			self::FONTS_HANDLE,
@@ -379,25 +403,25 @@ final class Admin_App {
 		);
 
 		wp_enqueue_style(
-			self::HANDLE,
-			$base . 'assets/dist/admin.css',
+			$handle,
+			$base . 'assets/dist/' . $entry . '.css',
 			array( self::FONTS_HANDLE ),
 			$asset['version']
 		);
-		wp_style_add_data( self::HANDLE, 'rtl', 'replace' );
+		wp_style_add_data( $handle, 'rtl', 'replace' );
 
 		wp_enqueue_script(
-			self::HANDLE,
-			$base . 'assets/dist/admin.js',
+			$handle,
+			$base . 'assets/dist/' . $entry . '.js',
 			$asset['dependencies'],
 			$asset['version'],
 			array( 'in_footer' => true )
 		);
 
-		wp_set_script_translations( self::HANDLE, 'zero-spam' );
+		wp_set_script_translations( $handle, 'zero-spam' );
 
 		wp_add_inline_script(
-			self::HANDLE,
+			$handle,
 			'var zeroSpamAdmin = ' . wp_json_encode( $this->bootstrap( $area ), self::JSON_FLAGS ) . ';',
 			'before'
 		);
@@ -656,12 +680,14 @@ final class Admin_App {
 	}
 
 	/**
-	 * Dependencies and version of the bundle, from its .asset.php file.
+	 * Dependencies and version of an area's entry point, from its .asset.php
+	 * file.
 	 *
+	 * @param string $area Area: a key of AREAS, or `network`.
 	 * @return array{dependencies: string[], version: string}
 	 */
-	public static function asset_file(): array {
-		$file  = ZEROSPAM_PATH . 'assets/dist/admin.asset.php';
+	public static function asset_file( string $area ): array {
+		$file  = ZEROSPAM_PATH . 'assets/dist/' . self::entry( $area ) . '.asset.php';
 		$asset = is_readable( $file ) ? require $file : array();
 
 		return array(

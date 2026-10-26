@@ -4,13 +4,17 @@
  * Extends the `@wordpress/scripts` default and changes only what this plugin
  * needs:
  *
- * - Four entry points (below) instead of the src/ and block.json discovery.
+ * - Explicit entry points (below) instead of the src/ and block.json
+ *   discovery: one per admin area (admin-{area}, from
+ *   assets/src/admin/{area}/index.js; Admin_App enqueues only the page's
+ *   own), plus network, widget-refresh and blocked.
  * - Output in assets/dist/, which is committed and shipped (/build/ is
  *   ignored by git and .distignore). ZEROSPAM_DIST_DIR builds elsewhere;
  *   bin/check-dist.sh uses it to compare a fresh build with the committed one.
  * - One file per entry, never split chunks: WordPress loads translations per
  *   script handle (wp_set_script_translations), so strings in a lazily loaded
- *   chunk would never be translated.
+ *   or shared chunk would never be translated. The shared admin code (app/,
+ *   data/, styles/) is bundled into every admin entry.
  * - No source maps in production builds.
  * - The CSS-only "blocked" entry ships blocked.css and blocked.asset.php
  *   without the empty JavaScript stub webpack writes for it.
@@ -43,6 +47,20 @@ const src = path.resolve( __dirname, 'assets/src' );
 const outputPath = process.env.ZEROSPAM_DIST_DIR
 	? path.resolve( process.env.ZEROSPAM_DIST_DIR )
 	: path.resolve( __dirname, 'assets/dist' );
+
+// Admin areas with their own entry point: assets/src/admin/{area}/index.js,
+// built to assets/dist/admin-{area}.js and .css. Keep this list, the areas of
+// Admin_App (AREAS and the network page) and the budgets loop of
+// bin/check-dist.sh in step.
+const adminAreas = [
+	'overview',
+	'activity',
+	'rules',
+	'protection',
+	'settings',
+	'help',
+	'network',
+];
 
 // Entries whose source is a stylesheet: webpack still emits a JavaScript
 // stub for each; it is removed after the asset file has been written.
@@ -97,7 +115,12 @@ class ZeroSpamAssetsPlugin {
 module.exports = {
 	...defaultConfig,
 	entry: {
-		admin: path.join( src, 'admin/index.js' ),
+		...Object.fromEntries(
+			adminAreas.map( ( area ) => [
+				`admin-${ area }`,
+				path.join( src, `admin/${ area }/index.js` ),
+			] )
+		),
 		network: path.join( src, 'network/index.js' ),
 		'widget-refresh': path.join( src, 'widget-refresh/index.js' ),
 		blocked: path.join( src, 'blocked/index.css' ),
