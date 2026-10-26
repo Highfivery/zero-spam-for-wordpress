@@ -336,11 +336,14 @@ test.describe( '6.0 Rules', () => {
 				await rulesReady( narrow );
 				await expect( narrow.locator( '.zs-cards li' ) ).toHaveCount( 6 );
 				await expect( narrow.getByLabel( 'Select all' ) ).toBeVisible();
-				await narrow.getByLabel( 'Sort' ).selectOption( 'key:asc' );
-				await narrow.locator( '.zs-cardmain' ).first().click();
+				await narrow.getByLabel( 'Sort', { exact: true } ).selectOption( 'key:asc' );
+				await expect( narrow.locator( '.zs-cards-wrap' ) ).not.toHaveAttribute( 'aria-busy', 'true' );
+				await expect( narrow.locator( '.zs-cm-t' ).first() ).toHaveText( '192.0.2.41' );
+				const card = narrow.getByRole( 'button', { name: /^Edit block for 192\.0\.2\.41,/ } );
+				await card.click();
 				await expect( narrow.locator( '.zs-drawer.zs-blockform' ) ).toBeVisible();
 				await narrow.keyboard.press( 'Escape' );
-				await expect( narrow.locator( '.zs-cardmain' ).first() ).toBeFocused();
+				await expect( card ).toBeFocused();
 			}
 			await narrow.context().close();
 		}
@@ -357,7 +360,7 @@ test.describe( '6.0 Rules on a subsite', { tag: '@multisite' }, () => {
 			await zs.call( 'POST', 'network-setting', { key: 'ip_whitelist', value: '203.0.113.5', locked: true } );
 			await asSiteAdmin.goto( subsiteURL( target, AREA( 'rules', 'allowlist' ) ) );
 			await rulesReady( asSiteAdmin );
-			await expect( asSiteAdmin.locator( '.zs-badge-lock [aria-hidden="true"]' ) ).toHaveText( 'Allowlist locked by network' );
+			await expect( asSiteAdmin.locator( '.zs-badge-lock > span[aria-hidden="true"]' ) ).toHaveText( 'Allowlist locked by network' );
 			await expect( asSiteAdmin.locator( '.zs-elist' ) ).toContainText( '203.0.113.5' );
 			await expect( asSiteAdmin.getByLabel( 'Add IP addresses' ) ).toHaveCount( 0 );
 			await expect( asSiteAdmin.getByRole( 'button', { name: /^Remove / } ) ).toHaveCount( 0 );

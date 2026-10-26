@@ -533,7 +533,20 @@ const V6_RULES: Screen[] = [
 		},
 	] ),
 	{ id: 'v6-rules-block-add', title: '6.0 Rules › Block an IP drawer', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'rules', 'ips' ), prepare: openBlockDrawer( '.zs-rules .zs-tbar > .zs-btn' ), visual: { selector: '.zs-drawer' } },
-	{ id: 'v6-rules-block-edit', title: '6.0 Rules › Edit block drawer', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'rules', 'ips' ), prepare: openBlockDrawer( '[data-zs-edit]' ), visual: { selector: '.zs-drawer', mask: [ 'input[type="datetime-local"]' ] } },
+	{
+		id: 'v6-rules-block-edit',
+		title: '6.0 Rules › Edit block drawer',
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		// A block to edit, whatever the state holds.
+		before: async ( zs ) => {
+			await zs.block( '198.51.100.21', 'E2E: rules sample' );
+		},
+		path: () => AREA( 'rules', 'ips' ), prepare: openBlockDrawer( '[data-zs-edit]' ),
+		visual: { selector: '.zs-drawer', mask: [ 'input[type="datetime-local"]' ] },
+	},
 	{ id: 'v6-rules-location-add', title: '6.0 Rules › Block a location drawer', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'rules', 'locations' ), prepare: openBlockDrawer( '.zs-rules .zs-tbar > .zs-btn' ), visual: { selector: '.zs-drawer' } },
 	{
 		id: 'v6-rules-subsite-locked',
