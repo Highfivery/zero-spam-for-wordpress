@@ -488,6 +488,11 @@
 	background: radial-gradient(circle, var(--zs-ink) 0 4px, transparent 4.5px);
 }
 
+/* WordPress's own checked mark (wp-admin forms.css draws a ::before dot). */
+.zs-rcard input[type="radio"]:checked::before {
+	content: none;
+}
+
 .zs-rcard input[type="radio"]:focus-visible {
 	outline: var(--zs-focus-width) solid var(--zs-focus);
 	outline-offset: var(--zs-focus-offset);
