@@ -303,8 +303,8 @@ final class License_Status {
 	/**
 	 * Adds what is read from settings on every call (not cached).
 	 *
-	 * The quota reset date is the API Monitoring "Quota Reset Date" setting
-	 * when it holds a valid date; the API does not report one.
+	 * The quota reset date is the next reset after the API Monitoring "Quota
+	 * Reset Date" setting (see quota_period()); the API does not report one.
 	 *
 	 * @param array<string, mixed> $answer Answer.
 	 * @return array<string, mixed>
@@ -317,9 +317,29 @@ final class License_Status {
 	}
 
 	/**
-	 * The quota reset date set in API Monitoring (Y-m-d), or null.
+	 * The next quota reset (Y-m-d), or null when no Quota Reset Date is set.
 	 */
 	private static function reset_date(): ?string {
+		$period = self::quota_period();
+
+		return null === $period ? null : $period['next'];
+	}
+
+	/**
+	 * The current quota period, from the API Monitoring "Quota Reset Date"
+	 * setting: the date the quota last reset (`start`) and the next reset
+	 * (`next`), both Y-m-d.
+	 *
+	 * Quotas reset monthly, so a date in the past rolls forward a month at a
+	 * time, keeping its day of the month (the last day of a shorter month):
+	 * a site that set 2026-01-31 sees 2026-02-28, then 2026-03-31.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param \DateTimeImmutable|null $today Today (default: today in the site's time zone).
+	 * @return array{start: string, next: string}|null Null when the setting holds no valid date.
+	 */
+	public static function quota_period( ?\DateTimeImmutable $today = null ): ?array {
 		$resolved = Settings_Schema::resolve( 'quota_reset_date' );
 		$value    = null !== $resolved && is_string( $resolved['value'] ) ? trim( $resolved['value'] ) : '';
 
@@ -327,6 +347,38 @@ final class License_Status {
 			return null;
 		}
 
-		return $value;
+		$today = ( $today ?? current_datetime() )->format( 'Y-m-d' );
+		$year  = (int) $parts[1];
+		$month = (int) $parts[2];
+		$day   = (int) $parts[3];
+
+		// Months after the set date until the next reset is after today (a reset due today has happened; bounded: about 80 years).
+		$next = $value;
+		for ( $add = 0; $next <= $today && $add < 1000; ++$add ) {
+			$next = self::monthly_date( $year, $month + $add + 1, $day );
+		}
+
+		$next_parts = array_map( 'intval', explode( '-', $next ) );
+
+		return array(
+			'start' => self::monthly_date( $next_parts[0], $next_parts[1] - 1, $day ),
+			'next'  => $next,
+		);
+	}
+
+	/**
+	 * A day of a month (Y-m-d); a day the month does not have becomes its last day.
+	 *
+	 * @param int $year  Year.
+	 * @param int $month Month; values outside 1–12 move into the next or previous years.
+	 * @param int $day   Day of the month.
+	 */
+	private static function monthly_date( int $year, int $month, int $day ): string {
+		$index  = $year * 12 + $month - 1;
+		$year   = intdiv( $index, 12 );
+		$month  = $index % 12 + 1;
+		$length = (int) gmdate( 't', gmmktime( 0, 0, 0, $month, 1, $year ) );
+
+		return sprintf( '%04d-%02d-%02d', $year, $month, min( $day, $length ) );
 	}
 }

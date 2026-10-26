@@ -28,6 +28,7 @@ defined( 'ABSPATH' ) || die();
  * (bool), `area` and `group` (where the setting belongs in the admin),
  * `depends_on` (array with `key` and `value`) and `order` (int). Without them
  * the schema derives a value: see setting_entry(). Every entry has a
+ * `suffix` (the unit shown after a number, such as `days`) and a
  * `placeholder` (text, '' when none) and an `html` field: for settings of
  * type `html` their markup, limited to text formatting, lists and links (see
  * help_html()), '' when the markup is made on the settings page only (such
@@ -115,6 +116,11 @@ final class Settings_Schema {
 		'allowed_words'         => array( 'rules', 'allowed-words' ),
 		'disallowed_min_length' => array( 'rules', 'allowed-words' ),
 		'trusted_proxies'       => array( 'settings', 'proxies' ),
+		// The Settings tabs (6.0): the activity log and data sharing on Logging & data, Rescue Mode on Advanced.
+		'log_blocked_ips'       => array( 'settings', 'data' ),
+		'max_logs'              => array( 'settings', 'data' ),
+		'share_data'            => array( 'settings', 'data' ),
+		'rescue_mode'           => array( 'settings', 'advanced' ),
 		// The honeypot has a card of its own in Protection › Detection.
 		'regenerate_honeypot'   => array( 'protection', 'detection' ),
 	);
@@ -503,6 +509,7 @@ final class Settings_Schema {
 			'min'         => self::number_or_null( $setting['min'] ?? null ),
 			'max'         => self::number_or_null( $setting['max'] ?? null ),
 			'step'        => self::number_or_null( $setting['step'] ?? null ),
+			'suffix'      => $is_html ? '' : self::plain_text( $setting['suffix'] ?? '' ),
 			'default'     => null,
 			'recommended' => $secret || $is_html ? null : ( $setting['recommended'] ?? null ),
 			'placeholder' => $is_html ? '' : self::plain_text( $setting['placeholder'] ?? '' ),

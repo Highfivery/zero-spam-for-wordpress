@@ -13,7 +13,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 /**
  * Internal dependencies
  */
-import { basicLicense, enhancedLicense, modules, schema } from './fixture';
+import {
+	basicLicense,
+	enhancedLicense,
+	modules,
+	schema,
+} from '../../app/fields/test/fixture';
 
 let render;
 

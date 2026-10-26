@@ -443,6 +443,8 @@ describe( 'stylesheet scoping', () => {
 		join( stylesDir, 'rules.css' ),
 		join( stylesDir, 'areas.css' ),
 		join( stylesDir, 'activity.css' ),
+		join( stylesDir, 'settings.css' ),
+		join( srcDir, 'admin', 'app', 'fields', 'fields.css' ),
 		join( srcDir, 'widget-refresh', 'index.css' ),
 		join( srcDir, 'widget-refresh', 'widget.css' ),
 		join( srcDir, 'blocked', 'tokens.css' ),

@@ -15,7 +15,7 @@ import { __, _n, sprintf } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
-import { ACTIONS, isOn } from './settings-model';
+import { ACTIONS, isOn } from '../app/fields/settings-model';
 import { ago, minutesAgo, num } from '../data/format';
 
 /** The Protection tabs, in order. */

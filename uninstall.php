@@ -1,6 +1,6 @@
 <?php
 /**
- * Removes everything the plugin stored when it is deleted.
+ * Removes what the plugin stored when it is deleted.
  *
  * WordPress includes this file from uninstall_plugin() with
  * WP_UNINSTALL_PLUGIN defined. Every option, network (site) option, transient,
@@ -8,7 +8,14 @@
  * the lists in sync when adding one. The prefix sweeps are a safety net for
  * keys built at runtime (cache transients) and for anything added later.
  *
- * Runs on every site of a network, then once for the network.
+ * Since 6.0.0 the "Delete Data on Uninstall" setting (API Monitoring, on
+ * unless turned off) decides whether the data goes: settings and other
+ * options, tables, user preferences and the error log. When it is off they
+ * stay for a later reinstall; caches (transients) and scheduled events are
+ * removed either way, because nothing runs them once the plugin is gone.
+ *
+ * Runs on every site of a network, each following its own value of the
+ * setting, then once for the network, following the network's value.
  *
  * @package ZeroSpam
  */
@@ -116,12 +123,16 @@ $zerospam_user_meta = array(
 	'zerospam_ui',
 );
 
-// Option name prefixes swept on every site after the named options are gone.
+// Option name prefixes swept on every site after the named options are gone: data first, then caches.
 $zerospam_option_prefixes = array(
 	'wpzerospam',
 	'zero-spam-',
 	'zerospam_',
 	'zero_spam_',
+);
+
+// Cache (transient) prefixes, swept even when the data is kept.
+$zerospam_transient_prefixes = array(
 	'_transient_zerospam_',
 	'_transient_timeout_zerospam_',
 	'_transient_zero_spam_',
@@ -179,9 +190,82 @@ $zerospam_sitemeta_prefixes = array(
 	'zero-spam-',
 	'zerospam_',
 	'zero_spam_',
+);
+
+// Network transient prefixes in sitemeta, swept even when the data is kept.
+$zerospam_sitemeta_transient_prefixes = array(
 	'_site_transient_zerospam_',
 	'_site_transient_timeout_zerospam_',
 );
+
+/**
+ * The network's entry of a setting (`value`, `locked`), or null.
+ *
+ * Reads the network settings store (`zerospam_network_settings`) in either
+ * of its shapes, as Settings_Schema::normalize_network_store() does: the
+ * plugin's classes are not loaded during uninstall.
+ *
+ * @param string $key Setting key.
+ * @return array<string, mixed>|null
+ */
+$zerospam_network_entry = static function ( string $key ): ?array {
+	if ( ! is_multisite() ) {
+		return null;
+	}
+
+	$stored   = get_site_option( 'zerospam_network_settings', array() );
+	$settings = is_array( $stored ) && isset( $stored['settings'] ) && is_array( $stored['settings'] ) ? $stored['settings'] : $stored;
+	$entry    = is_array( $settings ) && isset( $settings[ $key ] ) && is_array( $settings[ $key ] ) ? $settings[ $key ] : null;
+
+	return null !== $entry && array_key_exists( 'value', $entry ) ? $entry : null;
+};
+
+/**
+ * Whether a value of "Delete Data on Uninstall" says to delete.
+ *
+ * Only `enabled`, or any value 6.0's v6_uninstall_flag migration has not
+ * looked at yet: 5.x never read the setting and always deleted, so a 5.x
+ * `false` (an unticked box) on a site or network the migration never
+ * reached (a subsite nobody visited after the update) still means delete.
+ *
+ * @param mixed $value    Stored value.
+ * @param bool  $migrated Whether the migration ran where the value is stored.
+ * @return bool
+ */
+$zerospam_says_delete = static function ( $value, bool $migrated ): bool {
+	return 'enabled' === $value || ! $migrated;
+};
+
+/**
+ * Whether data is deleted, by the "Delete Data on Uninstall" setting:
+ * the network's locked value, else the current site's own value (unless
+ * `$network_scope`), else the network's value, else on (the default).
+ * A value is only "keep" once the v6_uninstall_flag migration ran there.
+ *
+ * @param bool $network_scope Decide for the network-wide data (network value or the default only).
+ * @return bool
+ */
+$zerospam_deletes_data = static function ( bool $network_scope = false ) use ( $zerospam_network_entry, $zerospam_says_delete ): bool {
+	$network          = $zerospam_network_entry( 'delete_data_on_uninstall' );
+	$network_done     = get_site_option( 'zerospam_network_completed_migrations', array() );
+	$network_migrated = is_array( $network_done ) && in_array( 'v6_uninstall_flag', $network_done, true );
+
+	if ( null !== $network && ! empty( $network['locked'] ) ) {
+		return $zerospam_says_delete( $network['value'], $network_migrated );
+	}
+
+	if ( ! $network_scope || ! is_multisite() ) {
+		$options = get_option( 'zero-spam-api-monitoring' );
+
+		if ( is_array( $options ) && array_key_exists( 'delete_data_on_uninstall', $options ) ) {
+			$site_done = get_option( 'zerospam_completed_migrations', array() );
+
+			return $zerospam_says_delete( $options['delete_data_on_uninstall'], is_array( $site_done ) && in_array( 'v6_uninstall_flag', $site_done, true ) );
+		}
+	}
+
+	return null === $network || $zerospam_says_delete( $network['value'], $network_migrated );
+};
 
 /**
  * Drops one table if it exists.
@@ -220,7 +304,8 @@ $zerospam_delete_by_prefix = static function ( string $table, string $column, ar
 };
 
 /**
- * Removes the plugin's data from the current site.
+ * Removes the plugin's caches and scheduled events from the current site,
+ * and its data unless "Delete Data on Uninstall" is off there.
  */
 $zerospam_uninstall_site = static function () use (
 	$wpdb,
@@ -229,10 +314,15 @@ $zerospam_uninstall_site = static function () use (
 	$zerospam_site_transients,
 	$zerospam_cron_hooks,
 	$zerospam_option_prefixes,
+	$zerospam_transient_prefixes,
 	$zerospam_site_tables,
 	$zerospam_drop_table,
-	$zerospam_delete_by_prefix
+	$zerospam_delete_by_prefix,
+	$zerospam_deletes_data
 ): void {
+	// Read first: the setting is one of the options deleted below.
+	$delete_data = $zerospam_deletes_data();
+
 	// The license check is cached under a key built from the license itself, so read it before the settings go.
 	$zerospam_settings = get_option( 'zero-spam-zerospam' );
 	$licenses          = array(
@@ -243,14 +333,6 @@ $zerospam_uninstall_site = static function () use (
 		delete_transient( sanitize_title( 'license_' . $license ) );
 	}
 
-	foreach ( $zerospam_modules as $module ) {
-		delete_option( "zero-spam-{$module}" );
-	}
-
-	foreach ( $zerospam_site_options as $option ) {
-		delete_option( $option );
-	}
-
 	foreach ( $zerospam_site_transients as $transient ) {
 		delete_transient( $transient );
 	}
@@ -259,19 +341,36 @@ $zerospam_uninstall_site = static function () use (
 		wp_unschedule_hook( $hook );
 	}
 
-	if ( $zerospam_delete_by_prefix( $wpdb->options, 'option_name', $zerospam_option_prefixes ) > 0 ) {
+	$swept = $zerospam_delete_by_prefix( $wpdb->options, 'option_name', $zerospam_transient_prefixes );
+
+	if ( $delete_data ) {
+		foreach ( $zerospam_modules as $module ) {
+			delete_option( "zero-spam-{$module}" );
+		}
+
+		foreach ( $zerospam_site_options as $option ) {
+			delete_option( $option );
+		}
+
+		$swept += $zerospam_delete_by_prefix( $wpdb->options, 'option_name', $zerospam_option_prefixes );
+
+		foreach ( $zerospam_site_tables as $table ) {
+			$zerospam_drop_table( $wpdb->prefix . $table );
+		}
+
+		// Utilities::log() writes this site's error log (it can contain visitor IPs) to uploads/, or uploads/sites/{id}/ on a subsite.
+		$uploads = wp_upload_dir( null, false );
+		wp_delete_file( trailingslashit( $uploads['basedir'] ) . 'zerospam.log' );
+	}
+
+	if ( $swept > 0 ) {
 		wp_cache_delete( 'alloptions', 'options' );
 		wp_cache_delete( 'notoptions', 'options' );
 	}
-
-	foreach ( $zerospam_site_tables as $table ) {
-		$zerospam_drop_table( $wpdb->prefix . $table );
-	}
-
-	// Utilities::log() writes this site's error log (it can contain visitor IPs) to uploads/, or uploads/sites/{id}/ on a subsite.
-	$uploads = wp_upload_dir( null, false );
-	wp_delete_file( trailingslashit( $uploads['basedir'] ) . 'zerospam.log' );
 };
+
+// Network-wide data follows the network's value (on a single site, the site's). Read before any site's options go.
+$zerospam_delete_network_data = $zerospam_deletes_data( true );
 
 if ( is_multisite() ) {
 	// Every site of every network: the plugin files are gone for all of them.
@@ -291,17 +390,26 @@ if ( is_multisite() ) {
 	$zerospam_uninstall_site();
 }
 
-// Network-wide data, removed once (on a single site these are ordinary options and tables).
-foreach ( $zerospam_network_options as $zerospam_option ) {
-	delete_site_option( $zerospam_option );
-}
-
+// Network-wide caches, removed once.
 foreach ( $zerospam_network_transients as $zerospam_transient ) {
 	delete_site_transient( $zerospam_transient );
 }
 
 if ( is_multisite() ) {
 	// Every network's sitemeta, matching the every-site loop above.
+	$zerospam_delete_by_prefix( $wpdb->sitemeta, 'meta_key', $zerospam_sitemeta_transient_prefixes );
+}
+
+if ( ! $zerospam_delete_network_data ) {
+	return;
+}
+
+// Network-wide data, removed once (on a single site these are ordinary options and tables).
+foreach ( $zerospam_network_options as $zerospam_option ) {
+	delete_site_option( $zerospam_option );
+}
+
+if ( is_multisite() ) {
 	$zerospam_delete_by_prefix( $wpdb->sitemeta, 'meta_key', $zerospam_sitemeta_prefixes );
 }
 

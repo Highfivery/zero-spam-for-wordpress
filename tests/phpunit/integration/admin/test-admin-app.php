@@ -344,12 +344,12 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
-	 * Areas not built yet preload only what the shell needs.
+	 * Areas not built yet (Help) preload only what the shell needs.
 	 */
 	public function test_other_areas_preload_only_the_shell(): void {
 		$this->flag_on();
 		$this->as_role( 'administrator' );
-		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-settings' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-help' );
 
 		$paths = $this->preloaded_paths();
 		$this->assertSame( Admin_App::SHELL_PRELOADS, $paths );

@@ -470,9 +470,7 @@
 }
 
 .zs-rcard input[type="radio"] {
-	display: grid;
 	flex: none;
-	place-items: center;
 	width: 20px;
 	height: 20px;
 	margin: 2px 0 0;
@@ -484,16 +482,15 @@
 	appearance: none;
 }
 
+/* The dot is the input's own background: a pseudo-element on an appearance:none input is not laid out reliably (Chromium drew it outside the ring). */
 .zs-rcard input[type="radio"]:checked {
 	border-color: var(--zs-ink);
+	background: radial-gradient(circle, var(--zs-ink) 0 4px, transparent 4.5px);
 }
 
-.zs-rcard input[type="radio"]:checked::after {
-	width: 9px;
-	height: 9px;
-	border-radius: 50%;
-	background: var(--zs-ink);
-	content: "";
+/* WordPress's own checked mark (wp-admin forms.css draws a ::before dot). */
+.zs-rcard input[type="radio"]:checked::before {
+	content: none;
 }
 
 .zs-rcard input[type="radio"]:focus-visible {

@@ -23,8 +23,9 @@ use ZeroSpam\Includes\Settings_Resolver;
 defined( 'ABSPATH' ) || die();
 
 /**
- * `zero-spam/v1/settings/actions/{action}`, `settings/export` and
- * `settings/import`, for administrators of the current site.
+ * `zero-spam/v1/settings/actions/{action}`, `settings/export`,
+ * `settings/import` and `settings/error-log`, for administrators of the
+ * current site.
  *
  * The actions do what the `zerospam-action` links and buttons of the 5.x
  * settings screens do (and `refresh-htaccess` what the Blocked IPs screen's
@@ -74,6 +75,13 @@ class Settings_Actions_Controller extends Base_Controller {
 	const MAX_IMPORT_BYTES = 5 * MB_IN_BYTES;
 
 	/**
+	 * Most of the error log returned by `settings/error-log`: its end, in bytes (64 KB).
+	 *
+	 * @var int
+	 */
+	const ERROR_LOG_BYTES = 64 * KB_IN_BYTES;
+
+	/**
 	 * Value of `format` in an export.
 	 *
 	 * @var string
@@ -110,6 +118,18 @@ class Settings_Actions_Controller extends Base_Controller {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'export_settings' ),
+					'permission_callback' => array( $this, 'site_permissions_check' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/error-log',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_error_log' ),
 					'permission_callback' => array( $this, 'site_permissions_check' ),
 				),
 			)
@@ -224,6 +244,57 @@ class Settings_Actions_Controller extends Base_Controller {
 					'message' => $message,
 				),
 				$extra
+			)
+		);
+	}
+
+	/**
+	 * The end of this site's error log (uploads/zerospam.log, written by
+	 * Utilities::log()).
+	 *
+	 * Answers `{ log, size, truncated }`: the last ERROR_LOG_BYTES of the
+	 * file starting at a whole line, its size in bytes, and whether earlier
+	 * lines were left out. An empty `log` and a size of 0 when there is no
+	 * log, or when the path is a symbolic link (it is never followed). The
+	 * path is fixed; the route takes no parameter. The log can hold visitor
+	 * IP addresses: administrators only.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return WP_REST_Response
+	 */
+	public function get_error_log( $request ) {
+		unset( $request );
+
+		$file = trailingslashit( wp_upload_dir( null, false )['basedir'] ) . 'zerospam.log';
+
+		// The log may have been written or cleared earlier in this request.
+		clearstatcache( true, $file );
+
+		// Only the plugin's own regular file: never a symbolic link to something else.
+		$size = ! is_link( $file ) && is_file( $file ) && is_readable( $file ) ? (int) filesize( $file ) : 0;
+		$log  = '';
+
+		if ( $size > 0 ) {
+			$offset = max( 0, $size - self::ERROR_LOG_BYTES );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- The plugin's own local log file; only its end is read.
+			$log = (string) file_get_contents( $file, false, null, $offset, self::ERROR_LOG_BYTES );
+
+			// Start at a whole line when the beginning was cut.
+			$break = $offset > 0 ? strpos( $log, "\n" ) : false;
+			if ( false !== $break ) {
+				$log = substr( $log, $break + 1 );
+			}
+
+			$log = wp_check_invalid_utf8( $log, true );
+		}
+
+		return rest_ensure_response(
+			array(
+				'log'       => $log,
+				'size'      => $size,
+				'truncated' => $size > self::ERROR_LOG_BYTES,
 			)
 		);
 	}

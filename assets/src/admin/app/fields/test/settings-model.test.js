@@ -277,4 +277,21 @@ describe( 'texts', () => {
 	it( 'makes IDs from any key', () => {
 		expect( idOf( 'my plugin/key' ) ).toBe( 'my-plugin-key' );
 	} );
+
+	it( 'writes a number with its unit', () => {
+		const entry = ( suffix ) => ( { type: 'number', suffix } );
+		expect( formatValue( entry( '%' ), 80 ) ).toBe( '80%' );
+		expect( formatValue( entry( 'ms' ), 5000 ) ).toBe(
+			( 5000 ).toLocaleString() + ' ms'
+		);
+		expect( formatValue( entry( '' ), 90 ) ).toBe( '90' );
+		expect(
+			recommendedText( {
+				type: 'number',
+				suffix: 'days',
+				recommended: 90,
+				description: 'How long to keep data.',
+			} )
+		).toBe( '90 days' );
+	} );
 } );

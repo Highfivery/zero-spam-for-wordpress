@@ -118,6 +118,41 @@ final class Admin_App {
 	);
 
 	/**
+	 * Tabs of the Settings page (`&tab=`), in order; the first is the default.
+	 *
+	 * @var string[]
+	 */
+	const SETTINGS_TABS = array( 'general', 'data', 'api', 'advanced', 'debug', 'io' );
+
+	/**
+	 * Settings cards (assets/src/admin/settings/cards.js) that are not a
+	 * setting, by `&section=`: the tab they are on. A setting key's tab
+	 * comes from its schema group (see settings_tab_of()).
+	 *
+	 * @var array<string, string>
+	 */
+	const SETTINGS_CARDS = array(
+		'quick'      => 'general',
+		'blocking'   => 'general',
+		'widget'     => 'general',
+		'news'       => 'general',
+		'display'    => 'general',
+		'logging'    => 'data',
+		'sharing'    => 'data',
+		'uninstall'  => 'data',
+		'apimon'     => 'api',
+		'alertch'    => 'api',
+		'alertrules' => 'api',
+		'proxies'    => 'advanced',
+		'rescue'     => 'advanced',
+		'nolockout'  => 'advanced',
+		'debug'      => 'debug',
+		'system'     => 'debug',
+		'io'         => 'io',
+		'errlog'     => 'io',
+	);
+
+	/**
 	 * Fields of an Activity log row (assets/src/admin/activity/query.js asks
 	 * for the same list, so the preloaded answer is used).
 	 *
@@ -460,6 +495,10 @@ final class Admin_App {
 			$paths = array_merge( $paths, self::OVERVIEW_PRELOADS );
 		}
 
+		if ( 'settings' === $area ) {
+			$paths = array_merge( $paths, self::settings_preloads( $view['tab'] ?? '', self::section_arg() ) );
+		}
+
 		if ( 'activity' === $area ) {
 			$paths = array_merge( $paths, self::activity_preloads( $view ) );
 		}
@@ -473,6 +512,77 @@ final class Admin_App {
 		}
 
 		return $paths;
+	}
+
+	/**
+	 * The REST paths the Settings page reads on load: the settings schema
+	 * (every card) and the data of the tab the address opens, written
+	 * exactly as the app asks for them (the preload store is read by path).
+	 *
+	 * @param string $tab     Tab the address asks for (`&tab=`).
+	 * @param string $section Card or setting the address asks for (`&section=`), which picks the tab when there is none.
+	 * @return string[]
+	 */
+	public static function settings_preloads( string $tab = '', string $section = '' ): array {
+		if ( ! in_array( $tab, self::SETTINGS_TABS, true ) ) {
+			$tab = self::settings_tab_of( $section );
+		}
+
+		$paths = array( '/zero-spam/v1/settings/schema' );
+
+		if ( 'advanced' === $tab ) {
+			$paths[] = '/zero-spam/v1/rules/no-lockout';
+		} elseif ( 'io' === $tab ) {
+			$paths[] = '/zero-spam/v1/settings/error-log';
+		}
+
+		return $paths;
+	}
+
+	/**
+	 * The Settings tab a `&section=` opens: a card's, or a setting's from its
+	 * schema group (the groups of the Settings area are its tabs; Trusted
+	 * Proxy IPs, group `proxies`, is on Advanced). General when unknown.
+	 *
+	 * @param string $section Card or setting key.
+	 */
+	public static function settings_tab_of( string $section ): string {
+		if ( isset( self::SETTINGS_CARDS[ $section ] ) ) {
+			return self::SETTINGS_CARDS[ $section ];
+		}
+
+		$entry = '' !== $section ? \ZeroSpam\Core\Settings_Schema::setting( $section ) : null;
+		$group = null !== $entry && 'settings' === $entry['area'] ? (string) $entry['group'] : '';
+		$group = 'proxies' === $group ? 'advanced' : $group;
+
+		return in_array( $group, self::SETTINGS_TABS, true ) ? $group : self::SETTINGS_TABS[0];
+	}
+
+	/**
+	 * The `&section=` (or `&card=`) the address asks for, as a key.
+	 */
+	private static function section_arg(): string {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only view state.
+		if ( isset( $_GET['section'] ) && is_string( $_GET['section'] ) ) {
+			return sanitize_key( wp_unslash( $_GET['section'] ) );
+		}
+
+		return isset( $_GET['card'] ) && is_string( $_GET['card'] ) ? sanitize_key( wp_unslash( $_GET['card'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+	}
+
+	/**
+	 * Whether the always-on rescue key is set: ZEROSPAM_RESCUE_KEY holds
+	 * text, as Access reads it.
+	 *
+	 * @param mixed $key The key to judge (default: the constant's value).
+	 */
+	public static function rescue_key_set( $key = null ): bool {
+		if ( null === $key ) {
+			$key = defined( 'ZEROSPAM_RESCUE_KEY' ) ? constant( 'ZEROSPAM_RESCUE_KEY' ) : '';
+		}
+
+		return is_string( $key ) && '' !== trim( $key );
 	}
 
 	/**
@@ -556,6 +666,8 @@ final class Admin_App {
 			'isMainSite'        => is_main_site(),
 			// The Rules tabs' counts (one cheap query or option read each), on that page only.
 			'rules'             => 'rules' === $area ? array( 'counts' => Rules_Controller::counts() ) : null,
+			// What the Settings page shows besides the schema, on that page only.
+			'settings'          => 'settings' === $area ? array( 'rescueKey' => self::rescue_key_set() ) : null,
 			'newsEnabled'       => News_Feed::is_enabled(),
 			// Log types that are not detections (rescue links): left out of the live counts, as in statistics.
 			'nonDetectionTypes' => \ZeroSpam\Includes\DB::NON_DETECTION_TYPES,

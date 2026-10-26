@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { NS, request } from '../data/api';
+import { NS, request } from '../../data/api';
 import {
 	byKey,
 	dirtyPayload,

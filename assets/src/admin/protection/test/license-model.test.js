@@ -19,7 +19,7 @@ import {
 	licenseRows,
 	networkLine,
 } from '../license-model';
-import { enhancedLicense } from './fixture';
+import { enhancedLicense } from '../../app/fields/test/fixture';
 
 describe( 'licenseRows', () => {
 	it( 'shows the masked key and plan, never queries', () => {

@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 /**
  * Internal dependencies
  */
-import { Field } from '../fields';
+import { Field, sameTitle } from '../fields';
 import { byKey } from '../settings-model';
 import { schema } from './fixture';
 
@@ -263,5 +263,23 @@ describe( 'Field', () => {
 		expect( html ).toContain( 'zs-clamp' );
 		expect( html ).toContain( 'aria-expanded="false"' );
 		expect( html ).toContain( 'aria-controls="zs-d-comment_spam_message"' );
+	} );
+
+	it( 'keeps a title that repeats its card title for screen readers only', () => {
+		const entry = { ...entries.verify_comments, title: 'Dashboard Widget' };
+		const html = render( entry, { cardTitle: 'Dashboard widget' } );
+		expect( html ).toContain(
+			'class="zs-st-t zs-sr-only" id="zs-t-verify_comments">Dashboard Widget<'
+		);
+		expect( tagOf( html, 'button' ) ).toContain(
+			'aria-labelledby="zs-t-verify_comments"'
+		);
+		expect( render( entry, { cardTitle: 'Dashboard' } ) ).not.toContain(
+			'zs-sr-only" id="zs-t-'
+		);
+		expect( sameTitle( '  Zero Spam News ', 'Zero Spam news' ) ).toBe(
+			true
+		);
+		expect( sameTitle( 'Zero Spam News', '' ) ).toBe( false );
 	} );
 } );

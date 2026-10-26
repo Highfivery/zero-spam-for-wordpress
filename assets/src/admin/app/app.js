@@ -21,6 +21,7 @@ import { Overview } from '../overview/overview';
 import { Activity } from '../activity/activity';
 import { Protection } from '../protection/protection';
 import { Rules } from '../rules/rules';
+import { Settings } from '../settings/settings';
 import { useTab } from '../data/routes';
 import { boot } from '../data/api';
 
@@ -53,9 +54,14 @@ function AreaView( { area } ) {
 			{ 'activity' === area && <Activity /> }
 			{ 'protection' === area && <Protection /> }
 			{ 'rules' === area && <Rules /> }
-			{ ! [ 'overview', 'activity', 'protection', 'rules' ].includes(
-				area
-			) && (
+			{ 'settings' === area && <Settings /> }
+			{ ! [
+				'overview',
+				'activity',
+				'protection',
+				'rules',
+				'settings',
+			].includes( area ) && (
 				<Placeholder
 					area={ area }
 					title={

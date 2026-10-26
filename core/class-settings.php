@@ -223,13 +223,11 @@ class Settings {
 			'desc'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( 'Get maximum protection fast with our one-click configuration setup. Please enter any <a href="%1$s" target="_blank" rel="noreferrer noopener">supported plugins</a> are installed & activated first.  <strong>Performing this action will override all existing settings.', 'zero-spam' ),
+					__( 'Get maximum protection fast with one-click setup. Install and activate any <a href="%1$s" target="_blank" rel="noreferrer noopener">supported plugins</a> first. This replaces all of your current settings.', 'zero-spam' ),
 					array(
-						'rel'    => array(),
-						'strong' => array(),
-						'a'      => array(
+						'a' => array(
 							'href'   => array(),
-							'class'  => array(),
+							'rel'    => array(),
 							'target' => array(),
 						),
 					)
@@ -286,7 +284,7 @@ class Settings {
 			'options'     => array(
 				'enabled' => __( 'Display the Zero Spam overview widget on the WordPress dashboard.', 'zero-spam' ),
 			),
-			'desc'        => __( 'Enable or disable the Zero Spam dashboard widget.', 'zero-spam' ),
+			'desc'        => __( 'Show the Zero Spam overview widget on the WordPress dashboard.', 'zero-spam' ),
 			'value'       => ! empty( $options['widget_enabled'] ) ? $options['widget_enabled'] : false,
 			'recommended' => 'enabled',
 		);
