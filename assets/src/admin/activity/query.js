@@ -5,7 +5,8 @@
  * The default view's paths are the ones Admin_App::activity_preloads()
  * preloads, so the first load makes no request (the preloading middleware
  * matches query arguments in any order). The address keeps the view
- * (&type=, &country=, &ip=, &days=, &network=1, &paged=, &sort=, &item=),
+ * (&type=, &country=, &ip=, &after=, &before=, &network=1, &paged=, &sort=,
+ * &item=),
  * so a link or the back button opens the same list.
  */
 
@@ -21,8 +22,8 @@ export const LIST_FIELDS =
 /** Rows per page (Admin_App::ACTIVITY_PER_PAGE). */
 export const PER_PAGE = 25;
 
-/** The date range chips, in days (0 = all time). */
-export const DATE_RANGES = [ 0, 1, 7, 30 ];
+/** A date in the address (&after=, &before=): YYYY-MM-DD, site time. */
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** The sorts: key => [ orderby, order ]. The first is the default. */
 export const SORTS = {
@@ -32,10 +33,11 @@ export const SORTS = {
 	'type:desc': [ 'log_type', 'desc' ],
 	'ip:asc': [ 'user_ip', 'asc' ],
 	'ip:desc': [ 'user_ip', 'desc' ],
-	'country:asc': [ 'country', 'asc' ],
-	'country:desc': [ 'country', 'desc' ],
-	'region:asc': [ 'region', 'asc' ],
-	'region:desc': [ 'region', 'desc' ],
+	// By name, as Reports lists them (codes would put Austria after Germany).
+	'country:asc': [ 'country_name', 'asc' ],
+	'country:desc': [ 'country_name', 'desc' ],
+	'region:asc': [ 'region_name', 'asc' ],
+	'region:desc': [ 'region_name', 'desc' ],
 };
 
 export const DEFAULT_SORT = 'date:desc';
@@ -58,7 +60,8 @@ export const emptyFilters = () => ( {
 	search: '',
 	type: '',
 	country: '',
-	days: 0,
+	after: '',
+	before: '',
 	network: false,
 } );
 
@@ -73,7 +76,8 @@ export const isFiltered = ( filters ) =>
 		filters.search.trim() ||
 		filters.type ||
 		filters.country ||
-		filters.days ||
+		filters.after ||
+		filters.before ||
 		filters.network
 	);
 
@@ -95,8 +99,11 @@ export function filterArgs( filters ) {
 	if ( filters.country ) {
 		args.push( [ 'country[]', filters.country ] );
 	}
-	if ( DATE_RANGES.includes( Number( filters.days ) ) && filters.days ) {
-		args.push( [ 'days', String( filters.days ) ] );
+	if ( DATE.test( filters.after || '' ) ) {
+		args.push( [ 'after', filters.after ] );
+	}
+	if ( DATE.test( filters.before || '' ) ) {
+		args.push( [ 'before', filters.before ] );
 	}
 	if ( filters.network ) {
 		args.push( [ 'network_only', '1' ] );
@@ -187,7 +194,8 @@ export function readView( search ) {
 	const filters = emptyFilters();
 	const type = q.get( 'type' ) || '';
 	const country = ( q.get( 'country' ) || '' ).toUpperCase();
-	const days = Number( q.get( 'days' ) );
+	const after = q.get( 'after' ) || '';
+	const before = q.get( 'before' ) || '';
 	const sort = q.get( 'sort' ) || DEFAULT_SORT;
 	const page = parseInt( q.get( 'paged' ) || '1', 10 );
 	const item = parseInt( q.get( 'item' ) || '0', 10 );
@@ -199,7 +207,8 @@ export function readView( search ) {
 		filters.country = country;
 	}
 	filters.search = ( q.get( 'ip' ) || '' ).slice( 0, 100 );
-	filters.days = DATE_RANGES.includes( days ) ? days : 0;
+	filters.after = DATE.test( after ) ? after : '';
+	filters.before = DATE.test( before ) ? before : '';
 	filters.network = '1' === q.get( 'network' );
 
 	return {
@@ -225,7 +234,8 @@ export function viewArgs( { filters, sort, page, item } ) {
 		type: filters.type,
 		country: filters.country,
 		ip: filters.search.trim(),
-		days: filters.days ? String( filters.days ) : '',
+		after: filters.after || '',
+		before: filters.before || '',
 		network: filters.network ? '1' : '',
 		sort: sort !== DEFAULT_SORT ? sort : '',
 		paged: page > 1 ? String( page ) : '',

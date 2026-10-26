@@ -20,7 +20,7 @@ import {
  * Internal dependencies
  */
 import { useApp, useMedia } from '../app/context';
-import { Badge, Button, Chip, Icon, cx } from '../app/primitives';
+import { Badge, Button, Icon, cx } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { BlockForm } from '../app/block-form';
 import { blockAll, bulkBlockPlan, initialValues } from '../app/block-data';
@@ -32,7 +32,6 @@ import { typeIcon } from '../overview/tiles';
 import { DetailsDrawer } from './details';
 import { Country, LocationSort, SortButton, TypeIcon } from './parts';
 import {
-	DATE_RANGES,
 	DEFAULT_SORT,
 	TABLE_QUERY,
 	allCountriesCount,
@@ -64,14 +63,6 @@ const sortOptions = () => [
 	[ 'country:asc', __( 'Country', 'zero-spam' ) ],
 	[ 'region:asc', __( 'Region', 'zero-spam' ) ],
 ];
-
-/** @return {Object<number, string>} Date range chip names. */
-const rangeNames = () => ( {
-	0: __( 'All time', 'zero-spam' ),
-	1: __( 'Today', 'zero-spam' ),
-	7: __( '7 days', 'zero-spam' ),
-	30: __( '30 days', 'zero-spam' ),
-} );
 
 /**
  * "Region (code)" of a row.
@@ -227,12 +218,9 @@ export function Log( { onChanged, summary } ) {
 	} );
 
 	const showNew = () => {
+		// The list as it is (filters, sort and page kept), read again.
 		feed.showQueued();
-		if ( 1 !== view.page || DEFAULT_SORT !== view.sort ) {
-			setView( ( v ) => ( { ...v, page: 1, sort: DEFAULT_SORT } ) );
-		} else {
-			list.reload();
-		}
+		list.reload();
 		facets.reload();
 		searchRef.current?.focus();
 	};
@@ -438,28 +426,20 @@ export function Log( { onChanged, summary } ) {
 		const end = initialValues( null, '', nowLocal(), 0 ).end;
 		runUndoable( {
 			run: () =>
-				blockAll( { ips: plan.ips, end, request } ).then(
-					( result ) => {
-						if ( ! result.created.length && ! result.replaced ) {
-							return Promise.reject( {} );
-						}
-						return result;
-					}
+				blockAll( { ips: plan.ips, end, request } ).then( ( result ) =>
+					result.created + result.replaced > 0
+						? result
+						: Promise.reject( {} )
 				),
-			// Undo removes the new blocks (a replaced block keeps its new dates).
-			canUndo: ( result ) => result.created.length > 0,
-			undo: ( result ) =>
-				request( {
-					path: `${ NS }/rules/blocks/bulk-delete`,
-					method: 'POST',
-					data: { ids: result.created },
-				} ),
+			// The token removes the new blocks and puts replaced ones back.
+			canUndo: ( result ) => Boolean( result.undo_token ),
 			request,
 			toast,
 			refresh,
 			messages: {
 				done: ( result ) => {
-					const blocked = result.created.length + result.replaced;
+					const blocked = result.created + result.replaced;
+					const already = plan.already + result.skipped.length;
 					return [
 						sprintf(
 							/* translators: %s: number of IP addresses */
@@ -471,7 +451,18 @@ export function Log( { onChanged, summary } ) {
 							),
 							num( blocked )
 						),
-						alreadyText,
+						already
+							? sprintf(
+									/* translators: %s: number of IP addresses */
+									_n(
+										'%s already blocked',
+										'%s already blocked',
+										already,
+										'zero-spam'
+									),
+									num( already )
+								)
+							: '',
 						result.failed
 							? sprintf(
 									/* translators: %s: number of IP addresses */
@@ -494,10 +485,10 @@ export function Log( { onChanged, summary } ) {
 						_n(
 							'%s block removed',
 							'%s blocks removed',
-							answer?.deleted ?? 0,
+							answer?.restored ?? 0,
 							'zero-spam'
 						),
-						num( answer?.deleted ?? 0 )
+						num( answer?.restored ?? 0 )
 					),
 				failed: ( error ) =>
 					errorMessage(
@@ -608,7 +599,6 @@ export function Log( { onChanged, summary } ) {
 		null === count || undefined === count
 			? label
 			: `${ label } (${ num( count ) })`;
-	const ranges = rangeNames();
 
 	const details = drawer && 'details' === drawer.kind ? drawer : null;
 	const detailsRow = details
@@ -617,10 +607,6 @@ export function Log( { onChanged, summary } ) {
 	const openId = details ? details.id : null;
 
 	const when = ( row ) => ago( minutesAgo( row.date, now ) );
-	const rowLabel = ( row ) =>
-		[ row.ip, row.type_label, row.country_name || row.country, when( row ) ]
-			.filter( Boolean )
-			.join( ', ' );
 
 	const blockButton = ( row ) => (
 		<Button
@@ -963,7 +949,6 @@ export function Log( { onChanged, summary } ) {
 								type="button"
 								className="zs-cardmain"
 								data-zs-open={ row.id }
-								aria-label={ rowLabel( row ) }
 								onClick={ () => openDetails( row.id ) }
 							>
 								<span className="zs-cm-t zs-mono">
@@ -1098,21 +1083,6 @@ export function Log( { onChanged, summary } ) {
 						) ) }
 					</select>
 				</div>
-				<div
-					className="zs-chips zs-ranges"
-					role="group"
-					aria-label={ __( 'Date range', 'zero-spam' ) }
-				>
-					{ DATE_RANGES.map( ( d ) => (
-						<Chip
-							key={ d }
-							pressed={ view.filters.days === d }
-							onClick={ () => setFilter( { days: d } ) }
-						>
-							{ ranges[ d ] }
-						</Chip>
-					) ) }
-				</div>
 				{ enhanced && (
 					<button
 						type="button"
@@ -1124,7 +1094,7 @@ export function Log( { onChanged, summary } ) {
 					>
 						<Icon name="hub" size="sm" />
 						{ __( 'Network-only', 'zero-spam' ) }
-						{ undefined !== facets.data?.network_only && (
+						{ null !== ( facets.data?.network_only ?? null ) && (
 							<span className="zs-c">
 								{ num( facets.data.network_only ) }
 							</span>

@@ -118,7 +118,9 @@ export function topIps( facets, sort = 'count', names = {} ) {
 	} ) );
 	const name = ( r ) => names[ r.country ] || r.country || '￿';
 	const by = {
-		count: ( a, b ) => b.count - a.count || a.ip.localeCompare( b.ip ),
+		count: ( a, b ) =>
+			b.count - a.count ||
+			a.ip.localeCompare( b.ip, 'en', { numeric: true } ),
 		ip: ( a, b ) => a.ip.localeCompare( b.ip, 'en', { numeric: true } ),
 		country: ( a, b ) =>
 			name( a ).localeCompare( name( b ) ) || b.count - a.count,

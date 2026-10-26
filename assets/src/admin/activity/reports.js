@@ -10,7 +10,12 @@
  * WordPress dependencies
  */
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { useMemo, useRef, useState } from '@wordpress/element';
+import {
+	createInterpolateElement,
+	useMemo,
+	useRef,
+	useState,
+} from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -675,22 +680,25 @@ export function Reports() {
 						/>
 					) }
 					<p className="zs-hint">
-						{ __(
-							'Still seeing spam? Nothing is 100%.',
-							'zero-spam'
-						) }{ ' ' }
-						<ExtLink
-							href={ utm(
-								'https://www.zerospam.org/contact/',
-								'activity-reports'
-							) }
-							newTab={ __( '(opens in a new tab)', 'zero-spam' ) }
-						>
-							{ __( 'Contact us', 'zero-spam' ) }
-						</ExtLink>{ ' ' }
-						{ __(
-							'if you see a large amount of malicious activity.',
-							'zero-spam'
+						{ createInterpolateElement(
+							__(
+								'Still seeing spam? Nothing is 100%. <a>Contact us</a> if you see a large amount of malicious activity.',
+								'zero-spam'
+							),
+							{
+								a: (
+									<ExtLink
+										href={ utm(
+											'https://www.zerospam.org/contact/',
+											'activity-reports'
+										) }
+										newTab={ __(
+											'(opens in a new tab)',
+											'zero-spam'
+										) }
+									/>
+								),
+							}
 						) }
 					</p>
 				</Tile>

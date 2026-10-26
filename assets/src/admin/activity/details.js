@@ -28,6 +28,46 @@ import { itemPath } from './query';
 import { useQuery } from './use-query';
 
 /**
+ * Whether a field has a value (0 is a value: a coordinate on the equator).
+ *
+ * @param {unknown} value Value.
+ * @return {boolean} Has one.
+ */
+const hasValue = ( value ) =>
+	null !== value && undefined !== value && '' !== value;
+
+/**
+ * One sentence on why an entry was blocked.
+ *
+ * @param {Object} row Entry.
+ * @return {string} Sentence.
+ */
+function whySentence( row ) {
+	if ( row.network ) {
+		return __(
+			'The Zero Spam network has seen this address send spam or attacks to other sites, so it was stopped before it reached yours.',
+			'zero-spam'
+		);
+	}
+	if ( row.failed_label ) {
+		return sprintf(
+			/* translators: 1: check, such as Honeypot, 2: what was checked, such as Comment */
+			__(
+				'It failed the %1$s check, so Zero Spam stopped it (%2$s).',
+				'zero-spam'
+			),
+			row.failed_label,
+			row.type_label
+		);
+	}
+	return sprintf(
+		/* translators: %s: what was checked, such as Comment */
+		__( 'Zero Spam stopped this request (%s).', 'zero-spam' ),
+		row.type_label
+	);
+}
+
+/**
  * @param {Object}                          props             Props.
  * @param {number}                          props.id          Entry shown.
  * @param {Object}                          [props.row]       Its list row (shown while the details load).
@@ -84,12 +124,13 @@ export function DetailsDrawer( {
 				}
 			: undefined;
 
-	const lookup = boot.urls.ipLookup
-		? utm(
-				`${ boot.urls.ipLookup }${ encodeURIComponent( ip ) }/`,
-				'activity-details'
-			)
-		: '';
+	const lookup =
+		ip && boot.urls.ipLookup
+			? utm(
+					`${ boot.urls.ipLookup }${ encodeURIComponent( ip ) }/`,
+					'activity-details'
+				)
+			: '';
 	const pairs = detailPairs( item?.details );
 	const confidence = confidenceOf( item?.details );
 	const block = item?.block || null;
@@ -151,11 +192,20 @@ export function DetailsDrawer( {
 				<Button icon="ban" onClick={ () => onBlock( ip, null ) }>
 					{ __( 'Block IP', 'zero-spam' ) }
 				</Button>
-				{ item.allowed ? (
+				{ item.allowed && (
 					<Badge tone="ok" icon="checkc">
 						{ __( 'On your IP allowlist', 'zero-spam' ) }
 					</Badge>
-				) : (
+				) }
+				{ ! item.allowed && item.allowlist_locked && (
+					<Badge icon="lock">
+						{ __(
+							'IP allowlist locked by the network',
+							'zero-spam'
+						) }
+					</Badge>
+				) }
+				{ ! item.allowed && ! item.allowlist_locked && (
 					<Button
 						variant="ghost"
 						icon="checkc"
@@ -247,6 +297,7 @@ export function DetailsDrawer( {
 						<p className="zs-why">
 							<b>{ shown.failed_label || shown.type_label }</b>
 						</p>
+						<p className="zs-hint">{ whySentence( shown ) }</p>
 						<dl className="zs-kv zs-dkv">
 							<div className="zs-kv-row">
 								<dt>{ __( 'Date', 'zero-spam' ) }</dt>
@@ -358,16 +409,20 @@ export function DetailsDrawer( {
 										</dd>
 									</div>
 								) }
-								{ item?.latitude && item?.longitude && (
-									<div className="zs-kv-row">
-										<dt>
-											{ __( 'Coordinates', 'zero-spam' ) }
-										</dt>
-										<dd className="zs-mono">
-											{ `${ item.latitude }°, ${ item.longitude }°` }
-										</dd>
-									</div>
-								) }
+								{ hasValue( item?.latitude ) &&
+									hasValue( item?.longitude ) && (
+										<div className="zs-kv-row">
+											<dt>
+												{ __(
+													'Coordinates',
+													'zero-spam'
+												) }
+											</dt>
+											<dd className="zs-mono">
+												{ `${ item.latitude }°, ${ item.longitude }°` }
+											</dd>
+										</div>
+									) }
 							</dl>
 						) : (
 							<p className="zs-hint">

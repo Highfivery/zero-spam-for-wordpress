@@ -68,7 +68,8 @@ describe( 'listPath', () => {
 				search: ' 203.0.113 ',
 				type: 'comment',
 				country: 'DE',
-				days: 7,
+				after: '2026-10-01',
+				before: '2026-10-20',
 				network: true,
 			},
 			sort: 'region:desc',
@@ -79,12 +80,13 @@ describe( 'listPath', () => {
 				'per_page=25',
 				`_fields=${ LIST_FIELDS }`,
 				'page=3',
-				'orderby=region',
+				'orderby=region_name',
 				'order=desc',
 				'search=203.0.113',
 				'type[]=comment',
 				'country[]=DE',
-				'days=7',
+				'after=2026-10-01',
+				'before=2026-10-20',
 				'network_only=1',
 			].sort()
 		);
@@ -100,8 +102,26 @@ describe( 'listPath', () => {
 		).toContain( 'search=a%26b%3Dc' );
 	} );
 
-	it( 'leaves out unknown date ranges', () => {
-		expect( filterArgs( { ...emptyFilters(), days: 5 } ) ).toEqual( [] );
+	it( 'sorts locations by name', () => {
+		expect(
+			pairs(
+				listPath( {
+					filters: emptyFilters(),
+					sort: 'country:asc',
+					page: 1,
+				} )
+			)
+		).toContain( 'orderby=country_name' );
+	} );
+
+	it( 'leaves out dates that are not YYYY-MM-DD', () => {
+		expect(
+			filterArgs( {
+				...emptyFilters(),
+				after: 'yesterday',
+				before: '2026-1-2',
+			} )
+		).toEqual( [] );
 	} );
 } );
 
@@ -136,14 +156,15 @@ describe( 'facets and live feed paths', () => {
 describe( 'the address', () => {
 	it( 'reads the view, including the 5.x log arguments the redirects map', () => {
 		const view = readView(
-			'?page=zero-spam-activity&type=comment&country=de&ip=203.0.113.5&days=30&network=1&sort=ip:asc&paged=4&item=17'
+			'?page=zero-spam-activity&type=comment&country=de&ip=203.0.113.5&after=2026-10-01&before=2026-10-20&network=1&sort=ip:asc&paged=4&item=17'
 		);
 		expect( view ).toEqual( {
 			filters: {
 				search: '203.0.113.5',
 				type: 'comment',
 				country: 'DE',
-				days: 30,
+				after: '2026-10-01',
+				before: '2026-10-20',
 				network: true,
 			},
 			sort: 'ip:asc',
@@ -154,7 +175,9 @@ describe( 'the address', () => {
 
 	it( 'ignores what it does not know', () => {
 		expect(
-			readView( '?type=<b>&country=USA&days=3&sort=nope&paged=-2&item=x' )
+			readView(
+				'?type=<b>&country=USA&after=soon&sort=nope&paged=-2&item=x'
+			)
 		).toEqual( {
 			filters: emptyFilters(),
 			sort: 'date:desc',
@@ -188,7 +211,8 @@ describe( 'the address', () => {
 				search: '198.51.100.1',
 				type: 'login',
 				country: 'US',
-				days: 1,
+				after: '2026-10-01',
+				before: '',
 				network: false,
 			},
 			sort: 'country:desc',
@@ -211,7 +235,9 @@ describe( 'filters', () => {
 		expect( isFiltered( { ...emptyFilters(), search: '   ' } ) ).toBe(
 			false
 		);
-		expect( isFiltered( { ...emptyFilters(), days: 7 } ) ).toBe( true );
+		expect( isFiltered( { ...emptyFilters(), after: '2026-10-01' } ) ).toBe(
+			true
+		);
 		expect( isFiltered( { ...emptyFilters(), network: true } ) ).toBe(
 			true
 		);

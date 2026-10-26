@@ -117,47 +117,34 @@ export function bulkBlockPlan( rows, selected ) {
 }
 
 /**
- * Blocks addresses one by one with the block drawer's defaults (temporary,
- * ending at `end`, no reason).
+ * Blocks addresses in one request (`rules/blocks/bulk`) with the block
+ * drawer's defaults: temporary, ending at `end`, no reason.
  *
  * @param {Object}                          options         Options.
  * @param {string[]}                        options.ips     Addresses.
  * @param {string}                          options.end     End (site time, YYYY-MM-DDTHH:MM).
- * @param {(...args: unknown[]) => unknown} options.request apiFetch-like; called with parse: false.
- * @return {Promise<{created: number[], replaced: number, failed: number}>} IDs of new blocks (what Undo removes), blocks replaced, failures.
+ * @param {(...args: unknown[]) => unknown} options.request apiFetch-like.
+ * @return {Promise<{created: number, replaced: number, skipped: string[], failed: number, undo_token: string|null}>} What happened; undo_token removes the new blocks and puts replaced ones back.
  */
 export function blockAll( { ips, end, request } ) {
-	return Promise.allSettled(
-		ips.map( ( ip ) =>
-			request( {
-				path: '/zero-spam/v1/rules/blocks',
-				method: 'POST',
-				data: blockBody( {
-					ip,
-					type: 'temporary',
-					reason: '',
-					start: '',
-					end,
-				} ),
-				parse: false,
-			} ).then( ( response ) =>
-				response.json().then( ( saved ) => ( {
-					saved,
-					created: 201 === response.status,
-				} ) )
-			)
-		)
-	).then( ( results ) => {
-		const out = { created: [], replaced: 0, failed: 0 };
-		results.forEach( ( r ) => {
-			if ( 'fulfilled' !== r.status ) {
-				out.failed++;
-			} else if ( r.value.created ) {
-				out.created.push( r.value.saved.id );
-			} else {
-				out.replaced++;
-			}
-		} );
-		return out;
+	const body = blockBody( {
+		ip: '',
+		type: 'temporary',
+		reason: '',
+		start: '',
+		end,
 	} );
+	delete body.ip;
+	delete body.kind;
+	return request( {
+		path: '/zero-spam/v1/rules/blocks/bulk',
+		method: 'POST',
+		data: { ...body, ips },
+	} ).then( ( answer ) => ( {
+		created: Number( answer?.created ) || 0,
+		replaced: Number( answer?.replaced ) || 0,
+		skipped: Array.isArray( answer?.skipped ) ? answer.skipped : [],
+		failed: Object.keys( answer?.invalid || {} ).length,
+		undo_token: answer?.undo_token || null,
+	} ) );
 }
