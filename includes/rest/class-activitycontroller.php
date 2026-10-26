@@ -14,6 +14,8 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 use ZeroSpam\Core\Access;
+use ZeroSpam\Core\License_Status;
+use ZeroSpam\Core\Settings_Schema;
 use ZeroSpam\Core\User;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Undo_Store;
@@ -63,7 +65,7 @@ class Activity_Controller extends Base_Controller {
 	 *
 	 * @var string[]
 	 */
-	const ORDERBY = array( 'date_recorded', 'log_type', 'user_ip', 'country', 'region' );
+	const ORDERBY = array( 'date_recorded', 'log_type', 'user_ip', 'country', 'region', 'country_name', 'region_name' );
 
 	/**
 	 * Columns of a list row (submission_data is added when `failed` is asked for).
@@ -87,7 +89,7 @@ class Activity_Controller extends Base_Controller {
 	const FACET_LIMITS = array(
 		'type'    => 100,
 		'country' => 250,
-		'ip'      => 10,
+		'ip'      => 12,
 	);
 
 	/**
@@ -415,7 +417,11 @@ class Activity_Controller extends Base_Controller {
 		$item['details'] = is_array( $details ) ? $details : null;
 		$item['block']   = null === $record ? null : Rules_Controller::prepare_block( $record['record'] );
 		$item['allowed'] = Rules_Controller::is_allowed_ip( (string) $row['user_ip'] );
-		$item['map_url'] = self::map_url( $row['latitude'] ?? null, $row['longitude'] ?? null );
+
+		// Whether the network administrator locked the IP Allowlist (no Always allow then).
+		$allowlist                = Settings_Schema::resolve( 'ip_whitelist' );
+		$item['allowlist_locked'] = null !== $allowlist && ! empty( $allowlist['locked'] );
+		$item['map_url']          = self::map_url( $row['latitude'] ?? null, $row['longitude'] ?? null );
 
 		return rest_ensure_response( $this->filter_fields( $item, $request ) );
 	}
@@ -514,11 +520,12 @@ class Activity_Controller extends Base_Controller {
 	}
 
 	/**
-	 * Counts per type, country and IP address (the ten with most entries) for the filters.
+	 * Counts per type, country and IP address (the twelve with most entries) for the filters.
 	 *
 	 * `total` counts the entries every filter matches, `max_id` is the newest
 	 * of them (where a live feed for these filters starts), and
-	 * `network_only` how many of them the Zero Spam network caught.
+	 * `network_only` how many of them the Zero Spam network caught (null
+	 * without Enhanced Protection).
 	 *
 	 * Each facet ignores its own filter, so a client can show how many
 	 * entries every choice would give.
@@ -566,9 +573,13 @@ class Activity_Controller extends Base_Controller {
 			ARRAY_A
 		);
 
-		$network_only = (int) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$network_where['sql']}", array_merge( array( $table ), $network_where['values'] ) )
-		);
+		// Only Enhanced Protection has network detections to count (no request is made to find out).
+		$network_only = null;
+		if ( License_Status::has_key() && License_Status::is_enabled() ) {
+			$network_only = (int) $wpdb->get_var(
+				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$network_where['sql']}", array_merge( array( $table ), $network_where['values'] ) )
+			);
+		}
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		$types     = is_array( $types ) ? $types : array();

@@ -392,6 +392,38 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
+	 * A filtered, sorted or paged address does not preload the default
+	 * list (the app asks for its own); filter counts are preloaded only
+	 * without filters.
+	 */
+	public function test_activity_preloads_only_the_default_view(): void {
+		$list   = '/zero-spam/v1/activity?per_page=25&_fields=' . Admin_App::ACTIVITY_FIELDS;
+		$facets = '/zero-spam/v1/activity?facets=1';
+
+		$sorted = Admin_App::preload_paths( 'activity', array( 'moved' => true ) );
+		$this->assertNotContains( $list, $sorted );
+		$this->assertContains( $facets, $sorted );
+
+		$filtered = Admin_App::preload_paths( 'activity', array( 'filtered' => true ) );
+		$this->assertNotContains( $list, $filtered );
+		$this->assertNotContains( $facets, $filtered );
+
+		$item = Admin_App::preload_paths( 'activity', array( 'item' => 7 ) );
+		$this->assertContains( $list, $item, 'An entry link opens the default list.' );
+
+		$_GET['type'] = 'comment';
+		$_GET['sort'] = 'ip:asc';
+		try {
+			$view = Admin_App::view_args();
+		} finally {
+			unset( $_GET['type'], $_GET['sort'] );
+		}
+		$this->assertTrue( $view['filtered'] );
+		$this->assertTrue( $view['moved'] );
+		$this->assertFalse( Admin_App::view_args()['filtered'] );
+	}
+
+	/**
 	 * An address that opens an entry (`&item=`, the Overview's feed links)
 	 * preloads that entry.
 	 */

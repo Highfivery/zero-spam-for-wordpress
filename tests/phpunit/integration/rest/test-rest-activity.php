@@ -233,6 +233,21 @@ class Test_Rest_Activity extends TestCase {
 	}
 
 	/**
+	 * Locations sort by their names (as Reports lists them), not their codes.
+	 */
+	public function test_sorting_by_location_names(): void {
+		$this->insert_log_rows( 1, array( 'country' => 'DE', 'country_name' => 'Germany', 'region' => 'BE', 'region_name' => 'Berlin' ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->insert_log_rows( 1, array( 'country' => 'AT', 'country_name' => 'Austria', 'region' => 'WI', 'region_name' => 'Vienna' ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->insert_log_rows( 1, array( 'country' => 'US', 'country_name' => 'United States', 'region' => 'CA', 'region_name' => 'California' ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+
+		$countries = array_column( $this->rest( 'GET', self::ROUTE, array(), array( 'orderby' => 'country_name', 'order' => 'asc' ) )->get_data(), 'country_name' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$regions   = array_column( $this->rest( 'GET', self::ROUTE, array(), array( 'orderby' => 'region_name', 'order' => 'desc' ) )->get_data(), 'region_name' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+
+		$this->assertSame( array( 'Austria', 'Germany', 'United States' ), $countries );
+		$this->assertSame( array( 'Vienna', 'California', 'Berlin' ), $regions );
+	}
+
+	/**
 	 * Each row says whether its IP is blocked right now, from one query for
 	 * the whole page (the legacy Log screen runs one per row), and a page
 	 * costs at most four queries.
@@ -398,6 +413,11 @@ class Test_Rest_Activity extends TestCase {
 		$only = $this->sorted_ids( array( 'network_only' => true ) );
 		$this->assertSame( array_merge( $network, $legacy ), $only );
 
+		$this->assertNull( $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true ) )->get_data()['network_only'], 'Not counted without Enhanced Protection.' );
+
+		$this->set_setting( 'zerospam_license', 'e2e-license' );
+		$this->set_setting( 'zerospam', 'enabled' );
+
 		$facets = $this->rest( 'GET', self::ROUTE, array(), array( 'facets' => true ) )->get_data();
 		$this->assertSame( 3, $facets['network_only'] );
 		$this->assertSame( 5, $facets['total'] );
@@ -433,6 +453,7 @@ class Test_Rest_Activity extends TestCase {
 
 		$this->assertTrue( $this->rest( 'GET', self::ROUTE . '/' . $ids[0] )->get_data()['allowed'] );
 		$this->assertFalse( $this->rest( 'GET', self::ROUTE . '/' . ( $ids[0] + 1 ) )->get_data()['allowed'] );
+		$this->assertFalse( $this->rest( 'GET', self::ROUTE . '/' . $ids[0] )->get_data()['allowlist_locked'], 'Not locked on a single site.' );
 	}
 
 	/**

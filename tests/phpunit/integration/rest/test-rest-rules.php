@@ -75,6 +75,7 @@ class Test_Rest_Rules extends TestCase {
 			'change block'      => array( 'PUT', self::BLOCKS . '/1', array( 'reason' => 'x' ) ),
 			'delete block'      => array( 'DELETE', self::BLOCKS . '/1', array() ),
 			'bulk delete'       => array( 'POST', self::BLOCKS . '/bulk-delete', array( 'ids' => array( 1 ) ) ),
+			'bulk add'          => array( 'POST', self::BLOCKS . '/bulk', array( 'ips' => array( '192.0.2.9' ), 'type' => 'permanent' ) ), // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short body.
 			'read list'         => array( 'GET', '/zero-spam/v1/rules/lists/allowed-ips', array() ),
 			'change list'       => array( 'PUT', '/zero-spam/v1/rules/lists/allowed-ips', array( 'items' => array( '192.0.2.1' ) ) ),
 			'read no-lockout'   => array( 'GET', '/zero-spam/v1/rules/no-lockout', array() ),
@@ -327,6 +328,106 @@ class Test_Rest_Rules extends TestCase {
 		$this->assertSame( 'Blocked again', DB::blocked( '198.51.100.40' )['reason'] );
 		$this->assertSame( $again['id'], (int) DB::blocked( '198.51.100.40' )['blocked_id'] );
 		$this->assertNotNull( DB::blocked( '198.51.100.41' ) );
+	}
+
+	/**
+	 * Bulk add: each address once, addresses blocked now skipped, an ended
+	 * block replaced, invalid addresses reported; one INSERT; one undo token
+	 * that removes the new blocks and puts the replaced one back.
+	 */
+	public function test_bulk_add_blocks_and_undo(): void {
+		global $wpdb;
+
+		$table = $wpdb->prefix . DB::$tables['blocked'];
+		$this->block( '192.0.2.1' );
+		$ended = $this->block( '192.0.2.2', 'temporary', wp_date( 'Y-m-d H:i:s', time() - 3 * DAY_IN_SECONDS ), wp_date( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
+		$was   = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE blocked_id = %d', $table, $ended ), ARRAY_A );
+		$end   = gmdate( 'Y-m-d', time() + 7 * DAY_IN_SECONDS );
+
+		$body     = array(
+			'ips'    => array( '192.0.2.1', '192.0.2.2', '192.0.2.3', '192.0.2.3', '2001:DB8::5', 'nope' ),
+			'type'   => 'temporary',
+			'end'    => $end,
+			'reason' => 'Bulk',
+		);
+		$response = null;
+		$queries  = $this->capture_queries(
+			function () use ( &$response, $body ) {
+				$response = $this->rest( 'POST', self::BLOCKS . '/bulk', $body );
+			}
+		);
+		$data     = $response->get_data();
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( 2, $data['created'] );
+		$this->assertSame( 1, $data['replaced'] );
+		$this->assertSame( array( '192.0.2.1' ), $data['skipped'] );
+		$this->assertArrayHasKey( 'nope', (array) $data['invalid'] );
+		$this->assertCount( 1, preg_grep( '/^INSERT INTO `' . preg_quote( $table, '/' ) . '`/', $queries ), 'One INSERT for every new block.' );
+		$this->assertSame( 4, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) ) );
+		$this->assertSame( 1, (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE user_ip = '2001:db8::5' AND reason = 'Bulk'", $table ) ), 'Stored in canonical form.' );
+		$this->assertTrue( $this->rest( 'GET', self::BLOCKS . '/' . $ended )->get_data()['active'], 'The ended block runs again.' );
+
+		$undo = $this->rest( 'POST', '/zero-spam/v1/undo/' . $data['undo_token'] );
+
+		$this->assertSame( 200, $undo->get_status() );
+		$this->assertSame( 'blocks_added', $undo->get_data()['kind'] );
+		$this->assertSame( 2, (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) ), 'The new blocks are gone.' );
+		$this->assertSame( $was, $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE blocked_id = %d', $table, $ended ), ARRAY_A ), 'The replaced block is back as it was.' );
+		$this->assertSame( 404, $this->rest( 'POST', '/zero-spam/v1/undo/' . $data['undo_token'] )->get_status(), 'Once.' );
+	}
+
+	/**
+	 * A problem with the shared fields refuses the whole request; nothing is written.
+	 */
+	public function test_bulk_add_refuses_bad_shared_fields(): void {
+		$response = $this->rest(
+			'POST',
+			self::BLOCKS . '/bulk',
+			array(
+				'ips'  => array( '192.0.2.3', '192.0.2.4' ),
+				'type' => 'temporary',
+			)
+		);
+
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertArrayHasKey( 'end', $response->get_data()['data']['params'] );
+		$this->assertSame( array(), $this->rest( 'GET', self::BLOCKS )->get_data() );
+		$this->assertSame( 400, $this->rest( 'POST', self::BLOCKS . '/bulk', array( 'ips' => array() ) )->get_status(), 'At least one address.' );
+	}
+
+	/**
+	 * In an .htaccess block mode a bulk add rewrites the rules once.
+	 */
+	public function test_bulk_add_refreshes_htaccess_once(): void {
+		$this->htaccess = get_temp_dir() . 'zerospam-rules-' . wp_generate_password( 8, false ) . '.htaccess';
+		file_put_contents( $this->htaccess, "# BEGIN WordPress\n# END WordPress\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Test fixture.
+		$file  = $this->htaccess;
+		$calls = 0;
+		add_filter(
+			'zerospam_htaccess_file',
+			static function () use ( $file, &$calls ) {
+				++$calls;
+				return $file;
+			}
+		);
+		$this->set_setting( 'block_method', 'htaccess_modern' );
+
+		$this->rest(
+			'POST',
+			self::BLOCKS . '/bulk',
+			array(
+				'ips'  => array( '192.0.2.51', '192.0.2.52', '192.0.2.53' ),
+				'type' => 'permanent',
+			)
+		);
+
+		$this->assertSame( 1, $calls );
+		$contents = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Local test file.
+		$this->assertStringContainsString( 'Require not ip ', $contents );
+		foreach ( array( '192.0.2.51', '192.0.2.52', '192.0.2.53' ) as $ip ) {
+			$this->assertStringContainsString( $ip, $contents );
+		}
 	}
 
 	/**

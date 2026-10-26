@@ -344,15 +344,32 @@ final class Admin_App {
 	}
 
 	/**
-	 * The view the address asks for: the tab and the activity entry to open.
+	 * Address arguments that change the Activity log's list (assets/src/admin/activity/query.js).
 	 *
-	 * @return array{tab: string, item: int}
+	 * @var string[]
+	 */
+	const ACTIVITY_VIEW_ARGS = array( 'type', 'country', 'ip', 'after', 'before', 'network', 'sort', 'paged' );
+
+	/**
+	 * The view the address asks for: the tab, the activity entry to open,
+	 * whether the log is filtered (its first page is then not the default
+	 * one) and whether it is only sorted or paged.
+	 *
+	 * @return array{tab: string, item: int, filtered: bool, moved: bool}
 	 */
 	public static function view_args(): array {
+		$set = array();
+		foreach ( self::ACTIVITY_VIEW_ARGS as $arg ) {
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view state; only whether it is set is used.
+			$set[ $arg ] = isset( $_GET[ $arg ] ) && '' !== $_GET[ $arg ];
+		}
+
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- Read-only view state.
 		return array(
-			'tab'  => isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '',
-			'item' => isset( $_GET['item'] ) ? absint( wp_unslash( $_GET['item'] ) ) : 0,
+			'tab'      => isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : '',
+			'item'     => isset( $_GET['item'] ) ? absint( wp_unslash( $_GET['item'] ) ) : 0,
+			'filtered' => $set['type'] || $set['country'] || $set['ip'] || $set['after'] || $set['before'] || $set['network'],
+			'moved'    => $set['sort'] || $set['paged'],
 		);
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended
 	}
@@ -367,18 +384,28 @@ final class Admin_App {
 	 * (assets/src/admin/activity/query.js); the preloading middleware
 	 * matches them with their query arguments in any order.
 	 *
-	 * @param array{tab?: string, item?: int} $view View.
+	 * Paths that only the default view asks for are left out when the
+	 * address filters, sorts or pages the log (the app asks for those
+	 * itself): the first page needs no filter, sort or page; the filter
+	 * counts need no filter.
+	 *
+	 * @param array{tab?: string, item?: int, filtered?: bool, moved?: bool} $view View.
 	 * @return string[]
 	 */
 	public static function activity_preloads( array $view = array() ): array {
-		$paths = array( '/zero-spam/v1/stats/summary?range=30' );
+		$paths    = array( '/zero-spam/v1/stats/summary?range=30' );
+		$filtered = ! empty( $view['filtered'] );
 
 		if ( 'reports' === ( $view['tab'] ?? '' ) ) {
 			$paths[] = '/zero-spam/v1/stats/timeseries';
 			$paths[] = '/zero-spam/v1/activity?facets=1&detections_only=1&days=' . self::REPORTS_DAYS;
 		} else {
-			$paths[] = '/zero-spam/v1/activity?per_page=' . self::ACTIVITY_PER_PAGE . '&_fields=' . self::ACTIVITY_FIELDS;
-			$paths[] = '/zero-spam/v1/activity?facets=1';
+			if ( ! $filtered && empty( $view['moved'] ) ) {
+				$paths[] = '/zero-spam/v1/activity?per_page=' . self::ACTIVITY_PER_PAGE . '&_fields=' . self::ACTIVITY_FIELDS;
+			}
+			if ( ! $filtered ) {
+				$paths[] = '/zero-spam/v1/activity?facets=1';
+			}
 		}
 
 		if ( ! empty( $view['item'] ) ) {
@@ -391,8 +418,8 @@ final class Admin_App {
 	/**
 	 * The REST paths preloaded for an area.
 	 *
-	 * @param string                          $area Area.
-	 * @param array{tab?: string, item?: int} $view View the address asks for (see view_args()).
+	 * @param string                                                         $area Area.
+	 * @param array{tab?: string, item?: int, filtered?: bool, moved?: bool} $view View the address asks for (see view_args()).
 	 * @return string[]
 	 */
 	public static function preload_paths( string $area, array $view = array() ): array {
