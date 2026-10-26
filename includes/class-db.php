@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '1.4';
+	const DB_VERSION = '1.5';
 
 	/**
 	 * Log types that are recorded in the Detection Log but are not detections.
@@ -50,7 +50,17 @@ class DB {
 		'stats_monthly'     => 'wpzerospam_stats_monthly',
 		'network_templates' => 'wpzerospam_network_templates',
 		'network_audit'     => 'wpzerospam_network_audit',
+		// Network-wide IP blocks (since 6.0.0, DB 1.5): one table for the network (base prefix), enforced on every site.
+		'network_blocked'   => 'wpzerospam_network_blocked',
 	);
+
+	/**
+	 * Actions the network audit log records (`wpzerospam_network_audit.action_type`).
+	 * `block`, `unblock` and `migrate` since 6.0.0 (DB 1.5).
+	 *
+	 * @var string[]
+	 */
+	const AUDIT_ACTIONS = array( 'set', 'lock', 'unlock', 'apply', 'bulk', 'template', 'import', 'reset', 'block', 'unblock', 'migrate' );
 
 	/**
 	 * Constructor
@@ -64,136 +74,7 @@ class DB {
 	 */
 	public function update() {
 		if ( self::DB_VERSION !== get_option( 'zerospam_db_version' ) ) {
-			global $wpdb;
-
-			$charset_collate = $wpdb->get_charset_collate();
-
-			$sql = array();
-
-			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['log'] . " (
-				log_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-				blog_id bigint(20) unsigned NOT NULL DEFAULT 1,
-				log_type varchar(255) NOT NULL,
-				user_ip varchar(39) NOT NULL,
-				date_recorded datetime NOT NULL,
-				page_url varchar(255) DEFAULT NULL,
-				submission_data longtext DEFAULT NULL,
-				country varchar(2) DEFAULT NULL,
-				country_name varchar(255) DEFAULT NULL,
-				region varchar(255) DEFAULT NULL,
-				region_name varchar(255) DEFAULT NULL,
-				city varchar(255) DEFAULT NULL,
-				zip varchar(10) DEFAULT NULL,
-				latitude varchar(255) DEFAULT NULL,
-				longitude varchar(255) DEFAULT NULL,
-				PRIMARY KEY  (log_id),
-			KEY blog_id (blog_id),
-			KEY blog_date (blog_id, date_recorded)
-			) $charset_collate;";
-
-			$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['blocked'] . " (
-				blocked_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-				blocked_type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
-				user_ip varchar(39) NOT NULL,
-				blocked_key varchar(255) DEFAULT NULL,
-				key_type enum('ip','email','username','country_code','region_code','zip', 'city') NOT NULL DEFAULT 'ip',
-				date_added datetime NOT NULL,
-				start_block datetime DEFAULT NULL,
-				end_block datetime DEFAULT NULL,
-				reason varchar(255) DEFAULT NULL,
-				PRIMARY KEY  (blocked_id)
-			) $charset_collate;";
-
-			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['api_usage'] . " (
-				usage_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-				site_id bigint(20) unsigned NOT NULL DEFAULT 1,
-				event_type enum('api_call','cache_hit','cache_miss','error') NOT NULL DEFAULT 'api_call',
-				endpoint varchar(255) NOT NULL,
-				response_code int(11) DEFAULT NULL,
-				response_time_ms int(11) DEFAULT NULL,
-				queries_limit int(11) DEFAULT NULL,
-				queries_made int(11) DEFAULT NULL,
-				queries_remaining int(11) DEFAULT NULL,
-				error_message text DEFAULT NULL,
-				request_params text DEFAULT NULL,
-				date_recorded datetime NOT NULL,
-				hour_bucket datetime NOT NULL,
-				day_bucket date NOT NULL,
-				KEY site_date (site_id, date_recorded),
-				KEY site_day (site_id, day_bucket),
-				KEY site_hour (site_id, hour_bucket),
-				KEY event_type (event_type),
-				KEY response_code (response_code),
-				PRIMARY KEY  (usage_id)
-			) $charset_collate;";
-
-			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_daily'] . " (
-				stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-				site_id bigint(20) unsigned NOT NULL DEFAULT 1,
-				stat_date date NOT NULL,
-				total_spam_blocked int(11) NOT NULL DEFAULT 0,
-				spam_by_type text DEFAULT NULL,
-				top_countries text DEFAULT NULL,
-				top_ips text DEFAULT NULL,
-				top_log_types text DEFAULT NULL,
-				unique_ips int(11) NOT NULL DEFAULT 0,
-				date_aggregated datetime NOT NULL,
-				PRIMARY KEY  (stat_id),
-				UNIQUE KEY site_date (site_id, stat_date),
-				KEY stat_date (stat_date)
-			) $charset_collate;";
-
-			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_monthly'] . " (
-			stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-			site_id bigint(20) unsigned NOT NULL DEFAULT 1,
-			stat_year int(4) NOT NULL,
-			stat_month int(2) NOT NULL,
-			total_spam_blocked int(11) NOT NULL DEFAULT 0,
-			spam_by_type text DEFAULT NULL,
-			top_countries text DEFAULT NULL,
-			top_ips text DEFAULT NULL,
-			top_log_types text DEFAULT NULL,
-			unique_ips int(11) NOT NULL DEFAULT 0,
-			date_aggregated datetime NOT NULL,
-			PRIMARY KEY  (stat_id),
-			UNIQUE KEY site_month (site_id, stat_year, stat_month),
-			KEY stat_period (stat_year, stat_month)
-		) $charset_collate;";
-
-			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_templates'] . " (
-			template_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-			template_name varchar(255) NOT NULL,
-			template_slug varchar(255) NOT NULL,
-			template_type enum('built_in','custom') NOT NULL DEFAULT 'custom',
-			settings longtext NOT NULL,
-			description text DEFAULT NULL,
-			created_by bigint(20) unsigned NOT NULL,
-			created_at datetime NOT NULL,
-			updated_at datetime NOT NULL,
-			PRIMARY KEY  (template_id),
-			UNIQUE KEY template_slug (template_slug),
-			KEY template_type (template_type)
-		) $charset_collate;";
-
-			$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_audit'] . " (
-			audit_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-			site_id bigint(20) unsigned NOT NULL DEFAULT 0,
-			action_type enum('set','lock','unlock','apply','bulk','template','import','reset') NOT NULL DEFAULT 'set',
-			setting_key varchar(255) DEFAULT NULL,
-			old_value text DEFAULT NULL,
-			new_value text DEFAULT NULL,
-			affected_sites text DEFAULT NULL,
-			user_id bigint(20) unsigned NOT NULL,
-			user_login varchar(60) NOT NULL,
-			ip_address varchar(39) NOT NULL,
-			date_created datetime NOT NULL,
-			PRIMARY KEY  (audit_id),
-			KEY site_id (site_id),
-			KEY action_type (action_type),
-			KEY setting_key (setting_key),
-			KEY user_id (user_id),
-			KEY date_created (date_created)
-		) $charset_collate;";
+			$sql = self::schema();
 
 			require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 			dbDelta( $sql );
@@ -206,6 +87,167 @@ class DB {
 
 			update_option( 'zerospam_db_version', self::DB_VERSION );
 		}
+	}
+
+	/**
+	 * The CREATE TABLE statements dbDelta() brings the tables in line with.
+	 *
+	 * Per-site tables use the site's prefix; network-wide ones the base
+	 * prefix. Since 6.0.0 (DB 1.5) the network-wide IP blocks table
+	 * (`network_blocked`) and three more audit actions (`block`, `unblock`,
+	 * `migrate`).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return string[]
+	 */
+	public static function schema(): array {
+		global $wpdb;
+
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = array();
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['log'] . " (
+			log_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			blog_id bigint(20) unsigned NOT NULL DEFAULT 1,
+			log_type varchar(255) NOT NULL,
+			user_ip varchar(39) NOT NULL,
+			date_recorded datetime NOT NULL,
+			page_url varchar(255) DEFAULT NULL,
+			submission_data longtext DEFAULT NULL,
+			country varchar(2) DEFAULT NULL,
+			country_name varchar(255) DEFAULT NULL,
+			region varchar(255) DEFAULT NULL,
+			region_name varchar(255) DEFAULT NULL,
+			city varchar(255) DEFAULT NULL,
+			zip varchar(10) DEFAULT NULL,
+			latitude varchar(255) DEFAULT NULL,
+			longitude varchar(255) DEFAULT NULL,
+			PRIMARY KEY  (log_id),
+		KEY blog_id (blog_id),
+		KEY blog_date (blog_id, date_recorded)
+		) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->prefix . self::$tables['blocked'] . " (
+			blocked_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			blocked_type enum('permanent','temporary') NOT NULL DEFAULT 'temporary',
+			user_ip varchar(39) NOT NULL,
+			blocked_key varchar(255) DEFAULT NULL,
+			key_type enum('ip','email','username','country_code','region_code','zip','city') NOT NULL DEFAULT 'ip',
+			date_added datetime NOT NULL,
+			start_block datetime DEFAULT NULL,
+			end_block datetime DEFAULT NULL,
+			reason varchar(255) DEFAULT NULL,
+			PRIMARY KEY  (blocked_id)
+		) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['api_usage'] . " (
+			usage_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+			event_type enum('api_call','cache_hit','cache_miss','error') NOT NULL DEFAULT 'api_call',
+			endpoint varchar(255) NOT NULL,
+			response_code int(11) DEFAULT NULL,
+			response_time_ms int(11) DEFAULT NULL,
+			queries_limit int(11) DEFAULT NULL,
+			queries_made int(11) DEFAULT NULL,
+			queries_remaining int(11) DEFAULT NULL,
+			error_message text DEFAULT NULL,
+			request_params text DEFAULT NULL,
+			date_recorded datetime NOT NULL,
+			hour_bucket datetime NOT NULL,
+			day_bucket date NOT NULL,
+			KEY site_date (site_id, date_recorded),
+			KEY site_day (site_id, day_bucket),
+			KEY site_hour (site_id, hour_bucket),
+			KEY event_type (event_type),
+			KEY response_code (response_code),
+			PRIMARY KEY  (usage_id)
+		) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_daily'] . " (
+			stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+			stat_date date NOT NULL,
+			total_spam_blocked int(11) NOT NULL DEFAULT 0,
+			spam_by_type text DEFAULT NULL,
+			top_countries text DEFAULT NULL,
+			top_ips text DEFAULT NULL,
+			top_log_types text DEFAULT NULL,
+			unique_ips int(11) NOT NULL DEFAULT 0,
+			date_aggregated datetime NOT NULL,
+			PRIMARY KEY  (stat_id),
+			UNIQUE KEY site_date (site_id, stat_date),
+			KEY stat_date (stat_date)
+		) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['stats_monthly'] . " (
+		stat_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		site_id bigint(20) unsigned NOT NULL DEFAULT 1,
+		stat_year int(4) NOT NULL,
+		stat_month int(2) NOT NULL,
+		total_spam_blocked int(11) NOT NULL DEFAULT 0,
+		spam_by_type text DEFAULT NULL,
+		top_countries text DEFAULT NULL,
+		top_ips text DEFAULT NULL,
+		top_log_types text DEFAULT NULL,
+		unique_ips int(11) NOT NULL DEFAULT 0,
+		date_aggregated datetime NOT NULL,
+		PRIMARY KEY  (stat_id),
+		UNIQUE KEY site_month (site_id, stat_year, stat_month),
+		KEY stat_period (stat_year, stat_month)
+	) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_templates'] . " (
+		template_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		template_name varchar(255) NOT NULL,
+		template_slug varchar(255) NOT NULL,
+		template_type enum('built_in','custom') NOT NULL DEFAULT 'custom',
+		settings longtext NOT NULL,
+		description text DEFAULT NULL,
+		created_by bigint(20) unsigned NOT NULL,
+		created_at datetime NOT NULL,
+		updated_at datetime NOT NULL,
+		PRIMARY KEY  (template_id),
+		UNIQUE KEY template_slug (template_slug),
+		KEY template_type (template_type)
+	) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_audit'] . " (
+		audit_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		site_id bigint(20) unsigned NOT NULL DEFAULT 0,
+		action_type enum('" . implode( "','", self::AUDIT_ACTIONS ) . "') NOT NULL DEFAULT 'set',
+		setting_key varchar(255) DEFAULT NULL,
+		old_value text DEFAULT NULL,
+		new_value text DEFAULT NULL,
+		affected_sites text DEFAULT NULL,
+		user_id bigint(20) unsigned NOT NULL,
+		user_login varchar(60) NOT NULL,
+		ip_address varchar(39) NOT NULL,
+		date_created datetime NOT NULL,
+		PRIMARY KEY  (audit_id),
+		KEY site_id (site_id),
+		KEY action_type (action_type),
+		KEY setting_key (setting_key),
+		KEY user_id (user_id),
+		KEY date_created (date_created)
+	) $charset_collate;";
+
+		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_blocked'] . " (
+		blocked_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		blocked_type enum('permanent','temporary') NOT NULL DEFAULT 'permanent',
+		user_ip varchar(39) NOT NULL,
+		date_added datetime NOT NULL,
+		start_block datetime DEFAULT NULL,
+		end_block datetime DEFAULT NULL,
+		reason varchar(255) DEFAULT NULL,
+		created_by bigint(20) unsigned NOT NULL DEFAULT 0,
+		PRIMARY KEY  (blocked_id),
+		UNIQUE KEY user_ip (user_ip),
+		KEY date_added (date_added)
+	) $charset_collate;";
+
+		return $sql;
 	}
 
 	/**
@@ -358,7 +400,7 @@ class DB {
 			// Add or update a record.
 			if ( ! empty( $record['blocked_id'] ) ) {
 				// Update a record.
-				$blocked['blocked_id'] = $record['blocked_id'];
+				$blocked = array( 'blocked_id' => $record['blocked_id'] );
 			} elseif ( ! empty( $record['user_ip'] ) ) {
 				// Add a record, but first check if IP is unique.
 				$blocked = self::blocked( $record['user_ip'] );

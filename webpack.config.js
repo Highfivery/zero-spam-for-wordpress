@@ -7,7 +7,8 @@
  * - Explicit entry points (below) instead of the src/ and block.json
  *   discovery: one per admin area (admin-{area}, from
  *   assets/src/admin/{area}/index.js; Admin_App enqueues only the page's
- *   own), plus network, widget-refresh and blocked.
+ *   own; the network page is the `network` area), plus widget-refresh
+ *   and blocked.
  * - Output in assets/dist/, which is committed and shipped (/build/ is
  *   ignored by git and .distignore). ZEROSPAM_DIST_DIR builds elsewhere;
  *   bin/check-dist.sh uses it to compare a fresh build with the committed one.
@@ -51,7 +52,7 @@ const outputPath = process.env.ZEROSPAM_DIST_DIR
 // Admin areas with their own entry point: assets/src/admin/{area}/index.js,
 // built to assets/dist/admin-{area}.js and .css. Keep this list, the areas of
 // Admin_App (AREAS and the network page) and the budgets loop of
-// bin/check-dist.sh in step.
+// bin/check-dist.sh in step (assets/src/admin/test/areas.test.js checks it).
 const adminAreas = [
 	'overview',
 	'activity',
@@ -121,7 +122,6 @@ module.exports = {
 				path.join( src, `admin/${ area }/index.js` ),
 			] )
 		),
-		network: path.join( src, 'network/index.js' ),
 		'widget-refresh': path.join( src, 'widget-refresh/index.js' ),
 		blocked: path.join( src, 'blocked/index.css' ),
 	},

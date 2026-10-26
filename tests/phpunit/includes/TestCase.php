@@ -291,6 +291,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		License_Status::reset_request_cache();
 		Base_Controller::reset_request_cache();
 		User::reset_cache();
+		\ZeroSpam\Includes\Network_Blocks::reset_request_cache();
 	}
 
 	/**

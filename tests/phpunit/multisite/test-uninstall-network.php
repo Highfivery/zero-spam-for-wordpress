@@ -39,6 +39,7 @@ class Test_Uninstall_Network extends TestCase {
 		'wpzerospam_stats_monthly',
 		'wpzerospam_network_templates',
 		'wpzerospam_network_audit',
+		'wpzerospam_network_blocked',
 	);
 
 	/**

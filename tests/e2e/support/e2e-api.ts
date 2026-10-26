@@ -246,14 +246,15 @@ export class ZsApi {
 	 * @param method HTTP method.
 	 * @param route  Route below zero-spam/v1, such as rules/blocks.
 	 * @param data   JSON body.
+	 * @param query  Query arguments, such as { scope: 'network' }.
 	 */
-	async plugin< T >( method: 'GET' | 'POST' | 'PUT' | 'DELETE', route: string, data?: Record< string, unknown > ): Promise< T > {
+	async plugin< T >( method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', route: string, data?: Record< string, unknown >, query: Record< string, string > = {} ): Promise< T > {
 		const { requestUtils } = this;
 		if ( ! requestUtils.storageState?.nonce ) {
 			await requestUtils.setupRest();
 		}
 		const base = ( this.sitePath ? this.sitePath.replace( /^\//, '' ) : '' ) + 'index.php';
-		const response = await requestUtils.request.fetch( `${ base }?${ new URLSearchParams( { rest_route: `/zero-spam/v1/${ route }` } ).toString() }`, {
+		const response = await requestUtils.request.fetch( `${ base }?${ new URLSearchParams( { rest_route: `/zero-spam/v1/${ route }`, ...query } ).toString() }`, {
 			method,
 			headers: { 'X-WP-Nonce': requestUtils.storageState!.nonce },
 			data,

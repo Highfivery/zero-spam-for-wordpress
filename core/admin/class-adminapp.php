@@ -208,6 +208,41 @@ final class Admin_App {
 	);
 
 	/**
+	 * Tabs of the network page (`&tab=`), in order; the first is the default.
+	 *
+	 * @var string[]
+	 */
+	const NETWORK_TABS = array( 'overview', 'settings', 'templates', 'audit', 'comparison', 'io', 'notifications', 'stats' );
+
+	/**
+	 * Rows per page of the network audit log (assets/src/admin/network/model.js).
+	 *
+	 * @var int
+	 */
+	const AUDIT_PER_PAGE = 25;
+
+	/**
+	 * Sites per page of the network comparison.
+	 *
+	 * @var int
+	 */
+	const COMPARISON_PER_PAGE = 5;
+
+	/**
+	 * Sites per page of the network statistics.
+	 *
+	 * @var int
+	 */
+	const STATS_PER_PAGE = 20;
+
+	/**
+	 * Network blocks per page on the statistics tab.
+	 *
+	 * @var int
+	 */
+	const NETWORK_BLOCKS_PER_PAGE = 10;
+
+	/**
 	 * The news route, preloaded when the news is on.
 	 *
 	 * @var string
@@ -543,7 +578,7 @@ final class Admin_App {
 		}
 
 		$paths = 'network' === $area
-			? array( '/zero-spam/v1/ui/prefs' )
+			? array_merge( array( '/zero-spam/v1/ui/prefs' ), self::network_preloads( $view['tab'] ?? '' ) )
 			: self::SHELL_PRELOADS;
 
 		if ( 'rules' === $area ) {
@@ -575,6 +610,39 @@ final class Admin_App {
 		}
 
 		return $paths;
+	}
+
+	/**
+	 * The REST paths a network tab reads on load, written exactly as the app
+	 * asks for them (assets/src/admin/network/model.js, PATHS).
+	 *
+	 * @param string $tab Tab the address asks for (`&tab=`); the Overview when unknown.
+	 * @return string[]
+	 */
+	public static function network_preloads( string $tab = '' ): array {
+		$tab = in_array( $tab, self::NETWORK_TABS, true ) ? $tab : self::NETWORK_TABS[0];
+
+		switch ( $tab ) {
+			case 'settings':
+				return array( '/zero-spam/v1/settings/schema', '/zero-spam/v1/settings?scope=network', '/zero-spam/v1/network/overview' );
+			case 'templates':
+				return array( '/zero-spam/v1/settings/schema', '/zero-spam/v1/network-settings/templates', '/zero-spam/v1/settings?scope=network' );
+			case 'audit':
+				return array( '/zero-spam/v1/settings/schema', '/zero-spam/v1/network-settings/audit?page=1&per_page=' . self::AUDIT_PER_PAGE );
+			case 'comparison':
+				return array( '/zero-spam/v1/settings/schema', '/zero-spam/v1/network/comparison?page=1&per_page=' . self::COMPARISON_PER_PAGE );
+			case 'io':
+				return array( '/zero-spam/v1/network-settings/export' );
+			case 'notifications':
+				return array( '/zero-spam/v1/network/notifications' );
+			case 'stats':
+				return array(
+					'/zero-spam/v1/network/stats?period=30&page=1&per_page=' . self::STATS_PER_PAGE . '&orderby=blocked&order=desc',
+					'/zero-spam/v1/network/blocks?page=1&per_page=' . self::NETWORK_BLOCKS_PER_PAGE,
+				);
+			default:
+				return array( '/zero-spam/v1/network/overview' );
+		}
 	}
 
 	/**
@@ -733,6 +801,11 @@ final class Admin_App {
 			'rules'             => 'rules' === $area ? array( 'counts' => Rules_Controller::counts() ) : null,
 			// What the Settings page shows besides the schema, on that page only.
 			'settings'          => 'settings' === $area ? array( 'rescueKey' => self::rescue_key_set() ) : null,
+			// The network page: the number of sites and the network's name (super admins only, on that page only).
+			'network'           => 'network' === $area && is_multisite() && current_user_can( 'manage_network_options' ) ? array(
+				'sites' => (int) get_sites( array( 'count' => true ) ),
+				'name'  => wp_specialchars_decode( (string) get_network()->site_name, ENT_QUOTES ),
+			) : null,
 			'newsEnabled'       => News_Feed::is_enabled(),
 			// First-run setup (fresh installs) and the "What's new" release (upgraded sites).
 			'onboarding'        => 'onboarding' === self::view_for( $area ),

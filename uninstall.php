@@ -159,6 +159,7 @@ $zerospam_site_tables = array(
 $zerospam_network_tables = array(
 	'wpzerospam_api_usage',
 	'wpzerospam_network_audit',
+	'wpzerospam_network_blocked',
 	'wpzerospam_network_templates',
 	'wpzerospam_stats_daily',
 	'wpzerospam_stats_monthly',
@@ -182,6 +183,8 @@ $zerospam_network_options = array_merge(
 
 // Network (site) transients with fixed names.
 $zerospam_network_transients = array(
+	'zerospam_network_blocks',
+	'zerospam_network_report',
 	'zerospam_network_settings',
 	'zerospam_news',
 	'zerospam_news_backoff',

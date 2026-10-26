@@ -50,8 +50,6 @@ done
 # admin JS and CSS: per area entry point (admin-{area}.js and .css), each.
 budget_admin_js=75
 budget_admin_css=25
-budget_network_js=40
-budget_network_css=25
 budget_widget_js=6
 budget_widget_css=6
 budget_fonts=110
@@ -62,7 +60,7 @@ dist="assets/dist"
 
 # The admin areas with their own entry point (assets/src/admin/{area}/index.js,
 # built to admin-{area}.js and .css): keep in step with adminAreas in
-# webpack.config.js and the pages of Admin_App.
+# webpack.config.js and the pages of Admin_App (assets/src/admin/test/areas.test.js checks it).
 admin_areas=( overview activity rules protection settings help network )
 
 # ---------------------------------------------------------------------------
@@ -115,7 +113,7 @@ check_budget() {
 check_budgets() {
 	echo "check-dist: budgets (KB = 1,024 bytes; JavaScript and CSS gzip -9 unless marked raw, fonts as stored):"
 	local f area
-	local expected=( network.js network.css widget-refresh.js widget-refresh.css blocked.css blocked-rtl.css sprite.svg )
+	local expected=( widget-refresh.js widget-refresh.css blocked.css blocked-rtl.css sprite.svg )
 	for area in "${admin_areas[@]}"; do
 		expected+=( "admin-$area.js" "admin-$area.css" "admin-$area-rtl.css" "admin-$area.asset.php" )
 	done
@@ -131,8 +129,6 @@ check_budgets() {
 		check_budget "admin-$area.js (gzip)" "$(gz_bytes "$dist/admin-$area.js")" "$budget_admin_js"
 		check_budget "admin-$area.css (gzip)" "$(gz_bytes "$dist/admin-$area.css")" "$budget_admin_css"
 	done
-	check_budget "network.js (gzip)" "$(gz_bytes "$dist/network.js")" "$budget_network_js"
-	check_budget "network.css (gzip)" "$(gz_bytes "$dist/network.css")" "$budget_network_css"
 	check_budget "widget-refresh.js (gzip)" "$(gz_bytes "$dist/widget-refresh.js")" "$budget_widget_js"
 	check_budget "widget-refresh.css (gzip)" "$(gz_bytes "$dist/widget-refresh.css")" "$budget_widget_css"
 

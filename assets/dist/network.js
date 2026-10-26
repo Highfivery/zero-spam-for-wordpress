@@ -1,2 +1,0 @@
-(()=>{"use strict";const e=window.wp.i18n,t=document.getElementById("zerospam-network-app");t&&t.setAttribute("aria-label",function(t){if(!t)return(0,e.__)("Zero Spam","zero-spam");
-/* translators: %s: plugin version number, for example 6.0.0. */const r=(0,e.__)("Zero Spam %s","zero-spam");return(0,e.sprintf)(r,t)}(t.dataset.version||""))})();

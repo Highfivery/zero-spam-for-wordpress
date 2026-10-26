@@ -1298,8 +1298,32 @@ add_action(
 						if ( defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE && $audit === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $audit ) ) ) {
 							$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $audit ) );
 						}
+						// Network-wide blocks and custom templates (6.0): all of them on a
+						// disposable site; on a Local network only the TEST-NET blocks and
+						// the e2e- templates the tests make.
+						$network_blocked   = $wpdb->base_prefix . 'wpzerospam_network_blocked';
+						$network_templates = $wpdb->base_prefix . 'wpzerospam_network_templates';
+						if ( $network_blocked === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $network_blocked ) ) ) {
+							if ( defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE ) {
+								$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $network_blocked ) );
+							} else {
+								$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_ip LIKE %s OR user_ip LIKE %s OR user_ip LIKE %s OR user_ip LIKE %s', $network_blocked, '192.0.2.%', '198.51.100.%', '203.0.113.%', '2001:db8:%' ) );
+							}
+						}
+						if ( $network_templates === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $network_templates ) ) ) {
+							if ( defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE ) {
+								$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $network_templates ) );
+							} else {
+								$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE template_slug LIKE %s', $network_templates, $wpdb->esc_like( 'e2e-' ) . '%' ) );
+							}
+						}
+						foreach ( array( 'zerospam_network_blocks', 'zerospam_network_report', 'zerospam_network_stats_v6_today', 'zerospam_network_stats_v6_yesterday', 'zerospam_network_stats_v6_7', 'zerospam_network_stats_v6_30' ) as $transient ) {
+							delete_site_transient( $transient );
+						}
 						delete_site_option( 'zerospam_network_settings' );
 						delete_site_option( 'zero-spam-network-zerospam' );
+						delete_site_option( 'zerospam_network_notifications_enabled' );
+						delete_site_option( 'zerospam_network_settings_notifications_enabled' );
 						delete_site_transient( 'zerospam_network_settings' );
 						foreach ( get_sites( array( 'number' => 0 ) ) as $site ) {
 							switch_to_blog( (int) $site->blog_id );

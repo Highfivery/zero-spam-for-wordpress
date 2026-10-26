@@ -19,21 +19,12 @@ defined( 'ABSPATH' ) || die();
 class Network_Notifications {
 
 	/**
-	 * Network Settings instance
-	 *
-	 * @var Network_Settings
-	 */
-	private $network_settings;
-
-	/**
 	 * Constructor
 	 */
 	public function __construct() {
 		if ( ! is_multisite() ) {
 			return;
 		}
-
-		$this->network_settings = new Network_Settings();
 
 		// Hook into settings changes.
 		add_action( 'update_site_option_' . Network_Settings::META_KEY, array( $this, 'on_network_settings_updated' ), 10, 3 );
@@ -141,21 +132,9 @@ class Network_Notifications {
 	 * @return array Affected site IDs.
 	 */
 	private function get_affected_sites( $changed_settings ) {
-		$affected = array();
-
-		foreach ( $changed_settings as $key => $change ) {
-			// If locked, all sites are affected.
-			if ( ! empty( $change['locked'] ) ) {
-				$sites = get_sites( array( 'number' => 0 ) );
-				return wp_list_pluck( $sites, 'blog_id' );
-			}
-
-			// Otherwise, only sites using defaults are affected.
-			$sites_using_default = $this->network_settings->get_sites_using_default( $key );
-			$affected            = array_merge( $affected, $sites_using_default );
-		}
-
-		return array_unique( $affected );
+		// A locked setting reaches every site; another only the sites that follow the network value
+		// (read from each site's stored settings, at most Network_Report::MAX_SITES sites, no registry per site).
+		return Network_Report::sites_following( array_map( 'strval', array_keys( (array) $changed_settings ) ) );
 	}
 
 	/**
@@ -184,8 +163,8 @@ class Network_Notifications {
 				$value = sprintf(
 					/* translators: 1: old value, 2: new value of a setting */
 					__( '%1$s → %2$s', 'zero-spam' ),
-					$this->display_value( $change['old_value'] ?? null ),
-					$this->display_value( $change['new_value'] ?? null )
+					$this->display_value( $change['old_value'] ?? null, (string) $key ),
+					$this->display_value( $change['new_value'] ?? null, (string) $key )
 				);
 
 				if ( ! empty( $change['locked'] ) ) {
@@ -227,11 +206,10 @@ class Network_Notifications {
 							'title' => __( 'What changed', 'zero-spam' ),
 							'rows'  => $rows,
 						),
-						// TODO(6.0 cutover): menu path (site settings link).
 						array(
 							'type'  => 'button',
 							'label' => __( 'View your Zero Spam settings', 'zero-spam' ),
-							'url'   => admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ),
+							'url'   => \ZeroSpam\Core\Utilities::admin_link( 'settings' ),
 						),
 					),
 				)
@@ -258,18 +236,29 @@ class Network_Notifications {
 	}
 
 	/**
-	 * A setting value as plain text for an email.
+	 * A setting value as plain text for an email. A secret (license and API
+	 * keys, webhook addresses) is never shown: it reads "••••" (since 6.0.0).
 	 *
-	 * @param mixed $value Value.
+	 * @param mixed  $value Value.
+	 * @param string $key   Setting key.
 	 * @return string
 	 */
-	private function display_value( $value ) {
+	private function display_value( $value, string $key = '' ) {
 		if ( null === $value || '' === $value || false === $value || array() === $value ) {
 			return __( 'Not set', 'zero-spam' );
 		}
 
+		if ( '' !== $key && \ZeroSpam\Core\Settings_Schema::is_secret( $key ) ) {
+			return "\u{2022}\u{2022}\u{2022}\u{2022}";
+		}
+
 		if ( is_array( $value ) ) {
-			return implode( ', ', array_map( array( $this, 'display_value' ), $value ) );
+			$items = array();
+			foreach ( $value as $item ) {
+				$items[] = $this->display_value( $item );
+			}
+
+			return implode( ', ', $items );
 		}
 
 		if ( true === $value ) {
@@ -402,11 +391,10 @@ class Network_Notifications {
 			);
 		}
 
-		// TODO(6.0 cutover): menu path (network settings link).
 		$blocks[] = array(
 			'type'  => 'button',
 			'label' => __( 'View network settings', 'zero-spam' ),
-			'url'   => network_admin_url( 'settings.php?page=zerospam-network-settings' ),
+			'url'   => \ZeroSpam\Core\Utilities::admin_link( 'network-settings' ),
 		);
 
 		Email::send(
@@ -509,6 +497,37 @@ class Network_Notifications {
 			'failed_count' => $failed_count,
 			'total_sites'  => count( $site_ids ),
 		);
+	}
+
+	/**
+	 * Saves the two email preferences and schedules (or unschedules) the
+	 * weekly summary to match. A null leaves that preference as it is.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param bool|null $weekly  Weekly summary for the network administrator.
+	 * @param bool|null $changes Settings change emails for site administrators.
+	 * @return bool Whether both were saved.
+	 */
+	public function save_preferences( ?bool $weekly, ?bool $changes ): bool {
+		$saved = true;
+
+		if ( null !== $weekly ) {
+			$saved = $this->toggle_notifications( $weekly );
+
+			$timestamp = wp_next_scheduled( 'zerospam_network_weekly_summary' );
+			if ( ! $weekly && $timestamp ) {
+				wp_unschedule_event( $timestamp, 'zerospam_network_weekly_summary' );
+			} elseif ( $weekly && ! $timestamp ) {
+				wp_schedule_event( time(), 'weekly', 'zerospam_network_weekly_summary' );
+			}
+		}
+
+		if ( null !== $changes ) {
+			$saved = $this->toggle_settings_notifications( $changes ) && $saved;
+		}
+
+		return $saved;
 	}
 
 	/**

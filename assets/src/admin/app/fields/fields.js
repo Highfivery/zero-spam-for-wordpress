@@ -141,7 +141,10 @@ function NetworkNote( { entry } ) {
 	if ( entry.locked || 'network' !== entry.source ) {
 		return null;
 	}
-	const value = entry.secret ? '' : formatValue( entry, entry.value );
+	// An empty network value reads "(none)", never an empty box (secrets are not shown).
+	const value = entry.secret
+		? ''
+		: formatValue( entry, entry.value ) || __( '(none)', 'zero-spam' );
 	return (
 		<p className="zs-netnote">
 			<Icon name="network" size="sm" />
@@ -560,6 +563,7 @@ function HelpField( { entry } ) {
  * @param {boolean}                         [props.disabled]  Disabled for another reason (the card).
  * @param {(...args: unknown[]) => unknown} [props.onAction]  Called after an action ran.
  * @param {string}                          [props.cardTitle] Title of the card the row is in: a row title that repeats it is kept for screen readers only.
+ * @param {unknown}                         [props.aside]     Shown under the control (the network page's lock switch and site count).
  */
 export function Field( {
 	entry,
@@ -570,6 +574,7 @@ export function Field( {
 	disabled = false,
 	onAction,
 	cardTitle = '',
+	aside = null,
 } ) {
 	const control = controlFor( entry );
 	const id = idOf( entry.key );
@@ -884,6 +889,7 @@ export function Field( {
 						<span>{ error }</span>
 					</p>
 				) }
+				{ aside }
 			</div>
 		</div>
 	);

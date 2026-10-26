@@ -877,6 +877,7 @@ class Test_Rest_Rules extends TestCase {
 				'email'      => 0,
 				'words'      => 0,
 				'no-lockout' => 0,
+				'network'    => 0,
 			),
 			\ZeroSpam\Includes\Rest\Rules_Controller::counts()
 		);

@@ -292,11 +292,6 @@ export const seedNetworkCatches = async ( zs: ZsApi ) => {
 	await zs.seedLog( 15, { type: 'blocked', failed: 'zero_spam', ipPrefix: '192.0.2.', spacingMinutes: 180 } );
 };
 
-/** Waits until a placeholder area has rendered. */
-const areaReady = async ( page: Page ) => {
-	await page.locator( '#zs-area-h' ).waitFor();
-};
-
 /*
  * Baseline policy for the Overview, as for the other areas (AREA_BODY): its
  * body only (the in-app sidebar and top bar have their own baselines, taken
@@ -698,6 +693,59 @@ const V6_SETTINGS: Screen[] = [
 	},
 ];
 
+/** Waits until a network tab has its content (the app replaced the skeleton). */
+export const networkReady = async ( page: Page ) => {
+	await page.locator( '#zs-area-h' ).waitFor();
+	await page.locator( '#zs-net-body > :not(.zs-cardcol[aria-hidden="true"])' ).first().waitFor();
+};
+
+/**
+ * What the network page shows with data (every list 2–8 rows): network
+ * values (one locked, one empty), a subsite that changed a default, a
+ * custom template, a network-wide block (audit entries come with them),
+ * and one TEST-NET address detected on both sites (a multi-site attacker).
+ *
+ * @param zs ZsApi of the main site (super admin).
+ * @param t  Target (its subsite).
+ */
+export const seedNetwork = async ( zs: ZsApi, t: Target ) => {
+	await zs.networkSetting( 'share_data', 'enabled', true );
+	await zs.networkSetting( 'blocked_message', '' );
+	// Through the settings route, so the audit log has "Change" entries.
+	await zs.plugin( 'PATCH', 'settings', { max_logs: 20000, verify_comments: 'enabled' }, { scope: 'network' } );
+	await zs.forSite( t.subsitePath! ).set( { max_logs: 25000 } );
+	await zs.plugin( 'POST', 'network-settings/templates', {
+		name: 'E2E clinic sites',
+		slug: 'e2e-clinic-sites',
+		description: 'Our standard for patient-facing sites.',
+		settings: { max_logs: 10000, verify_comments: 'enabled' },
+	} );
+	await zs.plugin( 'POST', 'network/blocks', { ip: '198.51.100.24', reason: 'E2E: seen on several sites' } );
+	await zs.seedLog( 6, { ip: '203.0.113.9', spacingMinutes: 60 } );
+	await zs.forSite( t.subsitePath! ).seedLog( 4, { ip: '203.0.113.9', spacingMinutes: 60 } );
+};
+
+/** Parts of the network page that change between runs: dates and the site addresses (ports). */
+export const NETWORK_MASKS = [ '.zs-c-date', '.zs-dom', '.zs-cmp-t thead .zs-hint', '.zs-nblocks .zs-cm-m', '.zs-tplcard .zs-hint' ];
+
+/** Baseline policy (AREA_BODY): light 1280 for every tab; 782px and the dark shot on Settings only. */
+const NETWORK_VISUAL = { mask: NETWORK_MASKS, selector: AREA_BODY };
+
+/** The network tabs (Admin_App::NETWORK_TABS), with names. */
+export const NETWORK_TABS = [
+	[ 'overview', 'Overview' ],
+	[ 'settings', 'Settings' ],
+	[ 'templates', 'Templates' ],
+	[ 'audit', 'Audit log' ],
+	[ 'comparison', 'Comparison' ],
+	[ 'io', 'Import/Export' ],
+	[ 'notifications', 'Notifications' ],
+	[ 'stats', 'Network stats' ],
+] as const;
+
+/** The groups of the network Settings tab (&group=), one per area/group of the settings schema it shows. */
+export const NETWORK_SETTING_GROUPS = [ 'detection', 'integrations', 'intelligence', 'settings', 'rules' ] as const;
+
 /** Waits until Help has its guides and news (or the news's empty state). */
 export const helpReady = async ( page: Page ) => {
 	await page.locator( '#zs-area-h' ).waitFor();
@@ -801,7 +849,74 @@ const V6_HELP: Screen[] = [
 ];
 
 const V6_NETWORK: Screen[] = [
-	{ id: 'v6-network', title: '6.0 Network (shell)', area: 'network', sites: 'multisite', state: 'empty', theme: 'both', path: () => AREA( 'network' ), prepare: areaReady },
+	...NETWORK_TABS.map(
+		( [ tab, name ] ): Screen => ( {
+			id: `v6-network-${ tab }`,
+			title: `6.0 Network › ${ name }`,
+			area: 'network',
+			sites: 'multisite',
+			state: 'empty',
+			theme: 'both',
+			before: seedNetwork,
+			path: () => AREA( 'network', 'overview' === tab ? '' : tab ),
+			prepare: networkReady,
+			visual: 'settings' === tab ? { ...NETWORK_VISUAL, mobile: true, dark: true } : NETWORK_VISUAL,
+		} )
+	),
+	...NETWORK_SETTING_GROUPS.map(
+		( group ): Screen => ( {
+			id: `v6-network-settings-${ group }`,
+			title: `6.0 Network › Settings › ${ group }`,
+			area: 'network',
+			sites: 'multisite',
+			state: 'empty',
+			theme: 'both',
+			before: seedNetwork,
+			path: () => AREA( 'network', 'settings', { group } ),
+			prepare: async ( page ) => {
+				await networkReady( page );
+				await page.getByRole( 'button', { name: 'Expand all' } ).click();
+			},
+		} )
+	),
+	{ id: 'v6-network-empty', title: '6.0 Network › Overview (no network values)', area: 'network', sites: 'multisite', state: 'empty', theme: 'both', path: () => AREA( 'network' ), prepare: networkReady },
+	...( [ 'settings', 'stats', 'audit', 'comparison', 'templates' ] as const ).flatMap( ( tab ): Screen[] => [
+		{ id: `v6-network-${ tab }-782`, title: `6.0 Network › ${ tab } at 782px`, area: 'network', sites: 'multisite', state: 'empty', theme: 'both', viewport: { width: 782, height: 900 }, before: seedNetwork, path: () => AREA( 'network', tab ), prepare: networkReady },
+		{ id: `v6-network-${ tab }-375`, title: `6.0 Network › ${ tab } at 375px`, area: 'network', sites: 'multisite', state: 'empty', theme: 'both', viewport: PHONE, before: seedNetwork, path: () => AREA( 'network', tab ), prepare: networkReady },
+	] ),
+	{
+		id: 'v6-network-template-drawer',
+		title: '6.0 Network › Templates › edit drawer',
+		area: 'network',
+		sites: 'multisite',
+		state: 'empty',
+		theme: 'both',
+		before: seedNetwork,
+		path: () => AREA( 'network', 'templates' ),
+		prepare: async ( page ) => {
+			await networkReady( page );
+			await page.getByRole( 'button', { name: 'Edit E2E clinic sites' } ).click();
+			await page.locator( '.zs-drawer #zs-tp-name' ).waitFor();
+		},
+	},
+	{
+		id: 'v6-network-subsite-blocked-ips',
+		title: '6.0 Rules › Blocked IPs on a subsite with a network-wide block',
+		area: 'admin',
+		sites: 'multisite',
+		state: 'empty',
+		theme: 'both',
+		as: 'siteadmin',
+		before: async ( zs ) => {
+			await zs.plugin( 'POST', 'network/blocks', { ip: '198.51.100.24', reason: 'E2E: seen on several sites' } );
+		},
+		path: ( t ) => subsiteURL( t, AREA( 'rules', 'ips' ) ),
+		prepare: async ( page ) => {
+			await rulesReady( page );
+			await page.locator( '.zs-netblocks > summary' ).click();
+			await page.locator( '.zs-netblocks .zs-cards li' ).first().waitFor();
+		},
+	},
 ];
 
 /** Waits until a Rules tab has its list (rows, cards, entries or its empty state). */
