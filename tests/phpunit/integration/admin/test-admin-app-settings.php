@@ -97,7 +97,7 @@ class Test_Admin_App_Settings extends TestCase {
 	 * @return array<string, mixed>
 	 */
 	private function bootstrap_data(): array {
-		$data   = wp_scripts()->get_data( Admin_App::HANDLE, 'before' );
+		$data   = wp_scripts()->get_data( Admin_App::handle( 'settings' ), 'before' );
 		$inline = is_array( $data ) ? implode( "\n", $data ) : '';
 		$this->assertSame( 1, preg_match( '/var zeroSpamAdmin = (\{.*\});/s', $inline, $match ) );
 

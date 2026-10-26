@@ -47,11 +47,9 @@ done
 
 # Budgets in KB (1 KB = 1,024 bytes): gzip -9 size for JavaScript and CSS,
 # file size for the fonts (woff2 is already compressed).
-# admin JS: temporary until the per-area entry split (chore after PR 8); was 75.
-budget_admin_js=110
+# admin JS and CSS: per area entry point (admin-{area}.js and .css), each.
+budget_admin_js=75
 budget_admin_css=25
-budget_network_js=40
-budget_network_css=25
 budget_widget_js=6
 budget_widget_css=6
 budget_fonts=110
@@ -59,6 +57,11 @@ budget_fonts=110
 budget_blocked_css_raw=8
 
 dist="assets/dist"
+
+# The admin areas with their own entry point (assets/src/admin/{area}/index.js,
+# built to admin-{area}.js and .css): keep in step with adminAreas in
+# webpack.config.js and the pages of Admin_App (assets/src/admin/test/areas.test.js checks it).
+admin_areas=( overview activity rules protection settings help network )
 
 # ---------------------------------------------------------------------------
 # Is there anything to check?
@@ -109,8 +112,12 @@ check_budget() {
 
 check_budgets() {
 	echo "check-dist: budgets (KB = 1,024 bytes; JavaScript and CSS gzip -9 unless marked raw, fonts as stored):"
-	local f
-	for f in admin.js admin.css network.js network.css widget-refresh.js widget-refresh.css blocked.css blocked-rtl.css sprite.svg; do
+	local f area
+	local expected=( widget-refresh.js widget-refresh.css blocked.css blocked-rtl.css sprite.svg )
+	for area in "${admin_areas[@]}"; do
+		expected+=( "admin-$area.js" "admin-$area.css" "admin-$area-rtl.css" "admin-$area.asset.php" )
+	done
+	for f in "${expected[@]}"; do
 		if [[ ! -f "$dist/$f" ]]; then
 			echo "check-dist: $dist/$f is missing. Run: npm run build" >&2
 			budget_fail=1
@@ -118,10 +125,10 @@ check_budgets() {
 	done
 	[[ $budget_fail -eq 0 ]] || return 0
 
-	check_budget "admin.js (gzip)" "$(gz_bytes "$dist/admin.js")" "$budget_admin_js"
-	check_budget "admin.css (gzip)" "$(gz_bytes "$dist/admin.css")" "$budget_admin_css"
-	check_budget "network.js (gzip)" "$(gz_bytes "$dist/network.js")" "$budget_network_js"
-	check_budget "network.css (gzip)" "$(gz_bytes "$dist/network.css")" "$budget_network_css"
+	for area in "${admin_areas[@]}"; do
+		check_budget "admin-$area.js (gzip)" "$(gz_bytes "$dist/admin-$area.js")" "$budget_admin_js"
+		check_budget "admin-$area.css (gzip)" "$(gz_bytes "$dist/admin-$area.css")" "$budget_admin_css"
+	done
 	check_budget "widget-refresh.js (gzip)" "$(gz_bytes "$dist/widget-refresh.js")" "$budget_widget_js"
 	check_budget "widget-refresh.css (gzip)" "$(gz_bytes "$dist/widget-refresh.css")" "$budget_widget_css"
 
@@ -227,11 +234,14 @@ fi
 echo "check-dist: $dist/ matches a fresh production build."
 
 # Translations survive minification: the text domain and translator comments
-# must still be in the admin bundle.
-if ! grep -q '"zero-spam"' "$dist/admin.js" || ! grep -q 'translators:' "$dist/admin.js"; then
-	echo "check-dist: $dist/admin.js lost its zero-spam strings or translator comments." >&2
-	exit 1
-fi
+# must still be in every admin entry point (WordPress reads each handle's
+# strings from its own file).
+for area in "${admin_areas[@]}"; do
+	if ! grep -q '"zero-spam"' "$dist/admin-$area.js" || ! grep -q 'translators:' "$dist/admin-$area.js"; then
+		echo "check-dist: $dist/admin-$area.js lost its zero-spam strings or translator comments." >&2
+		exit 1
+	fi
+done
 
 check_budgets
 if [[ $budget_fail -ne 0 ]]; then

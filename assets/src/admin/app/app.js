@@ -1,6 +1,8 @@
 /**
- * The app: providers, the shell and the area of this page (data-area on
- * the root, set by Admin_App::render_page()).
+ * The app: providers, the shell and the area of this page. Each area has its
+ * own entry point (`{area}/index.js`, built to assets/dist/admin-{area}.js),
+ * which mounts its view inside these with mount() (./mount.js), so a page
+ * loads only its own area's code.
  */
 
 /**
@@ -15,27 +17,21 @@ import { Component, createInterpolateElement } from '@wordpress/element';
 import { AppProvider } from './context';
 import { FeedbackProvider } from './primitives/feedback';
 import { CompareDrawer } from './compare';
-import { Placeholder } from './placeholder';
-import { Shell, areaTitles, networkTabs } from './shell/shell';
-import { Overview } from '../overview/overview';
-import { Activity } from '../activity/activity';
-import { Protection } from '../protection/protection';
-import { Rules } from '../rules/rules';
-import { Settings } from '../settings/settings';
-import { Network } from '../network/network';
-import { Help } from '../help/help';
-import { Onboarding } from '../onboarding/onboarding';
+import { Shell, networkTabs } from './shell/shell';
 import { useTab } from '../data/routes';
 import { boot } from '../data/api';
 
 const NETWORK_TABS = networkTabs().map( ( [ key ] ) => key );
 
 /**
- * @param {Object} props      Props.
- * @param {string} props.area Area.
+ * The shell around an area's view. On the network page, children is a
+ * function given the current network tab and its setter ( { tab, setTab } ).
+ *
+ * @param {Object}                                   props          Props.
+ * @param {string}                                   props.area     Area.
+ * @param {Element|function({tab: string}): Element} props.children The view.
  */
-function AreaView( { area } ) {
-	const titles = areaTitles();
+export function AreaView( { area, children } ) {
 	const [ netTab, setNetTab ] = useTab( 'overview', NETWORK_TABS );
 	const network = 'network' === area;
 	const tabName = network
@@ -53,24 +49,9 @@ function AreaView( { area } ) {
 					: undefined
 			}
 		>
-			{ 'overview' === area && <Overview /> }
-			{ 'activity' === area && <Activity /> }
-			{ 'protection' === area && <Protection /> }
-			{ 'rules' === area && <Rules /> }
-			{ 'settings' === area && <Settings /> }
-			{ network && <Network tab={ netTab } setTab={ setNetTab } /> }
-			{ 'help' === area && <Help /> }
-			{ ! [
-				'overview',
-				'activity',
-				'protection',
-				'rules',
-				'settings',
-				'network',
-				'help',
-			].includes( area ) && (
-				<Placeholder area={ area } title={ titles[ area ] } />
-			) }
+			{ 'function' === typeof children
+				? children( { tab: netTab, setTab: setNetTab } )
+				: children }
 		</Shell>
 	);
 }
@@ -116,21 +97,16 @@ class ErrorBoundary extends Component {
 }
 
 /**
- * @param {Object}  props      Props.
- * @param {Element} props.root The root element.
- * @param {string}  props.area Area.
+ * @param {Object}  props          Props.
+ * @param {Element} props.root     The root element.
+ * @param {Element} props.children What the page shows: usually an AreaView.
  */
-export function App( { root, area } ) {
+export function App( { root, children } ) {
 	return (
 		<ErrorBoundary legacy={ boot.urls.legacy }>
 			<FeedbackProvider>
 				<AppProvider root={ root }>
-					{ /* First-run setup replaces the Overview of a fresh install (Admin_App::view_for()). */ }
-					{ boot.onboarding ? (
-						<Onboarding />
-					) : (
-						<AreaView area={ area } />
-					) }
+					{ children }
 					<div id="zs-layer" className="zs-layer">
 						<CompareDrawer />
 					</div>

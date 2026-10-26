@@ -1,8 +1,8 @@
 /**
  * On a network site: the addresses the network administrator blocks on
  * every site (`rules/network-blocks`, read-only), shown on Blocked IPs as
- * "Blocked by your network", and the lookup the block drawer uses to say
- * an address it is about to block already is.
+ * "Blocked by your network". The block drawer's lookup and note are in
+ * app/network-block-note.js (shared by every page with the drawer).
  */
 
 /**
@@ -15,68 +15,9 @@ import { useState } from '@wordpress/element';
  * Internal dependencies
  */
 import { Icon } from '../app/primitives';
-import { NS, boot, request, useResource } from '../data/api';
+import { NS, boot, useResource } from '../data/api';
 import { num } from '../data/format';
 import { LockBadge, siteDay } from './parts';
-
-/**
- * The network block of an address, if the network has one.
- *
- * @param {string} ip Address (canonical).
- * @return {Promise<Object|null>} Block.
- */
-export function findNetworkBlock( ip ) {
-	const wanted = String( ip || '' )
-		.trim()
-		.toLowerCase();
-	if ( ! boot.isMultisite || ! wanted ) {
-		return Promise.resolve( null );
-	}
-	return request( {
-		path: `${ NS }/rules/network-blocks?per_page=5&search=${ encodeURIComponent( wanted ) }`,
-	} ).then( ( list ) =>
-		Array.isArray( list )
-			? list.find(
-					( b ) => String( b.ip || '' ).toLowerCase() === wanted
-				) || null
-			: null
-	);
-}
-
-/**
- * The note shown in the block drawer for an address the network blocks.
- *
- * @param {Object} props       Props.
- * @param {Object} props.block Network block.
- */
-export function NetworkBlockNote( { block } ) {
-	return (
-		<div className="zs-notice zs-notice-info zs-rnotice" role="status">
-			<Icon name="network" />
-			<div className="zs-li-body">
-				<span>
-					<LockBadge
-						label={ __( 'Blocked by your network', 'zero-spam' ) }
-						sentence={ __(
-							'Blocked by your network on every site. Only the network administrator can change this block.',
-							'zero-spam'
-						) }
-					/>
-				</span>
-				<span>
-					{ sprintf(
-						/* translators: %s: IP address */
-						__(
-							'%s is already blocked on every site by your network administrator. A block you add here applies to this site only.',
-							'zero-spam'
-						),
-						block.ip
-					) }
-				</span>
-			</div>
-		</div>
-	);
-}
 
 /**
  * Blocked IPs: how many addresses the network blocks on every site, with

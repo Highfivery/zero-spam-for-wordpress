@@ -23,7 +23,7 @@ import { Drawer } from './primitives/drawer';
 import { NS, nowLocal, request } from '../data/api';
 import { LOCATION_TYPES, checkBlockIp, checkLocation } from '../data/validate';
 import { blockBody, initialLocationValues, initialValues } from './block-data';
-import { NetworkBlockNote, findNetworkBlock } from '../rules/network-blocks';
+import { NetworkBlockNote, findNetworkBlock } from './network-block-note';
 
 /**
  * An example value for a location type (the Location field's placeholder).
