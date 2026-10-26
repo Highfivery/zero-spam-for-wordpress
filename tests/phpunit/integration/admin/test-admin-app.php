@@ -346,6 +346,27 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
+	 * Help preloads its guides on top of the shell (the news comes with the
+	 * shell), and nothing of the Overview's.
+	 */
+	public function test_help_preloads_its_guides(): void {
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-help' );
+
+		$paths = $this->preloaded_paths();
+		foreach ( array_merge( Admin_App::SHELL_PRELOADS, Admin_App::HELP_PRELOADS ) as $path ) {
+			$this->assertContains( $path, $paths, "{$path} is preloaded on Help." );
+		}
+		foreach ( Admin_App::OVERVIEW_PRELOADS as $path ) {
+			$this->assertNotContains( $path, $paths );
+		}
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( 'developer-hooks', $inline, 'The guides are real answers.' );
+	}
+
+	/**
 	 * The news is preloaded when it is on.
 	 */
 	public function test_news_is_preloaded_when_on(): void {

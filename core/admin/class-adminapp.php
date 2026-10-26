@@ -103,6 +103,27 @@ final class Admin_App {
 	);
 
 	/**
+	 * REST paths the Help page reads on load besides the shell's (the news
+	 * comes with the shell when it is on: eight articles, all Help shows).
+	 *
+	 * @var string[]
+	 */
+	const HELP_PRELOADS = array(
+		'/zero-spam/v1/ui/help/docs',
+	);
+
+	/**
+	 * REST paths first-run setup reads on load besides the shell's (which
+	 * has the license, the preferences and the protection modules): the
+	 * settings, for the block methods.
+	 *
+	 * @var string[]
+	 */
+	const ONBOARDING_PRELOADS = array(
+		'/zero-spam/v1/settings/schema',
+	);
+
+	/**
 	 * The news route, preloaded when the news is on.
 	 *
 	 * @var string
@@ -289,7 +310,7 @@ final class Admin_App {
 			'before'
 		);
 
-		$preloaded = array_reduce( self::preload_paths( $area ), 'rest_preload_api_request', array() );
+		$preloaded = array_reduce( self::preload_paths( self::view_for( $area ) ), 'rest_preload_api_request', array() );
 
 		wp_add_inline_script(
 			'wp-api-fetch',
@@ -312,18 +333,36 @@ final class Admin_App {
 	}
 
 	/**
-	 * The REST paths preloaded for an area.
+	 * What an area's page shows: the area, or `onboarding` on the Overview
+	 * while first-run setup is pending (the setup replaces it).
+	 *
+	 * @param string $area Area.
+	 */
+	public static function view_for( string $area ): string {
+		return 'overview' === $area && Onboarding::is_pending() ? 'onboarding' : $area;
+	}
+
+	/**
+	 * The REST paths preloaded for an area (or `onboarding`, see view_for()).
 	 *
 	 * @param string $area Area.
 	 * @return string[]
 	 */
 	public static function preload_paths( string $area ): array {
+		if ( 'onboarding' === $area ) {
+			return array_merge( self::SHELL_PRELOADS, self::ONBOARDING_PRELOADS );
+		}
+
 		$paths = 'network' === $area
 			? array( '/zero-spam/v1/ui/prefs' )
 			: self::SHELL_PRELOADS;
 
 		if ( 'overview' === $area ) {
 			$paths = array_merge( $paths, self::OVERVIEW_PRELOADS );
+		}
+
+		if ( 'help' === $area ) {
+			$paths = array_merge( $paths, self::HELP_PRELOADS );
 		}
 
 		if ( News_Feed::is_enabled() ) {
@@ -380,6 +419,10 @@ final class Admin_App {
 			),
 			'isMultisite'       => is_multisite(),
 			'newsEnabled'       => News_Feed::is_enabled(),
+			// First-run setup (fresh installs) and the "What's new" release (upgraded sites).
+			'onboarding'        => 'onboarding' === self::view_for( $area ),
+			'safeIp'            => 'onboarding' === self::view_for( $area ) ? Onboarding::safe_ip() : '',
+			'whatsNew'          => 'network' === $area ? '' : Onboarding::whats_new(),
 			// Log types that are not detections (rescue links): left out of the live counts, as in statistics.
 			'nonDetectionTypes' => \ZeroSpam\Includes\DB::NON_DETECTION_TYPES,
 			'environment'       => array(
@@ -439,8 +482,9 @@ final class Admin_App {
 			echo file_get_contents( $sprite );
 		}
 
-		$titles = self::area_titles();
-		$title  = 'network' === $area ? __( 'Network', 'zero-spam' ) : $titles[ $area ];
+		$titles     = self::area_titles();
+		$title      = 'network' === $area ? __( 'Network', 'zero-spam' ) : $titles[ $area ];
+		$onboarding = 'onboarding' === self::view_for( $area );
 
 		include ZEROSPAM_PATH . 'includes/templates/admin-app-shell.php';
 	}

@@ -30,6 +30,7 @@ class Test_Migrations extends TestCase {
 		'admin_safe_ip',
 		'v6_backup_5x',
 		'v6_network_store',
+		'v6_whats_new',
 	);
 
 	/**

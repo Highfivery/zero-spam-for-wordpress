@@ -190,6 +190,8 @@ class Migrations {
 			'admin_safe_ip'                => array( \ZeroSpam\Core\Admin_Safe_IPs::class, 'migrate' ),
 			'v6_backup_5x'                 => array( $this, 'backup_5x_settings' ),
 			'v6_network_store'             => array( $this, 'merge_network_store' ),
+			// Upgraded sites show "What's new in 6.0" once per administrator; fresh installs get first-run setup instead.
+			'v6_whats_new'                 => array( \ZeroSpam\Core\Admin\Onboarding::class, 'migrate_whats_new' ),
 		);
 	}
 
