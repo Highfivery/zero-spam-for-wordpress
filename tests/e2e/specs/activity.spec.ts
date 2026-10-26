@@ -273,7 +273,9 @@ test.describe( '6.0 Activity', () => {
 
 		await page.locator( '[data-zs-open]' ).first().click();
 		const drawer = page.locator( '.zs-drawer.zs-details' );
-		await expect( drawer.locator( '.zs-why' ) ).toContainText( '<b>zs-crafted</b>' );
+		// The reason is the failed check made readable (underscores and dashes become spaces), as text.
+		await expect( drawer.locator( '.zs-why' ) ).toContainText( '<img src="x" onerror=' );
+		await expect( drawer.locator( '.zs-why' ) ).toContainText( '<b>zs crafted</b>' );
 		await expect( drawer ).toContainText( '/e2e-comments/?q=<img src="x"' );
 		await expect( drawer.locator( '.zs-dkv' ).nth( 1 ) ).toContainText( '<b>zs-crafted</b>' );
 		await expect( drawer.locator( '.zs-code' ) ).toContainText( '<img src=x onerror="window.__zsXss=1">' );
