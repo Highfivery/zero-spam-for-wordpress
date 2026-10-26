@@ -76,6 +76,7 @@ $zerospam_site_options = array(
 	'zerospam_migration_lock_canonical_blocked_ips',
 	'zerospam_migration_lock_network',
 	'zerospam_onboarding',
+	'zerospam_onboarding_steps',
 	'zerospam_proxy_detection_since',
 	'zerospam_settings_audit',
 	'zerospam_share_queue',

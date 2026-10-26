@@ -11,6 +11,7 @@ import type { Page, Request } from '@playwright/test';
 import { expect, test } from '../support/fixtures';
 import type { ZsApi } from '../support/e2e-api';
 import { AREA, helpReady, onboardingReady } from '../support/screens';
+import { subsiteURL } from '../support/targets';
 
 const HELP = AREA( 'help' );
 const OVERVIEW = AREA( 'overview' );
@@ -71,19 +72,16 @@ test.describe( 'Help', () => {
 		expect( rest ).toEqual( [] );
 	} );
 
-	test( 'lists every guide, including the network settings guide and the developer hooks, as headed disclosures', async ( { page } ) => {
+	test( 'lists every guide (the network ones on a network only) and the developer hooks, as headed disclosures', async ( { page, target } ) => {
 		await page.goto( HELP );
 		await helpReady( page );
 
 		const guides = page.locator( '.zs-help-doc-h' );
-		await expect( guides ).toHaveText( [
-			'REST API for settings',
-			'API monitoring and alerts',
-			'Network statistics and insights',
-			'Getting back in after a lockout',
-			'Developer hooks',
-			'Network settings and management',
-		] );
+		await expect( guides ).toHaveText(
+			target.multisite
+				? [ 'REST API for settings', 'API monitoring and alerts', 'Network statistics and insights', 'Getting back in after a lockout', 'Developer hooks', 'Network settings and management' ]
+				: [ 'REST API for settings', 'API monitoring and alerts', 'Getting back in after a lockout', 'Developer hooks' ]
+		);
 		// Each guide is an h3 under the tile's h2 (heading order h1 → h2 → h3 → h4).
 		await expect( page.getByRole( 'heading', { level: 3, name: 'Developer hooks' } ) ).toBeVisible();
 
@@ -132,6 +130,20 @@ test.describe( 'Help', () => {
 		await expect( alerts ).toHaveAttribute( 'href', /^https:\/\/www\.zerospam\.org\/articles\/\?utm_source=plugin&utm_medium=help-alerts/ );
 		await expect( alerts ).toHaveAttribute( 'target', '_blank' );
 		await expect( news.locator( '.zs-news-t' ).first() ).toHaveAttribute( 'href', /^https:\/\/www\.zerospam\.org\// );
+	} );
+
+	test( 'a failed Refresh keeps the articles and says so', async ( { page, zs } ) => {
+		await page.goto( HELP );
+		await helpReady( page );
+		const news = page.locator( '#zs-help-news' );
+		await expect( news.locator( '.zs-news-i' ) ).toHaveCount( 8 );
+
+		await zs.newsDown( true );
+		await news.getByRole( 'button', { name: 'Refresh' } ).click();
+		await expect( page.locator( '.zs-toast' ) ).toContainText( 'The news could not be refreshed' );
+		await expect( news ).toContainText( 'could not be refreshed, so these are the last articles loaded' );
+		await expect( news.locator( '.zs-news-i' ) ).toHaveCount( 8 );
+		await expect( page.locator( '.zs-toast' ) ).not.toContainText( 'News is up to date' );
 	} );
 
 	test( 'news unavailable and news turned off have their own states', async ( { page, zs } ) => {
@@ -247,6 +259,8 @@ test.describe( 'First-run setup', () => {
 		await expect( page.locator( '#zs-ob-h' ) ).toContainText( 'Your wall is up.' );
 		await expect( page.locator( '#zs-ob-h' ) ).toBeFocused();
 		await expect( steps.locator( '[aria-current]' ) ).toHaveCount( 0 );
+		// Done steps say so with a check mark, not by colour alone.
+		await expect( steps.locator( '.zs-ob-steps-b svg' ) ).toHaveCount( 3 );
 
 		expect( await stored( zs, 'comments', 'verify_comments' ) ).toBe( 'enabled' );
 		expect( await stored( zs, 'login', 'verify_login' ) ).toBeFalsy();
@@ -275,6 +289,66 @@ test.describe( 'First-run setup', () => {
 		await page.getByRole( 'button', { name: 'Back' } ).click();
 		await page.getByRole( 'button', { name: 'Continue' } ).click();
 		await expect( page.locator( '#zs-ob-c-comments' ) ).not.toBeChecked();
+	} );
+
+	test( 'settings saved outside the setup end it and are kept', async ( { page, zs } ) => {
+		await zs.firstRun( 'fresh' );
+		// The Settings screen's save (no setup header): comments off.
+		await zs.requestUtils.rest( { path: '/zero-spam/v1/settings', method: 'PATCH', data: { verify_comments: false, verify_login: true } } );
+		expect( await pending( zs ) ).toBe( false );
+
+		await page.goto( OVERVIEW );
+		await page.locator( '#zs-ov-h' ).waitFor();
+		await expect( page.locator( '.zs-onb' ) ).toHaveCount( 0 );
+		expect( await stored( zs, 'comments', 'verify_comments' ) ).toBeFalsy();
+	} );
+
+	test( 'a site that already has settings keeps them: step 1 says so, step 2 starts from them, Skip changes nothing', async ( { page, zs } ) => {
+		await zs.firstRun( 'provisioned' );
+		await page.goto( OVERVIEW );
+		await onboardingReady( page );
+		await expect( page.locator( '.zs-onb-kept' ) ).toContainText( 'Your current settings are kept' );
+
+		await page.getByRole( 'button', { name: 'Continue' } ).click();
+		await expect( page.locator( '.zs-ob-steps li' ).nth( 1 ) ).toHaveAttribute( 'aria-current', 'step' );
+		await expect( page.locator( '#zs-ob-c-comments' ) ).not.toBeChecked();
+		await expect( page.locator( '#zs-ob-c-login' ) ).toBeChecked();
+		// Step 1 applied nothing underneath: comments are still off.
+		expect( await stored( zs, 'comments', 'verify_comments' ) ).toBeFalsy();
+
+		await page.getByRole( 'button', { name: 'Skip setup' } ).click();
+		await page.locator( '#zs-ov-h' ).waitFor();
+		expect( await stored( zs, 'comments', 'verify_comments' ) ).toBeFalsy();
+		expect( await stored( zs, 'login', 'verify_login' ) ).toBe( 'enabled' );
+		expect( await pending( zs ) ).toBe( false );
+	} );
+
+	test( 'on a network each site has its own setup: step 3 on one site, step 1 on another', { tag: '@multisite' }, async ( { page, zs, target } ) => {
+		const site2 = zs.forSite( target.subsitePath! );
+		await zs.firstRun( 'fresh' );
+		await site2.firstRun( 'fresh' );
+
+		await page.goto( OVERVIEW );
+		await onboardingReady( page );
+		await page.getByRole( 'button', { name: 'Continue' } ).click();
+		await expect( page.locator( '.zs-ob-steps li' ).nth( 1 ) ).toHaveAttribute( 'aria-current', 'step' );
+		await page.getByRole( 'button', { name: 'Continue' } ).click();
+		await expect( page.locator( '.zs-ob-steps li' ).nth( 2 ) ).toHaveAttribute( 'aria-current', 'step' );
+
+		await page.goto( subsiteURL( target, OVERVIEW ) );
+		await onboardingReady( page );
+		await expect( page.locator( '.zs-ob-steps li' ).nth( 0 ) ).toHaveAttribute( 'aria-current', 'step' );
+		await expect( page.locator( '.zs-onb-kept' ) ).toHaveCount( 0 );
+
+		// Skip on the second site applies its recommended settings (it had none).
+		await page.getByRole( 'button', { name: 'Skip setup' } ).click();
+		await page.locator( '#zs-ov-h' ).waitFor();
+		expect( await stored( site2, 'comments', 'verify_comments' ) ).toBe( 'enabled' );
+
+		// The first site's setup is still where it was.
+		await page.goto( OVERVIEW );
+		await onboardingReady( page );
+		await expect( page.locator( '.zs-ob-steps li' ).nth( 2 ) ).toHaveAttribute( 'aria-current', 'step' );
 	} );
 
 	test( 'Skip setup applies the recommended settings and ends the setup', async ( { page, zs } ) => {

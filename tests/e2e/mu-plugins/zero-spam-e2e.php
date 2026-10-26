@@ -1406,21 +1406,29 @@ add_action(
 				'permission_callback' => permission( 'manage_options' ),
 				'callback'            => static function ( WP_REST_Request $request ) {
 					// fresh: a new install waiting for first-run setup (no settings, flag
-					// pending), as the activation hook leaves it; upgraded: a site the
-					// v6_whats_new migration flagged; none: neither.
+					// pending), as the activation hook leaves it; provisioned: the same,
+					// but with core and comment settings written straight to the options
+					// (as provisioning would, without any save hook: comments off);
+					// upgraded: a site the v6_whats_new migration flagged; none: neither.
 					$mode = (string) ( $request->get_param( 'mode' ) ?? 'none' );
-					if ( ! in_array( $mode, array( 'fresh', 'upgraded', 'none' ), true ) ) {
+					if ( ! in_array( $mode, array( 'fresh', 'provisioned', 'upgraded', 'none' ), true ) ) {
 						return new WP_Error( 'zs_e2e_mode', 'Unknown mode.', array( 'status' => 400 ) );
 					}
 
 					delete_option( 'zerospam_onboarding' );
+					delete_option( 'zerospam_onboarding_steps' );
 					delete_option( 'zerospam_whats_new' );
 					delete_user_meta( get_current_user_id(), 'zerospam_ui' );
 
-					if ( 'fresh' === $mode ) {
+					if ( 'fresh' === $mode || 'provisioned' === $mode ) {
 						reset_site( 'defaults' );
 						delete_option( 'zerospam_configured' );
 						update_option( 'zerospam_onboarding', 'pending', true );
+					}
+					if ( 'provisioned' === $mode ) {
+						update_option( 'zero-spam-settings', array( 'log_blocked_ips' => 'enabled' ) );
+						update_option( 'zero-spam-comments', array( 'verify_comments' => false ) );
+						update_option( 'zero-spam-login', array( 'verify_login' => 'enabled' ) );
 					} elseif ( 'upgraded' === $mode ) {
 						update_option( 'zerospam_whats_new', '6.0.0', true );
 					}

@@ -221,6 +221,37 @@ export function protectItems( modules ) {
 }
 
 /**
+ * Step 2 on a site with settings of its own: each item as it is now.
+ *
+ * @param {Array} items protectItems().
+ * @return {Object} Module key => ticked.
+ */
+export const protectFrom = ( items ) =>
+	Object.fromEntries( items.map( ( i ) => [ i.key, i.enabled ] ) );
+
+/**
+ * Step 3 on a site with settings of its own: its block method, data
+ * sharing and activity log as they are now (defaults for what is missing).
+ *
+ * @param {Object[]|undefined} schema settings/schema `settings`.
+ * @return {Object} block_method, share_data, log_blocked_ips.
+ */
+export function blockingFrom( schema ) {
+	const value = ( key ) =>
+		( schema || [] ).find( ( entry ) => key === entry.key )?.value;
+	const method = value( 'block_method' );
+	const on = ( key ) => {
+		const v = value( key );
+		return undefined === v || null === v ? true : 'enabled' === v;
+	};
+	return {
+		block_method: 'string' === typeof method && method ? method : 'php',
+		share_data: on( 'share_data' ),
+		log_blocked_ips: on( 'log_blocked_ips' ),
+	};
+}
+
+/**
  * Step 2 starts with everything ticked (a locked item shows the network's value).
  *
  * @param {Array} items protectItems().

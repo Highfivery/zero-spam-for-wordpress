@@ -161,10 +161,11 @@ export class ZsApi {
 	 * Puts the site in a first-run state.
 	 *
 	 * @param mode fresh (a new install waiting for first-run setup: no settings, `zerospam_onboarding` pending),
+	 *             provisioned (the same, with core settings, comments off and login on written straight to the options),
 	 *             upgraded (`zerospam_whats_new` = 6.0.0, as the v6_whats_new migration leaves an upgraded site)
-	 *             or none. Every mode clears the current user's 6.0 preferences.
+	 *             or none. Every mode clears the current user's 6.0 preferences and setup steps.
 	 */
-	firstRun( mode: 'fresh' | 'upgraded' | 'none' ) {
+	firstRun( mode: 'fresh' | 'provisioned' | 'upgraded' | 'none' ) {
 		return this.call( 'POST', 'first-run', { mode } );
 	}
 

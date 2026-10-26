@@ -483,6 +483,9 @@ class Utilities {
 
 		update_option( "zero-spam-$module", $module_settings, true );
 
+		// Saved settings make the site configured (and end a pending first-run setup).
+		\ZeroSpam\Core\Admin\Onboarding::settings_saved();
+
 		return true;
 	}
 

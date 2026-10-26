@@ -110,16 +110,48 @@ class Test_Rest_Help_Docs extends TestCase {
 	}
 
 	/**
-	 * Every built-in guide is there, in order, with HTML and its topics,
-	 * including the network settings guide and the developer hooks.
+	 * On a single site every built-in guide but the two network ones is
+	 * there, in order, with HTML and its topics, including the developer
+	 * hooks.
+	 *
+	 * @group ms-excluded
 	 */
-	public function test_every_built_in_guide_is_present(): void {
+	public function test_every_single_site_guide_is_present(): void {
+		$guides = $this->guides();
+
+		$this->assertSame(
+			array( 'rest-api', 'api-monitoring', 'lockout-rescue', 'developer-hooks' ),
+			array_keys( $guides )
+		);
+		$this->assert_guides_have_content( $guides );
+	}
+
+	/**
+	 * On a network the two network guides are listed too, including the
+	 * network settings guide the classic tab never listed.
+	 *
+	 * @group ms-required
+	 */
+	public function test_every_network_guide_is_present(): void {
 		$guides = $this->guides();
 
 		$this->assertSame(
 			array( 'rest-api', 'api-monitoring', 'network-statistics', 'lockout-rescue', 'developer-hooks', 'network-settings' ),
 			array_keys( $guides )
 		);
+		$this->assert_guides_have_content( $guides );
+		$this->assertSame( 'Network settings and management', $guides['network-settings']['title'] );
+		$this->assertStringContainsString( 'Settings Hierarchy', $guides['network-settings']['html'] );
+		$this->assertStringContainsString( 'id="zs-doc-network-statistics-cli-network-stats"', $guides['network-statistics']['html'] );
+	}
+
+	/**
+	 * Each guide has a title, HTML and its topics; the developer hooks list
+	 * the login hooks.
+	 *
+	 * @param array<string, array<string, mixed>> $guides Guides by ID.
+	 */
+	private function assert_guides_have_content( array $guides ): void {
 
 		foreach ( $guides as $id => $guide ) {
 			$this->assertNotSame( '', $guide['title'], "{$id} has a title." );
@@ -127,8 +159,6 @@ class Test_Rest_Help_Docs extends TestCase {
 			$this->assertNotEmpty( $guide['topics'], "{$id} lists its topics." );
 		}
 
-		$this->assertSame( 'Network settings and management', $guides['network-settings']['title'] );
-		$this->assertStringContainsString( 'Settings Hierarchy', $guides['network-settings']['html'] );
 		$this->assertStringContainsString( '<code>zerospam_login_skip_check</code>', $guides['developer-hooks']['html'] );
 		$this->assertContains( 'Login protection', $guides['developer-hooks']['topics'] );
 	}
@@ -150,8 +180,8 @@ class Test_Rest_Help_Docs extends TestCase {
 		$this->assertStringNotContainsString( '<!--', $all );
 		$this->assertDoesNotMatchRegularExpression( '/[\x{1F300}-\x{1FAFF}\x{2600}-\x{27BF}]/u', $all, 'No emoji (the emoji script would load images from s.w.org).' );
 
-		$this->assertStringContainsString( 'id="zs-doc-network-statistics-cli-network-stats"', $guides['network-statistics']['html'] );
-		$this->assertStringContainsString( 'class="zs-doc-copy" type="button" data-clipboard-target="zs-doc-network-statistics-cli-network-stats"', $guides['network-statistics']['html'] );
+		$this->assertStringContainsString( 'id="zs-doc-api-monitoring-cli-usage"', $guides['api-monitoring']['html'] );
+		$this->assertStringContainsString( 'class="zs-doc-copy" type="button" data-clipboard-target="zs-doc-api-monitoring-cli-usage"', $guides['api-monitoring']['html'] );
 
 		$this->assertMatchesRegularExpression(
 			'#<a href="https://github\.com/Highfivery/zero-spam-for-wordpress/wiki/Hooks" target="_blank" rel="noopener noreferrer">Hooks page of the GitHub wiki<span class="zs-sr-only"> \(opens in a new tab\)</span></a>#',
@@ -239,12 +269,12 @@ class Test_Rest_Help_Docs extends TestCase {
 		add_filter(
 			'zerospam_documentation_sections',
 			static function ( $sections ) {
-				unset( $sections['network-settings'] );
+				unset( $sections['api-monitoring'] );
 				return $sections;
 			}
 		);
 
-		$this->assertArrayNotHasKey( 'network-settings', $this->guides() );
+		$this->assertArrayNotHasKey( 'api-monitoring', $this->guides() );
 	}
 
 	/**

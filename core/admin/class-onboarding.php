@@ -29,6 +29,14 @@ defined( 'ABSPATH' ) || die();
  *   6.0" tile to each administrator until they dismiss it (the per-user
  *   `whats_new_seen` preference, ui/prefs).
  *
+ * The setup is about the site, not the user: whether the site is already
+ * configured (`zerospam_configured`, or stored core settings) decides what
+ * Skip and the first step do, and each administrator's step is kept per
+ * site (`zerospam_onboarding_steps`, user ID => step). Saving settings
+ * outside the setup (the Settings screens, REST, WP-CLI, autoconfigure)
+ * marks the site configured and ends a pending setup; the setup's own
+ * requests carry the `X-ZeroSpam-Setup` header so they do not.
+ *
  * Neither shows anything outside Zero Spam's own screens.
  *
  * @since 6.0.0
@@ -62,6 +70,28 @@ final class Onboarding {
 	 * @var string
 	 */
 	const WHATS_NEW_VERSION = '6.0.0';
+
+	/**
+	 * Site option holding each administrator's setup step on this site
+	 * (user ID => step 1–4). Not autoloaded; removed when the setup ends.
+	 *
+	 * @var string
+	 */
+	const STEPS_OPTION = 'zerospam_onboarding_steps';
+
+	/**
+	 * Most administrators whose step is kept.
+	 *
+	 * @var int
+	 */
+	const MAX_STEPS = 50;
+
+	/**
+	 * Request header the setup's own writes carry.
+	 *
+	 * @var string
+	 */
+	const SETUP_HEADER = 'HTTP_X_ZEROSPAM_SETUP';
 
 	/**
 	 * Activation: flags a fresh install for first-run setup.
@@ -114,6 +144,69 @@ final class Onboarding {
 	 */
 	public static function complete(): void {
 		delete_option( self::OPTION );
+		delete_option( self::STEPS_OPTION );
+	}
+
+	/**
+	 * Whether the site already has settings of its own: saved through any
+	 * screen, route or command (`zerospam_configured`), or core settings
+	 * stored some other way (provisioning). Skip and the first step then
+	 * keep them instead of applying the recommended settings.
+	 */
+	public static function is_configured(): bool {
+		return (bool) get_option( 'zerospam_configured' ) || false !== get_option( 'zero-spam-settings' );
+	}
+
+	/**
+	 * Settings were saved on the current site: it is configured, and a
+	 * pending setup ends unless the save came from the setup itself.
+	 */
+	public static function settings_saved(): void {
+		if ( ! get_option( 'zerospam_configured' ) ) {
+			update_option( 'zerospam_configured', 1 );
+		}
+
+		if ( self::is_pending() && ! self::in_setup_request() ) {
+			self::complete();
+		}
+	}
+
+	/**
+	 * Whether the current request is one of the setup's own writes.
+	 *
+	 * The header only decides whether a save ends the setup; it grants
+	 * nothing (every write still checks its own capability).
+	 */
+	public static function in_setup_request(): bool {
+		return isset( $_SERVER[ self::SETUP_HEADER ] ) && '1' === sanitize_key( wp_unslash( $_SERVER[ self::SETUP_HEADER ] ) );
+	}
+
+	/**
+	 * The current administrator's setup step on this site (1–4), or 0.
+	 */
+	public static function step(): int {
+		$steps = get_option( self::STEPS_OPTION, array() );
+		$user  = get_current_user_id();
+
+		return is_array( $steps ) && isset( $steps[ $user ] ) ? max( 0, min( 4, (int) $steps[ $user ] ) ) : 0;
+	}
+
+	/**
+	 * Saves the current administrator's setup step on this site.
+	 *
+	 * @param int $step Step, 0 (start again) to 4 (done screen).
+	 */
+	public static function save_step( int $step ): void {
+		$steps = get_option( self::STEPS_OPTION, array() );
+		$steps = is_array( $steps ) ? $steps : array();
+		$user  = get_current_user_id();
+
+		unset( $steps[ $user ] );
+		if ( $step > 0 ) {
+			$steps[ $user ] = min( 4, $step );
+		}
+
+		update_option( self::STEPS_OPTION, array_slice( $steps, -self::MAX_STEPS, null, true ), false );
 	}
 
 	/**

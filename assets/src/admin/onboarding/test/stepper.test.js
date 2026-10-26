@@ -14,10 +14,12 @@ import { describe, expect, it } from 'vitest';
 import {
 	DONE,
 	STEPS,
+	blockingFrom,
 	changesFor,
 	clampStep,
 	initialState,
 	progress,
+	protectFrom,
 	protectItems,
 	reducer,
 	rowLaid,
@@ -250,5 +252,37 @@ describe( 'the mark', () => {
 		expect( rows( 2 ) ).toEqual( [ 2, 3 ] );
 		expect( rows( 3 ) ).toEqual( [ 1, 2, 3 ] );
 		expect( rows( DONE ) ).toEqual( [ 0, 1, 2, 3 ] );
+	} );
+} );
+
+describe( 'a site that already has settings', () => {
+	it( 'starts step 2 from each item as it is', () => {
+		const items = protectItems( MODULES );
+		expect( protectFrom( items ) ).toEqual( {
+			comments: false,
+			registration: true,
+			login: false,
+			davidwalsh: false,
+			woocommerce: false,
+		} );
+	} );
+
+	it( 'starts step 3 from its block method, sharing and log', () => {
+		expect(
+			blockingFrom( [
+				{ key: 'block_method', value: 'htaccess_modern' },
+				{ key: 'share_data', value: false },
+				{ key: 'log_blocked_ips', value: 'enabled' },
+			] )
+		).toEqual( {
+			block_method: 'htaccess_modern',
+			share_data: false,
+			log_blocked_ips: true,
+		} );
+		expect( blockingFrom( undefined ) ).toEqual( {
+			block_method: 'php',
+			share_data: true,
+			log_blocked_ips: true,
+		} );
 	} );
 } );

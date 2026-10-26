@@ -171,11 +171,14 @@ export function useResource( path, { parse = true } = {} ) {
 						),
 					} ) )
 				);
+		// Resolves true when the route answered, false when it failed (the
+		// data shown before is kept), so a Refresh can say which.
 		return req.then(
 			( { data, headers } ) => {
 				if ( alive.current ) {
 					setState( { data, headers, error: null, loading: false } );
 				}
+				return true;
 			},
 			( error ) => {
 				if ( alive.current ) {
@@ -185,6 +188,7 @@ export function useResource( path, { parse = true } = {} ) {
 						loading: false,
 					} ) );
 				}
+				return false;
 			}
 		);
 	}, [ path, parse ] );

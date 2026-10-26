@@ -51,6 +51,22 @@ export function filterNews( items, category ) {
 }
 
 /**
+ * The error a resource ended with: a fetched failure (the error, or the
+ * Response itself with parse: false), or a preloaded one, which arrives as
+ * the body of a 200 answer (the preloading middleware).
+ *
+ * @param {Object} state A useResource() state (`data`, `error`).
+ * @return {Object|null} The error, or null.
+ */
+export function failedAnswer( state ) {
+	const data = state?.data;
+	return (
+		state?.error ||
+		( data && ! Array.isArray( data ) && data.code ? data : null )
+	);
+}
+
+/**
  * What the news tile shows.
  *
  * - `disabled`: Zero Spam news is turned off (the setting, the filter, or
@@ -67,11 +83,7 @@ export function filterNews( items, category ) {
  */
 export function newsView( { enabled, state } ) {
 	const data = state?.data;
-	// A preloaded error arrives as the body of a 200 answer (the preloading
-	// middleware); a fetched one as the error (or the Response itself).
-	const error =
-		state?.error ||
-		( data && ! Array.isArray( data ) && data.code ? data : null );
+	const error = failedAnswer( state );
 	const status = error?.data?.status ?? error?.status;
 	if (
 		! enabled ||

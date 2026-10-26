@@ -144,6 +144,8 @@ function NewsTile() {
 	const { newsState } = useApp();
 	const { toast } = useFeedback();
 	const [ cat, setCat ] = useState( '' );
+	// The last Refresh failed: the articles shown are the last ones loaded.
+	const [ refreshFailed, setRefreshFailed ] = useState( false );
 	const view = newsView( { enabled: boot.newsEnabled, state: newsState } );
 	const items = Array.isArray( newsState.data ) ? newsState.data : [];
 	const categories = newsCategories( items );
@@ -190,16 +192,20 @@ function NewsTile() {
 								icon="refresh"
 								disabled={ newsState.loading }
 								onClick={ () =>
-									newsState
-										.reload()
-										.then( () =>
-											toast(
-												__(
-													'News is up to date',
-													'zero-spam'
-												)
-											)
-										)
+									newsState.reload().then( ( ok ) => {
+										setRefreshFailed( ! ok );
+										toast(
+											ok
+												? __(
+														'News is up to date',
+														'zero-spam'
+													)
+												: __(
+														'The news could not be refreshed. These are the last articles loaded.',
+														'zero-spam'
+													)
+										);
+									} )
 								}
 							>
 								{ __( 'Refresh', 'zero-spam' ) }
@@ -263,7 +269,14 @@ function NewsTile() {
 							'Daily research from the Threat Intelligence Log. Posts marked "Security notice" are incidents that may affect WordPress sites.',
 							'zero-spam'
 						) }
-						{ view.stale &&
+						{ refreshFailed &&
+							' ' +
+								__(
+									'The news could not be refreshed, so these are the last articles loaded.',
+									'zero-spam'
+								) }
+						{ ! refreshFailed &&
+							view.stale &&
 							' ' +
 								__(
 									'zerospam.org could not be reached, so this is the last copy.',

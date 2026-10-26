@@ -37,15 +37,23 @@ import { BuildMark } from './build-mark';
 import {
 	DONE,
 	STEPS,
+	blockingFrom,
 	changesFor,
 	initialState,
 	progress,
+	protectFrom,
 	protectItems,
 	reducer,
 	stepKeys,
 	validateStep,
 	writable,
 } from './stepper';
+
+/**
+ * Marks the setup's own writes, so the server does not take them for a
+ * save from the Settings screens (which ends a pending setup).
+ */
+const SETUP_HEADERS = { 'X-ZeroSpam-Setup': '1' };
 
 /** The message when a step could not be saved. */
 const saveError = () =>
@@ -141,12 +149,13 @@ function StepHeading( { title, sub } ) {
 /**
  * Step 1: protection level.
  *
- * @param {Object}                          props          Props.
- * @param {Object}                          props.state    State.
- * @param {(...args: unknown[]) => unknown} props.dispatch Dispatch.
- * @param {Object}                          props.keyInput Ref of the key field.
+ * @param {Object}                          props            Props.
+ * @param {Object}                          props.state      State.
+ * @param {(...args: unknown[]) => unknown} props.dispatch   Dispatch.
+ * @param {Object}                          props.keyInput   Ref of the key field.
+ * @param {boolean}                         props.configured The site keeps its current settings.
  */
-function LevelStep( { state, dispatch, keyInput } ) {
+function LevelStep( { state, dispatch, keyInput, configured } ) {
 	const enhanced = 'enhanced' === state.level;
 	const error = state.errors.key;
 	return (
@@ -293,6 +302,17 @@ function LevelStep( { state, dispatch, keyInput } ) {
 					'zero-spam'
 				) }
 			</p>
+			{ configured && (
+				<p className="zs-onb-kept">
+					<Icon name="info" size="sm" />
+					<span>
+						{ __(
+							'Your current settings are kept. Each step only changes what it shows.',
+							'zero-spam'
+						) }
+					</span>
+				</p>
+			) }
 		</>
 	);
 }
@@ -591,21 +611,36 @@ function DoneStep( { state, places, method, onRestart } ) {
  * The setup.
  */
 export function Onboarding() {
-	const { prefs, prefsLoaded, savePrefs, modules, enhanced } = useApp();
+	const { prefsLoaded, modules, enhanced } = useApp();
 	const schema = useResource( PATHS.schema );
-	const saved = Number( prefs.onboarding_step ) || 0;
+	const settings = Array.isArray( schema.data?.settings )
+		? schema.data.settings
+		: undefined;
+	const items = useMemo( () => protectItems( modules ), [ modules ] );
+	// The site decides, not the user: a site with settings of its own keeps
+	// them (Skip only ends the setup, step 1 applies nothing underneath, and
+	// steps 2 and 3 start from its values); the step is this site's.
+	const configured = true === boot.configured;
+	const saved = Number( boot.onboardingStep ) || 0;
 	const [ state, dispatch ] = useReducer(
 		reducer,
 		saved >= 1 && saved <= STEPS ? saved : 1,
-		( step ) => initialState( { step } )
+		( step ) =>
+			initialState( {
+				step,
+				...( configured
+					? {
+							protect: protectFrom( items ),
+							blocking: blockingFrom( settings ),
+						}
+					: {} ),
+			} )
 	);
 	const [ failure, setFailure ] = useState( '' );
 	const [ skipping, setSkipping ] = useState( false );
-	const baseline = useRef( saved > 1 );
+	const baseline = useRef( configured );
 	const keyInput = useRef( null );
 	const first = useRef( true );
-	const items = useMemo( () => protectItems( modules ), [ modules ] );
-	const settings = schema.data?.settings;
 
 	// A resumed setup shows the level the site has.
 	useEffect( () => {
@@ -629,9 +664,18 @@ export function Onboarding() {
 			: request( {
 					path: `${ NS }/settings/actions/autoconfigure`,
 					method: 'POST',
+					headers: SETUP_HEADERS,
 				} ).then( () => {
 					baseline.current = true;
 				} );
+
+	// This administrator's step on this site (kept for a reload).
+	const saveStep = ( step ) =>
+		request( {
+			path: PATHS.onboarding,
+			method: 'POST',
+			data: { step },
+		} ).catch( () => {} );
 
 	const submit = ( event ) => {
 		event.preventDefault();
@@ -657,6 +701,7 @@ export function Onboarding() {
 							path: PATHS.license,
 							method: 'PUT',
 							data: { license_key: changes.license },
+							headers: SETUP_HEADERS,
 						} ).catch( ( error ) => {
 							const keyFailure = new Error( 'license' );
 							keyFailure.field = 'key';
@@ -671,6 +716,7 @@ export function Onboarding() {
 							path: `${ NS }/settings`,
 							method: 'PATCH',
 							data: writes,
+							headers: SETUP_HEADERS,
 						} )
 					: null
 			)
@@ -684,7 +730,9 @@ export function Onboarding() {
 					: null
 			)
 			.then( () => {
-				savePrefs( { onboarding_step: STEPS === step ? 0 : step + 1 } );
+				if ( STEPS !== step ) {
+					saveStep( step + 1 );
+				}
 				dispatch( { type: 'next' } );
 			} )
 			.catch( ( problem ) => {
@@ -717,7 +765,6 @@ export function Onboarding() {
 					data: { status: 'done' },
 				} )
 			)
-			.then( () => savePrefs( { onboarding_step: 0 } ) )
 			.then( () => window.location.assign( areaUrl( 'overview' ) ) )
 			.catch( () => {
 				setSkipping( false );
@@ -770,6 +817,7 @@ export function Onboarding() {
 						state={ state }
 						dispatch={ dispatch }
 						keyInput={ keyInput }
+						configured={ configured }
 					/>
 				) }
 				{ 2 === state.step && (
@@ -854,10 +902,15 @@ export function Onboarding() {
 								'current' === status ? 'step' : undefined
 							}
 						>
-							<span
-								className="zs-ob-steps-b"
-								aria-hidden="true"
-							/>
+							<span className="zs-ob-steps-b" aria-hidden="true">
+								{ 'done' === status && (
+									<Icon
+										name="check"
+										size="sm"
+										className="zs-ob-check"
+									/>
+								) }
+							</span>
 							{ labels[ n - 1 ] }
 							{ 'done' === status && (
 								<span className="zs-sr-only">

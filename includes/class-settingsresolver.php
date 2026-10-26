@@ -199,6 +199,9 @@ class Settings_Resolver {
 			$existing = get_option( "zero-spam-$module", array() );
 			$updated  = array_merge( is_array( $existing ) ? $existing : array(), $values );
 
+			// Saved settings make the site configured (and end a pending first-run setup).
+			\ZeroSpam\Core\Admin\Onboarding::settings_saved();
+
 			// Check if values actually changed.
 			if ( $existing === $updated ) {
 				// No change, but this is success (idempotent).

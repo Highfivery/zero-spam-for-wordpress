@@ -50,14 +50,15 @@ final class Documentation {
 	const FIRST_HEADING = 4;
 
 	/**
-	 * The built-in guides, in order.
+	 * The built-in guides, in order. The two network guides (statistics,
+	 * settings and management) are listed on a network only.
 	 *
 	 * @return array<string, array{title: string, template: string, priority: int}>
 	 */
 	public static function defaults(): array {
 		$dir = ZEROSPAM_PATH . 'includes/templates/docs/';
 
-		return array(
+		$guides = array(
 			'rest-api'           => array(
 				'title'    => __( 'REST API for settings', 'zero-spam' ),
 				'template' => $dir . 'rest-api.php',
@@ -90,6 +91,12 @@ final class Documentation {
 				'priority' => 60,
 			),
 		);
+
+		if ( ! is_multisite() ) {
+			unset( $guides['network-statistics'], $guides['network-settings'] );
+		}
+
+		return $guides;
 	}
 
 	/**

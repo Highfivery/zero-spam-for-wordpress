@@ -711,6 +711,9 @@ final class Admin_App {
 			// First-run setup (fresh installs) and the "What's new" release (upgraded sites).
 			'onboarding'        => 'onboarding' === self::view_for( $area ),
 			'safeIp'            => 'onboarding' === self::view_for( $area ) ? Onboarding::safe_ip() : '',
+			// The site's own settings (Skip and step 1 keep them) and this administrator's step here.
+			'configured'        => Onboarding::is_configured(),
+			'onboardingStep'    => 'onboarding' === self::view_for( $area ) ? Onboarding::step() : 0,
 			'whatsNew'          => 'network' === $area ? '' : Onboarding::whats_new(),
 			// Log types that are not detections (rescue links): left out of the live counts, as in statistics.
 			'nonDetectionTypes' => \ZeroSpam\Includes\DB::NON_DETECTION_TYPES,

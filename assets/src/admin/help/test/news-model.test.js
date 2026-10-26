@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
  */
 import {
 	displayCategory,
+	failedAnswer,
 	filterNews,
 	newsCategories,
 	newsView,
@@ -123,5 +124,18 @@ describe( 'newsView()', () => {
 		expect( newsView( { enabled: true, state: { data: [] } } ).state ).toBe(
 			'empty'
 		);
+	} );
+} );
+
+describe( 'failedAnswer()', () => {
+	it( 'finds a fetched or a preloaded error, and nothing in a good answer', () => {
+		expect( failedAnswer( { error: { status: 503 } } ) ).toEqual( {
+			status: 503,
+		} );
+		expect(
+			failedAnswer( { data: { code: 'rest_forbidden', data: {} } } )
+		).toEqual( { code: 'rest_forbidden', data: {} } );
+		expect( failedAnswer( { data: [ { code: 'x' } ] } ) ).toBeNull();
+		expect( failedAnswer( undefined ) ).toBeNull();
 	} );
 } );

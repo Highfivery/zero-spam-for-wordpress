@@ -37,10 +37,10 @@ class Test_Onboarding extends TestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		foreach ( array( 'zero-spam-settings', 'zero-spam-last-update', Onboarding::OPTION, Onboarding::WHATS_NEW_OPTION, 'zerospam_configured' ) as $option ) {
+		foreach ( array( 'zero-spam-settings', 'zero-spam-comments', 'zero-spam-last-update', Onboarding::OPTION, Onboarding::STEPS_OPTION, Onboarding::WHATS_NEW_OPTION, 'zerospam_configured' ) as $option ) {
 			delete_option( $option );
 		}
-		unset( $_REQUEST['action'], $_REQUEST['action2'] );
+		unset( $_REQUEST['action'], $_REQUEST['action2'], $_SERVER[ Onboarding::SETUP_HEADER ] );
 	}
 
 	/**
@@ -208,8 +208,10 @@ class Test_Onboarding extends TestCase {
 		$this->as_role( 'administrator' );
 		$this->assertSame(
 			array(
-				'pending'   => true,
-				'whats_new' => '6.0.0',
+				'pending'    => true,
+				'configured' => false,
+				'step'       => 0,
+				'whats_new'  => '6.0.0',
 			),
 			$this->rest( 'GET', self::ROUTE )->get_data()
 		);
@@ -297,5 +299,115 @@ class Test_Onboarding extends TestCase {
 		$admin->admin_notices();
 		$on = (string) ob_get_clean();
 		$this->assertStringNotContainsString( 'Thanks for installing Zero Spam for WordPress!', $on );
+	}
+
+	/**
+	 * A site is configured once settings were saved through any path, or
+	 * when core settings are stored some other way (provisioning).
+	 */
+	public function test_configured_follows_the_site_settings(): void {
+		$this->assertFalse( Onboarding::is_configured() );
+
+		update_option( 'zero-spam-settings', array( 'log_blocked_ips' => 'enabled' ) );
+		$this->assertTrue( Onboarding::is_configured(), 'Stored core settings count (provisioning).' );
+
+		delete_option( 'zero-spam-settings' );
+		update_option( 'zerospam_configured', 1 );
+		$this->assertTrue( Onboarding::is_configured() );
+	}
+
+	/**
+	 * Settings saved outside the setup (the Settings screen's PATCH)
+	 * configure the site and end a pending setup; the setup's own saves
+	 * (X-ZeroSpam-Setup) configure it and keep the setup going.
+	 */
+	public function test_saving_settings_outside_the_setup_ends_it(): void {
+		$this->as_role( 'administrator' );
+		update_option( Onboarding::OPTION, Onboarding::PENDING );
+
+		$_SERVER[ Onboarding::SETUP_HEADER ] = '1';
+		$this->assertSame( 200, $this->rest( 'PATCH', '/zero-spam/v1/settings', array( 'verify_comments' => true ) )->get_status() );
+		$this->assertTrue( Onboarding::is_pending(), 'The setup\'s own save keeps it pending.' );
+		$this->assertTrue( Onboarding::is_configured() );
+
+		unset( $_SERVER[ Onboarding::SETUP_HEADER ] );
+		$this->assertSame( 200, $this->rest( 'PATCH', '/zero-spam/v1/settings', array( 'verify_comments' => false ) )->get_status() );
+		$this->assertFalse( Onboarding::is_pending(), 'A save from the Settings screen ends it.' );
+	}
+
+	/**
+	 * WP-CLI (`wp zerospam set`, through Utilities::update_setting()) and the
+	 * recommended settings (Settings::auto_configure(), also behind
+	 * `wp zerospam autoconfigure`) end a pending setup too, unless the setup
+	 * applied them.
+	 */
+	public function test_cli_and_autoconfigure_end_a_pending_setup(): void {
+		$this->as_role( 'administrator' );
+		update_option( Onboarding::OPTION, Onboarding::PENDING );
+
+		$_SERVER[ Onboarding::SETUP_HEADER ] = '1';
+		\ZeroSpam\Core\Settings::auto_configure();
+		$this->assertTrue( Onboarding::is_pending() );
+		unset( $_SERVER[ Onboarding::SETUP_HEADER ] );
+
+		\ZeroSpam\Core\Utilities::update_setting( 'verify_comments', false );
+		$this->assertFalse( Onboarding::is_pending() );
+
+		update_option( Onboarding::OPTION, Onboarding::PENDING );
+		\ZeroSpam\Core\Settings::auto_configure();
+		$this->assertFalse( Onboarding::is_pending() );
+	}
+
+	/**
+	 * Each administrator's step is kept per site, and the setup's end
+	 * forgets them; the route saves and reports the step and whether the
+	 * site is configured, and the page boot data carries both.
+	 */
+	public function test_steps_are_kept_per_user_and_end_with_the_setup(): void {
+		update_option( Onboarding::OPTION, Onboarding::PENDING );
+		$first = $this->as_role( 'administrator' );
+		$this->assertSame( 200, $this->rest( 'POST', self::ROUTE, array( 'step' => 3 ) )->get_status() );
+		$this->assertSame( 3, Onboarding::step() );
+		$this->assertSame( 3, $this->rest( 'GET', self::ROUTE )->get_data()['step'] );
+
+		$this->as_role( 'administrator' );
+		$this->assertSame( 0, Onboarding::step(), 'Another administrator starts at the beginning.' );
+		$boot = ( new Admin_App() )->bootstrap( 'overview' );
+		$this->assertSame( 0, $boot['onboardingStep'] );
+		$this->assertFalse( $boot['configured'] );
+
+		wp_set_current_user( $first );
+		$this->assertSame( 3, ( new Admin_App() )->bootstrap( 'overview' )['onboardingStep'] );
+
+		$this->assertSame( 400, $this->rest( 'POST', self::ROUTE, array() )->get_status() );
+		$this->rest( 'POST', self::ROUTE, array( 'status' => 'done' ) );
+		$this->assertFalse( get_option( Onboarding::STEPS_OPTION ) );
+		$this->assertSame( 0, Onboarding::step() );
+	}
+
+	/**
+	 * On a network the step belongs to the site: an administrator at step 3
+	 * on one site starts another site's setup at step 1.
+	 *
+	 * @group ms-required
+	 */
+	public function test_steps_are_kept_per_site_on_a_network(): void {
+		$user = $this->as_role( 'administrator' );
+		grant_super_admin( $user );
+		$site = self::factory()->blog->create();
+
+		update_option( Onboarding::OPTION, Onboarding::PENDING );
+		Onboarding::save_step( 3 );
+
+		switch_to_blog( $site );
+		update_option( Onboarding::OPTION, Onboarding::PENDING );
+		$this->assertSame( 0, Onboarding::step(), 'The other site starts at step 1.' );
+		$this->assertFalse( Onboarding::is_configured(), 'Its own (absent) settings decide, not the other site\'s.' );
+		Onboarding::complete();
+		restore_current_blog();
+
+		$this->assertSame( 3, Onboarding::step() );
+		$this->assertTrue( Onboarding::is_pending(), 'Ending one site\'s setup leaves the other\'s.' );
+		revoke_super_admin( $user );
 	}
 }

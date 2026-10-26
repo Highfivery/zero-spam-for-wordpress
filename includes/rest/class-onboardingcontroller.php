@@ -20,10 +20,13 @@ defined( 'ABSPATH' ) || die();
 
 /**
  * `zero-spam/v1/ui/onboarding`: whether first-run setup is pending on this
- * site (`pending`) and which release's "What's new" panel it shows
- * (`whats_new`, '' for none). POST `{ "status": "done" }` ends the setup,
- * whether it was finished or skipped; the setup writes its settings through
- * the settings and license routes itself.
+ * site (`pending`), whether the site already has settings of its own
+ * (`configured`), the current administrator's step on this site (`step`,
+ * 0–4) and which release's "What's new" panel it shows (`whats_new`, ''
+ * for none). POST `{ "step": n }` saves the step (per site and user);
+ * POST `{ "status": "done" }` ends the setup, whether it was finished or
+ * skipped. The setup writes its settings through the settings and license
+ * routes itself.
  *
  * Internal to the admin screens (the `ui/` routes may change between
  * releases); administrators of the site only (`manage_options`).
@@ -68,7 +71,12 @@ class Onboarding_Controller extends Base_Controller {
 							'description' => __( 'done: first-run setup was finished or skipped.', 'zero-spam' ),
 							'type'        => 'string',
 							'enum'        => array( 'done' ),
-							'required'    => true,
+						),
+						'step'   => array(
+							'description' => __( 'The step the current administrator is at on this site (0 to start again).', 'zero-spam' ),
+							'type'        => 'integer',
+							'minimum'     => 0,
+							'maximum'     => 4,
 						),
 					),
 				),
@@ -95,11 +103,20 @@ class Onboarding_Controller extends Base_Controller {
 	 * @return WP_REST_Response|WP_Error
 	 */
 	public function update_item( $request ) {
-		if ( 'done' !== $request->get_param( 'status' ) ) {
-			return $this->invalid_params_error( array( 'status' => __( 'Must be done.', 'zero-spam' ) ) );
+		$status = $request->get_param( 'status' );
+		$step   = $request->get_param( 'step' );
+
+		if ( null === $status && null === $step ) {
+			return $this->invalid_params_error( array( 'status' => __( 'Send status done, or a step.', 'zero-spam' ) ) );
 		}
 
-		Onboarding::complete();
+		if ( null !== $step && Onboarding::is_pending() ) {
+			Onboarding::save_step( (int) $step );
+		}
+
+		if ( 'done' === $status ) {
+			Onboarding::complete();
+		}
 
 		return rest_ensure_response( $this->state() );
 	}
@@ -107,12 +124,14 @@ class Onboarding_Controller extends Base_Controller {
 	/**
 	 * The state the routes answer with.
 	 *
-	 * @return array{pending: bool, whats_new: string}
+	 * @return array{pending: bool, configured: bool, step: int, whats_new: string}
 	 */
 	private function state(): array {
 		return array(
-			'pending'   => Onboarding::is_pending(),
-			'whats_new' => Onboarding::whats_new(),
+			'pending'    => Onboarding::is_pending(),
+			'configured' => Onboarding::is_configured(),
+			'step'       => Onboarding::step(),
+			'whats_new'  => Onboarding::whats_new(),
 		);
 	}
 }

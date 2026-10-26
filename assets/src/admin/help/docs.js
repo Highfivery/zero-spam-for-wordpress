@@ -17,6 +17,7 @@ import { ExtLink, Icon, Tile, TileHead } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { PATHS, useResource } from '../data/api';
 import { copyText } from './copy';
+import { failedAnswer } from './news-model';
 import { LINKS } from './lists';
 
 /**
@@ -137,7 +138,7 @@ export function DocsTile( { open: initial } ) {
 			{ ! docs.loading && ! list.length && (
 				<div className="zs-empty">
 					<b>
-						{ docs.error
+						{ failedAnswer( docs )
 							? __(
 									'The guides could not be loaded',
 									'zero-spam'

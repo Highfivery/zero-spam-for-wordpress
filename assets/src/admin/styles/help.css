@@ -392,7 +392,7 @@
 
 	.zs-app:not([data-zs-motion="reduce"]) .zs-onb-mark .zs-b[data-lay] {
 		animation: zs-onb-lay var(--zs-duration-slower) var(--zs-ease-land) both;
-		animation-delay: calc(var(--zs-cx, 0) * 400ms);
+		animation-delay: calc(var(--zs-cx, 0) * var(--zs-mark-row-delay));
 	}
 }
 
@@ -436,8 +436,16 @@
 }
 
 .zs-ob-steps .zs-done .zs-ob-steps-b {
+	display: grid;
+	place-items: center;
 	border: 0;
-	background: var(--zs-brick-3);
+	background: var(--zs-action);
+	color: var(--zs-on-action);
+}
+
+.zs-app .zs-ob-check {
+	width: 12px;
+	height: 12px;
 }
 
 .zs-ob-steps .zs-cur {
@@ -694,6 +702,24 @@
 	background: var(--zs-sunken);
 	font-family: var(--zs-font-data);
 	font-size: var(--zs-text-xs);
+}
+
+.zs-onb-kept {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: flex-start;
+	margin: 0;
+	padding: 10px 12px;
+	border: 1px solid var(--zs-info-line);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-info-soft);
+	color: var(--zs-ink);
+	font-size: var(--zs-text-md);
+}
+
+.zs-onb-kept .zs-icon {
+	flex: none;
+	margin-top: 2px;
 }
 
 .zs-onb-nav {
