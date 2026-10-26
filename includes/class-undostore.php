@@ -9,6 +9,9 @@ declare( strict_types=1 );
 
 namespace ZeroSpam\Includes;
 
+use ZeroSpam\Core\Admin_Safe_IPs;
+use ZeroSpam\Core\User;
+
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
@@ -19,7 +22,9 @@ defined( 'ABSPATH' ) || die();
  *
  * Each deletion is one transient, `zerospam_undo_{token}`, holding at most
  * MAX_ROWS rows. Restoring puts the rows back with their original IDs, so
- * links and the live feed's `since_id` stay valid.
+ * links and the live feed's `since_id` stay valid. A removed no-lockout
+ * address (Admin_Safe_IPs, an option rather than a table) goes back on its
+ * list.
  *
  * @since 6.0.0
  */
@@ -47,18 +52,23 @@ final class Undo_Store {
 	const MAX_ROWS = 500;
 
 	/**
-	 * What can be restored: kind => DB::$tables key and the columns written back.
+	 * What can be restored: kind => DB::$tables key and the columns written
+	 * back (`no-lockout` has no table: its rows are `{ ip }`).
 	 *
 	 * @var array<string, array{table: string, columns: string[]}>
 	 */
 	const KINDS = array(
-		'activity' => array(
+		'activity'   => array(
 			'table'   => 'log',
 			'columns' => array( 'log_id', 'blog_id', 'log_type', 'user_ip', 'date_recorded', 'page_url', 'submission_data', 'country', 'country_name', 'region', 'region_name', 'city', 'zip', 'latitude', 'longitude' ),
 		),
-		'blocks'   => array(
+		'blocks'     => array(
 			'table'   => 'blocked',
 			'columns' => array( 'blocked_id', 'blocked_type', 'user_ip', 'blocked_key', 'key_type', 'date_added', 'start_block', 'end_block', 'reason' ),
+		),
+		'no-lockout' => array(
+			'table'   => '',
+			'columns' => array( 'ip' ),
 		),
 	);
 
@@ -134,7 +144,18 @@ final class Undo_Store {
 		// Single use: gone before anything is written back.
 		delete_transient( self::PREFIX . $token );
 
-		$kind    = (string) $entry['kind'];
+		$kind = (string) $entry['kind'];
+
+		if ( 'no-lockout' === $kind ) {
+			$restored = self::restore_no_lockout( array_values( array_filter( $entry['rows'], 'is_array' ) ) );
+
+			return array(
+				'kind'     => $kind,
+				'restored' => $restored,
+				'skipped'  => count( $entry['rows'] ) - $restored,
+			);
+		}
+
 		$table   = $wpdb->prefix . DB::$tables[ self::KINDS[ $kind ]['table'] ];
 		$columns = self::KINDS[ $kind ]['columns'];
 		$rows    = array_values( array_filter( $entry['rows'], 'is_array' ) );
@@ -159,6 +180,36 @@ final class Undo_Store {
 			'restored' => $restored,
 			'skipped'  => count( $entry['rows'] ) - $restored,
 		);
+	}
+
+	/**
+	 * Puts removed no-lockout addresses back on the current site's list (an
+	 * address saved again in the meantime is skipped; the list keeps its
+	 * last Admin_Safe_IPs::MAX_IPS addresses).
+	 *
+	 * @param array<int, array<string, mixed>> $rows Rows `{ ip }`.
+	 * @return int Addresses put back.
+	 */
+	private static function restore_no_lockout( array $rows ): int {
+		$ips      = Admin_Safe_IPs::get_ips();
+		$restored = 0;
+
+		foreach ( $rows as $row ) {
+			$ip = is_string( $row['ip'] ?? null ) ? trim( $row['ip'] ) : '';
+
+			if ( '' === $ip || '' === User::normalize_ip( $ip ) || in_array( $ip, $ips, true ) ) {
+				continue;
+			}
+
+			$ips[] = $ip;
+			++$restored;
+		}
+
+		if ( $restored > 0 ) {
+			update_option( Admin_Safe_IPs::OPTION, array_slice( $ips, -Admin_Safe_IPs::MAX_IPS ), false );
+		}
+
+		return $restored;
 	}
 
 	/**
