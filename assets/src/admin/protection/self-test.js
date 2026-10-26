@@ -81,6 +81,17 @@ export function TestButton( { state, onRun, primary = true } ) {
 const ShieldIcon = () => <Icon name="shield" size="sm" />;
 
 /**
+ * What a finished step's icon means, for screen readers.
+ *
+ * @return {Object<string, string>} Text by status.
+ */
+const STATUS_TEXT = () => ( {
+	pass: __( 'Passed:', 'zero-spam' ),
+	warn: __( 'Warning:', 'zero-spam' ),
+	fail: __( 'Failed:', 'zero-spam' ),
+} );
+
+/**
  * The step icon.
  *
  * @param {Object} props        Props.
@@ -198,7 +209,14 @@ export function SelfTestPanel( { state, dispatch } ) {
 								>
 									<StepIcon status={ step.status } />
 									<span className="zs-li-body">
-										<b>{ name }</b>
+										<b>
+											{ STATUS_TEXT()[ step.status ] && (
+												<span className="zs-sr-only">
+													{ STATUS_TEXT()[ step.status ] }{ ' ' }
+												</span>
+											) }
+											{ name }
+										</b>
 										<span className="zs-hint">
 											{ step.message || waiting }
 										</span>

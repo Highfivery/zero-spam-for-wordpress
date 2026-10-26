@@ -296,9 +296,18 @@ export function Protection() {
 							`zs-row-${ first.replace( /[^A-Za-z0-9_-]/g, '-' ) }`
 						);
 					const control = row?.querySelector(
-						'input,select,textarea,button'
+						'input:not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled])'
 					);
-					( control || row )?.focus?.();
+					if ( control ) {
+						control.focus();
+						return;
+					}
+					// Locked (disabled) settings cannot take focus: the bar says what happened.
+					const bar = document.querySelector( '.zs-savebar' );
+					if ( bar ) {
+						bar.setAttribute( 'tabindex', '-1' );
+						bar.focus();
+					}
 				}, 60 );
 			} );
 	};

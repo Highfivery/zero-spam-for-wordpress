@@ -157,8 +157,10 @@ export function SecretField( {
 			input.current?.focus();
 		}
 	}, [ editing ] );
+	// A key from wp-config.php or the network is read-only here: removing it would store an empty site override.
 	const fixed =
-		[ 'constant', 'locked' ].includes( masked.source ) || disabled;
+		[ 'constant', 'locked', 'network' ].includes( masked.source ) ||
+		disabled;
 	const removing = '' === draft && masked.set;
 
 	if ( masked.set && ! editing && undefined === draft ) {
@@ -169,7 +171,7 @@ export function SecretField( {
 			'network' === masked.source ||
 			'locked' === masked.source
 		) {
-			where = __( 'Set by your network administrator', 'zero-spam' );
+			where = __( 'Provided by your network', 'zero-spam' );
 		}
 		return (
 			<div className="zs-secret">

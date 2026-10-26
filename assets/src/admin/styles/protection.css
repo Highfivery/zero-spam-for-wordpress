@@ -74,15 +74,12 @@
 }
 
 /* "On this page" */
+/* Not sticky: chips that wrap to two rows would cover focused controls (WCAG 2.4.11). */
 .zs-jump {
 	display: flex;
-	position: sticky;
-	z-index: var(--zs-z-jump);
-	top: calc(var(--zs-wpbar-h) + 60px);
 	flex-wrap: wrap;
 	gap: 6px;
 	padding: 8px 2px;
-	background: color-mix(in srgb, var(--zs-bg) 92%, transparent);
 }
 
 .zs-jump .zs-chip:focus-visible {
@@ -839,10 +836,6 @@
 
 	.zs-st-time {
 		margin-left: 36px;
-	}
-
-	.zs-jump {
-		position: static;
 	}
 
 	.zs-morebtn,

@@ -182,7 +182,7 @@ class Security {
 		);
 
 		$settings['disable_emojis'] = array(
-			'title'       => __( 'Disable WordPress Emoj\'s', 'zero-spam' ),
+			'title'       => __( 'Disable WordPress Emojis', 'zero-spam' ),
 			'desc'        => wp_kses(
 				__( 'WordPress emoji’s are one of the vectors scanners use in order to enumerate version information, disable them if you\'re not using them.', 'zero-spam' ),
 				array(

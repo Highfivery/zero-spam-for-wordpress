@@ -180,6 +180,17 @@ describe( 'Field', () => {
 		expect( html ).not.toContain( 'Replace' );
 	} );
 
+	it( 'does not offer to change or remove a key the network provides', () => {
+		const html = render( {
+			...entries.ipstack_api,
+			value: { set: true, source: 'network' },
+		} );
+		expect( html ).toContain( 'Provided by your network' );
+		expect( html ).not.toContain( 'Replace' );
+		expect( html ).not.toContain( 'Remove' );
+		expect( html ).not.toContain( '<input' );
+	} );
+
 	it( 'renders html help as a disclosure and actions as buttons', () => {
 		const help = render( entries.davidwalsh_form_selectors_help );
 		expect( help ).toMatch( /^<details class="zs-help"/ );

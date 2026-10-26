@@ -455,7 +455,7 @@ const V6_ACTIVITY: Screen[] = [
  * Protection parts that change between runs: relative times and counts,
  * the license check time and the self-test timings.
  */
-export const PROTECTION_MASKS = [ '.zs-pcard-st', '.zs-lic-live', '.zs-st-time', '.zs-st-result' ];
+export const PROTECTION_MASKS = [ '.zs-pcard-st', '.zs-lic-live', '.zs-st-time', '.zs-st-result', '#zs-row-regenerate_honeypot .zs-fdesc code' ];
 
 /** Baseline policy (see AREA_BODY): 782px and the dark shot on Protection › Detection only. */
 const PROTECTION_VISUAL = { mask: PROTECTION_MASKS, selector: AREA_BODY };

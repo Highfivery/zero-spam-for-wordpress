@@ -203,6 +203,29 @@ class Test_Rest_Settings_Schema extends TestCase {
 	}
 
 	/**
+	 * A key a network site gets from a network default is reported as
+	 * coming from the network, without a hint: the site administrator never
+	 * entered it (the 6.0 screens show it read-only).
+	 *
+	 * @group ms-required
+	 */
+	public function test_network_provided_secret_has_no_hint(): void {
+		delete_option( 'zero-spam-ipstack' );
+		$this->set_network_setting( 'ipstack_api', 'network-ipstack-key-5678' );
+
+		$this->assertSame(
+			array(
+				'set'    => true,
+				'source' => 'network',
+			),
+			Settings_Schema::masked( 'ipstack_api' )
+		);
+		$entry = self::by_key( Settings_Schema::get()['settings'] )['ipstack_api'];
+		$this->assertSame( 'network', $entry['source'] );
+		$this->assertStringNotContainsString( '5678', (string) wp_json_encode( $entry ) );
+	}
+
+	/**
 	 * Settings report where their value comes from and the derived defaults.
 	 */
 	public function test_sources_and_defaults(): void {

@@ -15,7 +15,7 @@
 /**
  * WordPress dependencies
  */
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { useEffect, useRef, useState } from '@wordpress/element';
 
 /**
@@ -64,6 +64,7 @@ export function KeyForm( {
 	const [ value, setValue ] = useState( '' );
 	const [ busy, setBusy ] = useState( false );
 	const [ error, setError ] = useState( '' );
+	const [ show, setShow ] = useState( false );
 	const input = useRef( null );
 
 	useEffect( () => {
@@ -97,14 +98,30 @@ export function KeyForm( {
 							data: { zerospam: 'enabled' },
 						} ).then(
 							() => ( { ...answer, enabled: true } ),
-							// Locked by the network: the key is saved, the switch stays as it is.
-							() => answer
+							// Locked by the network, for example: the key is saved, the switch stays as it is.
+							( failure ) => ( {
+								...answer,
+								enableError:
+									failure?.message ||
+									__( 'It could not be switched on.', 'zero-spam' ),
+							} )
 						)
 					: Promise.resolve( answer );
-				return turnOn.then( ( final ) => {
+				return turnOn.then( ( { enableError, ...final } ) => {
 					setLicense( final );
 					modulesState?.reload?.();
-					toast( result.message );
+					toast(
+						enableError
+							? sprintf(
+									/* translators: %s: why Enhanced Protection could not be switched on */
+									__(
+										'Your license key is saved, but Enhanced Protection is still off: %s',
+										'zero-spam'
+									),
+									enableError
+								)
+							: result.message
+					);
 					setBusy( false );
 					onSaved?.( final );
 					focusCard( 'zerospam' );
@@ -136,7 +153,7 @@ export function KeyForm( {
 					ref={ input }
 					id="zs-license-key"
 					className="zs-input zs-mono"
-					type="text"
+					type={ show ? 'text' : 'password' }
 					value={ value }
 					autoComplete="off"
 					spellCheck="false"
@@ -148,6 +165,16 @@ export function KeyForm( {
 					) }
 					onChange={ ( event ) => setValue( event.target.value ) }
 				/>
+				<Button
+					variant="ghost"
+					size="sm"
+					aria-pressed={ show ? 'true' : 'false' }
+					aria-controls="zs-license-key"
+					disabled={ busy }
+					onClick={ () => setShow( ! show ) }
+				>
+					{ show ? __( 'Hide', 'zero-spam' ) : __( 'Show', 'zero-spam' ) }
+				</Button>
 				<Button variant="secondary" type="submit" disabled={ busy }>
 					{ busy && <span className="zs-spin" aria-hidden="true" /> }
 					{ busy

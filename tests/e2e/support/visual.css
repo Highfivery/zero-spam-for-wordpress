@@ -72,9 +72,3 @@
 .zs-hours-note {
 	visibility: hidden !important;
 }
-
-/* Protection's "On this page" chips are sticky; in an element screenshot
-   they would sit over the first card's heading. */
-.zs-jump {
-	position: static !important;
-}
