@@ -22,6 +22,7 @@ import { Activity } from '../activity/activity';
 import { Protection } from '../protection/protection';
 import { Rules } from '../rules/rules';
 import { Settings } from '../settings/settings';
+import { Network } from '../network/network';
 import { useTab } from '../data/routes';
 import { boot } from '../data/api';
 
@@ -55,20 +56,16 @@ function AreaView( { area } ) {
 			{ 'protection' === area && <Protection /> }
 			{ 'rules' === area && <Rules /> }
 			{ 'settings' === area && <Settings /> }
+			{ network && <Network tab={ netTab } setTab={ setNetTab } /> }
 			{ ! [
 				'overview',
 				'activity',
 				'protection',
 				'rules',
 				'settings',
+				'network',
 			].includes( area ) && (
-				<Placeholder
-					area={ area }
-					title={
-						network ? __( 'Network', 'zero-spam' ) : titles[ area ]
-					}
-					tab={ netTab }
-				/>
+				<Placeholder area={ area } title={ titles[ area ] } />
 			) }
 		</Shell>
 	);

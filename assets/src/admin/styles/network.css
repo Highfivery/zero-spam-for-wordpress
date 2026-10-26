@@ -1,0 +1,498 @@
+/**
+ * The network page (prototype §9): number tiles, the settings cards with
+ * the lock switch and the site counts, templates and their drawer, the
+ * audit log, the comparison, statistics and network-wide blocks. Settings
+ * rows come from app/fields/fields.css (scoped to .zs-network there too);
+ * values come from the design tokens only.
+ */
+
+/* stylelint-disable no-descending-specificity -- Table and card rules reuse element selectors in unrelated subtrees. */
+
+.zs-network .zs-subnav {
+	margin-bottom: var(--zs-space-3);
+}
+
+.zs-network .zs-tabs {
+	margin-bottom: 0;
+}
+
+.zs-network .zs-notice {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: flex-start;
+}
+
+.zs-network .zs-notice > .zs-icon {
+	flex: none;
+	margin-top: 2px;
+}
+
+.zs-network .zs-notice-info {
+	border-color: var(--zs-line);
+	background: var(--zs-surface-2);
+	color: var(--zs-ink);
+}
+
+/* Number tiles: four to a course, two below 1,100px */
+.zs-network .zs-s3 {
+	grid-column: span 3;
+}
+
+@media (max-width: 1100px) {
+
+	.zs-network .zs-s3 {
+		grid-column: span 6;
+	}
+}
+
+.zs-numtile {
+	gap: 6px;
+}
+
+.zs-bignum {
+	font-family: var(--zs-font-data);
+	font-size: var(--zs-text-figure-sm);
+	font-variant-numeric: tabular-nums;
+	font-weight: var(--zs-weight-semibold);
+	letter-spacing: var(--zs-tracking-figure);
+	line-height: 1.1;
+}
+
+/* Settings: group chips and cards */
+.zs-ngroups {
+	margin-bottom: var(--zs-space-2);
+}
+
+.zs-ncard {
+	gap: 0;
+	padding: 0;
+}
+
+.zs-ngh {
+	display: flex;
+	box-sizing: border-box;
+	gap: var(--zs-space-3);
+	align-items: center;
+	width: 100%;
+	min-height: var(--zs-tap-min);
+	margin: 0;
+	padding: 14px 18px;
+	border: 0;
+	border-radius: var(--zs-radius-card);
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.zs-ngh:hover {
+	background: var(--zs-surface-2);
+}
+
+.zs-ngh:focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: calc(-1 * var(--zs-focus-width));
+}
+
+.zs-ngh .zs-grow {
+	min-width: 0;
+}
+
+.zs-ngh b {
+	display: block;
+	font-size: var(--zs-text-lg);
+}
+
+.zs-ngh .zs-hint {
+	display: block;
+}
+
+.zs-ngh .zs-chev {
+	flex: none;
+	transition: transform var(--zs-duration-fast) var(--zs-ease-standard);
+}
+
+.zs-ngh[aria-expanded="true"] .zs-chev {
+	transform: rotate(90deg);
+}
+
+.zs-ncard-b {
+	padding: 0 18px 8px;
+}
+
+.zs-network .zs-setrow {
+	padding: 16px 0;
+}
+
+/* Under each control: how many sites use the value, and the lock switch */
+.zs-netaside {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--zs-space-2) var(--zs-space-3);
+	align-items: center;
+	justify-content: space-between;
+	padding-top: var(--zs-space-2);
+	border-top: 1px dashed var(--zs-line);
+}
+
+.zs-netaside-t {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 10px;
+	align-items: center;
+	min-width: 0;
+}
+
+.zs-lockbtn {
+	display: inline-flex;
+	gap: 6px;
+	align-items: center;
+	min-height: var(--zs-control-sm);
+	margin: 0;
+	padding: 0 12px;
+	border: 1px solid var(--zs-control);
+	border-radius: var(--zs-radius-pill);
+	background: var(--zs-surface);
+	color: var(--zs-ink-2);
+	font-family: var(--zs-font-ui);
+	font-size: var(--zs-text-xs);
+	font-weight: var(--zs-weight-semibold);
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.zs-lockbtn:hover {
+	background: var(--zs-sunken);
+	color: var(--zs-ink);
+}
+
+.zs-lockbtn[aria-pressed="true"] {
+	border-color: var(--zs-ink);
+	background: var(--zs-ink);
+	color: var(--zs-bg);
+}
+
+.zs-lockbtn[aria-disabled="true"] {
+	cursor: progress;
+	opacity: 0.7;
+}
+
+.zs-lockbtn:focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
+/* Templates */
+.zs-tplcard {
+	gap: var(--zs-space-3);
+}
+
+.zs-tplchips {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.zs-tplchip {
+	height: auto;
+	min-height: 28px;
+	padding: 4px 10px;
+	font-family: var(--zs-font-ui);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-medium);
+	cursor: default;
+}
+
+.zs-tplchip:hover {
+	background: var(--zs-surface);
+}
+
+.zs-tplacts {
+	margin-top: auto;
+}
+
+.zs-tplform {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-5);
+}
+
+.zs-tplform .zs-sect {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-3);
+}
+
+.zs-tplform .zs-sect h3 {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: center;
+}
+
+.zs-textarea-ui {
+	font-family: var(--zs-font-ui);
+}
+
+.zs-tpg > summary .zs-c {
+	margin-left: auto;
+	color: var(--zs-ink-3);
+	font-family: var(--zs-font-data);
+	font-size: var(--zs-text-xs);
+}
+
+.zs-tprow {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px 0;
+	border-top: 1px solid var(--zs-line);
+}
+
+.zs-tpinc {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: center;
+	min-height: var(--zs-tap-min);
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-semibold);
+	cursor: pointer;
+}
+
+.zs-tpinc input,
+.zs-checklist input {
+	flex: none;
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	accent-color: var(--zs-action);
+}
+
+.zs-tpval {
+	padding-left: 26px;
+}
+
+.zs-tpval .zs-setrow {
+	grid-template-columns: 1fr;
+	gap: 6px;
+	padding: 0;
+	border-top: 0;
+}
+
+.zs-plain {
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.zs-plain > legend {
+	margin-bottom: var(--zs-space-2);
+	padding: 0;
+}
+
+.zs-radios-one {
+	grid-template-columns: 1fr;
+}
+
+.zs-checklist {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: var(--zs-space-2);
+	margin-top: var(--zs-space-2);
+}
+
+.zs-checklist label {
+	display: flex;
+	gap: 10px;
+	align-items: center;
+	min-height: var(--zs-tap-min);
+	padding: 10px 12px;
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-surface);
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-semibold);
+	cursor: pointer;
+}
+
+.zs-checklist label > span {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.zs-checklist small {
+	overflow: hidden;
+	color: var(--zs-ink-3);
+	font-size: var(--zs-text-xs);
+	font-weight: var(--zs-weight-medium);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Tables and cards of the network page */
+.zs-block {
+	display: block;
+}
+
+.zs-network .zs-t th[scope="row"] {
+	min-width: 200px;
+	max-width: 320px;
+	color: var(--zs-ink);
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-medium);
+	letter-spacing: 0;
+	text-transform: none;
+	white-space: normal;
+	vertical-align: top;
+}
+
+.zs-network .zs-t td {
+	vertical-align: top;
+}
+
+.zs-cmp-t td,
+.zs-cmp-sites li {
+	font-size: var(--zs-text-sm);
+}
+
+.zs-cmp-t thead .zs-hint {
+	font-weight: var(--zs-weight-medium);
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.zs-cmp-v {
+	display: block;
+	overflow-wrap: anywhere;
+	margin-bottom: 4px;
+}
+
+.zs-cmp-sites {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin: 6px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.zs-cmp-sites li {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 8px;
+	align-items: center;
+}
+
+.zs-cmp-sites .zs-cmp-site {
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-cmp-sites .zs-cmp-v {
+	margin: 0;
+}
+
+.zs-network .zs-cards-plain .zs-cm-m {
+	-webkit-line-clamp: 3;
+}
+
+.zs-network .zs-tbl-wrap + .zs-pager,
+.zs-network .zs-cards-wrap + .zs-pager {
+	margin-top: var(--zs-space-2);
+}
+
+.zs-auditbar .zs-field {
+	flex: 0 1 200px;
+	min-width: 150px;
+}
+
+.zs-aufilters {
+	margin-bottom: var(--zs-space-2);
+}
+
+.zs-c-changes code {
+	padding: 1px 5px;
+	border-radius: 4px;
+	background: var(--zs-sunken);
+	font-family: var(--zs-font-data);
+	font-size: var(--zs-text-sm);
+	overflow-wrap: anywhere;
+}
+
+.zs-nstats-t td,
+.zs-nstats-t th {
+	padding-right: 10px;
+	padding-left: 10px;
+}
+
+.zs-site {
+	max-width: 240px;
+}
+
+.zs-dom {
+	display: block;
+	overflow: hidden;
+	max-width: 220px;
+	color: var(--zs-ink-3);
+	font-size: var(--zs-text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.zs-network .zs-t .zs-num {
+	text-align: right;
+}
+
+@media (max-width: 1439px) {
+
+	.zs-network .zs-col-tt {
+		display: none;
+	}
+}
+
+.zs-nblock-form {
+	align-items: flex-end;
+}
+
+.zs-nblock-form .zs-field {
+	min-width: min(100%, 220px);
+}
+
+.zs-nblocks {
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+}
+
+.zs-empty-inline {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: center;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-md);
+}
+
+@media (max-width: 760px) {
+
+	.zs-ngh {
+		padding: 12px 14px;
+	}
+
+	.zs-ncard-b {
+		padding: 0 14px 8px;
+	}
+
+	.zs-netaside {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.zs-lockbtn {
+		min-height: var(--zs-tap-min);
+	}
+
+	.zs-tpval {
+		padding-left: 0;
+	}
+}
