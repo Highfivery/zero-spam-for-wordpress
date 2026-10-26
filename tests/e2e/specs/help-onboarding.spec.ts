@@ -295,7 +295,7 @@ test.describe( "What's new in 6.0", () => {
 		await zs.firstRun( 'upgraded' );
 	} );
 
-	test( 'the drawer: focus moves in and stays, Escape returns it; Got it hides the tile for this administrator', async ( { page } ) => {
+	test( 'the drawer: focus moves in and stays, Escape returns it; Got it hides the tile for this administrator', async ( { page, target } ) => {
 		await page.goto( OVERVIEW );
 		await page.locator( '#zs-ov-h' ).waitFor();
 		const tile = page.locator( '.zs-whatsnew' );
@@ -308,7 +308,8 @@ test.describe( "What's new in 6.0", () => {
 		await expect( drawer ).toHaveAttribute( 'aria-modal', 'true' );
 		await expect( drawer.getByRole( 'heading', { level: 2 } ) ).toHaveText( "What's new in 6.0" );
 		await expect( drawer.getByRole( 'button', { name: 'Got it' } ) ).toBeFocused();
-		await expect( drawer.locator( '.zs-wn-map tbody tr' ) ).toHaveCount( 12 );
+		// The network row only for super admins on a network.
+		await expect( drawer.locator( '.zs-wn-map tbody tr' ) ).toHaveCount( target.multisite ? 13 : 12 );
 		await expect( drawer.getByRole( 'link', { name: 'Rules › Blocked IPs' } ) ).toHaveAttribute( 'href', /page=zero-spam-rules&tab=ips/ );
 
 		for ( let i = 0; i < 40; i++ ) {
