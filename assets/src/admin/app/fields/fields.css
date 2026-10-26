@@ -1,0 +1,618 @@
+/**
+ * The generic settings renderer (fields.js) and the card chrome around it:
+ * tabs, "On this page", cards, disclosures and settings rows. Shared by
+ * Protection and Settings; rules that touch shared class names are scoped
+ * to those two areas. Values come from the design tokens only.
+ *
+ * Moved here from styles/protection.css (#446) so both areas use one copy.
+ */
+
+/* Tag picker (multi-selects) */
+.zs-tagpick {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-2);
+}
+
+.zs-tchips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.zs-tchip {
+	display: inline-flex;
+	gap: 4px;
+	align-items: center;
+	padding: 2px 4px 2px 10px;
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-pill);
+	background: var(--zs-surface);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-tchip-x {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: none;
+	color: var(--zs-ink-3);
+	cursor: pointer;
+}
+
+.zs-tchip-x:hover {
+	background: var(--zs-sunken);
+	color: var(--zs-ink);
+}
+
+.zs-tchip-x:focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: 1px;
+}
+
+/* Tabs */
+:is(.zs-protection, .zs-settings) .zs-seg {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	max-width: 100%;
+	padding: 4px;
+	border: 1px solid var(--zs-line);
+	border-radius: 12px;
+	background: var(--zs-sunken);
+}
+
+:is(.zs-protection, .zs-settings) .zs-seg button,
+:is(.zs-protection, .zs-settings) .zs-segr {
+	display: inline-flex;
+	position: relative;
+	gap: var(--zs-space-2);
+	align-items: center;
+	min-height: var(--zs-control-sm);
+	margin: 0;
+	padding: 4px 12px;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-semibold);
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+:is(.zs-protection, .zs-settings) .zs-seg button:hover,
+:is(.zs-protection, .zs-settings) .zs-segr:hover {
+	background: var(--zs-surface);
+	color: var(--zs-ink);
+}
+
+:is(.zs-protection, .zs-settings) .zs-seg button[aria-selected="true"],
+:is(.zs-protection, .zs-settings) .zs-segr:has(input:checked) {
+	background: var(--zs-ink);
+	color: var(--zs-bg);
+}
+
+:is(.zs-protection, .zs-settings) .zs-seg button:focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
+:is(.zs-protection, .zs-settings) .zs-segr input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+:is(.zs-protection, .zs-settings) .zs-segr:has(input:focus-visible) {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
+:is(.zs-protection, .zs-settings) .zs-segr:has(input:disabled) {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+:is(.zs-protection, .zs-settings) .zs-tabs {
+	margin-bottom: var(--zs-space-3);
+}
+
+:is(.zs-protection, .zs-settings) .zs-c {
+	font-family: var(--zs-font-data);
+	font-size: var(--zs-text-2xs);
+	font-variant-numeric: tabular-nums;
+	font-weight: var(--zs-weight-semibold);
+}
+
+:is(.zs-protection, .zs-settings) .zs-areabody {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-mortar);
+}
+
+:is(.zs-protection, .zs-settings) .zs-areabody:focus {
+	outline: none;
+}
+
+/* "On this page" */
+.zs-jump {
+	display: flex;
+	position: sticky;
+	z-index: var(--zs-z-jump);
+	top: calc(var(--zs-wpbar-h) + 60px);
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 8px 2px;
+	background: color-mix(in srgb, var(--zs-bg) 92%, transparent);
+}
+
+.zs-jump .zs-chip:focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
+.zs-sub-lead {
+	margin: 0;
+}
+
+/* Settings rows inside cards */
+:is(.zs-protection, .zs-settings) .zs-setrow {
+	padding: 16px 0;
+}
+
+/* Cards */
+.zs-cardcol {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-mortar);
+}
+
+.zs-pcard {
+	gap: 10px;
+	scroll-margin-top: calc(var(--zs-wpbar-h) + 120px);
+}
+
+.zs-pcard:focus {
+	outline: none;
+}
+
+.zs-pcard:focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
+.zs-pcard-h {
+	display: flex;
+	gap: var(--zs-space-3);
+	align-items: flex-start;
+	justify-content: space-between;
+}
+
+.zs-pcard-t {
+	display: flex;
+	gap: var(--zs-space-3);
+	align-items: flex-start;
+	min-width: 0;
+}
+
+.zs-pcard-t .zs-hint {
+	margin-top: 2px;
+}
+
+.zs-pcard-title {
+	font-size: var(--zs-text-xl);
+	font-weight: var(--zs-weight-bold);
+	letter-spacing: var(--zs-tracking-heading);
+	line-height: 1.25;
+}
+
+.zs-pcard-badges {
+	display: inline-flex;
+	flex: none;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: flex-end;
+	margin-top: 4px;
+}
+
+.zs-pcard-na {
+	border-style: dashed;
+	background: var(--zs-surface-2);
+}
+
+.zs-pcard-skel {
+	min-height: 160px;
+	background: var(--zs-surface-2);
+}
+
+.zs-pcard-b > .zs-setrow:first-child {
+	padding-top: 10px;
+	border-top: 0;
+}
+
+.zs-pcard-st {
+	color: var(--zs-ink-3);
+	font-size: var(--zs-text-sm);
+	font-variant-numeric: tabular-nums;
+}
+
+.zs-pcard-foot {
+	font-size: var(--zs-text-sm);
+}
+
+.zs-sig {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.zs-tag {
+	display: inline-flex;
+	align-items: center;
+	height: 22px;
+	padding: 0 8px;
+	border-radius: 6px;
+	background: var(--zs-sunken);
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-xs);
+	font-weight: var(--zs-weight-semibold);
+	white-space: nowrap;
+}
+
+.zs-badge-lock {
+	border: 1px dashed var(--zs-control);
+	background: transparent;
+	color: var(--zs-ink-2);
+}
+
+/* Disclosures: Fine-tune, More integrations, help */
+.zs-fine,
+.zs-moreint,
+.zs-help {
+	border-top: 1px solid var(--zs-line);
+}
+
+.zs-fine > summary,
+.zs-moreint > summary,
+.zs-help > summary {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: center;
+	min-height: var(--zs-tap-min);
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-bold);
+	cursor: pointer;
+	list-style: none;
+}
+
+.zs-moreint > summary {
+	font-size: var(--zs-text-md);
+}
+
+.zs-fine > summary::-webkit-details-marker,
+.zs-moreint > summary::-webkit-details-marker,
+.zs-help > summary::-webkit-details-marker {
+	display: none;
+}
+
+.zs-fine > summary::before,
+.zs-moreint > summary::before {
+	width: 7px;
+	height: 7px;
+	border-right: 2px solid currentcolor;
+	border-bottom: 2px solid currentcolor;
+	content: "";
+	transform: rotate(-45deg);
+	transition: transform var(--zs-duration-fast) var(--zs-ease-standard);
+}
+
+.zs-fine[open] > summary::before,
+.zs-moreint[open] > summary::before {
+	transform: rotate(45deg);
+}
+
+.zs-fine > summary:hover,
+.zs-moreint > summary:hover,
+.zs-help > summary:hover {
+	color: var(--zs-ink);
+}
+
+.zs-fine > summary:focus-visible,
+.zs-moreint > summary:focus-visible,
+.zs-help > summary:focus-visible {
+	border-radius: var(--zs-radius-sm);
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
+.zs-fine > .zs-setrow:first-of-type {
+	padding-top: 4px;
+	border-top: 0;
+}
+
+.zs-moreint {
+	border-top: 0;
+}
+
+.zs-moreint > .zs-cardcol {
+	margin-top: var(--zs-space-2);
+}
+
+.zs-help {
+	padding: 0;
+}
+
+.zs-help-b {
+	display: flex;
+	overflow-wrap: anywhere;
+	flex-direction: column;
+	gap: var(--zs-space-2);
+	padding: 0 0 14px;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-md);
+}
+
+.zs-help-b ol,
+.zs-help-b ul,
+.zs-fdesc ol,
+.zs-fdesc ul {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0;
+	padding-left: 20px;
+}
+
+:is(.zs-protection, .zs-settings) :is(.zs-help-b, .zs-fdesc, .zs-setrow) code {
+	padding: 1px 5px;
+	border-radius: 4px;
+	background: var(--zs-sunken);
+	font-family: var(--zs-font-data);
+	font-size: var(--zs-text-sm);
+}
+
+/* Settings rows */
+.zs-setrow-err .zs-st-t {
+	color: var(--zs-red);
+}
+
+.zs-fdesc {
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-md);
+	overflow-wrap: anywhere;
+}
+
+.zs-fdesc p + p {
+	margin-top: 6px;
+}
+
+.zs-clamp {
+	max-height: 4.5em;
+	overflow: hidden;
+}
+
+.zs-morebtn {
+	align-self: flex-start;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-bold);
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	cursor: pointer;
+}
+
+.zs-morebtn:focus-visible {
+	border-radius: var(--zs-radius-sm);
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
+.zs-dep {
+	color: var(--zs-ink-3);
+	font-size: var(--zs-text-sm);
+}
+
+:is(.zs-protection, .zs-settings) .zs-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.zs-netnote {
+	display: flex;
+	gap: 6px;
+	align-items: flex-start;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+}
+
+.zs-field-err {
+	display: flex;
+	gap: 6px;
+	align-items: flex-start;
+	color: var(--zs-red);
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-sw-row {
+	display: flex;
+	gap: var(--zs-space-3);
+	align-items: center;
+}
+
+:is(.zs-protection, .zs-settings) .zs-sw-status {
+	display: inline;
+}
+
+:is(.zs-protection, .zs-settings) :is(.zs-input, .zs-select, .zs-textarea) {
+	width: 100%;
+	min-width: 0;
+	min-height: var(--zs-control-md);
+	margin: 0;
+	padding: 6px 10px;
+	border: 1px solid var(--zs-control);
+	border-radius: var(--zs-radius-control);
+	background: var(--zs-surface);
+	box-shadow: none;
+	color: var(--zs-ink);
+	font-size: var(--zs-text-md);
+}
+
+:is(.zs-protection, .zs-settings) .zs-textarea {
+	min-height: 112px;
+	font-family: var(--zs-font-data);
+	font-size: var(--zs-text-sm);
+	line-height: 1.5;
+	resize: vertical;
+}
+
+:is(.zs-protection, .zs-settings) .zs-select {
+	max-width: 320px;
+}
+
+:is(.zs-protection, .zs-settings) :is(.zs-input, .zs-select, .zs-textarea):focus {
+	border-color: var(--zs-ink);
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: 1px;
+	box-shadow: none;
+}
+
+:is(.zs-protection, .zs-settings) :is(.zs-input, .zs-select, .zs-textarea)[aria-invalid="true"] {
+	border-color: var(--zs-red);
+}
+
+:is(.zs-protection, .zs-settings) :is(.zs-input, .zs-select, .zs-textarea):disabled {
+	background: var(--zs-sunken);
+	color: var(--zs-ink-2);
+	cursor: not-allowed;
+}
+
+:is(.zs-protection, .zs-settings) .zs-input::placeholder,
+:is(.zs-protection, .zs-settings) .zs-textarea::placeholder {
+	color: var(--zs-ink-3);
+}
+
+:is(.zs-protection, .zs-settings) .zs-num-in {
+	max-width: 160px;
+}
+
+.zs-inwrap {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--zs-space-2);
+	align-items: center;
+	min-width: 0;
+}
+
+.zs-inwrap .zs-input {
+	flex: 1 1 180px;
+	width: auto;
+}
+
+.zs-secret {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--zs-space-3);
+	align-items: center;
+}
+
+.zs-secret-v {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.zs-secret-v .zs-mono {
+	overflow-wrap: anywhere;
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-actres {
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-actres:empty {
+	display: none;
+}
+
+.zs-actres-ok {
+	color: var(--zs-ok-ink);
+}
+
+.zs-actres-err {
+	color: var(--zs-red);
+}
+
+:is(.zs-protection, .zs-settings) .zs-notice {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: flex-start;
+	padding: 10px 12px;
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-surface-2);
+	font-size: var(--zs-text-md);
+}
+
+:is(.zs-protection, .zs-settings) .zs-notice-warn {
+	border-color: transparent;
+	background: var(--zs-warn-soft);
+	color: var(--zs-warn-ink);
+}
+
+:is(.zs-protection, .zs-settings) .zs-notice-err {
+	border-color: var(--zs-red);
+	background: var(--zs-red-soft);
+	color: var(--zs-red-soft-ink);
+}
+
+
+/* Tablets and phones */
+@media (max-width: 760px) {
+
+	.zs-pcard-h {
+		flex-wrap: wrap;
+	}
+
+	.zs-pcard-badges {
+		justify-content: flex-start;
+		margin-top: 0;
+	}
+}
+
+@media (max-width: 600px) {
+
+	.zs-jump {
+		position: static;
+	}
+
+	:is(.zs-protection, .zs-settings) .zs-seg button,
+	:is(.zs-protection, .zs-settings) .zs-segr,
+	.zs-morebtn,
+	.zs-tchip-x {
+		min-height: var(--zs-tap-min);
+	}
+
+	.zs-tchip-x {
+		width: var(--zs-tap-min);
+	}
+}
