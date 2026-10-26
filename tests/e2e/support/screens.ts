@@ -297,9 +297,17 @@ const areaReady = async ( page: Page ) => {
 	await page.locator( '#zs-area-h' ).waitFor();
 };
 
+/*
+ * Baseline policy for the Overview, as for the other areas (AREA_BODY): its
+ * body only (the in-app sidebar and top bar are left out), light 1280px for
+ * each state, 782px and dark 1280px for the key state (seeded) only.
+ */
+const OVERVIEW_BODY = '.zs-overview';
+
 const V6_OVERVIEW: Screen[] = [
-	{ id: 'v6-overview-empty', title: '6.0 Overview (fresh site)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'overview' ), prepare: overviewReady, visual: { mobile: true, mask: OVERVIEW_MASKS, selector: '#zerospam-app' } },
-	{ id: 'v6-overview-seeded', title: '6.0 Overview (Basic, with detections)', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'overview' ), prepare: overviewReady, visual: { mobile: true, dark: true, mask: OVERVIEW_MASKS, selector: '#zerospam-app' } },
+	{ id: 'v6-overview-empty', title: '6.0 Overview (fresh site)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'overview' ), prepare: overviewReady, visual: { mask: OVERVIEW_MASKS, selector: OVERVIEW_BODY } },
+	// The area's key screen: 782 and dark here only.
+	{ id: 'v6-overview-seeded', title: '6.0 Overview (Basic, with detections)', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'overview' ), prepare: overviewReady, visual: { mobile: true, dark: true, mask: OVERVIEW_MASKS, selector: OVERVIEW_BODY } },
 	{
 		id: 'v6-overview-enhanced',
 		title: '6.0 Overview (Enhanced, with detections)',
@@ -312,7 +320,7 @@ const V6_OVERVIEW: Screen[] = [
 		before: seedNetworkCatches,
 		path: () => AREA( 'overview' ),
 		prepare: overviewReady,
-		visual: { mobile: true, mask: [ ...OVERVIEW_MASKS, '.zs-hn-spark', '.zs-ni-spark', '.zs-spark-mini', '.zs-ni-tiles li:nth-child(3)' ], selector: '#zerospam-app' },
+		visual: { mask: [ ...OVERVIEW_MASKS, '.zs-hn-spark', '.zs-ni-spark', '.zs-spark-mini', '.zs-ni-tiles li:nth-child(3)' ], selector: OVERVIEW_BODY },
 	},
 	{
 		id: 'v6-overview-milestone',
@@ -396,8 +404,8 @@ const seedActivity =
 	};
 
 /*
- * Baseline policy for the area screens: the area body only (the shell is
- * covered by the Overview baselines), 782px for one key screen, one dark
+ * Baseline policy for the area screens: the area body only (the in-app
+ * sidebar and top bar have no baseline), 782px for one key screen, one dark
  * 1280px screen per area.
  */
 const AREA_BODY = '.zs-areabody';
@@ -662,7 +670,7 @@ const V6_RULES: Screen[] = [
 			before: seedRules,
 			path: () => AREA( 'rules', tab ),
 			prepare: rulesReady,
-			// The tab panel only (the shell has the Overview's baselines); Blocked IPs is the area's key screen: 782 and dark there only.
+			// The tab panel only; Blocked IPs is the area's key screen: 782 and dark there only.
 			visual: { mobile: 'ips' === tab, dark: 'ips' === tab, selector: '.zs-areabody' },
 		},
 	] ),

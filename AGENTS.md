@@ -762,7 +762,10 @@ npm run env:stop                 # stop both wp-env sites
     `includes/admin/class-networksettingspage.php`) shows native checkboxes
     inside their labels, in WordPress blue, where the site settings show the
     plugin's `.zerospam-switch`, so the same setting looks different on the
-    two pages.
+    two pages;
+  - the in-app sidebar and top bar have no visual baseline since the
+    Overview captures `.zs-overview`; add a `.zs-side` light + dark 1280
+    baseline with the Help area.
 - `assets/css/admin.css` is not a pure compile of `assets/src/scss/admin.scss`:
   about 850 lines (documentation, feature/step lists, labels) exist only in
   the CSS. Change both by hand, keeping the compiled regions identical to
