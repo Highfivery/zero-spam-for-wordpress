@@ -93,11 +93,13 @@ class Test_Rest_Settings_Schema extends TestCase {
 	 * Every entry has the documented fields, a known type and coherent flags.
 	 */
 	public function test_entries_are_well_formed(): void {
-		$fields = array( 'key', 'option', 'module', 'section', 'title', 'description', 'type', 'multiple', 'options', 'min', 'max', 'step', 'default', 'recommended', 'lockable', 'secret', 'depends_on', 'area', 'group', 'order', 'locked', 'source', 'value' );
+		$fields = array( 'key', 'option', 'module', 'section', 'title', 'description', 'type', 'multiple', 'options', 'min', 'max', 'step', 'suffix', 'default', 'recommended', 'placeholder', 'lockable', 'secret', 'depends_on', 'area', 'group', 'order', 'locked', 'source', 'value' );
 
 		foreach ( Settings_Schema::get()['settings'] as $entry ) {
 			$this->assertSame( $fields, array_keys( $entry ), $entry['key'] );
 			$this->assertContains( $entry['type'], Settings_Schema::TYPES, $entry['key'] );
+			$this->assertIsString( $entry['suffix'], $entry['key'] );
+			$this->assertIsString( $entry['placeholder'], $entry['key'] );
 			$this->assertSame( 'html' !== $entry['type'], $entry['lockable'], "{$entry['key']}: only html settings cannot be locked." );
 			$this->assertContains( $entry['area'], array( 'protection', 'rules', 'settings' ), $entry['key'] );
 			$this->assertNotSame( '', $entry['group'], $entry['key'] );

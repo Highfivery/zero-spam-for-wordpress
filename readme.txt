@@ -136,6 +136,10 @@ If every visitor, including you, suddenly sees "Your IP has been flagged as spam
 
 **Yes, since version 5.7.14.** Zero Spam checks the username and password step of the login as before. Once that step succeeds, the later steps of the same login (such as entering a two-factor code from WPMU DEV Defender Pro or the Two Factor plugin) are not checked again. Verification that has expired or was already used, for example from a cached login page or the back button, no longer blocks the login with "Your IP has been flagged as spam/malicious": the visitor is let through, or asked to try again. Developers with custom login flows can use the `zerospam_login_skip_check` filter.
 
+= Does deleting Zero Spam remove its data? =
+
+Yes, by default: deleting the plugin on the Plugins screen removes its settings, activity log, blocked IPs and locations, API usage data and statistics. To keep them for a later reinstall, turn off "Delete Data on Uninstall" (API Monitoring settings) before you delete the plugin. On a network, each site follows its own setting, and the network's setting decides for the network-wide data.
+
 = Why can't I access `wp-login.php` or XML-RPC anymore? =
 
 As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation, or use the emailed rescue link on the blocked page (or the Rescue Mode key) to log in and whitelist your IP.

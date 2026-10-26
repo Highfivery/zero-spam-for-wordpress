@@ -27,7 +27,9 @@ defined( 'ABSPATH' ) || die();
  * `default` (value when nothing is stored), `secret` (bool), `lockable`
  * (bool), `area` and `group` (where the setting belongs in the admin),
  * `depends_on` (array with `key` and `value`) and `order` (int). Without them
- * the schema derives a value: see setting_entry().
+ * the schema derives a value: see setting_entry(). The `suffix` (the unit
+ * shown after a number, such as `days`) and `placeholder` registry keys are
+ * passed on as text ('' when none).
  *
  * Values are resolved with the precedence Network_Settings applies: locked
  * network value, then site override, then network default, then (for the
@@ -493,8 +495,10 @@ final class Settings_Schema {
 			'min'         => self::number_or_null( $setting['min'] ?? null ),
 			'max'         => self::number_or_null( $setting['max'] ?? null ),
 			'step'        => self::number_or_null( $setting['step'] ?? null ),
+			'suffix'      => $is_html ? '' : self::plain_text( $setting['suffix'] ?? '' ),
 			'default'     => null,
 			'recommended' => $secret || $is_html ? null : ( $setting['recommended'] ?? null ),
+			'placeholder' => $is_html ? '' : self::plain_text( $setting['placeholder'] ?? '' ),
 			'lockable'    => ! $is_html && ( ! isset( $setting['lockable'] ) || (bool) $setting['lockable'] ),
 			'secret'      => $secret,
 			'depends_on'  => self::depends_on_of( $key, $setting ),

@@ -176,6 +176,8 @@ defined( 'ABSPATH' ) || die();
 				</tbody>
 			</table>
 
+			<p><?php esc_html_e( 'Each threshold can be changed next to its alert. Quota thresholds are the share of your quota used; with a Quota Reset Date set, quota alerts only count what the API reported since the last reset (the date repeats every month).', 'zero-spam' ); ?></p>
+
 			<h3><?php esc_html_e( 'Alert Channels', 'zero-spam' ); ?></h3>
 			<ul>
 				<li><strong><?php esc_html_e( 'Email Alerts:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'Sent to your site administrator email', 'zero-spam' ); ?></li>

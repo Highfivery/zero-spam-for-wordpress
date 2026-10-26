@@ -85,13 +85,7 @@ class Debug {
 
 		$settings['debug_ip'] = array(
 			'title'       => __( 'Debug IP', 'zero-spam' ),
-			'desc'        => wp_kses(
-				/* translators: %s: url */
-				__( 'Mock an IP address for debugging. This overrides all visitor IP addresses and <strong>while enabled could block legit visitors from accessing the site</strong>.', 'zero-spam' ),
-				array(
-					'strong' => array(),
-				)
-			),
+			'desc'        => __( 'Pretend every visitor has this IP address, to test what Zero Spam does with it. While debug is on, this can block real visitors. Recommended: leave empty unless you are testing.', 'zero-spam' ),
 			'section'     => 'debug',
 			'module'      => 'debug',
 			'type'        => 'text',

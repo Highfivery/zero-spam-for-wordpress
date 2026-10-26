@@ -18,7 +18,8 @@ defined( 'ABSPATH' ) || die();
 class API_Usage_Alerts {
 
 	/**
-	 * Alert types and their default thresholds
+	 * Alert types, their default thresholds and the range a threshold may
+	 * take (`threshold_{type}` settings in API Monitoring).
 	 *
 	 * @var array
 	 */
@@ -26,34 +27,80 @@ class API_Usage_Alerts {
 		'quota_warning'   => array(
 			'name'              => 'Quota Warning',
 			'default_threshold' => 80, // 80% used.
+			'min_threshold'     => 1,
+			'max_threshold'     => 100,
 			'default_enabled'   => false,
 			'severity'          => 'warning',
 		),
 		'quota_critical'  => array(
 			'name'              => 'Quota Critical',
 			'default_threshold' => 90, // 90% used.
+			'min_threshold'     => 1,
+			'max_threshold'     => 100,
 			'default_enabled'   => false,
 			'severity'          => 'critical',
 		),
 		'usage_spike'     => array(
 			'name'              => 'Usage Spike',
 			'default_threshold' => 300, // 300% of normal.
+			'min_threshold'     => 100,
+			'max_threshold'     => 10000,
 			'default_enabled'   => false,
 			'severity'          => 'warning',
 		),
 		'high_error_rate' => array(
 			'name'              => 'High Error Rate',
 			'default_threshold' => 10, // 10% errors.
+			'min_threshold'     => 1,
+			'max_threshold'     => 100,
 			'default_enabled'   => false,
 			'severity'          => 'critical',
 		),
 		'slow_response'   => array(
 			'name'              => 'Slow API Response',
 			'default_threshold' => 5000, // 5000ms.
+			'min_threshold'     => 100,
+			'max_threshold'     => 60000,
 			'default_enabled'   => false,
 			'severity'          => 'warning',
 		),
 	);
+
+	/**
+	 * The threshold an alert type uses: its `threshold_{type}` setting,
+	 * kept within the type's range, or the default when it is not a number.
+	 *
+	 * @since 6.0.0 Before, detection used fixed values and the settings were never read.
+	 *
+	 * @param string $type Alert type.
+	 * @return int|float Threshold (0 for an unknown type).
+	 */
+	public static function threshold( string $type ) {
+		return self::clamp_threshold( $type, \ZeroSpam\Core\Settings_Schema::value( 'threshold_' . $type ) );
+	}
+
+	/**
+	 * A threshold value kept within an alert type's range.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $type  Alert type.
+	 * @param mixed  $value Stored value.
+	 * @return int|float The value within the range, or the default when it is not a number (0 for an unknown type).
+	 */
+	public static function clamp_threshold( string $type, $value ) {
+		if ( ! isset( self::$alert_types[ $type ] ) ) {
+			return 0;
+		}
+
+		$config = self::$alert_types[ $type ];
+
+		if ( is_bool( $value ) || ! is_numeric( $value ) ) {
+			return $config['default_threshold'];
+		}
+
+		return max( $config['min_threshold'], min( $config['max_threshold'], 0 + $value ) );
+	}
 
 	/**
 	 * Constructor
@@ -129,14 +176,15 @@ class API_Usage_Alerts {
 		// Get network-wide stats.
 		$stats = API_Usage_Tracker::get_network_usage_stats( 'today' );
 
-		// Check for network-level quota issues.
-		if ( $stats['current_limit'] && $stats['current_remaining'] ) {
+		// Check for network-level quota issues, with the API Monitoring thresholds (share of the quota used).
+		if ( $stats['current_limit'] && is_numeric( $stats['current_remaining'] ) ) {
 			$remaining_pct = ( $stats['current_remaining'] / $stats['current_limit'] ) * 100;
+			$used_pct      = 100 - $remaining_pct;
 
-			if ( $remaining_pct < 20 ) {
+			if ( $used_pct > self::threshold( 'quota_warning' ) || $used_pct >= self::threshold( 'quota_critical' ) ) {
 				$anomaly = array(
 					'type'     => 'quota_warning',
-					'severity' => $remaining_pct <= 10 ? 'critical' : 'warning',
+					'severity' => $used_pct >= self::threshold( 'quota_critical' ) ? 'critical' : 'warning',
 					'message'  => sprintf(
 						/* translators: %s: percentage remaining */
 						__( 'Network-wide API quota at %s%% remaining', 'zero-spam' ),

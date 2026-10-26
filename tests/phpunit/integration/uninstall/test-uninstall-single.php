@@ -237,6 +237,122 @@ class Test_Uninstall_Single extends TestCase {
 	}
 
 	/**
+	 * DROP TABLE statements a run of uninstall.php sent.
+	 *
+	 * @return string[] Table names.
+	 */
+	private function dropped_tables(): array {
+		$dropped = array();
+		foreach ( $this->capture_queries( fn () => $this->uninstall() ) as $query ) {
+			if ( preg_match( '/^\s*DROP TABLE IF EXISTS\s+`?([A-Za-z0-9_]+)`?/i', $query, $match ) ) {
+				$dropped[] = $match[1];
+			}
+		}
+
+		return $dropped;
+	}
+
+	/**
+	 * With "Delete Data on Uninstall" off, settings, tables, preferences and
+	 * the error log stay for a later reinstall; caches and scheduled events
+	 * still go.
+	 *
+	 * @dataProvider provide_off_values
+	 *
+	 * @param mixed $off Stored "off" value.
+	 */
+	public function test_keeps_data_when_turned_off( $off ): void {
+		update_option(
+			'zero-spam-api-monitoring',
+			array(
+				'delete_data_on_uninstall' => $off,
+				'api_retention'            => 30,
+			)
+		);
+		update_option( 'zero-spam-settings', array( 'max_logs' => 500 ) );
+		update_option( 'zerospam_blocked_email_domains', "spam.example\n", false );
+		update_option( 'zerospam_completed_migrations', array( 'v6_uninstall_flag' ) );
+		update_site_option( 'zerospam_network_settings', array( 'settings' => array() ) );
+		set_transient( 'zerospam_stats_summary', 'cached', HOUR_IN_SECONDS );
+		wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'zerospam_check_api_anomalies' );
+		$user_id = self::factory()->user->create();
+		update_user_meta( $user_id, 'zerospam_ui', array( 'theme' => 'dark' ) );
+		$log_file = self::error_log_file();
+		wp_mkdir_p( dirname( $log_file ) );
+		file_put_contents( $log_file, "kept\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Seeds a fixture file.
+
+		$dropped = $this->dropped_tables();
+		wp_cache_flush();
+
+		$this->assertSame( array(), $dropped, 'No table is dropped.' );
+		$this->assertSame( 30, get_option( 'zero-spam-api-monitoring' )['api_retention'] );
+		$this->assertSame( array( 'max_logs' => 500 ), get_option( 'zero-spam-settings' ) );
+		$this->assertSame( "spam.example\n", get_option( 'zerospam_blocked_email_domains' ) );
+		$this->assertSame( array( 'v6_uninstall_flag' ), get_option( 'zerospam_completed_migrations' ) );
+		$this->assertSame( array( 'settings' => array() ), get_site_option( 'zerospam_network_settings' ) );
+		$this->assertSame( array( 'theme' => 'dark' ), get_user_meta( $user_id, 'zerospam_ui', true ) );
+		$this->assertFileExists( $log_file );
+		wp_delete_file( $log_file );
+
+		$this->assertFalse( get_transient( 'zerospam_stats_summary' ), 'Caches go either way.' );
+		$this->assertFalse( wp_next_scheduled( 'zerospam_check_api_anomalies' ), 'Scheduled events go either way.' );
+	}
+
+	/**
+	 * Values that mean off: false (an unticked 5.x box, or PATCH /settings)
+	 * and `disabled` (a switch that is on unless turned off).
+	 *
+	 * @return array<string, array{0: mixed}>
+	 */
+	public static function provide_off_values(): array {
+		return array(
+			'false'    => array( false ),
+			'disabled' => array( 'disabled' ),
+		);
+	}
+
+	/**
+	 * Turned on, or never stored (on by default), every table is dropped and
+	 * the settings go.
+	 *
+	 * @dataProvider provide_on_values
+	 *
+	 * @param array<string, mixed>|null $stored API monitoring option (null: none).
+	 */
+	public function test_deletes_data_when_on( ?array $stored ): void {
+		global $wpdb;
+
+		if ( null === $stored ) {
+			delete_option( 'zero-spam-api-monitoring' );
+		} else {
+			update_option( 'zero-spam-api-monitoring', $stored );
+		}
+		update_option( 'zero-spam-settings', array( 'max_logs' => 500 ) );
+
+		$dropped = $this->dropped_tables();
+		wp_cache_flush();
+
+		foreach ( DB::$tables as $table ) {
+			$this->assertContains( $wpdb->prefix . $table, $dropped );
+		}
+		$this->assertFalse( get_option( 'zero-spam-settings' ) );
+		$this->assertFalse( get_option( 'zero-spam-api-monitoring' ) );
+	}
+
+	/**
+	 * Stored values that mean on.
+	 *
+	 * @return array<string, array{0: array<string, mixed>|null}>
+	 */
+	public static function provide_on_values(): array {
+		return array(
+			'never stored'      => array( null ),
+			'stored without it' => array( array( 'api_retention' => 30 ) ),
+			'enabled'           => array( array( 'delete_data_on_uninstall' => 'enabled' ) ),
+		);
+	}
+
+	/**
 	 * Loaded outside WordPress's uninstall routine, the file does nothing.
 	 */
 	public function test_does_nothing_without_wp_uninstall_plugin(): void {
