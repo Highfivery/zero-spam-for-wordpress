@@ -153,7 +153,7 @@ function NetworkBlocks( { blocks, page, setPage, onChanged, remove } ) {
 			</h2>
 			<p className="zs-hint">
 				{ __(
-					'These addresses are blocked on every site in your network. Site administrators see them as “Blocked by your network” and cannot remove them; an address a site allows is still let in there.',
+					'These addresses are blocked on every site in your network. Site administrators see them as “Blocked by your network” and cannot remove them; an address a site allows is still let in there. Zero Spam checks these blocks itself on each visit: they are not written to .htaccess, even on sites that block with .htaccess.',
 					'zero-spam'
 				) }
 			</p>

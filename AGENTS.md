@@ -632,9 +632,10 @@ npm run env:stop                 # stop both wp-env sites
   visual baselines only ever see the Rescue Mode card's "Active" state; the
   "Rescue key not set" state is covered by PHPUnit only (known e2e gap).
 - **Local targets** need a one-off set-up that changes the Local sites
-  (approve it first): make the network site load this checkout as
-  `plugins/zero-spam` (it ran a stale `zero-spam-for-wordpress` 5.7.3 copy;
-  the preflight refuses to run until it is fixed), then
+  (approve it first). The network site's `wp-content/plugins/zero-spam` is a
+  symlink to the single-site checkout (since 2026-10-22), so both Local
+  sites run the main checkout and show `develop` after `git pull` (the
+  preflight still checks that the site loads this checkout). Then
   `npm run e2e:setup:local` (add `-- --rescue` to test rescue mode). That
   asks first, then adds a `ZEROSPAM_E2E_TOKEN` constant (and with `--rescue`
   a `ZEROSPAM_RESCUE_KEY`) to both `wp-config.php` files (`wp config set`),
@@ -870,7 +871,9 @@ npm run env:stop                 # stop both wp-env sites
   "sites follow the network again" (`apply-all` mode `follow` removes their
   own values of unlocked network settings) instead of copying network
   values into every site, which stopped later network defaults from
-  reaching them; settings change emails are still sent synchronously, one
+  reaching them (the legacy page's button and the `all`, `locked_only` and
+  `defaults_only` modes are unchanged until the cutover); settings change
+  emails are still sent synchronously, one
   per affected site, in the request that changed the setting; the
   Activity drawer does not say when an address is blocked by the network
   (only Rules and the block drawer do); the legacy network screens keep

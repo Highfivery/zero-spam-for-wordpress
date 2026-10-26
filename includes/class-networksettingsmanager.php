@@ -242,7 +242,8 @@ class Network_Settings_Manager {
 				// Get current module settings (with this site's removals so far, in follow mode).
 				$module_settings = $followed[ $module ] ?? get_option( "zero-spam-{$module}", array() );
 				$module_settings = is_array( $module_settings ) ? $module_settings : array();
-				$setting_exists  = array_key_exists( $key, $module_settings );
+				// The 5.x modes keep their isset() test (a stored null is "not set"), so the legacy page's button behaves as before.
+				$setting_exists = 'follow' === $mode ? array_key_exists( $key, $module_settings ) : isset( $module_settings[ $key ] );
 
 				// Determine if we should apply this setting.
 				switch ( $mode ) {
