@@ -615,6 +615,16 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
+	 * The bootstrap says whether this is the network's main site (subsites
+	 * cannot refresh the shared .htaccess, so the Rules screen hides the
+	 * button there).
+	 */
+	public function test_bootstrap_says_whether_this_is_the_main_site(): void {
+		$this->as_role( 'administrator' );
+		$this->assertTrue( $this->registered_app()->bootstrap( 'rules' )['isMainSite'] );
+	}
+
+	/**
 	 * The news is preloaded when it is on.
 	 */
 	public function test_news_is_preloaded_when_on(): void {

@@ -303,6 +303,13 @@ class Rules_Controller extends Base_Controller {
 					'methods'             => WP_REST_Server::DELETABLE,
 					'callback'            => array( $this, 'delete_no_lockout' ),
 					'permission_callback' => array( $this, 'site_permissions_check' ),
+					'args'                => array(
+						'confirm' => array(
+							'description' => __( 'Remove your own address even though it is blocked (you are locked out at once).', 'zero-spam' ),
+							'type'        => 'boolean',
+							'default'     => false,
+						),
+					),
 				),
 			)
 		);
@@ -366,7 +373,11 @@ class Rules_Controller extends Base_Controller {
 		// Locations by name: a country by its name (as listed), anything else by its value.
 		$by        = '%i';
 		$by_values = array( $orderby );
-		if ( 'blocked_key' === $orderby ) {
+		if ( 'user_ip' === $orderby ) {
+			// Addresses by number: IPv4 (INET_ATON) before IPv6, then as stored.
+			$by        = "INSTR( `user_ip`, ':' ) > 0 {$order}, INET_ATON( `user_ip` ) {$order}, `user_ip`";
+			$by_values = array();
+		} elseif ( 'blocked_key' === $orderby ) {
 			$names = self::blocked_country_names( $table );
 			if ( $names ) {
 				$by        = "CASE WHEN `key_type` = 'country_code' THEN CASE `blocked_key`" . str_repeat( ' WHEN %s THEN %s', count( $names ) ) . ' ELSE `blocked_key` END ELSE `blocked_key` END';
@@ -892,6 +903,21 @@ class Rules_Controller extends Base_Controller {
 			return new WP_Error( 'zerospam_no_lockout_not_found', __( 'That address is not on the list.', 'zero-spam' ), array( 'status' => 404 ) );
 		}
 
+		// Your own address while it is blocked: removing it locks you out at
+		// once (in .htaccess mode the web server denies the next request, so
+		// neither Undo nor the rescue link gets through). Only when confirmed.
+		if ( self::is_current_ip( $match ) && self::is_blocked_now( $match ) && ! rest_sanitize_boolean( $request->get_param( 'confirm' ) ) ) {
+			return new WP_Error(
+				'rest_would_lock_out',
+				/* translators: %s: IP address */
+				sprintf( __( 'Your address %s is blocked; removing it here locks you out of this site.', 'zero-spam' ), $match ),
+				array(
+					'status' => 409,
+					'ip'     => $match,
+				)
+			);
+		}
+
 		$remaining = array_values( array_diff( $ips, array( $match ) ) );
 		if ( $remaining ) {
 			update_option( Admin_Safe_IPs::OPTION, $remaining, false );
@@ -1116,11 +1142,16 @@ class Rules_Controller extends Base_Controller {
 	 * @return string|WP_Error The value to store.
 	 */
 	private static function check_location_key( string $key_type, $key ) {
-		if ( ! is_string( $key ) || '' === trim( $key ) ) {
-			return new WP_Error( 'invalid', __( 'Enter the location to block.', 'zero-spam' ) );
+		if ( is_string( $key ) && ( str_contains( $key, '<' ) || str_contains( $key, '>' ) ) ) {
+			return new WP_Error( 'invalid', __( 'Must not contain < or >.', 'zero-spam' ) );
 		}
 
-		$key = trim( sanitize_text_field( $key ) );
+		$key = is_string( $key ) ? trim( sanitize_text_field( $key ) ) : '';
+
+		// Checked after sanitizing, so a value that sanitizes to nothing is refused too.
+		if ( '' === $key ) {
+			return new WP_Error( 'invalid', __( 'Enter the location to block.', 'zero-spam' ) );
+		}
 
 		switch ( $key_type ) {
 			case 'country_code':
@@ -1186,7 +1217,17 @@ class Rules_Controller extends Base_Controller {
 		}
 
 		if ( $bad ) {
-			$shown = array_map( 'sanitize_text_field', array_slice( $bad, 0, 10 ) );
+			// Named as sent (control characters removed, 40 characters at most): the
+			// message is JSON, shown as text by the screens; sanitizing it here
+			// listed nothing for markup and "&lt;" for "<".
+			$shown = array_map(
+				static function ( string $entry ): string {
+					$entry = (string) preg_replace( '/[\x00-\x1F\x7F]/u', '', $entry );
+
+					return function_exists( 'mb_substr' ) ? mb_substr( $entry, 0, 40 ) : substr( $entry, 0, 40 );
+				},
+				array_slice( $bad, 0, 10 )
+			);
 
 			switch ( $name ) {
 				case 'allowed-ips':
@@ -1199,7 +1240,7 @@ class Rules_Controller extends Base_Controller {
 					break;
 				default:
 					/* translators: %s: comma-separated list of entries */
-					$message = __( 'These are not words of at most 100 characters: %s', 'zero-spam' );
+					$message = __( 'These are not words of at most 100 characters without < or >: %s', 'zero-spam' );
 			}
 
 			return new WP_Error( 'invalid', sprintf( $message, implode( ', ', $shown ) . ( count( $bad ) > 10 ? ', …' : '' ) ) );
@@ -1227,6 +1268,11 @@ class Rules_Controller extends Base_Controller {
 				return 1 === preg_match( '/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}$/', $domain ) ? $domain : null;
 
 			default:
+				// < and > are refused rather than stored entity-encoded ("a&lt;b").
+				if ( str_contains( $entry, '<' ) || str_contains( $entry, '>' ) ) {
+					return null;
+				}
+
 				$word = sanitize_text_field( $entry );
 
 				return '' !== $word && strlen( $word ) <= 100 && ! str_contains( $word, "\n" ) ? $word : null;
@@ -1350,6 +1396,7 @@ class Rules_Controller extends Base_Controller {
 			$items[] = array(
 				'ip'      => $ip,
 				'current' => '' !== $current && User::normalize_ip( $ip ) === $current,
+				'blocked' => self::is_blocked_now( $ip ),
 			);
 		}
 
@@ -1357,6 +1404,30 @@ class Rules_Controller extends Base_Controller {
 			'items' => $items,
 			'max'   => Admin_Safe_IPs::MAX_IPS,
 		);
+	}
+
+	/**
+	 * Whether an address is the one the current request comes from.
+	 *
+	 * @param string $ip IP address.
+	 */
+	private static function is_current_ip( string $ip ): bool {
+		$current = User::get_ip();
+		$current = is_string( $current ) ? User::normalize_ip( $current ) : '';
+
+		return '' !== $current && User::normalize_ip( $ip ) === $current;
+	}
+
+	/**
+	 * Whether an address has a block in force now (at most one row read).
+	 *
+	 * @param string $ip IP address.
+	 */
+	private static function is_blocked_now( string $ip ): bool {
+		$canonical = User::normalize_ip( $ip );
+		$row       = DB::blocked( '' !== $canonical ? $canonical : $ip );
+
+		return is_array( $row ) && ! empty( Access::get_blocked_details( $row )['blocked'] );
 	}
 
 	/**

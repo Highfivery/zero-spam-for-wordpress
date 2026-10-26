@@ -79,6 +79,19 @@ export function onBusy( fn ) {
  * @return {Promise} Response.
  */
 export function request( options ) {
+	// A GET of a preloaded path is answered by the preloading middleware
+	// (from memory): the page's copy is used up with it, so takePreloaded()
+	// never drains it again with a real request.
+	const store =
+		'undefined' !== typeof window ? window.zeroSpamPreload : undefined;
+	if (
+		store &&
+		options?.path &&
+		store[ options.path ] &&
+		'GET' === ( options.method || 'GET' ).toUpperCase()
+	) {
+		delete store[ options.path ];
+	}
 	inFlight++;
 	notify();
 	return apiFetch( options ).finally( () => {

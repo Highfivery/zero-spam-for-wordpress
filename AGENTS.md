@@ -723,7 +723,18 @@ npm run env:stop                 # stop both wp-env sites
     are not unhooked);
     `remove_resource_query_params` is hooked with 2 arguments but takes 1.
   - `core/class-utilities.php` `refresh_htaccess()`: a subsite admin in
-    `.htaccess` mode writes the network-root `.htaccess`.
+    `.htaccess` mode writes the network-root `.htaccess` (with only that
+    subsite's addresses) after every block change. The 6.0 Refresh
+    .htaccess action (`settings/actions/refresh-htaccess`) refuses subsites
+    with 403 `zerospam_htaccess_subsite` and the Rules screen hides its
+    button there; the writes after block changes remain.
+  - Subsites rarely follow the network's IP Allowlist (and other network
+    defaults): Recommended settings and 5.x saves store `ip_whitelist`
+    (`false` or `''`) on the site, and a stored value counts as a site
+    override (`Settings_Schema::resolve()` source `site`), so the Rules
+    screen shows the site's own list, not "This site uses the network's
+    list". Whether a stored empty value should fall back to the network is a
+    product decision (Ben); do not change the precedence without it.
   - `Network_Settings` is
     instantiated in several places, each registering its own resolver;
     `Network_Settings::is_using_default()` rebuilds the settings registry per
@@ -817,6 +828,16 @@ npm run env:stop                 # stop both wp-env sites
 - Follow-up for PR 13: `rules/blocks` and `rules/blocks/bulk` accept
   loopback (127.0.0.1, ::1) and private ranges as blocked addresses (as the
   5.x screens do); decide whether to refuse them.
+- Follow-ups from the Rules review (#452):
+  - Rules: IPv6 addresses sort as text; sort them numerically with
+    `INET6_ATON()` where the database has it.
+  - The no-lockout 409 only considers IP blocks: blocking the country or
+    city of the administrator's own address is a soft lockout in PHP mode
+    (the emailed rescue link still works).
+  - A block's `reason` is stored entity-encoded (`a<b` becomes `a&lt;b`)
+    and Rules shows it literally.
+  - No e2e covers the focus moves of the no-lockout inline confirmation
+    (Remove anyway / Cancel).
 - Follow-up chore after PR 8 (6.0 admin): split `assets/dist/admin.js` into
   per-area entry points (one bundle per page, shared code in a common
   entry, translations per handle) and bring the admin JS budget in

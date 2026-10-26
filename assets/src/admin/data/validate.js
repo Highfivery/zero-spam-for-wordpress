@@ -219,6 +219,9 @@ export function checkBlockIp( value ) {
  */
 export function checkLocation( type, key ) {
 	const text = String( key ?? '' ).trim();
+	if ( /[<>]/.test( text ) ) {
+		return { error: __( 'Must not contain < or >.', 'zero-spam' ) };
+	}
 	if ( ! text ) {
 		return { error: __( 'Enter the location to block.', 'zero-spam' ) };
 	}

@@ -241,16 +241,26 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 							'zero-spam'
 						) }
 					</span>
-					<div>
-						<Button
-							variant="secondary"
-							size="sm"
-							icon="refresh"
-							onClick={ refreshHtaccess }
-						>
-							{ __( 'Refresh .htaccess', 'zero-spam' ) }
-						</Button>
-					</div>
+					{ false === boot.isMainSite ? (
+						// A network shares one .htaccess; only the main site may rewrite it.
+						<span>
+							{ __(
+								'The network’s .htaccess is refreshed from the main site.',
+								'zero-spam'
+							) }
+						</span>
+					) : (
+						<div>
+							<Button
+								variant="secondary"
+								size="sm"
+								icon="refresh"
+								onClick={ refreshHtaccess }
+							>
+								{ __( 'Refresh .htaccess', 'zero-spam' ) }
+							</Button>
+						</div>
+					) }
 				</div>
 			</div>
 		)
