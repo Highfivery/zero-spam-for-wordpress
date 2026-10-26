@@ -49,6 +49,8 @@ export interface Screen {
 	theme?: 'light' | 'dark' | 'both';
 	/** Protection level the screen is shown with (default basic). */
 	level?: Level;
+	/** Viewport the screen is opened at (accessibility scans at phone width); visual tests pass their own. */
+	viewport?: { width: number; height: number };
 }
 
 /**
@@ -358,9 +360,23 @@ const V6_OVERVIEW: Screen[] = [
 
 /**
  * Protection parts that change between runs: relative times and counts,
- * the license check time, the self-test timings, and the shell's count.
+ * the license check time and the self-test timings.
  */
-export const PROTECTION_MASKS = [ '.zs-count', '.zs-pcard-st', '.zs-lic-live', '.zs-st-time', '.zs-st-result', '.zs-lvl-pop dd' ];
+export const PROTECTION_MASKS = [ '.zs-pcard-st', '.zs-lic-live', '.zs-st-time', '.zs-st-result' ];
+
+/**
+ * Baselines of an area capture its body only (`.zs-areabody`): 782px for one
+ * key screen and one dark 1280px shot per area (Protection › Detection).
+ */
+const PROTECTION_VISUAL = { mask: PROTECTION_MASKS, selector: '.zs-areabody' };
+
+/** Phone width for the accessibility scans (label-in-name, 2.5.3, and reflow of the cards). */
+const PHONE = { width: 375, height: 812 };
+
+/** A few detections (8–10 rows per the baseline policy), so the cards' detection lines have data. */
+const seedFew = async ( zs: ZsApi ) => {
+	await zs.seedLog( 9 );
+};
 
 /** Waits until Protection has its cards (the app replaced the skeleton). */
 export const protectionReady = async ( page: Page ) => {
@@ -377,7 +393,7 @@ export const runSelfTest = async ( page: Page ) => {
 };
 
 const V6_PROTECTION: Screen[] = [
-	{ id: 'v6-protection-detection', title: '6.0 Protection › Detection', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'protection' ), prepare: protectionReady, visual: { mobile: true, dark: true, mask: PROTECTION_MASKS, selector: '#zerospam-app' } },
+	{ id: 'v6-protection-detection', title: '6.0 Protection › Detection', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: seedFew, path: () => AREA( 'protection' ), prepare: protectionReady, visual: { ...PROTECTION_VISUAL, mobile: true, dark: true } },
 	{
 		id: 'v6-protection-integrations',
 		title: '6.0 Protection › Integrations (with a third-party section)',
@@ -386,6 +402,7 @@ const V6_PROTECTION: Screen[] = [
 		state: 'empty',
 		theme: 'both',
 		before: async ( zs ) => {
+			await seedFew( zs );
 			await zs.fakeSection( true );
 		},
 		path: () => AREA( 'protection', 'integrations' ),
@@ -393,9 +410,9 @@ const V6_PROTECTION: Screen[] = [
 			await protectionReady( page );
 			await page.locator( '#zs-card-moreint > summary' ).click();
 		},
-		visual: { mask: PROTECTION_MASKS, selector: '#zerospam-app' },
+		visual: PROTECTION_VISUAL,
 	},
-	{ id: 'v6-protection-intelligence', title: '6.0 Protection › Intelligence (Basic)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'protection', 'intelligence' ), prepare: protectionReady, visual: { mobile: true, mask: PROTECTION_MASKS, selector: '#zerospam-app' } },
+	{ id: 'v6-protection-intelligence', title: '6.0 Protection › Intelligence (Basic)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'protection', 'intelligence' ), prepare: protectionReady, visual: PROTECTION_VISUAL },
 	{
 		id: 'v6-protection-intelligence-enhanced',
 		title: '6.0 Protection › Intelligence (Enhanced, license panel)',
@@ -410,8 +427,9 @@ const V6_PROTECTION: Screen[] = [
 			await page.locator( '.zs-licpanel' ).waitFor();
 			await page.locator( '.zs-lic-adv > summary' ).click();
 		},
-		visual: { mask: PROTECTION_MASKS, selector: '#zerospam-app' },
+		visual: PROTECTION_VISUAL,
 	},
+	// Outside the area body: scanned, no baseline.
 	{
 		id: 'v6-protection-compare',
 		title: '6.0 Protection › Compare levels drawer (from Intelligence)',
@@ -425,7 +443,6 @@ const V6_PROTECTION: Screen[] = [
 			await page.locator( '.zs-enh-mini' ).getByRole( 'button', { name: 'Compare levels' } ).click();
 			await page.locator( '.zs-drawer.zs-compare' ).waitFor();
 		},
-		visual: { selector: '.zs-drawer' },
 	},
 	{
 		id: 'v6-protection-selftest',
@@ -439,7 +456,26 @@ const V6_PROTECTION: Screen[] = [
 		},
 		path: () => AREA( 'protection' ),
 		prepare: runSelfTest,
-		visual: { mask: PROTECTION_MASKS, selector: '#zs-selftest' },
+	},
+	// Phone width (375px): accessibility only.
+	{ id: 'v6-protection-detection-375', title: '6.0 Protection › Detection at 375px', area: 'admin', sites: 'both', state: 'empty', theme: 'light', viewport: PHONE, path: () => AREA( 'protection' ), prepare: protectionReady },
+	{
+		id: 'v6-protection-intelligence-375',
+		title: '6.0 Protection › Intelligence at 375px (key fields, Enhanced)',
+		area: 'admin',
+		sites: 'both',
+		state: 'empty',
+		theme: 'light',
+		level: 'enhanced',
+		viewport: PHONE,
+		before: async ( zs ) => {
+			await zs.set( { ipstack_api: 'e2e-ipstack-key-1234' } );
+		},
+		path: () => AREA( 'protection', 'intelligence' ),
+		prepare: async ( page ) => {
+			await protectionReady( page );
+			await page.locator( '#zs-card-ipstack' ).waitFor();
+		},
 	},
 	{
 		id: 'v6-protection-locked',
@@ -455,7 +491,7 @@ const V6_PROTECTION: Screen[] = [
 		},
 		path: ( t ) => subsiteURL( t, AREA( 'protection' ) ),
 		prepare: protectionReady,
-		visual: { mask: PROTECTION_MASKS, selector: '#zerospam-app' },
+		visual: PROTECTION_VISUAL,
 	},
 ];
 
