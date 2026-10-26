@@ -591,59 +591,69 @@ export function Help() {
 					</p>
 				</div>
 			</div>
-			<div className="zs-wall">
-				<DocsTile open={ 'news' === section ? '' : section } />
-				<SupportTile />
-				<NewsTile />
-				<FollowTile />
-				<LevelTile />
-				<Tile span={ 6 } labelledBy="zs-hh-h" className="zs-help-ref">
-					<TileHead
-						eyebrow={ __( 'For developers', 'zero-spam' ) }
-						id="zs-hh-h"
-						title={ __( 'Hooks and REST', 'zero-spam' ) }
-					/>
-					<RefList
-						items={ hooks() }
-						label={ __( 'Hooks', 'zero-spam' ) }
-					/>
-					<h3 className="zs-h3 zs-help-sub">
-						{ __( 'REST routes', 'zero-spam' ) }
-					</h3>
-					<p className="zs-hint">
-						{ __(
-							'Under /wp-json/. Administrators only (manage_options); application passwords work.',
-							'zero-spam'
-						) }
-					</p>
-					<RefList
-						items={ restRoutes() }
-						label={ __( 'REST routes', 'zero-spam' ) }
-					/>
-					<div className="zs-tile-foot">
-						<ExtLink
-							href={ `${ LINKS.wiki }/Hooks` }
-							newTab={ NEW_TAB() }
-						>
+			<div className="zs-areabody" id="zs-help-body">
+				<div className="zs-wall">
+					<DocsTile open={ 'news' === section ? '' : section } />
+					<SupportTile />
+					<NewsTile />
+					<FollowTile />
+					<LevelTile />
+					<Tile
+						span={ 6 }
+						labelledBy="zs-hh-h"
+						className="zs-help-ref"
+					>
+						<TileHead
+							eyebrow={ __( 'For developers', 'zero-spam' ) }
+							id="zs-hh-h"
+							title={ __( 'Hooks and REST', 'zero-spam' ) }
+						/>
+						<RefList
+							items={ hooks() }
+							label={ __( 'Hooks', 'zero-spam' ) }
+						/>
+						<h3 className="zs-h3 zs-help-sub">
+							{ __( 'REST routes', 'zero-spam' ) }
+						</h3>
+						<p className="zs-hint">
 							{ __(
-								'Every hook on the GitHub wiki',
+								'Under /wp-json/. Administrators only (manage_options); application passwords work.',
 								'zero-spam'
 							) }
-						</ExtLink>
-					</div>
-				</Tile>
-				<Tile span={ 6 } labelledBy="zs-hc-h" className="zs-help-ref">
-					<TileHead
-						eyebrow={ __( 'For developers', 'zero-spam' ) }
-						id="zs-hc-h"
-						title={ __( 'WP-CLI', 'zero-spam' ) }
-					/>
-					<RefList
-						items={ cliCommands() }
-						cli
-						label={ __( 'WP-CLI commands', 'zero-spam' ) }
-					/>
-				</Tile>
+						</p>
+						<RefList
+							items={ restRoutes() }
+							label={ __( 'REST routes', 'zero-spam' ) }
+						/>
+						<div className="zs-tile-foot">
+							<ExtLink
+								href={ `${ LINKS.wiki }/Hooks` }
+								newTab={ NEW_TAB() }
+							>
+								{ __(
+									'Every hook on the GitHub wiki',
+									'zero-spam'
+								) }
+							</ExtLink>
+						</div>
+					</Tile>
+					<Tile
+						span={ 6 }
+						labelledBy="zs-hc-h"
+						className="zs-help-ref"
+					>
+						<TileHead
+							eyebrow={ __( 'For developers', 'zero-spam' ) }
+							id="zs-hc-h"
+							title={ __( 'WP-CLI', 'zero-spam' ) }
+						/>
+						<RefList
+							items={ cliCommands() }
+							cli
+							label={ __( 'WP-CLI commands', 'zero-spam' ) }
+						/>
+					</Tile>
+				</div>
 			</div>
 		</div>
 	);

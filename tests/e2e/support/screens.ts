@@ -404,8 +404,15 @@ export const onboardingTo = ( step: number ) => async ( page: Page ) => {
 	await page.locator( '.zs-onb-mark' ).evaluate( ( el ) => Promise.all( el.getAnimations( { subtree: true } ).map( ( a ) => a.finished.catch( () => undefined ) ) ) );
 };
 
+/**
+ * Help, first-run setup and What's new. Baselines (area-PR policy): Help's
+ * area body (`.zs-areabody`) at 1280, plus 782 and dark 1280 for Help
+ * only; the setup steps (`.zs-onb`, a standalone view without an area body)
+ * and the What's new drawer at light 1280 only. The news is the mu-plugin's
+ * canned feed (eight fixed articles); its fetch time is masked.
+ */
 const V6_HELP: Screen[] = [
-	{ id: 'v6-help', title: '6.0 Help (Basic, canned news)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'help' ), prepare: helpReady, visual: { mobile: true, dark: true, mask: HELP_MASKS, selector: '#zerospam-app' } },
+	{ id: 'v6-help', title: '6.0 Help (Basic, canned news)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', path: () => AREA( 'help' ), prepare: helpReady, visual: { mobile: true, dark: true, mask: HELP_MASKS, selector: '.zs-areabody' } },
 	{ id: 'v6-help-enhanced', title: '6.0 Help (Enhanced, member card)', area: 'admin', sites: 'both', state: 'empty', theme: 'both', level: 'enhanced', path: () => AREA( 'help' ), prepare: helpReady },
 	{
 		id: 'v6-help-news-unavailable',
@@ -419,7 +426,7 @@ const V6_HELP: Screen[] = [
 		},
 		path: () => AREA( 'help', '', { section: 'news' } ),
 		prepare: helpReady,
-		visual: { selector: '#zs-help-news' },
+		visual: { mask: HELP_MASKS, selector: '.zs-areabody' },
 	},
 	{
 		id: 'v6-help-news-off',
@@ -434,9 +441,9 @@ const V6_HELP: Screen[] = [
 		path: () => AREA( 'help', '', { section: 'news' } ),
 		prepare: helpReady,
 	},
-	{ id: 'v6-onboarding-1', title: '6.0 First-run setup › 1 protection level', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 1 ), visual: { mobile: true, selector: '#zerospam-app' } },
-	{ id: 'v6-onboarding-2', title: '6.0 First-run setup › 2 what to protect', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 2 ), visual: { selector: '#zerospam-app' } },
-	{ id: 'v6-onboarding-3', title: '6.0 First-run setup › 3 how to block', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 3 ), visual: { selector: '#zerospam-app' } },
+	{ id: 'v6-onboarding-1', title: '6.0 First-run setup › 1 protection level', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 1 ), visual: { selector: '.zs-onb' } },
+	{ id: 'v6-onboarding-2', title: '6.0 First-run setup › 2 what to protect', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 2 ), visual: { selector: '.zs-onb' } },
+	{ id: 'v6-onboarding-3', title: '6.0 First-run setup › 3 how to block', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 3 ), visual: { selector: '.zs-onb' } },
 	{ id: 'v6-onboarding-done', title: '6.0 First-run setup › done', area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: ( zs ) => zs.firstRun( 'fresh' ).then( () => undefined ), path: () => AREA( 'overview' ), prepare: onboardingTo( 4 ) },
 	{
 		id: 'v6-whats-new',

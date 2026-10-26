@@ -569,7 +569,7 @@ function DoneStep( { state, places, method, onRestart } ) {
 					<b>{ __( "One thing we'll ask, once", 'zero-spam' ) }</b>
 					<span>
 						{ __(
-							'After Zero Spam stops its first 100 threats, the Overview shows a small thank-you tile with a link to rate Zero Spam on WordPress.org. Dismiss it once and it never comes back. No banners, no reminders.',
+							'When Zero Spam reaches its first milestone of threats stopped, the Overview shows a small thank-you tile with a link to rate Zero Spam on WordPress.org. Dismiss it and that milestone never asks again. No banners, no reminders.',
 							'zero-spam'
 						) }
 					</span>
