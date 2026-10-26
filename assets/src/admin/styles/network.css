@@ -408,6 +408,12 @@
 	min-width: 150px;
 }
 
+/* The date column keeps one width whatever the time reads ("9:59 AM" or "10:12 AM"). */
+.zs-audit-t th:first-child,
+.zs-audit-t td.zs-c-date {
+	width: 15em;
+}
+
 .zs-aufilters {
 	margin-bottom: var(--zs-space-2);
 }
