@@ -927,8 +927,7 @@ export const rulesReady = async ( page: Page ) => {
 
 /**
  * Seeds what each Rules tab shows, 2–8 rows each (the seeded state already
- * has two blocked IPs; both block lists have 8, enough rows that hiding a row
- * action moves a baseline past its 0.2% threshold). Baselines are of the tab
+ * has two blocked IPs; both block lists have 8). Baselines are of the tab
  * panel (.zs-areabody);
  * dates are hidden by support/visual.css, which also keeps their columns from
  * moving. The temporary block ends on a fixed far date: the route refuses an
@@ -978,8 +977,9 @@ const openBlockDrawer = ( trigger: string ) => async ( page: Page ) => {
 /**
  * Pixels a block list's baseline may differ by. A row action is a little text
  * on a page of hidden text, so hiding Remove or Edit block on all 8 rows
- * (870 to 1,430 pixels) stays under the project's 0.2% (about 1,500 here).
- * Two runs and other dates differ by 0 pixels; one row's action is over 100.
+ * (950 to 1,430 pixels) stays under the project's 0.2% (about 1,500 here).
+ * Two runs and other dates differ by 0 pixels; one row's action, the first or
+ * the last, is 119 to 179.
  */
 const BLOCK_LIST_MAX_DIFF = 100;
 
@@ -998,6 +998,8 @@ const V6_RULES: Screen[] = [
 			prepare: rulesReady,
 			// The tab panel only; Blocked IPs is the area's key screen: 782 and dark there only.
 			visual: { mobile: 'ips' === tab, dark: 'ips' === tab, selector: '.zs-areabody', ...( [ 'ips', 'locations' ].includes( tab ) ? { maxDiffPixels: BLOCK_LIST_MAX_DIFF } : {} ) },
+			// At 900px high an element screenshot cut its 8th card off (the location notice makes it the tallest).
+			...( 'locations' === tab ? { viewport: { width: 1280, height: 1000 } } : {} ),
 		},
 	] ),
 	// The block lists are cards up to 1,439px, so their table needs its own width.

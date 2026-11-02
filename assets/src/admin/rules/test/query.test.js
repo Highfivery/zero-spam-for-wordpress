@@ -17,13 +17,17 @@ import { describe, expect, it } from 'vitest';
 import {
 	PER_PAGE,
 	TABLE_MIN_WIDTH,
+	RETRY_MARGIN,
 	TABLE_QUERY,
 	TABS,
 	ariaSort,
 	blocksPath,
+	controlTargets,
 	firstPath,
 	listPath,
+	neededWidth,
 	paging,
+	shouldRetryTable,
 	sortChoices,
 	splitSort,
 	toggleSort,
@@ -171,5 +175,62 @@ describe( 'sortChoices', () => {
 			...options,
 			[ 'type:desc', 'Custom order' ],
 		] );
+	} );
+} );
+
+describe( 'whether the table fits', () => {
+	it( 'treats sub-pixel rounding as fitting', () => {
+		expect( neededWidth( 968, 966, 966 ) ).toBeNull();
+		expect( neededWidth( 968, 967, 966 ) ).toBeNull();
+	} );
+
+	it( 'keeps the width the list needs when the table really overflows', () => {
+		expect( neededWidth( 968, 968, 966 ) ).toBe( 970 );
+		expect( neededWidth( 968, 994, 966 ) ).toBe( 996 );
+	} );
+
+	it( 'tries the table again only once the list has grown past that, with a margin', () => {
+		expect( shouldRetryTable( 968, null ) ).toBe( false );
+		expect( shouldRetryTable( 996, 996 ) ).toBe( false );
+		expect( shouldRetryTable( 996 + RETRY_MARGIN - 1, 996 ) ).toBe( false );
+		expect( shouldRetryTable( 996 + RETRY_MARGIN, 996 ) ).toBe( true );
+		expect( shouldRetryTable( undefined, 996 ) ).toBe( false );
+	} );
+
+	it( 'cannot loop: a failed try at a width never asks for a try at that width', () => {
+		for ( const overflow of [ 2, 15, 40, 300 ] ) {
+			const width = 1000;
+			expect(
+				shouldRetryTable(
+					width,
+					neededWidth( width, width + overflow, width )
+				)
+			).toBe( false );
+		}
+	} );
+
+	it( 'survives the scrollbar a taller table can bring (up to the margin)', () => {
+		const needs = 996;
+		const width = needs + RETRY_MARGIN;
+		expect( shouldRetryTable( width, needs ) ).toBe( true );
+		// The list narrowed by a 17px scrollbar is still at least what the table needs.
+		expect( width - 17 ).toBeGreaterThanOrEqual( needs );
+	} );
+} );
+
+describe( 'controlTargets', () => {
+	it( 'keeps a control that exists in both layouts', () => {
+		expect( controlTargets( 'remove' ) ).toEqual( [ 'remove' ] );
+		expect( controlTargets( 'select' ) ).toEqual( [ 'select' ] );
+		expect( controlTargets( 'sort' ) ).toEqual( [ 'sort' ] );
+	} );
+
+	it( 'sends a card’s main button to Edit block and back', () => {
+		expect( controlTargets( 'main' ) ).toEqual( [ 'edit' ] );
+		expect( controlTargets( 'edit' ) ).toEqual( [ 'edit', 'main' ] );
+	} );
+
+	it( 'falls back from a lookup link when the site has none', () => {
+		expect( controlTargets( 'lookup' ) ).toEqual( [ 'lookup', 'edit' ] );
 	} );
 } );

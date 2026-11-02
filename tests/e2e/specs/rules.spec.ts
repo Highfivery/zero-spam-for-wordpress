@@ -5,10 +5,11 @@
  * typed, focus in and back); Remove and Remove selected with Undo; search
  * with Clear search; the list editors with the unsaved-changes bar; the
  * recommended lists behind an inline confirmation; the no-lockout list
- * with Undo; cards below 1,440px and a table from there, with nothing clipped
- * at either side of the line, even with the widest content; no sideways
- * scrolling at 375, 1024, 1100, 1280 and 1439; and on a network, the locked
- * and network-default states of a subsite.
+ * with Undo; cards below 1,440px and a table from there while it fits, with
+ * nothing clipped at either side of the line, even with the widest content or
+ * a longer language; focus kept across every switch; no sideways scrolling at
+ * 375, 1024, 1100, 1280 and 1439; and on a network, the locked and
+ * network-default states of a subsite.
  *
  * Replaces the legacy Blocked IPs modal's known defect (AGENTS.md §8: no
  * focus management): the drawer's focus handling is checked here and in
@@ -66,6 +67,51 @@ const clipping = ( page: Page ) => page.locator( '.zs-rules-list > .zs-tbl-wrap'
 		cutOff: Array.from( wrap.querySelectorAll( '.zs-btn' ) ).filter( ( b ) => b.getBoundingClientRect().right > right ).length,
 	};
 } );
+
+/** A clipping check that allows for sub-pixel rounding (FIT_TOLERANCE). */
+const expectNoClipping = async ( page: Page ) => {
+	const { scrolls, cutOff } = await clipping( page );
+	expect( scrolls, 'the list scrolls sideways' ).toBeLessThanOrEqual( 1 );
+	expect( cutOff, 'row actions are cut off' ).toBe( 0 );
+};
+
+/** Which layout the list shows. */
+const layout = ( page: Page ) => page.locator( '.zs-rules-list > .zs-tbl-wrap' ).evaluate( ( wrap ) => ( wrap.querySelector( '.zs-rules-t' ) ? 'table' : 'cards' ) );
+
+/** Starts counting switches between table and cards. */
+const countSwitches = ( page: Page ) => page.locator( '.zs-rules-list > .zs-tbl-wrap' ).evaluate( ( wrap ) => {
+	const win = window as unknown as { zsSwitches: number };
+	win.zsSwitches = 0;
+	new MutationObserver( ( records ) => {
+		win.zsSwitches += records.filter( ( r ) => Array.from( r.addedNodes ).some( ( n ) => [ 'zs-rules-t', 'zs-cards' ].some( ( c ) => ( n as Element ).querySelector?.( `.${ c }` ) || ( n as Element ).classList?.contains( c ) ) ) ).length;
+	} ).observe( wrap, { childList: true, subtree: true } );
+} );
+
+/** Switches counted so far. */
+const switches = ( page: Page ) => page.evaluate( () => ( window as unknown as { zsSwitches: number } ).zsSwitches );
+
+/** What the active element is in the list: its row and control. */
+const focused = ( page: Page ) => page.evaluate( () => {
+	const el = document.activeElement as HTMLElement;
+	return { row: el.closest< HTMLElement >( '[data-zs-row]' )?.dataset.zsRow ?? null, control: el.closest< HTMLElement >( '[data-zs-ctl]' )?.dataset.zsCtl ?? el.tagName };
+} );
+
+/** German strings for the block lists, longer than the English ones. */
+const GERMAN = {
+	'Edit block': 'Block bearbeiten',
+	Remove: 'Entfernen',
+	Date: 'Hinzugefügt am',
+	Type: 'Sperrtyp',
+	'IP address': 'IP-Adresse',
+	Location: 'Standort',
+	Starts: 'Beginnt am',
+	Ends: 'Endet am',
+	Reason: 'Begründung',
+	Temporary: 'Vorübergehend',
+	Permanent: 'Dauerhaft',
+	Never: 'Niemals',
+	'Look up': 'Nachschlagen',
+};
 
 /** Country names with a word broken over two lines ("Germ/any"). */
 const brokenCountries = ( page: Page ) => page.locator( '.zs-rules-t .zs-cty > span' ).evaluateAll( ( names ) => names.flatMap( ( name ) => {
@@ -375,7 +421,7 @@ test.describe( '6.0 Rules', () => {
 			await test.step( '1,440px: the table, every action inside it, no country name broken', async () => {
 				await openTab( page, tab );
 				await expect( rows( page ) ).toHaveCount( seeded );
-				expect( await clipping( page ) ).toEqual( { scrolls: 0, cutOff: 0 } );
+				await expectNoClipping( page );
 				expect( await brokenCountries( page ) ).toEqual( [] );
 				await gallery.capture( page.locator( '.zs-areabody' ), `Rules ${ tab } at 1,440px, widest content` );
 			} );
@@ -405,8 +451,8 @@ test.describe( '6.0 Rules', () => {
 			await test.step( `${ tab }: Tab goes through every card's controls, each one in sight`, async () => {
 				await page.getByLabel( 'Select all' ).focus();
 				const seen: string[] = [];
-				// Remove selected and the Sort menu, then four controls per card.
-				for ( let i = 0; i < 2 + ( 7 * 4 ); i++ ) {
+				// Remove selected and the Sort menu, then each card's controls (IP cards add Look up).
+				for ( let i = 0; i < 2 + ( 7 * ( 'ips' === tab ? 5 : 4 ) ); i++ ) {
 					await page.keyboard.press( 'Tab' );
 					const stop = await page.evaluate( () => {
 						const el = document.activeElement as HTMLElement;
@@ -421,6 +467,7 @@ test.describe( '6.0 Rules', () => {
 				expect( seen.filter( ( n ) => n.startsWith( 'Edit block: ' ) ) ).toHaveLength( 7 );
 				expect( seen.filter( ( n ) => n.startsWith( 'Edit block for ' ) ) ).toHaveLength( 7 );
 				expect( seen.filter( ( n ) => n.startsWith( 'Remove block for ' ) ) ).toHaveLength( 7 );
+				expect( seen.filter( ( n ) => n.startsWith( 'Look up ' ) ) ).toHaveLength( 'ips' === tab ? 7 : 0 );
 			} );
 
 			await test.step( `${ tab }: Edit block and Remove answer the keyboard`, async () => {
@@ -478,6 +525,202 @@ test.describe( '6.0 Rules', () => {
 		await expect( page.locator( '.zs-rules-list .zs-cards' ) ).toHaveCount( 0 );
 		await expect( page.getByLabel( 'Select 198.51.100.21' ) ).toBeChecked();
 		await expect( page.locator( 'th', { has: page.locator( '[data-zs-sort="type"]' ) } ) ).toHaveAttribute( 'aria-sort', 'ascending' );
+	} );
+
+	test( 'focus stays on the same row\'s control when the layout switches, and a drawer returns to it', async ( { page, zs } ) => {
+		await seedRules( zs );
+		await openTab( page );
+		const row = await page.locator( '[data-zs-row]' ).nth( 2 ).getAttribute( 'data-zs-row' );
+		const inRow = ( control: string ) => page.locator( `[data-zs-row="${ row }"] [data-zs-ctl="${ control }"]` );
+
+		for ( const control of [ 'remove', 'select', 'edit', 'lookup' ] ) {
+			await test.step( `${ control }: table to cards and back`, async () => {
+				await page.setViewportSize( { width: 1440, height: 900 } );
+				await expect( page.locator( '.zs-rules-t' ) ).toBeVisible();
+				await inRow( control ).focus();
+				await page.setViewportSize( { width: 1439, height: 900 } );
+				await expect( page.locator( '.zs-rules-t' ) ).toHaveCount( 0 );
+				await expect( inRow( control ) ).toBeFocused();
+				await page.setViewportSize( { width: 1440, height: 900 } );
+				await expect( page.locator( '.zs-rules-t' ) ).toBeVisible();
+				await expect( inRow( control ) ).toBeFocused();
+			} );
+		}
+
+		await test.step( 'a card\'s main button lands on Edit block', async () => {
+			await page.setViewportSize( { width: 1439, height: 900 } );
+			await inRow( 'main' ).focus();
+			await page.setViewportSize( { width: 1440, height: 900 } );
+			await expect( page.locator( '.zs-rules-t' ) ).toBeVisible();
+			await expect( inRow( 'edit' ) ).toBeFocused();
+		} );
+
+		await test.step( 'Select all and sorting have their match', async () => {
+			await page.locator( '.zs-rules-t [data-zs-ctl="select-all"]' ).focus();
+			await page.setViewportSize( { width: 1439, height: 900 } );
+			await expect( page.getByLabel( 'Select all' ) ).toBeFocused();
+			await page.setViewportSize( { width: 1440, height: 900 } );
+			await page.locator( '[data-zs-sort="date_added"]' ).focus();
+			await page.setViewportSize( { width: 1439, height: 900 } );
+			await expect( page.getByLabel( 'Sort', { exact: true } ) ).toBeFocused();
+		} );
+
+		await test.step( 'a drawer opened on the table and closed on the cards returns to the row\'s Edit block', async () => {
+			await page.setViewportSize( { width: 1440, height: 900 } );
+			await expect( page.locator( '.zs-rules-t' ) ).toBeVisible();
+			await inRow( 'edit' ).click();
+			await expect( drawer( page ) ).toBeVisible();
+			await page.setViewportSize( { width: 1439, height: 900 } );
+			await expect( page.locator( '.zs-rules-t' ) ).toHaveCount( 0 );
+			await page.keyboard.press( 'Escape' );
+			await expect( drawer( page ) ).toBeHidden();
+			await expect( inRow( 'edit' ) ).toBeFocused();
+		} );
+	} );
+
+	test( 'IP cards keep the lookup link the table has', async ( { page, zs } ) => {
+		await seedRules( zs );
+		for ( const [ width, height ] of [ [ 1280, 900 ], [ 375, 812 ] ] ) {
+			await page.setViewportSize( { width, height } );
+			await openTab( page );
+			const link = page.getByRole( 'link', { name: 'Look up 192.0.2.41 (opens in a new tab)' } );
+			await expect( link ).toBeVisible();
+			await expect( link ).toHaveAttribute( 'target', '_blank' );
+			await expect( link ).toHaveAttribute( 'href', /192\.0\.2\.41/ );
+			await expectNoClipping( page );
+		}
+	} );
+
+	test( 'a longer language: cards at 1,440px with nothing clipped, the table where it fits, no repeated switching', async ( { page, zs } ) => {
+		await seedRules( zs );
+		await zs.scriptTranslations( GERMAN );
+
+		for ( const tab of [ 'ips', 'locations' ] ) {
+			await page.setViewportSize( { width: 1440, height: 900 } );
+			await openTab( page, tab );
+			await expect( page.locator( '.zs-rules-list' ) ).toContainText( 'Entfernen' );
+
+			await test.step( `${ tab }: cards at 1,440px, nothing clipped, and they stay`, async () => {
+				await expect.poll( () => layout( page ) ).toBe( 'cards' );
+				await expectNoClipping( page );
+				await countSwitches( page );
+				await page.waitForTimeout( 1000 );
+				expect( await switches( page ), 'switched while idle' ).toBe( 0 );
+			} );
+
+			await test.step( `${ tab }: a small widening does not try the table, a real one shows it, unclipped`, async () => {
+				await page.setViewportSize( { width: 1450, height: 900 } );
+				await page.waitForTimeout( 300 );
+				expect( await layout( page ) ).toBe( 'cards' );
+				await page.setViewportSize( { width: 1700, height: 900 } );
+				await expect.poll( () => layout( page ) ).toBe( 'table' );
+				await expectNoClipping( page );
+			} );
+
+			await test.step( `${ tab }: narrowing goes back to cards once, and it stays`, async () => {
+				const before = await switches( page );
+				await page.setViewportSize( { width: 1440, height: 900 } );
+				await expect.poll( () => layout( page ) ).toBe( 'cards' );
+				await page.waitForTimeout( 1000 );
+				expect( await switches( page ) - before, 'switches on the way back' ).toBe( 1 );
+				await expectNoClipping( page );
+			} );
+		}
+	} );
+
+	test( 'new rows can make the table overflow: cards, with the selection, the sort and focus kept', async ( { page, zs } ) => {
+		await seedRules( zs );
+		await zs.scriptTranslations( GERMAN );
+
+		// The narrowest window that shows the table on load: all rows are Dauerhaft and Niemals so far.
+		let [ low, high ] = [ 1440, 1700 ];
+		while ( high - low > 4 ) {
+			const width = Math.round( ( low + high ) / 2 );
+			await page.setViewportSize( { width, height: 900 } );
+			await openTab( page );
+			if ( 'table' === await layout( page ) ) {
+				high = width;
+			} else {
+				low = width;
+			}
+		}
+		await page.setViewportSize( { width: high, height: 900 } );
+		await openTab( page );
+		expect( await layout( page ) ).toBe( 'table' );
+		await expectNoClipping( page );
+
+		await page.locator( '[data-zs-sort="key"]' ).click();
+		await expect( page.locator( 'th', { has: page.locator( '[data-zs-sort="key"]' ) } ) ).toHaveAttribute( 'aria-sort', 'ascending' );
+		await expect( page.locator( '.zs-rules-t' ) ).not.toHaveAttribute( 'aria-busy', 'true' );
+		await page.getByLabel( 'Select 198.51.100.21' ).check();
+
+		const add = page.getByRole( 'button', { name: 'Block an IP' } );
+		await add.click();
+		await page.locator( '#zs-bf-ip' ).fill( '192.0.2.77' );
+		await drawer( page ).getByRole( 'button', { name: 'Block IP' } ).click();
+		await expect( drawer( page ) ).toBeHidden();
+
+		await expect.poll( () => layout( page ) ).toBe( 'cards' );
+		await expectNoClipping( page );
+		await expect( page.getByLabel( 'Select 198.51.100.21' ) ).toBeChecked();
+		await expect( page.locator( '.zs-selcount' ) ).toHaveText( '1 selected' );
+		await expect( page.getByLabel( 'Sort', { exact: true } ) ).toHaveValue( 'key:asc' );
+		await expect( add ).toBeFocused();
+		expect( ( await focused( page ) ).control ).toBe( 'BUTTON' );
+	} );
+
+	test( 'a change of rows tries the table before paint: never seen, focus kept', async ( { page, zs } ) => {
+		await seedRules( zs );
+		await zs.scriptTranslations( GERMAN );
+		await openTab( page );
+		await expect.poll( () => layout( page ) ).toBe( 'cards' );
+
+		// What each painted frame shows, while the rows change.
+		await page.evaluate( () => {
+			const win = window as unknown as { zsFrames: number; zsTableFrames: number };
+			win.zsFrames = 0;
+			win.zsTableFrames = 0;
+			const sample = () => {
+				win.zsFrames++;
+				win.zsTableFrames += document.querySelector( '.zs-rules-t' ) ? 1 : 0;
+				window.requestAnimationFrame( sample );
+			};
+			window.requestAnimationFrame( sample );
+		} );
+		await countSwitches( page );
+
+		const sort = page.getByLabel( 'Sort', { exact: true } );
+		await sort.focus();
+		await sort.selectOption( 'key:asc' );
+		await expect( page.locator( '.zs-cm-t' ).first() ).toHaveText( '192.0.2.41' );
+		await expect.poll( () => switches( page ), 'the table was tried' ).toBeGreaterThan( 0 );
+		expect( await layout( page ) ).toBe( 'cards' );
+		await expect( sort ).toBeFocused();
+		const frames = await page.evaluate( () => {
+			const win = window as unknown as { zsFrames: number; zsTableFrames: number };
+			return { all: win.zsFrames, table: win.zsTableFrames };
+		} );
+		expect( frames.all ).toBeGreaterThan( 0 );
+		expect( frames.table, 'frames that showed the table' ).toBe( 0 );
+
+		const before = await switches( page );
+		await page.waitForTimeout( 1000 );
+		expect( await switches( page ) - before, 'switched while idle' ).toBe( 0 );
+	} );
+
+	test( 'a collapsed WordPress menu does not bring the table below 1,440px', async ( { page, zs } ) => {
+		await seedRules( zs );
+		await page.setViewportSize( { width: 1439, height: 900 } );
+		await openTab( page );
+		await page.evaluate( () => document.body.classList.add( 'folded' ) );
+		const wider = await page.locator( '.zs-rules-list' ).evaluate( ( list ) => list.clientWidth );
+		expect( wider, 'the folded menu gives the list more room than the table needs' ).toBeGreaterThan( 1000 );
+		await page.waitForTimeout( 300 );
+		expect( await layout( page ) ).toBe( 'cards' );
+
+		await page.setViewportSize( { width: 1440, height: 900 } );
+		await expect.poll( () => layout( page ) ).toBe( 'table' );
+		await expectNoClipping( page );
 	} );
 
 	test( 'narrow screens: cards with Select all and a Sort menu, Edit block from a card; no sideways scrolling', async ( { zs, newRoleContext } ) => {
