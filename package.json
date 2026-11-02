@@ -9,7 +9,7 @@
 	"scripts": {
 		"build": "wp-scripts build",
 		"start": "wp-scripts start",
-		"lint:js": "wp-scripts lint-js assets/src webpack.config.js eslint.config.cjs vitest.config.mjs",
+		"lint:js": "wp-scripts lint-js assets/src bin/render-listing-assets.mjs webpack.config.js eslint.config.cjs vitest.config.mjs",
 		"lint:css": "wp-scripts lint-style \"assets/src/**/*.css\" \"assets/fonts/**/*.css\"",
 		"test:js": "wp-scripts test-unit-js",
 		"check:dist": "bin/check-dist.sh",
