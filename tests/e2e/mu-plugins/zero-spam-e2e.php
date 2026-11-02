@@ -220,6 +220,39 @@ function news_down(): bool {
 }
 
 /**
+ * Stop Forum Spam's answer: nothing is listed, except a username or email
+ * containing `e2e-sfs-listed` / `e2esfslisted` and the IP 198.51.100.66.
+ *
+ * @param string $query Request query string.
+ * @return array<string, mixed>
+ */
+function canned_stop_forum_spam( string $query ): array {
+	parse_str( $query, $params );
+
+	$listed = array(
+		'appears'    => 1,
+		'frequency'  => 3,
+		'confidence' => '99.00',
+	);
+	$clean  = array(
+		'appears'   => 0,
+		'frequency' => 0,
+	);
+	$answer = array( 'success' => 1 );
+
+	foreach ( array( 'username', 'email', 'ip' ) as $field ) {
+		$value = isset( $params[ $field ] ) && is_string( $params[ $field ] ) ? $params[ $field ] : null;
+		if ( null === $value && 'ip' !== $field ) {
+			continue;
+		}
+
+		$answer[ $field ] = ( null !== $value && ( str_contains( $value, 'e2e-sfs-listed' ) || str_contains( $value, 'e2esfslisted' ) || '198.51.100.66' === $value ) ) ? $listed : $clean;
+	}
+
+	return $answer;
+}
+
+/**
  * Canned responses keyed by host (and path fragment).
  *
  * The license answer is a valid Business license (what a site on Enhanced
@@ -260,13 +293,7 @@ function canned_body( string $host, string $path, string $query = '' ) {
 	}
 
 	if ( 'api.stopforumspam.org' === $host ) {
-		return array(
-			'success' => 1,
-			'ip'      => array(
-				'appears'   => 0,
-				'frequency' => 0,
-			),
-		);
+		return canned_stop_forum_spam( $query );
 	}
 
 	if ( in_array( $host, array( 'api.ipstack.com', 'ipinfo.io', 'api.ipinfo.io', 'api.ipbase.com' ), true ) ) {

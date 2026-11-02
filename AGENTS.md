@@ -552,7 +552,9 @@ npm run env:stop                 # stop both wp-env sites
   wp-env on the same port, or a Local site loading another copy).
   Its canned zerospam.org answers: a valid Business license for any key
   (`get-license`), an empty `v3/query` result in the shape the module reads,
-  and eight fixed articles for the news feed. `/reset` also clears every
+  and eight fixed articles for the news feed. Stop Forum Spam lists nothing except a
+  username or email containing `e2esfslisted` or `e2e-sfs-listed` and the IP
+  198.51.100.66. `/reset` also clears every
   user's `zerospam_ui` (6.0 preferences) and the cached news, and takes
   `level=enhanced` (saves the key `e2e-license` and turns Enhanced
   Protection on); `/ui-prefs` merges preferences for the current user;
@@ -786,18 +788,10 @@ npm run env:stop                 # stop both wp-env sites
   `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
-  - `modules/class-stopforumspam.php`: `preprocess_registrations()` is hooked
-    to `zerospam_preprocess_registration_submission`, whose arguments are
-    `( array $errors, $post, 'registration_spam_message' )`, so the registration
-    check receives nonsense and would fatal (`$errors->add()` on an array) on a
-    hit; Stop Forum Spam registration protection has never worked. Comment
-    detections from this module are logged with reason `0` (numeric key).
   - Cache group mismatch (`wp_cache_get()` default group vs `wp_cache_set()`
     group) in `modules/class-projecthoneypot.php` (~92),
     `modules/ipbase/class-ipbase.php` (~203), `modules/class-ipinfomodule.php`
-    (~293) and `modules/class-ipstack.php` (~173); the Stop Forum Spam cache
-    is object-cache only (no transient fallback), so it lasts one request on
-    hosts without a persistent object cache.
+    (~293) and `modules/class-ipstack.php` (~173).
   - `core/admin/tables/class-blockedtable.php`: the bulk delete never deletes
     (`sanitize_text_field()` on the `ids` array returns `''`) and has no
     capability check of its own; the legacy delete links never refresh

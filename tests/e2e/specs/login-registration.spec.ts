@@ -60,4 +60,57 @@ test.describe( 'Login and registration protection', () => {
 			expect( wpcli.run( [ 'user', 'get', `e2ebot${ suffix }` ] ).status ).not.toBe( 0 );
 		} );
 	} );
+
+	test( 'Stop Forum Spam: a listed username or email is refused with the configured message and logged; a clean one registers', { tag: '@single-only' }, async ( { newRoleContext, zs, wpcli, gallery }, testInfo ) => {
+		const suffix = `${ Date.now().toString( 36 ) }${ testInfo.retry }`;
+		const message = 'Stop Forum Spam e2e: not today.';
+		await zs.set( { stop_forum_spam: 'enabled', registration_spam_message: message } );
+
+		const attempt = async ( ip: string, username: string, email: string ) => {
+			const page = await ( await newRoleContext( null, { ip } ) ).newPage();
+			const register = new RegisterPage( page );
+			await register.goto();
+			await register.register( username, email );
+			return page;
+		};
+
+		await test.step( 'a clean registration goes through', async () => {
+			const page = await attempt( '203.0.113.60', `e2esfsclean${ suffix }`, `e2esfsclean${ suffix }@example.com` );
+			await expect( page ).toHaveURL( /checkemail=registered/ );
+			expect( await zs.logRows( { ip: '203.0.113.60' } ) ).toEqual( [] );
+			wpcli.exec( [ 'user', 'delete', `e2esfsclean${ suffix }`, '--yes' ] );
+		} );
+
+		await test.step( 'a listed email is refused', async () => {
+			const ip = '203.0.113.61';
+			const username = `e2esfsmail${ suffix }`;
+			const page = await attempt( ip, username, `e2e-sfs-listed-${ suffix }@example.com` );
+			await expect( page.locator( '#login_error' ) ).toContainText( message );
+			await expect( page ).not.toHaveURL( /checkemail=registered/ );
+			await gallery.capture( page, 'stop forum spam refuses a listed email' );
+			const rows = await zs.logRows( { ip, type: 'registration' } );
+			expect( rows.map( ( r ) => r.submission_data?.failed ) ).toEqual( [ 'stop_forum_spam_email' ] );
+			expect( wpcli.run( [ 'user', 'get', username ] ).status ).not.toBe( 0 );
+		} );
+
+		await test.step( 'a listed username is refused', async () => {
+			const ip = '203.0.113.62';
+			const username = `e2esfslisted${ suffix }`;
+			const page = await attempt( ip, username, `e2esfsname${ suffix }@example.com` );
+			await expect( page.locator( '#login_error' ) ).toContainText( message );
+			const rows = await zs.logRows( { ip, type: 'registration' } );
+			expect( rows.map( ( r ) => r.submission_data?.failed ) ).toEqual( [ 'stop_forum_spam_username' ] );
+			expect( wpcli.run( [ 'user', 'get', username ] ).status ).not.toBe( 0 );
+		} );
+
+		await test.step( 'a listed IP is stopped by the access check before the form', async () => {
+			const ip = '198.51.100.66';
+			const page = await ( await newRoleContext( null, { ip } ) ).newPage();
+			const response = await page.goto( 'wp-login.php?action=register' );
+			expect( response?.status() ).toBe( 403 );
+			await expect( page.locator( '#registerform' ) ).toHaveCount( 0 );
+			const rows = await zs.logRows( { ip } );
+			expect( rows.map( ( r ) => r.submission_data?.failed ) ).toContain( 'stop_forum_spam' );
+		} );
+	} );
 } );

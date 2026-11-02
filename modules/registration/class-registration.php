@@ -7,6 +7,7 @@
  * 1. Zero Spam honeypot field
  * 2. Checks blocked email domains
  * 3. Uses the David Walsh technique
+ * 4. Stop Forum Spam lookup of the username, email and IP
  *
  * @package ZeroSpam
  */
@@ -119,7 +120,11 @@ class Registration {
 			$validation_errors[] = 'blocked_email_domain';
 		}
 
-		// Fire hook for additional validation (ex. David Walsh script).
+		// Fire hook for additional validation (ex. David Walsh script). The checks
+		// that read the username and email get the values WordPress is registering.
+		$post['user_login'] = $sanitized_user_login;
+		$post['user_email'] = $user_email;
+
 		$filtered_errors = apply_filters( 'zerospam_preprocess_registration_submission', array(), $post, 'registration_spam_message' );
 
 		if ( ! empty( $filtered_errors ) ) {
