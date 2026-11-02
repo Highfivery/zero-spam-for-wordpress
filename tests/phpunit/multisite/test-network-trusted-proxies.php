@@ -134,7 +134,7 @@ class Test_Network_Trusted_Proxies extends TestCase {
 		$this->assertSame( "192.0.2.1\n198.51.100.2", $this->network_value( 'ip_whitelist' ) );
 
 		self::reset_static_caches();
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 		$this->assertTrue( Utilities::is_whitelisted( '198.51.100.2' ) );
 		$this->assertTrue( Utilities::is_whitelisted( '192.0.2.1' ) );
 	}

@@ -23,6 +23,7 @@ import { Drawer } from './primitives/drawer';
 import { NS, nowLocal, request } from '../data/api';
 import { LOCATION_TYPES, checkBlockIp, checkLocation } from '../data/validate';
 import { blockBody, initialLocationValues, initialValues } from './block-data';
+import { NetworkBlockNote, findNetworkBlock } from './network-block-note';
 
 /**
  * An example value for a location type (the Location field's placeholder).
@@ -103,7 +104,27 @@ export function BlockForm( {
 	const [ errors, setErrors ] = useState( {} );
 	const [ failure, setFailure ] = useState( '' );
 	const [ saving, setSaving ] = useState( false );
+	const [ networkBlock, setNetworkBlock ] = useState( null );
 	const form = useRef( null );
+
+	// On a network: whether the network already blocks the address on every site.
+	const checkNetwork = ( address ) => {
+		const checked = checkBlockIp( address );
+		if ( isLocation || checked.error ) {
+			setNetworkBlock( null );
+			return;
+		}
+		findNetworkBlock( checked.value )
+			.then( setNetworkBlock )
+			.catch( () => setNetworkBlock( null ) );
+	};
+
+	useEffect( () => {
+		if ( ! isLocation && ( ip || block?.ip ) ) {
+			checkNetwork( ip || block.ip );
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- Once per opening.
+	}, [] );
 
 	useEffect( () => {
 		if ( ! lookup || block || ! ip ) {
@@ -300,6 +321,7 @@ export function BlockForm( {
 						{ failure }
 					</p>
 				) }
+				{ networkBlock && <NetworkBlockNote block={ networkBlock } /> }
 				{ ! isLocation &&
 					field(
 						'ip',
@@ -310,6 +332,7 @@ export function BlockForm( {
 							className="zs-input zs-mono"
 							value={ values.ip }
 							onChange={ set( 'ip' ) }
+							onBlur={ ( e ) => checkNetwork( e.target.value ) }
 							placeholder={ __(
 								'e.g. 203.0.113.9',
 								'zero-spam'

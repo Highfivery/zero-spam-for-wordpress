@@ -212,6 +212,11 @@ class Site_Admin_Overrides {
 
 		$network_display = is_string( $network_default ) ? $network_default : (string) wp_json_encode( $network_default );
 
+		// An empty network value reads "(none)", not an empty box.
+		if ( in_array( $network_default, array( '', false, array() ), true ) || '' === trim( $network_display ) ) {
+			$network_display = __( '(none)', 'zero-spam' );
+		}
+
 		// Check if using network default or has override.
 		if ( $this->uses_network_default( (string) $field_key ) ) {
 			?>

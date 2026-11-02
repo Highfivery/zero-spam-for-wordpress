@@ -83,7 +83,7 @@ class Test_Migrations_V6 extends TestCase {
 
 		update_site_option( Network_Settings::META_KEY, self::NETWORK_STORE_FIXTURE );
 		update_site_option( Migrations::LEGACY_NETWORK_OPTION, self::LEGACY_NETWORK_FIXTURE );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 
 		delete_option( Migrations::BACKUP_5X_OPTION );
 		delete_site_option( Migrations::BACKUP_5X_OPTION );

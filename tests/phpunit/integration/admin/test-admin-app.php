@@ -445,12 +445,14 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
-	 * The network page, the one view still built later (PR 9), preloads
-	 * only the user's preferences; every site area adds its own reads to the
-	 * shell's (Help: test_help_preloads_its_guides()).
+	 * The network page preloads the user's preferences and its tab's
+	 * network data (Admin_App::network_preloads(); the Overview by
+	 * default), never the site shell's reads; every site area adds its own
+	 * reads to the shell's (Help: test_help_preloads_its_guides()).
 	 */
-	public function test_network_page_preloads_only_the_preferences(): void {
-		$this->assertSame( array( '/zero-spam/v1/ui/prefs' ), Admin_App::preload_paths( 'network' ) );
+	public function test_network_page_preloads_the_preferences_and_its_tab(): void {
+		$this->assertSame( array_merge( array( '/zero-spam/v1/ui/prefs' ), Admin_App::network_preloads() ), Admin_App::preload_paths( 'network' ) );
+		$this->assertSame( array( '/zero-spam/v1/ui/prefs', '/zero-spam/v1/network/notifications' ), Admin_App::preload_paths( 'network', array( 'tab' => 'notifications' ) ) );
 	}
 
 	/**

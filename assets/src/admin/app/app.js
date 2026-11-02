@@ -25,7 +25,7 @@ const NETWORK_TABS = networkTabs().map( ( [ key ] ) => key );
 
 /**
  * The shell around an area's view. On the network page, children is a
- * function given the current network tab ( { tab } ).
+ * function given the current network tab and its setter ( { tab, setTab } ).
  *
  * @param {Object}                                   props          Props.
  * @param {string}                                   props.area     Area.
@@ -50,7 +50,7 @@ export function AreaView( { area, children } ) {
 			}
 		>
 			{ 'function' === typeof children
-				? children( { tab: netTab } )
+				? children( { tab: netTab, setTab: setNetTab } )
 				: children }
 		</Shell>
 	);

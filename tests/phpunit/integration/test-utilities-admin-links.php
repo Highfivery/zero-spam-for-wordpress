@@ -32,6 +32,8 @@ class Test_Utilities_Admin_Links extends TestCase {
 			'license'          => array( 'license', false, 'options-general.php?page=wordpress-zero-spam-settings&subview=zerospam', 'admin.php?page=zero-spam-protection&tab=intelligence&card=zerospam' ),
 			'network-activity' => array( 'network-activity', true, 'settings.php?page=wordpress-zero-spam-network-stats', 'admin.php?page=zero-spam-network&tab=stats' ),
 			'network-license'  => array( 'network-license', true, 'settings.php?page=zerospam-network-settings', 'admin.php?page=zero-spam-network&tab=settings' ),
+			'settings'         => array( 'settings', false, 'options-general.php?page=wordpress-zero-spam-settings', 'admin.php?page=zero-spam-settings' ),
+			'network-settings' => array( 'network-settings', true, 'settings.php?page=zerospam-network-settings', 'admin.php?page=zero-spam-network&tab=settings' ),
 		);
 	}
 

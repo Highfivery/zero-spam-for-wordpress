@@ -159,6 +159,7 @@ $zerospam_site_tables = array(
 $zerospam_network_tables = array(
 	'wpzerospam_api_usage',
 	'wpzerospam_network_audit',
+	'wpzerospam_network_blocked',
 	'wpzerospam_network_templates',
 	'wpzerospam_stats_daily',
 	'wpzerospam_stats_monthly',
@@ -182,6 +183,9 @@ $zerospam_network_options = array_merge(
 
 // Network (site) transients with fixed names.
 $zerospam_network_transients = array(
+	'zerospam_network_blocks',
+	'zerospam_network_compare',
+	'zerospam_network_report',
 	'zerospam_network_settings',
 	'zerospam_news',
 	'zerospam_news_backoff',
@@ -393,9 +397,15 @@ if ( is_multisite() ) {
 	$zerospam_uninstall_site();
 }
 
-// Network-wide caches, removed once.
+// Network-wide caches, removed once. Since 6.0.0 they are keyed by network too (Network_Settings::network_key()).
 foreach ( $zerospam_network_transients as $zerospam_transient ) {
 	delete_site_transient( $zerospam_transient );
+
+	if ( is_multisite() ) {
+		foreach ( get_networks( array( 'fields' => 'ids', 'number' => 0 ) ) as $zerospam_network_id ) { // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short list.
+			delete_site_transient( $zerospam_transient . '_' . $zerospam_network_id );
+		}
+	}
 }
 
 if ( is_multisite() ) {

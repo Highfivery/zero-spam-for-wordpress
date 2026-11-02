@@ -8,12 +8,12 @@
  */
 
 /* Focused controls never hide under the sticky top bar or the unsaved bar, Tab or Shift+Tab (WCAG 2.4.11); "On this page" is not sticky. */
-:is(.zs-protection, .zs-settings) :is(a, button, input, select, textarea, summary, [tabindex]) {
+:is(.zs-protection, .zs-settings, .zs-network) :is(a, button, input, select, textarea, summary, [tabindex]) {
 	scroll-margin-top: calc(var(--zs-wpbar-h) + 76px);
 	scroll-margin-bottom: 96px;
 }
 
-:is(.zs-protection, .zs-settings) :is(.zs-pcard, .zs-setrow) {
+:is(.zs-protection, .zs-settings, .zs-network) :is(.zs-pcard, .zs-setrow) {
 	scroll-margin-top: calc(var(--zs-wpbar-h) + 72px);
 }
 
@@ -69,17 +69,17 @@
 }
 
 /* Segmented controls and tabs: the shared .zs-seg / .zs-segr (primitives.css), plus */
-:is(.zs-protection, .zs-settings) .zs-seg button:focus-visible {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-seg button:focus-visible {
 	outline: var(--zs-focus-width) solid var(--zs-focus);
 	outline-offset: var(--zs-focus-offset);
 }
 
-:is(.zs-protection, .zs-settings) .zs-segr:has(input:disabled) {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-segr:has(input:disabled) {
 	cursor: not-allowed;
 	opacity: 0.6;
 }
 
-:is(.zs-protection, .zs-settings) .zs-c {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-c {
 	font-family: var(--zs-font-data);
 	font-size: var(--zs-text-2xs);
 	font-variant-numeric: tabular-nums;
@@ -104,7 +104,7 @@
 }
 
 /* Settings rows inside cards */
-:is(.zs-protection, .zs-settings) .zs-setrow {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-setrow {
 	padding: 16px 0;
 }
 
@@ -211,7 +211,7 @@
 }
 
 /* The lock badge (.zs-badge-lock in rules.css) wraps instead of overflowing at phone width. */
-:is(.zs-protection, .zs-settings) .zs-lockbadge {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-lockbadge {
 	height: auto;
 	min-height: var(--zs-badge-height);
 	max-width: 100%;
@@ -317,7 +317,7 @@
 	padding-left: 20px;
 }
 
-:is(.zs-protection, .zs-settings) :is(.zs-help-b, .zs-fdesc, .zs-setrow) code {
+:is(.zs-protection, .zs-settings, .zs-network) :is(.zs-help-b, .zs-fdesc, .zs-setrow) code {
 	padding: 1px 5px;
 	border-radius: 4px;
 	background: var(--zs-sunken);
@@ -369,7 +369,7 @@
 	font-size: var(--zs-text-sm);
 }
 
-:is(.zs-protection, .zs-settings) .zs-tags {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-tags {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
@@ -391,12 +391,12 @@
 	align-items: center;
 }
 
-:is(.zs-protection, .zs-settings) .zs-sw-status {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-sw-status {
 	display: inline;
 }
 
 /* Fields: the shared .zs-input / .zs-select (primitives.css), plus the textarea and disabled state. */
-:is(.zs-protection, .zs-settings) .zs-textarea {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-textarea {
 	box-sizing: border-box;
 	width: 100%;
 	min-height: 112px;
@@ -413,32 +413,32 @@
 	resize: vertical;
 }
 
-:is(.zs-protection, .zs-settings) .zs-textarea:focus-visible {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-textarea:focus-visible {
 	border-color: var(--zs-focus);
 	outline: var(--zs-focus-width) solid var(--zs-focus);
 	outline-offset: 1px;
 }
 
-:is(.zs-protection, .zs-settings) .zs-textarea[aria-invalid="true"] {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-textarea[aria-invalid="true"] {
 	border-color: var(--zs-red);
 }
 
-:is(.zs-protection, .zs-settings) .zs-textarea::placeholder {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-textarea::placeholder {
 	color: var(--zs-ink-3);
 }
 
-:is(.zs-protection, .zs-settings) .zs-select {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-select {
 	max-width: 320px;
 }
 
-:is(.zs-protection, .zs-settings)
+:is(.zs-protection, .zs-settings, .zs-network)
 	:is(.zs-input, .zs-select, .zs-textarea):disabled {
 	background-color: var(--zs-sunken);
 	color: var(--zs-ink-2);
 	cursor: not-allowed;
 }
 
-:is(.zs-protection, .zs-settings) .zs-num-in {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-num-in {
 	max-width: 160px;
 }
 
@@ -475,13 +475,13 @@
 }
 
 /* Notices: the shared .zs-notice / .zs-notice-err (primitives.css) with an icon, plus a warning tone. */
-:is(.zs-protection, .zs-settings) .zs-notice {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-notice {
 	display: flex;
 	gap: var(--zs-space-2);
 	align-items: flex-start;
 }
 
-:is(.zs-protection, .zs-settings) .zs-notice-warn {
+:is(.zs-protection, .zs-settings, .zs-network) .zs-notice-warn {
 	border-color: transparent;
 	background: var(--zs-warn-soft);
 	color: var(--zs-warn-ink);

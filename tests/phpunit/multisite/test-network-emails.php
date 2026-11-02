@@ -171,4 +171,72 @@ class Test_Network_Emails extends TestCase {
 			$this->assertContains( $string, $this->translated, "\"{$string}\" is not translated." );
 		}
 	}
+
+	/**
+	 * A changed key or webhook address is never written in the email: it reads "••••".
+	 */
+	public function test_settings_change_email_redacts_secrets(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		grant_super_admin( $admin );
+		wp_set_current_user( $admin );
+		delete_option( 'zero-spam-ipinfo' );
+		delete_option( 'zero-spam-api-monitoring' );
+		update_site_option( Network_Settings::META_KEY, array( 'settings' => array() ) );
+		reset_phpmailer_instance();
+
+		update_site_option(
+			Network_Settings::META_KEY,
+			array(
+				'settings' => array(
+					'ipinfo_access_token' => array(
+						'value'  => 'ipinfo-secret-9876',
+						'locked' => false,
+					),
+					'alert_webhook_url'   => array(
+						'value'  => 'https://hooks.example.com/abcdef-secret-hook',
+						'locked' => false,
+					),
+				),
+			)
+		);
+
+		$sent = $this->sent_mail();
+		$this->assertNotEmpty( $sent, 'No site administrator was told about the change.' );
+
+		foreach ( $sent as $mail ) {
+			$parts = $this->mail_parts( $mail );
+			foreach ( array( 'text/html', 'text/plain' ) as $type ) {
+				$this->assertArrayHasKey( $type, $parts );
+				$this->assertStringContainsString( "\u{2022}\u{2022}\u{2022}\u{2022}", $parts[ $type ], "{$type}: no mask." );
+				$this->assertStringNotContainsString( 'ipinfo-secret', $parts[ $type ], "{$type}: the key is in the email." );
+				$this->assertStringNotContainsString( 'secret-hook', $parts[ $type ], "{$type}: the webhook is in the email." );
+			}
+			$this->assertStringContainsString( esc_url( \ZeroSpam\Core\Utilities::admin_link( 'settings' ) ), $parts['text/html'] );
+		}
+	}
+
+	/**
+	 * Undoing a lock on a setting the network never set removes its value:
+	 * every site was told "Locked by the network", so every site is told it is over.
+	 */
+	public function test_undoing_a_lock_on_an_unset_setting_emails_every_site(): void {
+		$admin = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		grant_super_admin( $admin );
+		wp_set_current_user( $admin );
+		update_option( 'zero-spam-settings', array( 'max_logs' => 4321 ) );
+		update_site_option( Network_Settings::META_KEY, array( 'settings' => array() ) );
+		delete_site_transient( Network_Settings::cache_key() );
+		reset_phpmailer_instance();
+
+		$manager = new \ZeroSpam\Includes\Network_Settings_Manager();
+		$manager->lock_setting( 'max_logs' );
+		$this->assertStringContainsString( 'Locked by the network', $this->mail_parts( $this->sent_mail()[0] )['text/plain'] );
+
+		reset_phpmailer_instance();
+		$manager->unlock_setting( 'max_logs' );
+
+		$sent = $this->sent_mail();
+		$this->assertNotEmpty( $sent, 'The site that stores its own value was not told the lock is over.' );
+		$this->assertStringContainsString( 'Unlocked: you can now change it', $this->mail_parts( $sent[0] )['text/plain'] );
+	}
 }

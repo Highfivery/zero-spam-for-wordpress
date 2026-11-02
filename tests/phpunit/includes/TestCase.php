@@ -195,6 +195,13 @@ abstract class TestCase extends WP_UnitTestCase {
 	private static array $sites_with_tables = array();
 
 	/**
+	 * Networks made by create_network_with_site(), removed with the class.
+	 *
+	 * @var int[]
+	 */
+	private static array $networks = array();
+
+	/**
 	 * $_SERVER as it was before the test.
 	 *
 	 * @var array<string, mixed>
@@ -269,6 +276,13 @@ abstract class TestCase extends WP_UnitTestCase {
 		}
 		self::$sites_with_tables = array();
 
+		foreach ( self::$networks as $network_id ) {
+			$wpdb->delete( $wpdb->sitemeta, array( 'site_id' => $network_id ) );
+			$wpdb->delete( $wpdb->site, array( 'id' => $network_id ) );
+			clean_network_cache( $network_id );
+		}
+		self::$networks = array();
+
 		parent::tear_down_after_class();
 	}
 
@@ -291,6 +305,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		License_Status::reset_request_cache();
 		Base_Controller::reset_request_cache();
 		User::reset_cache();
+		\ZeroSpam\Includes\Network_Blocks::reset_request_cache();
 	}
 
 	/**
@@ -348,7 +363,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		);
 
 		update_site_option( Network_Settings::META_KEY, $settings );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 		self::reset_static_caches();
 	}
 
@@ -703,11 +718,12 @@ abstract class TestCase extends WP_UnitTestCase {
 	 * DB::log() and DB::query()) cannot see. The site and its tables are
 	 * deleted after the test class.
 	 *
-	 * @param WP_UnitTest_Factory $factory Test factory.
+	 * @param WP_UnitTest_Factory  $factory Test factory.
+	 * @param array<string, mixed> $args    Site arguments (such as `network_id`).
 	 * @return int Blog ID.
 	 * @throws LogicException When called inside a test.
 	 */
-	protected static function create_site_with_tables( WP_UnitTest_Factory $factory ): int {
+	protected static function create_site_with_tables( WP_UnitTest_Factory $factory, array $args = array() ): int {
 		global $wp_filter;
 
 		if ( isset( $wp_filter['query'] ) ) {
@@ -720,7 +736,7 @@ abstract class TestCase extends WP_UnitTestCase {
 			}
 		}
 
-		$blog_id = (int) $factory->blog->create();
+		$blog_id = (int) $factory->blog->create( $args );
 
 		switch_to_blog( $blog_id );
 		( new ReflectionClass( DB::class ) )->newInstanceWithoutConstructor()->update();
@@ -729,5 +745,58 @@ abstract class TestCase extends WP_UnitTestCase {
 		self::$sites_with_tables[] = $blog_id;
 
 		return $blog_id;
+	}
+
+	/**
+	 * Creates a real second network with one site and its plugin tables. Call
+	 * from wpSetUpBeforeClass().
+	 *
+	 * @param WP_UnitTest_Factory $factory Test factory.
+	 * @param string              $domain  The network's domain.
+	 * @return array{0: int, 1: int} Network ID and site ID.
+	 */
+	protected static function create_network_with_site( WP_UnitTest_Factory $factory, string $domain = 'other-network.example' ): array {
+		$network_id = (int) $factory->network->create(
+			array(
+				'domain' => $domain,
+				'path'   => '/',
+			)
+		);
+
+		self::$networks[] = $network_id;
+
+		return array(
+			$network_id,
+			self::create_site_with_tables(
+				$factory,
+				array(
+					'domain'     => $domain,
+					'path'       => '/',
+					'network_id' => $network_id,
+				)
+			),
+		);
+	}
+
+	/**
+	 * Runs code as if the request were on another network.
+	 *
+	 * @param int      $network_id Network.
+	 * @param callable $callback   Code.
+	 * @return mixed What the code returned.
+	 */
+	protected function on_network( int $network_id, callable $callback ) {
+		global $current_site;
+
+		$previous     = $current_site;
+		$current_site = get_network( $network_id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- get_current_network_id() reads it; restored below.
+		self::reset_static_caches();
+
+		try {
+			return $callback();
+		} finally {
+			$current_site = $previous; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores what was overridden above.
+			self::reset_static_caches();
+		}
 	}
 }

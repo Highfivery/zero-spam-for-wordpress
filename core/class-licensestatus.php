@@ -141,6 +141,82 @@ final class License_Status {
 	}
 
 	/**
+	 * Protection levels a network site can have (site_level()).
+	 */
+	const LEVEL_ENHANCED   = 'enhanced';
+	const LEVEL_BASIC      = 'basic';
+	const LEVEL_INVALID    = 'invalid';
+	const LEVEL_UNVERIFIED = 'unverified';
+
+	/**
+	 * A network site's protection level, without asking the API and without
+	 * building that site's settings registry (the network statistics list
+	 * many sites).
+	 *
+	 * `enhanced` only when Enhanced Protection is on and the site's last
+	 * license answer (its cached status, for the key in use) says the key is
+	 * valid (or valid with no queries left); `invalid` when it said the key
+	 * is not valid; `unverified` when it is on with a key that has not been
+	 * checked recently, or the API could not be reached; `basic` otherwise.
+	 * The values follow the precedence of the settings: a locked network
+	 * value, the site's own value, the network default, then (for the key)
+	 * ZEROSPAM_LICENSE_KEY.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param int $blog_id Site.
+	 * @return string One of the LEVEL_* constants.
+	 */
+	public static function site_level( int $blog_id ): string {
+		$network  = is_multisite() ? Settings_Schema::normalize_network_store( get_site_option( \ZeroSpam\Includes\Network_Settings::META_KEY, array() ) )['settings'] : array();
+		$switched = is_multisite() && get_current_blog_id() !== $blog_id;
+
+		if ( $switched ) {
+			switch_to_blog( $blog_id );
+		}
+
+		try {
+			$stored  = get_option( 'zero-spam-zerospam', array() );
+			$stored  = is_array( $stored ) ? $stored : array();
+			$value   = static function ( string $key ) use ( $network, $stored ) {
+				$config = isset( $network[ $key ] ) && is_array( $network[ $key ] ) ? $network[ $key ] : array();
+				if ( ! empty( $config['locked'] ) ) {
+					return $config['value'] ?? null;
+				}
+				if ( array_key_exists( $key, $stored ) ) {
+					return $stored[ $key ];
+				}
+
+				return $config['value'] ?? null;
+			};
+			$enabled = 'enabled' === $value( 'zerospam' );
+			$key     = $value( 'zerospam_license' );
+			$key     = is_scalar( $key ) && ! is_bool( $key ) ? trim( (string) $key ) : '';
+
+			if ( '' === $key && defined( 'ZEROSPAM_LICENSE_KEY' ) && is_scalar( constant( 'ZEROSPAM_LICENSE_KEY' ) ) ) {
+				$key = trim( (string) constant( 'ZEROSPAM_LICENSE_KEY' ) );
+			}
+
+			if ( ! $enabled || '' === $key ) {
+				return self::LEVEL_BASIC;
+			}
+
+			$cached = get_transient( self::TRANSIENT );
+			$status = is_array( $cached ) && isset( $cached['hash'], $cached['answer']['status'] ) && md5( $key ) === $cached['hash'] ? (string) $cached['answer']['status'] : '';
+		} finally {
+			if ( $switched ) {
+				restore_current_blog();
+			}
+		}
+
+		if ( self::VALID === $status || self::QUOTA_EXCEEDED === $status ) {
+			return self::LEVEL_ENHANCED;
+		}
+
+		return self::INVALID === $status ? self::LEVEL_INVALID : self::LEVEL_UNVERIFIED;
+	}
+
+	/**
 	 * Asks the API again, ignoring every cache.
 	 *
 	 * @return array<string, mixed> As get().

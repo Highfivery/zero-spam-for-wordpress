@@ -692,7 +692,7 @@ final class Settings_Schema {
 				};
 
 				$filters = array(
-					'pre_site_transient_' . Network_Settings::CACHE_KEY => $no_network,
+					'pre_site_transient_' . Network_Settings::cache_key() => $no_network,
 					'pre_site_option_' . Network_Settings::META_KEY     => $no_network,
 				);
 				foreach ( array_keys( $modules ) as $module ) {
@@ -743,7 +743,7 @@ final class Settings_Schema {
 		$network = self::remember(
 			'network',
 			static function (): array {
-				$stored = get_site_transient( Network_Settings::CACHE_KEY );
+				$stored = get_site_transient( Network_Settings::cache_key() );
 
 				if ( false === $stored ) {
 					$stored = get_site_option( Network_Settings::META_KEY, array() );

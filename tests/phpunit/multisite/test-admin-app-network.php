@@ -115,9 +115,43 @@ class Test_Admin_App_Network extends TestCase {
 	}
 
 	/**
-	 * The network shell preloads the user's preferences only (no site data).
+	 * The network page preloads the user's preferences and its tab's
+	 * network data, never a site's (no license, modules or site statistics).
 	 */
 	public function test_network_shell_preloads_no_site_data(): void {
-		$this->assertSame( array( '/zero-spam/v1/ui/prefs' ), Admin_App::preload_paths( 'network' ) );
+		$this->assertSame( array( '/zero-spam/v1/ui/prefs', '/zero-spam/v1/network/overview' ), Admin_App::preload_paths( 'network' ) );
+
+		foreach ( Admin_App::NETWORK_TABS as $tab ) {
+			$paths = Admin_App::preload_paths( 'network', array( 'tab' => $tab ) );
+			$this->assertSame( '/zero-spam/v1/ui/prefs', $paths[0] );
+			foreach ( Admin_App::SHELL_PRELOADS as $site_path ) {
+				if ( '/zero-spam/v1/ui/prefs' !== $site_path ) {
+					$this->assertNotContains( $site_path, $paths, "The {$tab} tab preloads site data." );
+				}
+			}
+		}
+	}
+
+	/**
+	 * Each network tab preloads exactly what the app asks for on load (so
+	 * the page makes no REST request of its own), and every preloaded path
+	 * answers 200 for a super admin.
+	 */
+	public function test_network_tabs_preload_their_data(): void {
+		$user = $this->as_role( 'administrator' );
+		grant_super_admin( $user );
+
+		$this->assertSame( array( '/zero-spam/v1/settings/schema', '/zero-spam/v1/settings?scope=network', '/zero-spam/v1/network/overview' ), Admin_App::network_preloads( 'settings' ) );
+		$this->assertSame( array( '/zero-spam/v1/network-settings/export' ), Admin_App::network_preloads( 'io' ) );
+		$this->assertSame( Admin_App::network_preloads( 'overview' ), Admin_App::network_preloads( 'unknown' ) );
+
+		foreach ( Admin_App::NETWORK_TABS as $tab ) {
+			$preloaded = array_reduce( Admin_App::network_preloads( $tab ), 'rest_preload_api_request', array() );
+			foreach ( Admin_App::network_preloads( $tab ) as $path ) {
+				$this->assertArrayHasKey( $path, $preloaded, "{$tab}: {$path} was not preloaded." );
+				$this->assertArrayHasKey( 'body', $preloaded[ $path ], "{$tab}: {$path} failed." );
+				$this->assertArrayNotHasKey( 'code', (array) $preloaded[ $path ]['body'], "{$tab}: {$path} answered an error." );
+			}
+		}
 	}
 }

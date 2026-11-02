@@ -32,6 +32,13 @@ class Access {
 	private static $intercepting = false;
 
 	/**
+	 * Failed-check key of a visit stopped by a network-wide block (since 6.0.0).
+	 *
+	 * @var string
+	 */
+	const FAILED_NETWORK_BLOCK = 'blocked_network';
+
+	/**
 	 * Constructor
 	 */
 	public function __construct() {
@@ -514,6 +521,17 @@ class Access {
 			$blocked = \ZeroSpam\Includes\DB::blocked( $user_ip );
 			if ( $blocked ) {
 				$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_ip' );
+			}
+		}
+
+		// Then the network's blocks, which apply to every site (one cached read, see Network_Blocks).
+		if ( empty( $access_checks['blocked']['blocked'] ) && is_multisite() ) {
+			$network_block = \ZeroSpam\Includes\Network_Blocks::find( (string) $user_ip );
+			if ( $network_block ) {
+				$details = self::get_blocked_details( $network_block, self::FAILED_NETWORK_BLOCK );
+				if ( $details['blocked'] ) {
+					$access_checks['blocked'] = $details;
+				}
 			}
 		}
 

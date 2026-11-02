@@ -25,6 +25,7 @@ import { areaUrl, utm } from '../data/routes';
 import { errorMessage } from '../activity/undo';
 import { blockName, removeBlock, removeBlocks } from './actions';
 import { Country, EmptyState, Pager, SearchBox, siteDay } from './parts';
+import { NetworkBlocks } from './network-blocks';
 import {
 	DEFAULT_SORT,
 	ariaSort,
@@ -669,6 +670,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 	return (
 		<div className="zs-rules-list">
 			{ note }
+			{ isIp && <NetworkBlocks /> }
 			<div className="zs-tbar">
 				<SearchBox
 					id={ `zs-rq-${ kind }` }

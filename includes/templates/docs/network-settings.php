@@ -162,21 +162,21 @@ defined( 'ABSPATH' ) || die();
 						<td><strong><?php esc_html_e( 'Strict Protection', 'zero-spam' ); ?></strong></td>
 						<td><?php esc_html_e( 'High-risk sites, public forums, ecommerce', 'zero-spam' ); ?></td>
 						<td>
-							<?php esc_html_e( 'Confidence: 30%, All features enabled, API limit: 500/day', 'zero-spam' ); ?>
+							<?php esc_html_e( 'Confidence: 30%, every protection on and logged, XML-RPC off, WordPress version hidden', 'zero-spam' ); ?>
 						</td>
 					</tr>
 					<tr>
 						<td><strong><?php esc_html_e( 'Balanced Protection', 'zero-spam' ); ?></strong></td>
 						<td><?php esc_html_e( 'Most sites (recommended)', 'zero-spam' ); ?></td>
 						<td>
-							<?php esc_html_e( 'Confidence: 50%, Smart logging, API limit: 1000/day', 'zero-spam' ); ?>
+							<?php esc_html_e( 'Confidence: 50%, comment, registration, login and form protection, API monitoring on', 'zero-spam' ); ?>
 						</td>
 					</tr>
 					<tr>
 						<td><strong><?php esc_html_e( 'Relaxed Protection', 'zero-spam' ); ?></strong></td>
 						<td><?php esc_html_e( 'Development sites, low-risk environments', 'zero-spam' ); ?></td>
 						<td>
-							<?php esc_html_e( 'Confidence: 70%, Minimal logging, API limit: 5000/day', 'zero-spam' ); ?>
+							<?php esc_html_e( 'Confidence: 70%, comment protection and the JavaScript check only, XML-RPC left on', 'zero-spam' ); ?>
 						</td>
 					</tr>
 				</tbody>

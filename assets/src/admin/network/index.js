@@ -1,29 +1,18 @@
 /**
- * Entry point of the network admin page (assets/dist/admin-network.js).
- * The network area is not built yet: each network tab shows the
- * placeholder.
+ * Entry point of the network admin page (assets/dist/admin-network.js): the
+ * network page's eight tabs (network.js), with the tab kept in ?tab= by the
+ * shell, which mirrors it in the sidebar.
  */
-
-/**
- * WordPress dependencies
- */
-import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
 import { mount } from '../app/mount';
 import { AreaView } from '../app/app';
-import { Placeholder } from '../app/placeholder';
+import { Network } from './network';
 
 mount( () => (
 	<AreaView area="network">
-		{ ( { tab } ) => (
-			<Placeholder
-				area="network"
-				title={ __( 'Network', 'zero-spam' ) }
-				tab={ tab }
-			/>
-		) }
+		{ ( { tab, setTab } ) => <Network tab={ tab } setTab={ setTab } /> }
 	</AreaView>
 ) );

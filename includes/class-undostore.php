@@ -58,22 +58,27 @@ final class Undo_Store {
 	 * @var array<string, array{table: string, columns: string[]}>
 	 */
 	const KINDS = array(
-		'activity'     => array(
+		'activity'       => array(
 			'table'   => 'log',
 			'columns' => array( 'log_id', 'blog_id', 'log_type', 'user_ip', 'date_recorded', 'page_url', 'submission_data', 'country', 'country_name', 'region', 'region_name', 'city', 'zip', 'latitude', 'longitude' ),
 		),
-		'blocks'       => array(
+		'blocks'         => array(
 			'table'   => 'blocked',
 			'columns' => array( 'blocked_id', 'blocked_type', 'user_ip', 'blocked_key', 'key_type', 'date_added', 'start_block', 'end_block', 'reason' ),
 		),
 		// Blocks just added (put_added_blocks()): undo removes new ones and writes replaced ones back.
-		'blocks_added' => array(
+		'blocks_added'   => array(
 			'table'   => 'blocked',
 			'columns' => array( 'blocked_id', 'blocked_type', 'user_ip', 'blocked_key', 'key_type', 'date_added', 'start_block', 'end_block', 'reason' ),
 		),
-		'no-lockout'   => array(
+		'no-lockout'     => array(
 			'table'   => '',
 			'columns' => array( 'ip' ),
+		),
+		// A network-wide block (Network_Blocks; the network's table): only a network administrator can undo it.
+		'network_blocks' => array(
+			'table'   => 'network_blocked',
+			'columns' => Network_Blocks::COLUMNS,
 		),
 	);
 
@@ -167,10 +172,25 @@ final class Undo_Store {
 			return null;
 		}
 
+		$kind = (string) $entry['kind'];
+
+		// A network block is the network administrator's to restore, whoever else holds the token.
+		if ( 'network_blocks' === $kind && ! ( is_multisite() && current_user_can( 'manage_network_options' ) ) ) {
+			return null;
+		}
+
 		// Single use: gone before anything is written back.
 		delete_transient( self::PREFIX . $token );
 
-		$kind = (string) $entry['kind'];
+		if ( 'network_blocks' === $kind ) {
+			$restored = Network_Blocks::restore( array_values( array_filter( $entry['rows'], 'is_array' ) ) );
+
+			return array(
+				'kind'     => $kind,
+				'restored' => $restored,
+				'skipped'  => count( $entry['rows'] ) - $restored,
+			);
+		}
 
 		if ( 'no-lockout' === $kind ) {
 			$restored = self::restore_no_lockout( array_values( array_filter( $entry['rows'], 'is_array' ) ) );

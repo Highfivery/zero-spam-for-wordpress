@@ -31,7 +31,7 @@ class Test_Migrations_V6_Settings extends TestCase {
 		delete_option( 'zero-spam-api-monitoring' );
 		delete_site_option( Migrations::NETWORK_COMPLETED_OPTION );
 		delete_site_option( Network_Settings::META_KEY );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 	}
 
 	/**

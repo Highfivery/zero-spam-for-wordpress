@@ -233,7 +233,21 @@ describe( 'Field', () => {
 			source: 'network',
 			value: '',
 		} );
-		expect( empty ).toContain( 'Using the network default.' );
+		// An empty network value reads "(none)", not an empty box (AGENTS.md §8).
+		expect( empty ).toContain( 'Using the network default: (none)' );
+	} );
+
+	it( 'shows what it is given under the control (the network page’s lock switch)', () => {
+		const html = renderToStaticMarkup(
+			<Field
+				entry={ entries.zerospam_timeout }
+				value={ 5 }
+				onChange={ () => {} }
+				entries={ entries }
+				aside={ <span className="zs-test-aside">aside</span> }
+			/>
+		);
+		expect( html ).toMatch( /class="zs-ctl">[\s\S]*zs-test-aside/ );
 	} );
 
 	it( 'marks an error and describes the control with it', () => {

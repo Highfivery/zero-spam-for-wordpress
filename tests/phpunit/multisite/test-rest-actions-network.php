@@ -45,7 +45,7 @@ class Test_Rest_Actions_Network extends TestCase {
 		parent::set_up();
 
 		delete_site_option( Network_Settings::META_KEY );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 
 		foreach ( array( get_main_site_id(), self::$site_b ) as $blog_id ) {
 			switch_to_blog( $blog_id );
