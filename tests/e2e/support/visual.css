@@ -63,16 +63,17 @@
 
 /* The Rules tables size their columns to their content (auto layout), and
    transparent text still takes up width, so the seeded dates would move every
-   column from one day to the next ("Mon, Nov 2" is narrower than
-   "Wed, Sep 30"). Every date cell takes the width of one fixed text instead.
-   Any other table that is not table-layout: fixed and shows dates needs the
-   same (AGENTS.md section 5, Visual baselines). */
-.zs-areabody .zs-rules-t td.zs-c-date {
+   column from one day to the next. Date and Starts take the width of one
+   fixed text, the day the Blocked IPs baselines were recorded. Ends (third
+   from last) keeps its text, which seeds never vary ("Never" or a fixed date).
+   So a real change in a date's width cannot show here, on purpose. Any other
+   auto-layout table with dates needs the same (AGENTS.md section 5). */
+.zs-areabody .zs-rules-t td.zs-c-date:not(:nth-last-child(3)) {
 	font-size: 0 !important;
 }
 
-.zs-areabody .zs-rules-t td.zs-c-date::before {
-	content: "Wed, Sep 30";
+.zs-areabody .zs-rules-t td.zs-c-date:not(:nth-last-child(3))::before {
+	content: "Mon, Oct 26";
 	font-size: var(--zs-text-md);
 }
 
@@ -81,6 +82,14 @@
    body's first lines. */
 .zs-app:has(.zs-areabody, .zs-overview) .zs-topbar {
 	position: static !important;
+}
+
+/* Overview: in the first days of January the busiest day can be in last year;
+   the extra text wraps inside the masked footer and moves the rest of the tile.
+   That one value stays on one line; the footer itself still takes its place. */
+.zs-chart-foot div:nth-child(2) b {
+	overflow: hidden;
+	white-space: nowrap;
 }
 
 /* The busiest hours follow the clock (seeded rows are dated from now). */
