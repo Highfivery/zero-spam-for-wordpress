@@ -905,7 +905,7 @@ class Migrations {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
 				$exists = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table; templates are few (the screen lists 200).
-				$rows = $exists ? $wpdb->get_results( $wpdb->prepare( 'SELECT template_id, settings FROM %i LIMIT %d', $table, 1000 ), ARRAY_A ) : array();
+				$rows = $exists ? $wpdb->get_results( $wpdb->prepare( 'SELECT template_id, settings FROM %i WHERE `network_id` = %d LIMIT %d', $table, (int) get_current_network_id(), 1000 ), ARRAY_A ) : array();
 
 				foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 					$settings = json_decode( (string) $row['settings'], true );

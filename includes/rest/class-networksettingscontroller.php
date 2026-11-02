@@ -1009,7 +1009,18 @@ class Network_Settings_Controller extends Base_Controller {
 	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function delete_template( $request ) {
-		$slug   = $request->get_param( 'slug' );
+		$slug     = (string) $request->get_param( 'slug' );
+		$template = $this->templates_manager->get_template( $slug );
+
+		// A template of another network does not exist here.
+		if ( ! $template ) {
+			return new \WP_Error( 'not_found', __( 'Template not found', 'zero-spam' ), array( 'status' => 404 ) );
+		}
+
+		if ( 'custom' !== $template['type'] ) {
+			return new \WP_Error( 'zerospam_template_built_in', __( 'Built-in templates cannot be deleted.', 'zero-spam' ), array( 'status' => 403 ) );
+		}
+
 		$result = $this->templates_manager->delete_template( $slug );
 
 		if ( $result ) {

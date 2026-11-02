@@ -346,6 +346,7 @@ class Test_Rest_Network extends TestCase {
 			$wpdb->base_prefix . DB::$tables['network_audit'],
 			array_merge(
 				array(
+					'network_id'   => (int) get_current_network_id(),
 					'site_id'      => 0,
 					'action_type'  => 'set',
 					'setting_key'  => 'max_logs',

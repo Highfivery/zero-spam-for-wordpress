@@ -85,7 +85,43 @@ class DB {
 			// Migrate existing log tables to include blog_id column.
 			self::migrate_log_table_blog_id();
 
+			// Audit entries and custom templates of before 6.0.0 go to the main network.
+			self::upgrade_network_tables();
+
 			update_option( 'zerospam_db_version', self::DB_VERSION );
+		}
+	}
+
+	/**
+	 * After dbDelta(), for `network_id` of the audit and templates tables
+	 * (DB 1.6). Rows from before it have 0, which no network is: they go to the
+	 * main network, the only one a row of 5.x can be placed on. dbDelta() adds
+	 * the unique key per network but never drops one, so the slug's own unique
+	 * key goes here, once the new one exists. Safe to repeat: every site runs it.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $audit     Audit table (default the real one).
+	 * @param string $templates Templates table (default the real one).
+	 */
+	public static function upgrade_network_tables( string $audit = '', string $templates = '' ): void {
+		global $wpdb;
+
+		$audit     = '' !== $audit ? $audit : $wpdb->base_prefix . self::$tables['network_audit'];
+		$templates = '' !== $templates ? $templates : $wpdb->base_prefix . self::$tables['network_templates'];
+		$main      = (int) get_main_network_id();
+
+		foreach ( array( $audit, $templates ) as $table ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Upgrade of the plugin's own table, by an indexed column.
+			$wpdb->query( $wpdb->prepare( 'UPDATE %i SET `network_id` = %d WHERE `network_id` = 0', $table, $main ) );
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Upgrade of the plugin's own table.
+		$keys = $wpdb->get_col( $wpdb->prepare( 'SHOW INDEX FROM %i', $templates ), 2 );
+
+		if ( in_array( 'network_slug', $keys, true ) && in_array( 'template_slug', $keys, true ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Upgrade of the plugin's own table.
+			$wpdb->query( $wpdb->prepare( 'ALTER TABLE %i DROP INDEX `template_slug`', $templates ) );
 		}
 	}
 
@@ -95,7 +131,8 @@ class DB {
 	 * Per-site tables use the site's prefix; network-wide ones the base
 	 * prefix. Since 6.0.0 (DB 1.5) three more audit actions (`block`,
 	 * `unblock`, `migrate`) and (DB 1.6) the network-wide IP blocks table
-	 * (`network_blocked`). DB 1.5 was never released; development copies that
+	 * (`network_blocked`) and `network_id` on the audit and templates tables
+	 * (see upgrade_network_tables()). DB 1.5 was never released; development copies that
 	 * ran it have that table without `network_id`, which 1.6 adds (their old
 	 * `user_ip` key stays: dbDelta() never drops one, and on a single
 	 * network it changes nothing).
@@ -203,6 +240,7 @@ class DB {
 
 		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_templates'] . " (
 		template_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		network_id bigint(20) unsigned NOT NULL DEFAULT 0,
 		template_name varchar(255) NOT NULL,
 		template_slug varchar(255) NOT NULL,
 		template_type enum('built_in','custom') NOT NULL DEFAULT 'custom',
@@ -212,12 +250,13 @@ class DB {
 		created_at datetime NOT NULL,
 		updated_at datetime NOT NULL,
 		PRIMARY KEY  (template_id),
-		UNIQUE KEY template_slug (template_slug),
+		UNIQUE KEY network_slug (network_id,template_slug),
 		KEY template_type (template_type)
 	) $charset_collate;";
 
 		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_audit'] . " (
 		audit_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		network_id bigint(20) unsigned NOT NULL DEFAULT 0,
 		site_id bigint(20) unsigned NOT NULL DEFAULT 0,
 		action_type enum('" . implode( "','", self::AUDIT_ACTIONS ) . "') NOT NULL DEFAULT 'set',
 		setting_key varchar(255) DEFAULT NULL,
@@ -233,7 +272,8 @@ class DB {
 		KEY action_type (action_type),
 		KEY setting_key (setting_key),
 		KEY user_id (user_id),
-		KEY date_created (date_created)
+		KEY date_created (date_created),
+		KEY network_date (network_id,date_created)
 	) $charset_collate;";
 
 		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_blocked'] . " (

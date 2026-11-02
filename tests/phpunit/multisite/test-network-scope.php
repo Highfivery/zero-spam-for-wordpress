@@ -89,6 +89,8 @@ class Test_Network_Scope extends TestCase {
 		}
 
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', Network_Blocks::table() ) );
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $wpdb->base_prefix . DB::$tables['network_audit'] ) );
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $wpdb->base_prefix . DB::$tables['network_templates'] ) );
 
 		foreach ( array( get_main_site_id(), self::$site_b, self::$other_site ) as $blog_id ) {
 			switch_to_blog( $blog_id );
@@ -466,58 +468,207 @@ class Test_Network_Scope extends TestCase {
 	 * @return mixed What the code returned.
 	 */
 	private function as_other_networks_admin( callable $callback ) {
-		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
+		$previous = get_current_user_id();
+		$user     = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		update_network_option( self::$other_network, 'site_admins', array( get_userdata( $user )->user_login ) );
 		wp_set_current_user( $user );
 
-		return $this->on_network( self::$other_network, $callback );
+		try {
+			return $this->on_network( self::$other_network, $callback );
+		} finally {
+			wp_set_current_user( $previous );
+		}
 	}
 
 	/**
-	 * Known defect: `wpzerospam_network_audit` has no network, so another
-	 * network's administrator reads this network's entries (who, from which
-	 * address, what changed).
-	 *
-	 * @group known-defect
+	 * Another network's administrator does not read this network's audit
+	 * entries (who, from which address, what changed), nor counts them.
 	 */
 	public function test_audit_log_stays_on_the_network(): void {
-		( new \ZeroSpam\Includes\Network_Settings_Manager() )->record( 'block', null, null, 'first-network-entry' );
+		global $wpdb;
 
-		$json = $this->as_other_networks_admin(
-			function () {
-				return (string) wp_json_encode( $this->rest( 'GET', '/zero-spam/v1/network-settings/audit' )->get_data() );
+		$manager = new \ZeroSpam\Includes\Network_Settings_Manager();
+		$manager->record( 'block', null, null, 'first-network-entry' );
+
+		list( $json, $total, $own ) = $this->as_other_networks_admin(
+			function () use ( $manager ) {
+				$manager->record( 'block', null, null, 'second-network-entry' );
+				$page = $this->rest( 'GET', '/zero-spam/v1/network-settings/audit', array(), array( 'page' => 1 ) );
+
+				return array(
+					(string) wp_json_encode( $page->get_data() ),
+					(int) $page->get_headers()['X-WP-Total'],
+					$manager->count_audit_log( array( 'action_type' => 'block' ) ),
+				);
 			}
 		);
 
 		$this->assertStringNotContainsString( 'first-network-entry', $json );
+		$this->assertStringContainsString( 'second-network-entry', $json );
+		$this->assertSame( 1, $total );
+		$this->assertSame( 1, $own );
+
+		// And the other way round; each entry records its network.
+		$here = (string) wp_json_encode( $this->rest( 'GET', '/zero-spam/v1/network-settings/audit', array(), array( 'page' => 1 ) )->get_data() );
+		$this->assertStringContainsString( 'first-network-entry', $here );
+		$this->assertStringNotContainsString( 'second-network-entry', $here );
+
+		$stored = $wpdb->get_var( $wpdb->prepare( 'SELECT network_id FROM %i WHERE new_value = %s', $wpdb->base_prefix . DB::$tables['network_audit'], 'second-network-entry' ) );
+		$this->assertSame( self::$other_network, (int) $stored );
 	}
 
 	/**
-	 * Known defect: `wpzerospam_network_templates` has no network, so another
-	 * network's administrator lists this network's custom templates (and can apply or delete them).
+	 * Saves a custom template here.
 	 *
-	 * @group known-defect
+	 * @param string $slug Slug.
+	 * @param int    $max  Its `max_logs`.
 	 */
-	public function test_custom_templates_stay_on_the_network(): void {
+	private function custom_template( string $slug, int $max = 7777 ): void {
 		$this->assertSame(
 			201,
 			$this->rest(
 				'POST',
 				'/zero-spam/v1/network-settings/templates',
 				array(
-					'name'     => 'First network',
-					'slug'     => 'first-network',
-					'settings' => array( 'max_logs' => 7777 ),
+					'name'     => 'Template ' . $slug,
+					'slug'     => $slug,
+					'settings' => array( 'max_logs' => $max ),
 				)
 			)->get_status()
 		);
+	}
 
-		$templates = $this->as_other_networks_admin(
-			function () {
-				return (array) $this->rest( 'GET', '/zero-spam/v1/network-settings/templates' )->get_data();
+	/**
+	 * Another network's administrator does not list, read, change, apply or
+	 * delete this network's custom template: 404, and it is unchanged.
+	 */
+	public function test_custom_templates_stay_on_the_network(): void {
+		$this->custom_template( 'first-network' );
+		$route = '/zero-spam/v1/network-settings/templates/first-network';
+
+		$this->as_other_networks_admin(
+			function () use ( $route ) {
+				$list = (array) $this->rest( 'GET', '/zero-spam/v1/network-settings/templates' )->get_data();
+				$this->assertArrayNotHasKey( 'first-network', $list );
+
+				$this->assertSame( 404, $this->rest( 'GET', $route )->get_status() );
+				$this->assertSame( 404, $this->rest( 'PUT', $route, array( 'name' => 'Taken' ) )->get_status() );
+				$this->assertSame( 404, $this->rest( 'DELETE', $route )->get_status() );
+				$this->assertSame( 404, $this->rest( 'POST', $route . '/apply', array( 'scope' => 'network' ) )->get_status() );
+				$this->assertSame(
+					404,
+					$this->rest(
+						'POST',
+						$route . '/apply',
+						array(
+							'scope' => 'sites',
+							'sites' => array( self::$other_site ),
+						)
+					)->get_status()
+				);
+
+				$manager = new \ZeroSpam\Includes\Network_Templates();
+				$this->assertNull( $manager->get_template( 'first-network' ) );
+				$this->assertFalse( $manager->update_template( 'first-network', array( 'name' => 'Taken' ) ) );
+				$this->assertFalse( $manager->delete_template( 'first-network' ) );
 			}
 		);
 
-		$this->assertArrayNotHasKey( 'first-network', $templates );
+		$template = $this->rest( 'GET', $route )->get_data();
+		$this->assertSame( 'Template first-network', $template['name'] );
+		$this->assertSame( array( 'max_logs' => 7777 ), $template['settings'] );
+
+		$store = get_network_option( self::$other_network, Network_Settings::META_KEY, array() );
+		$this->assertArrayNotHasKey( 'max_logs', $store['settings'] ?? array(), 'The template reached the other network.' );
+	}
+
+	/**
+	 * A slug is unique per network: each network has its own, and changing or deleting one leaves the other.
+	 */
+	public function test_template_slugs_are_per_network(): void {
+		$this->custom_template( 'shared-slug', 1111 );
+		$route = '/zero-spam/v1/network-settings/templates/shared-slug';
+
+		$this->assertSame(
+			400,
+			$this->rest(
+				'POST',
+				'/zero-spam/v1/network-settings/templates',
+				array(
+					'name'     => 'Again',
+					'slug'     => 'shared-slug',
+					'settings' => array( 'max_logs' => 1 ),
+				)
+			)->get_status(),
+			'One slug per network.'
+		);
+
+		$this->as_other_networks_admin(
+			function () use ( $route ) {
+				$this->custom_template( 'shared-slug', 2222 );
+				$this->assertSame( array( 'max_logs' => 2222 ), $this->rest( 'GET', $route )->get_data()['settings'] );
+
+				$this->assertSame( 200, $this->rest( 'PUT', $route, array( 'settings' => array( 'max_logs' => 3333 ) ) )->get_status() );
+				$this->assertSame( 200, $this->rest( 'POST', $route . '/apply', array( 'scope' => 'network' ) )->get_status() );
+				$this->assertSame( 3333, get_site_option( Network_Settings::META_KEY )['settings']['max_logs']['value'] );
+				$this->assertSame( 200, $this->rest( 'DELETE', $route )->get_status() );
+				$this->assertSame( 404, $this->rest( 'GET', $route )->get_status() );
+			}
+		);
+
+		$this->assertSame( array( 'max_logs' => 1111 ), $this->rest( 'GET', $route )->get_data()['settings'], 'The other network\'s change or delete reached this one.' );
+	}
+
+	/**
+	 * How often a template was applied is counted per network.
+	 */
+	public function test_template_usage_is_per_network(): void {
+		$manager = new \ZeroSpam\Includes\Network_Templates();
+		$this->assertSame( 200, $this->rest( 'POST', '/zero-spam/v1/network-settings/templates/balanced/apply', array( 'scope' => 'network' ) )->get_status() );
+		$this->assertSame( 1, $manager->get_template_usage( 'balanced' )['count'] );
+
+		$this->as_other_networks_admin(
+			function () use ( $manager ) {
+				$this->assertSame( 0, $manager->get_template_usage( 'balanced' )['count'] );
+			}
+		);
+	}
+
+	/**
+	 * Built-in templates are on every network, and applying one writes that network's values.
+	 *
+	 * @dataProvider data_built_in_templates
+	 *
+	 * @param string $slug Built-in slug.
+	 */
+	public function test_built_in_templates_resolve_on_every_network( string $slug ): void {
+		$before = get_site_option( Network_Settings::META_KEY );
+
+		$this->as_other_networks_admin(
+			function () use ( $slug ) {
+				$route    = '/zero-spam/v1/network-settings/templates/' . $slug;
+				$template = $this->rest( 'GET', $route )->get_data();
+
+				$this->assertSame( 'built_in', $template['type'] );
+				$this->assertArrayHasKey( $slug, (array) $this->rest( 'GET', '/zero-spam/v1/network-settings/templates' )->get_data() );
+				$this->assertSame( 200, $this->rest( 'POST', $route . '/apply', array( 'scope' => 'network' ) )->get_status() );
+				$this->assertNotEmpty( array_intersect_key( $template['settings'], get_site_option( Network_Settings::META_KEY )['settings'] ) );
+			}
+		);
+
+		$this->assertSame( $before, get_site_option( Network_Settings::META_KEY ), 'It wrote to this network.' );
+	}
+
+	/**
+	 * The built-in templates.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function data_built_in_templates(): array {
+		return array(
+			'strict_protection' => array( 'strict_protection' ),
+			'balanced'          => array( 'balanced' ),
+			'relaxed'           => array( 'relaxed' ),
+		);
 	}
 }

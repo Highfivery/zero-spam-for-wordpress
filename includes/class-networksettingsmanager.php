@@ -638,6 +638,7 @@ class Network_Settings_Manager {
 		$new_value = self::audit_safe( $setting_key, $new_value );
 
 		$data = array(
+			'network_id'     => (int) get_current_network_id(),
 			'site_id'        => $site_id,
 			'action_type'    => $action_type,
 			'setting_key'    => $setting_key,
@@ -743,7 +744,7 @@ class Network_Settings_Manager {
 	private function audit_where( array $args ): string {
 		global $wpdb;
 
-		$where = array( '1=1' );
+		$where = array( $wpdb->prepare( 'network_id = %d', (int) get_current_network_id() ) );
 
 		if ( isset( $args['site_id'] ) && '' !== $args['site_id'] ) {
 			$where[] = $wpdb->prepare( 'site_id = %d', (int) $args['site_id'] );

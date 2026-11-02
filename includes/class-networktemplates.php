@@ -16,7 +16,8 @@ defined( 'ABSPATH' ) || die();
  * Templates are saved sets of settings a network administrator applies to
  * the network defaults or to chosen sites. Three are built in (Strict,
  * Balanced and Relaxed Protection); custom ones live in the
- * `wpzerospam_network_templates` table.
+ * `wpzerospam_network_templates` table, each row on its network (a slug is
+ * unique per network; the built-in templates are on every network).
  *
  * Since 6.0.0 the built-in templates use the plugin's real setting keys
  * (before, 18 of their keys were names no setting had, so applying them
@@ -173,7 +174,7 @@ class Network_Templates {
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- The plugin's own table, bounded.
-		$results = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY created_at DESC LIMIT %d', $wpdb->base_prefix . DB::$tables['network_templates'], 200 ), ARRAY_A );
+		$results = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE `network_id` = %d ORDER BY created_at DESC LIMIT %d', $wpdb->base_prefix . DB::$tables['network_templates'], (int) get_current_network_id(), 200 ), ARRAY_A );
 
 		return $results ? $results : array();
 	}
@@ -277,6 +278,7 @@ class Network_Templates {
 		}
 
 		$data = array(
+			'network_id'    => (int) get_current_network_id(),
 			'template_name' => sanitize_text_field( $name ),
 			'template_slug' => sanitize_title( $slug ),
 			'template_type' => 'custom',
@@ -351,7 +353,10 @@ class Network_Templates {
 		$result = false !== $wpdb->update(
 			$wpdb->base_prefix . DB::$tables['network_templates'],
 			$data,
-			array( 'template_slug' => $slug )
+			array(
+				'network_id'    => (int) get_current_network_id(),
+				'template_slug' => $slug,
+			)
 		);
 
 		if ( $result ) {
@@ -394,7 +399,10 @@ class Network_Templates {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = (bool) $wpdb->delete(
 			$wpdb->base_prefix . DB::$tables['network_templates'],
-			array( 'template_slug' => $slug )
+			array(
+				'network_id'    => (int) get_current_network_id(),
+				'template_slug' => $slug,
+			)
 		);
 
 		if ( $result ) {
@@ -666,8 +674,9 @@ class Network_Templates {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$count = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM %i WHERE action_type = 'template' AND old_value = %s",
+				"SELECT COUNT(*) FROM %i WHERE network_id = %d AND action_type = 'template' AND old_value = %s",
 				$wpdb->base_prefix . DB::$tables['network_audit'],
+				(int) get_current_network_id(),
 				$slug
 			)
 		);

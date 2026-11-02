@@ -87,6 +87,7 @@ class Test_Network_Settings_Secrets extends TestCase {
 		$wpdb->insert(
 			$wpdb->base_prefix . DB::$tables['network_templates'],
 			array(
+				'network_id'    => (int) get_current_network_id(),
 				'template_name' => 'Old template',
 				'template_slug' => 'old-template',
 				'template_type' => 'custom',

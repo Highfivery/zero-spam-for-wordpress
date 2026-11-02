@@ -65,6 +65,7 @@ class Test_Migrations_Template_Orphans extends TestCase {
 		$wpdb->insert(
 			$wpdb->base_prefix . DB::$tables['network_templates'],
 			array(
+				'network_id'    => (int) get_current_network_id(),
 				'template_name' => 'Clinic',
 				'template_slug' => 'clinic',
 				'template_type' => 'custom',
@@ -102,6 +103,24 @@ class Test_Migrations_Template_Orphans extends TestCase {
 		global $wpdb;
 
 		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE action_type = 'migrate'", $wpdb->base_prefix . DB::$tables['network_audit'] ) );
+	}
+
+	/**
+	 * This network's run leaves another network's templates to that network's run.
+	 *
+	 * @group ms-required
+	 */
+	public function test_leaves_another_networks_templates(): void {
+		global $wpdb;
+
+		$this->fixture();
+		$table = $wpdb->base_prefix . DB::$tables['network_templates'];
+		$wpdb->update( $table, array( 'network_id' => (int) get_current_network_id() + 1 ), array( 'template_slug' => 'clinic' ) );
+		$before = $wpdb->get_var( $wpdb->prepare( 'SELECT settings FROM %i WHERE template_slug = %s', $table, 'clinic' ) );
+
+		$this->assertTrue( ( new Migrations() )->remove_template_orphans() );
+
+		$this->assertSame( $before, $wpdb->get_var( $wpdb->prepare( 'SELECT settings FROM %i WHERE template_slug = %s', $table, 'clinic' ) ) );
 	}
 
 	/**
