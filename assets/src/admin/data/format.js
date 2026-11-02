@@ -1,8 +1,9 @@
 /**
  * Numbers, dates and relative times in the site's language.
  *
- * One date pattern everywhere (prototype v14): "Thu, Oct 22", with the time
- * added when it matters and the year only when it is not the current one.
+ * One date pattern (prototype v14): "Thu, Oct 22", with the time added when it
+ * matters and the year only when it is not the current one. The Rules lists use
+ * its compact form, which drops the weekday next to a year ("Jan 15, 2099").
  */
 
 /**

@@ -1,7 +1,8 @@
 /**
  * Blocked IPs and blocked locations (prototype v18 §3.2, §3.3): search, a
  * bulk bar (Select all and Remove selected, with Undo), a table from
- * 1,440px and a list of cards below it (with a Sort menu), Edit block and
+ * 1,440px while it fits its space and a list of cards otherwise (with a Sort
+ * menu), Edit block and
  * Remove (with Undo) on every row, and the shared block drawer to add or
  * change a block.
  */
@@ -15,7 +16,6 @@ import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import { useMedia } from '../app/context';
 import { Badge, Button, Icon, cx } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { BlockForm, locationTypes } from '../app/block-form';
@@ -28,13 +28,14 @@ import { Country, EmptyState, Pager, SearchBox, siteDay } from './parts';
 import { NetworkBlocks } from './network-blocks';
 import {
 	DEFAULT_SORT,
-	TABLE_QUERY,
 	ariaSort,
 	blocksPath,
+	findControl,
 	paging,
 	sortChoices,
 	toggleSort,
 } from './query';
+import { useTableFit } from './use-table-fit';
 
 /**
  * Sort menu choices of the card list.
@@ -88,7 +89,6 @@ const endOf = ( block ) =>
 export function Blocks( { kind, schema, onCount, panel } ) {
 	const isIp = 'ip' === kind;
 	const { toast } = useFeedback();
-	const wide = useMedia( TABLE_QUERY );
 	const [ view, setView ] = useState( {
 		search: '',
 		page: 1,
@@ -97,6 +97,8 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 	const [ selected, setSelected ] = useState( () => new Set() );
 	const [ drawer, setDrawer ] = useState( null );
 	const searchRef = useRef( null );
+	const listRef = useRef( null );
+	const drawerOpener = useRef( null );
 
 	const list = useResource( blocksPath( { kind, ...view } ), {
 		parse: false,
@@ -105,6 +107,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 		() => ( Array.isArray( list.data ) ? list.data : [] ),
 		[ list.data ]
 	);
+	const wide = useTableFit( listRef, rows );
 	const loaded = undefined !== list.data;
 	const total = Number( list.headers[ 'x-wp-total' ] ?? rows.length ) || 0;
 	const pages = paging(
@@ -131,6 +134,28 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 			return kept.size === current.size ? current : kept;
 		} );
 	}, [ rows ] );
+
+	const openDrawer = ( block ) => {
+		drawerOpener.current = listRef.current?.ownerDocument.activeElement;
+		setDrawer( { block } );
+	};
+
+	// The control that opened the drawer can be gone if the layout changed since.
+	const drawerReturn = () => {
+		const opener = drawerOpener.current;
+		if (
+			opener?.isConnected &&
+			opener.matches( '[data-zs-ctl], button' )
+		) {
+			return opener;
+		}
+		return drawer?.block
+			? findControl( listRef.current, {
+					row: String( drawer.block.id ),
+					control: 'edit',
+				} )
+			: null;
+	};
 
 	const change = ( next ) => {
 		setSelected( new Set() );
@@ -346,6 +371,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 						href={ lookupUrl( block.ip ) }
 						target="_blank"
 						rel="noopener noreferrer"
+						data-zs-ctl="lookup"
 					>
 						{ block.ip }
 						<span className="zs-sr-only">
@@ -374,17 +400,35 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 
 	const actions = ( block, compact = false ) => (
 		<>
+			{ compact && isIp && lookupUrl( block.ip ) && (
+				<Button
+					variant="ghost"
+					size="sm"
+					href={ lookupUrl( block.ip ) }
+					target="_blank"
+					rel="noopener noreferrer"
+					data-zs-ctl="lookup"
+					aria-label={ sprintf(
+						/* translators: %s: IP address */
+						__( 'Look up %s (opens in a new tab)', 'zero-spam' ),
+						block.ip
+					) }
+				>
+					{ __( 'Look up', 'zero-spam' ) }
+				</Button>
+			) }
 			<Button
 				variant="ghost"
 				size="sm"
 				icon={ compact ? undefined : 'edit' }
 				data-zs-edit={ block.id }
+				data-zs-ctl="edit"
 				aria-label={ sprintf(
 					/* translators: %s: IP address or location */
 					__( 'Edit block for %s', 'zero-spam' ),
 					blockName( block )
 				) }
-				onClick={ () => setDrawer( { block } ) }
+				onClick={ () => openDrawer( block ) }
 			>
 				{ __( 'Edit block', 'zero-spam' ) }
 			</Button>
@@ -392,6 +436,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 				variant="ghost"
 				size="sm"
 				icon={ compact ? undefined : 'trash' }
+				data-zs-ctl="remove"
 				aria-label={ sprintf(
 					/* translators: %s: IP address or location */
 					__( 'Remove block for %s', 'zero-spam' ),
@@ -440,6 +485,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 				type="button"
 				className="zs-thsort"
 				data-zs-sort={ column }
+				data-zs-ctl="sort"
 				onClick={ () =>
 					change( { sort: toggleSort( view.sort, column ) } )
 				}
@@ -477,6 +523,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 												'zero-spam'
 											)
 								}
+								data-zs-ctl="select-all"
 								checked={ allShown }
 								disabled={ ! rows.length }
 								onChange={ ( e ) =>
@@ -508,6 +555,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 					{ rows.map( ( block ) => (
 						<tr
 							key={ block.id }
+							data-zs-row={ block.id }
 							className={ cx(
 								selected.has( block.id ) && 'zs-sel'
 							) }
@@ -515,6 +563,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 							<td className="zs-c-cb">
 								<input
 									type="checkbox"
+									data-zs-ctl="select"
 									checked={ selected.has( block.id ) }
 									onChange={ ( e ) =>
 										toggle( block.id, e.target.checked )
@@ -596,6 +645,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 						return (
 							<li
 								key={ block.id }
+								data-zs-row={ block.id }
 								className={ cx(
 									selected.has( block.id ) && 'zs-sel'
 								) }
@@ -604,6 +654,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 								<label className="zs-cbhit">
 									<input
 										type="checkbox"
+										data-zs-ctl="select"
 										checked={ selected.has( block.id ) }
 										onChange={ ( e ) =>
 											toggle( block.id, e.target.checked )
@@ -618,7 +669,8 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 								<button
 									type="button"
 									className="zs-cardmain"
-									onClick={ () => setDrawer( { block } ) }
+									data-zs-ctl="main"
+									onClick={ () => openDrawer( block ) }
 								>
 									<span className="zs-sr-only">
 										{ __(
@@ -656,7 +708,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 	);
 
 	return (
-		<div className="zs-rules-list">
+		<div className="zs-rules-list" ref={ listRef }>
 			{ note }
 			{ isIp && <NetworkBlocks /> }
 			<div className="zs-tbar">
@@ -672,10 +724,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 					onSearch={ ( search ) => change( { search } ) }
 				/>
 				<span className="zs-grow" />
-				<Button
-					icon="plus"
-					onClick={ () => setDrawer( { block: null } ) }
-				>
+				<Button icon="plus" onClick={ () => openDrawer( null ) }>
 					{ isIp
 						? __( 'Block an IP', 'zero-spam' )
 						: __( 'Block a location', 'zero-spam' ) }
@@ -691,6 +740,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 						<input
 							id={ `zs-rall-${ kind }` }
 							type="checkbox"
+							data-zs-ctl="select-all"
 							checked={ allShown }
 							disabled={ ! rows.length }
 							onChange={ ( e ) => toggleAll( e.target.checked ) }
@@ -732,6 +782,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 						<select
 							id={ `zs-rsort-${ kind }` }
 							className="zs-select zs-select-auto"
+							data-zs-ctl="sort"
 							value={ view.sort }
 							onChange={ ( e ) =>
 								change( { sort: e.target.value } )
@@ -789,6 +840,7 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 					block={ drawer.block }
 					onClose={ () => setDrawer( null ) }
 					onSaved={ onSaved }
+					returnFocus={ drawerReturn }
 				/>
 			) }
 		</div>

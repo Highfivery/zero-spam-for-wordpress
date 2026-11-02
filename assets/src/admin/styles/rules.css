@@ -71,7 +71,7 @@
 	content: none;
 }
 
-/* Block tables (from 1,440px) */
+/* Block tables (from 1,440px, while they fit) */
 .zs-rules-t th,
 .zs-rules-t td {
 	vertical-align: middle;
