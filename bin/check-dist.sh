@@ -24,8 +24,8 @@
 #                  (proves the build is reproducible)
 #   --budget-only  check the budgets of the committed files; no build
 #
-# When the listing art or its inputs changed against the base (.wordpress-org/,
-# bin/render-listing-assets.mjs, the mark, tokens.css, assets/fonts/), also runs
+# When the listing art or its inputs changed against the base (.wordpress-org/
+# except its Markdown, bin/render-listing-assets.mjs, the mark, tokens.css, assets/fonts/), also runs
 # bin/render-listing-assets.mjs --check: the PNGs must equal a fresh render on
 # this machine, byte for byte, so whoever changes them re-renders and commits.
 #
@@ -208,7 +208,7 @@ fi
 # Listing art, only when it or its inputs changed
 # ---------------------------------------------------------------------------
 art_inputs=( .wordpress-org bin/render-listing-assets.mjs assets/img/zero-spam-mark.svg \
-             assets/src/admin/styles/tokens.css assets/fonts )
+             assets/src/admin/styles/tokens.css assets/fonts ':(exclude).wordpress-org/*.md' )
 if [[ -n "$(changed_paths "${art_inputs[@]}")" ]]; then
 	echo "check-dist: the listing art or its inputs changed; comparing a fresh render byte for byte."
 	if ! node bin/render-listing-assets.mjs --check; then
