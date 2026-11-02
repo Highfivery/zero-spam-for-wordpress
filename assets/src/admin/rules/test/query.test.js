@@ -225,8 +225,8 @@ describe( 'controlTargets', () => {
 		expect( controlTargets( 'sort' ) ).toEqual( [ 'sort' ] );
 	} );
 
-	it( 'sends a card’s main button to Edit block and back', () => {
-		expect( controlTargets( 'main' ) ).toEqual( [ 'edit' ] );
+	it( 'keeps a card’s main button (after a failed try of the table), else Edit block', () => {
+		expect( controlTargets( 'main' ) ).toEqual( [ 'main', 'edit' ] );
 		expect( controlTargets( 'edit' ) ).toEqual( [ 'edit', 'main' ] );
 	} );
 

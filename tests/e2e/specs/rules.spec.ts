@@ -113,11 +113,12 @@ const GERMAN = {
 	'Look up': 'Nachschlagen',
 };
 
-/** Country names with a word broken over two lines ("Germ/any"). */
-const brokenCountries = ( page: Page ) => page.locator( '.zs-rules-t .zs-cty > span' ).evaluateAll( ( names ) => names.flatMap( ( name ) => {
+/** Words broken over two lines ("Germ/any", "Comme/nt") in the table's country names and reasons. */
+const brokenWords = ( page: Page, selector = '.zs-rules-t :is(.zs-cty > span, .zs-clamp2)' ) => page.locator( selector ).evaluateAll( ( names ) => names.flatMap( ( name ) => {
 	const text = name.firstChild as Text;
 	const broken: string[] = [];
-	for ( const word of text.data.matchAll( /\S+/g ) ) {
+	// A line may end after a hyphen ("Credential-" / "stuffing"): each part counts as a word.
+	for ( const word of text.data.matchAll( /[^\s-]+-?/g ) ) {
 		const range = document.createRange();
 		range.setStart( text, word.index );
 		range.setEnd( text, word.index + word[ 0 ].length );
@@ -141,11 +142,11 @@ async function seedWidest( zs: ZsApi, wpcli: WpCli ) {
 	for ( const ip of [ '2001:db8:85a3:1234:5678:8a2e:370:7334', '2001:db8:85a3:1234:5678:8a2e:370:7335', '255.255.255.254', '198.51.100.222', '203.0.113.222', '203.0.113.223' ] ) {
 		await zs.plugin( 'POST', 'rules/blocks', { ...wide, ip } );
 	}
-	await zs.plugin( 'POST', 'rules/blocks', { ...wide, ip: '192.0.2.222', reason: 'x'.repeat( 250 ) } );
+	await zs.plugin( 'POST', 'rules/blocks', { ...wide, ip: '192.0.2.222', reason: 'Credential-stuffing attempts through residential proxies, permanently blocked after investigation' } );
 	for ( const key of [ 'DE', 'LI', 'TM', 'VC', 'GS' ] ) {
 		await zs.plugin( 'POST', 'rules/blocks', { ...wide, kind: 'location', key_type: 'country_code', key } );
 	}
-	await zs.plugin( 'POST', 'rules/blocks', { ...wide, kind: 'location', key_type: 'city', key: 'Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch', reason: 'x'.repeat( 250 ) } );
+	await zs.plugin( 'POST', 'rules/blocks', { ...wide, kind: 'location', key_type: 'city', key: 'Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch', reason: 'Credential-stuffing attempts through residential proxies, permanently blocked after investigation' } );
 	await zs.plugin( 'POST', 'rules/blocks', { ...wide, kind: 'location', key_type: 'region_code', key: 'North Rhine-Westphalia and a very long region name somewhere else' } );
 	// The route always dates a block today; the Date column needs a year too.
 	wpcli.exec( [ 'eval', 'global $wpdb; $wpdb->query( "UPDATE {$wpdb->prefix}wpzerospam_blocked SET date_added = \'2025-11-26 12:00:00\'" );' ] );
@@ -422,7 +423,7 @@ test.describe( '6.0 Rules', () => {
 				await openTab( page, tab );
 				await expect( rows( page ) ).toHaveCount( seeded );
 				await expectNoClipping( page );
-				expect( await brokenCountries( page ) ).toEqual( [] );
+				expect( await brokenWords( page ) ).toEqual( [] );
 				await gallery.capture( page.locator( '.zs-areabody' ), `Rules ${ tab } at 1,440px, widest content` );
 			} );
 
@@ -493,6 +494,8 @@ test.describe( '6.0 Rules', () => {
 				await page.getByRole( 'button', { name: 'Remove selected' } ).click();
 				await expect( toast( page ) ).toContainText( 'Removed 7 blocks' );
 				await toast( page ).getByRole( 'button', { name: 'Undo' } ).click();
+				// The rows come back with the toast; sorting earlier would race Undo's refresh.
+				await expect( toast( page ) ).toContainText( 'Blocks restored' );
 				await expect( cards ).toHaveCount( 7 );
 			} );
 
@@ -706,6 +709,52 @@ test.describe( '6.0 Rules', () => {
 		const before = await switches( page );
 		await page.waitForTimeout( 1000 );
 		expect( await switches( page ) - before, 'switched while idle' ).toBe( 0 );
+	} );
+
+	test( 'a reason with one very long word: cards at 1,440px rather than a broken or clipped table', async ( { page, zs } ) => {
+		await zs.plugin( 'POST', 'rules/blocks', { ip: '192.0.2.250', type: 'permanent', reason: 'x'.repeat( 250 ) } );
+		await zs.plugin( 'POST', 'rules/blocks', { ip: '192.0.2.251', type: 'permanent', reason: 'Steady comment spam, permanently blocked' } );
+		await openTab( page );
+		await expect.poll( () => layout( page ) ).toBe( 'cards' );
+		await expectNoClipping( page );
+		await page.setViewportSize( { width: 1900, height: 900 } );
+		await expect.poll( () => layout( page ) ).toBe( 'table' );
+		await expectNoClipping( page );
+		// Only the word wider than the cell breaks.
+		expect( await brokenWords( page ) ).toEqual( [ 'x'.repeat( 250 ) ] );
+	} );
+
+	test( '320px, in English and in a longer language: cards that fit, every action on its card', async ( { page, zs } ) => {
+		await seedRules( zs );
+		await page.setViewportSize( { width: 320, height: 800 } );
+		for ( const language of [ 'English', 'German' ] ) {
+			if ( 'German' === language ) {
+				await zs.scriptTranslations( GERMAN );
+			}
+			for ( const tab of [ 'ips', 'locations' ] ) {
+				await openTab( page, tab );
+				const cards = page.locator( '.zs-rules-list .zs-cards > li' );
+				await expect( cards ).toHaveCount( 'ips' === tab ? 6 : 8 );
+				if ( 'German' === language ) {
+					await expect( page.locator( '.zs-rules-list' ) ).toContainText( 'Entfernen' );
+				}
+				const where = `${ tab } in ${ language } at 320px`;
+				expect( await page.evaluate( () => document.documentElement.scrollWidth - window.innerWidth ), `${ where } scrolls sideways` ).toBeLessThanOrEqual( 0 );
+				await expectNoClipping( page );
+				const outside = await cards.evaluateAll( ( items ) => items.flatMap( ( li ) => {
+					const card = li.getBoundingClientRect();
+					return Array.from( li.querySelectorAll< HTMLElement >( '.zs-cm-a > *' ) )
+						.filter( ( b ) => {
+							const r = b.getBoundingClientRect();
+							return ! r.width || r.left < card.left - 0.5 || r.right > card.right + 0.5 || r.right > window.innerWidth;
+						} )
+						.map( ( b ) => b.getAttribute( 'aria-label' ) ?? b.textContent ?? '' );
+				} ) );
+				expect( outside, `${ where }: actions off their card` ).toEqual( [] );
+				const perCard = 'ips' === tab ? 3 : 2;
+				await expect( page.locator( '.zs-rules-list .zs-cm-a > *' ) ).toHaveCount( await cards.count() * perCard );
+			}
+		}
 	} );
 
 	test( 'a collapsed WordPress menu does not bring the table below 1,440px', async ( { page, zs } ) => {
