@@ -18,17 +18,29 @@ The art for the plugin's page on [WordPress.org](https://wordpress.org/plugins/z
 - `src/banner.html`: the banner, drawn at 772 x 250; 1544 x 500 is the same page at a device scale of 2. `banner.html?dir=rtl` is the right-to-left twin. Open either in a browser to preview it.
 - `icon.svg` is written by hand, not rendered.
 
-The sources read the plugin's own files, so the art follows them: `assets/src/admin/styles/tokens.css` (colours, hero gradient), `assets/fonts/` (Plus Jakarta Sans) and `assets/img/zero-spam-mark.svg`.
+What follows what:
+
+- **The banners** read `assets/src/admin/styles/tokens.css` (hero gradient, text and halo colours), `assets/fonts/` (Plus Jakarta Sans) and `assets/img/zero-spam-mark.svg`, so a change to one of those needs a re-render. The wall's brick colours and the faint brick lines are written out in `src/banner.html` and do not follow the tokens.
+- **The icons** follow nothing: `src/icon.html` and `icon.svg` hold every colour and brick themselves, and the mark's darkest colour is lifted one step in them (`#63000D` to `#840012`) so it stands out from the tile. A change to the tokens or the mark has to be carried over by hand.
 
 ## Render
 
 ```bash
 nvm use && npm ci && npx playwright install chromium   # once
 node bin/render-listing-assets.mjs                     # writes the PNGs here
-node bin/render-listing-assets.mjs --measure           # also prints each text line's position and contrast
+node bin/render-listing-assets.mjs --measure           # also prints the mark's and each text line's position, and the contrast
+node bin/render-listing-assets.mjs --check             # writes nothing: exit 1 unless a fresh render equals all six PNGs byte for byte
 ```
 
-The output is byte-identical between runs on one machine: no timestamps, sRGB, no LCD text or hinting, local files only (a request for anything outside the checkout stops the render). `assets/src/admin/test/listing-assets.test.js` (`npm run test:js`) compares a fresh render with the committed PNGs on macOS, where they are rendered, and checks dimensions, under 500 KB, text inside the central 1200 px and at least 4.5:1 contrast everywhere behind the text. If it fails after a macOS or Playwright upgrade, re-render, look at the result and commit it.
+The output is byte-identical between runs on one machine: no timestamps, sRGB, no LCD text or hinting, local files only (a request for anything outside the checkout stops the render). Text is drawn differently from one platform to another, so the committed files come from macOS, and `--check` is the strict comparison for that machine: run it before committing art.
+
+`assets/src/admin/test/listing-assets.test.js` runs in `npm run test:js` and so in the pre-push gate, on any machine, so it is less strict for the banners:
+
+- **Icons** (no text): byte for byte.
+- **Banners:** pixel by pixel (`compareBanner()` and `TOLERANCE` in the render script). Outside the text, at most 0.05% of the pixels may move by more than 6 of 255 in a channel. Inside each text line, up to 25% of the box may (glyph edges), but at most 3% of the glyph interiors, and the text colour must still be there.
+- **Everything:** dimensions, under 500 KB, the mark and the text inside the central 1200 px, at least 4.5:1 behind the text, and `icon.svg` flat, with the same bricks and colours as `src/icon.html`.
+
+If the icons fail after a Playwright upgrade, or the art fails after a macOS upgrade, re-render, look at the result and commit it.
 
 ## Publish to WordPress.org (maintainer, by hand)
 

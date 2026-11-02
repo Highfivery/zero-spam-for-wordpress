@@ -17,6 +17,8 @@
 #                  bin/check-dist.sh, and the listing art's inputs
 #                  (.wordpress-org/, bin/render-listing-assets.mjs, the mark;
 #                  its test compares a fresh render with the committed PNGs)
+#                  and .distignore (the same test checks the art stays out of
+#                  the release)
 #   --force        run even when nothing relevant changed
 #   --twice        also build a second time and require byte-identical output
 #                  (proves the build is reproducible)
@@ -83,7 +85,7 @@ if [[ $force -eq 0 && $budget_only -eq 0 ]]; then
 	merge_base="$(git merge-base HEAD "$base_ref" 2>/dev/null || echo "$base_ref")"
 	inputs=( assets/src assets/dist assets/fonts package.json package-lock.json webpack.config.js \
 	         eslint.config.cjs .stylelintrc.json vitest.config.mjs .nvmrc bin/check-dist.sh \
-	         .wordpress-org bin/render-listing-assets.mjs assets/img/zero-spam-mark.svg )
+	         .wordpress-org bin/render-listing-assets.mjs assets/img/zero-spam-mark.svg .distignore )
 	changed="$( { git diff --name-only "$merge_base" HEAD -- "${inputs[@]}"; \
 	              git diff --name-only HEAD -- "${inputs[@]}"; \
 	              git ls-files --others --exclude-standard -- "${inputs[@]}"; } | sort -u || true )"
