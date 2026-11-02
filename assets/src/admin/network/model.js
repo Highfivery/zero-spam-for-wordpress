@@ -23,6 +23,10 @@ export const AUDIT_PER_PAGE = 25;
 export const COMPARISON_PER_PAGE = 5;
 export const STATS_PER_PAGE = 20;
 export const BLOCKS_PER_PAGE = 10;
+/** A page of the CSV export (the route's maximum). */
+export const EXPORT_PER_PAGE = 100;
+/** Most pages the CSV export reads: 1,000 sites, the most the statistics cover. */
+export const EXPORT_MAX_PAGES = 10;
 
 /** Periods of the statistics, as the route takes them. */
 export const PERIODS = [ 'today', 'yesterday', '7', '30' ];
@@ -70,12 +74,17 @@ export const PATHS = {
 			[ 'page', page ],
 			[ 'per_page', COMPARISON_PER_PAGE ],
 		] ) }`,
-	stats: ( period = '30', page = 1, sort = 'blocked:desc' ) => {
+	stats: (
+		period = '30',
+		page = 1,
+		sort = 'blocked:desc',
+		perPage = STATS_PER_PAGE
+	) => {
 		const [ orderby, order ] = String( sort ).split( ':' );
 		return `${ NS }/network/stats${ query( [
 			[ 'period', period ],
 			[ 'page', page ],
-			[ 'per_page', STATS_PER_PAGE ],
+			[ 'per_page', perPage ],
 			[ 'orderby', orderby || 'blocked' ],
 			[ 'order', order || 'desc' ],
 		] ) }`;
@@ -569,22 +578,49 @@ export function levelBadge( level ) {
 }
 
 /**
- * Quotes a CSV field.
+ * Quotes a CSV field. Numbers stay numbers (a negative change is not a
+ * formula); any other text a spreadsheet would run as a formula (a leading
+ * =, +, -, @, tab or line break, also after spaces) gets a leading '.
  *
  * @param {unknown} value Value.
  * @return {string} Field.
  */
 const csvField = ( value ) => {
 	let text = String( value ?? '' );
-	// A leading =, +, - or @ would be read as a formula by spreadsheets.
-	if ( /^[=+\-@]/.test( text ) ) {
+	const isNumber =
+		'number' === typeof value || /^-?\d+(\.\d+)?$/.test( text );
+	if ( ! isNumber && /^\s*[=+\-@]|^[\t\r\n]/.test( text ) ) {
 		text = `'${ text }`;
 	}
 	return /[",\n\r]/.test( text ) ? `"${ text.replace( /"/g, '""' ) }"` : text;
 };
 
 /**
- * The per-site statistics as CSV (the rows shown).
+ * Reads the per-site statistics of every page for the CSV export, at most
+ * EXPORT_MAX_PAGES pages.
+ *
+ * @param {(page: number) => Promise<{sites: Array<Object>, total: number}>} readPage Reads one page.
+ * @return {Promise<Array<Object>>} Site rows.
+ */
+export async function allStatsSites( readPage ) {
+	const sites = [];
+	for ( let page = 1; page <= EXPORT_MAX_PAGES; page++ ) {
+		// One page at a time: each one reads its sites' protection levels.
+		const answer = await readPage( page );
+		const rows = Array.isArray( answer?.sites ) ? answer.sites : [];
+		sites.push( ...rows );
+		if (
+			! rows.length ||
+			sites.length >= ( Number( answer?.total ) || 0 )
+		) {
+			break;
+		}
+	}
+	return sites;
+}
+
+/**
+ * The per-site statistics as CSV.
  *
  * @param {Array<Object>} sites Site rows.
  * @return {string} CSV.

@@ -11,7 +11,7 @@
  * WordPress dependencies
  */
 import { __, _n, sprintf } from '@wordpress/i18n';
-import { useRef, useState } from '@wordpress/element';
+import { useEffect, useRef, useState } from '@wordpress/element';
 
 /**
  * Internal dependencies
@@ -25,16 +25,24 @@ import { checkBlockIp } from '../data/validate';
 import { Country, EmptyState, Pager } from '../rules/parts';
 import {
 	BLOCKS_PER_PAGE,
+	EXPORT_PER_PAGE,
 	PATHS,
 	PERIODS,
 	STATS_PER_PAGE,
+	allStatsSites,
 	levelBadge,
 	pageInfo,
 	periodNames,
 	statsCsv,
 	trendBadge,
 } from './model';
-import { ActionResult, LoadState, NumberTile, errorText } from './parts';
+import {
+	ActionResult,
+	Confirm,
+	LoadState,
+	NumberTile,
+	errorText,
+} from './parts';
 
 /** Width from which the lists are tables. */
 const TABLE_QUERY = '(min-width: 1100px)';
@@ -69,6 +77,9 @@ const saveFile = ( text, name, type ) => {
 	window.URL.revokeObjectURL( url );
 };
 
+/** The server's answer when an address is the administrator's own. */
+const WOULD_LOCK_OUT = 'rest_would_lock_out';
+
 /**
  * The addresses blocked on every site: list, Remove (with Undo), and a form
  * to add one.
@@ -86,6 +97,8 @@ function NetworkBlocks( { blocks, page, setPage, onChanged, remove } ) {
 	const [ error, setError ] = useState( '' );
 	const [ busy, setBusy ] = useState( false );
 	const [ result, setResult ] = useState( null );
+	// The server's question when the address is the administrator's own.
+	const [ asking, setAsking ] = useState( '' );
 	const input = useRef( null );
 	const rows = Array.isArray( blocks.data ) ? blocks.data : [];
 	const total = Number( blocks.headers[ 'x-wp-total' ] ?? rows.length ) || 0;
@@ -97,8 +110,13 @@ function NetworkBlocks( { blocks, page, setPage, onChanged, remove } ) {
 	);
 	const now = new Date( nowLocal() );
 
-	const add = ( event ) => {
-		event.preventDefault();
+	const add = ( event, confirm = false ) => {
+		event?.preventDefault();
+		setAsking( '' );
+		if ( confirm ) {
+			// The question goes away with this click.
+			input.current?.focus();
+		}
 		const checked = checkBlockIp( ip );
 		if ( checked.error ) {
 			setError( checked.error );
@@ -110,7 +128,12 @@ function NetworkBlocks( { blocks, page, setPage, onChanged, remove } ) {
 		request( {
 			path: `${ NS }/network/blocks`,
 			method: 'POST',
-			data: { ip: checked.value, type: 'permanent', reason },
+			data: {
+				ip: checked.value,
+				type: 'permanent',
+				reason,
+				...( confirm ? { confirm: true } : {} ),
+			},
 		} )
 			.then( ( saved ) => {
 				setIp( '' );
@@ -127,7 +150,9 @@ function NetworkBlocks( { blocks, page, setPage, onChanged, remove } ) {
 			} )
 			.catch( ( err ) => {
 				const params = err?.data?.params;
-				if ( params?.ip ) {
+				if ( WOULD_LOCK_OUT === err?.code ) {
+					setAsking( err.message );
+				} else if ( params?.ip ) {
 					setError( params.ip );
 					input.current?.focus();
 				} else {
@@ -207,6 +232,19 @@ function NetworkBlocks( { blocks, page, setPage, onChanged, remove } ) {
 					{ __( 'Block on every site', 'zero-spam' ) }
 				</Button>
 			</form>
+			{ asking && (
+				<Confirm
+					id="zs-nbl-own"
+					question={ asking }
+					yes={ __( 'Block it anyway', 'zero-spam' ) }
+					busy={ busy }
+					onYes={ () => add( null, true ) }
+					onCancel={ () => {
+						setAsking( '' );
+						input.current?.focus();
+					} }
+				/>
+			) }
 			<ActionResult result={ result } />
 			{ rows.length ? (
 				<ul
@@ -317,11 +355,24 @@ export function NetworkStats() {
 	const [ page, setPage ] = useState( 1 );
 	const [ sort, setSort ] = useState( 'blocked:desc' );
 	const [ blockPage, setBlockPage ] = useState( 1 );
+	const [ exporting, setExporting ] = useState( false );
+	// `{ ip, message }`: the server's question when an attacker's address is the administrator's own.
+	const [ ownAddress, setOwnAddress ] = useState( null );
+	const attackersHeading = useRef( null );
 	const stats = useResource( PATHS.stats( period, page, sort ), {
 		parse: false,
 	} );
 	const blocks = useResource( PATHS.blocks( blockPage ), { parse: false } );
 	const names = periodNames();
+
+	// The question is replaced by the result: focus stays in the section.
+	const hadOwnAddress = useRef( false );
+	useEffect( () => {
+		if ( hadOwnAddress.current && ! ownAddress ) {
+			attackersHeading.current?.focus();
+		}
+		hadOwnAddress.current = !! ownAddress;
+	}, [ ownAddress ] );
 
 	if ( undefined === stats.data ) {
 		return (
@@ -346,7 +397,7 @@ export function NetworkStats() {
 	);
 	const attackers = Array.isArray( data.attackers ) ? data.attackers : [];
 
-	const blockIp = ( ip ) =>
+	const blockIp = ( ip, confirm = false ) =>
 		request( {
 			path: `${ NS }/network/blocks`,
 			method: 'POST',
@@ -354,6 +405,7 @@ export function NetworkStats() {
 				ip,
 				type: 'permanent',
 				reason: __( 'Seen on several sites', 'zero-spam' ),
+				...( confirm ? { confirm: true } : {} ),
 			},
 		} )
 			.then( ( saved ) => {
@@ -378,7 +430,11 @@ export function NetworkStats() {
 					}
 				);
 			} )
-			.catch( ( error ) =>
+			.catch( ( error ) => {
+				if ( WOULD_LOCK_OUT === error?.code ) {
+					setOwnAddress( { ip, message: error.message } );
+					return;
+				}
 				toast(
 					errorText(
 						error,
@@ -387,8 +443,8 @@ export function NetworkStats() {
 							'zero-spam'
 						)
 					)
-				)
-			);
+				);
+			} );
 
 	const unblock = ( block ) =>
 		request( {
@@ -449,12 +505,38 @@ export function NetworkStats() {
 			);
 
 	const exportCsv = () => {
-		saveFile(
-			statsCsv( sites ),
-			`zero-spam-network-stats-${ period }.csv`,
-			'text/csv;charset=utf-8'
-		);
-		toast( __( 'Network statistics exported', 'zero-spam' ) );
+		setExporting( true );
+		allStatsSites( ( exportPage ) =>
+			request( {
+				path: PATHS.stats( period, exportPage, sort, EXPORT_PER_PAGE ),
+				parse: false,
+			} ).then( ( response ) =>
+				response.json().then( ( answer ) => ( {
+					sites: answer?.sites,
+					total: response.headers.get( 'x-wp-total' ),
+				} ) )
+			)
+		)
+			.then( ( all ) => {
+				saveFile(
+					statsCsv( all ),
+					`zero-spam-network-stats-${ period }.csv`,
+					'text/csv;charset=utf-8'
+				);
+				toast( __( 'Network statistics exported', 'zero-spam' ) );
+			} )
+			.catch( ( error ) =>
+				toast(
+					errorText(
+						error,
+						__(
+							'The statistics could not be exported. Please try again.',
+							'zero-spam'
+						)
+					)
+				)
+			)
+			.finally( () => setExporting( false ) );
 	};
 
 	const siteCell = ( site ) => (
@@ -544,7 +626,7 @@ export function NetworkStats() {
 					size="sm"
 					icon="down"
 					onClick={ exportCsv }
-					disabled={ ! sites.length }
+					disabled={ ! sites.length || exporting }
 				>
 					{ __( 'Export CSV', 'zero-spam' ) }
 				</Button>
@@ -754,7 +836,12 @@ export function NetworkStats() {
 				</section>
 
 				<section className="zs-tile zs-s12" aria-labelledby="zs-nma-h">
-					<h2 className="zs-tile-title" id="zs-nma-h">
+					<h2
+						ref={ attackersHeading }
+						className="zs-tile-title"
+						id="zs-nma-h"
+						tabIndex={ -1 }
+					>
 						{ __( 'Multi-site attackers', 'zero-spam' ) }
 					</h2>
 					<p className="zs-hint">
@@ -767,6 +854,18 @@ export function NetworkStats() {
 							num( data.attacker_days || 7 )
 						) }
 					</p>
+					{ ownAddress && (
+						<Confirm
+							id="zs-nma-own"
+							question={ ownAddress.message }
+							yes={ __( 'Block it anyway', 'zero-spam' ) }
+							onYes={ () => {
+								blockIp( ownAddress.ip, true );
+								setOwnAddress( null );
+							} }
+							onCancel={ () => setOwnAddress( null ) }
+						/>
+					) }
 					{ attackers.length > 0 && wide && (
 						<div className="zs-tbl-wrap">
 							<table className="zs-t">

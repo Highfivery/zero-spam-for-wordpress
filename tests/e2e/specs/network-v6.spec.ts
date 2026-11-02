@@ -221,6 +221,66 @@ test.describe( '6.0 Network', { tag: '@multisite' }, () => {
 		} );
 	} );
 
+	test( 'blocking your own address on every site asks first', async ( { newRoleContext, zs } ) => {
+		const ip = '203.0.113.88';
+		const page = await ( await newRoleContext( 'admin', { ip } ) ).newPage();
+		await openNetwork( page, 'stats' );
+
+		await page.locator( '#zs-nbl-ip' ).fill( ip );
+		await page.getByRole( 'button', { name: 'Block on every site' } ).click();
+		const question = page.getByRole( 'group', { name: /is your own address/ } );
+		const yes = question.getByRole( 'button', { name: 'Block it anyway' } );
+		await expect( yes ).toBeFocused();
+		await expect( page.locator( '.zs-nblocks' ) ).toHaveCount( 0 );
+
+		await test.step( 'Cancel goes back to the address, and nothing is blocked', async () => {
+			await question.getByRole( 'button', { name: 'Cancel' } ).click();
+			await expect( question ).toHaveCount( 0 );
+			await expect( page.locator( '#zs-nbl-ip' ) ).toBeFocused();
+			expect( await zs.plugin< unknown[] >( 'GET', 'network/blocks' ) ).toEqual( [] );
+		} );
+
+		await test.step( 'Block it anyway blocks it', async () => {
+			await page.getByRole( 'button', { name: 'Block on every site' } ).click();
+			await yes.click();
+			await expect( page.locator( '#zs-nbl-ip' ) ).toBeFocused();
+			await expect( page.locator( '.zs-nblocks' ) ).toContainText( ip );
+		} );
+	} );
+
+	test( 'a loopback address is refused, and the CSV export reads every site', async ( { page, zs, target } ) => {
+		await seedNetwork( zs, target );
+		await openNetwork( page, 'stats' );
+
+		await test.step( 'loopback: the field says why', async () => {
+			await page.locator( '#zs-nbl-ip' ).fill( '127.0.0.1' );
+			await page.getByRole( 'button', { name: 'Block on every site' } ).click();
+			await expect( page.locator( '#zs-nbl-ip-e' ) ).toContainText( 'this server' );
+			await expect( page.locator( '#zs-nbl-ip' ) ).toBeFocused();
+		} );
+
+		await test.step( 'export: pages of 100 sites, one line per site', async () => {
+			const read = page.waitForRequest( ( r ) => /network(\/|%2F)stats/.test( r.url() ) && /per_page(=|%3D)100/.test( r.url() ) );
+			const saved = page.waitForEvent( 'download' );
+			await page.getByRole( 'button', { name: 'Export CSV' } ).click();
+			await read;
+			const file = await saved;
+			const stream = await file.createReadStream();
+			let csv = '';
+			for await ( const chunk of stream ) {
+				csv += String( chunk );
+			}
+			expect( csv.trim().split( '\r\n' ) ).toHaveLength( 3 );
+		} );
+	} );
+
+	test( 'Apply to all sites says that sites keep their own keys', async ( { page } ) => {
+		await openNetwork( page, 'overview' );
+		await page.getByRole( 'button', { name: 'Apply to all sites' } ).click();
+		await expect( page.locator( '.zs-confirm-q' ) ).toContainText( 'License and API keys a site saved itself are kept.' );
+		await page.getByRole( 'button', { name: 'Cancel' } ).click();
+	} );
+
 	test( 'the audit log filters by action, setting and user, in plain language', async ( { page, zs, target } ) => {
 		await seedNetwork( zs, target );
 		await openNetwork( page, 'audit' );

@@ -439,17 +439,10 @@ export function NetworkSettings() {
 			`${ NS }/network-settings/${ encodeURIComponent( entry.key ) }/${
 				on ? 'lock' : 'unlock'
 			}`;
-		const run = ( on ) =>
-			// Locking a setting the network does not set yet locks the value shown (its default).
-			( on && ! entry.has && ! entry.secret
-				? patch( {
-						[ entry.key ]: toPayloadValue( entry, entry.value ),
-					} )
-				: Promise.resolve()
-			).then( () => request( { path: lockPath( on ), method: 'POST' } ) );
-
+		// A setting the network does not set is locked at the plugin's default;
+		// unlocking it (Undo too) removes that value again, on the server.
 		setLocking( entry.key );
-		run( next )
+		request( { path: lockPath( next ), method: 'POST' } )
 			.then( () => {
 				reloadAll();
 				toast( lockToast( entry, next ), {

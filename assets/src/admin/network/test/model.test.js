@@ -13,7 +13,10 @@ import { describe, expect, it } from 'vitest';
  * Internal dependencies
  */
 import {
+	EXPORT_MAX_PAGES,
+	EXPORT_PER_PAGE,
 	PATHS,
+	allStatsSites,
 	comparisonCell,
 	comparisonRows,
 	groupOf,
@@ -336,6 +339,80 @@ describe( 'files', () => {
 		expect( row ).toBe(
 			'"\'=HYPERLINK(""x"")",a.example,3,2,"Comment, reply",Germany,,Enhanced'
 		);
+	} );
+
+	it( 'keep numbers numeric and neutralise every formula start', () => {
+		const row = ( s ) =>
+			statsCsv( [
+				{
+					name: 'Site',
+					url: 'a.example',
+					blocked: 3,
+					unique_ips: 2,
+					top_type_label: 'Comment',
+					country_name: 'Germany',
+					level: 'basic',
+					trend: -25,
+					...s,
+				},
+			] ).split( '\r\n' )[ 1 ];
+
+		// A negative change stays a bare number, not text.
+		expect( row( {} ) ).toBe(
+			'Site,a.example,3,2,Comment,Germany,-25,Basic'
+		);
+		expect( row( { trend: 0 } ) ).toContain( ',0,' );
+		expect( row( { name: '-5' } ).startsWith( '-5,' ) ).toBe( true );
+
+		for ( const bad of [ '=1+1', '+1+1', '-1+1', '-cmd', '@SUM(A1)' ] ) {
+			expect( row( { name: bad } ).startsWith( `'${ bad }` ) ).toBe(
+				true
+			);
+		}
+		expect( row( { name: ' =1+1' } ).startsWith( "' =1+1," ) ).toBe( true );
+		expect( row( { name: '\t=1' } ).startsWith( "'\t=1," ) ).toBe( true );
+		expect( row( { name: '\r=1' } ).startsWith( `"'\r=1",` ) ).toBe( true );
+		expect( row( { top_type_label: '@x' } ) ).toContain( ",'@x," );
+	} );
+
+	it( 'export every page of sites, and no more than the bound', async () => {
+		const pages = {
+			1: Array.from( { length: 100 }, ( _, i ) => ( { id: i } ) ),
+			2: [ { id: 100 }, { id: 101 } ],
+		};
+		const read = [];
+		const sites = await allStatsSites( ( page ) => {
+			read.push( page );
+			return Promise.resolve( {
+				sites: pages[ page ] ?? [],
+				total: '102',
+			} );
+		} );
+		expect( sites ).toHaveLength( 102 );
+		expect( read ).toEqual( [ 1, 2 ] );
+		expect( PATHS.stats( '7', 2, 'name:asc', EXPORT_PER_PAGE ) ).toBe(
+			'/zero-spam/v1/network/stats?period=7&page=2&per_page=100&orderby=name&order=asc'
+		);
+
+		// A wrong total cannot make it read for ever.
+		let calls = 0;
+		const capped = await allStatsSites( () => {
+			calls++;
+			return Promise.resolve( {
+				sites: pages[ 1 ],
+				total: '999999',
+			} );
+		} );
+		expect( calls ).toBe( EXPORT_MAX_PAGES );
+		expect( capped ).toHaveLength( 1000 );
+
+		// An empty page ends it.
+		calls = 0;
+		await allStatsSites( () => {
+			calls++;
+			return Promise.resolve( { sites: [], total: '5' } );
+		} );
+		expect( calls ).toBe( 1 );
 	} );
 
 	it( 'read an import file in either export shape', () => {

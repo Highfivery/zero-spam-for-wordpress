@@ -266,7 +266,7 @@ function Overview( { setTab } ) {
 						question={ sprintf(
 							/* translators: %s: number of sites */
 							__(
-								'Sites that changed a network setting go back to the network value, on all %s sites. Locked settings already apply everywhere.',
+								'Sites that changed a network setting go back to the network value, on all %s sites. Locked settings already apply everywhere. License and API keys a site saved itself are kept.',
 								'zero-spam'
 							),
 							num( data.sites )
