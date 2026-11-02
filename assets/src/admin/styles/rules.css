@@ -143,13 +143,17 @@
 }
 
 
-/* A long reason never widens the table; 6ch keeps ordinary words whole. */
+/*
+ * A reason breaks a word only when the word is wider than the cell: the column
+ * is at least as wide as the longest word, up to 28ch. A table that needs more
+ * than its space shows as cards instead (use-table-fit.js), so a long word can
+ * no longer clip it.
+ */
 .zs-clamp2 {
 	display: -webkit-box;
-	min-width: 6ch;
 	max-width: 28ch;
 	overflow: hidden;
-	overflow-wrap: anywhere;
+	overflow-wrap: break-word;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
 }
@@ -174,6 +178,12 @@
 /* A long word in a reason wraps inside the two lines instead of being cut off. */
 .zs-rules-list .zs-cm-m {
 	overflow-wrap: anywhere;
+}
+
+/* Look up, Edit block and Remove wrap, right-aligned, on a narrow card. */
+.zs-rules-list .zs-cm-a {
+	flex-wrap: wrap;
+	justify-content: flex-end;
 }
 
 /* List editors */

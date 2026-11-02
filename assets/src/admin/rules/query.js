@@ -75,7 +75,7 @@ export function shouldRetryTable( listWidth, needs ) {
 
 /** What each control becomes in the other layout; the first one present wins. */
 const CONTROL_TARGETS = {
-	main: [ 'edit' ],
+	main: [ 'main', 'edit' ],
 	edit: [ 'edit', 'main' ],
 	lookup: [ 'lookup', 'edit' ],
 };
