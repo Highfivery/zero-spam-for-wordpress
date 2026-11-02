@@ -5,8 +5,10 @@
  * typed, focus in and back); Remove and Remove selected with Undo; search
  * with Clear search; the list editors with the unsaved-changes bar; the
  * recommended lists behind an inline confirmation; the no-lockout list
- * with Undo; cards and no sideways scrolling at 375, 1024, 1100 and 1280;
- * and on a network, the locked and network-default states of a subsite.
+ * with Undo; cards below 1,440px and a table from there, with nothing clipped
+ * at either side of the line, even with the widest content; no sideways
+ * scrolling at 375, 1024, 1100, 1280 and 1439; and on a network, the locked
+ * and network-default states of a subsite.
  *
  * Replaces the legacy Blocked IPs modal's known defect (AGENTS.md §8: no
  * focus management): the drawer's focus handling is checked here and in
@@ -16,8 +18,10 @@
 import type { Page, Request } from '@playwright/test';
 
 import { expect, test } from '../support/fixtures';
+import type { ZsApi } from '../support/e2e-api';
 import { AREA, emptyRules, rulesReady, seedRules } from '../support/screens';
 import { subsiteURL } from '../support/targets';
+import type { WpCli } from '../support/wp-cli';
 
 const TABS = [ 'ips', 'locations', 'allowlist', 'email', 'words', 'no-lockout' ];
 
@@ -42,7 +46,7 @@ async function openTab( page: Page, tab = 'ips' ) {
 	await rulesReady( page );
 }
 
-/** Rows of the block table (from 1,200px). */
+/** Rows of the block table (from 1,440px). */
 const rows = ( page: Page ) => page.locator( '.zs-rules-t tbody tr:not(.zs-empty-row)' );
 
 /** The block drawer. */
@@ -54,10 +58,59 @@ const toast = ( page: Page ) => page.locator( '.zs-toasts .zs-toast' ).last();
 /** Whether focus is inside an element. */
 const focusInside = ( page: Page, selector: string ) => page.evaluate( ( sel ) => !! document.querySelector( sel )?.contains( document.activeElement ), selector );
 
+/** The widest a table is at, and the row actions it cuts off. */
+const clipping = ( page: Page ) => page.locator( '.zs-rules-list > .zs-tbl-wrap' ).evaluate( ( wrap ) => {
+	const right = wrap.getBoundingClientRect().right;
+	return {
+		scrolls: wrap.scrollWidth - wrap.clientWidth,
+		cutOff: Array.from( wrap.querySelectorAll( '.zs-btn' ) ).filter( ( b ) => b.getBoundingClientRect().right > right ).length,
+	};
+} );
+
+/** Country names with a word broken over two lines ("Germ/any"). */
+const brokenCountries = ( page: Page ) => page.locator( '.zs-rules-t .zs-cty > span' ).evaluateAll( ( names ) => names.flatMap( ( name ) => {
+	const text = name.firstChild as Text;
+	const broken: string[] = [];
+	for ( const word of text.data.matchAll( /\S+/g ) ) {
+		const range = document.createRange();
+		range.setStart( text, word.index );
+		range.setEnd( text, word.index + word[ 0 ].length );
+		if ( range.getClientRects().length > 1 ) {
+			broken.push( word[ 0 ] );
+		}
+	}
+	return broken;
+} ) );
+
+/**
+ * The widest content the lists show: dates with their year in all three date
+ * columns, a 2099 end, the longest addresses, country names and reasons, and
+ * place names with no room to wrap.
+ *
+ * @param zs    Test API.
+ * @param wpcli WP-CLI.
+ */
+async function seedWidest( zs: ZsApi, wpcli: WpCli ) {
+	const wide = { type: 'temporary', start: '2025-11-26', end: '2099-11-25T12:00:00Z', reason: 'Comment spam from this place, again and again, '.repeat( 5 ) };
+	for ( const ip of [ '2001:db8:85a3:1234:5678:8a2e:370:7334', '2001:db8:85a3:1234:5678:8a2e:370:7335', '255.255.255.254', '198.51.100.222', '203.0.113.222', '203.0.113.223' ] ) {
+		await zs.plugin( 'POST', 'rules/blocks', { ...wide, ip } );
+	}
+	await zs.plugin( 'POST', 'rules/blocks', { ...wide, ip: '192.0.2.222', reason: 'x'.repeat( 250 ) } );
+	for ( const key of [ 'DE', 'LI', 'TM', 'VC', 'GS' ] ) {
+		await zs.plugin( 'POST', 'rules/blocks', { ...wide, kind: 'location', key_type: 'country_code', key } );
+	}
+	await zs.plugin( 'POST', 'rules/blocks', { ...wide, kind: 'location', key_type: 'city', key: 'Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch', reason: 'x'.repeat( 250 ) } );
+	await zs.plugin( 'POST', 'rules/blocks', { ...wide, kind: 'location', key_type: 'region_code', key: 'North Rhine-Westphalia and a very long region name somewhere else' } );
+	// The route always dates a block today; the Date column needs a year too.
+	wpcli.exec( [ 'eval', 'global $wpdb; $wpdb->query( "UPDATE {$wpdb->prefix}wpzerospam_blocked SET date_added = \'2025-11-26 12:00:00\'" );' ] );
+}
+
 test.describe( '6.0 Rules', () => {
-	test.beforeEach( async ( { zs } ) => {
+	test.beforeEach( async ( { page, zs } ) => {
 		await zs.reset( 'baseline' );
 		await emptyRules( zs );
+		// Most of this file works on the block table, which starts here.
+		await page.setViewportSize( { width: 1440, height: 900 } );
 	} );
 
 	test( 'every tab loads without a REST request of its own', async ( { page, zs } ) => {
@@ -316,9 +369,121 @@ test.describe( '6.0 Rules', () => {
 		await expect( page.locator( '.zs-safelist li' ) ).toHaveCount( 2 );
 	} );
 
+	for ( const [ tab, seeded ] of [ [ 'ips', 7 ], [ 'locations', 7 ] ] as Array< [ string, number ] > ) {
+		test( `${ tab }: a table from 1,440px with nothing clipped, even with the widest content; cards at 1,439px`, async ( { page, zs, wpcli, gallery } ) => {
+			await seedWidest( zs, wpcli );
+			await test.step( '1,440px: the table, every action inside it, no country name broken', async () => {
+				await openTab( page, tab );
+				await expect( rows( page ) ).toHaveCount( seeded );
+				expect( await clipping( page ) ).toEqual( { scrolls: 0, cutOff: 0 } );
+				expect( await brokenCountries( page ) ).toEqual( [] );
+				await gallery.capture( page.locator( '.zs-areabody' ), `Rules ${ tab } at 1,440px, widest content` );
+			} );
+
+			await test.step( '1,439px: cards, and nothing scrolls sideways', async () => {
+				await page.setViewportSize( { width: 1439, height: 900 } );
+				await openTab( page, tab );
+				await expect( page.locator( '.zs-rules-list .zs-cards li' ) ).toHaveCount( seeded );
+				await expect( page.locator( '.zs-rules-t' ) ).toHaveCount( 0 );
+				expect( await clipping( page ) ).toEqual( { scrolls: 0, cutOff: 0 } );
+				expect( await page.evaluate( () => document.documentElement.scrollWidth - window.innerWidth ) ).toBeLessThanOrEqual( 0 );
+			} );
+		} );
+	}
+
+	test( 'at 1,280px: cards, every action visible and reachable by keyboard; selection, bulk bar and sort menu work', async ( { page, zs, wpcli } ) => {
+		await seedWidest( zs, wpcli );
+		await page.setViewportSize( { width: 1280, height: 900 } );
+
+		for ( const tab of [ 'ips', 'locations' ] ) {
+			await openTab( page, tab );
+			await expect( page.locator( '.zs-rules-t' ) ).toHaveCount( 0 );
+			const cards = page.locator( '.zs-rules-list .zs-cards li' );
+			await expect( cards ).toHaveCount( 7 );
+			expect( await clipping( page ) ).toEqual( { scrolls: 0, cutOff: 0 } );
+
+			await test.step( `${ tab }: Tab goes through every card's controls, each one in sight`, async () => {
+				await page.getByLabel( 'Select all' ).focus();
+				const seen: string[] = [];
+				// Remove selected and the Sort menu, then four controls per card.
+				for ( let i = 0; i < 2 + ( 7 * 4 ); i++ ) {
+					await page.keyboard.press( 'Tab' );
+					const stop = await page.evaluate( () => {
+						const el = document.activeElement as HTMLElement;
+						const box = el.getBoundingClientRect();
+						const hit = document.elementFromPoint( box.left + ( box.width / 2 ), box.top + ( box.height / 2 ) );
+						return { name: el.getAttribute( 'aria-label' ) ?? '', inSight: !! hit && ( el === hit || el.contains( hit ) || hit.contains( el ) ) };
+					} );
+					expect( stop.inSight, `${ stop.name } is covered` ).toBe( true );
+					seen.push( stop.name );
+				}
+				expect( seen.filter( ( n ) => n.startsWith( 'Select ' ) ) ).toHaveLength( 7 );
+				expect( seen.filter( ( n ) => /^Edit block for .*, ends /.test( n ) ) ).toHaveLength( 7 );
+				expect( seen.filter( ( n ) => /^Edit block for /.test( n ) && ! /, ends /.test( n ) ) ).toHaveLength( 7 );
+				expect( seen.filter( ( n ) => n.startsWith( 'Remove block for ' ) ) ).toHaveLength( 7 );
+			} );
+
+			await test.step( `${ tab }: Edit block and Remove answer the keyboard`, async () => {
+				const first = cards.first();
+				const edit = first.locator( '[data-zs-edit]' );
+				await edit.focus();
+				await page.keyboard.press( 'Enter' );
+				await expect( drawer( page ) ).toBeVisible();
+				await page.keyboard.press( 'Escape' );
+				await expect( edit ).toBeFocused();
+
+				await first.getByRole( 'button', { name: /^Remove block for / } ).focus();
+				await page.keyboard.press( 'Enter' );
+				await expect( toast( page ) ).toContainText( 'Removed the block on' );
+				await expect( cards ).toHaveCount( 6 );
+				await toast( page ).getByRole( 'button', { name: 'Undo' } ).click();
+				await expect( cards ).toHaveCount( 7 );
+			} );
+
+			await test.step( `${ tab }: Select all and Remove selected, with Undo`, async () => {
+				await page.getByLabel( 'Select all' ).check();
+				await expect( page.locator( '.zs-selcount' ) ).toHaveText( '7 selected' );
+				await page.getByRole( 'button', { name: 'Remove selected' } ).click();
+				await expect( toast( page ) ).toContainText( 'Removed 7 blocks' );
+				await toast( page ).getByRole( 'button', { name: 'Undo' } ).click();
+				await expect( cards ).toHaveCount( 7 );
+			} );
+
+			await test.step( `${ tab }: the Sort menu changes the order`, async () => {
+				await page.getByLabel( 'Sort', { exact: true } ).selectOption( 'key:asc' );
+				await expect( page.locator( '.zs-cm-t' ).first() ).toHaveText( 'ips' === tab ? '192.0.2.222' : 'Germany' );
+			} );
+		}
+	} );
+
+	test( 'resizing across 1,440px swaps table and cards, keeping the selection and the order', async ( { page, zs } ) => {
+		await seedRules( zs );
+		await openTab( page );
+		await page.locator( '[data-zs-sort="type"]' ).click();
+		await expect( page.locator( 'th', { has: page.locator( '[data-zs-sort="type"]' ) } ) ).toHaveAttribute( 'aria-sort', 'ascending' );
+		await expect( page.locator( '.zs-rules-t' ) ).not.toHaveAttribute( 'aria-busy', 'true' );
+		await page.getByLabel( 'Select 198.51.100.21' ).check();
+
+		await page.setViewportSize( { width: 1439, height: 900 } );
+		await expect( page.locator( '.zs-rules-list .zs-cards li' ) ).toHaveCount( 6 );
+		await expect( page.locator( '.zs-rules-t' ) ).toHaveCount( 0 );
+		await expect( page.locator( '.zs-selcount' ) ).toHaveText( '1 selected' );
+		await expect( page.getByLabel( 'Select 198.51.100.21' ) ).toBeChecked();
+		const sort = page.getByLabel( 'Sort', { exact: true } );
+		await expect( sort ).toHaveValue( 'type:asc' );
+		await expect( sort.locator( 'option:checked' ) ).toHaveText( 'Sort: Custom order' );
+
+		await page.setViewportSize( { width: 1440, height: 900 } );
+		await expect( rows( page ) ).toHaveCount( 6 );
+		await expect( page.locator( '.zs-rules-list .zs-cards' ) ).toHaveCount( 0 );
+		await expect( page.getByLabel( 'Select 198.51.100.21' ) ).toBeChecked();
+		await expect( page.locator( 'th', { has: page.locator( '[data-zs-sort="type"]' ) } ) ).toHaveAttribute( 'aria-sort', 'ascending' );
+	} );
+
 	test( 'narrow screens: cards with Select all and a Sort menu, Edit block from a card; no sideways scrolling', async ( { zs, newRoleContext } ) => {
 		await seedRules( zs );
 		for ( const [ width, height ] of [
+			[ 1439, 900 ],
 			[ 1280, 900 ],
 			[ 1100, 900 ],
 			[ 1024, 900 ],

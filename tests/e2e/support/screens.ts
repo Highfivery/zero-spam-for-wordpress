@@ -42,14 +42,14 @@ export interface Screen {
 	include?: string[];
 	/** Expected HTTP status (blocked pages answer 403). */
 	status?: number;
-	visual?: boolean | { mobile?: boolean; mask?: string[]; selector?: string; dark?: boolean };
+	visual?: boolean | { mobile?: boolean; mask?: string[]; selector?: string; dark?: boolean; maxDiffPixels?: number };
 	/** prefers-color-scheme to emulate (default: the fixtures' light). Screens that follow the OS add a dark twin. */
 	colorScheme?: 'light' | 'dark';
 	/** Themes scanned (6.0 screens): both (default for them) adds a `-dark` twin. */
 	theme?: 'light' | 'dark' | 'both';
 	/** Protection level the screen is shown with (default basic). */
 	level?: Level;
-	/** Viewport the screen is opened at (accessibility scans of phone layouts). */
+	/** Viewport the screen is opened at (accessibility scans of phone layouts, the Rules tables at 1,440px). */
 	viewport?: { width: number; height: number };
 }
 
@@ -927,7 +927,9 @@ export const rulesReady = async ( page: Page ) => {
 
 /**
  * Seeds what each Rules tab shows, 2–8 rows each (the seeded state already
- * has two blocked IPs). Baselines are of the tab panel (.zs-areabody);
+ * has two blocked IPs; both block lists have 8, enough rows that hiding a row
+ * action moves a baseline past its 0.2% threshold). Baselines are of the tab
+ * panel (.zs-areabody);
  * dates are hidden by support/visual.css, which also keeps their columns from
  * moving. The temporary block ends on a fixed far date: the route refuses an
  * end in the past by the server's clock, whatever the test machine's says.
@@ -939,6 +941,12 @@ export const seedRules = async ( zs: ZsApi ) => {
 	}
 	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'country_code', key: 'DE', type: 'permanent', reason: 'E2E: steady comment spam' } );
 	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'zip', key: '90210', type: 'temporary', end: '2099-01-15T12:00:00Z', reason: 'E2E: card testing' } );
+	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'country_code', key: 'NL', type: 'permanent', reason: 'E2E: steady comment spam' } );
+	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'country_code', key: 'BR', type: 'temporary', end: '2099-01-15T12:00:00Z', reason: 'E2E: login attempts' } );
+	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'region_code', key: 'Bavaria', type: 'permanent', reason: 'E2E: login attempts' } );
+	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'region_code', key: 'CA', type: 'temporary', end: '2099-01-15T12:00:00Z', reason: 'E2E: card testing' } );
+	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'city', key: 'Berlin', type: 'permanent', reason: 'E2E: steady comment spam' } );
+	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'city', key: 'Lagos', type: 'temporary', end: '2099-01-15T12:00:00Z', reason: 'E2E: card testing' } );
 	await zs.plugin( 'PUT', 'rules/lists/allowed-ips', { items: [ '203.0.113.5', '2001:db8::1' ] } );
 	await zs.plugin( 'PUT', 'rules/lists/allowed-words', { items: [ 'patel', 'van gogh' ], min_length: 4 } );
 	await zs.noLockout( [ '198.51.100.200', '192.0.2.10' ] );
@@ -967,6 +975,14 @@ const openBlockDrawer = ( trigger: string ) => async ( page: Page ) => {
 	await page.locator( '.zs-drawer.zs-blockform form' ).waitFor();
 };
 
+/**
+ * Pixels a block list's baseline may differ by. A row action is a little text
+ * on a page of hidden text, so hiding Remove or Edit block on all 8 rows
+ * (870 to 1,430 pixels) stays under the project's 0.2% (about 1,500 here).
+ * Two runs and other dates differ by 0 pixels; one row's action is over 100.
+ */
+const BLOCK_LIST_MAX_DIFF = 100;
+
 const V6_RULES: Screen[] = [
 	...RULES_TABS.flatMap( ( [ tab, name ] ): Screen[] => [
 		{ id: `v6-rules-${ tab }-empty`, title: `6.0 Rules › ${ name } (empty)`, area: 'admin', sites: 'both', state: 'empty', theme: 'both', before: emptyRules, path: () => AREA( 'rules', tab ), prepare: rulesReady },
@@ -981,9 +997,23 @@ const V6_RULES: Screen[] = [
 			path: () => AREA( 'rules', tab ),
 			prepare: rulesReady,
 			// The tab panel only; Blocked IPs is the area's key screen: 782 and dark there only.
-			visual: { mobile: 'ips' === tab, dark: 'ips' === tab, selector: '.zs-areabody' },
+			visual: { mobile: 'ips' === tab, dark: 'ips' === tab, selector: '.zs-areabody', ...( [ 'ips', 'locations' ].includes( tab ) ? { maxDiffPixels: BLOCK_LIST_MAX_DIFF } : {} ) },
 		},
 	] ),
+	// The block lists are cards up to 1,439px, so their table needs its own width.
+	...RULES_TABS.slice( 0, 2 ).map( ( [ tab, name ] ): Screen => ( {
+		id: `v6-rules-${ tab }-table`,
+		title: `6.0 Rules › ${ name } table (1,440px)`,
+		area: 'admin',
+		sites: 'both',
+		state: 'seeded',
+		theme: 'both',
+		viewport: { width: 1440, height: 900 },
+		before: seedRules,
+		path: () => AREA( 'rules', tab ),
+		prepare: rulesReady,
+		visual: { selector: '.zs-areabody', maxDiffPixels: BLOCK_LIST_MAX_DIFF },
+	} ) ),
 	{ id: 'v6-rules-block-add', title: '6.0 Rules › Block an IP drawer', area: 'admin', sites: 'both', state: 'seeded', theme: 'both', path: () => AREA( 'rules', 'ips' ), prepare: openBlockDrawer( '.zs-rules .zs-tbar > .zs-btn' ), visual: { selector: '.zs-drawer', mask: [ 'input[type="datetime-local"]' ] } },
 	{
 		id: 'v6-rules-block-edit',
@@ -1054,7 +1084,7 @@ function withDarkTwins( screens: Screen[] ): Screen[] {
 				title: `${ screen.title } (dark)`,
 				theme: 'dark',
 				colorScheme: 'dark',
-				visual: options.dark ? { mask: options.mask, selector: options.selector } : false,
+				visual: options.dark ? { mask: options.mask, selector: options.selector, maxDiffPixels: options.maxDiffPixels } : false,
 			},
 		];
 	} );

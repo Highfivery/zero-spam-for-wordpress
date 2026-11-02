@@ -16,12 +16,15 @@ import { describe, expect, it } from 'vitest';
  */
 import {
 	PER_PAGE,
+	TABLE_MIN_WIDTH,
+	TABLE_QUERY,
 	TABS,
 	ariaSort,
 	blocksPath,
 	firstPath,
 	listPath,
 	paging,
+	sortChoices,
 	splitSort,
 	toggleSort,
 } from '../query';
@@ -141,5 +144,32 @@ describe( 'paging', () => {
 			from: 1,
 			to: 50,
 		} );
+	} );
+} );
+
+describe( 'table or cards', () => {
+	it( 'is a table from 1,440px and cards below (Activity keeps 1,200px)', () => {
+		expect( TABLE_MIN_WIDTH ).toBe( 1440 );
+		expect( TABLE_QUERY ).toBe( '(min-width: 1440px)' );
+	} );
+} );
+
+describe( 'sortChoices', () => {
+	const options = [
+		[ 'date_added:desc', 'Newest first' ],
+		[ 'key:asc', 'IP address' ],
+	];
+
+	it( 'keeps the menu as it is when it has the current order', () => {
+		expect( sortChoices( options, 'key:asc', 'Custom order' ) ).toEqual(
+			options
+		);
+	} );
+
+	it( 'adds an order only the table offers, so the menu never shows the wrong one', () => {
+		expect( sortChoices( options, 'type:desc', 'Custom order' ) ).toEqual( [
+			...options,
+			[ 'type:desc', 'Custom order' ],
+		] );
 	} );
 } );
