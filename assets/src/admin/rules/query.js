@@ -25,6 +25,15 @@ export const PER_PAGE = 50;
 /** The block lists' default order: newest first. */
 export const DEFAULT_SORT = 'date_added:desc';
 
+/**
+ * Width from which the block lists are a table; below it, a list of cards.
+ * Wider than the Activity log's: in the widest content (a year in all three
+ * date columns) the table's fixed columns and floors need this viewport with
+ * the WordPress menu and the app's sidebar open.
+ */
+export const TABLE_MIN_WIDTH = 1440;
+export const TABLE_QUERY = `(min-width: ${ TABLE_MIN_WIDTH }px)`;
+
 /** The list each list tab edits (rules/lists/{list}). */
 export const LIST_OF_TAB = {
 	allowlist: 'allowed-ips',
@@ -54,6 +63,22 @@ const query = ( args ) => {
 		.join( '&' );
 	return text ? `?${ text }` : '';
 };
+
+/**
+ * The card list's Sort menu: its own choices, plus the current order when only
+ * the table offers it (a sort chosen before the window narrowed), so the menu
+ * never names an order the list is not in.
+ *
+ * @param {Array<[string, string]>} options Values and names.
+ * @param {string}                  sort    Current order.
+ * @param {string}                  other   Name for an order of the table.
+ * @return {Array<[string, string]>} Values and names.
+ */
+export function sortChoices( options, sort, other ) {
+	return options.some( ( [ value ] ) => value === sort )
+		? options
+		: [ ...options, [ sort, other ] ];
+}
 
 /**
  * A sort value split into column and direction.

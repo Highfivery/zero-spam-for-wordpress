@@ -22,7 +22,7 @@ import { day, num, parseDate } from '../data/format';
  * a date without a zone is already site time (date_added).
  *
  * @param {string|null} iso Date.
- * @return {string} "Thu, Oct 22", or ''.
+ * @return {string} "Thu, Oct 22" or "Jan 15, 2099" (a narrow column: no weekday next to a year), or ''.
  */
 export function siteDay( iso ) {
 	if ( ! iso ) {
@@ -30,14 +30,16 @@ export function siteDay( iso ) {
 	}
 	const text = String( iso );
 	if ( ! /(Z|[+-]\d{2}:?\d{2})$/.test( text ) ) {
-		return day( text, new Date( nowLocal() ) );
+		return day( text, new Date( nowLocal() ), { compact: true } );
 	}
 	const date = parseDate( text );
 	if ( ! date ) {
 		return '';
 	}
 	const shift = nowLocal() - Date.now();
-	return day( new Date( date.getTime() + shift ), new Date( nowLocal() ) );
+	return day( new Date( date.getTime() + shift ), new Date( nowLocal() ), {
+		compact: true,
+	} );
 }
 
 /**

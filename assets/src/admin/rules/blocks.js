@@ -1,7 +1,7 @@
 /**
  * Blocked IPs and blocked locations (prototype v18 §3.2, §3.3): search, a
  * bulk bar (Select all and Remove selected, with Undo), a table from
- * 1,200px and a list of cards below it (with a Sort menu), Edit block and
+ * 1,440px and a list of cards below it (with a Sort menu), Edit block and
  * Remove (with Undo) on every row, and the shared block drawer to add or
  * change a block.
  */
@@ -28,14 +28,13 @@ import { Country, EmptyState, Pager, SearchBox, siteDay } from './parts';
 import { NetworkBlocks } from './network-blocks';
 import {
 	DEFAULT_SORT,
+	TABLE_QUERY,
 	ariaSort,
 	blocksPath,
 	paging,
+	sortChoices,
 	toggleSort,
 } from './query';
-
-/** Width from which the list is a table (the Activity log's breakpoint). */
-export const TABLE_QUERY = '(min-width: 1200px)';
 
 /**
  * Sort menu choices of the card list.
@@ -368,7 +367,6 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 					<b>{ block.key }</b>
 				) }
 				<span className="zs-hint">
-					{ ' · ' }
 					{ locationTypes()[ block.key_type ] || block.key_type }
 				</span>
 			</span>
@@ -663,10 +661,6 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 		</div>
 	);
 
-	const sortValue = sortOptions( kind ).some( ( [ k ] ) => k === view.sort )
-		? view.sort
-		: DEFAULT_SORT;
-
 	return (
 		<div className="zs-rules-list">
 			{ note }
@@ -744,12 +738,16 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 						<select
 							id={ `zs-rsort-${ kind }` }
 							className="zs-select zs-select-auto"
-							value={ sortValue }
+							value={ view.sort }
 							onChange={ ( e ) =>
 								change( { sort: e.target.value } )
 							}
 						>
-							{ sortOptions( kind ).map( ( [ value, label ] ) => (
+							{ sortChoices(
+								sortOptions( kind ),
+								view.sort,
+								__( 'Custom order', 'zero-spam' )
+							).map( ( [ value, label ] ) => (
 								<option key={ value } value={ value }>
 									{ sprintf(
 										/* translators: %s: sort order, such as Newest first */
