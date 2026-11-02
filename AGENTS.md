@@ -120,7 +120,8 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   network-wide (`base_prefix`) `wpzerospam_api_usage`,
   `wpzerospam_stats_daily`, `wpzerospam_stats_monthly`,
   `wpzerospam_network_templates`, `wpzerospam_network_audit`,
-  `wpzerospam_network_blocked` (since DB 1.6; see `DB::$tables`; the
+  `wpzerospam_network_blocked` (since DB 1.6; these last three carry
+  `network_id`; see `DB::$tables`; the
   statements are in `DB::schema()`, the audit actions in
   `DB::AUDIT_ACTIONS`). `wpzerospam_blacklist` is listed there; 4.x created it and
   current versions do not, but uninstall still drops it. Schema changes go through `DB::update()` and a
@@ -962,18 +963,21 @@ npm run env:stop                 # stop both wp-env sites
   `is_on_network()`, `only_on_network()`), and network caches are per network
   (`Network_Settings::network_key()`: under a persistent object cache core
   keys site transients by name alone). Tests use a real second network:
-  `create_network_with_site()`, `on_network()` in `TestCase`. Still not
-  scoped:
-  - `wpzerospam_network_audit` and `wpzerospam_network_templates` have no
-    network, so another network's administrator reads the audit entries and
-    lists, applies or deletes the custom templates (`@group known-defect`
-    in `test-network-scope.php`; a product decision for Ben);
+  `create_network_with_site()`, `on_network()` in `TestCase`. Audit entries
+  and custom templates carry `network_id` (DB 1.6; rows from before it go to
+  `get_main_network_id()` in `DB::upgrade_network_tables()`, and a template
+  slug is unique per network; built-in templates are on every network; another
+  network's slug answers 404). `Apply` still reaches archived and spam sites of
+  the same network, as in 5.x. Still not scoped:
   - `wp zerospam` network commands' site lists, `Stats_Aggregator` and
     `API_Usage_Alerts` read every network (their writes through the manager
     and templates are guarded).
   A development copy that ran DB 1.5 keeps an extra unique `user_ip` key on
   `wpzerospam_network_blocked` (dbDelta never drops one), which refuses one
   address on a second network on those copies only.
+  A development copy that already ran DB 1.6 before audit and templates got
+  `network_id` (the PR's commits up to 7342b62) does not upgrade by itself: set
+  `zerospam_db_version` back to 1.5 on each site once.
 - The legacy network page's AJAX export and `wp zerospam network-settings
   export` show secrets in clear to network administrators; both go at the
   PR 13 cutover.
