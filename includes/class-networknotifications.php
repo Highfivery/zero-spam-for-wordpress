@@ -122,6 +122,18 @@ class Network_Notifications {
 			}
 		}
 
+		// A lock on a setting the network never set goes with its value (Network_Settings_Manager::unlock_setting()): the lock is over.
+		foreach ( $old_settings as $key => $old_config ) {
+			if ( ! isset( $new_settings[ $key ] ) && is_array( $old_config ) && ! empty( $old_config['locked'] ) ) {
+				$changes[ $key ] = array(
+					'old_value'    => $old_config['value'] ?? null,
+					'new_value'    => null,
+					'locked'       => false,
+					'lock_changed' => true,
+				);
+			}
+		}
+
 		return $changes;
 	}
 
@@ -134,6 +146,13 @@ class Network_Notifications {
 	private function get_affected_sites( $changed_settings ) {
 		// A locked setting reaches every site; another only the sites that follow the network value
 		// (read from each site's stored settings, at most Network_Report::MAX_SITES sites, no registry per site).
+		// A lock that ended also reached every site: each was told it was locked, also one that stores its own value.
+		foreach ( (array) $changed_settings as $change ) {
+			if ( ! empty( $change['lock_changed'] ) ) {
+				return Network_Report::site_ids();
+			}
+		}
+
 		return Network_Report::sites_following( array_map( 'strval', array_keys( (array) $changed_settings ) ) );
 	}
 
@@ -323,7 +342,7 @@ class Network_Notifications {
 		}
 
 		// Get stats for the week.
-		$total_sites           = (int) get_sites( array( 'count' => true ) );
+		$total_sites           = Network_Report::active_sites_count();
 		$settings_manager      = new Network_Settings_Manager();
 		$all_settings          = $settings_manager->get_all_with_status();
 		$locked_settings_count = 0;
@@ -474,7 +493,12 @@ class Network_Notifications {
 
 		// Get sites.
 		if ( empty( $site_ids ) ) {
-			$sites    = get_sites( array( 'number' => 0 ) );
+			$sites    = get_sites(
+				array(
+					'number'     => 0,
+					'network_id' => get_current_network_id(),
+				)
+			);
 			$site_ids = wp_list_pluck( $sites, 'blog_id' );
 		}
 

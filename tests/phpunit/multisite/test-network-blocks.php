@@ -187,7 +187,7 @@ class Test_Network_Blocks extends TestCase {
 	public function test_large_lists_use_one_indexed_query(): void {
 		$this->network_block( array( 'ip' => '203.0.113.76' ) );
 		set_site_transient(
-			Network_Blocks::TRANSIENT,
+			Network_Blocks::transient_key(),
 			array(
 				'count' => Network_Blocks::INDEX_MAX + 1,
 				'ips'   => null,
@@ -416,5 +416,29 @@ class Test_Network_Blocks extends TestCase {
 		$this->assertSame( 'zerospam_block_exists', $response->get_data()['code'] );
 		$this->assertSame( $existing, $response->get_data()['data']['block_id'] );
 		$this->assertSame( 1, Network_Blocks::count() );
+	}
+
+	/**
+	 * A network block that has ended does not count as blocked now.
+	 */
+	public function test_no_lockout_guard_ignores_an_ended_network_block(): void {
+		global $wpdb;
+
+		$ip = '203.0.113.84';
+		$wpdb->insert(
+			Network_Blocks::table(),
+			array(
+				'network_id'   => (int) get_current_network_id(),
+				'blocked_type' => 'temporary',
+				'user_ip'      => $ip,
+				'date_added'   => current_time( 'mysql' ),
+				'start_block'  => gmdate( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ),
+				'end_block'    => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ),
+			)
+		);
+		Network_Blocks::flush();
+		update_option( \ZeroSpam\Core\Admin_Safe_IPs::OPTION, array( $ip ), false );
+
+		$this->assertFalse( $this->rest( 'GET', '/zero-spam/v1/rules/no-lockout' )->get_data()['items'][0]['blocked'] );
 	}
 }

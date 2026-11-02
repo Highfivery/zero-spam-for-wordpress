@@ -715,7 +715,7 @@ class Migrations {
 
 				if ( $changed ) {
 					update_site_option( Network_Settings::META_KEY, $store );
-					delete_site_transient( Network_Settings::CACHE_KEY );
+					delete_site_transient( Network_Settings::cache_key() );
 				}
 
 				return true;
@@ -803,7 +803,7 @@ class Migrations {
 				if ( is_array( $entry ) && array_key_exists( 'value', $entry ) && 'enabled' !== $entry['value'] ) {
 					$store['settings']['delete_data_on_uninstall']['value'] = 'enabled';
 					update_site_option( Network_Settings::META_KEY, $store );
-					delete_site_transient( Network_Settings::CACHE_KEY );
+					delete_site_transient( Network_Settings::cache_key() );
 				}
 
 				return true;
@@ -896,7 +896,7 @@ class Migrations {
 
 				if ( $removed ) {
 					update_site_option( Network_Settings::META_KEY, $store );
-					delete_site_transient( Network_Settings::CACHE_KEY );
+					delete_site_transient( Network_Settings::cache_key() );
 				}
 
 				$table     = $wpdb->base_prefix . DB::$tables['network_templates'];

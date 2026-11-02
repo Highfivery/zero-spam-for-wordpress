@@ -54,7 +54,7 @@ class Test_Network_Settings_Secrets extends TestCase {
 		parent::set_up();
 
 		delete_site_option( Network_Settings::META_KEY );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 		Network_Report::flush();
 
 		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
@@ -347,6 +347,33 @@ class Test_Network_Settings_Secrets extends TestCase {
 		$this->assertFalse( $data['capped'] );
 		$this->assertSame( 6, $data['total_settings'] );
 		$this->assertSame( 1, $data['locked_settings'] );
-		$this->assertSame( 2, $data['total_overrides'], 'Site B\'s token and the main site\'s license.' );
+		$this->assertSame( 0, $data['total_overrides'], 'Site B\'s token and the main site\'s license are secrets, which Apply keeps.' );
+	}
+
+	/**
+	 * A cached compare page goes when a site's stored settings change: an
+	 * option that already existed (updated_option) and one removed (deleted_option).
+	 */
+	public function test_compare_cache_follows_a_change_of_a_stored_option(): void {
+		$cell = function (): array {
+			$row = ( (array) $this->rest( 'GET', '/zero-spam/v1/network-settings/compare' )->get_data()['comparison'] )['max_logs'];
+
+			return ( (array) $row['sites'] )[ self::$site_b ];
+		};
+
+		switch_to_blog( self::$site_b );
+		update_option( 'zero-spam-settings', array( 'max_logs' => 4000 ) );
+		restore_current_blog();
+		$this->assertSame( 4000, $cell()['value'] );
+
+		switch_to_blog( self::$site_b );
+		update_option( 'zero-spam-settings', array( 'max_logs' => 4001 ) );
+		restore_current_blog();
+		$this->assertSame( 4001, $cell()['value'], 'updated_option' );
+
+		switch_to_blog( self::$site_b );
+		delete_option( 'zero-spam-settings' );
+		restore_current_blog();
+		$this->assertSame( 'default', $cell()['source'], 'deleted_option' );
 	}
 }

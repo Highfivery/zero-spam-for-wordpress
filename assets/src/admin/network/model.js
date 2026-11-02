@@ -578,6 +578,26 @@ export function levelBadge( level ) {
 }
 
 /**
+ * What "Apply to all sites" asks.
+ *
+ * @param {number} sites Number of sites.
+ * @return {string} Question.
+ */
+export function applyQuestion( sites ) {
+	const count = Number( sites ) || 0;
+	return sprintf(
+		/* translators: %s: number of sites */
+		_n(
+			'Your %s site goes back to the network value of any network setting it changed. Locked settings already apply everywhere. License and API keys a site saved itself are kept.',
+			'Each of your %s sites goes back to the network value of any network setting it changed. Locked settings already apply everywhere. License and API keys a site saved itself are kept.',
+			count,
+			'zero-spam'
+		),
+		count.toLocaleString()
+	);
+}
+
+/**
  * Quotes a CSV field. Numbers stay numbers (a negative change is not a
  * formula); any other text a spreadsheet would run as a formula (a leading
  * =, +, -, @, tab or line break, also after spaces) gets a leading '.

@@ -1317,14 +1317,14 @@ add_action(
 								$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE template_slug LIKE %s', $network_templates, $wpdb->esc_like( 'e2e-' ) . '%' ) );
 							}
 						}
-						foreach ( array( 'zerospam_network_blocks', 'zerospam_network_report', 'zerospam_network_stats_v6_today', 'zerospam_network_stats_v6_yesterday', 'zerospam_network_stats_v6_7', 'zerospam_network_stats_v6_30' ) as $transient ) {
-							delete_site_transient( $transient );
+						foreach ( array( 'zerospam_network_blocks', 'zerospam_network_compare', 'zerospam_network_report', 'zerospam_network_stats_v6_today', 'zerospam_network_stats_v6_yesterday', 'zerospam_network_stats_v6_7', 'zerospam_network_stats_v6_30' ) as $transient ) {
+							delete_site_transient( $transient . '_' . get_current_network_id() );
 						}
 						delete_site_option( 'zerospam_network_settings' );
 						delete_site_option( 'zero-spam-network-zerospam' );
 						delete_site_option( 'zerospam_network_notifications_enabled' );
 						delete_site_option( 'zerospam_network_settings_notifications_enabled' );
-						delete_site_transient( 'zerospam_network_settings' );
+						delete_site_transient( 'zerospam_network_settings_' . get_current_network_id() );
 						foreach ( get_sites( array( 'number' => 0 ) ) as $site ) {
 							switch_to_blog( (int) $site->blog_id );
 							reset_site( $preset );

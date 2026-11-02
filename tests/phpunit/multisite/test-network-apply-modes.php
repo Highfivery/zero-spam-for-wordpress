@@ -43,7 +43,7 @@ class Test_Network_Apply_Modes extends TestCase {
 		parent::set_up();
 
 		delete_site_option( Network_Settings::META_KEY );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 		Network_Report::flush();
 
 		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
@@ -170,5 +170,59 @@ class Test_Network_Apply_Modes extends TestCase {
 		$this->assertSame( 4000, $settings['max_logs'] );
 		$this->assertSame( '403', $settings['block_handler'], 'It is stored, even though it is locked.' );
 		$this->assertSame( 'site-own-token-5678', $ipinfo['ipinfo_access_token'] );
+	}
+
+	/**
+	 * A secret locked empty is enforced by the resolver, but no mode writes
+	 * "empty" over a site's own key (it could never be seen again).
+	 *
+	 * @dataProvider data_writing_modes
+	 *
+	 * @param array<string, mixed> $body Body.
+	 */
+	public function test_an_empty_network_secret_never_overwrites_a_sites_own( array $body ): void {
+		$this->set_network_setting( 'ipinfo_access_token', '', true );
+
+		list( , $ipinfo ) = $this->apply( $body );
+
+		$this->assertSame( 'site-own-token-5678', $ipinfo['ipinfo_access_token'] );
+
+		// Whitespace is empty too; a real network value is still copied where the mode says so.
+		$this->set_network_setting( 'ipinfo_access_token', '   ', true );
+		list( , $ipinfo ) = $this->apply( $body );
+		$this->assertSame( 'site-own-token-5678', $ipinfo['ipinfo_access_token'] );
+	}
+
+	/**
+	 * The modes that write to sites.
+	 *
+	 * @return array<string, array{0: array<string, mixed>}>
+	 */
+	public static function data_writing_modes(): array {
+		return array(
+			'locked_only'    => array( array( 'mode' => 'locked_only' ) ),
+			'all'            => array( array( 'mode' => 'all' ) ),
+			'all with force' => array(
+				array(
+					'mode'  => 'all',
+					'force' => true,
+				),
+			),
+			'defaults_only'  => array( array( 'mode' => 'defaults_only' ) ),
+		);
+	}
+
+	/**
+	 * A site with no key of its own does not get an empty one written either.
+	 */
+	public function test_an_empty_network_secret_is_not_written_to_a_site_without_one(): void {
+		switch_to_blog( self::$site_b );
+		delete_option( 'zero-spam-ipinfo' );
+		restore_current_blog();
+		$this->set_network_setting( 'ipinfo_access_token', '', true );
+
+		list( , $ipinfo ) = $this->apply( array( 'mode' => 'locked_only' ) );
+
+		$this->assertArrayNotHasKey( 'ipinfo_access_token', (array) $ipinfo );
 	}
 }

@@ -56,7 +56,7 @@ class Test_Network_Templates extends TestCase {
 		parent::set_up();
 
 		delete_site_option( Network_Settings::META_KEY );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', $wpdb->base_prefix . DB::$tables['network_templates'] ) );
 		switch_to_blog( self::$site_b );
 		delete_option( 'zero-spam-settings' );

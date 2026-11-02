@@ -37,7 +37,7 @@ class Test_Network_Legacy_Fixes extends TestCase {
 		parent::set_up();
 
 		delete_site_option( Network_Settings::META_KEY );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 		delete_option( 'zero-spam-zerospam' );
 		delete_option( 'zero-spam-ipinfo' );
 		delete_transient( License_Status::TRANSIENT );

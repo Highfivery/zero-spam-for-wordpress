@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || die();
  * every row, written by network administrators (`zero-spam/v1/network/blocks`)
  * and enforced by Access::check_blocked() on every site of that network,
  * after the site's own blocks. Every read and write here is scoped to the
- * current network; the index is a site transient, so it already is.
+ * current network, and so is the index's cache key (transient_key()).
  *
  * Addresses are stored and matched in canonical form (User::normalize_ip()),
  * as site blocks are; ranges are not accepted, as for site blocks. A row has
@@ -40,7 +40,7 @@ defined( 'ABSPATH' ) || die();
 final class Network_Blocks {
 
 	/**
-	 * Site transient holding the index (see index()).
+	 * Name of the site transient holding the index (see index(), transient_key()).
 	 *
 	 * @var string
 	 */
@@ -88,6 +88,14 @@ final class Network_Blocks {
 		global $wpdb;
 
 		return $wpdb->base_prefix . DB::$tables['network_blocked'];
+	}
+
+	/**
+	 * The index's key, by network (under a persistent object cache core keys
+	 * site transients by name alone, and blocks would reach another network's visitors).
+	 */
+	public static function transient_key(): string {
+		return Network_Settings::network_key( self::TRANSIENT );
 	}
 
 	/**
@@ -150,7 +158,7 @@ final class Network_Blocks {
 			return self::$index;
 		}
 
-		$cached = get_site_transient( self::TRANSIENT );
+		$cached = get_site_transient( self::transient_key() );
 
 		if ( is_array( $cached ) && isset( $cached['count'] ) && array_key_exists( 'ips', $cached ) ) {
 			self::$index = array(
@@ -162,7 +170,7 @@ final class Network_Blocks {
 		}
 
 		self::$index = self::build_index();
-		set_site_transient( self::TRANSIENT, self::$index, self::TTL );
+		set_site_transient( self::transient_key(), self::$index, self::TTL );
 
 		return self::$index;
 	}
@@ -172,7 +180,7 @@ final class Network_Blocks {
 	 */
 	public static function flush(): void {
 		self::$index = null;
-		delete_site_transient( self::TRANSIENT );
+		delete_site_transient( self::transient_key() );
 	}
 
 	/**

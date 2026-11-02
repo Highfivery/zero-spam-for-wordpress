@@ -454,7 +454,7 @@ class Network_Templates {
 		}
 
 		update_site_option( Network_Settings::META_KEY, $store );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 		Settings_Schema::reset_cache();
 
 		// Log audit.
@@ -518,7 +518,8 @@ class Network_Templates {
 		}
 
 		foreach ( array_map( 'intval', (array) $site_ids ) as $site_id ) {
-			if ( ! get_site( $site_id ) ) {
+			// Never a site of another network, whatever a caller names.
+			if ( ! Network_Report::is_on_network( $site_id ) ) {
 				++$skipped_count;
 				continue;
 			}

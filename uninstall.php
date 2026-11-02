@@ -397,9 +397,15 @@ if ( is_multisite() ) {
 	$zerospam_uninstall_site();
 }
 
-// Network-wide caches, removed once.
+// Network-wide caches, removed once. Since 6.0.0 they are keyed by network too (Network_Settings::network_key()).
 foreach ( $zerospam_network_transients as $zerospam_transient ) {
 	delete_site_transient( $zerospam_transient );
+
+	if ( is_multisite() ) {
+		foreach ( get_networks( array( 'fields' => 'ids', 'number' => 0 ) ) as $zerospam_network_id ) { // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short list.
+			delete_site_transient( $zerospam_transient . '_' . $zerospam_network_id );
+		}
+	}
 }
 
 if ( is_multisite() ) {

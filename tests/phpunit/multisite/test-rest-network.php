@@ -52,7 +52,7 @@ class Test_Rest_Network extends TestCase {
 		parent::set_up();
 
 		delete_site_option( Network_Settings::META_KEY );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 		Network_Report::flush();
 		Network_Report::flush_stats();
 		Network_Blocks::flush();
@@ -601,5 +601,81 @@ class Test_Rest_Network extends TestCase {
 
 		$boot = ( new \ZeroSpam\Core\Admin\Admin_App() )->bootstrap( 'network' );
 		$this->assertSame( $before, $boot['network']['sites'] );
+	}
+
+	/**
+	 * The headline counts are what Apply can change: a site's own secret is
+	 * shown for its setting, but is not a "site change".
+	 */
+	public function test_overview_totals_leave_kept_secrets_out(): void {
+		$this->super_admin();
+		$this->set_network_setting( 'ipinfo_access_token', 'network-token-1234' );
+		$this->set_network_setting( 'max_logs', 9000 );
+		switch_to_blog( self::$site_b );
+		update_option( 'zero-spam-ipinfo', array( 'ipinfo_access_token' => 'own-token-5678' ) );
+		restore_current_blog();
+		Network_Report::flush();
+
+		$overview = $this->rest( 'GET', '/zero-spam/v1/network/overview' )->get_data();
+		$this->assertSame( 1, $overview['custom']['ipinfo_access_token'], 'The setting still says one site has its own.' );
+		$this->assertSame( 0, $overview['overrides'] );
+		$this->assertSame( 0, $overview['sites_with_overrides'] );
+
+		$apply = $this->rest( 'POST', '/zero-spam/v1/network-settings/apply-all', array( 'mode' => 'follow' ) )->get_data();
+		$this->assertSame( 0, $apply['updated_count'], 'Count and message agree: nothing to do.' );
+
+		switch_to_blog( self::$site_b );
+		update_option( 'zero-spam-settings', array( 'max_logs' => 4000 ) );
+		restore_current_blog();
+		Network_Report::flush();
+		$this->assertSame( 1, $this->rest( 'GET', '/zero-spam/v1/network/overview' )->get_data()['overrides'] );
+		$this->assertSame( 1, $this->rest( 'POST', '/zero-spam/v1/network-settings/apply-all', array( 'mode' => 'follow' ) )->get_data()['updated_count'] );
+		Network_Report::flush();
+		$this->assertSame( 0, $this->rest( 'GET', '/zero-spam/v1/network/overview' )->get_data()['overrides'] );
+	}
+
+	/**
+	 * `sites` is the number of active sites, not how many were read.
+	 */
+	public function test_overview_counts_sites_beyond_the_cap(): void {
+		$this->super_admin();
+		$count = static function ( $result, $query ) {
+			return ! empty( $query->query_vars['count'] ) ? 1500 : $result;
+		};
+		add_filter( 'sites_pre_query', $count, 10, 2 );
+
+		try {
+			Network_Report::flush();
+			$overview = Network_Report::overview();
+		} finally {
+			remove_filter( 'sites_pre_query', $count, 10 );
+			Network_Report::flush();
+		}
+
+		$this->assertSame( 1500, $overview['sites'] );
+		$this->assertSame( 2, $overview['checked'] );
+		$this->assertTrue( $overview['capped'] );
+	}
+
+	/**
+	 * An archived, deleted or spam site's log is not in the statistics or their count.
+	 */
+	public function test_stats_leave_inactive_sites_out(): void {
+		$this->super_admin();
+		$this->log_on( get_main_site_id(), 2 );
+		$this->log_on( self::$site_b, 3 );
+		wp_update_site( self::$site_b, array( 'archived' => 1 ) );
+		Network_Report::flush_stats();
+
+		$data = $this->rest( 'GET', '/zero-spam/v1/network/stats' )->get_data();
+
+		$this->assertSame( array( get_main_site_id() ), array_column( $data['sites'], 'id' ) );
+		$this->assertSame( 2, $data['totals']['blocked'] );
+		$this->assertSame( 1, $data['totals']['sites'] );
+		$this->assertSame( 1, $data['checked'] );
+		$this->assertFalse( $data['capped'] );
+
+		wp_update_site( self::$site_b, array( 'archived' => 0 ) );
+		Network_Report::flush_stats();
 	}
 }

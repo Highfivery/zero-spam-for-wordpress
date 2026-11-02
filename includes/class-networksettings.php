@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Network_Settings to this file name.
 /**
  * Network Settings - Core hierarchy resolution
  *
@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || die();
 class Network_Settings {
 
 	/**
-	 * Cache key for network settings
+	 * Name of the network settings cache (cache_key() is its key)
 	 */
 	const CACHE_KEY = 'zerospam_network_settings';
 
@@ -35,6 +35,25 @@ class Network_Settings {
 	 * Network settings meta key
 	 */
 	const META_KEY = 'zerospam_network_settings';
+
+	/**
+	 * A network cache's key, by network (since 6.0.0). Under a persistent
+	 * object cache core keys site transients by name alone, so one network's
+	 * values would answer for another (without one, they live in that
+	 * network's sitemeta). On a single site, the name as it is.
+	 *
+	 * @param string $name Cache name.
+	 */
+	public static function network_key( string $name ): string {
+		return is_multisite() ? $name . '_' . get_current_network_id() : $name;
+	}
+
+	/**
+	 * The key of the network settings cache.
+	 */
+	public static function cache_key(): string {
+		return self::network_key( self::CACHE_KEY );
+	}
 
 	/**
 	 * Constructor
@@ -53,6 +72,8 @@ class Network_Settings {
 	 * @param mixed  $value     The new option value.
 	 */
 	public function clear_site_cache_on_update( $option, $old_value, $value ) {
+		unset( $old_value, $value ); // The updated_option action passes them.
+
 		if ( 0 === strpos( $option, 'zero-spam-' ) ) {
 			$this->clear_site_cache( get_current_blog_id() );
 		}
@@ -97,7 +118,7 @@ class Network_Settings {
 			// Level 2: Site Override (if exists and not locked).
 			if ( ! is_network_admin() ) {
 				$module = $setting_config['module'] ?? null;
-				
+
 				if ( $module ) {
 					$module_settings = get_option( "zero-spam-{$module}", array() );
 					if ( isset( $module_settings[ $setting_key ] ) ) {
@@ -132,7 +153,7 @@ class Network_Settings {
 		}
 
 		// Try cache first.
-		$cached = get_site_transient( self::CACHE_KEY );
+		$cached = get_site_transient( self::cache_key() );
 		if ( false !== $cached ) {
 			return $cached;
 		}
@@ -148,7 +169,7 @@ class Network_Settings {
 		}
 
 		// Cache it.
-		set_site_transient( self::CACHE_KEY, $settings, self::CACHE_DURATION );
+		set_site_transient( self::cache_key(), $settings, self::CACHE_DURATION );
 
 		return $settings;
 	}
@@ -203,21 +224,21 @@ class Network_Settings {
 
 		// Check if site has override in module-specific option.
 		switch_to_blog( $site_id );
-		
+
 		$all_settings = \ZeroSpam\Core\Settings::get_settings();
-		$module = $all_settings[ $setting_key ]['module'] ?? null;
+		$module       = $all_settings[ $setting_key ]['module'] ?? null;
 		$has_override = false;
-		
+
 		if ( $module ) {
 			$module_settings = get_option( "zero-spam-{$module}", array() );
 			// Site has an override if the key exists AND the value differs from network default.
 			if ( isset( $module_settings[ $setting_key ] ) ) {
 				// Compare the values.
-				$site_value = $module_settings[ $setting_key ];
+				$site_value   = $module_settings[ $setting_key ];
 				$has_override = ( $site_value !== $network_default );
 			}
 		}
-		
+
 		restore_current_blog();
 
 		return ! $has_override;
@@ -263,11 +284,11 @@ class Network_Settings {
 		$network_default = $this->get_network_default( $setting_key );
 
 		switch_to_blog( $site_id );
-		
-		$all_settings = \ZeroSpam\Core\Settings::get_settings();
-		$module = $all_settings[ $setting_key ]['module'] ?? null;
+
+		$all_settings   = \ZeroSpam\Core\Settings::get_settings();
+		$module         = $all_settings[ $setting_key ]['module'] ?? null;
 		$override_value = null;
-		
+
 		if ( $module ) {
 			$module_settings = get_option( "zero-spam-{$module}", array() );
 			if ( isset( $module_settings[ $setting_key ] ) ) {
@@ -278,7 +299,7 @@ class Network_Settings {
 				}
 			}
 		}
-		
+
 		restore_current_blog();
 
 		return $override_value;
@@ -295,7 +316,12 @@ class Network_Settings {
 			return array();
 		}
 
-		$sites         = get_sites( array( 'number' => 0 ) );
+		$sites         = get_sites(
+			array(
+				'number'     => 0,
+				'network_id' => get_current_network_id(),
+			)
+		);
 		$using_default = array();
 
 		foreach ( $sites as $site ) {
@@ -318,7 +344,12 @@ class Network_Settings {
 			return array();
 		}
 
-		$sites     = get_sites( array( 'number' => 0 ) );
+		$sites     = get_sites(
+			array(
+				'number'     => 0,
+				'network_id' => get_current_network_id(),
+			)
+		);
 		$overrides = array();
 
 		foreach ( $sites as $site ) {
@@ -346,7 +377,12 @@ class Network_Settings {
 			);
 		}
 
-		$sites         = get_sites( array( 'number' => 0 ) );
+		$sites         = get_sites(
+			array(
+				'number'     => 0,
+				'network_id' => get_current_network_id(),
+			)
+		);
 		$total_sites   = count( $sites );
 		$using_default = count( $this->get_sites_using_default( $setting_key ) );
 		$overridden    = count( $this->get_sites_with_overrides( $setting_key ) );
@@ -363,11 +399,16 @@ class Network_Settings {
 	 * Clear network settings cache
 	 */
 	public function clear_cache() {
-		delete_site_transient( self::CACHE_KEY );
-		
+		delete_site_transient( self::cache_key() );
+
 		// Clear all site-level caches too.
 		if ( is_multisite() ) {
-			$sites = get_sites( array( 'number' => 100 ) );
+			$sites = get_sites(
+				array(
+					'number'     => 100,
+					'network_id' => get_current_network_id(),
+				)
+			);
 			foreach ( $sites as $site ) {
 				$cache_key = 'zerospam_site_settings_' . $site->blog_id;
 				delete_transient( $cache_key );
@@ -403,16 +444,16 @@ class Network_Settings {
 
 		if ( ! is_multisite() ) {
 			switch_to_blog( $site_id );
-			
+
 			$all_settings = \ZeroSpam\Core\Settings::get_settings();
-			$module = $all_settings[ $setting_key ]['module'] ?? null;
-			$value = null;
-			
+			$module       = $all_settings[ $setting_key ]['module'] ?? null;
+			$value        = null;
+
 			if ( $module ) {
 				$module_settings = get_option( "zero-spam-{$module}", array() );
-				$value = $module_settings[ $setting_key ] ?? null;
+				$value           = $module_settings[ $setting_key ] ?? null;
 			}
-			
+
 			restore_current_blog();
 
 			return array(

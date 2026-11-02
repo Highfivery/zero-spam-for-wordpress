@@ -585,10 +585,23 @@ class Network_Settings_Controller extends Base_Controller {
 	 * where the network sets no value, site or plugin.
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object, or 404 for a site that is not on this network.
 	 */
 	public function get_site_settings( $request ) {
-		return rest_ensure_response( \ZeroSpam\Includes\Network_Report::site_values( (int) $request->get_param( 'site_id' ) ) );
+		$site_id = (int) $request->get_param( 'site_id' );
+
+		if ( ! \ZeroSpam\Includes\Network_Report::is_on_network( $site_id ) ) {
+			return $this->site_not_found();
+		}
+
+		return rest_ensure_response( \ZeroSpam\Includes\Network_Report::site_values( $site_id ) );
+	}
+
+	/**
+	 * The answer for a site that is not on this network, or does not exist.
+	 */
+	private function site_not_found(): \WP_Error {
+		return new \WP_Error( 'zerospam_site_not_found', __( 'That site is not on this network.', 'zero-spam' ), array( 'status' => 404 ) );
 	}
 
 	/**
@@ -598,8 +611,13 @@ class Network_Settings_Controller extends Base_Controller {
 	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function reset_site( $request ) {
-		$site_id = $request->get_param( 'site_id' );
-		$result  = $this->settings_manager->reset_site( $site_id );
+		$site_id = (int) $request->get_param( 'site_id' );
+
+		if ( ! \ZeroSpam\Includes\Network_Report::is_on_network( $site_id ) ) {
+			return $this->site_not_found();
+		}
+
+		$result = $this->settings_manager->reset_site( $site_id );
 
 		if ( $result ) {
 			return rest_ensure_response(
@@ -1040,8 +1058,9 @@ class Network_Settings_Controller extends Base_Controller {
 		if ( empty( $sites ) ) {
 			$sites = get_sites(
 				array(
-					'fields' => 'ids',
-					'number' => \ZeroSpam\Includes\Network_Report::MAX_SITES,
+					'fields'     => 'ids',
+					'number'     => \ZeroSpam\Includes\Network_Report::MAX_SITES,
+					'network_id' => get_current_network_id(),
 				)
 			);
 		}

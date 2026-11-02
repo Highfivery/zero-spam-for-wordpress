@@ -31,8 +31,9 @@ defined( 'ABSPATH' ) || die();
  *   `network-settings` routes, secrets masked; compare() is cached with the
  *   overview, per page.
  *
- * "Sites" here are the active ones, what site_ids() reads and
- * active_sites_count() counts (not archived, deleted or spam).
+ * "Sites" here are the current network's active ones, what site_ids() reads
+ * and active_sites_count() counts (not archived, deleted or spam). Caches are
+ * per network (Network_Settings::network_key()).
  *
  * Network values come from the network settings store
  * (`zerospam_network_settings`); a site overrides a network default when
@@ -133,8 +134,8 @@ final class Network_Report {
 	 * Forgets the cached overview and comparison pages.
 	 */
 	public static function flush(): void {
-		delete_site_transient( self::REPORT_TRANSIENT );
-		delete_site_transient( self::COMPARE_TRANSIENT );
+		delete_site_transient( Network_Settings::network_key( self::REPORT_TRANSIENT ) );
+		delete_site_transient( Network_Settings::network_key( self::COMPARE_TRANSIENT ) );
 	}
 
 	/**
@@ -171,7 +172,7 @@ final class Network_Report {
 	 * @return array{sites: int, checked: int, capped: bool, custom: array<string, int>, overrides: int, sites_with_overrides: int, network_settings: int, locked: int}
 	 */
 	public static function overview(): array {
-		$cached = get_site_transient( self::REPORT_TRANSIENT );
+		$cached = get_site_transient( Network_Settings::network_key( self::REPORT_TRANSIENT ) );
 
 		if ( is_array( $cached ) && isset( $cached['custom'], $cached['sites'], $cached['checked'] ) ) {
 			return $cached;
@@ -181,9 +182,12 @@ final class Network_Report {
 		$defaults = self::defaults_of( $network );
 		$types    = self::types();
 		$total    = self::active_sites_count();
-		$ids      = self::site_ids( self::MAX_SITES );
-		$custom   = array_fill_keys( array_keys( $defaults ), 0 );
-		$with     = 0;
+		// What Apply to all sites can change. A site's own secret is kept (and
+		// shown in `custom`, for its setting), so it is not a site change.
+		$applied = array_filter( array_keys( $defaults ), static fn ( $key ) => ! Settings_Schema::is_secret( (string) $key ) );
+		$ids     = self::site_ids( self::MAX_SITES );
+		$custom  = array_fill_keys( array_keys( $defaults ), 0 );
+		$with    = 0;
 
 		if ( $defaults ) {
 			foreach ( array_chunk( $ids, self::CHUNK ) as $chunk ) {
@@ -192,7 +196,7 @@ final class Network_Report {
 					foreach ( $defaults as $key => $value ) {
 						if ( array_key_exists( $key, $stored ) && ! self::same_value( $stored[ $key ], $value, $types[ $key ] ?? '' ) ) {
 							++$custom[ $key ];
-							$changed = true;
+							$changed = $changed || in_array( $key, $applied, true );
 						}
 					}
 					$with += $changed ? 1 : 0;
@@ -205,7 +209,7 @@ final class Network_Report {
 			'checked'              => count( $ids ),
 			'capped'               => $total > count( $ids ),
 			'custom'               => $custom,
-			'overrides'            => array_sum( $custom ),
+			'overrides'            => array_sum( array_intersect_key( $custom, array_flip( $applied ) ) ),
 			'sites_with_overrides' => $with,
 			'network_settings'     => count(
 				array_filter(
@@ -225,7 +229,7 @@ final class Network_Report {
 			),
 		);
 
-		set_site_transient( self::REPORT_TRANSIENT, $report, 5 * MINUTE_IN_SECONDS );
+		set_site_transient( Network_Settings::network_key( self::REPORT_TRANSIENT ), $report, 5 * MINUTE_IN_SECONDS );
 
 		return $report;
 	}
@@ -421,7 +425,7 @@ final class Network_Report {
 	public static function compare( int $page, int $per_page ): array {
 		$per_page = max( 1, min( 100, $per_page ) );
 		$slot     = $page . ':' . $per_page;
-		$cached   = get_site_transient( self::COMPARE_TRANSIENT );
+		$cached   = get_site_transient( Network_Settings::network_key( self::COMPARE_TRANSIENT ) );
 		$cached   = is_array( $cached ) ? $cached : array();
 
 		if ( isset( $cached[ $slot ]['comparison'], $cached[ $slot ]['sites'] ) ) {
@@ -459,7 +463,7 @@ final class Network_Report {
 		);
 
 		$cached[ $slot ] = $data;
-		set_site_transient( self::COMPARE_TRANSIENT, array_slice( $cached, -self::COMPARE_PAGES, null, true ), 5 * MINUTE_IN_SECONDS );
+		set_site_transient( Network_Settings::network_key( self::COMPARE_TRANSIENT ), array_slice( $cached, -self::COMPARE_PAGES, null, true ), 5 * MINUTE_IN_SECONDS );
 
 		return $data;
 	}
@@ -584,14 +588,14 @@ final class Network_Report {
 	 */
 	public static function stats( string $period ): array {
 		$period = in_array( $period, self::PERIODS, true ) ? $period : '30';
-		$cached = get_site_transient( self::STATS_TRANSIENT . $period );
+		$cached = get_site_transient( Network_Settings::network_key( self::STATS_TRANSIENT . $period ) );
 
 		if ( is_array( $cached ) && isset( $cached['sites'], $cached['totals'] ) ) {
 			return $cached;
 		}
 
 		$stats = self::read_stats( $period );
-		set_site_transient( self::STATS_TRANSIENT . $period, $stats, 10 * MINUTE_IN_SECONDS );
+		set_site_transient( Network_Settings::network_key( self::STATS_TRANSIENT . $period ), $stats, 10 * MINUTE_IN_SECONDS );
 
 		return $stats;
 	}
@@ -601,12 +605,14 @@ final class Network_Report {
 	 */
 	public static function flush_stats(): void {
 		foreach ( self::PERIODS as $period ) {
-			delete_site_transient( self::STATS_TRANSIENT . $period );
+			delete_site_transient( Network_Settings::network_key( self::STATS_TRANSIENT . $period ) );
 		}
 	}
 
 	/**
-	 * Every site's log table, by blog ID (at most $max, lowest IDs first).
+	 * The log table of each of the network's active sites, by blog ID (at
+	 * most $max, lowest IDs first). From the sites, not the table names: every
+	 * network's tables share the base prefix.
 	 *
 	 * @param int $max Most tables.
 	 * @return array{tables: array<int, string>, capped: bool}
@@ -617,25 +623,21 @@ final class Network_Report {
 		$suffix = DB::$tables['log'];
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lists the plugin's own tables; callers cache what they read.
-		$names = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->base_prefix ) . '%' . $wpdb->esc_like( $suffix ) ) );
-		$main  = get_main_site_id();
-		$found = array();
+		$names  = $wpdb->get_col( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $wpdb->base_prefix ) . '%' . $wpdb->esc_like( $suffix ) ) );
+		$exists = array_flip( array_map( 'strval', is_array( $names ) ? $names : array() ) );
+		$found  = array();
 
-		foreach ( is_array( $names ) ? $names : array() as $name ) {
-			$name = (string) $name;
+		foreach ( self::site_ids( $max ) as $blog_id ) {
+			$table = $wpdb->get_blog_prefix( $blog_id ) . $suffix;
 
-			if ( $wpdb->base_prefix . $suffix === $name ) {
-				$found[ $main ] = $name;
-			} elseif ( preg_match( '/^' . preg_quote( $wpdb->base_prefix, '/' ) . '(\d+)_' . preg_quote( $suffix, '/' ) . '$/', $name, $match ) ) {
-				$found[ (int) $match[1] ] = $name;
+			if ( isset( $exists[ $table ] ) ) {
+				$found[ $blog_id ] = $table;
 			}
 		}
 
-		ksort( $found );
-
 		return array(
-			'tables' => array_slice( $found, 0, $max, true ),
-			'capped' => count( $found ) > $max,
+			'tables' => $found,
+			'capped' => self::active_sites_count() > $max,
 		);
 	}
 
@@ -703,18 +705,41 @@ final class Network_Report {
 	}
 
 	/**
-	 * The query of the network's active sites: by ID, not archived, deleted or spam.
+	 * The query of the current network's active sites: by ID, not archived, deleted or spam.
 	 *
-	 * @return array{orderby: string, order: string, deleted: int, archived: int, spam: int}
+	 * @return array{network_id: int, orderby: string, order: string, deleted: int, archived: int, spam: int}
 	 */
 	private static function active_site_args(): array {
 		return array(
-			'orderby'  => 'id',
-			'order'    => 'ASC',
-			'deleted'  => 0,
-			'archived' => 0,
-			'spam'     => 0,
+			'network_id' => (int) get_current_network_id(),
+			'orderby'    => 'id',
+			'order'      => 'ASC',
+			'deleted'    => 0,
+			'archived'   => 0,
+			'spam'       => 0,
 		);
+	}
+
+	/**
+	 * Whether a site is on the current network (active or not).
+	 *
+	 * @param int $blog_id Site.
+	 */
+	public static function is_on_network( int $blog_id ): bool {
+		$site    = get_site( $blog_id );
+		$current = (int) get_current_network_id();
+
+		return null !== $site && (int) $site->network_id === $current;
+	}
+
+	/**
+	 * Those of some sites that are on the current network.
+	 *
+	 * @param array<int, mixed> $blog_ids Sites.
+	 * @return int[]
+	 */
+	public static function only_on_network( array $blog_ids ): array {
+		return array_values( array_filter( array_map( 'intval', $blog_ids ), array( self::class, 'is_on_network' ) ) );
 	}
 
 	/**
@@ -725,12 +750,12 @@ final class Network_Report {
 	}
 
 	/**
-	 * IDs of the network's active sites (at most $max, lowest first).
+	 * IDs of the current network's active sites (at most $max, lowest first).
 	 *
 	 * @param int $max Most sites.
 	 * @return int[]
 	 */
-	private static function site_ids( int $max ): array {
+	public static function site_ids( int $max = self::MAX_SITES ): array {
 		return array_map(
 			'intval',
 			(array) get_sites(

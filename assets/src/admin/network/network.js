@@ -28,7 +28,7 @@ import {
 	useFocusAfterRender,
 } from '../app/use-focus-after-render';
 import { num } from '../data/format';
-import { PATHS } from './model';
+import { PATHS, applyQuestion } from './model';
 import {
 	ActionResult,
 	Confirm,
@@ -263,14 +263,7 @@ function Overview( { setTab } ) {
 				{ asking ? (
 					<Confirm
 						id="zs-napply-q"
-						question={ sprintf(
-							/* translators: %s: number of sites */
-							__(
-								'Sites that changed a network setting go back to the network value, on all %s sites. Locked settings already apply everywhere. License and API keys a site saved itself are kept.',
-								'zero-spam'
-							),
-							num( data.sites )
-						) }
+						question={ applyQuestion( data.sites ) }
 						yes={ __( 'Apply to all sites', 'zero-spam' ) }
 						busy={ busy }
 						onYes={ apply }

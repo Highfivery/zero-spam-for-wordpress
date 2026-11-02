@@ -204,7 +204,12 @@ class Network_Settings_Page {
 	 * Render Overview Tab
 	 */
 	private function render_overview_tab() {
-		$sites          = get_sites( array( 'number' => 0 ) );
+		$sites          = get_sites(
+			array(
+				'number'     => 0,
+				'network_id' => get_current_network_id(),
+			)
+		);
 		$total_sites    = count( $sites );
 		$settings       = $this->settings_manager->get_all_with_status();
 		$locked_count   = 0;
@@ -337,7 +342,12 @@ class Network_Settings_Page {
 								$locked        = $config && $config['locked'];
 								$using_default = $config ? $config['using_default'] : 0;
 								$overridden    = $config ? $config['overridden'] : 0;
-								$total_sites   = $config ? $config['total_sites'] : count( get_sites( array( 'number' => 0 ) ) );
+								$total_sites   = $config ? $config['total_sites'] : (int) get_sites(
+									array(
+										'count'      => true,
+										'network_id' => get_current_network_id(),
+									)
+								);
 
 								?>
 								<tr data-setting-key="<?php echo esc_attr( $setting_key ); ?>">
@@ -1133,7 +1143,12 @@ class Network_Settings_Page {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions', 'zero-spam' ) ) );
 		}
 
-		$sites           = get_sites( array( 'number' => 0 ) );
+		$sites           = get_sites(
+			array(
+				'number'     => 0,
+				'network_id' => get_current_network_id(),
+			)
+		);
 		$settings        = $this->settings_manager->get_all_with_status();
 		$comparison_data = array();
 		$sites_data      = array();
@@ -1289,7 +1304,12 @@ class Network_Settings_Page {
 			}
 		} else {
 			// Apply to all sites.
-			$sites    = get_sites( array( 'number' => 0 ) );
+			$sites    = get_sites(
+				array(
+					'number'     => 0,
+					'network_id' => get_current_network_id(),
+				)
+			);
 			$site_ids = wp_list_pluck( $sites, 'blog_id' );
 			$result   = $templates_manager->apply_to_sites( $slug, $site_ids, false );
 

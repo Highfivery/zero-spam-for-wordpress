@@ -230,8 +230,16 @@ class Network_Settings_Manager {
 
 		// Get sites to process.
 		if ( empty( $site_ids ) ) {
-			$sites    = get_sites( array( 'number' => 0 ) );
+			$sites    = get_sites(
+				array(
+					'number'     => 0,
+					'network_id' => get_current_network_id(),
+				)
+			);
 			$site_ids = wp_list_pluck( $sites, 'blog_id' );
+		} else {
+			// Never a site of another network, whatever a caller names.
+			$site_ids = Network_Report::only_on_network( (array) $site_ids );
 		}
 
 		$updated_count = 0;
@@ -305,6 +313,11 @@ class Network_Settings_Manager {
 					continue;
 				}
 
+				// An empty network secret never replaces a site's own (locked empty, it is enforced anyway; a key lost here could never be seen again).
+				if ( ! empty( $secrets[ $key ] ) && ( ! is_scalar( $config['value'] ) || '' === trim( (string) $config['value'] ) ) ) {
+					continue;
+				}
+
 				if ( empty( $config['locked'] ) && ! $force && $setting_exists ) {
 					continue; // Respect existing site override for unlocked settings.
 				}
@@ -366,6 +379,10 @@ class Network_Settings_Manager {
 
 		// Check permission.
 		if ( ! current_user_can( 'manage_network_options' ) ) {
+			return false;
+		}
+
+		if ( ! Network_Report::is_on_network( (int) $site_id ) ) {
 			return false;
 		}
 

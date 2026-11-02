@@ -58,7 +58,7 @@ class Test_Rest_News_Network extends TestCase {
 		delete_site_transient( News_Feed::TRANSIENT );
 		delete_site_transient( News_Feed::BACKOFF_TRANSIENT );
 		delete_site_option( Network_Settings::META_KEY );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 
 		foreach ( array( get_main_site_id(), self::$site_b ) as $blog_id ) {
 			switch_to_blog( $blog_id );

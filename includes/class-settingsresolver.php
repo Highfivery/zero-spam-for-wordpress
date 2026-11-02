@@ -189,7 +189,7 @@ class Settings_Resolver {
 			$result = update_site_option( Network_Settings::META_KEY, $store );
 
 			if ( $result ) {
-				delete_site_transient( Network_Settings::CACHE_KEY );
+				delete_site_transient( Network_Settings::cache_key() );
 
 				// Every network change is audited with the acting user, as the network settings screen does.
 				$manager = new Network_Settings_Manager();
@@ -248,7 +248,7 @@ class Settings_Resolver {
 			return $network;
 		}
 
-		$stored = get_site_transient( Network_Settings::CACHE_KEY );
+		$stored = get_site_transient( Network_Settings::cache_key() );
 		if ( false === $stored ) {
 			$stored = get_site_option( Network_Settings::META_KEY, array() );
 		}

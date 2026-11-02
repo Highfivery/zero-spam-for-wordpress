@@ -183,7 +183,12 @@ class Network_Stats_Tracker {
 			}
 
 			// Fall back to raw log queries if aggregation not available.
-			$sites = get_sites( array( 'number' => 1000 ) );
+			$sites = get_sites(
+				array(
+					'number'     => 1000,
+					'network_id' => get_current_network_id(),
+				)
+			);
 
 			$total_spam     = 0;
 			$all_ips        = array();
@@ -313,7 +318,12 @@ class Network_Stats_Tracker {
 		$breakdown = get_transient( $cache_key );
 
 		if ( false === $breakdown ) {
-			$sites     = get_sites( array( 'number' => 1000 ) );
+			$sites     = get_sites(
+				array(
+					'number'     => 1000,
+					'network_id' => get_current_network_id(),
+				)
+			);
 			$breakdown = array();
 
 			foreach ( $sites as $site ) {
@@ -639,7 +649,12 @@ class Network_Stats_Tracker {
 		$attackers = get_transient( $cache_key );
 
 		if ( false === $attackers ) {
-			$sites = get_sites( array( 'number' => 1000 ) );
+			$sites = get_sites(
+				array(
+					'number'     => 1000,
+					'network_id' => get_current_network_id(),
+				)
+			);
 
 			// Track which IPs appear on which sites.
 			$ip_site_map = array();

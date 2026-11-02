@@ -17,6 +17,7 @@ import {
 	EXPORT_PER_PAGE,
 	PATHS,
 	allStatsSites,
+	applyQuestion,
 	comparisonCell,
 	comparisonRows,
 	groupOf,
@@ -338,6 +339,17 @@ describe( 'files', () => {
 		expect( head ).toContain( 'Spam blocked' );
 		expect( row ).toBe(
 			'"\'=HYPERLINK(""x"")",a.example,3,2,"Comment, reply",Germany,,Enhanced'
+		);
+	} );
+
+	it( 'ask about Apply to all sites with the right plural', () => {
+		expect( applyQuestion( 1 ) ).toContain( 'Your 1 site goes back' );
+		expect( applyQuestion( 2 ) ).toContain(
+			'Each of your 2 sites goes back'
+		);
+		expect( applyQuestion( 2 ) ).not.toContain( 'on all' );
+		expect( applyQuestion( 2 ) ).toContain(
+			'License and API keys a site saved itself are kept.'
 		);
 	} );
 
