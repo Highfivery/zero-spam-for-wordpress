@@ -1,0 +1,110 @@
+<!doctype html>
+<!--
+	The WordPress.org banner, drawn at 772 x 250 CSS pixels. 1544 x 500 is the
+	same page at a device scale of 2. banner.html?dir=rtl is the right-to-left
+	twin: the background is mirrored and the lockup moves to the other side;
+	the mark and the words are never flipped.
+
+	Colours, the hero gradient and the type come from the admin's tokens. The
+	wall follows the prototype's wallG() generator with a fixed seed, so it always
+	draws the same bricks; here each whole brick comes out of the dark, instead
+	of an airbrushed mask across them. Rendered by bin/render-listing-assets.mjs.
+-->
+<html lang="en" class="zs-app">
+<head>
+<meta charset="utf-8">
+<title>Zero Spam banner</title>
+<link rel="stylesheet" href="../../assets/fonts/fonts.css">
+<link rel="stylesheet" href="../../assets/src/admin/styles/tokens.css">
+<script>
+	document.documentElement.dir =
+		new URLSearchParams( location.search ).get( 'dir' ) === 'rtl' ? 'rtl' : 'ltr';
+</script>
+<style>
+	html, body { margin: 0; width: 772px; height: 250px; overflow: hidden; background: var(--zs-dark-0); }
+
+	.bg { position: absolute; inset: 0; background: var(--zs-hero-bg); }
+	[dir="rtl"] .bg { transform: scaleX(-1); }
+
+	/* The brick lines of the prototype's dark blocks. */
+	.lines { position: absolute; inset: 0; }
+
+	.wall { position: absolute; inset: 0; display: block; }
+
+	.lockup {
+		position: absolute;
+		inset-block: 0;
+		inset-inline-start: 96px;
+		display: flex;
+		align-items: center;
+		gap: 26px;
+	}
+	.mark { position: relative; display: block; flex: none; width: 108px; height: 108px; }
+	.mark::before { content: ""; position: absolute; inset: -30%; border-radius: 50%; background: radial-gradient(closest-side, var(--zs-halo), var(--zs-halo-0)); }
+	.mark img { position: relative; display: block; width: 100%; height: 100%; }
+
+	.words { display: flex; flex-direction: column; gap: 16px; font-family: "Plus Jakarta Sans"; text-align: start; }
+	.words span { display: block; white-space: nowrap; text-box: trim-both cap alphabetic; }
+	.name { font-size: 66px; font-weight: 800; line-height: 1; letter-spacing: -0.025em; color: var(--zs-white); }
+	.for { font-size: 27px; font-weight: 600; line-height: 1; letter-spacing: -0.005em; color: var(--zs-dark-text); }
+</style>
+</head>
+<body>
+<div class="bg" aria-hidden="true">
+	<svg class="lines" width="772" height="250" viewBox="0 0 772 250">
+		<defs>
+			<pattern id="bricks" width="64" height="64" patternUnits="userSpaceOnUse">
+				<path d="M0 .5H64M0 32.5H64M.5 0V32M32.5 32V64" fill="none" stroke="#fff" stroke-opacity=".05"/>
+			</pattern>
+		</defs>
+		<rect width="772" height="250" fill="url(#bricks)"/>
+	</svg>
+	<svg class="wall" id="wall" width="772" height="250" viewBox="0 0 772 250"></svg>
+</div>
+<div class="lockup">
+	<span class="mark"><img src="../../assets/img/zero-spam-mark.svg" alt=""></span>
+	<div class="words">
+		<span class="name" data-text>Zero Spam</span>
+		<span class="for" data-text>for WordPress</span>
+	</div>
+</div>
+<script>
+	( function () {
+		const RAMP = [ '#63000D', '#840012', '#BE0000', '#FF2929', '#FF7038', '#FFA17C' ];
+		const w = 772, h = 250, bh = 42, gap = 3, rx = 4;
+		const angle = -6, from = 548, to = 720;
+		let seed = 11;
+		const random = () => {
+			seed = ( Math.imul( seed, 1664525 ) + 1013904223 ) >>> 0;
+			return seed / 4294967296;
+		};
+		const cx = w / 2, cy = h / 2, D = Math.hypot( w, h ) + bh * 2;
+		const rows = Math.ceil( D / bh ) + 1, y0 = cy - ( rows * bh ) / 2;
+		const sin = Math.sin( ( angle * Math.PI ) / 180 ), cos = Math.cos( ( angle * Math.PI ) / 180 );
+		let out = '';
+		for ( let r = 0; r < rows; r++ ) {
+			const y = y0 + r * bh;
+			let x = cx - D / 2 - bh * 1.6 * random();
+			while ( x < cx + D / 2 ) {
+				const bw = bh * [ 1.1, 1.25, 1.6, 1.3 ][ Math.floor( random() * 4 ) ];
+				const jitter = random() - 0.5;
+				/* Where the brick's centre lands once the wall is rotated. */
+				const dx = x + bw / 2 - cx, dy = y + bh / 2 - cy;
+				const X = cx + dx * cos - dy * sin, Y = cy + dx * sin + dy * cos;
+				const reach = ( X - from ) / ( to - from );
+				if ( reach > 0.2 ) {
+					/* Dark bricks fade in; a bright brick is always solid, never a muddy tint. */
+					const t = Math.min( reach, 1.15 ) * 0.56 + ( Y / h ) * 0.12 + jitter * 0.24;
+					const i = Math.max( 0, Math.min( 5, Math.floor( t * 6 ) ) );
+					const opacity = ( i > 1 ? 1 : Math.min( 1, reach * 2 ) ).toFixed( 2 );
+					out += `<rect x="${ ( x + gap / 2 ).toFixed( 1 ) }" y="${ ( y + gap / 2 ).toFixed( 1 ) }" width="${ ( bw - gap ).toFixed( 1 ) }" height="${ bh - gap }" rx="${ rx }" fill="${ RAMP[ i ] }" opacity="${ opacity }"/>`;
+				}
+				x += bw;
+			}
+		}
+		document.getElementById( 'wall' ).innerHTML =
+			`<g transform="rotate(${ angle } ${ cx } ${ cy })">${ out }</g>`;
+	}() );
+</script>
+</body>
+</html>

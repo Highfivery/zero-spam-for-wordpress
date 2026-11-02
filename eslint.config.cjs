@@ -50,6 +50,22 @@ module.exports = [
 		},
 	},
 	{
+		// A Node script, importing the dev dependency the e2e suite installs.
+		files: [ 'bin/render-listing-assets.mjs' ],
+		languageOptions: {
+			globals: {
+				process: 'readonly',
+				document: 'readonly',
+				getComputedStyle: 'readonly',
+				Image: 'readonly',
+			},
+		},
+		rules: {
+			'import/no-extraneous-dependencies': 'off',
+			'no-console': 'off',
+		},
+	},
+	{
 		// Vitest is imported explicitly, so only its node:* helpers need this.
 		files: [ 'assets/src/**/*.test.js' ],
 		languageOptions: {

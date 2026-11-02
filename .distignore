@@ -2,6 +2,7 @@
 # Apply with: rsync -a --delete --exclude-from=.distignore <checkout>/ <svn>/trunk/
 .git
 .github
+.wordpress-org
 .githooks
 .gitignore
 .distignore
