@@ -144,7 +144,7 @@ class Test_Rest_Network extends TestCase {
 	/**
 	 * Every new or changed network route, with a request that succeeds for a super admin.
 	 *
-	 * @return array<string, array{0: string, 1: string, 2: array<string, mixed>}>
+	 * @return array<string, array{0: string, 1: string, 2: array<string, mixed>, 3?: int}> Method, route, body and, when it is not 200 or 201, the super admin's status.
 	 */
 	private function routes(): array {
 		return array(
@@ -166,7 +166,25 @@ class Test_Rest_Network extends TestCase {
 					'mode'     => 'merge',
 				),
 			),
-			'template-put'      => array( 'PUT', '/zero-spam/v1/network-settings/templates/e2e-unknown', array( 'name' => 'X' ) ),
+			'template-put'      => array( 'PUT', '/zero-spam/v1/network-settings/templates/e2e-unknown', array( 'name' => 'X' ), 404 ),
+			'block-delete'      => array( 'DELETE', '/zero-spam/v1/network/blocks/999999', array(), 404 ),
+			'template-post'     => array(
+				'POST',
+				'/zero-spam/v1/network-settings/templates',
+				array(
+					'name'     => 'Matrix',
+					'slug'     => 'matrix',
+					'settings' => array( 'max_logs' => 7000 ),
+				),
+			),
+			'template-apply'    => array( 'POST', '/zero-spam/v1/network-settings/templates/balanced/apply', array() ),
+			'apply-all'         => array( 'POST', '/zero-spam/v1/network-settings/apply-all', array( 'mode' => 'follow' ) ),
+			'lock'              => array( 'POST', '/zero-spam/v1/network-settings/max_logs/lock', array() ),
+			'unlock'            => array( 'POST', '/zero-spam/v1/network-settings/max_logs/unlock', array() ),
+			'settings'          => array( 'GET', '/zero-spam/v1/network-settings', array() ),
+			'compare'           => array( 'GET', '/zero-spam/v1/network-settings/compare', array() ),
+			'status'            => array( 'GET', '/zero-spam/v1/network-settings/status', array() ),
+			'site-settings'     => array( 'GET', '/zero-spam/v1/network-settings/site/1', array() ),
 		);
 	}
 
@@ -191,10 +209,10 @@ class Test_Rest_Network extends TestCase {
 		}
 
 		$this->super_admin();
-		foreach ( $this->routes() as $name => list( $method, $route, $body ) ) {
-			$status = $this->rest( $method, $route, $body )->get_status();
-			if ( 'template-put' === $name ) {
-				$this->assertSame( 404, $status, 'An unknown template is 404 for a super admin.' );
+		foreach ( $this->routes() as $name => $route ) {
+			$status = $this->rest( $route[0], $route[1], $route[2] )->get_status();
+			if ( isset( $route[3] ) ) {
+				$this->assertSame( $route[3], $status, "{$name}: the permission check passed, and the thing asked for does not exist." );
 				continue;
 			}
 			$this->assertContains( $status, array( 200, 201 ), "{$name}: super admin" );
@@ -556,5 +574,32 @@ class Test_Rest_Network extends TestCase {
 		$this->assertNotFalse( wp_next_scheduled( 'zerospam_network_weekly_summary' ) );
 
 		$this->assertSame( 400, $this->rest( 'PUT', '/zero-spam/v1/network/notifications', array( 'x' => 1 ) )->get_status() );
+	}
+
+	/**
+	 * Only the sites it reads count: an archived site does not make the
+	 * report look capped, in the overview, the statistics or the page's bootstrap.
+	 */
+	public function test_overview_counts_the_sites_it_checks(): void {
+		$this->super_admin();
+		$this->set_network_setting( 'max_logs', 9000 );
+
+		$before = Network_Report::active_sites_count();
+		$site_c = self::factory()->blog->create();
+		$site_d = self::factory()->blog->create();
+		wp_update_site( $site_c, array( 'archived' => 1 ) );
+		wp_update_site( $site_d, array( 'deleted' => 1 ) );
+		Network_Report::flush();
+
+		$overview = $this->rest( 'GET', '/zero-spam/v1/network/overview' )->get_data();
+		$this->assertSame( $before, $overview['sites'] );
+		$this->assertSame( $before, $overview['checked'] );
+		$this->assertFalse( $overview['capped'], 'Sites it does not read are not "the rest of the sites".' );
+
+		$stats = $this->rest( 'GET', '/zero-spam/v1/network/stats' )->get_data();
+		$this->assertSame( $before, $stats['totals']['sites'] );
+
+		$boot = ( new \ZeroSpam\Core\Admin\Admin_App() )->bootstrap( 'network' );
+		$this->assertSame( $before, $boot['network']['sites'] );
 	}
 }

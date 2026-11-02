@@ -19,6 +19,16 @@ defined( 'ABSPATH' ) || die();
 class Network_Settings_Manager {
 
 	/**
+	 * Store flag of a value only a lock created (the network had not set the
+	 * setting): unlocking removes it. Every writer of a value drops the flag.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @var string
+	 */
+	const FROM_LOCK = 'from_lock';
+
+	/**
 	 * Network Settings instance
 	 *
 	 * @var Network_Settings
@@ -103,17 +113,18 @@ class Network_Settings_Manager {
 		// Get current settings.
 		$settings = $this->network_settings->get_network_settings();
 
-		// If setting doesn't exist, create it with default value from plugin settings.
-		// A secret is never copied from the main site to every site (since 6.0.0): it is locked empty.
+		// A setting the network does not set is locked at the plugin's default, never at
+		// a site's value (since 6.0.0; a secret has no default: it is locked empty).
+		// Unlocking removes that value again.
 		if ( ! isset( $settings['settings'][ $setting_key ] ) ) {
-			$plugin_settings = \ZeroSpam\Core\Settings::get_settings();
-			$default_value   = \ZeroSpam\Core\Settings_Schema::is_secret( (string) $setting_key ) ? '' : ( $plugin_settings[ $setting_key ]['value'] ?? '' );
+			$entry = \ZeroSpam\Core\Settings_Schema::setting( (string) $setting_key );
 
 			$settings['settings'][ $setting_key ] = array(
-				'value'      => $default_value,
-				'locked'     => false,
-				'updated_by' => get_current_user_id(),
-				'updated_at' => current_time( 'mysql' ),
+				'value'         => $entry['default'] ?? '',
+				'locked'        => false,
+				'updated_by'    => get_current_user_id(),
+				'updated_at'    => current_time( 'mysql' ),
+				self::FROM_LOCK => true,
 			);
 		}
 
@@ -159,10 +170,15 @@ class Network_Settings_Manager {
 			return true;
 		}
 
-		// Unlock it.
-		$settings['settings'][ $setting_key ]['locked']     = false;
-		$settings['settings'][ $setting_key ]['updated_by'] = get_current_user_id();
-		$settings['settings'][ $setting_key ]['updated_at'] = current_time( 'mysql' );
+		if ( ! empty( $settings['settings'][ $setting_key ][ self::FROM_LOCK ] ) ) {
+			// The network never set it: the value the lock created goes too, so sites are as they were.
+			unset( $settings['settings'][ $setting_key ] );
+		} else {
+			// Unlock it.
+			$settings['settings'][ $setting_key ]['locked']     = false;
+			$settings['settings'][ $setting_key ]['updated_by'] = get_current_user_id();
+			$settings['settings'][ $setting_key ]['updated_at'] = current_time( 'mysql' );
+		}
 
 		// Save.
 		$result = update_site_option( Network_Settings::META_KEY, $settings );
@@ -182,7 +198,8 @@ class Network_Settings_Manager {
 	 * @param bool   $force     Force overwrite site overrides.
 	 * @param array  $site_ids  Specific site IDs (empty = all sites).
 	 * @param string $mode      Mode: 'locked_only', 'defaults_only', 'all', or 'follow' (since 6.0.0: sites drop
-	 *                          their own values of unlocked settings the network sets, so they follow it).
+	 *                          their own values of unlocked settings the network sets, so they follow it; a site's
+	 *                          own license and API keys and webhook address are kept, as nobody can see them again).
 	 * @return array Result with counts.
 	 */
 	public function apply_to_sites( $force = false, $site_ids = array(), $mode = 'all' ) {
@@ -224,6 +241,12 @@ class Network_Settings_Manager {
 		// Get all plugin settings to know which module each setting belongs to.
 		$all_plugin_settings = \ZeroSpam\Core\Settings::get_settings();
 
+		// Read here, once: the registry is built per site, and this loop switches sites.
+		$secrets = array();
+		foreach ( array_keys( $network_settings['settings'] ) as $key ) {
+			$secrets[ $key ] = \ZeroSpam\Core\Settings_Schema::is_secret( (string) $key );
+		}
+
 		foreach ( $site_ids as $site_id ) {
 			switch_to_blog( $site_id );
 
@@ -250,8 +273,9 @@ class Network_Settings_Manager {
 					case 'follow':
 						// The site goes back to the network value: its own value of an
 						// unlocked setting the network sets is removed (never a locked
-						// one, which comes back when the setting is unlocked).
-						if ( empty( $config['locked'] ) && isset( $config['value'] ) && $setting_exists ) {
+						// one, which comes back when the setting is unlocked, and never a
+						// secret: write-only, so nobody could see what was lost).
+						if ( empty( $config['locked'] ) && isset( $config['value'] ) && $setting_exists && empty( $secrets[ $key ] ) ) {
 							unset( $module_settings[ $key ] );
 							$followed[ $module ] = $module_settings;
 						}

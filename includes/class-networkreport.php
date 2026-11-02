@@ -27,6 +27,12 @@ defined( 'ABSPATH' ) || die();
  * - comparison(): one page of sites against the network values.
  * - stats(): detections per site for a period, the network's totals and
  *   the addresses seen on several sites (cached for ten minutes per period).
+ * - settings_status(), site_values() and compare(): the same reads for the
+ *   `network-settings` routes, secrets masked; compare() is cached with the
+ *   overview, per page.
+ *
+ * "Sites" here are the active ones, what site_ids() reads and
+ * active_sites_count() counts (not archived, deleted or spam).
  *
  * Network values come from the network settings store
  * (`zerospam_network_settings`); a site overrides a network default when
@@ -57,6 +63,20 @@ final class Network_Report {
 	 * @var string
 	 */
 	const REPORT_TRANSIENT = 'zerospam_network_report';
+
+	/**
+	 * Site transient of the `network-settings/compare` pages.
+	 *
+	 * @var string
+	 */
+	const COMPARE_TRANSIENT = 'zerospam_network_compare';
+
+	/**
+	 * Most `network-settings/compare` pages kept in COMPARE_TRANSIENT.
+	 *
+	 * @var int
+	 */
+	const COMPARE_PAGES = 10;
 
 	/**
 	 * Site transient prefix of the statistics (the period follows).
@@ -110,10 +130,11 @@ final class Network_Report {
 	}
 
 	/**
-	 * Forgets the cached overview.
+	 * Forgets the cached overview and comparison pages.
 	 */
 	public static function flush(): void {
 		delete_site_transient( self::REPORT_TRANSIENT );
+		delete_site_transient( self::COMPARE_TRANSIENT );
 	}
 
 	/**
@@ -159,7 +180,7 @@ final class Network_Report {
 		$network  = self::network_values();
 		$defaults = self::defaults_of( $network );
 		$types    = self::types();
-		$total    = (int) get_sites( array( 'count' => true ) );
+		$total    = self::active_sites_count();
 		$ids      = self::site_ids( self::MAX_SITES );
 		$custom   = array_fill_keys( array_keys( $defaults ), 0 );
 		$with     = 0;
@@ -249,6 +270,201 @@ final class Network_Report {
 	}
 
 	/**
+	 * A secret of the network store as the API shows it.
+	 *
+	 * @param mixed $value Stored value.
+	 * @return array{set: bool, hint: string|null}
+	 */
+	public static function masked_value( $value ): array {
+		$text = is_scalar( $value ) && ! is_bool( $value ) ? trim( (string) $value ) : '';
+
+		return array(
+			'set'  => '' !== $text,
+			'hint' => '' !== $text ? Settings_Schema::hint( $text ) : null,
+		);
+	}
+
+	/**
+	 * Whether the API must not show a value of the network store: it is
+	 * secret, or the registry does not know it (it could be the key of an
+	 * extension that is not active here, whose `secret` flag cannot be read).
+	 *
+	 * @param string $key Setting key.
+	 */
+	public static function is_hidden( string $key ): bool {
+		return Settings_Schema::is_secret( $key ) || ! isset( Settings_Schema::registry()[ $key ] );
+	}
+
+	/**
+	 * What `GET network-settings` returns: per setting the network holds, its
+	 * value (a secret as masked_value()), its lock, who changed it last and
+	 * how many sites use it. The counts come from overview().
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function settings_status(): array {
+		$overview = self::overview();
+		$rows     = array();
+
+		foreach ( self::network_values() as $key => $config ) {
+			$key        = (string) $key;
+			$locked     = ! empty( $config['locked'] );
+			$overridden = (int) ( $overview['custom'][ $key ] ?? 0 );
+			$value      = $config['value'] ?? null;
+
+			$rows[ $key ] = array(
+				'value'         => self::is_hidden( $key ) ? self::masked_value( $value ) : $value,
+				'locked'        => $locked,
+				'updated_by'    => $config['updated_by'] ?? null,
+				'updated_at'    => $config['updated_at'] ?? null,
+				'total_sites'   => $overview['sites'],
+				'using_default' => $locked ? $overview['sites'] : ( isset( $config['value'] ) ? max( 0, $overview['checked'] - $overridden ) : 0 ),
+				'overridden'    => $overridden,
+			);
+		}
+
+		return $rows;
+	}
+
+	/**
+	 * Where a site's value of a network setting comes from, and that value.
+	 *
+	 * @param array<string, mixed> $config Network entry.
+	 * @param array<string, mixed> $stored The site's stored settings.
+	 * @param string               $key    Setting key.
+	 * @param string               $type   Setting type.
+	 * @return array{source: string, value: mixed}
+	 */
+	private static function site_cell( array $config, array $stored, string $key, string $type ): array {
+		$site_has = array_key_exists( $key, $stored );
+		$value    = $site_has ? $stored[ $key ] : null;
+
+		if ( ! empty( $config['locked'] ) ) {
+			return array(
+				'source' => 'locked',
+				'value'  => $config['value'] ?? null,
+			);
+		}
+
+		if ( isset( $config['value'] ) ) {
+			if ( $site_has && ! self::same_value( $value, $config['value'], $type ) ) {
+				return array(
+					'source' => 'override',
+					'value'  => $value,
+				);
+			}
+
+			return array(
+				'source' => 'default',
+				'value'  => $config['value'],
+			);
+		}
+
+		return array(
+			'source' => $site_has ? 'site' : 'plugin',
+			'value'  => $value,
+		);
+	}
+
+	/**
+	 * A site's value as the `network-settings` routes show it: `{ value, source }`,
+	 * or for a secret `{ set, source }`.
+	 *
+	 * @param array<string, mixed> $cell   Result of site_cell().
+	 * @param bool                 $hidden Whether the value must not be shown.
+	 * @return array<string, mixed>
+	 */
+	private static function shown_cell( array $cell, bool $hidden ): array {
+		if ( $hidden ) {
+			return array(
+				'set'    => self::masked_value( $cell['value'] )['set'],
+				'source' => $cell['source'],
+			);
+		}
+
+		return array(
+			'value'  => $cell['value'],
+			'source' => $cell['source'],
+		);
+	}
+
+	/**
+	 * What `GET network-settings/site/{id}` returns: per setting the network
+	 * holds, that site's value and where it comes from (one query, no switch
+	 * to the site).
+	 *
+	 * @param int $blog_id Site.
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function site_values( int $blog_id ): array {
+		$stored = self::stored_settings( array( $blog_id ) )[ $blog_id ] ?? array();
+		$types  = self::types();
+		$values = array();
+
+		foreach ( self::network_values() as $key => $config ) {
+			$key            = (string) $key;
+			$values[ $key ] = self::shown_cell( self::site_cell( $config, $stored, $key, $types[ $key ] ?? '' ), self::is_hidden( $key ) );
+		}
+
+		return $values;
+	}
+
+	/**
+	 * One page of `GET network-settings/compare`: per setting the network
+	 * holds, its value and each site's, secrets masked. Cached with the
+	 * overview (at most COMPARE_PAGES pages), and cleared with it.
+	 *
+	 * @param int $page     Page (1-based).
+	 * @param int $per_page Sites per page (at most 100).
+	 * @return array{total: int, sites: array<int, array{id: int, name: string, url: string}>, comparison: array<string, array<string, mixed>>}
+	 */
+	public static function compare( int $page, int $per_page ): array {
+		$per_page = max( 1, min( 100, $per_page ) );
+		$slot     = $page . ':' . $per_page;
+		$cached   = get_site_transient( self::COMPARE_TRANSIENT );
+		$cached   = is_array( $cached ) ? $cached : array();
+
+		if ( isset( $cached[ $slot ]['comparison'], $cached[ $slot ]['sites'] ) ) {
+			return $cached[ $slot ];
+		}
+
+		$sites  = self::sites_page( $page, $per_page );
+		$ids    = array_column( $sites['items'], 'id' );
+		$stored = $ids ? self::stored_settings( $ids ) : array();
+		$types  = self::types();
+		$rows   = array();
+
+		foreach ( self::network_values() as $key => $config ) {
+			$key    = (string) $key;
+			$hidden = self::is_hidden( $key );
+			$cells  = array();
+
+			foreach ( $ids as $blog_id ) {
+				$cells[ (string) $blog_id ] = self::shown_cell( self::site_cell( $config, $stored[ $blog_id ] ?? array(), $key, $types[ $key ] ?? '' ), $hidden );
+			}
+
+			$network_value = $config['value'] ?? null;
+
+			$rows[ $key ] = array(
+				'network_value' => $hidden ? self::masked_value( $network_value ) : $network_value,
+				'locked'        => ! empty( $config['locked'] ),
+				'sites'         => (object) $cells,
+			);
+		}
+
+		$data = array(
+			'total'      => $sites['total'],
+			'sites'      => $sites['items'],
+			'comparison' => $rows,
+		);
+
+		$cached[ $slot ] = $data;
+		set_site_transient( self::COMPARE_TRANSIENT, array_slice( $cached, -self::COMPARE_PAGES, null, true ), 5 * MINUTE_IN_SECONDS );
+
+		return $data;
+	}
+
+	/**
 	 * One page of sites against the network values: per setting the network
 	 * holds, each site's value and where it comes from (locked, override or
 	 * default). Secret values are never returned, only whether one is set.
@@ -281,24 +497,11 @@ final class Network_Report {
 			$cells  = array();
 
 			foreach ( $ids as $blog_id ) {
-				$site_has = array_key_exists( $key, $stored[ $blog_id ] ?? array() );
-				$value    = $site_has ? $stored[ $blog_id ][ $key ] : null;
-
-				if ( $locked ) {
-					$source = 'locked';
-					$value  = $config['value'] ?? null;
-				} elseif ( $has && $site_has && ! self::same_value( $value, $config['value'], $types[ $key ] ?? '' ) ) {
-					$source = 'override';
-				} elseif ( $has ) {
-					$source = 'default';
-					$value  = $config['value'];
-				} else {
-					$source = $site_has ? 'site' : 'plugin';
-				}
+				$cell = self::site_cell( $config, $stored[ $blog_id ] ?? array(), $key, $types[ $key ] ?? '' );
 
 				$cells[ (string) $blog_id ] = array(
-					'source' => $source,
-					'value'  => $secret ? array( 'set' => is_scalar( $value ) && '' !== trim( (string) $value ) ) : $value,
+					'source' => $cell['source'],
+					'value'  => $secret ? array( 'set' => is_scalar( $cell['value'] ) && '' !== trim( (string) $cell['value'] ) ) : $cell['value'],
 				);
 			}
 
@@ -340,13 +543,7 @@ final class Network_Report {
 	 */
 	public static function sites_page( int $page, int $per_page, string $search = '' ): array {
 		$per_page = max( 1, min( 100, $per_page ) );
-		$args     = array(
-			'orderby'  => 'id',
-			'order'    => 'ASC',
-			'deleted'  => 0,
-			'archived' => 0,
-			'spam'     => 0,
-		);
+		$args     = self::active_site_args();
 
 		if ( '' !== $search ) {
 			$args['search'] = $search;
@@ -506,6 +703,28 @@ final class Network_Report {
 	}
 
 	/**
+	 * The query of the network's active sites: by ID, not archived, deleted or spam.
+	 *
+	 * @return array{orderby: string, order: string, deleted: int, archived: int, spam: int}
+	 */
+	private static function active_site_args(): array {
+		return array(
+			'orderby'  => 'id',
+			'order'    => 'ASC',
+			'deleted'  => 0,
+			'archived' => 0,
+			'spam'     => 0,
+		);
+	}
+
+	/**
+	 * How many sites the report covers: the active ones, however many it reads.
+	 */
+	public static function active_sites_count(): int {
+		return (int) get_sites( self::active_site_args() + array( 'count' => true ) );
+	}
+
+	/**
 	 * IDs of the network's active sites (at most $max, lowest first).
 	 *
 	 * @param int $max Most sites.
@@ -515,14 +734,9 @@ final class Network_Report {
 		return array_map(
 			'intval',
 			(array) get_sites(
-				array(
-					'fields'   => 'ids',
-					'number'   => $max,
-					'orderby'  => 'id',
-					'order'    => 'ASC',
-					'deleted'  => 0,
-					'archived' => 0,
-					'spam'     => 0,
+				self::active_site_args() + array(
+					'fields' => 'ids',
+					'number' => $max,
 				)
 			)
 		);
@@ -591,7 +805,7 @@ final class Network_Report {
 			'totals'    => array(
 				'blocked'    => 0,
 				'unique_ips' => 0,
-				'sites'      => (int) get_sites( array( 'count' => true ) ),
+				'sites'      => self::active_sites_count(),
 				'types'      => 0,
 				'previous'   => 0,
 			),

@@ -17,8 +17,9 @@ use ZeroSpam\Tests\TestCase;
 /**
  * An empty network default reads "(none)" on a subsite; Network Stats calls
  * a site "Enhanced" only when its license is valid; locking a secret the
- * network does not set never copies the main site's key; unlocking a
- * setting the network does not set creates nothing.
+ * network does not set never copies the main site's key, and locking any
+ * other uses the plugin default (undoing it removes that value); unlocking
+ * a setting the network does not set creates nothing.
  *
  * @group ms-required
  * @covers \ZeroSpam\Includes\Admin\Site_Admin_Overrides::render_override_notice
@@ -124,6 +125,95 @@ class Test_Network_Legacy_Fixes extends TestCase {
 		$this->assertSame( '', $store['settings']['ipinfo_access_token']['value'] );
 		$this->assertTrue( $store['settings']['ipinfo_access_token']['locked'] );
 		$this->assertStringNotContainsString( 'main-site-secret', (string) wp_json_encode( $store ) );
+	}
+
+	/**
+	 * Locking a setting the network does not set uses the plugin default, never a site's value.
+	 */
+	public function test_locking_an_unset_key_uses_the_plugin_default(): void {
+		update_option( 'zero-spam-settings', array( 'max_logs' => 4321 ) );
+		self::reset_static_caches();
+
+		$this->assertSame( 200, $this->rest( 'POST', '/zero-spam/v1/network-settings/max_logs/lock' )->get_status() );
+
+		$store = get_site_option( Network_Settings::META_KEY );
+		$this->assertSame( 10000, $store['settings']['max_logs']['value'] );
+		$this->assertTrue( $store['settings']['max_logs']['locked'] );
+	}
+
+	/**
+	 * Undo of such a lock (unlock) removes the value the lock created: the network sets nothing again.
+	 */
+	public function test_unlocking_after_such_a_lock_removes_the_created_value(): void {
+		update_option( 'zero-spam-settings', array( 'max_logs' => 4321 ) );
+		$manager = new Network_Settings_Manager();
+		$this->assertTrue( $manager->lock_setting( 'max_logs' ) );
+		$this->assertTrue( $manager->unlock_setting( 'max_logs' ) );
+
+		$store = get_site_option( Network_Settings::META_KEY, array() );
+		$this->assertArrayNotHasKey( 'max_logs', $store['settings'] ?? array() );
+		$this->assertSame( array( 'max_logs' => 4321 ), get_option( 'zero-spam-settings' ), 'The site keeps its own value.' );
+	}
+
+	/**
+	 * A value the network chose stays when its lock is undone, also when it was saved after the lock.
+	 *
+	 * @dataProvider data_network_writers
+	 *
+	 * @param string $writer How the value is saved.
+	 */
+	public function test_unlocking_keeps_a_value_the_network_chose( string $writer ): void {
+		$manager = new Network_Settings_Manager();
+
+		if ( 'before' === $writer ) {
+			$this->set_network_setting( 'max_logs', 7777 );
+		}
+
+		$this->assertTrue( $manager->lock_setting( 'max_logs' ) );
+
+		switch ( $writer ) {
+			case 'rest':
+				$this->assertSame( 200, $this->rest( 'PATCH', '/zero-spam/v1/settings', array( 'max_logs' => 7777 ), array( 'scope' => 'network' ) )->get_status() );
+				break;
+			case 'manager':
+				$this->assertTrue( $manager->set_setting( 'max_logs', 7777, true ) );
+				break;
+			case 'template':
+				$this->assertSame(
+					201,
+					$this->rest(
+						'POST',
+						'/zero-spam/v1/network-settings/templates',
+						array(
+							'name'     => 'Seven',
+							'slug'     => 'seven',
+							'settings' => array( 'max_logs' => 7777 ),
+						)
+					)->get_status()
+				);
+				$this->assertSame( 200, $this->rest( 'POST', '/zero-spam/v1/network-settings/templates/seven/apply' )->get_status() );
+				break;
+		}
+
+		$this->assertTrue( $manager->unlock_setting( 'max_logs' ) );
+
+		$store = get_site_option( Network_Settings::META_KEY );
+		$this->assertSame( 7777, $store['settings']['max_logs']['value'] );
+		$this->assertFalse( $store['settings']['max_logs']['locked'] );
+	}
+
+	/**
+	 * The ways a network value is saved.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function data_network_writers(): array {
+		return array(
+			'before the lock'              => array( 'before' ),
+			'PATCH settings?scope=network' => array( 'rest' ),
+			'set_setting()'                => array( 'manager' ),
+			'a template'                   => array( 'template' ),
+		);
 	}
 
 	/**

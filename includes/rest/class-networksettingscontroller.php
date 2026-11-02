@@ -3,7 +3,8 @@
  * Network Settings REST API Controller
  *
  * Provides 20+ REST API endpoints for programmatic access
- * to network settings management.
+ * to network settings management. Secrets are write-only: every read
+ * shows a network secret as `{ set, hint }` and a site's as `{ set, source }`.
  *
  * @package ZeroSpam
  */
@@ -146,6 +147,19 @@ class Network_Settings_Controller extends Base_Controller {
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_comparison' ),
 					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => array(
+						'page'     => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+							'default' => 1,
+						),
+						'per_page' => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+							'maximum' => self::MAX_PER_PAGE,
+							'default' => self::MAX_PER_PAGE,
+						),
+					),
 				),
 			)
 		);
@@ -455,13 +469,14 @@ class Network_Settings_Controller extends Base_Controller {
 	/**
 	 * Get all settings
 	 *
+	 * Since 6.0.0 a secret's value is `{ set, hint }` and the site counts
+	 * come from the cached report of the network's active sites.
+	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function get_items( $request ) {
-		$settings = $this->settings_manager->get_all_with_status();
-
-		return rest_ensure_response( $settings );
+		return rest_ensure_response( \ZeroSpam\Includes\Network_Report::settings_status() );
 	}
 
 	/**
@@ -565,23 +580,15 @@ class Network_Settings_Controller extends Base_Controller {
 	/**
 	 * Get site settings
 	 *
+	 * Per setting the network holds, `{ value, source }`; since 6.0.0 a
+	 * secret is `{ set, source }`. `source`: locked, override, default, or
+	 * where the network sets no value, site or plugin.
+	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function get_site_settings( $request ) {
-		$site_id  = $request->get_param( 'site_id' );
-		$settings = $this->settings_manager->get_all_with_status();
-		$result   = array();
-
-		foreach ( $settings as $key => $config ) {
-			$effective      = $this->network_settings->get_effective_value( $key, $site_id );
-			$result[ $key ] = array(
-				'value'  => $effective['value'],
-				'source' => $effective['source'],
-			);
-		}
-
-		return rest_ensure_response( $result );
+		return rest_ensure_response( \ZeroSpam\Includes\Network_Report::site_values( (int) $request->get_param( 'site_id' ) ) );
 	}
 
 	/**
@@ -609,64 +616,51 @@ class Network_Settings_Controller extends Base_Controller {
 	/**
 	 * Get comparison
 	 *
+	 * A page of sites (`page`, `per_page`, at most 100; X-WP-Total), since
+	 * 6.0.0: `comparison` by setting key, with `network_value` (a secret as
+	 * `{ set, hint }`), `locked` and `sites` by blog ID (`{ value, source }`,
+	 * a secret as `{ set, source }`), and `sites` (`id`, `name`, `url`).
+	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function get_comparison( $request ) {
-		$sites      = get_sites( array( 'number' => 100 ) );
-		$settings   = $this->settings_manager->get_all_with_status();
-		$comparison = array();
+		$per_page = $this->clamp_per_page( $request->get_param( 'per_page' ), self::MAX_PER_PAGE );
+		$data     = \ZeroSpam\Includes\Network_Report::compare( (int) $request->get_param( 'page' ), $per_page );
 
-		foreach ( $settings as $key => $config ) {
-			$comparison[ $key ] = array(
-				'network_value' => $config['value'],
-				'locked'        => $config['locked'],
-				'sites'         => array(),
-			);
-
-			foreach ( $sites as $site ) {
-				$effective                                     = $this->network_settings->get_effective_value( $key, (int) $site->blog_id );
-				$comparison[ $key ]['sites'][ $site->blog_id ] = array(
-					'value'  => $effective['value'],
-					'source' => $effective['source'],
-				);
-			}
-		}
-
-		return rest_ensure_response(
-			array(
-				'comparison' => $comparison,
-				'sites'      => $sites,
-			)
+		return $this->add_pagination_headers(
+			rest_ensure_response(
+				array(
+					'comparison' => (object) $data['comparison'],
+					'sites'      => $data['sites'],
+				)
+			),
+			$data['total'],
+			$per_page
 		);
 	}
 
 	/**
 	 * Get status
 	 *
+	 * From the cached report of the network's active sites (since 6.0.0):
+	 * site changes are counted on at most Network_Report::MAX_SITES sites
+	 * (`checked_sites`, `capped`).
+	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function get_status( $request ) {
-		$sites           = get_sites( array( 'number' => 0 ) );
-		$total_sites     = count( $sites );
-		$settings        = $this->settings_manager->get_all_with_status();
-		$locked_settings = 0;
-		$total_overrides = 0;
-
-		foreach ( $settings as $config ) {
-			if ( $config['locked'] ) {
-				++$locked_settings;
-			}
-			$total_overrides += $config['overridden'];
-		}
+		$overview = \ZeroSpam\Includes\Network_Report::overview();
 
 		return rest_ensure_response(
 			array(
-				'total_sites'     => $total_sites,
-				'total_settings'  => count( $settings ),
-				'locked_settings' => $locked_settings,
-				'total_overrides' => $total_overrides,
+				'total_sites'     => $overview['sites'],
+				'checked_sites'   => $overview['checked'],
+				'capped'          => $overview['capped'],
+				'total_settings'  => count( \ZeroSpam\Includes\Network_Report::network_values() ),
+				'locked_settings' => $overview['locked'],
+				'total_overrides' => $overview['overrides'],
 			)
 		);
 	}
@@ -723,7 +717,9 @@ class Network_Settings_Controller extends Base_Controller {
 	 * Export settings
 	 *
 	 * Since 6.0.0 license and API keys and webhook addresses are left out:
-	 * they are secrets, and an export is meant to be copied around.
+	 * they are secrets, and an export is meant to be copied around. So is a
+	 * key the registry does not know: it could be an inactive extension's
+	 * secret (and the import skips keys it does not know anyway).
 	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
@@ -733,7 +729,7 @@ class Network_Settings_Controller extends Base_Controller {
 		$settings = is_array( $settings ) ? $settings : array();
 
 		foreach ( array_keys( $settings ) as $key ) {
-			if ( \ZeroSpam\Core\Settings_Schema::is_secret( (string) $key ) ) {
+			if ( \ZeroSpam\Includes\Network_Report::is_hidden( (string) $key ) ) {
 				unset( $settings[ $key ] );
 			}
 		}
@@ -816,7 +812,24 @@ class Network_Settings_Controller extends Base_Controller {
 	public function get_templates( $request ) {
 		$templates = $this->templates_manager->get_all_templates();
 
-		return rest_ensure_response( $templates );
+		return rest_ensure_response( array_map( array( $this, 'without_secrets' ), is_array( $templates ) ? $templates : array() ) );
+	}
+
+	/**
+	 * A template as the API shows it: without secrets (6.0 templates refuse
+	 * them, but one a 5.x network saved can hold every network value).
+	 *
+	 * @param array<string, mixed> $template Template.
+	 * @return array<string, mixed>
+	 */
+	private function without_secrets( array $template ): array {
+		foreach ( array_keys( (array) ( $template['settings'] ?? array() ) ) as $key ) {
+			if ( \ZeroSpam\Core\Settings_Schema::is_secret( (string) $key ) ) {
+				unset( $template['settings'][ $key ] );
+			}
+		}
+
+		return $template;
 	}
 
 	/**
@@ -833,7 +846,7 @@ class Network_Settings_Controller extends Base_Controller {
 			return new \WP_Error( 'not_found', 'Template not found', array( 'status' => 404 ) );
 		}
 
-		return rest_ensure_response( $template );
+		return rest_ensure_response( $this->without_secrets( $template ) );
 	}
 
 	/**
@@ -884,7 +897,7 @@ class Network_Settings_Controller extends Base_Controller {
 					'success'     => true,
 					'message'     => 'Template created',
 					'template_id' => $template_id,
-					'template'    => $this->templates_manager->get_template( $slug ),
+					'template'    => $this->without_secrets( (array) $this->templates_manager->get_template( $slug ) ),
 				)
 			);
 			$response->set_status( 201 );
@@ -944,7 +957,7 @@ class Network_Settings_Controller extends Base_Controller {
 		}
 
 		if ( ! $updates || $this->templates_manager->update_template( $slug, $updates ) ) {
-			return rest_ensure_response( $this->templates_manager->get_template( $slug ) );
+			return rest_ensure_response( $this->without_secrets( (array) $this->templates_manager->get_template( $slug ) ) );
 		}
 
 		return new \WP_Error( 'update_failed', __( 'The template could not be saved. Please try again.', 'zero-spam' ), array( 'status' => 500 ) );

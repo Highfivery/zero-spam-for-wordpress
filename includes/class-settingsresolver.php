@@ -167,6 +167,9 @@ class Settings_Resolver {
 
 				$changed[ $key ] = array_key_exists( 'value', $entry ) ? $entry['value'] : null;
 
+				// The network chose this value: unlocking keeps it.
+				unset( $entry[ Network_Settings_Manager::FROM_LOCK ] );
+
 				$store['settings'][ $key ] = array_merge(
 					$entry,
 					array(

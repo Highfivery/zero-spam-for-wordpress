@@ -803,7 +803,7 @@ final class Admin_App {
 			'settings'          => 'settings' === $area ? array( 'rescueKey' => self::rescue_key_set() ) : null,
 			// The network page: the number of sites and the network's name (super admins only, on that page only).
 			'network'           => 'network' === $area && is_multisite() && current_user_can( 'manage_network_options' ) ? array(
-				'sites' => (int) get_sites( array( 'count' => true ) ),
+				'sites' => \ZeroSpam\Includes\Network_Report::active_sites_count(),
 				'name'  => wp_specialchars_decode( (string) get_network()->site_name, ENT_QUOTES ),
 			) : null,
 			'newsEnabled'       => News_Feed::is_enabled(),

@@ -439,6 +439,9 @@ class Network_Templates {
 		foreach ( (array) $template['settings'] as $key => $value ) {
 			$entry = isset( $store['settings'][ $key ] ) && is_array( $store['settings'][ $key ] ) ? $store['settings'][ $key ] : array();
 
+			// The network chose this value: unlocking keeps it.
+			unset( $entry[ Network_Settings_Manager::FROM_LOCK ] );
+
 			$store['settings'][ $key ] = array_merge(
 				$entry,
 				array(

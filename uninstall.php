@@ -184,6 +184,7 @@ $zerospam_network_options = array_merge(
 // Network (site) transients with fixed names.
 $zerospam_network_transients = array(
 	'zerospam_network_blocks',
+	'zerospam_network_compare',
 	'zerospam_network_report',
 	'zerospam_network_settings',
 	'zerospam_news',
