@@ -16,7 +16,7 @@ defined( 'ABSPATH' ) || die();
 class DB {
 
 	// Current DB version.
-	const DB_VERSION = '1.5';
+	const DB_VERSION = '1.6';
 
 	/**
 	 * Log types that are recorded in the Detection Log but are not detections.
@@ -50,7 +50,7 @@ class DB {
 		'stats_monthly'     => 'wpzerospam_stats_monthly',
 		'network_templates' => 'wpzerospam_network_templates',
 		'network_audit'     => 'wpzerospam_network_audit',
-		// Network-wide IP blocks (since 6.0.0, DB 1.5): one table for the network (base prefix), enforced on every site.
+		// Network-wide IP blocks (since 6.0.0, DB 1.6): one table for the install (base prefix), its rows scoped by network_id, enforced on every site of their network.
 		'network_blocked'   => 'wpzerospam_network_blocked',
 	);
 
@@ -93,9 +93,12 @@ class DB {
 	 * The CREATE TABLE statements dbDelta() brings the tables in line with.
 	 *
 	 * Per-site tables use the site's prefix; network-wide ones the base
-	 * prefix. Since 6.0.0 (DB 1.5) the network-wide IP blocks table
-	 * (`network_blocked`) and three more audit actions (`block`, `unblock`,
-	 * `migrate`).
+	 * prefix. Since 6.0.0 (DB 1.5) three more audit actions (`block`,
+	 * `unblock`, `migrate`) and (DB 1.6) the network-wide IP blocks table
+	 * (`network_blocked`). DB 1.5 was never released; development copies that
+	 * ran it have that table without `network_id`, which 1.6 adds (their old
+	 * `user_ip` key stays: dbDelta() never drops one, and on a single
+	 * network it changes nothing).
 	 *
 	 * @since 6.0.0
 	 *
@@ -235,6 +238,7 @@ class DB {
 
 		$sql[] = 'CREATE TABLE ' . $wpdb->base_prefix . self::$tables['network_blocked'] . " (
 		blocked_id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+		network_id bigint(20) unsigned NOT NULL DEFAULT 1,
 		blocked_type enum('permanent','temporary') NOT NULL DEFAULT 'permanent',
 		user_ip varchar(39) NOT NULL,
 		date_added datetime NOT NULL,
@@ -243,7 +247,7 @@ class DB {
 		reason varchar(255) DEFAULT NULL,
 		created_by bigint(20) unsigned NOT NULL DEFAULT 0,
 		PRIMARY KEY  (blocked_id),
-		UNIQUE KEY user_ip (user_ip),
+		UNIQUE KEY network_ip (network_id,user_ip),
 		KEY date_added (date_added)
 	) $charset_collate;";
 

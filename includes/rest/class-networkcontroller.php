@@ -36,7 +36,9 @@ defined( 'ABSPATH' ) || die();
  * - `network/stats`: detections per site for a period (paged), the
  *   network's totals and the addresses seen on several sites.
  * - `network/blocks` (GET, POST) and `network/blocks/{id}` (DELETE, with an
- *   undo token): addresses blocked on every site (Network_Blocks).
+ *   undo token): addresses blocked on every site (Network_Blocks). Loopback
+ *   and unspecified addresses are refused (private ranges are not); blocking
+ *   the address of the request itself needs `confirm` (409 without).
  * - `network/notifications` (GET, PUT): the weekly summary and the
  *   settings change emails.
  *
@@ -405,12 +407,12 @@ class Network_Controller extends Base_Controller {
 		}
 
 		$search = trim( sanitize_text_field( $search ) );
-		$where  = '1=1';
-		$values = array( Network_Blocks::table() );
+		$where  = '`network_id` = %d';
+		$values = array( Network_Blocks::table(), Network_Blocks::network_id() );
 
 		if ( '' !== $search ) {
 			$canonical = User::normalize_ip( $search );
-			$where     = '(`user_ip` LIKE %s OR `user_ip` = %s OR `reason` LIKE %s)';
+			$where    .= ' AND (`user_ip` LIKE %s OR `user_ip` = %s OR `reason` LIKE %s)';
 			$values    = array_merge( $values, array( $wpdb->esc_like( $search ) . '%', '' !== $canonical ? $canonical : $search, '%' . $wpdb->esc_like( $search ) . '%' ) );
 		}
 
@@ -432,7 +434,10 @@ class Network_Controller extends Base_Controller {
 
 	/**
 	 * Blocks an address on every site. An address the network already
-	 * blocks has its block replaced (200 instead of 201).
+	 * blocks has its block replaced (200 instead of 201); when another
+	 * request added it at the same moment, 409 (`zerospam_block_exists`).
+	 * The address of this request itself needs `confirm` (409
+	 * `rest_would_lock_out`, as `rules/no-lockout` asks).
 	 *
 	 * @param WP_REST_Request $request Request.
 	 * @return WP_REST_Response|WP_Error
@@ -446,10 +451,36 @@ class Network_Controller extends Base_Controller {
 			return $record;
 		}
 
+		if ( Rules_Controller::is_current_ip( (string) $record['user_ip'] ) && ! rest_sanitize_boolean( $body['confirm'] ?? false ) ) {
+			return new WP_Error(
+				'rest_would_lock_out',
+				sprintf(
+					/* translators: %s: IP address */
+					__( '%s is your own address. Blocking it on every site can lock you out of your whole network.', 'zero-spam' ),
+					$record['user_ip']
+				),
+				array(
+					'status' => 409,
+					'ip'     => $record['user_ip'],
+				)
+			);
+		}
+
 		$saved = Network_Blocks::save( $record );
 
 		if ( null === $saved ) {
 			return new WP_Error( 'zerospam_block_failed', __( 'The block could not be saved. Please try again.', 'zero-spam' ), array( 'status' => 500 ) );
+		}
+
+		if ( ! empty( $saved['duplicate'] ) ) {
+			return new WP_Error(
+				'zerospam_block_exists',
+				__( 'That address was just blocked on every site. Reload the list to see it.', 'zero-spam' ),
+				array(
+					'status'   => 409,
+					'block_id' => $saved['id'],
+				)
+			);
 		}
 
 		( new Network_Settings_Manager() )->record(
@@ -584,6 +615,17 @@ class Network_Controller extends Base_Controller {
 	}
 
 	/**
+	 * Whether a canonical address is one no visitor has: loopback (127.0.0.0/8,
+	 * ::1) or unspecified (0.0.0.0, ::). Private ranges can be blocked: behind
+	 * a proxy or on an intranet, visitors really have those addresses.
+	 *
+	 * @param string $canonical Address in canonical form.
+	 */
+	private static function is_never_blocked( string $canonical ): bool {
+		return in_array( $canonical, array( '::1', '::', '0.0.0.0' ), true ) || str_starts_with( $canonical, '127.' );
+	}
+
+	/**
 	 * Checks a block sent by a client.
 	 *
 	 * @param array<string, mixed> $body Request body: ip, type, end, reason.
@@ -603,6 +645,8 @@ class Network_Controller extends Base_Controller {
 
 			if ( '' === $canonical ) {
 				$errors['ip'] = __( 'Must be an IPv4 or IPv6 address.', 'zero-spam' );
+			} elseif ( self::is_never_blocked( $canonical ) ) {
+				$errors['ip'] = __( 'That is this server’s own address or no address at all, so visitors never use it. Enter the visitor’s address.', 'zero-spam' );
 			} else {
 				$record['user_ip'] = $canonical;
 			}

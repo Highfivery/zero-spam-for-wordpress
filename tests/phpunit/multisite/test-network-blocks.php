@@ -50,6 +50,7 @@ class Test_Network_Blocks extends TestCase {
 
 		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i', Network_Blocks::table() ) );
 		Network_Blocks::flush();
+		$this->set_request( '/', self::DEFAULT_IP );
 
 		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		grant_super_admin( $user );
@@ -234,5 +235,186 @@ class Test_Network_Blocks extends TestCase {
 			)
 		);
 		$this->assertSame( array( 'block', 'unblock' ), $actions );
+	}
+
+	/**
+	 * A row of another network of the same install.
+	 *
+	 * @param string $ip IP address.
+	 * @return int Block ID.
+	 */
+	private function other_networks_block( string $ip ): int {
+		global $wpdb;
+
+		$wpdb->insert(
+			Network_Blocks::table(),
+			array(
+				'network_id'   => (int) get_current_network_id() + 1,
+				'blocked_type' => 'permanent',
+				'user_ip'      => $ip,
+				'date_added'   => current_time( 'mysql' ),
+				'start_block'  => gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ),
+			)
+		);
+		$id = (int) $wpdb->insert_id;
+		$this->assertGreaterThan( 0, $id );
+		Network_Blocks::flush();
+
+		return $id;
+	}
+
+	/**
+	 * Blocks carry their network: another network's are not listed, enforced, counted or removable from here.
+	 */
+	public function test_blocks_are_scoped_to_the_current_network(): void {
+		$id = $this->other_networks_block( '203.0.113.80' );
+
+		$this->assertSame( 0, Network_Blocks::count() );
+		$this->assertNull( Network_Blocks::read( $id ) );
+		$this->assertNull( Network_Blocks::read_by_ip( '203.0.113.80' ) );
+		$this->assertSame( array(), Network_Blocks::by_ips( array( '203.0.113.80' ) ) );
+		$this->assertNull( $this->blocked_on( self::$site_b, '203.0.113.80' ) );
+		$this->assertSame( array(), $this->rest( 'GET', '/zero-spam/v1/network/blocks' )->get_data() );
+		$this->assertSame( 404, $this->rest( 'DELETE', '/zero-spam/v1/network/blocks/' . $id )->get_status() );
+		$this->assertFalse( Network_Blocks::delete( $id ) );
+
+		// This network can block the same address; its row is its own.
+		$saved = $this->network_block( array( 'ip' => '203.0.113.80' ) );
+		$this->assertSame( 201, $saved->get_status() );
+		$this->assertSame( (int) get_current_network_id(), (int) Network_Blocks::read( (int) $saved->get_data()['id'] )['network_id'] );
+		$this->assertSame( Access::FAILED_NETWORK_BLOCK, $this->blocked_on( self::$site_b, '203.0.113.80' ) );
+
+		// Replacing it leaves the other network's row alone.
+		$this->assertSame( 200, $this->network_block( array( 'ip' => '203.0.113.80', 'reason' => 'Again' ) )->get_status() ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short fixture.
+		$this->assertSame( 1, Network_Blocks::count() );
+
+		// Undo writes the row back to this network.
+		$undo = $this->rest( 'DELETE', '/zero-spam/v1/network/blocks/' . $saved->get_data()['id'] )->get_data()['undo_token'];
+		$this->assertSame( 200, $this->rest( 'POST', '/zero-spam/v1/undo/' . $undo )->get_status() );
+		$this->assertSame( 1, Network_Blocks::count() );
+		$this->assertSame( Access::FAILED_NETWORK_BLOCK, $this->blocked_on( self::$site_b, '203.0.113.80' ) );
+	}
+
+	/**
+	 * Loopback and unspecified addresses cannot be blocked; private ranges can.
+	 *
+	 * @dataProvider data_addresses_never_blocked
+	 *
+	 * @param string $ip Address.
+	 */
+	public function test_loopback_and_unspecified_addresses_are_refused( string $ip ): void {
+		$response = $this->network_block( array( 'ip' => $ip ) );
+
+		$this->assertSame( 400, $response->get_status() );
+		$this->assertArrayHasKey( 'ip', $response->get_data()['data']['params'] );
+		$this->assertSame( 0, Network_Blocks::count() );
+	}
+
+	/**
+	 * Addresses that are this server, or no address.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function data_addresses_never_blocked(): array {
+		return array(
+			'127.0.0.1'        => array( '127.0.0.1' ),
+			'127.9.9.9'        => array( '127.9.9.9' ),
+			'::1'              => array( '::1' ),
+			'long ::1'         => array( '0:0:0:0:0:0:0:1' ),
+			'0.0.0.0'          => array( '0.0.0.0' ),
+			'::'               => array( '::' ),
+			'mapped 127.0.0.1' => array( '::ffff:127.0.0.1' ),
+		);
+	}
+
+	/**
+	 * Private ranges stay allowed (a proxy's clients may really use them).
+	 */
+	public function test_private_ranges_can_be_blocked(): void {
+		$this->assertSame( 201, $this->network_block( array( 'ip' => '10.0.0.5' ) )->get_status() );
+		$this->assertSame( 201, $this->network_block( array( 'ip' => '192.168.1.5' ) )->get_status() );
+	}
+
+	/**
+	 * Blocking your own address on every site needs `confirm`.
+	 */
+	public function test_own_address_needs_confirmation(): void {
+		$this->set_request( '/', '2001:db8::77' );
+		self::reset_static_caches();
+
+		$refused = $this->network_block( array( 'ip' => '2001:DB8:0:0::77' ) );
+		$this->assertSame( 409, $refused->get_status() );
+		$this->assertSame( 'rest_would_lock_out', $refused->get_data()['code'] );
+		$this->assertSame( '2001:db8::77', $refused->get_data()['data']['ip'] );
+		$this->assertSame( 0, Network_Blocks::count() );
+
+		$this->assertSame(
+			201,
+			$this->network_block(
+				array(
+					'ip'      => '2001:db8::77',
+					'confirm' => true,
+				)
+			)->get_status()
+		);
+		$this->assertSame( 201, $this->network_block( array( 'ip' => '203.0.113.81' ) )->get_status(), 'Another address needs no confirmation.' );
+	}
+
+	/**
+	 * A network block counts as "blocked now" for the no-lockout list and its guard.
+	 */
+	public function test_no_lockout_guard_sees_network_blocks(): void {
+		$ip = '203.0.113.82';
+		$this->set_request( '/', $ip );
+		self::reset_static_caches();
+		update_option( \ZeroSpam\Core\Admin_Safe_IPs::OPTION, array( $ip ), false );
+
+		$before = $this->rest( 'GET', '/zero-spam/v1/rules/no-lockout' )->get_data()['items'][0];
+		$this->assertFalse( $before['blocked'] );
+
+		$this->assertSame(
+			201,
+			$this->network_block(
+				array(
+					'ip'      => $ip,
+					'confirm' => true,
+				)
+			)->get_status()
+		);
+
+		$after = $this->rest( 'GET', '/zero-spam/v1/rules/no-lockout' )->get_data()['items'][0];
+		$this->assertTrue( $after['blocked'] );
+
+		$removal = $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/' . $ip );
+		$this->assertSame( 409, $removal->get_status() );
+		$this->assertSame( 'rest_would_lock_out', $removal->get_data()['code'] );
+	}
+
+	/**
+	 * Two requests blocking one address at once: the loser gets 409, not 500.
+	 */
+	public function test_save_race_on_the_unique_key_is_a_conflict(): void {
+		$existing = (int) $this->network_block( array( 'ip' => '203.0.113.83' ) )->get_data()['id'];
+
+		// The other request's row is not there yet when this request looks, once.
+		$hide = static function ( $query ) use ( &$hide ) {
+			if ( str_starts_with( (string) $query, 'SELECT * FROM' ) && str_contains( (string) $query, "`user_ip` = '203.0.113.83'" ) ) {
+				remove_filter( 'query', $hide );
+
+				return str_replace( "`user_ip` = '203.0.113.83'", '1 = 0', (string) $query );
+			}
+
+			return $query;
+		};
+		add_filter( 'query', $hide );
+
+		$response = $this->network_block( array( 'ip' => '203.0.113.83' ) );
+
+		remove_filter( 'query', $hide );
+
+		$this->assertSame( 409, $response->get_status() );
+		$this->assertSame( 'zerospam_block_exists', $response->get_data()['code'] );
+		$this->assertSame( $existing, $response->get_data()['data']['block_id'] );
+		$this->assertSame( 1, Network_Blocks::count() );
 	}
 }

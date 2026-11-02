@@ -15,10 +15,12 @@ use ZeroSpam\Core\User;
 defined( 'ABSPATH' ) || die();
 
 /**
- * The network-wide block list: one table for the whole network
- * (`{base_prefix}wpzerospam_network_blocked`, DB 1.5), written by network
- * administrators (`zero-spam/v1/network/blocks`) and enforced by
- * Access::check_blocked() on every site, after the site's own blocks.
+ * The network-wide block list: one table per install
+ * (`{base_prefix}wpzerospam_network_blocked`, DB 1.6) with a `network_id` on
+ * every row, written by network administrators (`zero-spam/v1/network/blocks`)
+ * and enforced by Access::check_blocked() on every site of that network,
+ * after the site's own blocks. Every read and write here is scoped to the
+ * current network; the index is a site transient, so it already is.
  *
  * Addresses are stored and matched in canonical form (User::normalize_ip()),
  * as site blocks are; ranges are not accepted, as for site blocks. A row has
@@ -63,7 +65,7 @@ final class Network_Blocks {
 	 *
 	 * @var string[]
 	 */
-	const COLUMNS = array( 'blocked_id', 'blocked_type', 'user_ip', 'date_added', 'start_block', 'end_block', 'reason', 'created_by' );
+	const COLUMNS = array( 'blocked_id', 'network_id', 'blocked_type', 'user_ip', 'date_added', 'start_block', 'end_block', 'reason', 'created_by' );
 
 	/**
 	 * The index, read once per request.
@@ -86,6 +88,13 @@ final class Network_Blocks {
 		global $wpdb;
 
 		return $wpdb->base_prefix . DB::$tables['network_blocked'];
+	}
+
+	/**
+	 * The network whose blocks this request reads and writes.
+	 */
+	public static function network_id(): int {
+		return (int) get_current_network_id();
 	}
 
 	/**
@@ -188,7 +197,7 @@ final class Network_Blocks {
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One row of the plugin's own table.
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE `blocked_id` = %d', self::table(), $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE `blocked_id` = %d AND `network_id` = %d', self::table(), $id, self::network_id() ), ARRAY_A );
 
 		return is_array( $row ) ? $row : null;
 	}
@@ -213,7 +222,7 @@ final class Network_Blocks {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One row of the plugin's own table, by its unique key.
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE `user_ip` = %s LIMIT 1', self::table(), $canonical ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE `network_id` = %d AND `user_ip` = %s LIMIT 1', self::table(), self::network_id(), $canonical ), ARRAY_A );
 
 		return is_array( $row ) ? $row : null;
 	}
@@ -243,7 +252,7 @@ final class Network_Blocks {
 		$placeholders = implode( ', ', array_fill( 0, count( $list ), '%s' ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- $placeholders holds one %s per address (at most 500).
-		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE `user_ip` IN ({$placeholders})", array_merge( array( self::table() ), $list ) ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE `network_id` = %d AND `user_ip` IN ({$placeholders})", array_merge( array( self::table(), self::network_id() ), $list ) ), ARRAY_A );
 
 		$found = array();
 		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
@@ -257,7 +266,8 @@ final class Network_Blocks {
 	 * Adds a block, or replaces the block of the same address.
 	 *
 	 * @param array<string, mixed> $record Columns: user_ip (canonical), blocked_type, start_block, end_block, reason.
-	 * @return array{id: int, created: bool, previous: array<string, mixed>|null}|null Null when it could not be saved.
+	 * @return array{id: int, created: bool, previous: array<string, mixed>|null, duplicate?: bool}|null Null when it could
+	 *         not be saved; `duplicate` when another request added the address between the check and the insert.
 	 */
 	public static function save( array $record ): ?array {
 		global $wpdb;
@@ -269,6 +279,7 @@ final class Network_Blocks {
 		$record = array_intersect_key( $record, array_flip( self::COLUMNS ) );
 		unset( $record['blocked_id'] );
 
+		$record['network_id'] = self::network_id();
 		$record['date_added'] = current_time( 'mysql' );
 		$record['created_by'] = get_current_user_id();
 
@@ -286,9 +297,21 @@ final class Network_Blocks {
 			);
 		}
 
+		$suppress = $wpdb->suppress_errors( true );
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Inserts into the plugin's own table.
-		if ( ! $wpdb->insert( self::table(), $record ) ) {
-			return null;
+		$inserted = $wpdb->insert( self::table(), $record );
+		$wpdb->suppress_errors( $suppress );
+
+		if ( ! $inserted ) {
+			// The unique key refused it: another request just added this address.
+			$winner = self::read_by_ip( (string) $record['user_ip'] );
+
+			return null === $winner ? null : array(
+				'id'        => (int) $winner['blocked_id'],
+				'created'   => false,
+				'previous'  => null,
+				'duplicate' => true,
+			);
 		}
 
 		$id = (int) $wpdb->insert_id;
@@ -315,7 +338,14 @@ final class Network_Blocks {
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Deletes the plugin's own row.
-		$deleted = (bool) $wpdb->delete( self::table(), array( 'blocked_id' => $id ), array( '%d' ) );
+		$deleted = (bool) $wpdb->delete(
+			self::table(),
+			array(
+				'blocked_id' => $id,
+				'network_id' => self::network_id(),
+			),
+			array( '%d', '%d' )
+		);
 		self::flush();
 
 		return $deleted;
@@ -348,6 +378,8 @@ final class Network_Blocks {
 				}
 			}
 
+			$data['network_id'] = (string) self::network_id();
+
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Writes the plugin's own row back.
 			$restored += (int) $wpdb->insert( self::table(), $data );
 		}
@@ -373,7 +405,7 @@ final class Network_Blocks {
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Counts the plugin's own table; cached in a site transient.
-		$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', self::table() ) );
+		$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE `network_id` = %d', self::table(), self::network_id() ) );
 
 		if ( $count > self::INDEX_MAX ) {
 			return array(
@@ -386,7 +418,7 @@ final class Network_Blocks {
 
 		if ( $count > 0 ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- At most INDEX_MAX rows of the plugin's own table; cached in a site transient.
-			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT `blocked_id`, `blocked_type`, `user_ip`, `start_block`, `end_block`, `reason` FROM %i LIMIT %d', self::table(), self::INDEX_MAX ), ARRAY_A );
+			$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT `blocked_id`, `blocked_type`, `user_ip`, `start_block`, `end_block`, `reason` FROM %i WHERE `network_id` = %d LIMIT %d', self::table(), self::network_id(), self::INDEX_MAX ), ARRAY_A );
 
 			foreach ( is_array( $rows ) ? $rows : array() as $row ) {
 				$ips[ (string) $row['user_ip'] ] = $row;
@@ -400,7 +432,7 @@ final class Network_Blocks {
 	}
 
 	/**
-	 * Whether the table exists (it is created with DB 1.5; a site that has
+	 * Whether the table exists (it is created with DB 1.6; a site that has
 	 * not run the upgrade yet may load before it does). Checked once per request.
 	 */
 	public static function table_exists(): bool {

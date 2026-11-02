@@ -1461,7 +1461,7 @@ class Rules_Controller extends Base_Controller {
 	 *
 	 * @param string $ip IP address.
 	 */
-	private static function is_current_ip( string $ip ): bool {
+	public static function is_current_ip( string $ip ): bool {
 		$current = User::get_ip();
 		$current = is_string( $current ) ? User::normalize_ip( $current ) : '';
 
@@ -1469,7 +1469,8 @@ class Rules_Controller extends Base_Controller {
 	}
 
 	/**
-	 * Whether an address has a block in force now (at most one row read).
+	 * Whether an address has a block in force now, of this site or of the
+	 * network (at most one row read, and one cached read on a network).
 	 *
 	 * @param string $ip IP address.
 	 */
@@ -1477,7 +1478,13 @@ class Rules_Controller extends Base_Controller {
 		$canonical = User::normalize_ip( $ip );
 		$row       = DB::blocked( '' !== $canonical ? $canonical : $ip );
 
-		return is_array( $row ) && ! empty( Access::get_blocked_details( $row )['blocked'] );
+		if ( is_array( $row ) && ! empty( Access::get_blocked_details( $row )['blocked'] ) ) {
+			return true;
+		}
+
+		$network = \ZeroSpam\Includes\Network_Blocks::find( $ip );
+
+		return null !== $network && ! empty( Access::get_blocked_details( $network )['blocked'] );
 	}
 
 	/**
