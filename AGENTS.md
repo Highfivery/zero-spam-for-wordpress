@@ -603,6 +603,14 @@ npm run env:stop                 # stop both wp-env sites
   for shared screens, the network for network screens), 1280px plus 782px
   for key screens, with dates, counts, charts and the map masked or hidden
   (`tests/e2e/support/visual.css`). Other targets only write the gallery.
+  Transparent text and a mask still take up the text's width, so a table
+  with `table-layout: auto` moves its columns when a hidden date changes:
+  in a baseline, its date cells take one fixed text in `visual.css`, as the
+  Rules tables do (Activity's table is fixed-layout, Network audit's date
+  column has a fixed width). To test a new baseline against the date, run
+  it with the WordPress container's clock moved (libfaketime through
+  `/etc/ld.so.preload`) and the browser's `Date` moved by the same amount,
+  because the widget's relative times read the browser's clock.
   Update them only with `npm run test:visual:update`, in a commit of its own,
   with Playwright's expected/actual/diff images in the PR. They are recorded
   and compared on macOS only (`-darwin`; other platforms only write the
