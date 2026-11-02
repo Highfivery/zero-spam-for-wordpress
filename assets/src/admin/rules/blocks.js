@@ -618,20 +618,14 @@ export function Blocks( { kind, schema, onCount, panel } ) {
 								<button
 									type="button"
 									className="zs-cardmain"
-									aria-label={ sprintf(
-										/* translators: 1: IP address or location, 2: Temporary or Permanent, 3: when it ends */
-										__(
-											'Edit block for %1$s, %2$s, ends %3$s',
-											'zero-spam'
-										),
-										name,
-										'permanent' === block.type
-											? __( 'permanent', 'zero-spam' )
-											: __( 'temporary', 'zero-spam' ),
-										endOf( block )
-									) }
 									onClick={ () => setDrawer( { block } ) }
 								>
+									<span className="zs-sr-only">
+										{ __(
+											'Edit block:',
+											'zero-spam'
+										) }{ ' ' }
+									</span>
 									<span
 										className={ cx(
 											'zs-cm-t',

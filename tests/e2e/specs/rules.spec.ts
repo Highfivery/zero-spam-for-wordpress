@@ -412,14 +412,14 @@ test.describe( '6.0 Rules', () => {
 						const el = document.activeElement as HTMLElement;
 						const box = el.getBoundingClientRect();
 						const hit = document.elementFromPoint( box.left + ( box.width / 2 ), box.top + ( box.height / 2 ) );
-						return { name: el.getAttribute( 'aria-label' ) ?? '', inSight: !! hit && ( el === hit || el.contains( hit ) || hit.contains( el ) ) };
+						return { name: el.getAttribute( 'aria-label' ) ?? el.textContent ?? '', inSight: !! hit && ( el === hit || el.contains( hit ) || hit.contains( el ) ) };
 					} );
 					expect( stop.inSight, `${ stop.name } is covered` ).toBe( true );
 					seen.push( stop.name );
 				}
 				expect( seen.filter( ( n ) => n.startsWith( 'Select ' ) ) ).toHaveLength( 7 );
-				expect( seen.filter( ( n ) => /^Edit block for .*, ends /.test( n ) ) ).toHaveLength( 7 );
-				expect( seen.filter( ( n ) => /^Edit block for /.test( n ) && ! /, ends /.test( n ) ) ).toHaveLength( 7 );
+				expect( seen.filter( ( n ) => n.startsWith( 'Edit block: ' ) ) ).toHaveLength( 7 );
+				expect( seen.filter( ( n ) => n.startsWith( 'Edit block for ' ) ) ).toHaveLength( 7 );
 				expect( seen.filter( ( n ) => n.startsWith( 'Remove block for ' ) ) ).toHaveLength( 7 );
 			} );
 
@@ -504,7 +504,7 @@ test.describe( '6.0 Rules', () => {
 				await narrow.getByLabel( 'Sort', { exact: true } ).selectOption( 'key:asc' );
 				await expect( narrow.locator( '.zs-cards-wrap' ) ).not.toHaveAttribute( 'aria-busy', 'true' );
 				await expect( narrow.locator( '.zs-cm-t' ).first() ).toHaveText( '192.0.2.41' );
-				const card = narrow.getByRole( 'button', { name: /^Edit block for 192\.0\.2\.41,/ } );
+				const card = narrow.getByRole( 'button', { name: /^Edit block: 192\.0\.2\.41/ } );
 				await card.click();
 				await expect( narrow.locator( '.zs-drawer.zs-blockform' ) ).toBeVisible();
 				await narrow.keyboard.press( 'Escape' );
