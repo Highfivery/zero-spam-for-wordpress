@@ -262,14 +262,27 @@ test.describe( '6.0 Protection', () => {
 		await open( page );
 		const button = page.locator( '.zs-test-btn' );
 		await expect( button ).toHaveText( /Test my protection/ );
+		// Hold the answer until "Running 5 checks" has been read: under reduced
+		// motion it is replaced as soon as the answer lands, about 45 ms later on
+		// a fast site, and a live region announces 50 ms after it is asked to.
+		let release = () => {};
+		const answered = new Promise< void >( ( done ) => {
+			release = done;
+		} );
+		await page.route( /self-test/, async ( route ) => {
+			await answered;
+			await route.continue();
+		} );
 		await button.click();
 		const panel = page.locator( '#zs-selftest' );
 		await expect( panel ).toBeVisible();
 		await expect( spoken( page ) ).toContainText( /Running 5 checks/ );
 		await expect( panel.locator( '.zs-st-steps li' ) ).toHaveCount( 5 );
+		release();
 		await expect( panel ).not.toHaveAttribute( 'aria-busy', 'true', { timeout: 20_000 } );
 		await expect( panel.locator( '.zs-st-result' ) ).toHaveText( /checks (passed|failed)|need/ );
-		await expect( spoken( page ) ).toContainText( /checks/ );
+		// The final outcome, not "Running 5 checks", which would also say "checks".
+		await expect( spoken( page ) ).toContainText( /\d+ checks (passed|failed)/ );
 		await expect( panel.locator( 'li.zs-step-pending, li.zs-step-running' ) ).toHaveCount( 0 );
 		await expect( button ).toHaveText( /Run the test again/ );
 

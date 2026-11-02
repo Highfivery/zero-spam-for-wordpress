@@ -928,7 +928,9 @@ export const rulesReady = async ( page: Page ) => {
 /**
  * Seeds what each Rules tab shows, 2–8 rows each (the seeded state already
  * has two blocked IPs). Baselines are of the tab panel (.zs-areabody);
- * dates are hidden by support/visual.css.
+ * dates are hidden by support/visual.css, which also keeps their columns from
+ * moving. The temporary block ends on a fixed far date: the route refuses an
+ * end in the past by the server's clock, whatever the test machine's says.
  */
 export const seedRules = async ( zs: ZsApi ) => {
 	// 8 blocked IPs in all on the key screen (the seeded state has two).
@@ -936,7 +938,7 @@ export const seedRules = async ( zs: ZsApi ) => {
 		await zs.block( ip, 'E2E: rules sample' );
 	}
 	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'country_code', key: 'DE', type: 'permanent', reason: 'E2E: steady comment spam' } );
-	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'zip', key: '90210', type: 'temporary', end: new Date( Date.now() + 7 * 864e5 ).toISOString(), reason: 'E2E: card testing' } );
+	await zs.plugin( 'POST', 'rules/blocks', { kind: 'location', key_type: 'zip', key: '90210', type: 'temporary', end: '2099-01-15T12:00:00Z', reason: 'E2E: card testing' } );
 	await zs.plugin( 'PUT', 'rules/lists/allowed-ips', { items: [ '203.0.113.5', '2001:db8::1' ] } );
 	await zs.plugin( 'PUT', 'rules/lists/allowed-words', { items: [ 'patel', 'van gogh' ], min_length: 4 } );
 	await zs.noLockout( [ '198.51.100.200', '192.0.2.10' ] );
