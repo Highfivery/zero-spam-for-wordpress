@@ -19,7 +19,8 @@ import { useApp } from '../app/context';
 import { Badge, Button, ExtLink, Icon } from '../app/primitives';
 import { Drawer } from '../app/primitives/drawer';
 import { boot } from '../data/api';
-import { day, dayTime, num } from '../data/format';
+import { dayTime, num } from '../data/format';
+import { siteDay } from '../data/site-day';
 import { utm } from '../data/routes';
 import { typeIcon } from '../overview/tiles';
 import { Country, TypeIcon } from './parts';
@@ -159,13 +160,7 @@ export function DetailsDrawer( {
 											'Temporary · ends %s',
 											'zero-spam'
 										),
-										day(
-											new Date(
-												Date.parse( block.end ) +
-													( boot.nowLocal -
-														Date.now() )
-											)
-										)
+										siteDay( block.end )
 									) }
 						</span>
 					</div>

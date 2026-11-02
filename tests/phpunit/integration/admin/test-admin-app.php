@@ -660,6 +660,52 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
+	 * A site's time zone settings.
+	 *
+	 * @return array<string, array{0: string, 1: float, 2: string, 3: int|null}>
+	 */
+	public static function data_time_zones(): array {
+		return array(
+			'a named zone'             => array( 'Asia/Kolkata', 0.0, 'Asia/Kolkata', 19800 ),
+			'a named zone with DST'    => array( 'America/New_York', 0.0, 'America/New_York', null ),
+			'UTC by name'              => array( 'UTC', 0.0, 'UTC', 0 ),
+			'manual offset'            => array( '', 5.5, '', 19800 ),
+			'manual negative offset'   => array( '', -3.5, '', -12600 ),
+			'manual offset of nothing' => array( '', 0.0, '', 0 ),
+		);
+	}
+
+	/**
+	 * The bootstrap carries the site's time zone for dates in the browser: an
+	 * IANA name when there is one, and always today's offset (a manual
+	 * offset's only value, and the fallback for a name the browser lacks);
+	 * nowLocal stays the site's clock.
+	 *
+	 * @dataProvider data_time_zones
+	 *
+	 * @param string   $zone     Option timezone_string.
+	 * @param float    $gmt      Option gmt_offset.
+	 * @param string   $name     Name sent.
+	 * @param int|null $expected Offset sent in seconds (null: varies with the date).
+	 */
+	public function test_bootstrap_carries_the_sites_time_zone( string $zone, float $gmt, string $name, ?int $expected ): void {
+		update_option( 'timezone_string', $zone );
+		update_option( 'gmt_offset', $gmt );
+
+		$this->flag_on();
+		$this->as_role( 'administrator' );
+		$before = time();
+		$boot   = $this->registered_app()->bootstrap( 'rules' );
+		$after  = time();
+
+		$now = ( new DateTimeImmutable( 'now', wp_timezone() ) )->getOffset();
+		$this->assertSame( $name, $boot['timezone']['name'] );
+		$this->assertSame( $expected ?? $now, $boot['timezone']['offset'] );
+		$this->assertGreaterThanOrEqual( ( $before + $now ) * 1000, $boot['nowLocal'] );
+		$this->assertLessThanOrEqual( ( $after + $now ) * 1000, $boot['nowLocal'] );
+	}
+
+	/**
 	 * The Rules tabs' counts come with the page (no request of their own);
 	 * other pages do not compute them.
 	 */

@@ -209,6 +209,17 @@ export class ZsApi {
 		return ( await this.call< { token: string } >( 'POST', 'rescue-token', { ip } ) ).token;
 	}
 
+	/**
+	 * Sets the site's time zone, as Settings › General does. Not undone by a
+	 * reset: put back what it returns (a Local site keeps its own).
+	 *
+	 * @param timezoneString IANA name, or '' for a manual offset.
+	 * @param gmtOffset      Manual offset, in hours.
+	 */
+	timezone( timezoneString: string, gmtOffset = 0 ) {
+		return this.call< { timezone_string: string; gmt_offset: number } >( 'POST', 'timezone', { timezone_string: timezoneString, gmt_offset: gmtOffset } );
+	}
+
 	/** Sets plugin settings by key (each goes to its module option). */
 	set( settings: Record< string, unknown > ) {
 		return this.call< Record< string, boolean > >( 'POST', 'settings', { settings } );

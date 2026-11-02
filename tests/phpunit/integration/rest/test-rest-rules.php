@@ -923,4 +923,131 @@ class Test_Rest_Rules extends TestCase {
 
 		$this->assertLessThanOrEqual( 1, $builds );
 	}
+
+	/**
+	 * A time without an offset, in a site's time zone.
+	 *
+	 * @return array<string, array{0: string, 1: float, 2: string, 3: string}>
+	 */
+	public static function data_wall_clock_times(): array {
+		return array(
+			'date alone, UTC'                      => array( '', 0.0, '2025-11-26', '2025-11-26T00:00:00Z' ),
+			'date alone, New York in summer'       => array( 'America/New_York', 0.0, '2026-07-15', '2026-07-15T04:00:00Z' ),
+			'date alone, New York in winter'       => array( 'America/New_York', 0.0, '2026-01-15', '2026-01-15T05:00:00Z' ),
+			'date alone, Kolkata'                  => array( 'Asia/Kolkata', 0.0, '2025-11-26', '2025-11-25T18:30:00Z' ),
+			'date alone, manual offset'            => array( '', 5.5, '2025-11-26', '2025-11-25T18:30:00Z' ),
+			'time, New York'                       => array( 'America/New_York', 0.0, '2026-07-15T09:30:00', '2026-07-15T13:30:00Z' ),
+			'time, manual negative offset'         => array( '', -3.5, '2026-07-15T09:30:00', '2026-07-15T13:00:00Z' ),
+			'clocks skip it: moved forward'        => array( 'America/New_York', 0.0, '2026-03-08T02:30:00', '2026-03-08T07:30:00Z' ),
+			'clocks repeat it: first occurrence'   => array( 'America/New_York', 0.0, '2026-11-01T01:30:00', '2026-11-01T05:30:00Z' ),
+			'clocks skip midnight: first instant'  => array( 'America/Santiago', 0.0, '2026-09-06', '2026-09-06T04:00:00Z' ),
+			'an explicit moment stays that moment' => array( 'America/New_York', 0.0, '2026-07-15T00:00:00Z', '2026-07-15T00:00:00Z' ),
+		);
+	}
+
+	/**
+	 * What the block form sends means that wall clock in the site's time zone,
+	 * also on the nights the clocks change (the documented behaviour: AGENTS.md).
+	 *
+	 * @dataProvider data_wall_clock_times
+	 *
+	 * @param string $zone   Option timezone_string.
+	 * @param float  $offset Option gmt_offset.
+	 * @param string $sent   Start sent.
+	 * @param string $stored Start returned.
+	 */
+	public function test_times_without_an_offset_are_the_sites_wall_clock( string $zone, float $offset, string $sent, string $stored ): void {
+		update_option( 'timezone_string', $zone );
+		update_option( 'gmt_offset', $offset );
+
+		$response = $this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'kind'  => 'ip',
+				'ip'    => '198.51.100.70',
+				'type'  => 'permanent',
+				'start' => $sent,
+			)
+		);
+
+		$this->assertSame( 201, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+		$this->assertSame( $stored, $response->get_data()['start'] );
+	}
+
+	/**
+	 * The block form sends a date only when it was edited: without dates an
+	 * edit keeps them to the second, which a wall-clock minute could not (a
+	 * date-only end's 23:59:59, the second 01:30 of the night the clocks go
+	 * back), however many times it is saved.
+	 */
+	public function test_an_edit_without_dates_keeps_them_to_the_second(): void {
+		update_option( 'timezone_string', 'America/New_York' );
+
+		$created = $this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'kind'  => 'ip',
+				'ip'    => '198.51.100.71',
+				'type'  => 'temporary',
+				'start' => '2026-11-01T06:30:00Z',
+				'end'   => '2099-08-01',
+			)
+		);
+		$this->assertSame( 201, $created->get_status(), (string) wp_json_encode( $created->get_data() ) );
+		$this->assertSame( '2099-08-02T03:59:59Z', $created->get_data()['end'], 'A date-only end is 23:59:59 on the site.' );
+
+		$route = self::BLOCKS . '/' . $created->get_data()['id'];
+
+		foreach ( array( 'first save', 'second save' ) as $save ) {
+			$saved = $this->rest(
+				'PUT',
+				$route,
+				array(
+					'kind'   => 'ip',
+					'ip'     => '198.51.100.71',
+					'type'   => 'temporary',
+					'reason' => 'Edited',
+				)
+			);
+			$this->assertSame( 200, $saved->get_status(), (string) wp_json_encode( $saved->get_data() ) );
+			$this->assertSame( '2026-11-01T06:30:00Z', $saved->get_data()['start'], $save );
+			$this->assertSame( '2099-08-02T03:59:59Z', $saved->get_data()['end'], $save );
+		}
+	}
+
+	/**
+	 * A block that has ended can still be edited when its end is not sent
+	 * (the form does not send an end it did not change).
+	 */
+	public function test_an_ended_block_can_be_edited_without_its_dates(): void {
+		global $wpdb;
+
+		$id = $this->block( '198.51.100.72' );
+		$wpdb->update(
+			$wpdb->prefix . DB::$tables['blocked'],
+			array(
+				'blocked_type' => 'temporary',
+				'start_block'  => '2020-01-01 00:00:00',
+				'end_block'    => '2020-01-02 23:59:59',
+			),
+			array( 'blocked_id' => $id )
+		);
+
+		$saved = $this->rest(
+			'PUT',
+			self::BLOCKS . '/' . $id,
+			array(
+				'kind'   => 'ip',
+				'ip'     => '198.51.100.72',
+				'type'   => 'temporary',
+				'reason' => 'Edited',
+			)
+		);
+
+		$this->assertSame( 200, $saved->get_status(), (string) wp_json_encode( $saved->get_data() ) );
+		$this->assertSame( '2020-01-01T00:00:00Z', $saved->get_data()['start'] );
+		$this->assertSame( '2020-01-02T23:59:59Z', $saved->get_data()['end'] );
+	}
 }

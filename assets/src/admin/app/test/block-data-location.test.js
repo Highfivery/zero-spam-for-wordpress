@@ -18,7 +18,7 @@ const NOW = Date.UTC( 2026, 9, 22, 12, 0 );
 
 describe( 'initialLocationValues', () => {
 	it( 'starts a new block as a temporary country block ending in a week', () => {
-		expect( initialLocationValues( null, NOW, 0 ) ).toEqual( {
+		expect( initialLocationValues( null, NOW ) ).toEqual( {
 			key_type: 'country_code',
 			key: '',
 			type: 'temporary',
@@ -41,7 +41,7 @@ describe( 'initialLocationValues', () => {
 					end: '2026-10-30T08:00:00Z',
 				},
 				NOW,
-				2 * 3600000
+				{ name: '', offset: 7200 }
 			)
 		).toEqual( {
 			key_type: 'zip',
