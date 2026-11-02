@@ -155,11 +155,16 @@ export function useResource( path, { parse = true } = {} ) {
 		};
 	} );
 	const alive = useRef( true );
+	// Only the latest request may set the state: an older one that answers
+	// last (a slow reload, then a new sort or page) must not show its list.
+	const latest = useRef( 0 );
 
 	const load = useCallback( () => {
 		if ( ! path ) {
 			return Promise.resolve();
 		}
+		const ticket = ++latest.current;
+		const current = () => alive.current && ticket === latest.current;
 		setState( ( s ) => ( { ...s, loading: true } ) );
 		const req = parse
 			? request( { path } ).then( ( data ) => ( { data, headers: {} } ) )
@@ -175,13 +180,13 @@ export function useResource( path, { parse = true } = {} ) {
 		// data shown before is kept), so a Refresh can say which.
 		return req.then(
 			( { data, headers } ) => {
-				if ( alive.current ) {
+				if ( current() ) {
 					setState( { data, headers, error: null, loading: false } );
 				}
 				return true;
 			},
 			( error ) => {
-				if ( alive.current ) {
+				if ( current() ) {
 					setState( ( s ) => ( {
 						...s,
 						error: error || {},
