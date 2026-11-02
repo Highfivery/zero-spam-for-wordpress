@@ -1,17 +1,13 @@
 /**
  * The WordPress.org listing art in .wordpress-org/: the committed files meet the
- * listing's rules, and a fresh render still gives them.
+ * listing's rules, and a fresh render still looks like them.
  *
- * This is in the pre-push gate, so a machine that draws text differently must
- * not fail it. The icons have no text and are compared by bytes. The banners
- * are compared by pixels (compareBanner() in the render script), which allows
- * for moved glyph edges and little else. On the macOS machine that renders the
- * art, node bin/render-listing-assets.mjs --check is the strict byte comparison
- * of all six.
- *
- * After a change to the sources, the tokens, the fonts, the mark or the
- * Playwright version, run node bin/render-listing-assets.mjs and commit the
- * result.
+ * This is in the pre-push gate on every push that reaches the unit tests, and
+ * machines draw text and encode PNGs differently, so the comparison is a plain
+ * pixel one that only catches art that is clearly stale or broken. A small
+ * change (an underline, a slightly different colour) passes here: bin/check-dist.sh
+ * catches it with node bin/render-listing-assets.mjs --check, the byte comparison
+ * it runs only when the art or its inputs changed.
  */
 
 /**
@@ -20,6 +16,7 @@
 import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { chromium } from '@playwright/test';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 /**
@@ -28,16 +25,19 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
 	LISTING_DIR,
 	TARGETS,
-	compareBanner,
 	renderListingAssets,
 } from '../../../../bin/render-listing-assets.mjs';
+
+// A pixel differs when a channel moves by more than this, as in render.test.js.
+const PIXEL_DELTA = 16;
+// The share of a file's pixels that may differ. Simulating another platform's
+// text moved up to 1.6% of a banner; the smallest broken one tried (the wrong
+// mark) moved 4.4%.
+const MAX_SHARE = 0.03;
 
 const committed = ( file ) => readFileSync( join( LISTING_DIR, file ) );
 
 const files = TARGETS.map( ( target ) => target.file );
-const icons = TARGETS.filter( ( target ) => ! target.banner ).map(
-	( target ) => target.file
-);
 const banners = TARGETS.filter( ( target ) => target.banner ).map(
 	( target ) => target.file
 );
@@ -110,11 +110,13 @@ describe( 'the committed listing art', () => {
 describe( 'a fresh render', () => {
 	let outDir;
 	let measurements;
+	let browser;
 
 	beforeAll( async () => {
 		outDir = mkdtempSync( join( tmpdir(), 'zero-spam-listing-' ) );
 		try {
 			measurements = await renderListingAssets( outDir );
+			browser = await chromium.launch();
 		} catch ( error ) {
 			throw new Error(
 				`Could not render the listing art. If Chromium for Playwright is missing, run: npx playwright install chromium\n${ error.message }`
@@ -122,36 +124,63 @@ describe( 'a fresh render', () => {
 		}
 	}, 120000 );
 
-	afterAll( () => {
+	afterAll( async () => {
+		await browser?.close();
 		rmSync( outDir, { recursive: true, force: true } );
 	} );
 
-	it.each( icons )(
-		'%s is what the source renders, byte for byte',
-		( file ) => {
-			expect(
-				committed( file ).equals(
-					readFileSync( join( outDir, file ) )
-				),
-				`${ file } is stale: run node bin/render-listing-assets.mjs and commit it`
-			).toBe( true );
-		}
-	);
-
-	it.each( banners )(
-		'%s is what the sources render, within the pixel tolerance',
+	it.each( files )(
+		'%s still looks like what the sources render',
 		async ( file ) => {
-			const result = await compareBanner(
-				committed( file ),
-				readFileSync( join( outDir, file ) ),
-				measurements[ file ].lines
+			const page = await browser.newPage();
+			const share = await page.evaluate(
+				async ( { pngs, delta } ) => {
+					const [ a, b ] = await Promise.all(
+						pngs.map( async ( png ) => {
+							const image = new window.Image();
+							image.src = `data:image/png;base64,${ png }`;
+							await image.decode();
+							const canvas = document.createElement( 'canvas' );
+							canvas.width = image.width;
+							canvas.height = image.height;
+							const context = canvas.getContext( '2d' );
+							context.drawImage( image, 0, 0 );
+							return context.getImageData(
+								0,
+								0,
+								image.width,
+								image.height
+							).data;
+						} )
+					);
+					if ( a.length !== b.length ) {
+						return 1;
+					}
+					let differing = 0;
+					for ( let i = 0; i < a.length; i += 4 ) {
+						if (
+							Math.abs( a[ i ] - b[ i ] ) > delta ||
+							Math.abs( a[ i + 1 ] - b[ i + 1 ] ) > delta ||
+							Math.abs( a[ i + 2 ] - b[ i + 2 ] ) > delta
+						) {
+							differing++;
+						}
+					}
+					return differing / ( a.length / 4 );
+				},
+				{
+					pngs: [
+						committed( file ),
+						readFileSync( join( outDir, file ) ),
+					].map( ( png ) => png.toString( 'base64' ) ),
+					delta: PIXEL_DELTA,
+				}
 			);
+			await page.close();
 			expect(
-				result.within,
-				`${ file } is stale (${ JSON.stringify(
-					result
-				) }): run node bin/render-listing-assets.mjs and commit it`
-			).toBe( true );
+				share,
+				`${ file } is stale or broken: run node bin/render-listing-assets.mjs, look at it and commit it`
+			).toBeLessThanOrEqual( MAX_SHARE );
 		},
 		60000
 	);

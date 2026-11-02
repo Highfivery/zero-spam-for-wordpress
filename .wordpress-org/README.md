@@ -32,15 +32,14 @@ node bin/render-listing-assets.mjs --measure           # also prints the mark's 
 node bin/render-listing-assets.mjs --check             # writes nothing: exit 1 unless a fresh render equals all six PNGs byte for byte
 ```
 
-The output is byte-identical between runs on one machine: no timestamps, sRGB, no LCD text or hinting, local files only (a request for anything outside the checkout stops the render). Text is drawn differently from one platform to another, so the committed files come from macOS, and `--check` is the strict comparison for that machine: run it before committing art.
+The output is byte-identical between runs on one machine: no timestamps, sRGB, no LCD text or hinting, local files only (a request for anything outside the checkout stops the render). The bytes depend on the machine, through its text rasteriser and the browser's PNG encoder, so `--check` only means something for art rendered on the machine that runs it.
 
-`assets/src/admin/test/listing-assets.test.js` runs in `npm run test:js` and so in the pre-push gate, on any machine, so it is less strict for the banners:
+Two checks guard the art:
 
-- **Icons** (no text): byte for byte.
-- **Banners:** pixel by pixel (`compareBanner()` and `TOLERANCE` in the render script). Outside the text, at most 0.05% of the pixels may move by more than 6 of 255 in a channel. Inside each text line, up to 25% of the box may (glyph edges), but at most 3% of the glyph interiors, and the text colour must still be there.
-- **Everything:** dimensions, under 500 KB, the mark and the text inside the central 1200 px, at least 4.5:1 behind the text, and `icon.svg` flat, with the same bricks and colours as `src/icon.html`.
+1. **Pixels, on every run of the unit tests.** `assets/src/admin/test/listing-assets.test.js` renders all six and allows up to 3% of a file's pixels to move by more than 16 of 255, enough for another machine's text. It only catches art that is clearly stale or broken. The same test checks what needs no comparison: dimensions, under 500 KB, the mark and text inside the central 1200 px, at least 4.5:1 behind the text, and `icon.svg` flat with the same bricks and colours as `src/icon.html`.
+2. **Bytes, only when the art or its inputs changed.** `bin/check-dist.sh` (so `composer check` and the pre-push hook) runs `--check` when `.wordpress-org/**`, `bin/render-listing-assets.mjs`, `assets/img/zero-spam-mark.svg`, `assets/src/admin/styles/tokens.css` or `assets/fonts/**` changed against its base. This is what catches a small change such as an underline. Unrelated front-end pushes never meet it.
 
-If the icons fail after a Playwright upgrade, or the art fails after a macOS upgrade, re-render, look at the result and commit it.
+**When to re-render:** whenever `--check` fails, which is whenever you change one of those paths and the art is not byte-identical on your machine. That includes a change that does not alter the art, even an edit to this README, if the PNGs were last rendered on another machine or browser version. Run `node bin/render-listing-assets.mjs`, look at the PNGs and commit them. A Playwright or macOS upgrade alone does not trigger the byte check; the next change to an input will, and may need a re-render.
 
 ## Publish to WordPress.org (maintainer, by hand)
 

@@ -16,13 +16,18 @@
 #                  webpack.config.js, the lint and test configs, .nvmrc,
 #                  bin/check-dist.sh, and the listing art's inputs
 #                  (.wordpress-org/, bin/render-listing-assets.mjs, the mark;
-#                  its test compares a fresh render with the committed PNGs)
+#                  their test compares a fresh render with the committed PNGs)
 #                  and .distignore (the same test checks the art stays out of
 #                  the release)
 #   --force        run even when nothing relevant changed
 #   --twice        also build a second time and require byte-identical output
 #                  (proves the build is reproducible)
 #   --budget-only  check the budgets of the committed files; no build
+#
+# When the listing art or its inputs changed against the base (.wordpress-org/,
+# bin/render-listing-assets.mjs, the mark, tokens.css, assets/fonts/), also runs
+# bin/render-listing-assets.mjs --check: the PNGs must equal a fresh render on
+# this machine, byte for byte, so whoever changes them re-renders and commits.
 #
 # Needs Node 22 (.nvmrc, package.json engines ^22). When the node on PATH is
 # not 22, nvm is loaded from $NVM_DIR (default ~/.nvm), because git hooks do
@@ -72,7 +77,7 @@ admin_areas=( overview activity rules protection settings help network )
 # ---------------------------------------------------------------------------
 # Is there anything to check?
 # ---------------------------------------------------------------------------
-if [[ $force -eq 0 && $budget_only -eq 0 ]]; then
+if [[ $budget_only -eq 0 ]]; then
 	if [[ -z "$base_ref" ]]; then
 		for candidate in origin/develop develop; do
 			if git rev-parse --verify --quiet "$candidate" >/dev/null; then
@@ -83,12 +88,20 @@ if [[ $force -eq 0 && $budget_only -eq 0 ]]; then
 	fi
 	base_ref="${base_ref:-HEAD~1}"
 	merge_base="$(git merge-base HEAD "$base_ref" 2>/dev/null || echo "$base_ref")"
+fi
+
+# The paths among the arguments that changed against the base, or are new.
+changed_paths() {
+	{ git diff --name-only "$merge_base" HEAD -- "$@"; \
+	  git diff --name-only HEAD -- "$@"; \
+	  git ls-files --others --exclude-standard -- "$@"; } | sort -u || true
+}
+
+if [[ $force -eq 0 && $budget_only -eq 0 ]]; then
 	inputs=( assets/src assets/dist assets/fonts package.json package-lock.json webpack.config.js \
 	         eslint.config.cjs .stylelintrc.json vitest.config.mjs .nvmrc bin/check-dist.sh \
 	         .wordpress-org bin/render-listing-assets.mjs assets/img/zero-spam-mark.svg .distignore )
-	changed="$( { git diff --name-only "$merge_base" HEAD -- "${inputs[@]}"; \
-	              git diff --name-only HEAD -- "${inputs[@]}"; \
-	              git ls-files --others --exclude-standard -- "${inputs[@]}"; } | sort -u || true )"
+	changed="$(changed_paths "${inputs[@]}")"
 	if [[ -z "$changed" ]]; then
 		echo "check-dist: no build inputs or outputs changed against ${base_ref}. Nothing to check."
 		exit 0
@@ -189,6 +202,21 @@ if [[ ! -f node_modules/.package-lock.json || package-lock.json -nt node_modules
 	echo "check-dist: node_modules is missing or older than package-lock.json. Run: npm ci" >&2
 	echo "            (then npx playwright install chromium if it asks), and push again." >&2
 	exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Listing art, only when it or its inputs changed
+# ---------------------------------------------------------------------------
+art_inputs=( .wordpress-org bin/render-listing-assets.mjs assets/img/zero-spam-mark.svg \
+             assets/src/admin/styles/tokens.css assets/fonts )
+if [[ -n "$(changed_paths "${art_inputs[@]}")" ]]; then
+	echo "check-dist: the listing art or its inputs changed; comparing a fresh render byte for byte."
+	if ! node bin/render-listing-assets.mjs --check; then
+		echo "check-dist: re-render on this machine (node bin/render-listing-assets.mjs), look at the PNGs and commit them." >&2
+		exit 1
+	fi
+else
+	echo "check-dist: the listing art and its inputs did not change; no byte comparison."
 fi
 
 # ---------------------------------------------------------------------------

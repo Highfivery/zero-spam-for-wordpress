@@ -11,14 +11,13 @@
  *
  * Reproducible on one machine: no timestamps, a pinned browser, sRGB output, no
  * LCD text or hinting, and no network (every request outside this checkout
- * stops the render). Text is drawn differently from one platform to another,
- * so the committed files are rendered on macOS and --check is meant for that
- * machine. assets/src/admin/test/listing-assets.test.js, which is in the
- * pre-push gate, compares the icons by bytes and the banners with
- * compareBanner()'s pixel tolerance.
+ * stops the render). The bytes depend on the machine (text rasteriser, PNG
+ * encoder), so --check only means something for art rendered on the same one.
+ * bin/check-dist.sh runs it only when the art or its inputs changed.
  */
 
 import {
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
@@ -57,25 +56,6 @@ export const TARGETS = [
 	banner( 1, false ),
 	banner( 1, true ),
 ];
-
-/**
- * compareBanner()'s limits, in the style of admin/test/render.test.js: a pixel
- * differs when a channel moves by more than `delta`.
- *
- * - Outside the text boxes only stray edge pixels may move.
- * - Inside a text line, another platform's rasteriser moves the glyph edges
- *   (about 22% of the small line's box at 772 px when macOS's glyph dilation is
- *   turned off), so up to `textEdges` of a box may differ. The glyph interiors
- *   (pixels of the committed PNG that are the text colour, with all eight
- *   neighbours) barely move, so at most `textInterior` of them may. A changed
- *   text colour leaves no interior pixels at all, which also counts as changed.
- */
-export const TOLERANCE = {
-	delta: 6,
-	outsideText: 0.0005,
-	textEdges: 0.25,
-	textInterior: 0.03,
-};
 
 const LAUNCH_ARGS = [
 	'--force-color-profile=srgb',
@@ -245,7 +225,6 @@ async function measureText( page, target ) {
 		}
 		results.push( {
 			text: line.text,
-			rgb: [ red, green, blue ],
 			left: line.left * scale,
 			right: line.right * scale,
 			top: line.top * scale,
@@ -258,7 +237,7 @@ async function measureText( page, target ) {
 
 /**
  * @param {string} outDir Where the PNGs go.
- * @return {Promise<Object>} The written paths and, per banner, its measurements.
+ * @return {Promise<Object>} Each banner's measurements (see measureText()), by file.
  */
 export async function renderListingAssets( outDir = LISTING_DIR ) {
 	mkdirSync( outDir, { recursive: true } );
@@ -284,154 +263,25 @@ export async function renderListingAssets( outDir = LISTING_DIR ) {
 }
 
 /**
- * Compares two renders of a banner, pixel by pixel.
- *
- * @param {Buffer}   expected The committed PNG.
- * @param {Buffer}   actual   The fresh PNG.
- * @param {Object[]} lines    The text lines (box in output pixels, `rgb`), from
- *                            the fresh render's measurements.
- * @return {Promise<Object>} The share of differing pixels outside the text and,
- *                           per line, at the glyph edges and interiors, and
- *                           whether all are within TOLERANCE.
- */
-export async function compareBanner( expected, actual, lines ) {
-	const browser = await chromium.launch( { args: LAUNCH_ARGS } );
-	try {
-		const page = await browser.newPage();
-		const counts = await page.evaluate(
-			async ( { pngs, boxes, delta } ) => {
-				const [ a, b ] = await Promise.all(
-					pngs.map( async ( png ) => {
-						const image = new window.Image();
-						image.src = `data:image/png;base64,${ png }`;
-						await image.decode();
-						const canvas = document.createElement( 'canvas' );
-						canvas.width = image.width;
-						canvas.height = image.height;
-						const context = canvas.getContext( '2d' );
-						context.drawImage( image, 0, 0 );
-						return context.getImageData(
-							0,
-							0,
-							image.width,
-							image.height
-						);
-					} )
-				);
-				if ( a.width !== b.width || a.height !== b.height ) {
-					return null;
-				}
-				const at = ( x, y ) => ( y * a.width + x ) * 4;
-				const moved = ( i ) =>
-					[ 0, 1, 2 ].some(
-						( c ) =>
-							Math.abs( a.data[ i + c ] - b.data[ i + c ] ) >
-							delta
-					);
-				const isText = ( x, y, rgb ) =>
-					[ 0, 1, 2 ].every(
-						( c ) =>
-							Math.abs( a.data[ at( x, y ) + c ] - rgb[ c ] ) <= 3
-					);
-				const inBox = ( x, y, box ) =>
-					x >= box.left &&
-					x < box.right &&
-					y >= box.top &&
-					y < box.bottom;
-				const outside = { moved: 0, total: 0 };
-				const perLine = boxes.map( () => ( {
-					moved: 0,
-					total: 0,
-					interiorMoved: 0,
-					interior: 0,
-				} ) );
-				for ( let y = 0; y < a.height; y++ ) {
-					for ( let x = 0; x < a.width; x++ ) {
-						const i = at( x, y );
-						const line = boxes.findIndex( ( box ) =>
-							inBox( x, y, box )
-						);
-						if ( line < 0 ) {
-							outside.total++;
-							outside.moved += moved( i ) ? 1 : 0;
-							continue;
-						}
-						const count = perLine[ line ];
-						count.total++;
-						count.moved += moved( i ) ? 1 : 0;
-						let interior = x > 0 && y > 0;
-						for ( let dy = -1; interior && dy <= 1; dy++ ) {
-							for ( let dx = -1; interior && dx <= 1; dx++ ) {
-								interior =
-									x + dx < a.width &&
-									y + dy < a.height &&
-									isText( x + dx, y + dy, boxes[ line ].rgb );
-							}
-						}
-						if ( interior ) {
-							count.interior++;
-							count.interiorMoved += moved( i ) ? 1 : 0;
-						}
-					}
-				}
-				return { outside, perLine };
-			},
-			{
-				pngs: [ expected, actual ].map( ( png ) =>
-					png.toString( 'base64' )
-				),
-				boxes: lines.map( ( line ) => ( {
-					left: Math.floor( line.left ),
-					right: Math.ceil( line.right ),
-					top: Math.floor( line.top ),
-					bottom: Math.ceil( line.bottom ),
-					rgb: line.rgb,
-				} ) ),
-				delta: TOLERANCE.delta,
-			}
-		);
-		if ( ! counts ) {
-			return { outside: 1, lines: [], within: false };
-		}
-		const outside = counts.outside.moved / counts.outside.total;
-		const perLine = counts.perLine.map( ( count, index ) => ( {
-			text: lines[ index ].text,
-			edges: count.moved / count.total,
-			interior: count.interiorMoved / Math.max( 1, count.interior ),
-			interiorPixels: count.interior,
-		} ) );
-		return {
-			outside,
-			lines: perLine,
-			within:
-				outside <= TOLERANCE.outsideText &&
-				perLine.every(
-					( line ) =>
-						line.interiorPixels > 0 &&
-						line.edges <= TOLERANCE.textEdges &&
-						line.interior <= TOLERANCE.textInterior
-				),
-		};
-	} finally {
-		await browser.close();
-	}
-}
-
-/**
  * Strict check: a fresh render equals every committed PNG byte for byte.
  *
- * @return {Promise<string[]>} The files that differ.
+ * @return {Promise<string[]>} What is wrong, one line per file.
  */
-export async function staleFiles() {
+async function staleFiles() {
 	const outDir = mkdtempSync( join( tmpdir(), 'zero-spam-listing-' ) );
 	try {
 		await renderListingAssets( outDir );
-		return TARGETS.map( ( target ) => target.file ).filter(
-			( file ) =>
-				! readFileSync( join( LISTING_DIR, file ) ).equals(
-					readFileSync( join( outDir, file ) )
-				)
-		);
+		return TARGETS.map( ( { file } ) => {
+			const path = join( LISTING_DIR, file );
+			if ( ! existsSync( path ) ) {
+				return `missing: ${ file }`;
+			}
+			return readFileSync( path ).equals(
+				readFileSync( join( outDir, file ) )
+			)
+				? null
+				: `differs from a fresh render: ${ file }`;
+		} ).filter( Boolean );
 	} finally {
 		rmSync( outDir, { recursive: true, force: true } );
 	}
@@ -446,9 +296,7 @@ if (
 ) {
 	if ( process.argv.includes( '--check' ) ) {
 		const stale = await staleFiles();
-		for ( const file of stale ) {
-			say( `differs from a fresh render: ${ file }` );
-		}
+		stale.forEach( say );
 		say(
 			stale.length
 				? 'Listing art is stale: run node bin/render-listing-assets.mjs and commit it.'
