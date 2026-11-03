@@ -433,7 +433,8 @@ class Test_Admin_Safe_IPs extends TestCase {
 
 		$this->assertStringContainsString( self::PUBLIC_IP, $html );
 		$this->assertStringContainsString( "can't be locked out by Zero Spam from this address. Visitors from it are still checked.", $html );
-		$this->assertStringContainsString( 'page=zero-spam-rules&amp;tab=no-lockout', $html );
+		// wp_kses() writes the ampersand as &amp; or &#038; depending on the WordPress version.
+		$this->assertMatchesRegularExpression( '/page=zero-spam-rules&(amp|#038);tab=no-lockout/', $html );
 		$this->assertStringContainsString( 'Zero Spam → Rules → No-lockout addresses', $html );
 		$this->assertStringNotContainsString( 'is-dismissible', $html, 'The X only hides the notice until the next page; the Dismiss button is the one that lasts.' );
 
