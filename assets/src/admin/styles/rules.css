@@ -413,6 +413,11 @@
 		min-height: var(--zs-tap-min);
 	}
 
+	/* The card's side is a row here, its actions start on the left: wrap them there too. */
+	.zs-rules-list .zs-cm-a {
+		justify-content: flex-start;
+	}
+
 }
 
 /* The list is the card's first row: no rule above it (prototype .scard-b). */
