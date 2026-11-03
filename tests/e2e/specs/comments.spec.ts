@@ -53,7 +53,7 @@ test.describe( 'Comment protection', () => {
 			maxRedirects: 0,
 		} );
 		expect( response.status() ).toBe( 403 );
-		expect( await response.text() ).toContain( 'Your IP has been flagged as spam/malicious.' );
+		expect( await response.text() ).toContain( 'This looks like spam, so it wasn' );
 
 		const rows = await zs.logRows( { ip: bot.ip, type: 'comment' } );
 		expect( rows.map( ( r ) => r.submission_data?.failed ) ).toContain( 'honeypot' );
