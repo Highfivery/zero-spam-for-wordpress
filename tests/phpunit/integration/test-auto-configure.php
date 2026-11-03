@@ -71,4 +71,28 @@ class Test_Auto_Configure extends TestCase {
 
 		$this->assertSame( 'enabled', get_option( 'zero-spam-settings' )['share_data'] );
 	}
+
+	/**
+	 * Stop Forum Spam sends visitors' addresses and emails to stopforumspam.com,
+	 * so the recommended settings leave it as it is: first-run setup asks.
+	 */
+	public function test_recommended_settings_leave_stop_forum_spam_to_the_owner(): void {
+		delete_option( 'zero-spam-stop_forum_spam' );
+		self::reset_static_caches();
+
+		$this->assertArrayNotHasKey( 'recommended', Settings::get_settings()['stop_forum_spam'] );
+
+		Settings::auto_configure();
+		self::reset_static_caches();
+
+		$this->assertNotSame( 'enabled', Settings_Schema::value( 'stop_forum_spam' ) );
+
+		update_option( 'zero-spam-stop_forum_spam', array( 'stop_forum_spam' => 'enabled' ) );
+		self::reset_static_caches();
+
+		Settings::auto_configure();
+		self::reset_static_caches();
+
+		$this->assertSame( 'enabled', get_option( 'zero-spam-stop_forum_spam' )['stop_forum_spam'] );
+	}
 }

@@ -36,7 +36,8 @@ export const clampStep = ( step ) =>
  * @param {Object} [seed]          Values to start from.
  * @param {number} [seed.step]     Step (a saved onboarding_step resumes there).
  * @param {Object} [seed.protect]  Module key => ticked.
- * @param {Object} [seed.blocking] block_method, share_data, log_blocked_ips.
+ * @param {Object} [seed.blocking] block_method, stop_forum_spam, share_data,
+ *                                 log_blocked_ips.
  * @return {Object} State.
  */
 export function initialState( seed = {} ) {
@@ -47,6 +48,8 @@ export function initialState( seed = {} ) {
 		protect: { ...( seed.protect || {} ) },
 		blocking: {
 			block_method: 'php',
+			// Shown with what it sends, on: the owner sees it before it runs.
+			stop_forum_spam: true,
 			// Sending data to zerospam.org needs the owner's own yes.
 			share_data: false,
 			log_blocked_ips: true,
@@ -231,11 +234,12 @@ export const protectFrom = ( items ) =>
 	Object.fromEntries( items.map( ( i ) => [ i.key, i.enabled ] ) );
 
 /**
- * Step 3 on a site with settings of its own: its block method, data
- * sharing and activity log as they are now (defaults for what is missing).
+ * Step 3 on a site with settings of its own: its block method, Stop Forum
+ * Spam, data sharing and activity log as they are now (defaults for what is
+ * missing).
  *
  * @param {Object[]|undefined} schema settings/schema `settings`.
- * @return {Object} block_method, share_data, log_blocked_ips.
+ * @return {Object} block_method, stop_forum_spam, share_data, log_blocked_ips.
  */
 export function blockingFrom( schema ) {
 	const value = ( key ) =>
@@ -247,6 +251,7 @@ export function blockingFrom( schema ) {
 	};
 	return {
 		block_method: 'string' === typeof method && method ? method : 'php',
+		stop_forum_spam: on( 'stop_forum_spam' ),
 		// Only an explicit yes: an unset value is off, unlike the log.
 		share_data: 'enabled' === value( 'share_data' ),
 		log_blocked_ips: on( 'log_blocked_ips' ),
@@ -298,6 +303,7 @@ export function changesFor( state, items = [] ) {
 	if ( 3 === state.step ) {
 		const {
 			block_method: method,
+			stop_forum_spam: sfs,
 			share_data: share,
 			log_blocked_ips: log,
 		} = state.blocking;
@@ -305,6 +311,7 @@ export function changesFor( state, items = [] ) {
 			license: null,
 			settings: {
 				block_method: method,
+				stop_forum_spam: Boolean( sfs ),
 				share_data: Boolean( share ),
 				log_blocked_ips: Boolean( log ),
 			},
@@ -348,7 +355,12 @@ export function stepKeys( step, items = [] ) {
 		return items.flatMap( ( i ) => i.switches );
 	}
 	if ( 3 === step ) {
-		return [ 'block_method', 'share_data', 'log_blocked_ips' ];
+		return [
+			'block_method',
+			'stop_forum_spam',
+			'share_data',
+			'log_blocked_ips',
+		];
 	}
 	return [];
 }

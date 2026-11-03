@@ -79,7 +79,7 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   module's section) and, for switches, `recommended`; `html` settings are
   shown as help (paragraphs, lists, formatting and links only) or, when
   listed in `settings-model.js` `ACTIONS`, as a `settings/actions` button.
-- A setting that sends data to an outside service (for example `share_data`, Usage Data Sharing) never gets a `recommended` value and starts off in first-run setup: WordPress.org guideline 7 needs the site owner's own yes, and "Recommended settings" (`Settings::auto_configure()`) store every recommended value. Its description says what it sends; keep it in step with the readme's External services section.
+- A switch that by itself sends site or visitor data to an outside service (`share_data`, Usage Data Sharing; `stop_forum_spam`) never gets a `recommended` value: WordPress.org guideline 7 needs the site owner's own yes, and "Recommended settings" (`Settings::auto_configure()`, also first-run setup's first step, Skip setup and `wp zerospam autoconfigure`) store every recommended value. First-run setup step 3 shows each one with what it sends (`stepper.js`: Stop Forum Spam starts on, data sharing off). Switches that do nothing until the owner enters a key (Enhanced Protection, Project Honeypot, geolocation) may keep one: the key is the consent. Each description says what it sends; keep it in step with the readme's External services section.
 - Since 6.0 (`feat/rest-foundation`) `Core\Settings_Schema` builds the
   registry once per request and site and describes every setting (type,
   choices, default, area/group, locked, source, secrets masked); prefer

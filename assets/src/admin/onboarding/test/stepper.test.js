@@ -217,11 +217,13 @@ describe( 'step 3, how to block', () => {
 		);
 		expect( changesFor( s ).settings ).toEqual( {
 			block_method: 'htaccess_modern',
+			stop_forum_spam: true,
 			share_data: false,
 			log_blocked_ips: true,
 		} );
 		expect( stepKeys( 3 ) ).toEqual( [
 			'block_method',
+			'stop_forum_spam',
 			'share_data',
 			'log_blocked_ips',
 		] );
@@ -271,19 +273,34 @@ describe( 'a site that already has settings', () => {
 		expect(
 			blockingFrom( [
 				{ key: 'block_method', value: 'htaccess_modern' },
+				{ key: 'stop_forum_spam', value: false },
 				{ key: 'share_data', value: false },
 				{ key: 'log_blocked_ips', value: 'enabled' },
 			] )
 		).toEqual( {
 			block_method: 'htaccess_modern',
+			stop_forum_spam: false,
 			share_data: false,
 			log_blocked_ips: true,
 		} );
 		expect( blockingFrom( undefined ) ).toEqual( {
 			block_method: 'php',
+			stop_forum_spam: true,
 			share_data: false,
 			log_blocked_ips: true,
 		} );
+	} );
+} );
+
+describe( 'Stop Forum Spam is a choice in step 3', () => {
+	it( 'is shown on, and written as the owner leaves it', () => {
+		expect( initialState().blocking.stop_forum_spam ).toBe( true );
+		const off = run( initialState( { step: 3 } ), {
+			type: 'blocking',
+			name: 'stop_forum_spam',
+			value: false,
+		} );
+		expect( changesFor( off ).settings.stop_forum_spam ).toBe( false );
 	} );
 } );
 

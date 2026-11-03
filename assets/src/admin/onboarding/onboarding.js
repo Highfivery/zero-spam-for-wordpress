@@ -472,6 +472,28 @@ function BlockingStep( { state, dispatch, schema } ) {
 			</fieldset>
 			<div className="zs-ob-sw">
 				<span>
+					<b id="zs-obs3">
+						{ __(
+							'Check visitors with Stop Forum Spam',
+							'zero-spam'
+						) }
+					</b>
+					<span className="zs-hint" id="zs-obs3-h">
+						{ __(
+							'Recommended. Looks up visitors’ IP addresses, and the email addresses entered in comments and sign-ups, at stopforumspam.com to block known spammers. Answers are kept on your site.',
+							'zero-spam'
+						) }
+					</span>
+				</span>
+				<Switch
+					checked={ Boolean( state.blocking.stop_forum_spam ) }
+					labelledBy="zs-obs3"
+					describedBy="zs-obs3-h"
+					onChange={ ( on ) => set( 'stop_forum_spam', on ) }
+				/>
+			</div>
+			<div className="zs-ob-sw">
+				<span>
 					<b id="zs-obs1">
 						{ __(
 							'Share blocked attempts with Zero Spam',
@@ -480,7 +502,7 @@ function BlockingStep( { state, dispatch, schema } ) {
 					</b>
 					<span className="zs-hint" id="zs-obs1-h">
 						{ __(
-							'Optional. Sends each blocked attempt to zerospam.org (the IP address, any email and name entered, and your site’s name and admin email) so other sites can block the same spammers.',
+							'Optional. Sends each blocked attempt to zerospam.org (the IP address, any email, name or username entered, and your site’s name and admin email) so other sites can block the same spammers.',
 							'zero-spam'
 						) }
 					</span>
