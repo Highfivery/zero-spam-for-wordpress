@@ -301,6 +301,14 @@ function canned_body( string $host, string $path, string $query = '' ) {
 		if ( str_contains( $path, 'get-license' ) && str_contains( $query, 'license_key=e2e-invalid' ) ) {
 			return array( 'error' => 'invalid_license' );
 		}
+		if ( str_contains( $path, 'get-license' ) && str_contains( $query, 'license_key=e2e-inactive' ) ) {
+			return array(
+				'product_id'          => 'ZEROSPAMBUSINESS',
+				'entitled'            => false,
+				'subscription_status' => 'cancelled',
+				'response'            => 'subscription_inactive',
+			);
+		}
 		if ( str_contains( $path, 'get-license' ) ) {
 			return array(
 				'license_key'         => 'e2e-license',

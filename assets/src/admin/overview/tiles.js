@@ -245,6 +245,15 @@ function attentionAction( item, modules ) {
 			} ),
 		};
 	}
+	if ( 'license_inactive' === item.id ) {
+		return {
+			label: __( 'Review your license', 'zero-spam' ),
+			href: areaUrl( 'protection', {
+				tab: 'intelligence',
+				card: 'zerospam',
+			} ),
+		};
+	}
 	if ( 'log_fill' === item.id ) {
 		return {
 			label: __( 'Change log size', 'zero-spam' ),

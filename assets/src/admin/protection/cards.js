@@ -356,6 +356,12 @@ export function cardStatus( card, valueOf, license ) {
 				label: __( 'Key not valid', 'zero-spam' ),
 			};
 		}
+		if ( 'inactive' === license.status ) {
+			return {
+				tone: 'warn',
+				label: __( 'Subscription inactive', 'zero-spam' ),
+			};
+		}
 		return license.enabled
 			? { tone: 'ok', label: __( 'Active', 'zero-spam' ) }
 			: { tone: 'warn', label: __( 'Off', 'zero-spam' ) };

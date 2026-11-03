@@ -431,7 +431,7 @@ class Self_Test_Controller extends Base_Controller {
 			);
 		}
 
-		if ( License_Status::is_enabled() && License_Status::has_key() ) {
+		if ( License_Status::is_enabled() && License_Status::has_key() && ! License_Status::is_inactive() ) {
 			$services[] = $this->ping(
 				'zero_spam',
 				static function () {
@@ -449,7 +449,8 @@ class Self_Test_Controller extends Base_Controller {
 					);
 				},
 				static function ( array $data ): bool {
-					return isset( $data['status'] ) && 200 === (int) $data['status'];
+					// A plan with no queries left is refused with its reason: the network is answering.
+					return ( isset( $data['status'] ) && 200 === (int) $data['status'] ) || ( isset( $data['response'] ) && 'exceeded_requests' === $data['response'] );
 				}
 			);
 		}
@@ -506,7 +507,7 @@ class Self_Test_Controller extends Base_Controller {
 		$response = $request();
 		$ms       = (int) round( ( microtime( true ) - $start ) * 1000 );
 		$code     = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
-		$data     = 200 === $code ? json_decode( (string) wp_remote_retrieve_body( $response ), true ) : null;
+		$data     = in_array( $code, array( 200, 403 ), true ) ? json_decode( (string) wp_remote_retrieve_body( $response ), true ) : null;
 
 		return array(
 			'id'   => $id,

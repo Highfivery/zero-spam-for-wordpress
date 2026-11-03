@@ -13,6 +13,7 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 use ZeroSpam\Core\Admin\Shared_IP_Warning;
+use ZeroSpam\Core\License_Status;
 use ZeroSpam\Core\Settings_Schema;
 use ZeroSpam\Core\User;
 use ZeroSpam\Includes\DB;
@@ -418,6 +419,15 @@ class Protection_Controller extends Base_Controller {
 				/* translators: %s: plugin name, such as WPForms */
 				'message'  => sprintf( __( '%s is active, but Zero Spam does not check its forms for spam. Turn on its protection.', 'zero-spam' ), $module['plugin']['name'] ),
 				'module'   => $module['key'],
+			);
+		}
+
+		if ( License_Status::is_enabled() && License_Status::is_inactive() ) {
+			$items[] = array(
+				'id'       => 'license_inactive',
+				'severity' => 'warning',
+				'title'    => __( 'Your Zero Spam subscription isn\'t active', 'zero-spam' ),
+				'message'  => __( 'Visitors aren\'t being checked against the Zero Spam network until you renew. Every other check keeps working.', 'zero-spam' ),
 			);
 		}
 

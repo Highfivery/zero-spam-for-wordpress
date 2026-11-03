@@ -164,6 +164,111 @@ class Test_License_Status extends TestCase {
 	}
 
 	/**
+	 * A lapsed subscription is said as such, never as an outage: the API
+	 * answers subscription_inactive with no license_key.
+	 */
+	public function test_a_lapsed_subscription_is_inactive(): void {
+		$this->set_setting( 'zerospam_license', self::KEY );
+		$this->mock_http( self::ENDPOINT, self::inactive_body() );
+
+		$status = License_Status::get();
+
+		$this->assertSame( License_Status::INACTIVE, $status['status'] );
+		$this->assertSame( 'cancelled', $status['renewal']['status'] );
+		$this->assertTrue( License_Status::is_inactive() );
+	}
+
+	/**
+	 * A renewed subscription is seen within the hour.
+	 */
+	public function test_inactive_is_cached_for_an_hour(): void {
+		$this->set_setting( 'zerospam_license', self::KEY );
+		$this->mock_http( self::ENDPOINT, self::inactive_body() );
+		License_Status::get();
+
+		$timeout = (int) get_option( '_transient_timeout_' . License_Status::TRANSIENT );
+		$this->assertLessThanOrEqual( time() + HOUR_IN_SECONDS, $timeout );
+	}
+
+	/**
+	 * The key is the customer's and is kept, so renewing is all it takes.
+	 */
+	public function test_route_put_saves_an_inactive_key(): void {
+		$this->as_role( 'administrator' );
+		$this->mock_http( self::ENDPOINT, self::inactive_body() );
+
+		$response = $this->rest( 'PUT', self::ROUTE, array( 'license_key' => self::KEY ) );
+
+		$this->assertSame( 200, $response->get_status() );
+		$this->assertSame( License_Status::INACTIVE, $response->get_data()['status'] );
+		$this->assertSame( self::KEY, get_option( 'zero-spam-zerospam' )['zerospam_license'] );
+	}
+
+	/**
+	 * Nothing is known yet, or another status: not inactive, and no API request.
+	 */
+	public function test_is_inactive_never_asks_the_api(): void {
+		$this->set_setting( 'zerospam_license', self::KEY );
+
+		$this->assertFalse( License_Status::is_inactive() );
+		$this->assertSame( array(), HttpMock::requests() );
+	}
+
+	/**
+	 * A site's level says so too.
+	 */
+	public function test_site_level_of_an_inactive_key(): void {
+		$this->set_setting( 'zerospam', 'enabled' );
+		$this->set_setting( 'zerospam_license', self::KEY );
+		$this->mock_http( self::ENDPOINT, self::inactive_body() );
+		License_Status::get();
+
+		$this->assertSame( License_Status::LEVEL_INACTIVE, License_Status::site_level( get_current_blog_id() ) );
+	}
+
+	/**
+	 * A lookup that finds the subscription lapsed stops further lookups: each
+	 * would make a visitor wait for an answer that cannot help.
+	 */
+	public function test_a_lookup_that_finds_it_inactive_stops_the_next_ones(): void {
+		$this->set_setting( 'zerospam', 'enabled' );
+		$this->set_setting( 'zerospam_license', self::KEY );
+		$this->mock_http(
+			'#/wp-json/v3/query#',
+			array(
+				'status'   => 403,
+				'response' => 'subscription_inactive',
+			),
+			403
+		);
+
+		$this->assertFalse( \ZeroSpam\Modules\Zero_Spam::query( array( 'ip' => '203.0.113.5' ) ) );
+		$this->assertTrue( License_Status::is_inactive() );
+
+		$this->assertFalse( \ZeroSpam\Modules\Zero_Spam::query( array( 'ip' => '203.0.113.6' ) ) );
+		$this->assertSame( 1, HttpMock::hits( '#/wp-json/v3/query#' ) );
+	}
+
+	/**
+	 * What the API answers for a lapsed subscription.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function inactive_body(): array {
+		return array(
+			'order_id'            => '2206',
+			'product_id'          => 'ZEROSPAMBUSINESS',
+			'queries_limit'       => '50000',
+			'queries_made'        => '46257',
+			'queries_remaining'   => '3743',
+			'entitled'            => false,
+			'subscription_status' => 'cancelled',
+			'upgrade_url'         => 'https://www.zerospam.org/pricing/',
+			'response'            => 'subscription_inactive',
+		);
+	}
+
+	/**
 	 * A valid answer carries the plan and the query counts.
 	 */
 	public function test_valid_details(): void {

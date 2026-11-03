@@ -22,7 +22,8 @@ defined( 'ABSPATH' ) || die();
  * they could disagree. They all read this service now. It asks the Zero Spam
  * API through Zero_Spam::get_license() (`v2/get-license`).
  *
- * Statuses: `none` (no key), `valid`, `invalid`, `unreachable` (the API did
+ * Statuses: `none` (no key), `valid`, `invalid`, `inactive` (a real key whose
+ * subscription lapsed: no lookups until it is renewed), `unreachable` (the API did
  * not answer; protection stays on) and `quota_exceeded` (valid key with no
  * queries left). The answer is cached per site in a transient for 12 hours,
  * 15 minutes when the API was unreachable, and refreshed when the key changes.
@@ -39,6 +40,7 @@ final class License_Status {
 	const INVALID        = 'invalid';
 	const UNREACHABLE    = 'unreachable';
 	const QUOTA_EXCEEDED = 'quota_exceeded';
+	const INACTIVE       = 'inactive';
 
 	/**
 	 * Transient holding the last answer.
@@ -60,6 +62,13 @@ final class License_Status {
 	 * @var int
 	 */
 	const UNREACHABLE_TTL = 15 * MINUTE_IN_SECONDS;
+
+	/**
+	 * How long an "inactive" answer is kept, so a renewal is seen soon.
+	 *
+	 * @var int
+	 */
+	const INACTIVE_TTL = HOUR_IN_SECONDS;
 
 	/**
 	 * Plan names by the product IDs the API reports.
@@ -146,6 +155,7 @@ final class License_Status {
 	const LEVEL_ENHANCED   = 'enhanced';
 	const LEVEL_BASIC      = 'basic';
 	const LEVEL_INVALID    = 'invalid';
+	const LEVEL_INACTIVE   = 'inactive';
 	const LEVEL_UNVERIFIED = 'unverified';
 
 	/**
@@ -156,7 +166,7 @@ final class License_Status {
 	 * `enhanced` only when Enhanced Protection is on and the site's last
 	 * license answer (its cached status, for the key in use) says the key is
 	 * valid (or valid with no queries left); `invalid` when it said the key
-	 * is not valid; `unverified` when it is on with a key that has not been
+	 * is not valid; `inactive` when its subscription lapsed; `unverified` when it is on with a key that has not been
 	 * checked recently, or the API could not be reached; `basic` otherwise.
 	 * The values follow the precedence of the settings: a locked network
 	 * value, the site's own value, the network default, then (for the key)
@@ -211,6 +221,10 @@ final class License_Status {
 
 		if ( self::VALID === $status || self::QUOTA_EXCEEDED === $status ) {
 			return self::LEVEL_ENHANCED;
+		}
+
+		if ( self::INACTIVE === $status ) {
+			return self::LEVEL_INACTIVE;
 		}
 
 		return self::INVALID === $status ? self::LEVEL_INVALID : self::LEVEL_UNVERIFIED;
@@ -269,6 +283,34 @@ final class License_Status {
 	}
 
 	/**
+	 * Whether the last answer for the key in use says its subscription lapsed.
+	 *
+	 * Only reads the cached answer: no API request, so lookups can ask it.
+	 *
+	 * @return bool True if the subscription is inactive.
+	 */
+	public static function is_inactive(): bool {
+		$key = self::key();
+
+		if ( '' === $key ) {
+			return false;
+		}
+
+		$cached = get_transient( self::TRANSIENT );
+
+		return is_array( $cached ) && isset( $cached['hash'], $cached['answer']['status'] ) && md5( $key ) === $cached['hash'] && self::INACTIVE === $cached['answer']['status'];
+	}
+
+	/**
+	 * Records that a lookup found the key's subscription lapsed.
+	 *
+	 * @param string $key License key.
+	 */
+	public static function mark_inactive( string $key ): void {
+		self::remember( $key, self::answer( self::INACTIVE ) );
+	}
+
+	/**
 	 * Forgets the cached answers, the API answer for the current key included.
 	 */
 	public static function reset_cache(): void {
@@ -302,7 +344,9 @@ final class License_Status {
 			return self::answer( self::UNREACHABLE );
 		}
 
-		if ( ! is_array( $license ) || empty( $license['license_key'] ) ) {
+		$inactive = is_array( $license ) && isset( $license['status'] ) && 'inactive' === $license['status'];
+
+		if ( ! $inactive && ( ! is_array( $license ) || empty( $license['license_key'] ) ) ) {
 			return self::answer( self::INVALID );
 		}
 
@@ -316,6 +360,7 @@ final class License_Status {
 		}
 
 		$status = isset( $license['queries_remaining'] ) && (int) $license['queries_remaining'] <= 0 ? self::QUOTA_EXCEEDED : self::VALID;
+		$status = $inactive ? self::INACTIVE : $status;
 
 		$plan = null;
 		if ( ! empty( $license['product_id'] ) && is_scalar( $license['product_id'] ) ) {
@@ -351,7 +396,7 @@ final class License_Status {
 				'hash'   => $hash,
 				'answer' => $answer,
 			),
-			self::UNREACHABLE === $answer['status'] ? self::UNREACHABLE_TTL : self::TTL
+			self::UNREACHABLE === $answer['status'] ? self::UNREACHABLE_TTL : ( self::INACTIVE === $answer['status'] ? self::INACTIVE_TTL : self::TTL )
 		);
 
 		return $answer;

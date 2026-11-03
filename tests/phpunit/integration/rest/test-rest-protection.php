@@ -152,6 +152,19 @@ class Test_Rest_Protection extends TestCase {
 	}
 
 	/**
+	 * A lapsed subscription needs the owner, and says what still works.
+	 */
+	public function test_inactive_subscription_needs_attention(): void {
+		$this->set_setting( 'zerospam', 'enabled' );
+		$this->set_setting( 'zerospam_license', 'test-key-1' );
+		$this->assertArrayNotHasKey( 'license_inactive', $this->attention() );
+
+		\ZeroSpam\Core\License_Status::mark_inactive( 'test-key-1' );
+
+		$this->assertSame( 'warning', $this->attention()['license_inactive']['severity'] );
+	}
+
+	/**
 	 * A log at 90% of its size or more needs attention.
 	 */
 	public function test_full_log_needs_attention(): void {

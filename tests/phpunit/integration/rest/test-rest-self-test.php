@@ -273,6 +273,41 @@ class Test_Rest_Self_Test extends TestCase {
 	}
 
 	/**
+	 * A used-up plan answers 403 with a clear reason: the network works.
+	 */
+	public function test_zero_spam_with_no_queries_left_is_answering(): void {
+		$this->set_setting( 'zerospam', 'enabled' );
+		$this->set_setting( 'zerospam_license', 'test-key-1' );
+		$this->mock_http(
+			'#/wp-json/v3/query#',
+			array(
+				'status'   => 403,
+				'response' => 'exceeded_requests',
+			),
+			403
+		);
+
+		list( , $steps ) = $this->run_self_test();
+
+		$this->assertTrue( $steps['reputation']['services'][0]['ok'] );
+	}
+
+	/**
+	 * A lapsed subscription is not looked up: the license says so already.
+	 */
+	public function test_zero_spam_is_not_asked_with_an_inactive_subscription(): void {
+		$this->set_setting( 'zerospam', 'enabled' );
+		$this->set_setting( 'zerospam_license', 'test-key-1' );
+		\ZeroSpam\Core\License_Status::mark_inactive( 'test-key-1' );
+		$this->mock_http( '#/wp-json/v3/query#', array( 'status' => 200 ) );
+
+		list( , $steps ) = $this->run_self_test();
+
+		$this->assertSame( 0, HttpMock::hits( '#/wp-json/v3/query#' ) );
+		$this->assertNotContains( 'zero_spam', array_column( $steps['reputation']['services'], 'id' ) );
+	}
+
+	/**
 	 * The Zero Spam network test lookup is a plain request: it is not counted
 	 * in the API usage statistics and a failure does not move the circuit breaker.
 	 */

@@ -295,6 +295,24 @@ function BasicPanel( { locked, onChanged } ) {
 					</span>
 				</p>
 			) }
+			{ 'inactive' === license?.status && (
+				<p className="zs-notice zs-notice-warn" role="note">
+					<Icon name="warn" size="sm" />
+					<span>
+						{ __(
+							"Your subscription isn't active, so Enhanced Protection is paused. Every other check keeps working, and your license key stays saved: once you renew, it starts again by itself.",
+							'zero-spam'
+						) }{ ' ' }
+						<a
+							href="https://www.zerospam.org/pricing/"
+							target="_blank"
+							rel="noreferrer noopener"
+						>
+							{ __( 'Renew your subscription', 'zero-spam' ) }
+						</a>
+					</span>
+				</p>
+			) }
 			<div id="zs-keyform-wrap" hidden={ ! form }>
 				{ form && (
 					<KeyForm
@@ -525,6 +543,7 @@ export function LevelPanel( { latency, locked, onChanged } ) {
 	if (
 		license?.key?.set &&
 		'invalid' !== license.status &&
+		'inactive' !== license.status &&
 		'none' !== license.status
 	) {
 		return (

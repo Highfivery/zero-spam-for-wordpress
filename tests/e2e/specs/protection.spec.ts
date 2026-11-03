@@ -360,6 +360,17 @@ test.describe( '6.0 Protection', () => {
 		await expect( card ).toBeFocused();
 	} );
 
+	test( 'a lapsed subscription is said as such, with a way to renew, and the key stays saved', async ( { page } ) => {
+		await open( page, 'intelligence' );
+		const card = page.locator( '#zs-card-zerospam' );
+		await card.getByRole( 'button', { name: 'I already have a license key' } ).click();
+		await card.getByLabel( 'License key' ).fill( 'e2e-inactive' );
+		await card.getByRole( 'button', { name: 'Verify and save' } ).click();
+		await expect( card.locator( '.zs-notice-warn' ) ).toContainText( "Your subscription isn't active" );
+		await expect( card.getByRole( 'link', { name: 'Renew your subscription' } ) ).toHaveAttribute( 'href', /zerospam\.org\/pricing/ );
+		await expect( card ).toContainText( 'Subscription inactive' );
+	} );
+
 	test( 'Enhanced: the license panel, early access and the self-test latency', async ( { page, zs } ) => {
 		await zs.setLevel( 'enhanced' );
 		await open( page, 'intelligence' );
