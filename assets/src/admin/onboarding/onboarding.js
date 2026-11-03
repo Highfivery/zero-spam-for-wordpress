@@ -473,7 +473,10 @@ function BlockingStep( { state, dispatch, schema } ) {
 			<div className="zs-ob-sw">
 				<span>
 					<b id="zs-obs1">
-						{ __( 'Share blocked attempts with Zero Spam', 'zero-spam' ) }
+						{ __(
+							'Share blocked attempts with Zero Spam',
+							'zero-spam'
+						) }
 					</b>
 					<span className="zs-hint" id="zs-obs1-h">
 						{ __(
