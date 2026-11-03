@@ -431,7 +431,7 @@ class Self_Test_Controller extends Base_Controller {
 			);
 		}
 
-		if ( License_Status::is_enabled() && License_Status::has_key() && ! License_Status::lookups_paused() ) {
+		if ( License_Status::is_enabled() && License_Status::has_key() && ! License_Status::is_inactive() ) {
 			$services[] = $this->ping(
 				'zero_spam',
 				static function () {
@@ -450,6 +450,11 @@ class Self_Test_Controller extends Base_Controller {
 				},
 				static function ( array $data ): bool {
 					$reason = $data['response'] ?? '';
+
+					// Answered: the plan has queries, whatever an earlier lookup found.
+					if ( isset( $data['status'] ) && 200 === (int) $data['status'] ) {
+						License_Status::clear_pause();
+					}
 
 					if ( 'subscription_inactive' === $reason ) {
 						License_Status::mark_inactive( License_Status::key() );

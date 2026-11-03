@@ -26,8 +26,8 @@ class API_Usage_Tracker {
 	 * @param int             $response_time_ms Response time in milliseconds.
 	 */
 	public static function track_api_call( $endpoint, $response, $request_params = array(), $response_time_ms = 0 ) {
-		// Only track if monitoring is enabled.
-		if ( ! self::is_monitoring_enabled() ) {
+		// Only track if monitoring is enabled. Sharing a report uses no queries: this counts lookups.
+		if ( ! self::is_monitoring_enabled() || false !== strpos( (string) $endpoint, '/report' ) ) {
 			return;
 		}
 
@@ -84,6 +84,9 @@ class API_Usage_Tracker {
 	 * @param array  $request_params Request parameters.
 	 */
 	public static function track_cache_hit( $endpoint, $request_params = array() ) {
+		// The parameters hold the visitor's address: a usage record does not keep them.
+		unset( $request_params );
+
 		// Only track if monitoring is enabled.
 		if ( ! self::is_monitoring_enabled() ) {
 			return;
@@ -95,14 +98,13 @@ class API_Usage_Tracker {
 		$now     = current_time( 'mysql' );
 
 		$data = array(
-			'site_id'        => $site_id,
-			'event_type'     => 'cache_hit',
-			'endpoint'       => self::endpoint_address( $endpoint ),
-			'response_code'  => null,
-			'request_params' => wp_json_encode( $request_params ),
-			'date_recorded'  => $now,
-			'hour_bucket'    => gmdate( 'Y-m-d H:00:00', strtotime( $now ) ),
-			'day_bucket'     => gmdate( 'Y-m-d', strtotime( $now ) ),
+			'site_id'       => $site_id,
+			'event_type'    => 'cache_hit',
+			'endpoint'      => self::endpoint_address( $endpoint ),
+			'response_code' => null,
+			'date_recorded' => $now,
+			'hour_bucket'   => gmdate( 'Y-m-d H:00:00', strtotime( $now ) ),
+			'day_bucket'    => gmdate( 'Y-m-d', strtotime( $now ) ),
 		);
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- The plugin's own table; there is no API for it.

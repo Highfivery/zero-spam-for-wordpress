@@ -97,6 +97,7 @@ $zerospam_site_transients = array(
 	'zerospam_dashboard_data_network',
 	'zerospam_dashboard_data_site',
 	'zerospam_license_status',
+	'zerospam_lookups_paused',
 	'zerospam_protection_detections',
 	'zerospam_rescue_site_sends',
 	'zerospam_self_test_lock',

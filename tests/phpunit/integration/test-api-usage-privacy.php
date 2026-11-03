@@ -47,12 +47,13 @@ class Test_API_Usage_Privacy extends TestCase {
 			$wpdb->insert(
 				$this->table(),
 				array(
-					'site_id'       => get_current_blog_id(),
-					'event_type'    => 'api_call',
-					'endpoint'      => 'https://www.zerospam.org/wp-json/v3/query?license_key=' . self::KEY . '&ip=203.0.113.5',
-					'date_recorded' => current_time( 'mysql' ),
-					'hour_bucket'   => gmdate( 'Y-m-d H:00:00' ),
-					'day_bucket'    => gmdate( 'Y-m-d' ),
+					'site_id'        => get_current_blog_id(),
+					'endpoint'       => 'https://www.zerospam.org/wp-json/v3/query?license_key=' . self::KEY . '&ip=203.0.113.5',
+					'request_params' => '{"ip":"203.0.113.5"}',
+					'event_type'     => 'cache_hit',
+					'date_recorded'  => current_time( 'mysql' ),
+					'hour_bucket'    => gmdate( 'Y-m-d H:00:00' ),
+					'day_bucket'     => gmdate( 'Y-m-d' ),
 				)
 			);
 		}
@@ -109,9 +110,21 @@ class Test_API_Usage_Privacy extends TestCase {
 	 * The same for a cache hit.
 	 */
 	public function test_a_cache_hit_stores_only_the_address_of_the_endpoint(): void {
-		API_Usage_Tracker::track_cache_hit( 'https://www.zerospam.org/wp-json/v3/query?license_key=' . self::KEY );
+		global $wpdb;
+
+		API_Usage_Tracker::track_cache_hit( 'https://www.zerospam.org/wp-json/v3/query?license_key=' . self::KEY, array( 'ip' => '203.0.113.5' ) );
 
 		$this->assertSame( array( 'https://www.zerospam.org/wp-json/v3/query' ), $this->endpoints() );
+		$this->assertNull( $wpdb->get_var( $wpdb->prepare( 'SELECT request_params FROM %i LIMIT 1', $this->table() ) ), 'The visitor address is not kept.' );
+	}
+
+	/**
+	 * Sharing a report uses no queries, so it is not counted as a lookup.
+	 */
+	public function test_a_report_is_not_counted(): void {
+		API_Usage_Tracker::track_api_call( 'https://www.zerospam.org/wp-json/v6/report/?data[ip]=203.0.113.5', array( 'response' => array( 'code' => 200 ) ) );
+
+		$this->assertSame( array(), $this->endpoints() );
 	}
 
 	/**
@@ -129,5 +142,6 @@ class Test_API_Usage_Privacy extends TestCase {
 
 		$this->assertSame( array( 'https://www.zerospam.org/wp-json/v3/query' ), $this->endpoints() );
 		$this->assertSame( '3', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $this->table() ) ) );
+		$this->assertSame( '0', $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE request_params IS NOT NULL', $this->table() ) ) );
 	}
 }

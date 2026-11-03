@@ -162,6 +162,18 @@ class Test_Rest_Protection extends TestCase {
 		\ZeroSpam\Core\License_Status::mark_inactive( 'test-key-1' );
 
 		$this->assertSame( 'warning', $this->attention()['license_inactive']['severity'] );
+		$this->assertArrayNotHasKey( 'quota_used_up', $this->attention() );
+	}
+
+	/**
+	 * A plan a lookup found used up needs the owner too.
+	 */
+	public function test_used_up_plan_needs_attention(): void {
+		$this->set_setting( 'zerospam', 'enabled' );
+		$this->set_setting( 'zerospam_license', 'test-key-1' );
+		\ZeroSpam\Core\License_Status::mark_quota_exceeded( 'test-key-1' );
+
+		$this->assertSame( 'warning', $this->attention()['quota_used_up']['severity'] );
 	}
 
 	/**

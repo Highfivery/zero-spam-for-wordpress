@@ -431,6 +431,15 @@ class Protection_Controller extends Base_Controller {
 			);
 		}
 
+		if ( License_Status::is_enabled() && ! License_Status::is_inactive() && License_Status::lookups_paused() ) {
+			$items[] = array(
+				'id'       => 'quota_used_up',
+				'severity' => 'warning',
+				'title'    => __( 'Your plan\'s lookups are used up', 'zero-spam' ),
+				'message'  => __( 'Visitors aren\'t being checked against the Zero Spam network until they reset. Every other check keeps working.', 'zero-spam' ),
+			);
+		}
+
 		$max = Stats_Controller::max_logs();
 		if ( $max > 0 && $log_count * 100 >= $max * self::LOG_FILL_WARNING ) {
 			$percent = (int) min( 100, floor( $log_count / $max * 100 ) );

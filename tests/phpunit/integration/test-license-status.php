@@ -282,7 +282,7 @@ class Test_License_Status extends TestCase {
 		$this->assertSame( 1, HttpMock::hits( $query ) );
 
 		// The hour is over and the plan was reset: the next lookup just works.
-		delete_transient( License_Status::TRANSIENT );
+		delete_transient( License_Status::PAUSE_TRANSIENT );
 		HttpMock::reset();
 		$this->mock_http(
 			$query,
@@ -296,15 +296,35 @@ class Test_License_Status extends TestCase {
 	}
 
 	/**
-	 * A used-up plan the license route reports is paused too, for an hour.
+	 * The license route's numbers can lag behind the lookups, so they only
+	 * say so on screen: they never turn lookups off for a paying customer.
 	 */
-	public function test_a_used_up_plan_from_the_license_check_is_paused(): void {
+	public function test_a_used_up_plan_from_the_license_check_does_not_pause(): void {
 		$this->set_setting( 'zerospam_license', self::KEY );
 		$this->mock_http( self::ENDPOINT, array_merge( self::valid_body(), array( 'queries_remaining' => 0 ) ) );
 
 		$this->assertSame( License_Status::QUOTA_EXCEEDED, License_Status::get()['status'] );
-		$this->assertTrue( License_Status::lookups_paused() );
+		$this->assertFalse( License_Status::lookups_paused() );
 		$this->assertLessThanOrEqual( time() + HOUR_IN_SECONDS, (int) get_option( '_transient_timeout_' . License_Status::TRANSIENT ) );
+	}
+
+	/**
+	 * Refresh and an answered lookup lift a pause.
+	 */
+	public function test_a_pause_can_be_lifted(): void {
+		$this->set_setting( 'zerospam_license', self::KEY );
+
+		License_Status::mark_quota_exceeded( self::KEY );
+		$this->assertTrue( License_Status::lookups_paused() );
+		License_Status::clear_pause();
+		$this->assertFalse( License_Status::lookups_paused() );
+
+		License_Status::mark_quota_exceeded( self::KEY );
+		License_Status::reset_cache();
+		$this->assertFalse( License_Status::lookups_paused() );
+
+		License_Status::mark_quota_exceeded( 'another-key' );
+		$this->assertFalse( License_Status::lookups_paused(), 'A pause belongs to its key.' );
 	}
 
 	/**
