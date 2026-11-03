@@ -26,7 +26,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
 global $wpdb;
 
-// Every module key used in the source (`'module' => '…'`); each module stores its settings in `zero-spam-{module}`.
+// Every module key used in the source (`'module' => '…'`) and of earlier versions (`google`, removed in 6.0.0); each module stores its settings in `zero-spam-{module}`.
 $zerospam_modules = array(
 	'api-monitoring',
 	'comments',
@@ -72,6 +72,7 @@ $zerospam_site_options = array(
 	'zerospam_davidwalsh_data',
 	'zerospam_davidwalsh_secret',
 	'zerospam_db_version',
+	'zerospam_dismissed_notices',
 	'zerospam_migration_cursor_canonical_blocked_ips',
 	'zerospam_migration_lock_canonical_blocked_ips',
 	'zerospam_migration_lock_network',
