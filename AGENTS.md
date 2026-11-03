@@ -88,8 +88,9 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   `order`. `Core\License_Status` is the one license status (header, widget,
   notices, REST); never ask the license API from elsewhere. `inactive` is a
   real key whose subscription lapsed: it reads as Basic in the admin, with a
-  renew link, and `Zero_Spam::query()` asks nothing while it is cached
-  (`is_inactive()`, no API request).
+  renew link. `Zero_Spam::query()` asks nothing while `inactive` or
+  `quota_exceeded` is cached (`lookups_paused()`, no API request; kept an
+  hour, so a renewal or reset is found by one lookup).
 - REST controllers extend `Includes\Rest\Base_Controller` (permission
   helpers, `rest_invalid_param` with `data.params`, `per_page` ≤ 100, paging
   headers, `_fields`). Secrets are write-only over REST.
@@ -134,6 +135,8 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   WordPress's list does, and whole inside an email address (an entry with an
   `@` also inside a message): `123@` must not refuse jane123@example.com.
   Comments use WordPress's own check, which WordPress runs again itself.
+- `API_Usage_Tracker` stores an endpoint's address only: request URLs carry
+  the license key and visitor data, and must not reach the usage table.
 - Logged submission data is sanitized on write (keys and values) and must be
   escaped on read: it has carried a stored XSS before (CVE-2026-96752).
   The REST routes (`activity/{id}`) return it as stored; the client escapes

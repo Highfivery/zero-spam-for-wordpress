@@ -149,6 +149,13 @@ class Migrations {
 	public float $blocked_ip_time_budget = 2.0;
 
 	/**
+	 * Rows of the usage table cleaned per request.
+	 *
+	 * @var int
+	 */
+	private static int $usage_batch = 1000;
+
+	/**
 	 * The settings that held an old default message, by module.
 	 *
 	 * @var array<string, string[]>
@@ -247,6 +254,7 @@ class Migrations {
 			'v6_allowlist_follows_network' => array( $this, 'allowlist_follows_network' ),
 			'v6_remove_google_api'         => array( $this, 'remove_google_api' ),
 			'v6_spam_message_wording'      => array( $this, 'spam_message_wording' ),
+			'v6_usage_endpoint_privacy'    => array( $this, 'usage_endpoint_privacy' ),
 		);
 	}
 
@@ -1095,6 +1103,52 @@ class Migrations {
 				return true;
 			}
 		);
+	}
+
+	/**
+	 * Removes what earlier versions stored in the usage table's `endpoint`.
+	 *
+	 * It held whole request URLs: the license key and, for lookups and reports,
+	 * the visitor's address and what they typed. Nothing reads the column.
+	 * The table is the network's, so this runs once per network, a batch per
+	 * request.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to carry on with a later request.
+	 */
+	public function usage_endpoint_privacy(): bool {
+		if ( ! is_multisite() ) {
+			return self::clean_usage_endpoints();
+		}
+
+		return $this->run_network_once(
+			'v6_usage_endpoint_privacy',
+			static function (): bool {
+				return self::clean_usage_endpoints();
+			}
+		);
+	}
+
+	/**
+	 * Cleans one batch of the usage table.
+	 *
+	 * @return bool True when no row is left to clean.
+	 */
+	private static function clean_usage_endpoints(): bool {
+		global $wpdb;
+
+		$table = $wpdb->base_prefix . DB::$tables['api_usage'];
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table, bounded.
+		$rows = $wpdb->query( $wpdb->prepare( 'UPDATE %i SET `endpoint` = SUBSTRING_INDEX(`endpoint`, %s, 1) WHERE `endpoint` LIKE %s LIMIT %d', $table, '?', '%?%', self::$usage_batch ) );
+
+		return (int) $rows < self::$usage_batch;
 	}
 
 	/**

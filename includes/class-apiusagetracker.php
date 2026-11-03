@@ -57,7 +57,7 @@ class API_Usage_Tracker {
 		$data = array(
 			'site_id'           => $site_id,
 			'event_type'        => is_wp_error( $response ) ? 'error' : 'api_call',
-			'endpoint'          => sanitize_text_field( $endpoint ),
+			'endpoint'          => self::endpoint_address( $endpoint ),
 			'response_code'     => $response_code,
 			'response_time_ms'  => intval( $response_time_ms ),
 			'queries_limit'     => $queries_limit,
@@ -97,7 +97,7 @@ class API_Usage_Tracker {
 		$data = array(
 			'site_id'        => $site_id,
 			'event_type'     => 'cache_hit',
-			'endpoint'       => sanitize_text_field( $endpoint ),
+			'endpoint'       => self::endpoint_address( $endpoint ),
 			'response_code'  => null,
 			'request_params' => wp_json_encode( $request_params ),
 			'date_recorded'  => $now,
@@ -110,6 +110,20 @@ class API_Usage_Tracker {
 
 		// Clear usage cache after tracking.
 		self::clear_usage_cache( $site_id );
+	}
+
+	/**
+	 * The address of an endpoint, without its query string.
+	 *
+	 * The request URLs hold the license key and, for lookups and reports, the
+	 * visitor's address and what they typed. The table records that a call was
+	 * made, not what it carried.
+	 *
+	 * @param string $endpoint The request URL.
+	 * @return string The address to store.
+	 */
+	private static function endpoint_address( $endpoint ) {
+		return sanitize_text_field( explode( '?', (string) $endpoint, 2 )[0] );
 	}
 
 	/**

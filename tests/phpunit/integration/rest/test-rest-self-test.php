@@ -290,6 +290,13 @@ class Test_Rest_Self_Test extends TestCase {
 		list( , $steps ) = $this->run_self_test();
 
 		$this->assertTrue( $steps['reputation']['services'][0]['ok'] );
+		$this->assertSame( 'warn', $steps['reputation']['status'] );
+		$this->assertStringContainsString( 'used up', $steps['reputation']['message'] );
+
+		list( , $steps ) = $this->run_self_test();
+
+		$this->assertSame( 1, HttpMock::hits( '#/wp-json/v3/query#' ), 'A second run does not ask again while it is paused.' );
+		$this->assertStringContainsString( 'used up', $steps['reputation']['message'] );
 	}
 
 	/**

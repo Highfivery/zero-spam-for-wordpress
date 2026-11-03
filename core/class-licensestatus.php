@@ -64,11 +64,13 @@ final class License_Status {
 	const UNREACHABLE_TTL = 15 * MINUTE_IN_SECONDS;
 
 	/**
-	 * How long an "inactive" answer is kept, so a renewal is seen soon.
+	 * How long an answer that pauses lookups (`inactive`, `quota_exceeded`) is
+	 * kept, so a renewal or a plan's reset is seen soon: at most one refused
+	 * lookup an hour finds out.
 	 *
 	 * @var int
 	 */
-	const INACTIVE_TTL = HOUR_IN_SECONDS;
+	const PAUSED_TTL = HOUR_IN_SECONDS;
 
 	/**
 	 * Plan names by the product IDs the API reports.
@@ -291,15 +293,37 @@ final class License_Status {
 	 * @return bool True if the subscription is inactive.
 	 */
 	public static function is_inactive( ?string $key = null ): bool {
+		return self::INACTIVE === self::cached_status( $key );
+	}
+
+	/**
+	 * Whether lookups are pointless for now: the subscription lapsed or the
+	 * plan's queries are used up. Fail open: the other checks keep working.
+	 *
+	 * Only reads the cached answer: no API request, so lookups can ask it.
+	 *
+	 * @param string|null $key The key in use, when the caller has it already.
+	 * @return bool True if lookups should not be made.
+	 */
+	public static function lookups_paused( ?string $key = null ): bool {
+		return in_array( self::cached_status( $key ), array( self::INACTIVE, self::QUOTA_EXCEEDED ), true );
+	}
+
+	/**
+	 * The cached status of a key, or '' when none is cached for it.
+	 *
+	 * @param string|null $key The key in use, when the caller has it already.
+	 */
+	private static function cached_status( ?string $key = null ): string {
 		$key = trim( $key ?? self::key() );
 
 		if ( '' === $key ) {
-			return false;
+			return '';
 		}
 
 		$cached = get_transient( self::TRANSIENT );
 
-		return is_array( $cached ) && isset( $cached['hash'], $cached['answer']['status'] ) && md5( $key ) === $cached['hash'] && self::INACTIVE === $cached['answer']['status'];
+		return is_array( $cached ) && isset( $cached['hash'], $cached['answer']['status'] ) && md5( $key ) === $cached['hash'] ? (string) $cached['answer']['status'] : '';
 	}
 
 	/**
@@ -309,6 +333,26 @@ final class License_Status {
 	 */
 	public static function mark_inactive( string $key ): void {
 		self::remember( $key, self::answer( self::INACTIVE ) );
+	}
+
+	/**
+	 * Records that a lookup found the plan's queries used up, keeping what is
+	 * known about the plan.
+	 *
+	 * @param string $key License key.
+	 */
+	public static function mark_quota_exceeded( string $key ): void {
+		$cached = get_transient( self::TRANSIENT );
+		$answer = is_array( $cached ) && isset( $cached['hash'], $cached['answer'] ) && md5( trim( $key ) ) === $cached['hash'] ? $cached['answer'] : self::answer( self::QUOTA_EXCEEDED );
+
+		$answer['status'] = self::QUOTA_EXCEEDED;
+
+		if ( isset( $answer['queries']['limit'] ) ) {
+			$answer['queries']['used']      = $answer['queries']['limit'];
+			$answer['queries']['remaining'] = 0;
+		}
+
+		self::remember( $key, $answer );
 	}
 
 	/**
@@ -397,7 +441,7 @@ final class License_Status {
 				'hash'   => $hash,
 				'answer' => $answer,
 			),
-			self::UNREACHABLE === $answer['status'] ? self::UNREACHABLE_TTL : ( self::INACTIVE === $answer['status'] ? self::INACTIVE_TTL : self::TTL )
+			self::UNREACHABLE === $answer['status'] ? self::UNREACHABLE_TTL : ( in_array( $answer['status'], array( self::INACTIVE, self::QUOTA_EXCEEDED ), true ) ? self::PAUSED_TTL : self::TTL )
 		);
 
 		return $answer;

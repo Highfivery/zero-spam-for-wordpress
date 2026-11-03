@@ -250,6 +250,95 @@ class Test_License_Status extends TestCase {
 	}
 
 	/**
+	 * A lookup that finds the plan used up stops the next ones for an hour,
+	 * keeps what is known about the plan, and a later lookup finds a reset.
+	 */
+	public function test_a_lookup_that_finds_the_quota_used_up_pauses_the_next_ones(): void {
+		$query = '#/wp-json/v3/query#';
+		$this->set_setting( 'zerospam', 'enabled' );
+		$this->set_setting( 'zerospam_license', self::KEY );
+		$this->mock_http( self::ENDPOINT, self::valid_body() );
+		$plan = License_Status::get()['plan'];
+		$this->mock_http(
+			$query,
+			array(
+				'status'   => 403,
+				'response' => 'exceeded_requests',
+			),
+			403
+		);
+
+		$this->assertFalse( \ZeroSpam\Modules\Zero_Spam::query( array( 'ip' => '203.0.113.5' ) ) );
+
+		License_Status::reset_request_cache();
+		$status = License_Status::get();
+		$this->assertSame( License_Status::QUOTA_EXCEEDED, $status['status'] );
+		$this->assertSame( $plan, $status['plan'] );
+		$this->assertTrue( License_Status::lookups_paused() );
+		$this->assertFalse( License_Status::is_inactive() );
+		$this->assertLessThanOrEqual( time() + HOUR_IN_SECONDS, (int) get_option( '_transient_timeout_' . License_Status::TRANSIENT ) );
+
+		$this->assertFalse( \ZeroSpam\Modules\Zero_Spam::query( array( 'ip' => '203.0.113.6' ) ) );
+		$this->assertSame( 1, HttpMock::hits( $query ) );
+
+		// The hour is over and the plan was reset: the next lookup just works.
+		delete_transient( License_Status::TRANSIENT );
+		HttpMock::reset();
+		$this->mock_http(
+			$query,
+			array(
+				'status'        => 200,
+				'body_response' => array( 'ip_addresses' => array() ),
+			)
+		);
+
+		$this->assertSame( array( 'ip_addresses' => array() ), \ZeroSpam\Modules\Zero_Spam::query( array( 'ip' => '203.0.113.7' ) ) );
+	}
+
+	/**
+	 * A used-up plan the license route reports is paused too, for an hour.
+	 */
+	public function test_a_used_up_plan_from_the_license_check_is_paused(): void {
+		$this->set_setting( 'zerospam_license', self::KEY );
+		$this->mock_http( self::ENDPOINT, array_merge( self::valid_body(), array( 'queries_remaining' => 0 ) ) );
+
+		$this->assertSame( License_Status::QUOTA_EXCEEDED, License_Status::get()['status'] );
+		$this->assertTrue( License_Status::lookups_paused() );
+		$this->assertLessThanOrEqual( time() + HOUR_IN_SECONDS, (int) get_option( '_transient_timeout_' . License_Status::TRANSIENT ) );
+	}
+
+	/**
+	 * Answers are kept for the Cache Expiration setting, not the confidence minimum.
+	 */
+	public function test_a_lookup_is_cached_for_the_cache_expiration_days(): void {
+		$query = '#/wp-json/v3/query#';
+		$this->set_setting( 'zerospam', 'enabled' );
+		$this->set_setting( 'zerospam_license', self::KEY );
+		$this->set_setting( 'zerospam_cache', 3 );
+		$this->set_setting( 'zerospam_confidence_min', 50 );
+		self::reset_static_caches();
+		$this->mock_http(
+			$query,
+			array(
+				'status'        => 200,
+				'body_response' => array( 'ip_addresses' => array() ),
+			)
+		);
+
+		\ZeroSpam\Modules\Zero_Spam::query( array( 'ip' => '203.0.113.8' ) );
+
+		$key     = \ZeroSpam\Core\Utilities::cache_key(
+			array(
+				'zero_spam',
+				'ip' => '203.0.113.8',
+			)
+		);
+		$timeout = (int) get_option( '_transient_timeout_' . $key );
+		$this->assertGreaterThan( time() + 2 * DAY_IN_SECONDS, $timeout );
+		$this->assertLessThanOrEqual( time() + 3 * DAY_IN_SECONDS, $timeout );
+	}
+
+	/**
 	 * What the API answers for a lapsed subscription.
 	 *
 	 * @return array<string, mixed>
