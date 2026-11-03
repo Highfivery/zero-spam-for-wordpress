@@ -211,12 +211,77 @@ function canned_feed(): string {
 }
 
 /**
+ * Serves strings set through /script-translations as the plugin's script
+ * translations, on token requests, so a test can see the admin in a longer
+ * language without a language pack.
+ */
+add_filter(
+	'pre_load_script_translations',
+	static function ( $translations, $file, $handle, $domain ) {
+		unset( $file, $handle );
+		if ( 'zero-spam' !== $domain || ! is_token_request() ) {
+			return $translations;
+		}
+		$strings = is_multisite() ? get_site_option( 'zs_e2e_script_translations' ) : get_option( 'zs_e2e_script_translations' );
+		if ( empty( $strings ) || ! is_array( $strings ) ) {
+			return $translations;
+		}
+		$messages = array( '' => array( 'domain' => 'messages' ) );
+		foreach ( $strings as $source => $text ) {
+			$messages[ $source ] = array( $text );
+		}
+
+		return wp_json_encode(
+			array(
+				'domain'      => 'messages',
+				'locale_data' => array( 'messages' => $messages ),
+			)
+		);
+	},
+	10,
+	4
+);
+
+/**
  * Whether a test made the zerospam.org feed fail (route `/news`).
  *
  * @return bool
  */
 function news_down(): bool {
 	return (bool) ( is_multisite() ? get_site_option( 'zs_e2e_news_down' ) : get_option( 'zs_e2e_news_down' ) );
+}
+
+/**
+ * Stop Forum Spam's answer: nothing is listed, except a username or email
+ * containing `e2e-sfs-listed` / `e2esfslisted` and the IP 198.51.100.66.
+ *
+ * @param string $query Request query string.
+ * @return array<string, mixed>
+ */
+function canned_stop_forum_spam( string $query ): array {
+	parse_str( $query, $params );
+
+	$listed = array(
+		'appears'    => 1,
+		'frequency'  => 3,
+		'confidence' => '99.00',
+	);
+	$clean  = array(
+		'appears'   => 0,
+		'frequency' => 0,
+	);
+	$answer = array( 'success' => 1 );
+
+	foreach ( array( 'username', 'email', 'ip' ) as $field ) {
+		$value = isset( $params[ $field ] ) && is_string( $params[ $field ] ) ? $params[ $field ] : null;
+		if ( null === $value && 'ip' !== $field ) {
+			continue;
+		}
+
+		$answer[ $field ] = ( null !== $value && ( str_contains( $value, 'e2e-sfs-listed' ) || str_contains( $value, 'e2esfslisted' ) || '198.51.100.66' === $value ) ) ? $listed : $clean;
+	}
+
+	return $answer;
 }
 
 /**
@@ -260,13 +325,7 @@ function canned_body( string $host, string $path, string $query = '' ) {
 	}
 
 	if ( 'api.stopforumspam.org' === $host ) {
-		return array(
-			'success' => 1,
-			'ip'      => array(
-				'appears'   => 0,
-				'frequency' => 0,
-			),
-		);
+		return canned_stop_forum_spam( $query );
 	}
 
 	if ( in_array( $host, array( 'api.ipstack.com', 'ipinfo.io', 'api.ipinfo.io', 'api.ipbase.com' ), true ) ) {
@@ -1395,8 +1454,10 @@ add_action(
 					delete_site_transient( 'zerospam_news_backoff' );
 					if ( is_multisite() ) {
 						delete_site_option( 'zs_e2e_news_down' );
+						delete_site_option( 'zs_e2e_script_translations' );
 					} else {
 						delete_option( 'zs_e2e_news_down' );
+						delete_option( 'zs_e2e_script_translations' );
 					}
 
 					// level=enhanced: a saved license key (the canned answer is a valid
@@ -1538,6 +1599,25 @@ add_action(
 					delete_site_transient( 'zerospam_news_backoff' );
 
 					return new WP_REST_Response( array( 'down' => $down ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/script-translations',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$strings = array_map( 'strval', array_filter( (array) $request->get_param( 'strings' ), 'is_scalar' ) );
+					if ( is_multisite() ) {
+						update_site_option( 'zs_e2e_script_translations', $strings );
+					} else {
+						update_option( 'zs_e2e_script_translations', $strings, false );
+					}
+
+					return new WP_REST_Response( array( 'count' => count( $strings ) ) );
 				},
 			)
 		);

@@ -61,13 +61,16 @@
 	color: transparent !important;
 }
 
-/* The Rules tables size their columns to their content (auto layout), and
-   transparent text still takes up width, so the seeded dates would move every
-   column from one day to the next. Date and Starts take the width of one
-   fixed text, the day the Blocked IPs baselines were recorded. Ends (third
-   from last) keeps its text, which seeds never vary ("Never" or a fixed date).
-   So a real change in a date's width cannot show here, on purpose. Any other
-   auto-layout table with dates needs the same (AGENTS.md section 5). */
+/* The Rules tables (from 1,440px: the v6-rules-*-table baselines) size their
+   columns to their content (auto layout), and transparent text still takes up
+   width, so the seeded dates would move every column from one day to the next.
+   Date and Starts take the width of one fixed text, the day the Blocked IPs
+   baselines were recorded. Ends (third from last) keeps its text, which seeds
+   never vary ("Never" or a fixed date). So a real change in a date's width
+   cannot show here, on purpose. Any other auto-layout table with dates needs
+   the same (AGENTS.md section 5). The Rules cards (1,280 and 782px) need
+   nothing: their dates sit in a line of the flexible column that seeds keep
+   short of wrapping, so the rule above is enough. */
 .zs-areabody .zs-rules-t td.zs-c-date:not(:nth-last-child(3)) {
 	font-size: 0 !important;
 }

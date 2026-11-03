@@ -99,6 +99,8 @@ $zerospam_site_transients = array(
 	'zerospam_protection_detections',
 	'zerospam_rescue_site_sends',
 	'zerospam_self_test_lock',
+	'zerospam_sfs_circuit_open',
+	'zerospam_sfs_failure_count',
 	'zerospam_shared_ip_warning',
 	'zerospam_stats_summary',
 	'zerospam_stats_timeseries',

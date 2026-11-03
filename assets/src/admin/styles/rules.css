@@ -71,7 +71,7 @@
 	content: none;
 }
 
-/* Block tables (from 1,200px) */
+/* Block tables (from 1,440px, while they fit) */
 .zs-rules-t th,
 .zs-rules-t td {
 	vertical-align: middle;
@@ -111,8 +111,31 @@
 	white-space: nowrap;
 }
 
+/*
+ * Auto layout gives the column the width of its longest unbreakable piece, so
+ * "anywhere" keeps a long value from widening the table. On its own it also
+ * lets the column shrink until "Germany" breaks; the floors stop that: a full
+ * IPv4 address (15ch of mono), and a flag with the longest word of a country
+ * name, "Liechtenstein" (12ch of Plus Jakarta Sans). A value longer than that
+ * still wraps, between words first. At 1,440px the table has about 200px for
+ * this column and Reason with a year in all three date columns: keep the
+ * floors of the two inside that, or the table scrolls again (rules.spec.ts).
+ */
 .zs-c-what {
 	overflow-wrap: anywhere;
+}
+
+.zs-c-what > .zs-mono,
+.zs-c-what > .zs-rloc {
+	display: block;
+}
+
+.zs-c-what > .zs-mono {
+	min-width: 15ch;
+}
+
+.zs-c-what > .zs-rloc {
+	min-width: 12ch;
 }
 
 .zs-rules-list .zs-tbar .zs-search {
@@ -120,10 +143,17 @@
 }
 
 
+/*
+ * A reason breaks a word only when the word is wider than the cell: the column
+ * is at least as wide as the longest word, up to 28ch. A table that needs more
+ * than its space shows as cards instead (use-table-fit.js), so a long word can
+ * no longer clip it.
+ */
 .zs-clamp2 {
 	display: -webkit-box;
 	max-width: 28ch;
 	overflow: hidden;
+	overflow-wrap: break-word;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
 }
@@ -136,12 +166,24 @@
 }
 
 .zs-rloc .zs-hint {
+	display: block;
 	font-size: var(--zs-text-sm);
 }
 
 /* Cards (titles, side) and the bulk bar on narrow screens */
 .zs-rules .zs-cm-a .zs-btn {
 	min-height: var(--zs-control-sm);
+}
+
+/* A long word in a reason wraps inside the two lines instead of being cut off. */
+.zs-rules-list .zs-cm-m {
+	overflow-wrap: anywhere;
+}
+
+/* Look up, Edit block and Remove wrap, right-aligned, on a narrow card. */
+.zs-rules-list .zs-cm-a {
+	flex-wrap: wrap;
+	justify-content: flex-end;
 }
 
 /* List editors */
@@ -369,6 +411,11 @@
 	.zs-rules .zs-cm-a .zs-btn,
 	.zs-elist .zs-btn {
 		min-height: var(--zs-tap-min);
+	}
+
+	/* The card's side is a row here, its actions start on the left: wrap them there too. */
+	.zs-rules-list .zs-cm-a {
+		justify-content: flex-start;
 	}
 
 }

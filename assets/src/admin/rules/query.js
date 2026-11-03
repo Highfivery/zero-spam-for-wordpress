@@ -25,6 +25,108 @@ export const PER_PAGE = 50;
 /** The block lists' default order: newest first. */
 export const DEFAULT_SORT = 'date_added:desc';
 
+/**
+ * Width from which the block lists can be a table; below it, always cards.
+ * Wider than the Activity log's: in the widest content (a year in all three
+ * date columns) the table's fixed columns and floors need this viewport with
+ * the WordPress menu and the app's sidebar open. Above it the table still has
+ * to fit its space, or cards show (use-table-fit.js).
+ */
+export const TABLE_MIN_WIDTH = 1440;
+export const TABLE_QUERY = `(min-width: ${ TABLE_MIN_WIDTH }px)`;
+
+/** Overflow up to this many pixels is rounding, not a table that does not fit. */
+export const FIT_TOLERANCE = 1;
+
+/**
+ * Room beyond its need before the table is tried again. More than a page
+ * scrollbar: if the table is taller than the cards, showing it can bring a
+ * scrollbar that narrows the list, which must not make it overflow again.
+ */
+export const RETRY_MARGIN = 20;
+
+/**
+ * The width the list needs for the table to fit, if it does not fit now.
+ *
+ * @param {number} listWidth   The list's width.
+ * @param {number} scrollWidth The table wrap's scrollWidth.
+ * @param {number} clientWidth The table wrap's clientWidth.
+ * @return {number|null} Width needed, or null when the table fits.
+ */
+export function neededWidth( listWidth, scrollWidth, clientWidth ) {
+	const overflow = scrollWidth - clientWidth;
+	return overflow > FIT_TOLERANCE ? listWidth + overflow : null;
+}
+
+/**
+ * Whether a list showing cards because the table overflowed has room to try it again.
+ *
+ * @param {number|undefined} listWidth The list's width.
+ * @param {number|null}      needs     Width the table needed.
+ * @return {boolean} Try the table again.
+ */
+export function shouldRetryTable( listWidth, needs ) {
+	return (
+		null !== needs &&
+		Number.isFinite( listWidth ) &&
+		listWidth >= needs + RETRY_MARGIN
+	);
+}
+
+/** What each control becomes in the other layout; the first one present wins. */
+const CONTROL_TARGETS = {
+	main: [ 'main', 'edit' ],
+	edit: [ 'edit', 'main' ],
+	lookup: [ 'lookup', 'edit' ],
+};
+
+/**
+ * Where a control's focus goes when the layout changes.
+ *
+ * @param {string} control The control's data-zs-ctl.
+ * @return {string[]} Controls to try, in order.
+ */
+export function controlTargets( control ) {
+	return CONTROL_TARGETS[ control ] || [ control ];
+}
+
+/**
+ * The block-list control an element is, to find its match after a switch.
+ *
+ * @param {Element|null}      root    The list's root.
+ * @param {Element|null|void} element Focused element.
+ * @return {{row: string|null, control: string}|null} Row (none for the list's own controls) and control.
+ */
+export function rowControlOf( root, element ) {
+	const control = element?.closest?.( '[data-zs-ctl]' );
+	if ( ! root || ! control || ! root.contains( control ) ) {
+		return null;
+	}
+	return {
+		row: control.closest( '[data-zs-row]' )?.dataset.zsRow ?? null,
+		control: control.dataset.zsCtl,
+	};
+}
+
+/**
+ * Finds the control that matches a noted one in the current layout.
+ *
+ * @param {Element|null}                        root  The list's root.
+ * @param {{row: string|null, control: string}} noted From rowControlOf().
+ * @return {Element|null} The control.
+ */
+export function findControl( root, { row, control } ) {
+	const scope =
+		null === row ? root : root?.querySelector( `[data-zs-row="${ row }"]` );
+	for ( const name of controlTargets( control ) ) {
+		const found = scope?.querySelector( `[data-zs-ctl="${ name }"]` );
+		if ( found ) {
+			return found;
+		}
+	}
+	return null;
+}
+
 /** The list each list tab edits (rules/lists/{list}). */
 export const LIST_OF_TAB = {
 	allowlist: 'allowed-ips',
@@ -54,6 +156,22 @@ const query = ( args ) => {
 		.join( '&' );
 	return text ? `?${ text }` : '';
 };
+
+/**
+ * The card list's Sort menu: its own choices, plus the current order when only
+ * the table offers it (a sort chosen before the window narrowed), so the menu
+ * never names an order the list is not in.
+ *
+ * @param {Array<[string, string]>} options Values and names.
+ * @param {string}                  sort    Current order.
+ * @param {string}                  other   Name for an order of the table.
+ * @return {Array<[string, string]>} Values and names.
+ */
+export function sortChoices( options, sort, other ) {
+	return options.some( ( [ value ] ) => value === sort )
+		? options
+		: [ ...options, [ sort, other ] ];
+}
 
 /**
  * A sort value split into column and direction.

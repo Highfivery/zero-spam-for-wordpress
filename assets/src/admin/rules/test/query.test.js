@@ -16,12 +16,19 @@ import { describe, expect, it } from 'vitest';
  */
 import {
 	PER_PAGE,
+	TABLE_MIN_WIDTH,
+	RETRY_MARGIN,
+	TABLE_QUERY,
 	TABS,
 	ariaSort,
 	blocksPath,
+	controlTargets,
 	firstPath,
 	listPath,
+	neededWidth,
 	paging,
+	shouldRetryTable,
+	sortChoices,
 	splitSort,
 	toggleSort,
 } from '../query';
@@ -141,5 +148,89 @@ describe( 'paging', () => {
 			from: 1,
 			to: 50,
 		} );
+	} );
+} );
+
+describe( 'table or cards', () => {
+	it( 'is a table from 1,440px and cards below (Activity keeps 1,200px)', () => {
+		expect( TABLE_MIN_WIDTH ).toBe( 1440 );
+		expect( TABLE_QUERY ).toBe( '(min-width: 1440px)' );
+	} );
+} );
+
+describe( 'sortChoices', () => {
+	const options = [
+		[ 'date_added:desc', 'Newest first' ],
+		[ 'key:asc', 'IP address' ],
+	];
+
+	it( 'keeps the menu as it is when it has the current order', () => {
+		expect( sortChoices( options, 'key:asc', 'Custom order' ) ).toEqual(
+			options
+		);
+	} );
+
+	it( 'adds an order only the table offers, so the menu never shows the wrong one', () => {
+		expect( sortChoices( options, 'type:desc', 'Custom order' ) ).toEqual( [
+			...options,
+			[ 'type:desc', 'Custom order' ],
+		] );
+	} );
+} );
+
+describe( 'whether the table fits', () => {
+	it( 'treats sub-pixel rounding as fitting', () => {
+		expect( neededWidth( 968, 966, 966 ) ).toBeNull();
+		expect( neededWidth( 968, 967, 966 ) ).toBeNull();
+	} );
+
+	it( 'keeps the width the list needs when the table really overflows', () => {
+		expect( neededWidth( 968, 968, 966 ) ).toBe( 970 );
+		expect( neededWidth( 968, 994, 966 ) ).toBe( 996 );
+	} );
+
+	it( 'tries the table again only once the list has grown past that, with a margin', () => {
+		expect( shouldRetryTable( 968, null ) ).toBe( false );
+		expect( shouldRetryTable( 996, 996 ) ).toBe( false );
+		expect( shouldRetryTable( 996 + RETRY_MARGIN - 1, 996 ) ).toBe( false );
+		expect( shouldRetryTable( 996 + RETRY_MARGIN, 996 ) ).toBe( true );
+		expect( shouldRetryTable( undefined, 996 ) ).toBe( false );
+	} );
+
+	it( 'cannot loop: a failed try at a width never asks for a try at that width', () => {
+		for ( const overflow of [ 2, 15, 40, 300 ] ) {
+			const width = 1000;
+			expect(
+				shouldRetryTable(
+					width,
+					neededWidth( width, width + overflow, width )
+				)
+			).toBe( false );
+		}
+	} );
+
+	it( 'survives the scrollbar a taller table can bring (up to the margin)', () => {
+		const needs = 996;
+		const width = needs + RETRY_MARGIN;
+		expect( shouldRetryTable( width, needs ) ).toBe( true );
+		// The list narrowed by a 17px scrollbar is still at least what the table needs.
+		expect( width - 17 ).toBeGreaterThanOrEqual( needs );
+	} );
+} );
+
+describe( 'controlTargets', () => {
+	it( 'keeps a control that exists in both layouts', () => {
+		expect( controlTargets( 'remove' ) ).toEqual( [ 'remove' ] );
+		expect( controlTargets( 'select' ) ).toEqual( [ 'select' ] );
+		expect( controlTargets( 'sort' ) ).toEqual( [ 'sort' ] );
+	} );
+
+	it( 'keeps a card’s main button (after a failed try of the table), else Edit block', () => {
+		expect( controlTargets( 'main' ) ).toEqual( [ 'main', 'edit' ] );
+		expect( controlTargets( 'edit' ) ).toEqual( [ 'edit', 'main' ] );
+	} );
+
+	it( 'falls back from a lookup link when the site has none', () => {
+		expect( controlTargets( 'lookup' ) ).toEqual( [ 'lookup', 'edit' ] );
 	} );
 } );

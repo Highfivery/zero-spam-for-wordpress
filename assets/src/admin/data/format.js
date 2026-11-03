@@ -1,8 +1,9 @@
 /**
  * Numbers, dates and relative times in the site's language.
  *
- * One date pattern everywhere (prototype v14): "Thu, Oct 22", with the time
- * added when it matters and the year only when it is not the current one.
+ * One date pattern (prototype v14): "Thu, Oct 22", with the time added when it
+ * matters and the year only when it is not the current one. The Rules lists use
+ * its compact form, which drops the weekday next to a year ("Jan 15, 2099").
  */
 
 /**
@@ -67,11 +68,13 @@ export function parseDate( value ) {
 /**
  * "Thu, Oct 22" (year added when it is not this year).
  *
- * @param {string|Date} value Date.
- * @param {Date}        now   Today.
+ * @param {string|Date} value             Date.
+ * @param {Date}        now               Today.
+ * @param {Object}      [options]         Options.
+ * @param {boolean}     [options.compact] "Jan 15, 2099" instead of "Thu, Jan 15, 2099": a date with a year drops the weekday.
  * @return {string} Formatted day.
  */
-export function day( value, now = new Date() ) {
+export function day( value, now = new Date(), { compact = false } = {} ) {
 	const date = value instanceof Date ? value : parseDate( value );
 	if ( ! date ) {
 		return '';
@@ -84,6 +87,9 @@ export function day( value, now = new Date() ) {
 	};
 	if ( date.getUTCFullYear() !== now.getUTCFullYear() ) {
 		options.year = 'numeric';
+		if ( compact ) {
+			delete options.weekday;
+		}
 	}
 	return date.toLocaleDateString( locale(), options );
 }
