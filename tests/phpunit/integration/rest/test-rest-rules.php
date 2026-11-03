@@ -1052,6 +1052,44 @@ class Test_Rest_Rules extends TestCase {
 	}
 
 	/**
+	 * Clearing the start of a block whose end has passed: the kept end is now
+	 * before the new start (now), so the server says the end must be in the
+	 * future and after the start (the End field still shows that old date),
+	 * not that a temporary block needs an end date.
+	 */
+	public function test_an_emptied_start_past_a_kept_end_names_the_end(): void {
+		global $wpdb;
+
+		$id = $this->block( '198.51.100.74' );
+		$wpdb->update(
+			$wpdb->prefix . DB::$tables['blocked'],
+			array(
+				'blocked_type' => 'temporary',
+				'start_block'  => '2020-01-01 00:00:00',
+				'end_block'    => '2020-01-02 23:59:59',
+			),
+			array( 'blocked_id' => $id )
+		);
+
+		$saved = $this->rest(
+			'PUT',
+			self::BLOCKS . '/' . $id,
+			array(
+				'kind'  => 'ip',
+				'ip'    => '198.51.100.74',
+				'type'  => 'temporary',
+				'start' => '',
+			)
+		);
+
+		$this->assertSame( 400, $saved->get_status() );
+		$this->assertSame( 'The end must be in the future and after the start.', $saved->get_data()['data']['params']['end'] );
+		$stored = $this->rest( 'GET', self::BLOCKS . '/' . $id )->get_data();
+		$this->assertSame( '2020-01-01T00:00:00Z', $stored['start'], 'Nothing was saved.' );
+		$this->assertSame( '2020-01-02T23:59:59Z', $stored['end'], 'Nothing was saved.' );
+	}
+
+	/**
 	 * The block form sends an emptied start as '' ("Empty starts the block
 	 * now"): an edit with `start: ''` starts the block now instead of keeping
 	 * the stored start. An emptied end is refused, never kept or dropped.
