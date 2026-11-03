@@ -150,7 +150,7 @@ class Test_Stop_Forum_Spam extends TestCase {
 	}
 
 	/**
-	 * A listed username, email or IP is refused through the filter, called the
+	 * A listed email or IP is refused through the filter, called the
 	 * way the registration module calls it, without a fatal error.
 	 *
 	 * @dataProvider data_listed_fields
@@ -175,7 +175,7 @@ class Test_Stop_Forum_Spam extends TestCase {
 		);
 
 		$this->assertSame( array( 'zerospam_stop_forum_spam_' . $field ), array_keys( $errors ) );
-		$this->assertSame( 1, HttpMock::hits( self::API ) );
+		$this->assertSame( 2, HttpMock::hits( self::API ), 'The email and the IP are looked up once each.' );
 	}
 
 	/**
@@ -185,9 +185,8 @@ class Test_Stop_Forum_Spam extends TestCase {
 	 */
 	public function data_listed_fields(): array {
 		return array(
-			'username' => array( 'username' ),
-			'email'    => array( 'email' ),
-			'ip'       => array( 'ip' ),
+			'email' => array( 'email' ),
+			'ip'    => array( 'ip' ),
 		);
 	}
 
@@ -243,9 +242,8 @@ class Test_Stop_Forum_Spam extends TestCase {
 			self::API,
 			$this->answer(
 				array(
-					'username' => 90,
-					'email'    => 90,
-					'ip'       => 90,
+					'email' => 90,
+					'ip'    => 90,
 				)
 			)
 		);
@@ -257,8 +255,53 @@ class Test_Stop_Forum_Spam extends TestCase {
 
 		$failed = array_column( $this->log_rows( 'registration' ), 'failed' );
 		sort( $failed );
-		$this->assertSame( array( 'stop_forum_spam_email', 'stop_forum_spam_ip', 'stop_forum_spam_username' ), $failed );
-		$this->assertSame( 1, HttpMock::hits( self::API ), 'One registration must make one request.' );
+		$this->assertSame( array( 'stop_forum_spam_email', 'stop_forum_spam_ip' ), $failed );
+		$this->assertSame( 2, HttpMock::hits( self::API ), 'One registration must make one request per value.' );
+	}
+
+	/**
+	 * A username the service lists does not stop anyone: it lists many common
+	 * first names. The person registers, nothing is logged or shared, and the
+	 * username is never sent.
+	 *
+	 * @covers \ZeroSpam\Modules\StopForumSpam::preprocess_registrations
+	 */
+	public function test_listed_username_with_clean_email_and_ip_registers(): void {
+		$this->enable_registration_protection();
+		$this->set_setting( 'share_data', 'enabled', 'settings' );
+		$this->mock_http(
+			self::API,
+			array(
+				'success'  => 1,
+				'username' => array(
+					'appears'    => 1,
+					'frequency'  => 40,
+					'confidence' => '97.50',
+				),
+				'email'    => array( 'appears' => 0 ),
+				'ip'       => array( 'appears' => 0 ),
+			)
+		);
+
+		$shared = 0;
+		add_action(
+			'zerospam_share_detection',
+			static function () use ( &$shared ): void {
+				++$shared;
+			}
+		);
+
+		( new StopForumSpam() )->init();
+		( new Registration() )->init();
+
+		$this->assertIsInt( register_new_user( 'james', 'jr.person@example.com' ) );
+		$this->assertSame( array(), $this->log_rows( 'registration' ) );
+		$this->assertSame( 0, $shared, 'The person was shared as spam.' );
+
+		foreach ( $this->queries() as $query ) {
+			$this->assertArrayNotHasKey( 'username', $query );
+		}
+		$this->assertStringNotContainsString( 'james', implode( ' ', array_column( HttpMock::requests(), 'url' ) ) );
 	}
 
 	/**
@@ -277,36 +320,40 @@ class Test_Stop_Forum_Spam extends TestCase {
 
 		$this->assertIsInt( $user_id );
 		$this->assertSame( array(), $this->log_rows( 'registration' ) );
-		$this->assertSame( 1, HttpMock::hits( self::API ), 'The registration was not checked.' );
+		$this->assertSame( 2, HttpMock::hits( self::API ), 'The registration was not checked.' );
 	}
 
 	/**
 	 * Another registration path that fires the filter is checked too, with the
-	 * field names such forms commonly use.
+	 * `email` key such forms commonly use.
 	 *
 	 * @covers \ZeroSpam\Modules\StopForumSpam::preprocess_registrations
 	 */
 	public function test_other_registration_paths_are_checked(): void {
-		$this->mock_http( self::API, $this->answer( array( 'username' => 90 ) ) );
+		$this->mock_http( self::API, $this->answer( array( 'email' => 90 ) ) );
 
 		$errors = ( new StopForumSpam() )->preprocess_registrations(
 			array(),
 			array(
-				'username' => 'spammer',
+				'username' => 'someone',
 				'email'    => 'spammer@example.com',
 			),
 			'registration_spam_message'
 		);
 
-		$this->assertArrayHasKey( 'zerospam_stop_forum_spam_username', $errors );
+		$this->assertArrayHasKey( 'zerospam_stop_forum_spam_email', $errors );
 		$this->assertSame(
 			array(
-				'username' => 'spammer',
-				'email'    => 'spammer@example.com',
-				'ip'       => self::DEFAULT_IP,
-				'json'     => '',
+				array(
+					'email' => 'spammer@example.com',
+					'json'  => '',
+				),
+				array(
+					'ip'   => self::DEFAULT_IP,
+					'json' => '',
+				),
 			),
-			$this->last_query()
+			$this->queries()
 		);
 	}
 
@@ -458,7 +505,8 @@ class Test_Stop_Forum_Spam extends TestCase {
 
 	/**
 	 * An answer that is not a clean success never blocks anyone, never
-	 * raises an error and is not remembered.
+	 * raises an error and is not remembered. Outages (429, 5xx) also count
+	 * towards the circuit breaker, which skips the sixth lookup.
 	 *
 	 * @dataProvider data_failed_answers
 	 *
@@ -467,27 +515,27 @@ class Test_Stop_Forum_Spam extends TestCase {
 	 * @covers \ZeroSpam\Modules\StopForumSpam::preprocess_comments
 	 * @covers \ZeroSpam\Modules\StopForumSpam::access_check
 	 *
-	 * @param string $body Response body.
-	 * @param int    $code HTTP status.
+	 * @param string $body     Response body.
+	 * @param int    $code     HTTP status.
+	 * @param int    $requests Requests the six lookups make.
 	 */
-	public function test_failed_answers_fail_open( string $body, int $code ): void {
+	public function test_failed_answers_fail_open( string $body, int $code, int $requests ): void {
 		$this->mock_http( self::API, $body, $code );
 
 		$module = new StopForumSpam();
 
-		for ( $attempt = 1; $attempt <= 2; $attempt++ ) {
-			$this->assertSame( array(), $module->preprocess_registrations( array(), array( 'user_email' => 'a@example.com' ), 'registration_spam_message' ) );
-			$this->assertSame( array(), $module->preprocess_comments( array(), array( 'comment_author_email' => 'a@example.com' ), 'comment_spam_message' ) );
-			$this->assertFalse( $module->access_check( array(), self::DEFAULT_IP )['stop_forum_spam']['blocked'] );
-		}
+		$this->assertSame( array(), $module->preprocess_registrations( array(), array( 'user_email' => 'a@example.com' ), 'registration_spam_message' ) );
+		$this->assertSame( array(), $module->preprocess_comments( array(), array( 'comment_author_email' => 'a@example.com' ), 'comment_spam_message' ) );
+		$this->assertFalse( $module->access_check( array(), self::DEFAULT_IP )['stop_forum_spam']['blocked'] );
+		$this->assertSame( array(), $module->preprocess_registrations( array(), array( 'user_email' => 'a@example.com' ), 'registration_spam_message' ) );
 
-		$this->assertSame( 6, HttpMock::hits( self::API ), 'A failed answer was served from the cache.' );
+		$this->assertSame( $requests, HttpMock::hits( self::API ), 'A failed answer was served from the cache, or the breaker did not open.' );
 	}
 
 	/**
-	 * Answers that must not count.
+	 * Answers that must not count, and the requests six lookups make.
 	 *
-	 * @return array<string, array{0: string, 1: int}>
+	 * @return array<string, array{0: string, 1: int, 2: int}>
 	 */
 	public function data_failed_answers(): array {
 		$listed = (string) wp_json_encode(
@@ -509,17 +557,17 @@ class Test_Stop_Forum_Spam extends TestCase {
 		);
 
 		return array(
-			'500 with a page'          => array( '<html>Server error</html>', 500 ),
-			'500 with a listed answer' => array( $listed, 500 ),
-			'429 with a listed answer' => array( $listed, 429 ),
-			'an empty body'            => array( '', 200 ),
-			'not JSON'                 => array( '<html>Maintenance</html>', 200 ),
-			'cut-off JSON'             => array( '{"success":1,"email":{"appears":1,"confid', 200 ),
-			'JSON null'                => array( 'null', 200 ),
-			'a JSON string'            => array( '"listed"', 200 ),
-			'a JSON list'              => array( '[1,2,3]', 200 ),
-			'no success'               => array( '{"email":{"appears":1,"confidence":99}}', 200 ),
-			'success 0, rate limited'  => array( '{"success":0,"error":"rate limit exceeded","email":{"appears":1,"confidence":99}}', 200 ),
+			'500 with a page'          => array( '<html>Server error</html>', 500, 5 ),
+			'500 with a listed answer' => array( $listed, 500, 5 ),
+			'429 with a listed answer' => array( $listed, 429, 5 ),
+			'an empty body'            => array( '', 200, 6 ),
+			'not JSON'                 => array( '<html>Maintenance</html>', 200, 6 ),
+			'cut-off JSON'             => array( '{"success":1,"email":{"appears":1,"confid', 200, 6 ),
+			'JSON null'                => array( 'null', 200, 6 ),
+			'a JSON string'            => array( '"listed"', 200, 6 ),
+			'a JSON list'              => array( '[1,2,3]', 200, 6 ),
+			'no success'               => array( '{"email":{"appears":1,"confidence":99}}', 200, 6 ),
+			'success 0, rate limited'  => array( '{"success":0,"error":"rate limit exceeded","email":{"appears":1,"confidence":99}}', 200, 6 ),
 		);
 	}
 
@@ -624,19 +672,19 @@ class Test_Stop_Forum_Spam extends TestCase {
 			$this->assertSame( array(), $module->preprocess_registrations( array(), array( 'user_email' => 'a@example.com' ), 'registration_spam_message' ) );
 		}
 
-		$this->assertCount( 2, $args, 'A timeout was served from the cache.' );
+		$this->assertCount( 4, $args, 'A timeout was served from the cache.' );
 		$this->assertSame( 3, $args[0]['timeout'], 'The configured timeout was not used.' );
 		$this->assertSame( StopForumSpam::MAX_RESPONSE_BYTES, $args[0]['limit_response_size'], 'The size of the answer is not limited.' );
 	}
 
 	/**
-	 * A registration sends its username, email and IP and nothing else from
-	 * the form, as readme.txt says.
+	 * A registration sends its email and IP, each on its own, and nothing
+	 * else from the form (not the username), as readme.txt says.
 	 *
 	 * @covers \ZeroSpam\Modules\StopForumSpam::preprocess_registrations
 	 * @covers \ZeroSpam\Modules\Registration\Registration::process_form
 	 */
-	public function test_registration_sends_exactly_username_email_and_ip(): void {
+	public function test_registration_sends_exactly_email_and_ip(): void {
 		$this->enable_registration_protection();
 		$this->mock_http( self::API, $this->answer( array() ) );
 
@@ -660,16 +708,26 @@ class Test_Stop_Forum_Spam extends TestCase {
 
 		$this->assertSame(
 			array(
-				'username' => 'sfsexact',
-				'email'    => 'sfs.exact+tag@example.com',
-				'ip'       => self::DEFAULT_IP,
-				'json'     => '',
+				array(
+					'email' => 'sfs.exact+tag@example.com',
+					'json'  => '',
+				),
+				array(
+					'ip'   => self::DEFAULT_IP,
+					'json' => '',
+				),
 			),
-			$this->last_query()
+			$this->queries()
 		);
-		$this->assertStringNotContainsString( 'do-not-send', HttpMock::requests()[0]['url'] );
-		$this->assertStringStartsWith( 'https://api.stopforumspam.org/api?', HttpMock::requests()[0]['url'] );
-		$this->assertSame( 'GET', HttpMock::requests()[0]['method'] );
+
+		$urls = implode( ' ', array_column( HttpMock::requests(), 'url' ) );
+		$this->assertStringNotContainsString( 'do-not-send', $urls );
+		$this->assertStringNotContainsString( 'sfsexact', $urls );
+		$this->assertStringNotContainsString( 'raw-form', $urls );
+		foreach ( HttpMock::requests() as $request ) {
+			$this->assertStringStartsWith( 'https://api.stopforumspam.org/api?', $request['url'] );
+			$this->assertSame( 'GET', $request['method'] );
+		}
 	}
 
 	/**
@@ -716,12 +774,16 @@ class Test_Stop_Forum_Spam extends TestCase {
 		);
 		$this->assertSame(
 			array(
-				'ip'   => self::DEFAULT_IP,
-				'json' => '',
+				array(
+					'ip'   => self::DEFAULT_IP,
+					'json' => '',
+				),
 			),
-			$this->last_query()
+			$this->queries()
 		);
 
+		HttpMock::reset();
+		$this->mock_http( self::API, $this->answer( array() ) );
 		$this->set_request( '/', '203.0.113.11' );
 		( new StopForumSpam() )->preprocess_registrations(
 			array(),
@@ -733,10 +795,12 @@ class Test_Stop_Forum_Spam extends TestCase {
 		);
 		$this->assertSame(
 			array(
-				'ip'   => '203.0.113.11',
-				'json' => '',
+				array(
+					'ip'   => '203.0.113.11',
+					'json' => '',
+				),
 			),
-			$this->last_query()
+			$this->queries()
 		);
 	}
 
@@ -761,12 +825,11 @@ class Test_Stop_Forum_Spam extends TestCase {
 	/**
 	 * The result outlasts the request on a site without a persistent object
 	 * cache: emptying the object cache, as the end of a request does, must not
-	 * lose it. It is kept as long as the setting says.
+	 * lose it.
 	 *
 	 * @covers \ZeroSpam\Modules\StopForumSpam::query
 	 */
-	public function test_result_is_cached_across_requests_for_the_configured_days(): void {
-		$this->set_setting( 'stop_forum_spam_cache', 3, 'stop_forum_spam' );
+	public function test_result_is_cached_across_requests(): void {
 		$this->mock_http( self::API, $this->answer( array( 'email' => 99 ) ) );
 
 		$module = new StopForumSpam();
@@ -774,18 +837,139 @@ class Test_Stop_Forum_Spam extends TestCase {
 
 		$first = $module->preprocess_registrations( array(), $post, 'registration_spam_message' );
 
-		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Checks what is stored.
-		$timeout = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name LIKE %s', $wpdb->options, $wpdb->esc_like( '_transient_timeout_zerospam_sfs_' ) . '%' ) );
-		$this->assertEqualsWithDelta( time() + 3 * DAY_IN_SECONDS, $timeout, 30, 'The result is not kept for the configured days.' );
-
 		wp_cache_flush();
 
 		$second = $module->preprocess_registrations( array(), $post, 'registration_spam_message' );
 
 		$this->assertSame( array_keys( $first ), array_keys( $second ) );
 		$this->assertArrayHasKey( 'zerospam_stop_forum_spam_email', $second );
-		$this->assertSame( 1, HttpMock::hits( self::API ), 'The second attempt went back to the API.' );
+		$this->assertSame( 2, HttpMock::hits( self::API ), 'The second attempt went back to the API.' );
+	}
+
+	/**
+	 * An answer that lists a value is kept for the Cache Expiration days; one
+	 * that lists nothing for a day, so most rows leave wp_options soon.
+	 *
+	 * @covers \ZeroSpam\Modules\StopForumSpam::query
+	 */
+	public function test_listed_and_clean_answers_have_their_own_ttl(): void {
+		$this->set_setting( 'stop_forum_spam_cache', 3, 'stop_forum_spam' );
+		$module = new StopForumSpam();
+
+		$this->mock_http( self::API, $this->answer( array( 'email' => 99 ) ) );
+		$module->query( array( 'email' => 'listed@example.com' ) );
+		$this->assertEqualsWithDelta( time() + 3 * DAY_IN_SECONDS, $this->expiry( array( 'email' => 'listed@example.com' ) ), 30, 'A listed answer is not kept for the configured days.' );
+
+		$this->mock_http(
+			self::API,
+			array(
+				'success' => 1,
+				'email'   => array(
+					'appears'   => 0,
+					'frequency' => 0,
+				),
+			)
+		);
+		$module->query( array( 'email' => 'clean@example.com' ) );
+		$this->assertEqualsWithDelta( time() + DAY_IN_SECONDS, $this->expiry( array( 'email' => 'clean@example.com' ) ), 30, 'A clean answer is not kept for a day.' );
+
+		$this->mock_http(
+			self::API,
+			array(
+				'success' => 1,
+				'ip'      => array(
+					'appears'    => 1,
+					'confidence' => '10.00',
+				),
+			)
+		);
+		$module->query( array( 'ip' => '203.0.113.20' ) );
+		$this->assertEqualsWithDelta( time() + 3 * DAY_IN_SECONDS, $this->expiry( array( 'ip' => '203.0.113.20' ) ), 30, 'A value that appears below the minimum must be kept as listed: the minimum can change.' );
+	}
+
+	/**
+	 * After five outages in a row (errors, timeouts, 429, 5xx) lookups stop
+	 * for ten minutes, letting everyone through without waiting; then they
+	 * start again.
+	 *
+	 * @dataProvider data_outages
+	 *
+	 * @covers \ZeroSpam\Modules\StopForumSpam::query
+	 *
+	 * @param int  $code    HTTP status of the outage answer.
+	 * @param bool $timeout Whether the request times out instead.
+	 */
+	public function test_circuit_breaker_pauses_lookups_after_repeated_outages( int $code, bool $timeout ): void {
+		$this->mock_http( self::API, '<html>Service Unavailable</html>', $code );
+		if ( $timeout ) {
+			add_filter(
+				'pre_http_request',
+				static function () {
+					return new WP_Error( 'http_request_failed', 'cURL error 28: Operation timed out' );
+				},
+				10
+			);
+		}
+
+		$module = new StopForumSpam();
+
+		for ( $i = 1; $i <= 8; $i++ ) {
+			$this->assertFalse( $module->access_check( array(), "203.0.113.{$i}" )['stop_forum_spam']['blocked'] );
+		}
+
+		$this->assertSame( 5, HttpMock::hits( self::API ), 'Lookups went on during the outage.' );
+		$this->assertNotFalse( get_transient( StopForumSpam::CIRCUIT_TRANSIENT ) );
+
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Checks the pause length.
+		$until = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, '_transient_timeout_' . StopForumSpam::CIRCUIT_TRANSIENT ) );
+		$this->assertEqualsWithDelta( time() + 10 * MINUTE_IN_SECONDS, $until, 30 );
+
+		// The cool-off ends.
+		delete_transient( StopForumSpam::CIRCUIT_TRANSIENT );
+		$this->mock_http( self::API, $this->answer( array( 'ip' => 90 ) ) );
+		remove_all_filters( 'pre_http_request', 10 );
+
+		$this->assertTrue( $module->access_check( array(), '203.0.113.99' )['stop_forum_spam']['blocked'] );
+	}
+
+	/**
+	 * Outages that count.
+	 *
+	 * @return array<string, array{0: int, 1: bool}>
+	 */
+	public function data_outages(): array {
+		return array(
+			'503, the daily limit' => array( 503, false ),
+			'500'                  => array( 500, false ),
+			'429'                  => array( 429, false ),
+			'timeout'              => array( 200, true ),
+		);
+	}
+
+	/**
+	 * An answer in between resets the count: only outages in a row pause.
+	 *
+	 * @covers \ZeroSpam\Modules\StopForumSpam::query
+	 */
+	public function test_an_answer_resets_the_outage_count(): void {
+		$module = new StopForumSpam();
+
+		$this->mock_http( self::API, '', 503 );
+		for ( $i = 1; $i <= 4; $i++ ) {
+			$module->query( array( 'ip' => "203.0.113.{$i}" ) );
+		}
+
+		$this->mock_http( self::API, array( 'success' => 0 ) );
+		$module->query( array( 'ip' => '203.0.113.50' ) );
+
+		$this->mock_http( self::API, '', 503 );
+		for ( $i = 5; $i <= 8; $i++ ) {
+			$module->query( array( 'ip' => "203.0.113.{$i}" ) );
+		}
+
+		$this->assertFalse( get_transient( StopForumSpam::CIRCUIT_TRANSIENT ), 'Outages that were not in a row paused lookups.' );
+		$this->assertSame( 4, HttpMock::hits( self::API ) );
 	}
 
 	/**
@@ -890,17 +1074,20 @@ class Test_Stop_Forum_Spam extends TestCase {
 	}
 
 	/**
-	 * Every reason this module logs has a readable label.
+	 * Every reason this module logs has a readable label, also the `0` that
+	 * comment detections were logged with before 6.0 (rows are not rewritten).
 	 *
 	 * @covers \ZeroSpam\Modules\StopForumSpam::failed_types
 	 */
 	public function test_reasons_have_labels(): void {
 		$types = apply_filters( 'zerospam_failed_types', array() );
 
-		foreach ( array( 'stop_forum_spam', 'stop_forum_spam_username', 'stop_forum_spam_email', 'stop_forum_spam_ip' ) as $reason ) {
+		foreach ( array( 'stop_forum_spam', 'stop_forum_spam_email', 'stop_forum_spam_ip' ) as $reason ) {
 			$this->assertArrayHasKey( $reason, $types );
 			$this->assertStringContainsString( 'Stop Forum Spam', $types[ $reason ] );
 		}
+
+		$this->assertSame( 'Stop Forum Spam (earlier version)', \ZeroSpam\Includes\Rest\Activity_Controller::failed_label( '0' ) );
 	}
 
 	/**
@@ -937,12 +1124,34 @@ class Test_Stop_Forum_Spam extends TestCase {
 	 * @return array<string, string>
 	 */
 	private function last_query(): array {
-		$requests = HttpMock::requests();
-		$this->assertNotEmpty( $requests, 'No request was made.' );
+		$queries = $this->queries();
+		$this->assertNotEmpty( $queries, 'No request was made.' );
 
-		parse_str( (string) wp_parse_url( end( $requests )['url'], PHP_URL_QUERY ), $query );
+		return end( $queries );
+	}
 
-		return $query;
+	/**
+	 * The query strings of every request, in order.
+	 *
+	 * @return array<int, array<string, string>>
+	 */
+	private function queries(): array {
+		$queries = array();
+		foreach ( HttpMock::requests() as $request ) {
+			parse_str( (string) wp_parse_url( $request['url'], PHP_URL_QUERY ), $query );
+			$queries[] = $query;
+		}
+
+		return $queries;
+	}
+
+	/**
+	 * When the cached answer to a lookup expires.
+	 *
+	 * @param array<string, string> $params Lookup parameters.
+	 */
+	private function expiry( array $params ): int {
+		return (int) get_option( '_transient_timeout_' . StopForumSpam::TRANSIENT_PREFIX . md5( (string) wp_json_encode( $params ) ) );
 	}
 
 	/**

@@ -61,7 +61,7 @@ test.describe( 'Login and registration protection', () => {
 		} );
 	} );
 
-	test( 'Stop Forum Spam: a listed username or email is refused with the configured message and logged; a clean one registers', { tag: '@single-only' }, async ( { newRoleContext, zs, wpcli, gallery }, testInfo ) => {
+	test( 'Stop Forum Spam: a listed email is refused with the configured message and logged; a clean one, or a listed username, registers', { tag: '@single-only' }, async ( { newRoleContext, zs, wpcli, gallery }, testInfo ) => {
 		const suffix = `${ Date.now().toString( 36 ) }${ testInfo.retry }`;
 		const message = 'Stop Forum Spam e2e: not today.';
 		await zs.set( { stop_forum_spam: 'enabled', registration_spam_message: message } );
@@ -93,14 +93,13 @@ test.describe( 'Login and registration protection', () => {
 			expect( wpcli.run( [ 'user', 'get', username ] ).status ).not.toBe( 0 );
 		} );
 
-		await test.step( 'a listed username is refused', async () => {
+		await test.step( 'a listed username with a clean email and IP registers: usernames are not looked up', async () => {
 			const ip = '203.0.113.62';
 			const username = `e2esfslisted${ suffix }`;
 			const page = await attempt( ip, username, `e2esfsname${ suffix }@example.com` );
-			await expect( page.locator( '#login_error' ) ).toContainText( message );
-			const rows = await zs.logRows( { ip, type: 'registration' } );
-			expect( rows.map( ( r ) => r.submission_data?.failed ) ).toEqual( [ 'stop_forum_spam_username' ] );
-			expect( wpcli.run( [ 'user', 'get', username ] ).status ).not.toBe( 0 );
+			await expect( page ).toHaveURL( /checkemail=registered/ );
+			expect( await zs.logRows( { ip } ) ).toEqual( [] );
+			wpcli.exec( [ 'user', 'delete', username, '--yes' ] );
 		} );
 
 		await test.step( 'a listed IP is stopped by the access check before the form', async () => {

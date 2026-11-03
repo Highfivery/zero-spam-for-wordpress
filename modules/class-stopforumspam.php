@@ -25,9 +25,30 @@ class StopForumSpam {
 	const TRANSIENT_PREFIX = 'zerospam_sfs_';
 
 	/**
-	 * Longest username looked up (the user_login column).
+	 * Transient counting recent failed lookups (an outage, not a "not listed").
 	 */
-	const MAX_USERNAME_LENGTH = 60;
+	const FAILURES_TRANSIENT = 'zerospam_sfs_failure_count';
+
+	/**
+	 * Transient set while lookups are paused after repeated failures.
+	 */
+	const CIRCUIT_TRANSIENT = 'zerospam_sfs_circuit_open';
+
+	/**
+	 * Failed lookups in a row that pause lookups.
+	 */
+	const CIRCUIT_THRESHOLD = 5;
+
+	/**
+	 * How long lookups are paused (seconds).
+	 */
+	const CIRCUIT_COOL_OFF = 10 * MINUTE_IN_SECONDS;
+
+	/**
+	 * How long an answer that lists nothing is kept (seconds). Answers that
+	 * list a value are kept for the Cache Expiration setting.
+	 */
+	const CLEAN_TTL = DAY_IN_SECONDS;
 
 	/**
 	 * Longest email address looked up (RFC 5321).
@@ -153,10 +174,12 @@ class StopForumSpam {
 	 * @return array
 	 */
 	public function failed_types( $types ) {
-		$types['stop_forum_spam']          = __( 'Stop Forum Spam', 'zero-spam' );
-		$types['stop_forum_spam_username'] = __( 'Stop Forum Spam (username)', 'zero-spam' );
-		$types['stop_forum_spam_email']    = __( 'Stop Forum Spam (email address)', 'zero-spam' );
-		$types['stop_forum_spam_ip']       = __( 'Stop Forum Spam (IP address)', 'zero-spam' );
+		$types['stop_forum_spam']       = __( 'Stop Forum Spam', 'zero-spam' );
+		$types['stop_forum_spam_email'] = __( 'Stop Forum Spam (email address)', 'zero-spam' );
+		$types['stop_forum_spam_ip']    = __( 'Stop Forum Spam (IP address)', 'zero-spam' );
+
+		// Comment detections logged before 6.0 carry the reason `0`.
+		$types['0'] = __( 'Stop Forum Spam (earlier version)', 'zero-spam' );
 
 		return $types;
 	}
@@ -191,10 +214,12 @@ class StopForumSpam {
 	 * Runs on `zerospam_preprocess_registration_submission`. The module firing
 	 * the filter refuses the registration, logs each error's key as the
 	 * reason (without its `zerospam_` prefix) and shares the detection, so a
-	 * listed username, email or IP adds one error each.
+	 * listed email or IP adds one error each. The username is not looked up:
+	 * the service lists many common first names (james, karen, admin), so it
+	 * would refuse real people.
 	 *
 	 * @param array  $errors            Array of errors.
-	 * @param array  $post              Form post array; the username is in `user_login` or `username`, the email in `user_email` or `email`.
+	 * @param array  $post              Form post array; the email is in `user_email` or `email`.
 	 * @param string $detection_msg_key Detection message key.
 	 * @return array
 	 */
@@ -209,9 +234,8 @@ class StopForumSpam {
 
 		$params = array_filter(
 			array(
-				'username' => $this->username_from( $post ),
-				'email'    => $this->email_from( $post, array( 'user_email', 'email' ) ),
-				'ip'       => $this->visitor_ip(),
+				'email' => $this->email_from( $post, array( 'user_email', 'email' ) ),
+				'ip'    => $this->visitor_ip(),
 			),
 			static function ( string $value ): bool {
 				return '' !== $value;
@@ -227,38 +251,22 @@ class StopForumSpam {
 	/**
 	 * Looks up values and adds one error per value the service lists.
 	 *
+	 * Each value is looked up on its own, so the IP's answer from the visit's
+	 * access check (and an email's from an earlier comment) is reused.
+	 *
 	 * @param array  $errors            Array of errors.
-	 * @param array  $params            Query parameters (`username`, `email`, `ip`).
+	 * @param array  $params            Values by field (`email`, `ip`).
 	 * @param string $detection_msg_key Detection message key.
 	 * @return array
 	 */
 	private function add_errors( array $errors, array $params, $detection_msg_key ): array {
-		$answer = $this->lookup( $params );
-
-		foreach ( array_keys( $params ) as $field ) {
-			if ( $this->is_listed( $answer, $field ) ) {
+		foreach ( $params as $field => $value ) {
+			if ( $this->is_listed( $this->lookup( array( $field => $value ) ), $field ) ) {
 				$errors[ 'zerospam_stop_forum_spam_' . $field ] = \ZeroSpam\Core\Utilities::detection_message( $detection_msg_key );
 			}
 		}
 
 		return $errors;
-	}
-
-	/**
-	 * The username of a registration, or '' when there is none worth sending.
-	 *
-	 * @param array $post Form post array.
-	 */
-	private function username_from( array $post ): string {
-		foreach ( array( 'user_login', 'username' ) as $key ) {
-			if ( ! empty( $post[ $key ] ) && is_string( $post[ $key ] ) ) {
-				$username = sanitize_user( wp_unslash( $post[ $key ] ) );
-
-				return strlen( $username ) <= self::MAX_USERNAME_LENGTH ? $username : '';
-			}
-		}
-
-		return '';
 	}
 
 	/**
@@ -312,7 +320,7 @@ class StopForumSpam {
 	 * a failure of the service must never stop a real visitor.
 	 *
 	 * @param array  $answer Decoded answer.
-	 * @param string $field  Field: `username`, `email` or `ip`.
+	 * @param string $field  Field: `email` or `ip`.
 	 */
 	private function is_listed( array $answer, string $field ): bool {
 		$entry   = isset( $answer[ $field ] ) && is_array( $answer[ $field ] ) ? $answer[ $field ] : array();
@@ -328,12 +336,14 @@ class StopForumSpam {
 	/**
 	 * Query the Stop Forum Spam API
 	 *
-	 * Successful answers are kept across requests for the configured number of
-	 * days, in a transient (which uses the persistent object cache when the
-	 * site has one). Failures of any kind are not kept, so the next lookup
-	 * retries. The stored answer leaves out the `value` the service repeats
-	 * from the request, so no email address or username stays in the options
-	 * table; its name only holds a hash.
+	 * Successful answers are kept across requests in a transient (which uses
+	 * the persistent object cache when the site has one): one that lists a
+	 * value for the Cache Expiration days, one that lists nothing for a day.
+	 * Failures of any kind are not kept, so the next lookup retries; after
+	 * CIRCUIT_THRESHOLD outages in a row (errors, timeouts, 429 or 5xx)
+	 * lookups are skipped for CIRCUIT_COOL_OFF, failing open. The stored answer leaves out the `value` the service repeats
+	 * from the request, so no email address stays in the options table; its
+	 * name only holds a hash.
 	 *
 	 * @param array $params Array of query parameters.
 	 * @return string|false The answer as JSON, or false when the lookup failed.
@@ -348,6 +358,11 @@ class StopForumSpam {
 			return $cached;
 		}
 
+		// Lookups are paused after repeated failures: fail open without waiting.
+		if ( get_transient( self::CIRCUIT_TRANSIENT ) ) {
+			return false;
+		}
+
 		$timeout = absint( \ZeroSpam\Core\Settings_Schema::value( 'stop_forum_spam_timeout' ) );
 
 		$endpoint = self::ENDPOINT . '?' . http_build_query( array_merge( $params, array( 'json' => '' ) ) );
@@ -358,13 +373,20 @@ class StopForumSpam {
 				'limit_response_size' => self::MAX_RESPONSE_BYTES,
 			)
 		);
-		if ( is_wp_error( $response ) ) {
-			\ZeroSpam\Core\Utilities::log( $response->get_error_message() );
+		$code     = (int) wp_remote_retrieve_response_code( $response );
+		if ( is_wp_error( $response ) || 429 === $code || $code >= 500 ) {
+			if ( is_wp_error( $response ) ) {
+				\ZeroSpam\Core\Utilities::log( $response->get_error_message() );
+			}
+			self::record_failure();
 
 			return false;
 		}
 
-		if ( 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
+		// The service answered: whatever it said, it is not an outage.
+		delete_transient( self::FAILURES_TRANSIENT );
+
+		if ( 200 !== $code ) {
 			return false;
 		}
 
@@ -380,11 +402,48 @@ class StopForumSpam {
 		}
 
 		$encoded = (string) wp_json_encode( $answer );
-		$days    = absint( \ZeroSpam\Core\Settings_Schema::value( 'stop_forum_spam_cache' ) );
 
-		set_transient( $cache_key, $encoded, ( $days > 0 ? $days : 14 ) * DAY_IN_SECONDS );
+		set_transient( $cache_key, $encoded, self::lists_anything( $answer ) ? self::listed_ttl() : self::CLEAN_TTL );
 
 		return $encoded;
+	}
+
+	/**
+	 * Counts a failed lookup and pauses lookups after CIRCUIT_THRESHOLD in a row.
+	 */
+	private static function record_failure(): void {
+		$failures = (int) get_transient( self::FAILURES_TRANSIENT ) + 1;
+		set_transient( self::FAILURES_TRANSIENT, $failures, HOUR_IN_SECONDS );
+
+		if ( $failures >= self::CIRCUIT_THRESHOLD ) {
+			set_transient( self::CIRCUIT_TRANSIENT, 1, self::CIRCUIT_COOL_OFF );
+			delete_transient( self::FAILURES_TRANSIENT );
+			\ZeroSpam\Core\Utilities::log( 'Stop Forum Spam: lookups failed repeatedly. Pausing them for 10 minutes.' );
+		}
+	}
+
+	/**
+	 * Whether an answer says any looked-up value appears in the database.
+	 *
+	 * @param array $answer Decoded answer.
+	 */
+	private static function lists_anything( array $answer ): bool {
+		foreach ( $answer as $entry ) {
+			if ( is_array( $entry ) && ! empty( $entry['appears'] ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * How long an answer that lists a value is kept: the Cache Expiration days.
+	 */
+	private static function listed_ttl(): int {
+		$days = absint( \ZeroSpam\Core\Settings_Schema::value( 'stop_forum_spam_cache' ) );
+
+		return ( $days > 0 ? $days : 14 ) * DAY_IN_SECONDS;
 	}
 
 	/**
