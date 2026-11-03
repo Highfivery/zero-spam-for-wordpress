@@ -511,7 +511,8 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
   (`ZEROSPAM_TESTS_EXPECT_MULTISITE`) and the bootstrap refuses a mismatch.
 - **Files a run writes** are per checkout too: `wp-tests-config.php` sets
   `WP_CONTENT_DIR` to `content-<checkout-id>/` in the test cache (uploads/
-  with the plugin's `zerospam.log` and `uploads/sites/{id}/`, upgrade/) and
+  with the plugin's `zerospam.log` and `uploads/sites/{id}/`, upgrade/, an
+  empty themes/ so the installer prints no `wp_is_block_theme` notices) and
   `WP_TEMP_DIR` to its `tmp/` (`get_temp_dir()`, `wp_tempnam()`), and
   `bin/test.sh` empties that directory before each run, as it recreates the
   database. The WordPress cores and the test library in the cache are only
@@ -613,7 +614,13 @@ npm run env:stop                 # stop both wp-env sites
   statement runs with wpdb's error display off: under `WP_DEBUG` its HTML
   would send a 200 and break the JSON first), and `ZsApi.call()` throws "the site was NOT reset" with that message, so a
   full Docker disk stops the run at the reset instead of leaving rows that
-  fail unrelated tests later.
+  fail unrelated tests later. The Local snapshot restore (`POST
+  /snapshot`) stops at the first `CREATE`, `TRUNCATE` or `INSERT` the
+  database refuses and answers 500 `zs_e2e_restore_failed` naming the table
+  (earlier tables restored, later ones untouched); the restore teardown
+  fails with that message and the path of the kept `snapshot.json`.
+  `tests/phpunit/integration/test-e2e-mu-plugin.php` loads the mu-plugin in
+  PHPUnit and forces each failure through the `query` filter.
 - **Uninstall** always runs `wp plugin uninstall zero-spam --skip-delete`;
   the plugin directory is this repository. The CLI helpers
   (`tests/e2e/support/cli-guard.cjs`, shared by the runner scripts and the

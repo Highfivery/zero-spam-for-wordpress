@@ -25,6 +25,8 @@ teardown( 'restore the Local site from the snapshot', async () => {
 	const api = new ZsApi( utils );
 	try {
 		await api.call( 'POST', 'snapshot', JSON.parse( readFileSync( file, 'utf8' ) ) );
+	} catch ( error ) {
+		throw new Error( `${ ( error as Error ).message } The snapshot is kept in ${ file }.` );
 	} finally {
 		// End the run even if the restore failed (the mark would expire on its own after 3 hours).
 		await api.call( 'POST', 'run', { active: false } );

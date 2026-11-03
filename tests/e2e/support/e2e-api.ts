@@ -121,6 +121,9 @@ export class ZsApi {
 				// tests behind; stop here instead of failing later for no clear reason.
 				throw new Error( `zero-spam-e2e ${ method } ${ route }: the site was NOT reset. ${ body.message } (is the database or Docker disk full?)` );
 			}
+			if ( body && 'zs_e2e_restore_failed' === body.code ) {
+				throw new Error( `zero-spam-e2e ${ method } ${ route }: the site was only PARTLY restored. ${ body.message }. Tables before ${ body.data?.table ?? 'it' } are restored, the rest are not; fix the cause and POST the same snapshot again.` );
+			}
 			throw new Error( `zero-spam-e2e ${ method } ${ route } failed (${ response.status() }): ${ JSON.stringify( body ) }` );
 		}
 		return body as T;

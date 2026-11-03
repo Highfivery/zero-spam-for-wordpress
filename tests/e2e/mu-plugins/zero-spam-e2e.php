@@ -895,6 +895,51 @@ function plugin_cron_hooks(): array {
 const CRAFTED_MARKUP = '<img src="x" onerror="window.__zsXss=1"><b>zs-crafted</b>';
 
 /**
+ * Runs one statement of a reset or restore and says whether it worked.
+ *
+ * With WP_DEBUG, wpdb prints its error as HTML, which sends a 200 and breaks
+ * the JSON before the REST answer is out; the error goes in the answer
+ * instead (db_error()).
+ *
+ * @param callable():mixed $run Runs the statement ($wpdb->query(), insert() …).
+ * @return bool False when the database refused it ($wpdb->last_error says why).
+ */
+function db_ran( callable $run ): bool {
+	global $wpdb;
+
+	$shown  = $wpdb->hide_errors();
+	$result = $run();
+	$wpdb->show_errors( $shown );
+
+	return false !== $result;
+}
+
+/**
+ * The 500 a reset or restore answers when the database refused a statement,
+ * naming the table and the database's own error.
+ *
+ * @param string $code    Error code.
+ * @param string $message What could not be done, e.g. "Reset could not empty wp_x".
+ * @param string $table   The table.
+ * @return WP_Error
+ */
+function db_error( string $code, string $message, string $table ): WP_Error {
+	global $wpdb;
+
+	$error = (string) $wpdb->last_error;
+
+	return new WP_Error(
+		$code,
+		sprintf( '%s: %s', $message, '' !== $error ? $error : 'the database gave no error message' ),
+		array(
+			'status' => 500,
+			'table'  => $table,
+			'error'  => $error,
+		)
+	);
+}
+
+/**
  * Runs one statement of a reset that empties a table.
  *
  * A reset that fails half way must not look like a clean site: when the
@@ -904,31 +949,17 @@ const CRAFTED_MARKUP = '<img src="x" onerror="window.__zsXss=1"><b>zs-crafted</b
  *
  * @param string $sql   A prepared TRUNCATE or DELETE statement.
  * @param string $table The table it empties, for the message.
+ * @param string $code  Error code (zs_e2e_reset_failed, or zs_e2e_restore_failed from restore_snapshot()).
  * @return WP_Error|null Null when the statement ran.
  */
-function empty_table( string $sql, string $table ): ?WP_Error {
+function empty_table( string $sql, string $table, string $code = 'zs_e2e_reset_failed' ): ?WP_Error {
 	global $wpdb;
 
-	// With WP_DEBUG, wpdb prints its error as HTML, which sends a 200 and
-	// breaks the JSON before the REST answer is out; the error is in the
-	// answer instead.
-	$shown  = $wpdb->hide_errors();
-	$result = $wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared by every caller.
-	$wpdb->show_errors( $shown );
-
-	if ( false !== $result ) {
+	if ( db_ran( static fn() => $wpdb->query( $sql ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared by every caller.
 		return null;
 	}
 
-	return new WP_Error(
-		'zs_e2e_reset_failed',
-		sprintf( 'Reset could not empty %s: %s', $table, '' !== (string) $wpdb->last_error ? $wpdb->last_error : 'the database gave no error message' ),
-		array(
-			'status' => 500,
-			'table'  => $table,
-			'error'  => (string) $wpdb->last_error,
-		)
-	);
+	return db_error( $code, ( 'zs_e2e_reset_failed' === $code ? 'Reset' : 'Restore' ) . ' could not empty ' . $table, $table );
 }
 
 /**
@@ -1142,9 +1173,17 @@ function validate_snapshot( array $snapshot ) {
 /**
  * Restores a snapshot taken by take_snapshot() (validate it first).
  *
+ * This puts back a Local site's real plugin data after a run, so it never
+ * carries on past a statement the database refused: it stops at the first
+ * CREATE, TRUNCATE or INSERT that fails and answers 500
+ * (zs_e2e_restore_failed) naming the table and the database's error, with
+ * the tables before it restored and the ones after it untouched. The
+ * snapshot file stays in the run's artifacts to POST again.
+ *
  * @param array $snapshot Snapshot.
+ * @return WP_Error|null Null when everything was restored.
  */
-function restore_snapshot( array $snapshot ): void {
+function restore_snapshot( array $snapshot ): ?WP_Error {
 	global $wpdb;
 
 	$restore = static function ( array $site ) use ( $wpdb ): void {
@@ -1202,15 +1241,29 @@ function restore_snapshot( array $snapshot ): void {
 		}
 		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
 			// Dropped during the run (uninstall); recreate it from the saved schema, checked by validate_snapshot().
-			$wpdb->query( (string) $data['create'] ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A CREATE TABLE statement read from this database by take_snapshot() and validated; it has no placeholders.
+			$create = (string) $data['create'];
+			if ( ! db_ran( static fn() => $wpdb->query( $create ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A CREATE TABLE statement read from this database by take_snapshot() and validated; it has no placeholders.
+				wp_cache_flush();
+				return db_error( 'zs_e2e_restore_failed', 'Restore stopped: could not recreate ' . $table, $table );
+			}
 		}
-		$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
-		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
-			$wpdb->insert( $table, (array) $row );
+		$failed = empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ), $table, 'zs_e2e_restore_failed' );
+		if ( $failed ) {
+			wp_cache_flush();
+			return $failed;
+		}
+		foreach ( array_values( (array) ( $data['rows'] ?? array() ) ) as $index => $row ) {
+			$row = (array) $row;
+			if ( ! db_ran( static fn() => $wpdb->insert( $table, $row ) ) ) {
+				wp_cache_flush();
+				return db_error( 'zs_e2e_restore_failed', sprintf( 'Restore stopped: could not insert row %d of %d into %s', $index + 1, count( (array) $data['rows'] ), $table ), $table );
+			}
 		}
 	}
 
 	wp_cache_flush();
+
+	return null;
 }
 
 /**
@@ -1964,7 +2017,10 @@ add_action(
 						if ( is_wp_error( $valid ) ) {
 							return $valid;
 						}
-						restore_snapshot( $snapshot );
+						$failed = restore_snapshot( $snapshot );
+						if ( $failed ) {
+							return $failed;
+						}
 
 						return new WP_REST_Response( array( 'restored' => true ) );
 					},
