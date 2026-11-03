@@ -1,0 +1,828 @@
+<?php
+/**
+ * Tests for the 6.0 admin app: menu, pages, assets and preloading.
+ *
+ * @package ZeroSpam\Tests
+ */
+
+declare( strict_types=1 );
+
+use ZeroSpam\Core\Admin\Admin_App;
+use ZeroSpam\Core\Utilities;
+use ZeroSpam\Tests\TestCase;
+
+/**
+ * The admin is always registered (the 6.0 flag was removed at the cutover):
+ * a top-level "Zero Spam" menu below Comments
+ * holds six pages for administrators, each printing the app shell and
+ * loading the admin bundle with the first REST responses preloaded.
+ *
+ * @covers \ZeroSpam\Core\Admin\Admin_App
+ * @covers \ZeroSpam\Core\Utilities::display_prefs
+ */
+class Test_Admin_App extends TestCase {
+
+	/**
+	 * Clean menu and script globals, the admin screen, and an administrator.
+	 */
+	public function set_up(): void {
+		parent::set_up();
+
+		$this->admin_screen();
+		$this->reset_menus();
+		$GLOBALS['wp_scripts'] = new WP_Scripts();
+		$GLOBALS['wp_styles']  = new WP_Styles();
+		wp_default_scripts( $GLOBALS['wp_scripts'] );
+		wp_default_packages( $GLOBALS['wp_scripts'] );
+
+		// The news would be downloaded while the page preloads it.
+		add_filter( 'zerospam_news_feed_enabled', '__return_false' );
+	}
+
+	/**
+	 * Restores the admin menu globals.
+	 */
+	public function tear_down(): void {
+		$this->reset_menus();
+		$GLOBALS['wp_scripts'] = null;
+		$GLOBALS['wp_styles']  = null;
+
+		parent::tear_down();
+	}
+
+	/**
+	 * Empties the admin menu globals.
+	 */
+	private function reset_menus(): void {
+		$GLOBALS['menu']              = array();
+		$GLOBALS['submenu']           = array();
+		$GLOBALS['admin_page_hooks']  = array();
+		$GLOBALS['_registered_pages'] = array();
+		$GLOBALS['_parent_pages']     = array();
+	}
+
+	/**
+	 * An app with its site pages registered.
+	 */
+	private function registered_app(): Admin_App {
+		$app = new Admin_App();
+		$app->register_menu();
+
+		return $app;
+	}
+
+	/**
+	 * The inline scripts printed after a handle.
+	 *
+	 * @param string $handle   Script handle.
+	 * @param string $position before or after.
+	 */
+	private function inline( string $handle, string $position ): string {
+		$data = wp_scripts()->get_data( $handle, $position );
+
+		return is_array( $data ) ? implode( "\n", $data ) : '';
+	}
+
+	/**
+	 * Paths in the page's preloading middleware.
+	 *
+	 * @return string[]
+	 */
+	private function preloaded_paths(): array {
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertSame( 1, preg_match( '/var zeroSpamPreload = (\{.*\}|\[\]); wp\.apiFetch\.use\( wp\.apiFetch\.createPreloadingMiddleware\( zeroSpamPreload \) \);/s', $inline, $match ), 'The preloading middleware is added after wp-api-fetch.' );
+		$data = json_decode( $match[1], true );
+
+		return is_array( $data ) ? array_keys( $data ) : array();
+	}
+
+	/**
+	 * The preloaded answers, by path.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function preloaded(): array {
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		preg_match( '/var zeroSpamPreload = (\{.*\}|\[\]);/s', $inline, $match );
+		$data = json_decode( $match[1] ?? '', true );
+
+		return is_array( $data ) ? $data : array();
+	}
+
+	/**
+	 * A top-level menu at position 26 (below Comments) with the mark as its icon.
+	 */
+	public function test_top_level_menu_below_comments(): void {
+		$this->as_role( 'administrator' );
+		$this->registered_app();
+
+		$this->assertArrayHasKey( Admin_App::MENU_POSITION, $GLOBALS['menu'] );
+		$item = $GLOBALS['menu'][ Admin_App::MENU_POSITION ];
+		$this->assertSame( 'Zero Spam', $item[0] );
+		$this->assertSame( 'manage_options', $item[1] );
+		$this->assertSame( 'zero-spam', $item[2] );
+		$this->assertStringStartsWith( 'data:image/svg+xml;base64,', $item[6] );
+		$this->assertStringContainsString( '#a7aaad', (string) base64_decode( substr( $item[6], strlen( 'data:image/svg+xml;base64,' ) ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- Reads back the menu icon.
+	}
+
+	/**
+	 * Six pages, in order, for administrators only.
+	 */
+	public function test_six_area_pages_need_manage_options(): void {
+		$this->as_role( 'administrator' );
+		$app = $this->registered_app();
+
+		$pages = $GLOBALS['submenu']['zero-spam'];
+		$this->assertSame( array_values( Admin_App::AREAS ), array_column( $pages, 2 ) );
+		$this->assertSame( array( 'Overview', 'Activity', 'Rules', 'Protection', 'Settings', 'Help' ), array_column( $pages, 0 ) );
+		$this->assertSame( array_fill( 0, 6, 'manage_options' ), array_column( $pages, 1 ) );
+
+		$hooks = $app->hooks();
+		$this->assertSame( array_keys( Admin_App::AREAS ), array_keys( $hooks ) );
+		$this->assertSame( 'toplevel_page_zero-spam', $hooks['overview'] );
+		$this->assertSame( 'zero-spam_page_zero-spam-activity', $hooks['activity'] );
+		$this->assertSame( 'help', $app->area_for_hook( 'zero-spam_page_zero-spam-help' ) );
+		$this->assertNull( $app->area_for_hook( 'settings_page_wordpress-zero-spam-settings' ) );
+	}
+
+	/**
+	 * Users without manage_options cannot open the pages.
+	 */
+	public function test_editor_cannot_open_a_page(): void {
+		$this->as_role( 'editor' );
+		$_GET['page'] = 'zero-spam';
+
+		$this->expectException( WPDieException::class );
+		try {
+			$this->registered_app()->render_page();
+		} finally {
+			unset( $_GET['page'] );
+		}
+	}
+
+	/**
+	 * The shell: the root with its area, theme and skeleton, the sprite and a
+	 * no-JavaScript message.
+	 */
+	public function test_page_prints_the_shell(): void {
+		$this->as_role( 'administrator' );
+		$_GET['page'] = 'zero-spam-rules';
+
+		ob_start();
+		$this->registered_app()->render_page();
+		$html = (string) ob_get_clean();
+		unset( $_GET['page'] );
+
+		$this->assertMatchesRegularExpression( '/<div\s+id="zerospam-app"\s+class="zs-app"\s+data-area="rules"\s+data-zs-theme="auto"/', $html );
+		$this->assertStringContainsString( '<symbol id="zs-mark"', $html );
+		$this->assertStringContainsString( '<noscript>', $html );
+		$this->assertStringNotContainsString( 'wordpress-zero-spam-settings', $html, 'No link to the removed 5.x screen.' );
+		$this->assertStringContainsString( 'wp zerospam', $html );
+		$this->assertStringContainsString( 'class="zs-skel"', $html );
+		$this->assertStringContainsString( 'aria-current="page"', $html );
+		$this->assertStringNotContainsString( 'data-zs-motion', $html );
+	}
+
+	/**
+	 * The root carries the user's saved theme and motion preference.
+	 */
+	public function test_shell_uses_the_saved_display_preferences(): void {
+		$user = $this->as_role( 'administrator' );
+		update_user_meta(
+			$user,
+			'zerospam_ui',
+			array(
+				'theme'         => 'dark',
+				'reduce_motion' => true,
+			)
+		);
+		$_GET['page'] = 'zero-spam';
+
+		ob_start();
+		$this->registered_app()->render_page();
+		$html = (string) ob_get_clean();
+		unset( $_GET['page'] );
+
+		$this->assertStringContainsString( 'data-zs-theme="dark"', $html );
+		$this->assertStringContainsString( 'data-zs-motion="reduce"', $html );
+	}
+
+	/**
+	 * "auto" follows the device on the plugin's own screens only; elsewhere
+	 * (the dashboard widget) it renders light.
+	 */
+	public function test_display_prefs_auto_is_light_outside_plugin_screens(): void {
+		$user = $this->as_role( 'administrator' );
+
+		$this->assertSame( 'auto', Utilities::display_prefs( true )['theme'] );
+		$this->assertSame( 'light', Utilities::display_prefs( false )['theme'] );
+
+		update_user_meta( $user, 'zerospam_ui', array( 'theme' => 'dark' ) );
+		$this->assertSame( 'dark', Utilities::display_prefs( false )['theme'] );
+
+		update_user_meta( $user, 'zerospam_ui', array( 'theme' => '<script>' ) );
+		$this->assertSame( 'auto', Utilities::display_prefs( true )['theme'] );
+		$this->assertFalse( Utilities::display_prefs( true )['reduce_motion'] );
+	}
+
+	/**
+	 * The page's entry point, its stylesheet and the fonts, with the
+	 * dependencies and version from admin-help.asset.php and the zero-spam
+	 * translations.
+	 */
+	public function test_assets_come_from_the_asset_file_with_translations(): void {
+		$this->as_role( 'administrator' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-help' );
+
+		$handle = Admin_App::handle( 'help' );
+		$asset  = require ZEROSPAM_PATH . 'assets/dist/admin-help.asset.php';
+		$script = wp_scripts()->registered[ $handle ];
+
+		$this->assertSame( 'zerospam-admin-help', $handle );
+		$this->assertTrue( wp_script_is( $handle, 'enqueued' ) );
+		$this->assertStringEndsWith( 'assets/dist/admin-help.js', $script->src );
+		$this->assertSame( $asset['dependencies'], $script->deps );
+		$this->assertSame( $asset['version'], $script->ver );
+		$this->assertSame( 'zero-spam', $script->textdomain );
+		$this->assertTrue( wp_style_is( $handle, 'enqueued' ) );
+		$this->assertStringEndsWith( 'assets/dist/admin-help.css', wp_styles()->registered[ $handle ]->src );
+		$this->assertSame( $asset['version'], wp_styles()->registered[ $handle ]->ver );
+		$this->assertSame( 'replace', wp_styles()->get_data( $handle, 'rtl' ) );
+		$this->assertTrue( wp_style_is( Admin_App::FONTS_HANDLE, 'enqueued' ) );
+
+		$boot = $this->inline( $handle, 'before' );
+		$this->assertStringContainsString( 'var zeroSpamAdmin = ', $boot );
+		$this->assertStringContainsString( '"area":"help"', $boot );
+	}
+
+	/**
+	 * Areas and the hook suffixes of their pages (the network page is
+	 * registered by register_network_menu()).
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function data_area_pages(): array {
+		return array(
+			'overview'   => array( 'overview', 'toplevel_page_zero-spam' ),
+			'activity'   => array( 'activity', 'zero-spam_page_zero-spam-activity' ),
+			'rules'      => array( 'rules', 'zero-spam_page_zero-spam-rules' ),
+			'protection' => array( 'protection', 'zero-spam_page_zero-spam-protection' ),
+			'settings'   => array( 'settings', 'zero-spam_page_zero-spam-settings' ),
+			'help'       => array( 'help', 'zero-spam_page_zero-spam-help' ),
+			'network'    => array( 'network', 'toplevel_page_zero-spam-network' ),
+		);
+	}
+
+	/**
+	 * Each page enqueues exactly its own area's entry point (script and
+	 * style, with that entry's .asset.php dependencies and version) and no
+	 * other area's, and sets the zero-spam translations for that handle.
+	 *
+	 * @dataProvider data_area_pages
+	 *
+	 * @param string $area Area.
+	 * @param string $hook Hook suffix of its page.
+	 */
+	public function test_each_page_enqueues_only_its_own_entry( string $area, string $hook ): void {
+		$user = $this->as_role( 'administrator' );
+		// The network page needs manage_network_options (single site and network alike).
+		get_userdata( $user )->add_cap( 'manage_network_options' );
+		$app = $this->registered_app();
+		$app->register_network_menu();
+		$this->assertSame( $hook, $app->hooks()[ $area ] ?? null, 'The page is registered under the expected hook suffix.' );
+
+		$app->enqueue( $hook );
+
+		$handle = "zerospam-admin-{$area}";
+		$this->assertSame( $handle, Admin_App::handle( $area ) );
+		$this->assertSame( array( $handle ), $this->app_handles( 'script' ), "Only the page's own script is enqueued." );
+		$this->assertSame( array( $handle ), $this->app_handles( 'style' ), "Only the page's own stylesheet is enqueued." );
+
+		$asset  = require ZEROSPAM_PATH . "assets/dist/admin-{$area}.asset.php";
+		$script = wp_scripts()->registered[ $handle ];
+		$this->assertStringEndsWith( "assets/dist/admin-{$area}.js", $script->src );
+		$this->assertSame( $asset['dependencies'], $script->deps );
+		$this->assertSame( $asset['version'], $script->ver );
+		$this->assertSame( 'zero-spam', $script->textdomain, 'wp_set_script_translations() ran for this handle.' );
+		$this->assertStringEndsWith( "assets/dist/admin-{$area}.css", wp_styles()->registered[ $handle ]->src );
+		$this->assertStringContainsString( "\"area\":\"{$area}\"", $this->inline( $handle, 'before' ), "The bootstrap is printed before the page's own script." );
+	}
+
+	/**
+	 * Every area's entry point is built and committed (assets/dist/), with
+	 * the files the enqueue reads: script, stylesheet, its RTL copy and the
+	 * asset file.
+	 *
+	 * @dataProvider data_area_pages
+	 *
+	 * @param string $area Area.
+	 */
+	public function test_each_area_entry_is_built( string $area ): void {
+		$entry = Admin_App::entry( $area );
+		$this->assertSame( "admin-{$area}", $entry );
+
+		foreach ( array( '.js', '.css', '-rtl.css', '.asset.php' ) as $suffix ) {
+			$this->assertFileExists( ZEROSPAM_PATH . 'assets/dist/' . $entry . $suffix );
+		}
+
+		$asset = Admin_App::asset_file( $area );
+		$this->assertContains( 'wp-i18n', $asset['dependencies'] );
+		$this->assertNotSame( ZEROSPAM_VERSION, $asset['version'], 'The version comes from the asset file.' );
+	}
+
+	/**
+	 * Handles of the app's area entry points in the script or style queue.
+	 *
+	 * @param string $type script or style.
+	 * @return string[]
+	 */
+	private function app_handles( string $type ): array {
+		$queue = 'script' === $type ? wp_scripts()->queue : wp_styles()->queue;
+
+		return array_values(
+			array_filter(
+				$queue,
+				static function ( $handle ): bool {
+					return str_starts_with( (string) $handle, Admin_App::HANDLE_PREFIX );
+				}
+			)
+		);
+	}
+
+	/**
+	 * Nothing is loaded on other admin screens.
+	 */
+	public function test_no_assets_on_other_screens(): void {
+		$this->as_role( 'administrator' );
+		$app = $this->registered_app();
+
+		foreach ( array( 'index.php', 'edit.php', 'settings_page_wordpress-zero-spam-settings', 'dashboard_page_wordpress-zero-spam-dashboard' ) as $hook ) {
+			$app->enqueue( $hook );
+		}
+
+		$this->assertSame( array(), $this->app_handles( 'script' ) );
+		$this->assertSame( array(), $this->app_handles( 'style' ) );
+		$this->assertFalse( wp_style_is( Admin_App::FONTS_HANDLE, 'enqueued' ) );
+	}
+
+	/**
+	 * The Overview preloads everything it reads on load, as the logged-in
+	 * administrator, with real answers.
+	 */
+	public function test_overview_preloads_its_first_requests(): void {
+		$this->as_role( 'administrator' );
+		$this->insert_log_rows( 3 );
+		$this->registered_app()->enqueue( 'toplevel_page_zero-spam' );
+
+		$paths = $this->preloaded_paths();
+		foreach ( array_merge( Admin_App::SHELL_PRELOADS, Admin_App::OVERVIEW_PRELOADS ) as $path ) {
+			$this->assertContains( $path, $paths, "{$path} is preloaded on the Overview." );
+		}
+		$this->assertNotContains( Admin_App::NEWS_PRELOAD, $paths, 'The news is not preloaded while it is turned off.' );
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( '"theme":"auto"', $inline, 'The answers are real: ui/prefs.' );
+	}
+
+	/**
+	 * The network page preloads the user's preferences and its tab's
+	 * network data (Admin_App::network_preloads(); the Overview by
+	 * default), never the site shell's reads; every site area adds its own
+	 * reads to the shell's (Help: test_help_preloads_its_guides()).
+	 */
+	public function test_network_page_preloads_the_preferences_and_its_tab(): void {
+		$this->assertSame( array_merge( array( '/zero-spam/v1/ui/prefs' ), Admin_App::network_preloads() ), Admin_App::preload_paths( 'network' ) );
+		$this->assertSame( array( '/zero-spam/v1/ui/prefs', '/zero-spam/v1/network/notifications' ), Admin_App::preload_paths( 'network', array( 'tab' => 'notifications' ) ) );
+	}
+
+	/**
+	 * The Activity page preloads what its Log tab reads on load: the
+	 * heading's 30-day count, the first page of entries (with the paging
+	 * headers) and the filter counts.
+	 */
+	public function test_activity_preloads_the_log(): void {
+		$this->as_role( 'administrator' );
+		$this->insert_log_rows( 30 );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-activity' );
+
+		$list  = '/zero-spam/v1/activity?per_page=25&_fields=' . Admin_App::ACTIVITY_FIELDS;
+		$paths = $this->preloaded_paths();
+
+		$this->assertSame( array_merge( Admin_App::SHELL_PRELOADS, array( '/zero-spam/v1/stats/summary?range=30', $list, '/zero-spam/v1/activity?facets=1' ) ), $paths );
+
+		$data = $this->preloaded();
+		$this->assertCount( 25, $data[ $list ]['body'] );
+		$this->assertSame( '30', $data[ $list ]['headers']['X-WP-Total'], 'The paging headers are preloaded too.' );
+		$this->assertEqualsCanonicalizing( explode( ',', Admin_App::ACTIVITY_FIELDS ), array_keys( $data[ $list ]['body'][0] ) );
+		$this->assertSame( 30, $data['/zero-spam/v1/activity?facets=1']['body']['total'] );
+	}
+
+	/**
+	 * The Reports tab preloads its 30-day series and breakdowns instead of the log.
+	 */
+	public function test_activity_reports_tab_preloads_the_reports(): void {
+		$paths = Admin_App::preload_paths( 'activity', array( 'tab' => 'reports' ) );
+
+		$this->assertContains( '/zero-spam/v1/stats/timeseries', $paths );
+		$this->assertContains( '/zero-spam/v1/activity?facets=1&detections_only=1&days=30', $paths );
+		$this->assertContains( '/zero-spam/v1/stats/summary?range=30', $paths );
+		$this->assertNotContains( '/zero-spam/v1/activity?facets=1', $paths );
+		$this->assertEmpty( preg_grep( '/per_page=25/', $paths ) );
+	}
+
+	/**
+	 * A filtered, sorted or paged address does not preload the default
+	 * list (the app asks for its own); filter counts are preloaded only
+	 * without filters.
+	 */
+	public function test_activity_preloads_only_the_default_view(): void {
+		$list   = '/zero-spam/v1/activity?per_page=25&_fields=' . Admin_App::ACTIVITY_FIELDS;
+		$facets = '/zero-spam/v1/activity?facets=1';
+
+		$sorted = Admin_App::preload_paths( 'activity', array( 'moved' => true ) );
+		$this->assertNotContains( $list, $sorted );
+		$this->assertContains( $facets, $sorted );
+
+		$filtered = Admin_App::preload_paths( 'activity', array( 'filtered' => true ) );
+		$this->assertNotContains( $list, $filtered );
+		$this->assertNotContains( $facets, $filtered );
+
+		$item = Admin_App::preload_paths( 'activity', array( 'item' => 7 ) );
+		$this->assertContains( $list, $item, 'An entry link opens the default list.' );
+
+		$_GET['type'] = 'comment';
+		$_GET['sort'] = 'ip:asc';
+		try {
+			$view = Admin_App::view_args();
+		} finally {
+			unset( $_GET['type'], $_GET['sort'] );
+		}
+		$this->assertTrue( $view['filtered'] );
+		$this->assertTrue( $view['moved'] );
+		$this->assertFalse( Admin_App::view_args()['filtered'] );
+	}
+
+	/**
+	 * An address that opens an entry (`&item=`, the Overview's feed links)
+	 * preloads that entry.
+	 */
+	public function test_activity_item_is_preloaded(): void {
+		$this->assertContains( '/zero-spam/v1/activity/42', Admin_App::preload_paths( 'activity', array( 'item' => 42 ) ) );
+		$this->assertEmpty( preg_grep( '#activity/\d#', Admin_App::preload_paths( 'activity' ) ) );
+		$this->assertEmpty( preg_grep( '#activity/\d#', Admin_App::preload_paths( 'overview', array( 'item' => 42 ) ) ), 'Only on the Activity page.' );
+	}
+
+	/**
+	 * The Overview (the shell from PR 4) prints its bootstrap and preloads
+	 * through the same encoding: a site name and a logged country name with
+	 * markup stay inside their scripts.
+	 */
+	public function test_overview_inline_scripts_escape_markup(): void {
+		$this->as_role( 'administrator' );
+		update_option( 'blogname', 'Shop </script><!--<script>' );
+		$this->insert_log_rows(
+			2,
+			array(
+				'country'      => 'DE',
+				'country_name' => '</script><img src=x onerror=alert(1)>',
+			)
+		);
+
+		$this->registered_app()->enqueue( 'toplevel_page_zero-spam' );
+
+		foreach ( array( $this->inline( Admin_App::handle( 'overview' ), 'before' ), $this->inline( 'wp-api-fetch', 'after' ) ) as $inline ) {
+			$this->assertNotSame( '', $inline );
+			$this->assertStringNotContainsStringIgnoringCase( '</script', $inline );
+			$this->assertStringNotContainsString( '<!--', $inline );
+			$this->assertStringNotContainsString( '<img', $inline );
+		}
+
+		$this->assertStringContainsString( 'Shop \u003C\/script\u003E\u003C!--', $this->inline( Admin_App::handle( 'overview' ), 'before' ), 'The site name is kept, escaped.' );
+		$this->assertContains( '</script><img src=x onerror=alert(1)>', array_column( $this->preloaded()[ Admin_App::OVERVIEW_PRELOADS[4] ]['body'], 'country_name' ), 'The preloaded entry decodes to the logged text.' );
+	}
+
+	/**
+	 * Logged submissions are preloaded into an inline script: markup in them
+	 * (a closing script tag, an HTML comment opener) is escaped so it can
+	 * never end or change the script element.
+	 */
+	public function test_preloaded_logged_data_cannot_end_the_script(): void {
+		$this->as_role( 'administrator' );
+		$ids = $this->insert_log_rows(
+			1,
+			array(
+				'submission_data' => wp_json_encode( array( 'comment' => '<!--<script>alert(1)</script><img src=x onerror=alert(2)>&amp;' ) ),
+				'city'            => '</script><script>alert(3)</script>',
+			)
+		);
+
+		$_GET['item'] = (string) $ids[0];
+		try {
+			$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-activity' );
+		} finally {
+			unset( $_GET['item'] );
+		}
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringNotContainsStringIgnoringCase( '</script', $inline );
+		$this->assertStringNotContainsString( '<!--', $inline );
+		$this->assertStringNotContainsString( '<img', $inline );
+		$this->assertStringContainsString( '\u003Cimg src=x onerror=alert(2)\u003E', $inline, 'The text is kept, escaped.' );
+
+		$data = $this->preloaded();
+		$this->assertSame( '</script><script>alert(3)</script>', $data[ '/zero-spam/v1/activity/' . $ids[0] ]['body']['city'], 'It decodes to the logged text.' );
+	}
+
+	/**
+	 * Help preloads its guides on top of the shell (the news comes with the
+	 * shell), and nothing of the Overview's.
+	 */
+	public function test_help_preloads_its_guides(): void {
+		$this->as_role( 'administrator' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-help' );
+
+		$paths = $this->preloaded_paths();
+		foreach ( array_merge( Admin_App::SHELL_PRELOADS, Admin_App::HELP_PRELOADS ) as $path ) {
+			$this->assertContains( $path, $paths, "{$path} is preloaded on Help." );
+		}
+		foreach ( Admin_App::OVERVIEW_PRELOADS as $path ) {
+			$this->assertNotContains( $path, $paths );
+		}
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( 'developer-hooks', $inline, 'The guides are real answers.' );
+	}
+
+	/**
+	 * The Rules page preloads the settings schema and the first page of the
+	 * tab the address opens (the Blocked IPs by default), exactly as the app
+	 * asks for them, with real answers.
+	 */
+	public function test_rules_preloads_its_tab_and_the_schema(): void {
+		$expected = array(
+			''           => '/zero-spam/v1/rules/blocks?kind=ip&per_page=50&orderby=date_added&order=desc',
+			'ips'        => '/zero-spam/v1/rules/blocks?kind=ip&per_page=50&orderby=date_added&order=desc',
+			'locations'  => '/zero-spam/v1/rules/blocks?kind=location&per_page=50&orderby=date_added&order=desc',
+			'allowlist'  => '/zero-spam/v1/rules/lists/allowed-ips?per_page=50',
+			'email'      => '/zero-spam/v1/rules/lists/email-domains?per_page=50',
+			'words'      => '/zero-spam/v1/rules/lists/allowed-words?per_page=50',
+			'no-lockout' => '/zero-spam/v1/rules/no-lockout',
+			'bogus'      => '/zero-spam/v1/rules/blocks?kind=ip&per_page=50&orderby=date_added&order=desc',
+		);
+		foreach ( $expected as $tab => $path ) {
+			$this->assertSame( array( '/zero-spam/v1/settings/schema', $path ), Admin_App::rules_preloads( array( 'tab' => $tab ) ), "Tab \"{$tab}\"." );
+		}
+
+		$this->as_role( 'administrator' );
+		$this->block( '198.51.100.90' );
+		$_GET['tab'] = 'ips';
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-rules' );
+		unset( $_GET['tab'] );
+
+		$paths = $this->preloaded_paths();
+		foreach ( array_merge( Admin_App::SHELL_PRELOADS, Admin_App::rules_preloads( array( 'tab' => 'ips' ) ) ) as $path ) {
+			$this->assertContains( $path, $paths, "{$path} is preloaded on the Rules page." );
+		}
+		foreach ( Admin_App::OVERVIEW_PRELOADS as $path ) {
+			if ( '/zero-spam/v1/settings/schema' !== $path ) {
+				$this->assertNotContains( $path, $paths );
+			}
+		}
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( '198.51.100.90', $inline, 'The blocks answer is real.' );
+		$this->assertStringContainsString( '"X-WP-Total":"1"', $inline, 'With its total, for the count and the pages.' );
+	}
+
+	/**
+	 * A site's time zone settings.
+	 *
+	 * @return array<string, array{0: string, 1: float, 2: string, 3: int|null}>
+	 */
+	public static function data_time_zones(): array {
+		return array(
+			'a named zone'             => array( 'Asia/Kolkata', 0.0, 'Asia/Kolkata', 19800 ),
+			'a named zone with DST'    => array( 'America/New_York', 0.0, 'America/New_York', null ),
+			'UTC by name'              => array( 'UTC', 0.0, 'UTC', 0 ),
+			'manual offset'            => array( '', 5.5, '', 19800 ),
+			'manual negative offset'   => array( '', -3.5, '', -12600 ),
+			'manual offset of nothing' => array( '', 0.0, '', 0 ),
+		);
+	}
+
+	/**
+	 * The bootstrap carries the site's time zone for dates in the browser: an
+	 * IANA name when there is one, and always today's offset (a manual
+	 * offset's only value, and the fallback for a name the browser lacks);
+	 * nowLocal stays the site's clock.
+	 *
+	 * @dataProvider data_time_zones
+	 *
+	 * @param string   $zone     Option timezone_string.
+	 * @param float    $gmt      Option gmt_offset.
+	 * @param string   $name     Name sent.
+	 * @param int|null $expected Offset sent in seconds (null: varies with the date).
+	 */
+	public function test_bootstrap_carries_the_sites_time_zone( string $zone, float $gmt, string $name, ?int $expected ): void {
+		update_option( 'timezone_string', $zone );
+		update_option( 'gmt_offset', $gmt );
+
+		$this->as_role( 'administrator' );
+		$before = time();
+		$boot   = $this->registered_app()->bootstrap( 'rules' );
+		$after  = time();
+
+		$now = ( new DateTimeImmutable( 'now', wp_timezone() ) )->getOffset();
+		$this->assertSame( $name, $boot['timezone']['name'] );
+		$this->assertSame( $expected ?? $now, $boot['timezone']['offset'] );
+		$this->assertGreaterThanOrEqual( ( $before + $now ) * 1000, $boot['nowLocal'] );
+		$this->assertLessThanOrEqual( ( $after + $now ) * 1000, $boot['nowLocal'] );
+	}
+
+	/**
+	 * The Rules tabs' counts come with the page (no request of their own);
+	 * other pages do not compute them.
+	 */
+	public function test_rules_bootstrap_carries_the_tab_counts(): void {
+		$this->as_role( 'administrator' );
+		$this->block( '198.51.100.91' );
+		$this->block( '198.51.100.92' );
+		$this->set_setting( 'ip_whitelist', "192.0.2.1\n192.0.2.2\n192.0.2.3" );
+
+		$app = $this->registered_app();
+		$this->assertSame( 2, $app->bootstrap( 'rules' )['rules']['counts']['ips'] );
+		$this->assertSame( 3, $app->bootstrap( 'rules' )['rules']['counts']['allowlist'] );
+		$this->assertNull( $app->bootstrap( 'overview' )['rules'] );
+	}
+
+	/**
+	 * What visitors and administrators typed (a block's reason) is printed
+	 * into the page's inline scripts with <, > and & escaped, so it can never
+	 * end the script element.
+	 */
+	public function test_rules_preloads_escape_markup(): void {
+		global $wpdb;
+
+		$this->as_role( 'administrator' );
+		$id = $this->block( '198.51.100.93' );
+		$wpdb->update( $wpdb->prefix . \ZeroSpam\Includes\DB::$tables['blocked'], array( 'reason' => '</script><script>alert(1)</script>' ), array( 'blocked_id' => $id ) );
+
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-rules' );
+		$inline = $this->inline( 'wp-api-fetch', 'after' ) . $this->inline( Admin_App::handle( 'rules' ), 'before' );
+
+		$this->assertStringContainsString( '198.51.100.93', $inline );
+		$this->assertStringNotContainsString( '</script>', $inline );
+		$this->assertStringNotContainsString( '<script>', $inline );
+		$this->assertStringContainsString( '\u003C\/script\u003E', $inline );
+	}
+
+	/**
+	 * The bootstrap says whether this is the network's main site (subsites
+	 * cannot refresh the shared .htaccess, so the Rules screen hides the
+	 * button there).
+	 */
+	public function test_bootstrap_says_whether_this_is_the_main_site(): void {
+		$this->as_role( 'administrator' );
+		$this->assertTrue( $this->registered_app()->bootstrap( 'rules' )['isMainSite'] );
+	}
+
+	/**
+	 * The news is preloaded when it is on.
+	 */
+	public function test_news_is_preloaded_when_on(): void {
+		remove_all_filters( 'zerospam_news_feed_enabled' );
+		add_filter( 'zerospam_news_feed_enabled', '__return_true' );
+		$this->mock_http( '#^https://www\.zerospam\.org/articles/feed/#', '<?xml version="1.0"?><rss version="2.0"><channel><title>Z</title><item><title>One</title><link>https://www.zerospam.org/one/</link></item></channel></rss>' );
+
+		$this->assertContains( Admin_App::NEWS_PRELOAD, Admin_App::preload_paths( 'help' ) );
+	}
+
+	/**
+	 * A user who cannot read a route gets no preloaded answer for it.
+	 */
+	public function test_preloads_are_scoped_to_the_user(): void {
+		$this->as_role( 'editor' );
+
+		$preloaded = array_reduce( Admin_App::preload_paths( 'overview' ), 'rest_preload_api_request', array() );
+
+		$this->assertArrayNotHasKey( '/zero-spam/v1/license', $preloaded );
+		$this->assertArrayNotHasKey( '/zero-spam/v1/stats/summary?range=7', $preloaded );
+		// Their own preferences only.
+		$this->assertArrayHasKey( '/zero-spam/v1/ui/prefs', $preloaded );
+	}
+
+	/**
+	 * A saved license key never reaches the page: not in the bootstrap, not
+	 * in the preloaded REST answers (they carry a masked hint only).
+	 */
+	public function test_license_key_never_appears_in_the_page(): void {
+		$this->as_role( 'administrator' );
+		$key = 'ZS-SECRET-LICENSE-9f3c7a';
+		$this->set_setting( 'zerospam_license', $key, 'zerospam' );
+		$this->mock_http(
+			'#wp-json/v2/get-license#',
+			array(
+				'license_key'       => $key,
+				'queries_remaining' => 5,
+			)
+		);
+
+		$app = $this->registered_app();
+		$app->enqueue( 'toplevel_page_zero-spam' );
+		$_GET['page'] = 'zero-spam';
+		ob_start();
+		$app->render_page();
+		$html = (string) ob_get_clean();
+		unset( $_GET['page'] );
+
+		$page = $html . $this->inline( Admin_App::handle( 'overview' ), 'before' ) . $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( 'v1\\/license', $page, 'The license answer is preloaded (JSON-escaped path).' );
+		$this->assertStringNotContainsString( $key, $page );
+		$this->assertStringNotContainsString( 'SECRET-LICENSE', $page );
+	}
+
+	/**
+	 * The Protection page preloads the shell (license, protection modules)
+	 * and the settings schema, so it makes no request of its own on load.
+	 */
+	public function test_protection_preloads_schema_modules_and_license(): void {
+		$this->as_role( 'administrator' );
+		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-protection' );
+
+		$paths = $this->preloaded_paths();
+		foreach ( array( '/zero-spam/v1/settings/schema', '/zero-spam/v1/protection/modules', '/zero-spam/v1/license', '/zero-spam/v1/ui/prefs' ) as $path ) {
+			$this->assertContains( $path, $paths, "{$path} is preloaded on Protection." );
+		}
+		foreach ( Admin_App::OVERVIEW_PRELOADS as $path ) {
+			if ( ! in_array( $path, Admin_App::PROTECTION_PRELOADS, true ) ) {
+				$this->assertNotContains( $path, $paths );
+			}
+		}
+
+		$inline = $this->inline( 'wp-api-fetch', 'after' );
+		$this->assertStringContainsString( '"disable_xmlrpc"', $inline, 'The schema answer is real.' );
+	}
+
+	/**
+	 * Only administrators open the Protection page.
+	 */
+	public function test_editor_cannot_open_protection(): void {
+		$this->as_role( 'editor' );
+		$_GET['page'] = 'zero-spam-protection';
+
+		$this->expectException( WPDieException::class );
+
+		try {
+			$this->registered_app()->render_page();
+		} finally {
+			unset( $_GET['page'] );
+		}
+	}
+
+	/**
+	 * Without any constant or filter the menus register for whoever may see them.
+	 */
+	public function test_menus_are_always_registered(): void {
+		$this->as_role( 'administrator' );
+		$app = $this->registered_app();
+
+		$this->assertArrayHasKey( 'overview', $app->hooks() );
+		$this->assertCount( 6, $app->hooks() );
+		$this->assertFalse( method_exists( Utilities::class, 'admin_v6' ) );
+	}
+
+	/**
+	 * The bootstrap has no link to the removed 5.x screens.
+	 */
+	public function test_bootstrap_has_no_legacy_url(): void {
+		$this->as_role( 'administrator' );
+		$urls = $this->registered_app()->bootstrap( 'overview' )['urls'];
+
+		$this->assertArrayNotHasKey( 'legacy', $urls );
+		$this->assertStringNotContainsString( 'wordpress-zero-spam', (string) wp_json_encode( $urls ) );
+	}
+
+	/**
+	 * The area of the current page comes from the page slug.
+	 */
+	public function test_current_area(): void {
+		global $plugin_page;
+
+		$plugin_page = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertNull( Admin_App::current_area() );
+
+		$plugin_page = 'zero-spam-rules'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertSame( 'rules', Admin_App::current_area() );
+
+		$plugin_page = 'zero-spam'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertSame( 'overview', Admin_App::current_area() );
+
+		$plugin_page = 'zero-spam-network'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertNull( Admin_App::current_area(), 'The network page only counts in the network admin.' );
+
+		$plugin_page = 'wordpress-zero-spam-settings'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertNull( Admin_App::current_area() );
+
+		$plugin_page = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the screen.
+	}
+}

@@ -48,6 +48,10 @@ return ( static function (): array {
 		// Holds a zero-spam symlink to this checkout (made by bin/test.sh), so
 		// the plugin is zero-spam/ whatever the checkout directory is called.
 		'wp_plugin_dir'   => rtrim( $env( 'ZEROSPAM_WP_PLUGIN_DIR', $cache . '/plugins' ), '/' ),
+		// WP_CONTENT_DIR (uploads/, upgrade/) and, in tmp/, WP_TEMP_DIR: what
+		// a run writes, per checkout (bin/test.sh passes the same path), never
+		// inside the shared WordPress core.
+		'wp_content_dir'  => rtrim( $env( 'ZEROSPAM_WP_CONTENT_DIR', $cache . '/content-' . substr( md5( $root ), 0, 8 ) ), '/' ),
 		'db_host'         => $env( 'WP_TESTS_DB_HOST', '127.0.0.1' ),
 		'db_user'         => $env( 'WP_TESTS_DB_USER', 'root' ),
 		'db_password'     => (string) getenv( 'WP_TESTS_DB_PASSWORD' ),

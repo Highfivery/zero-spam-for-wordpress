@@ -59,11 +59,73 @@ class Migrations {
 	const BLOCKED_IP_CURSOR_OPTION = 'zerospam_migration_cursor_canonical_blocked_ips';
 
 	/**
+	 * Site option (sitemeta on a network) listing the network-wide migrations
+	 * that have run, so they run once per network rather than once per site.
+	 *
+	 * @var string
+	 */
+	const NETWORK_COMPLETED_OPTION = 'zerospam_network_completed_migrations';
+
+	/**
+	 * Lock option of the network-wide migrations, held in the main site's
+	 * options table (sitemeta has no unique key to lock on).
+	 *
+	 * @var string
+	 */
+	const NETWORK_LOCK_OPTION = 'zerospam_migration_lock_network';
+
+	/**
+	 * Copy of the 5.x settings taken before the 6.0 migrations: a
+	 * non-autoloaded option on each site, and a site option of the same name
+	 * for the network values. Removed in 6.1.
+	 *
+	 * @var string
+	 */
+	const BACKUP_5X_OPTION = 'zerospam_backup_5x';
+
+	/**
+	 * The network settings store used by the REST settings route before 6.0.
+	 * Merged into `zerospam_network_settings` and left in place, unread and
+	 * unwritten, so a downgrade to 5.7.x still finds it. Removed in 6.1.
+	 *
+	 * @var string
+	 */
+	const LEGACY_NETWORK_OPTION = 'zero-spam-network-zerospam';
+
+	/**
 	 * Seconds after which a migration lock is considered stale.
 	 *
 	 * @var int
 	 */
 	const MIGRATION_LOCK_TTL = 300;
+
+	/**
+	 * Keys the 5.x built-in network templates used that no setting has
+	 * (build plan §4): applying a template stored them as network values
+	 * that changed nothing. `v6_template_orphans` removes exactly these.
+	 *
+	 * @var string[]
+	 */
+	const TEMPLATE_ORPHAN_KEYS = array(
+		'comments_enabled',
+		'comments_log_flagged_attempts',
+		'registrations_enabled',
+		'registrations_log_flagged_attempts',
+		'cf7_enabled',
+		'cf7_log_flagged_attempts',
+		'wpforms_enabled',
+		'wpforms_log_flagged_attempts',
+		'gravityforms_enabled',
+		'gravityforms_log_flagged_attempts',
+		'fluentform_enabled',
+		'fluentform_log_flagged_attempts',
+		'woocommerce_enabled',
+		'woocommerce_log_flagged_attempts',
+		'api_monitoring_enabled',
+		'api_daily_limit',
+		'api_hourly_limit',
+		'api_anomaly_detection',
+	);
 
 	/**
 	 * Rows read per query by canonicalize_blocked_ips().
@@ -154,6 +216,17 @@ class Migrations {
 			'canonical_blocked_ips'        => array( $this, 'canonicalize_blocked_ips' ),
 			// Stays pending until an administrator loads the site, see Admin_Safe_IPs::migrate().
 			'admin_safe_ip'                => array( \ZeroSpam\Core\Admin_Safe_IPs::class, 'migrate' ),
+			'v6_backup_5x'                 => array( $this, 'backup_5x_settings' ),
+			'v6_network_store'             => array( $this, 'merge_network_store' ),
+			'v6_security_switches'         => array( $this, 'security_switches' ),
+			'v6_uninstall_flag'            => array( $this, 'uninstall_flag' ),
+			'v6_thresholds_sanitize'       => array( $this, 'sanitize_thresholds' ),
+			// Upgraded sites show "What's new in 6.0" once per administrator; fresh installs get first-run setup instead.
+			'v6_whats_new'                 => array( \ZeroSpam\Core\Admin\Onboarding::class, 'migrate_whats_new' ),
+			'v6_template_orphans'          => array( $this, 'remove_template_orphans' ),
+			'v6_dismissals'                => array( $this, 'move_dismissals' ),
+			'v6_allowlist_follows_network' => array( $this, 'allowlist_follows_network' ),
+			'v6_remove_google_api'         => array( $this, 'remove_google_api' ),
 		);
 	}
 
@@ -531,9 +604,583 @@ class Migrations {
 		wp_cache_delete( 'wpzerospam', 'options' );
 		wp_cache_delete( 'alloptions', 'options' );
 
-		// Flag a one-time admin notice so users can verify their settings.
-		update_option( self::SETTINGS_REVIEW_NOTICE_OPTION, true, true );
+		// 5.x also flagged a "review your settings" notice here; that notice was removed in 6.0.0.
 
 		return true;
+	}
+
+	/**
+	 * Copies the 5.x settings before 6.0 changes anything.
+	 *
+	 * Every `zero-spam-*` option of the site goes into the non-autoloaded
+	 * option `zerospam_backup_5x`; on a network, `zerospam_network_settings`
+	 * and the `zero-spam-network-*` options go once into the site option of
+	 * the same name (on a single site they are ordinary options and go into
+	 * the site's copy). An existing copy is never replaced, so running this
+	 * again changes nothing.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request (another request
+	 *              holds the network lock).
+	 */
+	public function backup_5x_settings(): bool {
+		global $wpdb;
+
+		if ( false === get_option( self::BACKUP_5X_OPTION ) ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration, bounded.
+			$rows = (array) $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name ASC LIMIT 500",
+					$wpdb->esc_like( 'zero-spam-' ) . '%'
+				),
+				ARRAY_A
+			);
+
+			$options = array();
+			foreach ( $rows as $row ) {
+				$options[ (string) $row['option_name'] ] = maybe_unserialize( $row['option_value'] );
+			}
+
+			if ( ! is_multisite() ) {
+				$options = array_merge( $options, self::network_options_to_back_up() );
+			}
+
+			if ( $options ) {
+				add_option( self::BACKUP_5X_OPTION, self::backup_payload( $options ), '', false );
+			}
+		}
+
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_backup_5x',
+			static function (): bool {
+				$options = self::network_options_to_back_up();
+
+				if ( $options && false === get_site_option( self::BACKUP_5X_OPTION ) ) {
+					add_site_option( self::BACKUP_5X_OPTION, self::backup_payload( $options ) );
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Merges the 5.x REST network settings into the network settings store.
+	 *
+	 * Before 6.0 the `zero-spam/v1/settings` route kept network values in
+	 * `zero-spam-network-zerospam` while everything else used
+	 * `zerospam_network_settings`, so the two could disagree. Each value of
+	 * the old option whose key the store does not have is added, unlocked;
+	 * the store's own values win. The old option stays in place for a
+	 * downgrade. Runs once per network.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request.
+	 */
+	public function merge_network_store(): bool {
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_network_store',
+			static function (): bool {
+				$legacy = get_site_option( self::LEGACY_NETWORK_OPTION );
+
+				if ( ! is_array( $legacy ) || ! $legacy ) {
+					return true;
+				}
+
+				$store   = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( Network_Settings::META_KEY, array() ) );
+				$changed = false;
+
+				foreach ( $legacy as $key => $value ) {
+					if ( ! is_string( $key ) || '' === $key || isset( $store['settings'][ $key ] ) ) {
+						continue;
+					}
+
+					$store['settings'][ $key ] = array(
+						'value'      => $value,
+						'locked'     => false,
+						'updated_by' => 0,
+						'updated_at' => current_time( 'mysql' ),
+					);
+
+					$changed = true;
+				}
+
+				if ( $changed ) {
+					update_site_option( Network_Settings::META_KEY, $store );
+					delete_site_transient( Network_Settings::cache_key() );
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Records the two Security switches added in 6.0.0, "Disable XML-RPC"
+	 * and "Hide the WordPress Version", as on.
+	 *
+	 * Before 6.0 the Security module always disabled XML-RPC and removed the
+	 * generator tag; the switches are on unless turned off, and turning one
+	 * off stores `disabled`. On a single site each switch the site has not
+	 * stored yet is stored as `enabled`, so the behaviour it had is written
+	 * down. A value already stored (`disabled` included) is kept. On a
+	 * network nothing is stored: a stored value would be a site override,
+	 * and the sites would stop following a network default set later; the
+	 * switches are on there by default all the same (decided 2026-10-25 for
+	 * PR #446; build plan §4 had listed this migration as per site).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return true
+	 */
+	public function security_switches(): bool {
+		if ( is_multisite() ) {
+			return true;
+		}
+
+		$options = get_option( 'zero-spam-security', array() );
+		$options = is_array( $options ) ? $options : array();
+		$changed = false;
+
+		foreach ( \ZeroSpam\Modules\Security\Security::DEFAULT_ON as $key ) {
+			if ( ! array_key_exists( $key, $options ) ) {
+				$options[ $key ] = 'enabled';
+				$changed         = true;
+			}
+		}
+
+		if ( $changed ) {
+			update_option( 'zero-spam-security', $options, true );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Turns "Delete Data on Uninstall" on, as uninstalling behaved before 6.0.
+	 *
+	 * 5.x never read the setting: deleting the plugin always removed all of
+	 * its data. Since 6.0 uninstall.php honours it, so every 5.x value that
+	 * is not `enabled` (none stored, or the `false` an unticked box saved) is
+	 * stored as `enabled`, and nothing is left behind unless an administrator
+	 * turns it off from now on. On a network, a site that stores no value
+	 * keeps following the network (the setting is on by default), and a
+	 * network value that is not `enabled` becomes `enabled`, locked or not.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request (another request
+	 *              holds the network lock).
+	 */
+	public function uninstall_flag(): bool {
+		$options = get_option( 'zero-spam-api-monitoring', array() );
+		$options = is_array( $options ) ? $options : array();
+		$stored  = array_key_exists( 'delete_data_on_uninstall', $options );
+
+		if ( ( $stored || ! is_multisite() ) && 'enabled' !== ( $options['delete_data_on_uninstall'] ?? null ) ) {
+			$options['delete_data_on_uninstall'] = 'enabled';
+			update_option( 'zero-spam-api-monitoring', $options );
+		}
+
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_uninstall_flag',
+			static function (): bool {
+				$store = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( Network_Settings::META_KEY, array() ) );
+				$entry = $store['settings']['delete_data_on_uninstall'] ?? null;
+
+				if ( is_array( $entry ) && array_key_exists( 'value', $entry ) && 'enabled' !== $entry['value'] ) {
+					$store['settings']['delete_data_on_uninstall']['value'] = 'enabled';
+					update_site_option( Network_Settings::META_KEY, $store );
+					delete_site_transient( Network_Settings::cache_key() );
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Keeps the five API alert thresholds within their ranges.
+	 *
+	 * 5.x stored whatever the number fields sent and never read them. Since
+	 * 6.0 they drive API_Usage_Tracker::detect_anomalies(), so a stored
+	 * value outside its range is brought to the nearest limit, and one that
+	 * is not a number is removed (the default applies).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return true
+	 */
+	public function sanitize_thresholds(): bool {
+		$options = get_option( 'zero-spam-api-monitoring', array() );
+
+		if ( ! is_array( $options ) ) {
+			return true;
+		}
+
+		$changed = false;
+
+		foreach ( array_keys( API_Usage_Alerts::get_alert_types() ) as $type ) {
+			$key = 'threshold_' . $type;
+
+			if ( ! array_key_exists( $key, $options ) ) {
+				continue;
+			}
+
+			if ( is_bool( $options[ $key ] ) || ! is_numeric( $options[ $key ] ) ) {
+				unset( $options[ $key ] );
+				$changed = true;
+				continue;
+			}
+
+			$clamped = API_Usage_Alerts::clamp_threshold( $type, $options[ $key ] );
+
+			if ( $clamped != $options[ $key ] ) { // phpcs:ignore Universal.Operators.StrictComparisons.LooseNotEqual -- A stored "80" equals 80; only a value outside the range changes.
+				$options[ $key ] = $clamped;
+				$changed         = true;
+			}
+		}
+
+		if ( $changed ) {
+			update_option( 'zero-spam-api-monitoring', $options );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Removes the 18 keys of the 5.x built-in templates that no setting has
+	 * (TEMPLATE_ORPHAN_KEYS) from the network settings and from custom
+	 * templates, once per network, with one audit entry when anything was
+	 * removed.
+	 *
+	 * Only those keys: a key of a module that is not active (an integration
+	 * whose plugin is off) is a real setting and stays. The 5.x backup
+	 * (`v6_backup_5x`, which runs first) keeps the values removed here.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request.
+	 */
+	public function remove_template_orphans(): bool {
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_template_orphans',
+			static function (): bool {
+				global $wpdb;
+
+				$removed = array();
+				$store   = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( Network_Settings::META_KEY, array() ) );
+
+				foreach ( self::TEMPLATE_ORPHAN_KEYS as $key ) {
+					if ( array_key_exists( $key, $store['settings'] ) ) {
+						unset( $store['settings'][ $key ] );
+						$removed[ $key ] = true;
+					}
+				}
+
+				if ( $removed ) {
+					update_site_option( Network_Settings::META_KEY, $store );
+					delete_site_transient( Network_Settings::cache_key() );
+				}
+
+				$table     = $wpdb->base_prefix . DB::$tables['network_templates'];
+				$templates = 0;
+
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
+				$exists = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table; templates are few (the screen lists 200).
+				$rows = $exists ? $wpdb->get_results( $wpdb->prepare( 'SELECT template_id, settings FROM %i WHERE `network_id` = %d LIMIT %d', $table, (int) get_current_network_id(), 1000 ), ARRAY_A ) : array();
+
+				foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+					$settings = json_decode( (string) $row['settings'], true );
+
+					if ( ! is_array( $settings ) ) {
+						continue;
+					}
+
+					$kept = array_diff_key( $settings, array_flip( self::TEMPLATE_ORPHAN_KEYS ) );
+
+					if ( count( $kept ) === count( $settings ) ) {
+						continue;
+					}
+
+					foreach ( array_keys( array_diff_key( $settings, $kept ) ) as $key ) {
+						$removed[ $key ] = true;
+					}
+
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own row.
+					$wpdb->update( $table, array( 'settings' => wp_json_encode( $kept ) ), array( 'template_id' => (int) $row['template_id'] ) );
+					++$templates;
+				}
+
+				if ( $removed ) {
+					( new Network_Settings_Manager() )->record(
+						'migrate',
+						null,
+						implode( ', ', array_keys( $removed ) ),
+						sprintf(
+							/* translators: 1: number of setting names, 2: number of custom templates */
+							__( 'Removed %1$s setting names that no Zero Spam setting uses (from the network settings and %2$s custom templates).', 'zero-spam' ),
+							number_format_i18n( count( $removed ) ),
+							number_format_i18n( $templates )
+						)
+					);
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Moves the notice dismissals of 5.x into the one store of 6.0
+	 * (Core\Admin\Notices, option `zerospam_dismissed_notices`).
+	 *
+	 * Only the shared-IP warning survives the cutover, so only its dismissal
+	 * moves (`zerospam_shared_ip_warning_dismissed` → `shared-ip`); the 5.x
+	 * option stays in place for a downgrade. The dismissals of the notices
+	 * removed in 6.0 (API monitoring, settings review, the Enhanced
+	 * Protection promo) have nothing to move to; uninstall still removes
+	 * them. A dismissal already in the store wins.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return true
+	 */
+	public function move_dismissals(): bool {
+		$legacy = get_option( \ZeroSpam\Core\Admin\Shared_IP_Warning::DISMISSED_OPTION );
+
+		if ( is_string( $legacy ) && '' !== $legacy && null === \ZeroSpam\Core\Admin\Notices::dismissed( \ZeroSpam\Core\Admin\Shared_IP_Warning::NOTICE_ID ) ) {
+			\ZeroSpam\Core\Admin\Notices::remember( \ZeroSpam\Core\Admin\Shared_IP_Warning::NOTICE_ID, $legacy );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Lets a network site's empty IP Allowlist follow the network's list.
+	 *
+	 * 5.x stored `ip_whitelist` on a site whenever its settings were saved or
+	 * the recommended settings applied, as `false` or an empty string, and
+	 * any stored value is a site override (locked network value → site
+	 * override → network default): such a site never followed the list the
+	 * network administrator set. On a network, a stored value that is empty
+	 * (false, null, or only white space) is removed, so the site follows the
+	 * network's list (or has none, as before, when the network sets none).
+	 * A list with entries is the site's own and stays. Single sites are not
+	 * changed. The 5.x backup (`v6_backup_5x`, which runs first) keeps the
+	 * value removed here. Decided by the maintainer on 2026-11-02.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return true
+	 */
+	public function allowlist_follows_network(): bool {
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		$options = get_option( 'zero-spam-settings' );
+
+		if ( ! is_array( $options ) || ! array_key_exists( 'ip_whitelist', $options ) ) {
+			return true;
+		}
+
+		$value = $options['ip_whitelist'];
+
+		if ( false === $value || null === $value || ( is_string( $value ) && '' === trim( $value ) ) ) {
+			unset( $options['ip_whitelist'] );
+
+			// As a network write (switch_to_blog()): the site save filter would keep a value the network has locked, and the lock may be lifted later.
+			switch_to_blog( get_current_blog_id() );
+			update_option( 'zero-spam-settings', $options );
+			restore_current_blog();
+		}
+
+		return true;
+	}
+
+	/**
+	 * Removes the Google Maps API key, which nothing uses since 6.0.0 (the
+	 * detection details link to Google Maps instead of embedding a map).
+	 *
+	 * Deletes the site's `zero-spam-google` option and, once per network,
+	 * `google_api` from the network settings and the custom templates. The
+	 * 5.x backup (`v6_backup_5x`, which runs first) keeps the key; uninstall
+	 * still deletes `zero-spam-google`. Decided by the maintainer on
+	 * 2026-11-02.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request (another request
+	 *              holds the network lock).
+	 */
+	public function remove_google_api(): bool {
+		delete_option( 'zero-spam-google' );
+
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_remove_google_api',
+			static function (): bool {
+				global $wpdb;
+
+				$store = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( Network_Settings::META_KEY, array() ) );
+
+				if ( array_key_exists( 'google_api', $store['settings'] ) ) {
+					unset( $store['settings']['google_api'] );
+					update_site_option( Network_Settings::META_KEY, $store );
+					delete_site_transient( Network_Settings::cache_key() );
+				}
+
+				$table = $wpdb->base_prefix . DB::$tables['network_templates'];
+
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
+				$exists = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table; only templates naming the key.
+				$rows = $exists ? $wpdb->get_results( $wpdb->prepare( 'SELECT template_id, settings FROM %i WHERE `network_id` = %d AND `settings` LIKE %s LIMIT %d', $table, (int) get_current_network_id(), '%' . $wpdb->esc_like( '"google_api"' ) . '%', 1000 ), ARRAY_A ) : array();
+
+				foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+					$settings = json_decode( (string) $row['settings'], true );
+
+					if ( ! is_array( $settings ) || ! array_key_exists( 'google_api', $settings ) ) {
+						continue;
+					}
+
+					unset( $settings['google_api'] );
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own row.
+					$wpdb->update( $table, array( 'settings' => wp_json_encode( $settings ) ), array( 'template_id' => (int) $row['template_id'] ) );
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * The network-level options the 5.x backup keeps.
+	 *
+	 * @return array<string, mixed> Option name => value, only those that exist.
+	 */
+	private static function network_options_to_back_up(): array {
+		global $wpdb;
+
+		$names = array( Network_Settings::META_KEY, self::LEGACY_NETWORK_OPTION );
+
+		if ( is_multisite() ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration, bounded.
+			$more  = (array) $wpdb->get_col(
+				$wpdb->prepare(
+					"SELECT meta_key FROM {$wpdb->sitemeta} WHERE site_id = %d AND meta_key LIKE %s ORDER BY meta_key ASC LIMIT 100",
+					get_current_network_id(),
+					$wpdb->esc_like( 'zero-spam-network-' ) . '%'
+				)
+			);
+			$names = array_merge( $names, array_map( 'strval', $more ) );
+		}
+
+		$options = array();
+		foreach ( array_unique( $names ) as $name ) {
+			$value = get_site_option( $name );
+			if ( false !== $value ) {
+				$options[ $name ] = $value;
+			}
+		}
+
+		return $options;
+	}
+
+	/**
+	 * What a backup stores.
+	 *
+	 * @param array<string, mixed> $options Option name => value.
+	 * @return array{created: int, from_version: string, options: array<string, mixed>}
+	 */
+	private static function backup_payload( array $options ): array {
+		return array(
+			'created'      => time(),
+			'from_version' => (string) get_option( 'zero-spam-last-update', '' ),
+			'options'      => $options,
+		);
+	}
+
+	/**
+	 * Runs a network-wide migration once per network.
+	 *
+	 * Completed keys are kept in the site option NETWORK_COMPLETED_OPTION. A
+	 * lock in the main site's options table (acquire_lock()) keeps two sites
+	 * from running it at the same time.
+	 *
+	 * @param string   $key      Migration key.
+	 * @param callable $callback Does the work; returns false to try again later.
+	 * @return bool True once the migration has run for the network.
+	 */
+	private function run_network_once( string $key, callable $callback ): bool {
+		if ( in_array( $key, self::network_completed(), true ) ) {
+			return true;
+		}
+
+		$main = get_main_site_id();
+
+		switch_to_blog( $main );
+		$locked = self::acquire_lock( self::NETWORK_LOCK_OPTION );
+		restore_current_blog();
+
+		if ( ! $locked ) {
+			return false;
+		}
+
+		try {
+			// Another site may have finished it while this one waited for the lock.
+			wp_cache_delete( get_current_network_id() . ':' . self::NETWORK_COMPLETED_OPTION, 'site-options' );
+			if ( in_array( $key, self::network_completed(), true ) ) {
+				return true;
+			}
+
+			if ( false === $callback() ) {
+				return false;
+			}
+
+			$completed   = self::network_completed();
+			$completed[] = $key;
+			update_site_option( self::NETWORK_COMPLETED_OPTION, array_values( array_unique( $completed ) ) );
+
+			return true;
+		} finally {
+			switch_to_blog( $main );
+			delete_option( self::NETWORK_LOCK_OPTION );
+			restore_current_blog();
+		}
+	}
+
+	/**
+	 * Keys of the network-wide migrations that have run.
+	 *
+	 * @return string[]
+	 */
+	private static function network_completed(): array {
+		$completed = get_site_option( self::NETWORK_COMPLETED_OPTION, array() );
+
+		return is_array( $completed ) ? array_map( 'strval', $completed ) : array();
 	}
 }

@@ -14,8 +14,7 @@
  * 1. Plugin PHP notices, warnings, deprecations and _doing_it_wrong() calls
  *    recorded by the mu-plugin fail the test (works with WP_DEBUG off, as on
  *    Local); on wp-env, any displayed PHP error in a page fails it too.
- * 2. Browser requests to other hosts are aborted and recorded (the jsDelivr
- *    Chart.js request is served from the bundled copy instead).
+ * 2. Browser requests to other hosts are aborted and recorded.
  */
 
 import { test as base, expect, type APIRequestContext, type Browser, type BrowserContext, type Locator, type Page, type TestInfo } from '@playwright/test';
@@ -24,19 +23,17 @@ import { join } from 'node:path';
 
 import { ZsApi } from './e2e-api';
 import { ZsRequestUtils } from './request-utils';
-import { ROOT, resolveTarget, storageStatePath, type Role, type Target } from './targets';
+import { resolveTarget, storageStatePath, type Role, type Target } from './targets';
 import { WpCli } from './wp-cli';
 
 export { expect };
 
-const BUNDLED_CHARTJS = join( ROOT, 'assets/js/vendor/chart.umd.min.js' );
 /**
  * Plugin PHP errors that are confirmed defects (AGENTS.md section 8). The
  * automatic check reports a matching error as an annotation instead of
  * failing every test that opens the screen. Empty while no such defect is
  * known. When adding an entry, also add a test that asserts the error is gone,
- * marked test.fail( true, '<reason, AGENTS.md §8>' ) (as smoke.spec did for
- * the LogTable wpdb::prepare() notice), and delete the entry in the change
+ * marked test.fail( true, '<reason, AGENTS.md §8>' ), and delete the entry in the change
  * that fixes the bug: nothing enforces its removal.
  */
 export const KNOWN_PHP_ERRORS: Array< { match: RegExp; reason: string } > = [];
@@ -46,7 +43,7 @@ const PHP_ERROR_IN_HTML = /<b>(Notice|Warning|Deprecated|Fatal error|Parse error
 export interface BlockedRequest {
 	host: string;
 	path: string;
-	served: 'aborted' | 'bundled-copy';
+	served: 'aborted';
 }
 
 interface Guard {
@@ -120,11 +117,6 @@ async function guardContext( context: BrowserContext, target: Target, guard: Gua
 		( url ) => url.host !== origin && ( 'http:' === url.protocol || 'https:' === url.protocol ),
 		async ( route ) => {
 			const url = new URL( route.request().url() );
-			if ( 'cdn.jsdelivr.net' === url.host && url.pathname.includes( '/chart.js@' ) ) {
-				guard.blocked.push( { host: url.host, path: url.pathname, served: 'bundled-copy' } );
-				await route.fulfill( { path: BUNDLED_CHARTJS, contentType: 'application/javascript' } );
-				return;
-			}
 			guard.blocked.push( { host: url.host, path: url.pathname, served: 'aborted' } );
 			await route.abort( 'blockedbyclient' );
 		}
@@ -162,7 +154,7 @@ type TestFixtures = {
 	bot: Bot;
 	gallery: Gallery;
 	phpErrorCheck: void;
-	newRoleContext: ( role: Role | null, options?: { ip?: string; viewport?: { width: number; height: number } } ) => Promise< BrowserContext >;
+	newRoleContext: ( role: Role | null, options?: { ip?: string; viewport?: { width: number; height: number }; timezoneId?: string } ) => Promise< BrowserContext >;
 };
 
 type WorkerFixtures = {
@@ -179,11 +171,12 @@ type WorkerFixtures = {
  * @param target  Target.
  * @param guard   Collector.
  * @param role    Role, or null for a visitor.
- * @param options Visitor IP and viewport.
+ * @param options Visitor IP, viewport and time zone.
  * @param options.ip Visitor IP header.
  * @param options.viewport Viewport.
+ * @param options.timezoneId The browser's time zone (default UTC).
  */
-async function roleContext( browser: Browser, target: Target, guard: Guard, role: Role | null, options: { ip?: string; viewport?: { width: number; height: number } } = {} ): Promise< BrowserContext > {
+async function roleContext( browser: Browser, target: Target, guard: Guard, role: Role | null, options: { ip?: string; viewport?: { width: number; height: number }; timezoneId?: string } = {} ): Promise< BrowserContext > {
 	const headers: Record< string, string > = { 'X-ZeroSpam-E2E-Token': target.token };
 	if ( options.ip ) {
 		headers[ 'X-ZeroSpam-E2E-IP' ] = options.ip;
@@ -195,7 +188,7 @@ async function roleContext( browser: Browser, target: Target, guard: Guard, role
 		viewport: options.viewport ?? { width: 1280, height: 900 },
 		deviceScaleFactor: 1,
 		locale: 'en-US',
-		timezoneId: 'UTC',
+		timezoneId: options.timezoneId ?? 'UTC',
 		colorScheme: 'light',
 		reducedMotion: 'reduce',
 	} );

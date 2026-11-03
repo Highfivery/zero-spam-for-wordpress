@@ -14,11 +14,14 @@ use ReflectionClass;
 use ReflectionProperty;
 use WP_UnitTest_Factory;
 use WP_UnitTestCase;
+use ZeroSpam\Core\License_Status;
 use ZeroSpam\Core\Settings;
+use ZeroSpam\Core\Settings_Schema;
 use ZeroSpam\Core\User;
 use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Network_Settings;
+use ZeroSpam\Includes\Rest\Base_Controller;
 use ZeroSpam\Includes\Settings_Resolver;
 
 /**
@@ -38,7 +41,8 @@ abstract class TestCase extends WP_UnitTestCase {
 
 	/**
 	 * Every module key used in the source (`'module' => '…'`); each stores its
-	 * settings in the option `zero-spam-{module}`.
+	 * settings in the option `zero-spam-{module}`. The `google` module of 5.x
+	 * (removed in 6.0.0) is in PLUGIN_SITE_OPTIONS.
 	 */
 	const PLUGIN_MODULES = array(
 		'api-monitoring',
@@ -50,7 +54,6 @@ abstract class TestCase extends WP_UnitTestCase {
 		'fluent_form',
 		'formidable',
 		'givewp',
-		'google',
 		'gravityforms',
 		'ipbase',
 		'ipinfo',
@@ -96,6 +99,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zero_spam_dismiss_notice_enhanced_protection',
 		'zero_spam_dismiss_notice_missing_license',
 		'zerospam_promo_dismissed',
+		'zerospam_ui',
 	);
 
 	/**
@@ -110,6 +114,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_admin_safe_ips',
 		'zerospam_api_monitoring_notice_dismissed',
 		'zerospam_api_notices',
+		'zerospam_backup_5x',
 		'zerospam_blocked_email_domains',
 		'zerospam_completed_migrations',
 		'zerospam_configured',
@@ -117,13 +122,19 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_davidwalsh_data',
 		'zerospam_davidwalsh_secret',
 		'zerospam_db_version',
+		'zerospam_dismissed_notices',
 		'zerospam_migration_cursor_canonical_blocked_ips',
 		'zerospam_migration_lock_canonical_blocked_ips',
+		'zerospam_migration_lock_network',
+		'zerospam_onboarding',
+		'zerospam_onboarding_steps',
 		'zerospam_proxy_detection_since',
 		'zerospam_settings_audit',
 		'zerospam_share_queue',
 		'zerospam_shared_ip_warning_dismissed',
 		'zerospam_show_settings_review_notice',
+		'zerospam_whats_new',
+		'zero-spam-google',
 		'zero-spam-last-update',
 		'zero_spam_last_api_report',
 	);
@@ -139,14 +150,22 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_dashboard_data_site',
 		'zerospam_dw_test',
 		'zerospam_geo_test',
+		'zerospam_license_status',
 		'zerospam_ipinfo_test',
 		'zerospam_login_intent_test',
+		'zerospam_protection_detections',
 		'zerospam_rescue_ip_test',
 		'zerospam_rescue_job_test',
 		'zerospam_rescue_site_sends',
 		'zerospam_rescue_to_test',
 		'zerospam_rescue_token_test',
+		'zerospam_self_test_lock',
+		'zerospam_sfs_circuit_open',
+		'zerospam_sfs_failure_count',
 		'zerospam_shared_ip_warning',
+		'zerospam_stats_summary',
+		'zerospam_stats_timeseries',
+		'zerospam_undo_test',
 		'zerospam_woo_options_migrated',
 	);
 
@@ -156,9 +175,20 @@ abstract class TestCase extends WP_UnitTestCase {
 	 */
 	const PLUGIN_NETWORK_OPTIONS = array(
 		'zero_spam_last_api_request',
+		'zerospam_backup_5x',
+		'zerospam_network_completed_migrations',
 		'zerospam_network_notifications_enabled',
 		'zerospam_network_settings',
 		'zerospam_network_settings_notifications_enabled',
+	);
+
+	/**
+	 * Network (site) transients the plugin sets with fixed names.
+	 */
+	const PLUGIN_NETWORK_TRANSIENTS = array(
+		'zerospam_network_settings',
+		'zerospam_news',
+		'zerospam_news_backoff',
 	);
 
 	/**
@@ -167,6 +197,13 @@ abstract class TestCase extends WP_UnitTestCase {
 	 * @var int[]
 	 */
 	private static array $sites_with_tables = array();
+
+	/**
+	 * Networks made by create_network_with_site(), removed with the class.
+	 *
+	 * @var int[]
+	 */
+	private static array $networks = array();
 
 	/**
 	 * $_SERVER as it was before the test.
@@ -218,6 +255,9 @@ abstract class TestCase extends WP_UnitTestCase {
 		$_COOKIE = $this->cookie_backup;
 		self::reset_static_caches();
 
+		// Routes are registered afresh by the next rest() call.
+		$GLOBALS['wp_rest_server'] = null;
+
 		parent::tear_down();
 
 		if ( $unmocked ) {
@@ -240,6 +280,13 @@ abstract class TestCase extends WP_UnitTestCase {
 		}
 		self::$sites_with_tables = array();
 
+		foreach ( self::$networks as $network_id ) {
+			$wpdb->delete( $wpdb->sitemeta, array( 'site_id' => $network_id ) );
+			$wpdb->delete( $wpdb->site, array( 'id' => $network_id ) );
+			clean_network_cache( $network_id );
+		}
+		self::$networks = array();
+
 		parent::tear_down_after_class();
 	}
 
@@ -258,7 +305,11 @@ abstract class TestCase extends WP_UnitTestCase {
 		self::set_static( Settings_Resolver::class, 'cache', array() );
 		Settings::$settings = array();
 		Settings::$sections = array();
+		Settings_Schema::reset_cache();
+		License_Status::reset_request_cache();
+		Base_Controller::reset_request_cache();
 		User::reset_cache();
+		\ZeroSpam\Includes\Network_Blocks::reset_request_cache();
 	}
 
 	/**
@@ -316,7 +367,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		);
 
 		update_site_option( Network_Settings::META_KEY, $settings );
-		delete_site_transient( Network_Settings::CACHE_KEY );
+		delete_site_transient( Network_Settings::cache_key() );
 		self::reset_static_caches();
 	}
 
@@ -458,6 +509,32 @@ abstract class TestCase extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Runs a callback and returns how many times the settings registry was
+	 * built (each build applies the `zerospam_settings` filter once), after
+	 * clearing the per-request caches so the callback starts cold.
+	 *
+	 * @param callable $callback Code to run.
+	 */
+	protected function count_registry_builds( callable $callback ): int {
+		$builds  = 0;
+		$counter = static function ( $settings ) use ( &$builds ) {
+			++$builds;
+
+			return $settings;
+		};
+
+		self::reset_static_caches();
+		add_filter( 'zerospam_settings', $counter, PHP_INT_MIN );
+		try {
+			$callback();
+		} finally {
+			remove_filter( 'zerospam_settings', $counter, PHP_INT_MIN );
+		}
+
+		return $builds;
+	}
+
+	/**
 	 * Makes wp_redirect() throw a RedirectException and expects it.
 	 *
 	 * The exception message is the redirect location, so tests can follow
@@ -485,6 +562,127 @@ abstract class TestCase extends WP_UnitTestCase {
 	 */
 	protected function mock_http( string $pattern, $body, int $code = 200 ): void {
 		HttpMock::mock( $pattern, $body, $code );
+	}
+
+	/**
+	 * Runs an AJAX handler as admin-ajax.php would and returns its JSON answer.
+	 *
+	 * While it runs wp_doing_ajax() is true and wp_die() throws instead of
+	 * exiting, so the handler's wp_send_json_*() output can be read.
+	 *
+	 * @param callable             $handler Handler (the wp_ajax_* callback).
+	 * @param array<string, mixed> $request Values for $_POST and $_REQUEST (a nonce, flags).
+	 * @return array<string, mixed>|null Decoded answer, or null when it printed no JSON.
+	 */
+	protected function ajax( callable $handler, array $request = array() ): ?array {
+		$filters = array(
+			'wp_doing_ajax'       => '__return_true',
+			'wp_die_ajax_handler' => static function () {
+				return static function (): void {
+					throw new \WPDieException( 'ajax' );
+				};
+			},
+		);
+		foreach ( $filters as $hook => $callback ) {
+			add_filter( $hook, $callback );
+		}
+
+		$saved_post    = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Test set-up, restored below.
+		$saved_request = $_REQUEST; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test set-up, restored below.
+		$_POST         = array_merge( $_POST, $request ); // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Test set-up.
+		$_REQUEST      = array_merge( $_REQUEST, $request ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Test set-up.
+
+		ob_start();
+		try {
+			$handler();
+		} catch ( \WPDieException $e ) {
+			unset( $e );
+		} finally {
+			$output   = (string) ob_get_clean();
+			$_POST    = $saved_post;
+			$_REQUEST = $saved_request;
+			foreach ( $filters as $hook => $callback ) {
+				remove_filter( $hook, $callback );
+			}
+		}
+
+		$answer = json_decode( $output, true );
+
+		return is_array( $answer ) ? $answer : null;
+	}
+
+	/**
+	 * Emails sent so far (the test framework's mock mailer).
+	 *
+	 * @return array<int, object>
+	 */
+	protected function sent_mail(): array {
+		return array_map(
+			static fn ( array $mail ): object => (object) $mail,
+			tests_retrieve_phpmailer_instance()->mock_sent
+		);
+	}
+
+	/**
+	 * The parts of a sent email, decoded, keyed by content type, with "\n" line endings.
+	 *
+	 * A plain email has one part; an HTML email with a plain-text alternative
+	 * (multipart/alternative) has `text/plain` and `text/html`.
+	 *
+	 * @param object $mail Email from sent_mail().
+	 * @return array<string, string>
+	 */
+	protected function mail_parts( object $mail ): array {
+		$decode = static function ( string $headers, string $body ): string {
+			if ( 1 === preg_match( '/^Content-Transfer-Encoding:\s*quoted-printable/mi', $headers ) ) {
+				$body = quoted_printable_decode( $body );
+			} elseif ( 1 === preg_match( '/^Content-Transfer-Encoding:\s*base64/mi', $headers ) ) {
+				$body = (string) base64_decode( $body ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- MIME decoding of a test email.
+			}
+
+			return str_replace( "\r\n", "\n", $body );
+		};
+
+		if ( 1 !== preg_match( '/boundary="([^"]+)"/', $mail->header, $boundary ) ) {
+			preg_match( '/^Content-Type:\s*([\w\/+.-]+)/mi', $mail->header, $type );
+
+			return array( strtolower( $type[1] ?? 'text/plain' ) => $decode( $mail->header, $mail->body ) );
+		}
+
+		$parts = array();
+		foreach ( explode( '--' . $boundary[1], $mail->body ) as $chunk ) {
+			$split = preg_split( '/\R\R/', ltrim( $chunk, "\r\n" ), 2 );
+			if ( 2 !== count( $split ) || 1 !== preg_match( '/^Content-Type:\s*([\w\/+.-]+)/mi', $split[0], $type ) ) {
+				continue;
+			}
+			$parts[ strtolower( $type[1] ) ] = $decode( $split[0], rtrim( $split[1] ) );
+		}
+
+		return $parts;
+	}
+
+	/**
+	 * Sends a request to the REST API as the current user.
+	 *
+	 * Permission callbacks run as for a real request; the cookie nonce check
+	 * does not (see rest_cookie_check_errors()), so tests of it call that
+	 * function themselves.
+	 *
+	 * @param string               $method HTTP method.
+	 * @param string               $route  Route, e.g. /zero-spam/v1/settings.
+	 * @param array<string, mixed> $body   JSON body.
+	 * @param array<string, mixed> $query  Query parameters.
+	 */
+	protected function rest( string $method, string $route, array $body = array(), array $query = array() ): \WP_REST_Response {
+		$request = new \WP_REST_Request( $method, $route );
+		$request->set_query_params( $query );
+
+		if ( $body ) {
+			$request->set_header( 'Content-Type', 'application/json' );
+			$request->set_body( (string) wp_json_encode( $body ) );
+		}
+
+		return rest_do_request( $request );
 	}
 
 	/**
@@ -524,11 +722,12 @@ abstract class TestCase extends WP_UnitTestCase {
 	 * DB::log() and DB::query()) cannot see. The site and its tables are
 	 * deleted after the test class.
 	 *
-	 * @param WP_UnitTest_Factory $factory Test factory.
+	 * @param WP_UnitTest_Factory  $factory Test factory.
+	 * @param array<string, mixed> $args    Site arguments (such as `network_id`).
 	 * @return int Blog ID.
 	 * @throws LogicException When called inside a test.
 	 */
-	protected static function create_site_with_tables( WP_UnitTest_Factory $factory ): int {
+	protected static function create_site_with_tables( WP_UnitTest_Factory $factory, array $args = array() ): int {
 		global $wp_filter;
 
 		if ( isset( $wp_filter['query'] ) ) {
@@ -541,7 +740,7 @@ abstract class TestCase extends WP_UnitTestCase {
 			}
 		}
 
-		$blog_id = (int) $factory->blog->create();
+		$blog_id = (int) $factory->blog->create( $args );
 
 		switch_to_blog( $blog_id );
 		( new ReflectionClass( DB::class ) )->newInstanceWithoutConstructor()->update();
@@ -550,5 +749,58 @@ abstract class TestCase extends WP_UnitTestCase {
 		self::$sites_with_tables[] = $blog_id;
 
 		return $blog_id;
+	}
+
+	/**
+	 * Creates a real second network with one site and its plugin tables. Call
+	 * from wpSetUpBeforeClass().
+	 *
+	 * @param WP_UnitTest_Factory $factory Test factory.
+	 * @param string              $domain  The network's domain.
+	 * @return array{0: int, 1: int} Network ID and site ID.
+	 */
+	protected static function create_network_with_site( WP_UnitTest_Factory $factory, string $domain = 'other-network.example' ): array {
+		$network_id = (int) $factory->network->create(
+			array(
+				'domain' => $domain,
+				'path'   => '/',
+			)
+		);
+
+		self::$networks[] = $network_id;
+
+		return array(
+			$network_id,
+			self::create_site_with_tables(
+				$factory,
+				array(
+					'domain'     => $domain,
+					'path'       => '/',
+					'network_id' => $network_id,
+				)
+			),
+		);
+	}
+
+	/**
+	 * Runs code as if the request were on another network.
+	 *
+	 * @param int      $network_id Network.
+	 * @param callable $callback   Code.
+	 * @return mixed What the code returned.
+	 */
+	protected function on_network( int $network_id, callable $callback ) {
+		global $current_site;
+
+		$previous     = $current_site;
+		$current_site = get_network( $network_id ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- get_current_network_id() reads it; restored below.
+		self::reset_static_caches();
+
+		try {
+			return $callback();
+		} finally {
+			$current_site = $previous; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores what was overridden above.
+			self::reset_static_caches();
+		}
 	}
 }

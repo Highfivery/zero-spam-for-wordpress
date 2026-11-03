@@ -15,11 +15,12 @@ namespace ZeroSpam\Tests;
  * DNS lookups and cookies do not go through the WordPress HTTP API, so the
  * `pre_http_request` mock cannot catch them. The files in stubs/ declare
  * functions with the same names in the plugin namespaces that call them
- * (ZeroSpam\Core, ZeroSpam\Modules, ZeroSpam\Modules\Login); PHP resolves an
+ * (ZeroSpam\Core, ZeroSpam\Core\Front, ZeroSpam\Modules, ZeroSpam\Modules\Login); PHP resolves an
  * unqualified call to the namespaced function first, so these run instead of
  * the real network and header functions. headers_sent() is stubbed in
  * ZeroSpam\Core and ZeroSpam\Modules\Login so Access and Login reach their
- * setcookie() calls under the CLI.
+ * setcookie() calls under the CLI; header() and headers_sent() are stubbed
+ * in ZeroSpam\Core\Front so the blocked page's headers can be read.
  */
 final class Stubs {
 
@@ -29,6 +30,13 @@ final class Stubs {
 	 * @var array<int, array{name: string, value: string, options: mixed}>
 	 */
 	public static array $cookies = array();
+
+	/**
+	 * Header lines ZeroSpam\Core\Front tried to send.
+	 *
+	 * @var string[]
+	 */
+	public static array $headers = array();
 
 	/**
 	 * Answer for headers_sent() in ZeroSpam\Core and ZeroSpam\Modules\Login.
@@ -82,6 +90,7 @@ final class Stubs {
 	public static function reset(): void {
 		self::$headers_sent = false;
 		self::$cookies      = array();
+		self::$headers      = array();
 		self::$dns_checks   = array();
 		self::$dns_records  = array();
 		self::$dns_lookups  = array();

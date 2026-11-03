@@ -34,3 +34,108 @@
 #welcome-panel {
 	display: none !important;
 }
+
+/* The 6.0 admin's fixed layers: the phone bottom navigation and the toast
+   region sit over whatever is scrolled under them in an element screenshot. */
+.zs-bnav,
+.zs-toasts {
+	visibility: hidden !important;
+}
+
+/* The Overview hero's brick wall is random (its pattern, the landing brick
+   and the scan line change per load); the hero's copy, status and network
+   module stay compared. */
+.zs-hero-art {
+	visibility: hidden !important;
+}
+
+/* The 6.0 area screens: table and card text (addresses, dates, places)
+   varies with the seeded rows and the clock; the layout, icons, badges and
+   buttons stay compared. */
+.zs-areabody .zs-t tbody td,
+.zs-areabody .zs-t tbody td :not(.zs-btn, .zs-btn *),
+.zs-areabody .zs-cards .zs-cardmain,
+.zs-areabody .zs-cards .zs-cardmain *,
+.zs-areabody .zs-wk-row,
+.zs-areabody .zs-rep-bar .zs-hint {
+	color: transparent !important;
+}
+
+/* The Rules tables (from 1,440px: the v6-rules-*-table baselines) size their
+   columns to their content (auto layout), and transparent text still takes up
+   width, so the seeded dates would move every column from one day to the next.
+   Date and Starts take the width of one fixed text, the day the Blocked IPs
+   baselines were recorded. Ends (third from last) keeps its text, which seeds
+   never vary ("Never" or a fixed date). So a real change in a date's width
+   cannot show here, on purpose. Any other auto-layout table with dates needs
+   the same (AGENTS.md section 5). The Rules cards (1,280 and 782px) need
+   nothing: their dates sit in a line of the flexible column that seeds keep
+   short of wrapping, so the rule above is enough. */
+.zs-areabody .zs-rules-t td.zs-c-date:not(:nth-last-child(3)) {
+	font-size: 0 !important;
+}
+
+.zs-areabody .zs-rules-t td.zs-c-date:not(:nth-last-child(3))::before {
+	content: "Mon, Oct 26";
+	font-size: var(--zs-text-md);
+}
+
+/* An area body (or the Overview's body) taller than the window is captured
+   while scrolled: keep the sticky top bar in place so it does not cover the
+   body's first lines. */
+.zs-app:has(.zs-areabody, .zs-overview) .zs-topbar {
+	position: static !important;
+}
+
+/* Overview: in the first days of January the busiest day can be in last year;
+   the extra text wraps inside the masked footer and moves the rest of the tile.
+   That one value stays on one line; the footer itself still takes its place. */
+.zs-chart-foot div:nth-child(2) b {
+	overflow: hidden;
+	white-space: nowrap;
+}
+
+/* The busiest hours follow the clock (seeded rows are dated from now). */
+.zs-hours-note {
+	visibility: hidden !important;
+}
+
+/* The dark blocks' decorative gradients and grid (the Overview hero and the
+   Enhanced Protection tile) differ from a flat fill by less than the
+   comparison's per-pixel threshold, so a baseline never catches a change to
+   them, yet they made up a third of the Overview baselines' bytes: paint them
+   flat. The blocks' copy, buttons and borders stay compared. */
+.zs-hero {
+	background: var(--zs-dark-0) !important;
+}
+
+.zs-hero::after {
+	display: none !important;
+}
+
+.zs-enh {
+	background: var(--zs-dark-2) !important;
+}
+
+/* Help: the guides, the canned news, the developer lists and the Follow
+   handles are long runs of fixed text (about 480 KB per Help baseline);
+   help-onboarding.spec.ts checks that text, so the baselines keep the
+   layout, headings, badges, chips, icons and buttons only. */
+.zs-help .zs-doc,
+.zs-help .zs-doc *,
+.zs-help .zs-help-b > .zs-hint,
+.zs-help .zs-news-t,
+.zs-help .zs-news-t *,
+.zs-help .zs-news-x,
+.zs-help .zs-hooks code,
+.zs-help .zs-hooks code *,
+.zs-help .zs-hooks-d,
+.zs-help .zs-soc-txt .zs-hint {
+	color: transparent !important;
+}
+
+/* First-run setup: the dark panel's decorative gradient, painted flat as
+   the other dark blocks are (the mark and its caption stay compared). */
+.zs-onb-r {
+	background: var(--zs-dark-0) !important;
+}

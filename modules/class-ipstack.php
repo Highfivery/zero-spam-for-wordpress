@@ -10,10 +10,13 @@ namespace ZeroSpam\Modules;
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
+// phpcs:disable PEAR.NamingConventions.ValidClassName.StartWithCapital -- Public class name since 5.x (ZeroSpam\Modules\ipstack), loaded by the autoloader from its file name.
 /**
  * Ipstack
  */
 class ipstack {
+	// phpcs:enable PEAR.NamingConventions.ValidClassName.StartWithCapital
+
 	/**
 	 * Constructor
 	 */
@@ -38,7 +41,6 @@ class ipstack {
 	public function sections( $sections ) {
 		$sections['ipstack'] = array(
 			'title' => __( 'ipstack (geolocation)', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-ipstack.svg',
 		);
 
 		return $sections;

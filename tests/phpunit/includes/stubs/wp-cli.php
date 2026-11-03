@@ -74,6 +74,15 @@ if ( ! class_exists( 'WP_CLI', false ) ) {
 		}
 
 		/**
+		 * Records a line of output.
+		 *
+		 * @param mixed $message Message.
+		 */
+		public static function line( $message = '' ): void {
+			self::$messages[] = array( 'line', (string) $message );
+		}
+
+		/**
 		 * Records a log line.
 		 *
 		 * @param mixed $message Message.

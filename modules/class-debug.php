@@ -36,10 +36,11 @@ class Debug {
 	 * @param string $ip IP address.
 	 */
 	public function debug_ip( $ip ) {
-		$debug_ip = \ZeroSpam\Core\Settings::get_settings( 'debug_ip' );
+		// Read from the registry built once per request: this runs on every User::get_ip().
+		$debug_ip = \ZeroSpam\Core\Settings_Schema::value( 'debug_ip' );
 
 		if (
-			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'debug' ) &&
+			'enabled' === \ZeroSpam\Core\Settings_Schema::value( 'debug' ) &&
 			! empty( $debug_ip )
 		) {
 			return $debug_ip;
@@ -56,7 +57,6 @@ class Debug {
 	public function sections( $sections ) {
 		$sections['debug'] = array(
 			'title' => __( 'Debug', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-bug.svg',
 		);
 
 		return $sections;
@@ -84,13 +84,7 @@ class Debug {
 
 		$settings['debug_ip'] = array(
 			'title'       => __( 'Debug IP', 'zero-spam' ),
-			'desc'        => wp_kses(
-				/* translators: %s: url */
-				__( 'Mock an IP address for debugging. This overrides all visitor IP addresses and <strong>while enabled could block legit visitors from accessing the site</strong>.', 'zero-spam' ),
-				array(
-					'strong' => array(),
-				)
-			),
+			'desc'        => __( 'Pretend every visitor has this IP address, to test what Zero Spam does with it. While debug is on, this can block real visitors. Recommended: leave empty unless you are testing.', 'zero-spam' ),
 			'section'     => 'debug',
 			'module'      => 'debug',
 			'type'        => 'text',

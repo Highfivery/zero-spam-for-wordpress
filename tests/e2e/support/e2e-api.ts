@@ -8,6 +8,9 @@
 
 import type { ZsRequestUtils } from './request-utils';
 
+/** Protection level: Basic (no key) or Enhanced (canned Business license). */
+export type Level = 'basic' | 'enhanced';
+
 export type Preset = 'defaults' | 'recommended' | 'baseline';
 
 export interface LogRow {
@@ -104,10 +107,22 @@ export class ZsApi {
 			response = await send();
 		}
 		const body = await response.json().catch( async () => ( { raw: await response.text() } ) );
+		if ( body && 'string' === typeof body.raw && body.raw.includes( '"code":"zs_e2e_reset_failed"' ) ) {
+			// Output before the REST answer (a PHP notice) turns the 500 into a 200.
+			throw new Error( `zero-spam-e2e ${ method } ${ route }: the site was NOT reset. ${ body.raw }` );
+		}
 		if ( ! response.ok() ) {
 			if ( body && 'rest_cookie_invalid_nonce' === body.code ) {
 				await requestUtils.setupRest();
 				return this.call< T >( method, route, data );
+			}
+			if ( body && 'zs_e2e_reset_failed' === body.code ) {
+				// A reset that could not empty a table leaves the rows of earlier
+				// tests behind; stop here instead of failing later for no clear reason.
+				throw new Error( `zero-spam-e2e ${ method } ${ route }: the site was NOT reset. ${ body.message } (is the database or Docker disk full?)` );
+			}
+			if ( body && 'zs_e2e_restore_failed' === body.code ) {
+				throw new Error( `zero-spam-e2e ${ method } ${ route }: the site was only PARTLY restored. ${ body.message }. Tables before ${ body.data?.table ?? 'it' } are restored, the rest are not; fix the cause and POST the same snapshot again.` );
 			}
 			throw new Error( `zero-spam-e2e ${ method } ${ route } failed (${ response.status() }): ${ JSON.stringify( body ) }` );
 		}
@@ -120,11 +135,108 @@ export class ZsApi {
 	 * @param preset                defaults | recommended | baseline (see the mu-plugin).
 	 * @param options               Options.
 	 * @param options.network       Reset the network settings and every site (super admin; default on a network).
-	 * @param options.promo         Let the Enhanced Protection promo notice show.
 	 * @param options.clearErrorLog Delete the plugin's error log file.
+	 * @param options.level         basic (no license key, the default) or enhanced (a key the canned API accepts as a Business license).
+	 *
+	 * Every reset also clears each user's 6.0 admin preferences (ui/prefs) and the cached news.
 	 */
-	reset( preset: Preset = 'baseline', options: { network?: boolean; promo?: boolean; clearErrorLog?: boolean } = {} ) {
-		return this.call( 'POST', 'reset', { preset, network: options.network ?? this.multisite, promo: Boolean( options.promo ), clearErrorLog: Boolean( options.clearErrorLog ) } );
+	reset( preset: Preset = 'baseline', options: { network?: boolean; clearErrorLog?: boolean; level?: Level } = {} ) {
+		return this.call( 'POST', 'reset', {
+			preset,
+			network: options.network ?? this.multisite,
+			clearErrorLog: Boolean( options.clearErrorLog ),
+			level: options.level ?? 'basic',
+		} );
+	}
+
+	/**
+	 * Puts the site on a protection level without a reset (keeps seeded rows).
+	 *
+	 * @param level basic or enhanced.
+	 */
+	setLevel( level: Level ) {
+		return 'enhanced' === level ? this.set( { zerospam_license: 'e2e-license', zerospam: 'enabled' } ) : this.set( { zerospam_license: '', zerospam: false } );
+	}
+
+	/**
+	 * Merges preferences into the current user's ui/prefs (empty: back to the defaults).
+	 *
+	 * @param prefs Preferences, such as { theme: 'dark' }.
+	 */
+	uiPrefs( prefs: Record< string, unknown > = {} ) {
+		return this.call< Record< string, unknown > >( 'POST', 'ui-prefs', { prefs } );
+	}
+
+	/**
+	 * Puts the site in a first-run state.
+	 *
+	 * @param mode fresh (a new install waiting for first-run setup: no settings, `zerospam_onboarding` pending),
+	 *             provisioned (the same, with core settings, comments off and login on written straight to the options),
+	 *             upgraded (`zerospam_whats_new` = 6.0.0, as the v6_whats_new migration leaves an upgraded site)
+	 *             or none. Every mode clears the current user's 6.0 preferences and setup steps.
+	 */
+	firstRun( mode: 'fresh' | 'provisioned' | 'upgraded' | 'none' ) {
+		return this.call( 'POST', 'first-run', { mode } );
+	}
+
+	/**
+	 * Makes the zerospam.org feed fail (true) or answer again (false); clears the cached news.
+	 *
+	 * @param down Whether the feed fails.
+	 */
+	newsDown( down: boolean ) {
+		return this.call( 'POST', 'news', { down } );
+	}
+
+	/**
+	 * Serves these strings as the plugin's script translations until the next reset.
+	 *
+	 * @param strings Translations by source string.
+	 */
+	scriptTranslations( strings: Record< string, string > ) {
+		return this.call( 'POST', 'script-translations', { strings } );
+	}
+
+	/**
+	 * Turns the fake third-party settings section on or off (Protection ›
+	 * Integrations renders it generically). Every reset turns it off.
+	 *
+	 * @param on On.
+	 */
+	fakeSection( on = true ) {
+		return this.call< { on: boolean } >( 'POST', 'fake-section', { on } );
+	}
+
+	/** Lets the self-test run again at once (it runs once a minute per site). */
+	selfTestReset() {
+		return this.call( 'POST', 'self-test-reset' );
+	}
+
+	/**
+	 * Sets a network value (super admin, multisite).
+	 *
+	 * @param key    Setting key.
+	 * @param value  Value.
+	 * @param locked Lock it for every site.
+	 */
+	networkSetting( key: string, value: unknown, locked = false ) {
+		return this.call< { saved: boolean } >( 'POST', 'network-setting', { key, value, locked } );
+	}
+
+	/** A valid rescue-link token, as an emailed link carries (TEST-NET IPs only). */
+	async rescueToken( ip: string ): Promise< string > {
+		return ( await this.call< { token: string } >( 'POST', 'rescue-token', { ip } ) ).token;
+	}
+
+	/**
+	 * Sets the site's time zone, as Settings › General does. Not undone by a
+	 * reset: put back what it returns (a Local site keeps its own).
+	 *
+	 * @param timezoneString IANA name, or '' for a manual offset.
+	 * @param gmtOffset      Manual offset, in hours.
+	 */
+	timezone( timezoneString: string, gmtOffset = 0 ) {
+		return this.call< { timezone_string: string; gmt_offset: number } >( 'POST', 'timezone', { timezone_string: timezoneString, gmt_offset: gmtOffset } );
 	}
 
 	/** Sets plugin settings by key (each goes to its module option). */
@@ -136,7 +248,7 @@ export class ZsApi {
 		return this.set( { [ key ]: on ? 'enabled' : false } );
 	}
 
-	seedLog( count: number, options: { type?: string; failed?: string; ipPrefix?: string; ip?: string; spacingMinutes?: number; keepCache?: boolean } = {} ) {
+	seedLog( count: number, options: { type?: string; failed?: string; ipPrefix?: string; ip?: string; spacingMinutes?: number; keepCache?: boolean; crafted?: boolean; data?: Record< string, string > } = {} ) {
 		return this.call< { inserted: number } >( 'POST', 'seed-log', { count, ...options } );
 	}
 
@@ -146,6 +258,43 @@ export class ZsApi {
 
 	block( ip: string, reason = 'e2e' ) {
 		return this.call< { blocked: boolean } >( 'POST', 'block', { ip, reason } );
+	}
+
+	/**
+	 * Saves no-lockout addresses (Admin_Safe_IPs) as activation would; TEST-NET only.
+	 *
+	 * @param ips Addresses (an empty list clears them).
+	 */
+	noLockout( ips: string[] ) {
+		return this.call< { ips: string[] } >( 'POST', 'no-lockout', { ips } );
+	}
+
+	/**
+	 * Calls one of the plugin's own routes (zero-spam/v1) as the logged-in
+	 * administrator, for set-up through the same API the screens use.
+	 *
+	 * @param method HTTP method.
+	 * @param route  Route below zero-spam/v1, such as rules/blocks.
+	 * @param data   JSON body.
+	 * @param query  Query arguments, such as { scope: 'network' }.
+	 */
+	async plugin< T >( method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE', route: string, data?: Record< string, unknown >, query: Record< string, string > = {} ): Promise< T > {
+		const { requestUtils } = this;
+		if ( ! requestUtils.storageState?.nonce ) {
+			await requestUtils.setupRest();
+		}
+		const base = ( this.sitePath ? this.sitePath.replace( /^\//, '' ) : '' ) + 'index.php';
+		const response = await requestUtils.request.fetch( `${ base }?${ new URLSearchParams( { rest_route: `/zero-spam/v1/${ route }`, ...query } ).toString() }`, {
+			method,
+			headers: { 'X-WP-Nonce': requestUtils.storageState!.nonce },
+			data,
+			failOnStatusCode: false,
+		} );
+		const body = await response.json().catch( () => null );
+		if ( ! response.ok() ) {
+			throw new Error( `zero-spam/v1 ${ method } ${ route } failed (${ response.status() }): ${ JSON.stringify( body ) }` );
+		}
+		return body as T;
 	}
 
 	options( search = '' ) {

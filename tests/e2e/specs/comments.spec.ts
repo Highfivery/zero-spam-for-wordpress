@@ -2,7 +2,7 @@ import type { APIRequestContext } from '@playwright/test';
 
 import { expect, test } from '../support/fixtures';
 import { COMMENTS_POST_PATH, CommentForm } from '../support/pages/front';
-import { DashboardPage } from '../support/pages/dashboard-page';
+import { AREA, activityReady } from '../support/screens';
 
 /**
  * Reads what a bot needs from the post page: the post ID and the honeypot name.
@@ -34,6 +34,16 @@ test.describe( 'Comment protection', () => {
 		expect( await zs.logRows( { ip: visitor.ip } ) ).toEqual( [] );
 	} );
 
+	test( 'Stop Forum Spam: a comment from a listed email is blocked and logged with a real reason', async ( { visitor, zs } ) => {
+		await zs.set( { stop_forum_spam: 'enabled' } );
+		const form = new CommentForm( visitor.page );
+		await form.goto();
+		await form.fill( { author: 'Listed Person', email: 'e2e-sfs-listed@example.com', comment: `Listed ${ Date.now() }` } );
+		expect( await form.submit() ).toBe( 403 );
+		const rows = await zs.logRows( { ip: visitor.ip, type: 'comment' } );
+		expect( rows.map( ( r ) => r.submission_data?.failed ) ).toEqual( [ 'stop_forum_spam_email' ] );
+	} );
+
 	test( 'a bot that fills the honeypot is blocked with the comment spam message and logged as comment/honeypot', async ( { bot, zs, page, gallery } ) => {
 		const { postId, honeypot } = await scrapeForm( bot.request );
 		expect( honeypot, 'the honeypot field is rendered' ).not.toBe( '' );
@@ -48,11 +58,12 @@ test.describe( 'Comment protection', () => {
 		const rows = await zs.logRows( { ip: bot.ip, type: 'comment' } );
 		expect( rows.map( ( r ) => r.submission_data?.failed ) ).toContain( 'honeypot' );
 
-		await test.step( 'the detection appears in the Log screen', async () => {
-			const dashboard = new DashboardPage( page );
-			await dashboard.goto( 'log', `&s=${ bot.ip }` );
-			await expect( dashboard.rows.filter( { hasText: bot.ip } ).first() ).toContainText( 'Comment' );
-			await gallery.capture( page, 'detection in the log' );
+		await test.step( 'the detection appears on Activity', async () => {
+			await page.goto( AREA( 'activity', '', { ip: bot.ip } ) );
+			await activityReady( page );
+			await expect( page.locator( '.zs-log' ).getByText( bot.ip ).first() ).toBeVisible();
+			await expect( page.locator( '.zs-log' ) ).toContainText( 'Comment' );
+			await gallery.capture( page, 'detection on Activity' );
 		} );
 	} );
 

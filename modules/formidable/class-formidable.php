@@ -70,7 +70,6 @@ class Formidable {
 	public function sections( $sections ) {
 		$sections['formidable'] = array(
 			'title'    => __( 'Formidable', 'zero-spam' ),
-			'icon'     => 'modules/formidable/icon-formidable.png',
 			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
@@ -160,6 +159,8 @@ class Formidable {
 	 * @param array $form_data Form data and settings.
 	 */
 	public function honeypot( $form_data ) {
+		unset( $form_data ); // Passed by Formidable; not needed here.
+
 		// @codingStandardsIgnoreLine
 		echo \ZeroSpam\Core\Utilities::honeypot_field();
 	}

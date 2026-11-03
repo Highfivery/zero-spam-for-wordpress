@@ -1,0 +1,427 @@
+/**
+ * Rules: the tab counts, the notes above the block lists, the block
+ * tables (the bulk bar, cards and drawer come from activity.css), the list
+ * editors (add field, entries, network notes), the action rows with their
+ * inline confirmation, and the no-lockout list. Values from the prototype
+ * (v16–v18); colours are tokens.
+ */
+
+/* stylelint-disable no-descending-specificity -- List rules reuse element selectors (li, .zs-btn) in unrelated subtrees. */
+
+/* Tabs: the count after each name */
+.zs-rtabs .zs-c {
+	font: var(--zs-weight-semibold) var(--zs-text-2xs) / 1 var(--zs-font-data);
+	font-variant-numeric: tabular-nums;
+	opacity: 0.85;
+}
+
+/* Notes (.htaccess mode, location services) */
+.zs-rnotice {
+	display: flex;
+	gap: var(--zs-space-3);
+	align-items: flex-start;
+	margin-bottom: var(--zs-space-3);
+	padding: 12px 14px;
+}
+
+.zs-rnotice > .zs-icon {
+	flex: none;
+	margin-top: 1px;
+}
+
+.zs-rnotice .zs-li-body {
+	gap: 6px;
+}
+
+.zs-rnotice.zs-notice-warn {
+	border-color: transparent;
+	background: var(--zs-warn-soft);
+	color: var(--zs-ink);
+}
+
+.zs-rnotice.zs-notice-warn > .zs-icon {
+	color: var(--zs-warn-ink);
+}
+
+.zs-rnotice.zs-notice-info {
+	border-color: var(--zs-info-line);
+	background: var(--zs-info-soft);
+	color: var(--zs-ink);
+}
+
+.zs-rnotice.zs-notice-info > .zs-icon {
+	color: var(--zs-info);
+}
+
+/* Native checkboxes in the plugin's colour (as in the Activity log). */
+.zs-app .zs-rules-list input[type="checkbox"] {
+	width: 18px;
+	min-width: 18px;
+	height: 18px;
+	margin: 0;
+	border: 0;
+	box-shadow: none;
+	vertical-align: middle;
+	accent-color: var(--zs-action);
+	appearance: auto;
+	cursor: pointer;
+}
+
+.zs-app .zs-rules-list input[type="checkbox"]:checked::before {
+	content: none;
+}
+
+/* Block tables (from 1,440px, while they fit) */
+.zs-rules-t th,
+.zs-rules-t td {
+	vertical-align: middle;
+}
+
+.zs-rules-t td {
+	height: 56px;
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+
+.zs-rules-t th.zs-c-cb,
+.zs-rules-t td.zs-c-cb {
+	width: 48px;
+	padding: 0 8px;
+	text-align: center;
+}
+
+.zs-rules-t tbody tr:hover td {
+	background: var(--zs-surface-2);
+}
+
+.zs-rules-t tbody tr.zs-sel td {
+	background: var(--zs-sunken);
+}
+
+.zs-rules-t tbody tr.zs-sel td:first-child {
+	box-shadow: inset 3px 0 0 var(--zs-ink);
+}
+
+.zs-rules-t tr.zs-empty-row td {
+	height: auto;
+	background: transparent;
+}
+
+.zs-c-date {
+	white-space: nowrap;
+}
+
+/*
+ * Auto layout gives the column the width of its longest unbreakable piece, so
+ * "anywhere" keeps a long value from widening the table. On its own it also
+ * lets the column shrink until "Germany" breaks; the floors stop that: a full
+ * IPv4 address (15ch of mono), and a flag with the longest word of a country
+ * name, "Liechtenstein" (12ch of Plus Jakarta Sans). A value longer than that
+ * still wraps, between words first. At 1,440px the table has about 200px for
+ * this column and Reason with a year in all three date columns: keep the
+ * floors of the two inside that, or the table scrolls again (rules.spec.ts).
+ */
+.zs-c-what {
+	overflow-wrap: anywhere;
+}
+
+.zs-c-what > .zs-mono,
+.zs-c-what > .zs-rloc {
+	display: block;
+}
+
+.zs-c-what > .zs-mono {
+	min-width: 15ch;
+}
+
+.zs-c-what > .zs-rloc {
+	min-width: 12ch;
+}
+
+.zs-rules-list .zs-tbar .zs-search {
+	min-width: min(100%, 260px);
+}
+
+
+/*
+ * A reason breaks a word only when the word is wider than the cell: the column
+ * is at least as wide as the longest word, up to 28ch. A table that needs more
+ * than its space shows as cards instead (use-table-fit.js), so a long word can
+ * no longer clip it.
+ */
+.zs-clamp2 {
+	display: -webkit-box;
+	max-width: 28ch;
+	overflow: hidden;
+	overflow-wrap: break-word;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.zs-rules .zs-cty {
+	display: inline-flex;
+	gap: var(--zs-space-2);
+	align-items: center;
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-rloc .zs-hint {
+	display: block;
+	font-size: var(--zs-text-sm);
+}
+
+/* Cards (titles, side) and the bulk bar on narrow screens */
+.zs-rules .zs-cm-a .zs-btn {
+	min-height: var(--zs-control-sm);
+}
+
+/* A long word in a reason wraps inside the two lines instead of being cut off. */
+.zs-rules-list .zs-cm-m {
+	overflow-wrap: anywhere;
+}
+
+/* Look up, Edit block and Remove wrap, right-aligned, on a narrow card. */
+.zs-rules-list .zs-cm-a {
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+/* List editors */
+.zs-scard {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-3);
+}
+
+.zs-scard > .zs-tile-h {
+	flex-wrap: nowrap;
+	align-items: flex-start;
+}
+
+.zs-scard-t {
+	display: flex;
+	gap: var(--zs-space-3);
+	align-items: center;
+	min-width: 0;
+}
+
+.zs-scard-t:has(.zs-hint) {
+	align-items: flex-start;
+}
+
+.zs-scard-t .zs-ico {
+	flex: none;
+}
+
+.zs-scard-t .zs-hint {
+	max-width: 72ch;
+	margin-top: 2px;
+}
+
+.zs-scard-s {
+	display: inline-flex;
+	flex: none;
+	flex-wrap: wrap;
+	gap: 6px;
+	align-items: center;
+	justify-content: flex-end;
+	margin-top: 6px;
+}
+
+.zs-badge-lock {
+	border: 1px dashed var(--zs-control);
+	background: transparent;
+	color: var(--zs-ink-2);
+}
+
+.zs-netnote {
+	display: flex;
+	gap: 6px;
+	align-items: flex-start;
+	margin: 0;
+	color: var(--zs-ink-2);
+	font-size: var(--zs-text-sm);
+}
+
+.zs-netnote > .zs-icon {
+	flex: none;
+	margin-top: 2px;
+}
+
+.zs-netnote-row {
+	flex-wrap: wrap;
+	align-items: center;
+	padding: 10px 12px;
+	border: 1px dashed var(--zs-control);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-surface-2);
+}
+
+.zs-netnote-row > span {
+	flex: 1 1 260px;
+}
+
+.zs-lrow .zs-ctl {
+	gap: var(--zs-space-3);
+}
+
+.zs-addrow {
+	padding: 12px;
+	border: 1px solid var(--zs-line);
+	border-radius: var(--zs-radius-inner);
+	background: var(--zs-surface-2);
+}
+
+.zs-addrow-in {
+	display: flex;
+	gap: var(--zs-space-2);
+	align-items: center;
+}
+
+.zs-addrow-in .zs-input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.zs-addrow-in .zs-btn {
+	flex: none;
+}
+
+.zs-le-bar {
+	margin-bottom: 0;
+}
+
+.zs-le-bar .zs-search {
+	flex: 1 1 200px;
+}
+
+.zs-cards.zs-elist li {
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-areas: "main side";
+	min-height: 52px;
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+
+.zs-elist .zs-card-side {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.zs-elist .zs-cm-t {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.zs-e-added {
+	background: var(--zs-surface-2);
+}
+
+.zs-e-removed .zs-cm-t {
+	color: var(--zs-ink-3);
+	text-decoration: line-through;
+}
+
+.zs-rrow:first-of-type {
+	margin-top: var(--zs-space-2);
+}
+
+.zs-num-in {
+	max-width: 120px;
+}
+
+.zs-app .zs-input.zs-num-in:disabled,
+.zs-app .zs-input:disabled,
+.zs-app .zs-input.zs-num-in:read-only {
+	background: var(--zs-surface-2);
+	color: var(--zs-ink-2);
+	cursor: not-allowed;
+}
+
+/* Actions with an inline confirmation */
+.zs-actrow {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-2);
+	align-items: flex-start;
+}
+
+.zs-confirm-q {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--zs-space-2);
+	align-items: center;
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-actres {
+	margin: 0;
+	font-size: var(--zs-text-sm);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-actres:empty {
+	display: none;
+}
+
+.zs-actres-ok {
+	color: var(--zs-ok-ink);
+}
+
+.zs-actres-err {
+	color: var(--zs-red);
+}
+
+/* No-lockout addresses */
+.zs-safelist > li {
+	align-items: center;
+}
+
+.zs-safelist .zs-li-body {
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--zs-space-2);
+	align-items: center;
+}
+
+.zs-safelist .zs-li-body > .zs-hint,
+.zs-lockout-q {
+	flex-basis: 100%;
+}
+
+@media (max-width: 700px) {
+
+	.zs-addrow-in {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.zs-scard > .zs-tile-h {
+		flex-wrap: wrap;
+	}
+
+	.zs-scard-s {
+		justify-content: flex-start;
+		margin-top: 0;
+	}
+
+	.zs-rules .zs-cm-a .zs-btn,
+	.zs-elist .zs-btn {
+		min-height: var(--zs-tap-min);
+	}
+
+	/* The card's side is a row here, its actions start on the left: wrap them there too. */
+	.zs-rules-list .zs-cm-a {
+		justify-content: flex-start;
+	}
+
+}
+
+/* The list is the card's first row: no rule above it (prototype .scard-b). */
+.zs-setrow.zs-lrow {
+	padding-top: 6px;
+	border-top: 0;
+}

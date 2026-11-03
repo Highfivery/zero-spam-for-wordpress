@@ -30,7 +30,7 @@ merge_base="$(git merge-base HEAD "$base_ref" 2>/dev/null || echo "$base_ref")"
 # Committed changes since the merge base, plus anything staged or unstaged.
 files="$( { git diff --name-only --diff-filter=ACMR "$merge_base" HEAD -- '*.php'; \
             git diff --name-only --diff-filter=ACMR HEAD -- '*.php'; } \
-          | grep -vE '^(vendor|node_modules|tests)/' | sort -u || true )"
+          | grep -vE '^(vendor|node_modules|tests|assets/dist)/' | sort -u || true )"
 
 # Only lint files that still exist.
 existing=()

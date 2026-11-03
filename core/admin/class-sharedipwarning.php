@@ -23,7 +23,8 @@ defined( 'ABSPATH' ) || die();
  * Behind a proxy or CDN that Zero Spam does not know about, every visitor
  * gets the proxy's address, so one block or one bad reputation entry locks
  * everyone out. The check looks at the most recent detections only, runs on
- * the Zero Spam settings and dashboard screens only, and caches its verdict
+ * the Zero Spam screens only (not the Overview, whose "Needs attention"
+ * list shows the same warning), and caches its verdict
  * for an hour. Only detections logged since this version was installed
  * count (Migrations::PROXY_DETECTION_SINCE_OPTION): before, every visitor
  * behind a proxy was logged with the proxy's address by design. A verdict
@@ -43,9 +44,17 @@ class Shared_IP_Warning {
 	const TRANSIENT = 'zerospam_shared_ip_warning';
 
 	/**
-	 * Option holding the dismissed verdict (see dismissal_key()).
+	 * Option that held the dismissed verdict before 6.0.0 (see
+	 * dismissal_key()). Since 6.0.0 dismissals are kept by Notices
+	 * (`shared-ip`); the `v6_dismissals` migration copied this one there and
+	 * left it in place for a downgrade.
 	 */
 	const DISMISSED_OPTION = 'zerospam_shared_ip_warning_dismissed';
+
+	/**
+	 * ID of the notice in Notices.
+	 */
+	const NOTICE_ID = 'shared-ip';
 
 	/**
 	 * Action (admin-post and nonce) of the Dismiss button.
@@ -58,14 +67,13 @@ class Shared_IP_Warning {
 	const SAMPLE_SIZE = 20;
 
 	/**
-	 * Screens the warning is checked and shown on.
+	 * Areas of the Zero Spam admin the warning is checked and shown on
+	 * (Admin_App::current_area()). The Overview lists it under "Needs
+	 * attention" instead.
 	 *
 	 * @var string[]
 	 */
-	const SCREENS = array(
-		'settings_page_wordpress-zero-spam-settings',
-		'dashboard_page_wordpress-zero-spam-dashboard',
-	);
+	const AREAS = array( 'activity', 'rules', 'protection', 'settings', 'help' );
 
 	/**
 	 * Headers a proxy adds to the requests it forwards ($_SERVER keys).
@@ -99,11 +107,11 @@ class Shared_IP_Warning {
 		}
 
 		$verdict = self::get_verdict();
-		if ( null === $verdict || get_option( self::DISMISSED_OPTION ) === self::dismissal_key( $verdict ) ) {
+		if ( null === $verdict || self::is_dismissed( $verdict ) ) {
 			return;
 		}
 
-		$settings_url = admin_url( 'options-general.php?page=wordpress-zero-spam-settings&subview=settings#trusted_proxies' );
+		$settings_url = \ZeroSpam\Core\Utilities::admin_link( 'proxies' );
 		$dismiss_url  = wp_nonce_url( admin_url( 'admin-post.php?action=' . self::ACTION ), self::ACTION );
 		$locked       = self::is_setting_locked();
 		$address      = '<code>' . esc_html( $verdict['ip'] ) . '</code>';
@@ -116,7 +124,7 @@ class Shared_IP_Warning {
 			);
 			$action = $locked
 				? esc_html__( 'Trusted Proxy IPs is locked by your network administrator: ask your network administrator to check the proxy if the warning comes back.', 'zero-spam' )
-				: esc_html__( 'You can review the list under Settings → Zero Spam → Settings → Trusted Proxy IPs.', 'zero-spam' );
+				: esc_html__( 'You can review the list under Zero Spam → Settings → Advanced → Trusted proxies.', 'zero-spam' );
 			$button = esc_html__( 'Review trusted proxies', 'zero-spam' );
 		} else {
 			$summary = sprintf(
@@ -127,7 +135,7 @@ class Shared_IP_Warning {
 			);
 			$action = $locked
 				? esc_html__( 'Trusted Proxy IPs is locked by your network administrator: ask your network administrator to add the proxy\'s address there, or every visitor may be blocked together.', 'zero-spam' )
-				: esc_html__( 'Add its address under Settings → Zero Spam → Settings → Trusted Proxy IPs, or every visitor may be blocked together.', 'zero-spam' );
+				: esc_html__( 'Add its address under Zero Spam → Settings → Advanced → Trusted proxies, or every visitor may be blocked together.', 'zero-spam' );
 			$button = esc_html__( 'Add a trusted proxy', 'zero-spam' );
 		}
 		?>
@@ -161,13 +169,10 @@ class Shared_IP_Warning {
 
 		check_admin_referer( self::ACTION );
 
-		$verdict = self::get_verdict();
-		if ( null !== $verdict ) {
-			update_option( self::DISMISSED_OPTION, self::dismissal_key( $verdict ), false );
-		}
+		Notices::dismiss( self::NOTICE_ID );
 
 		$redirect = wp_get_referer();
-		wp_safe_redirect( $redirect ? $redirect : admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) );
+		wp_safe_redirect( $redirect ? $redirect : \ZeroSpam\Core\Utilities::admin_link( 'settings' ) );
 		exit;
 	}
 
@@ -217,6 +222,18 @@ class Shared_IP_Warning {
 			'ip'     => $verdict['ip'],
 			'reason' => isset( $verdict['reason'] ) && 'trusted_proxy' === $verdict['reason'] ? 'trusted_proxy' : 'shared_ip',
 		);
+	}
+
+	/**
+	 * Whether the administrator dismissed this warning (see dismissal_key()).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array{ip: string, reason: string} $verdict Verdict from get_verdict().
+	 * @return bool
+	 */
+	public static function is_dismissed( array $verdict ): bool {
+		return Notices::dismissed( self::NOTICE_ID ) === self::dismissal_key( $verdict );
 	}
 
 	/**
@@ -329,14 +346,12 @@ class Shared_IP_Warning {
 	}
 
 	/**
-	 * Whether the current screen is a Zero Spam settings or dashboard screen.
+	 * Whether the current screen is one of the Zero Spam areas the warning is shown on.
 	 *
 	 * @return bool
 	 */
 	private static function is_zero_spam_screen(): bool {
-		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
-
-		return $screen instanceof \WP_Screen && in_array( $screen->id, self::SCREENS, true );
+		return in_array( Admin_App::current_area(), self::AREAS, true );
 	}
 
 	/**
@@ -347,7 +362,7 @@ class Shared_IP_Warning {
 	 * @param array{ip: string, reason: string} $verdict Verdict.
 	 * @return string
 	 */
-	private static function dismissal_key( array $verdict ): string {
+	public static function dismissal_key( array $verdict ): string {
 		return 'trusted_proxy' === $verdict['reason'] ? 'trusted_proxy' : 'shared_ip:' . $verdict['ip'];
 	}
 }

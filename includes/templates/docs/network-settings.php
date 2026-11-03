@@ -30,8 +30,8 @@ defined( 'ABSPATH' ) || die();
 			<h3><?php esc_html_e( 'Accessing Network Settings', 'zero-spam' ); ?></h3>
 			<ol>
 				<li><?php esc_html_e( 'Log in as Network Administrator', 'zero-spam' ); ?></li>
-				<li><?php esc_html_e( 'Navigate to Network Admin → Settings → Zero Spam Network', 'zero-spam' ); ?></li>
-				<li><?php esc_html_e( 'You will see 6 tabs: Overview, Settings, Templates, Audit Log, Comparison, and Import/Export', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'Navigate to Network Admin → Zero Spam', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'You will see 8 tabs: Overview, Settings, Templates, Audit log, Comparison, Import/Export, Notifications and Network stats', 'zero-spam' ); ?></li>
 			</ol>
 
 			<h3><?php esc_html_e( 'Quick Start: Apply a Template', 'zero-spam' ); ?></h3>
@@ -162,21 +162,21 @@ defined( 'ABSPATH' ) || die();
 						<td><strong><?php esc_html_e( 'Strict Protection', 'zero-spam' ); ?></strong></td>
 						<td><?php esc_html_e( 'High-risk sites, public forums, ecommerce', 'zero-spam' ); ?></td>
 						<td>
-							<?php esc_html_e( 'Confidence: 30%, All features enabled, API limit: 500/day', 'zero-spam' ); ?>
+							<?php esc_html_e( 'Confidence: 30%, every protection on and logged, XML-RPC off, WordPress version hidden', 'zero-spam' ); ?>
 						</td>
 					</tr>
 					<tr>
 						<td><strong><?php esc_html_e( 'Balanced Protection', 'zero-spam' ); ?></strong></td>
 						<td><?php esc_html_e( 'Most sites (recommended)', 'zero-spam' ); ?></td>
 						<td>
-							<?php esc_html_e( 'Confidence: 50%, Smart logging, API limit: 1000/day', 'zero-spam' ); ?>
+							<?php esc_html_e( 'Confidence: 50%, comment, registration, login and form protection, API monitoring on', 'zero-spam' ); ?>
 						</td>
 					</tr>
 					<tr>
 						<td><strong><?php esc_html_e( 'Relaxed Protection', 'zero-spam' ); ?></strong></td>
 						<td><?php esc_html_e( 'Development sites, low-risk environments', 'zero-spam' ); ?></td>
 						<td>
-							<?php esc_html_e( 'Confidence: 70%, Minimal logging, API limit: 5000/day', 'zero-spam' ); ?>
+							<?php esc_html_e( 'Confidence: 70%, comment protection and the JavaScript check only, XML-RPC left on', 'zero-spam' ); ?>
 						</td>
 					</tr>
 				</tbody>
@@ -206,22 +206,21 @@ defined( 'ABSPATH' ) || die();
 
 			<h4>🔒 <?php esc_html_e( 'Locked Settings', 'zero-spam' ); ?></h4>
 			<ul>
-				<li><?php esc_html_e( 'Red "Locked by Network Admin" badge', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'A "Locked by network" badge', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Field is disabled (grayed out)', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Cannot be changed', 'zero-spam' ); ?></li>
 			</ul>
 
 			<h4>ℹ️ <?php esc_html_e( 'Network Default Settings', 'zero-spam' ); ?></h4>
 			<ul>
-				<li><?php esc_html_e( 'Blue info box: "Using network default: [value]"', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'A note under the field: "Using the network default: [value]"', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Field is enabled - can customize if desired', 'zero-spam' ); ?></li>
-				<li><?php esc_html_e( 'Saving the page with the network default unchanged keeps the site on the network default, so later network changes still apply', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'Saving with the network default unchanged keeps the site on the network default, so later network changes still apply', 'zero-spam' ); ?></li>
 			</ul>
 
 			<h4>⚠️ <?php esc_html_e( 'Customized Settings', 'zero-spam' ); ?></h4>
 			<ul>
-				<li><?php esc_html_e( 'Yellow warning box: "You have customized this setting"', 'zero-spam' ); ?></li>
-				<li><?php esc_html_e( 'Shows network default for comparison', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'The site\'s own value is shown, without the network note; the network administrator sees the site\'s changes on the Comparison tab', 'zero-spam' ); ?></li>
 			</ul>
 
 			<h3><?php esc_html_e( 'Notification Emails', 'zero-spam' ); ?></h3>
@@ -320,7 +319,7 @@ wp zerospam network-settings template-delete my-config</code></pre>
 			</ol>
 
 			<h4><?php esc_html_e( 'Site admin cannot change a setting', 'zero-spam' ); ?></h4>
-			<p><?php esc_html_e( 'This is expected if the setting is locked. Go to Network Admin → Zero Spam Network → Settings and unlock the setting.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'This is expected if the setting is locked. Go to Network Admin → Zero Spam → Settings and unlock the setting.', 'zero-spam' ); ?></p>
 
 			<h4><?php esc_html_e( 'Notifications not sending', 'zero-spam' ); ?></h4>
 			<ol>

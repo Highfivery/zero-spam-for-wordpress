@@ -64,7 +64,9 @@ class ZeroSpamCLI {
 						$locked = true;
 						continue;
 					}
-					\ZeroSpam\Core\Settings::update_blocked_email_domains();
+					if ( ! \ZeroSpam\Core\Settings::update_blocked_email_domains() ) {
+						WP_CLI::error( 'The recommended blocked email domains list could not be read.' );
+					}
 					WP_CLI::success( 'Blocked email domains have been updated to the recommended list.' );
 					continue;
 				}
@@ -176,7 +178,9 @@ class ZeroSpamCLI {
 		$domains = '';
 
 		if ( ! empty( $assoc_args['recommended'] ) ) {
-			\ZeroSpam\Core\Settings::update_blocked_email_domains();
+			if ( ! \ZeroSpam\Core\Settings::update_blocked_email_domains() ) {
+				WP_CLI::error( 'The recommended blocked email domains list could not be read.' );
+			}
 			WP_CLI::success( 'Blocked email domains have been updated to the recommended list.' );
 			return;
 		}

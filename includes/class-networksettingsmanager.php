@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Network_Settings_Manager to this file name.
 /**
  * Network Settings Manager - CRUD operations
  *
@@ -17,6 +17,16 @@ defined( 'ABSPATH' ) || die();
  * Network Settings Manager class
  */
 class Network_Settings_Manager {
+
+	/**
+	 * Store flag of a value only a lock created (the network had not set the
+	 * setting): unlocking removes it. Every writer of a value drops the flag.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @var string
+	 */
+	const FROM_LOCK = 'from_lock';
 
 	/**
 	 * Network Settings instance
@@ -103,16 +113,18 @@ class Network_Settings_Manager {
 		// Get current settings.
 		$settings = $this->network_settings->get_network_settings();
 
-		// If setting doesn't exist, create it with default value from plugin settings.
+		// A setting the network does not set is locked at the plugin's default, never at
+		// a site's value (since 6.0.0; a secret has no default: it is locked empty).
+		// Unlocking removes that value again.
 		if ( ! isset( $settings['settings'][ $setting_key ] ) ) {
-			$plugin_settings = \ZeroSpam\Core\Settings::get_settings();
-			$default_value   = $plugin_settings[ $setting_key ]['value'] ?? '';
-			
+			$entry = \ZeroSpam\Core\Settings_Schema::setting( (string) $setting_key );
+
 			$settings['settings'][ $setting_key ] = array(
-				'value'      => $default_value,
-				'locked'     => false,
-				'updated_by' => get_current_user_id(),
-				'updated_at' => current_time( 'mysql' ),
+				'value'         => $entry['default'] ?? '',
+				'locked'        => false,
+				'updated_by'    => get_current_user_id(),
+				'updated_at'    => current_time( 'mysql' ),
+				self::FROM_LOCK => true,
 			);
 		}
 
@@ -152,23 +164,21 @@ class Network_Settings_Manager {
 		// Get current settings.
 		$settings = $this->network_settings->get_network_settings();
 
-		// If setting doesn't exist, create it with default value from plugin settings.
+		// Nothing to unlock: no network entry is created (since 6.0.0; before, unlocking a
+		// setting the network did not set copied the main site's value to every site).
 		if ( ! isset( $settings['settings'][ $setting_key ] ) ) {
-			$plugin_settings = \ZeroSpam\Core\Settings::get_settings();
-			$default_value   = $plugin_settings[ $setting_key ]['value'] ?? '';
-			
-			$settings['settings'][ $setting_key ] = array(
-				'value'      => $default_value,
-				'locked'     => false,
-				'updated_by' => get_current_user_id(),
-				'updated_at' => current_time( 'mysql' ),
-			);
+			return true;
 		}
 
-		// Unlock it.
-		$settings['settings'][ $setting_key ]['locked']     = false;
-		$settings['settings'][ $setting_key ]['updated_by'] = get_current_user_id();
-		$settings['settings'][ $setting_key ]['updated_at'] = current_time( 'mysql' );
+		if ( ! empty( $settings['settings'][ $setting_key ][ self::FROM_LOCK ] ) ) {
+			// The network never set it: the value the lock created goes too, so sites are as they were.
+			unset( $settings['settings'][ $setting_key ] );
+		} else {
+			// Unlock it.
+			$settings['settings'][ $setting_key ]['locked']     = false;
+			$settings['settings'][ $setting_key ]['updated_by'] = get_current_user_id();
+			$settings['settings'][ $setting_key ]['updated_at'] = current_time( 'mysql' );
+		}
 
 		// Save.
 		$result = update_site_option( Network_Settings::META_KEY, $settings );
@@ -187,7 +197,9 @@ class Network_Settings_Manager {
 	 *
 	 * @param bool   $force     Force overwrite site overrides.
 	 * @param array  $site_ids  Specific site IDs (empty = all sites).
-	 * @param string $mode      Mode: 'locked_only', 'defaults_only', 'all'.
+	 * @param string $mode      Mode: 'locked_only', 'defaults_only', 'all', or 'follow' (since 6.0.0: sites drop
+	 *                          their own values of unlocked settings the network sets, so they follow it; a site's
+	 *                          own license and API keys and webhook address are kept, as nobody can see them again).
 	 * @return array Result with counts.
 	 */
 	public function apply_to_sites( $force = false, $site_ids = array(), $mode = 'all' ) {
@@ -218,8 +230,16 @@ class Network_Settings_Manager {
 
 		// Get sites to process.
 		if ( empty( $site_ids ) ) {
-			$sites = get_sites( array( 'number' => 0 ) );
+			$sites    = get_sites(
+				array(
+					'number'     => 0,
+					'network_id' => get_current_network_id(),
+				)
+			);
 			$site_ids = wp_list_pluck( $sites, 'blog_id' );
+		} else {
+			// Never a site of another network, whatever a caller names.
+			$site_ids = Network_Report::only_on_network( (array) $site_ids );
 		}
 
 		$updated_count = 0;
@@ -229,10 +249,17 @@ class Network_Settings_Manager {
 		// Get all plugin settings to know which module each setting belongs to.
 		$all_plugin_settings = \ZeroSpam\Core\Settings::get_settings();
 
+		// Read here, once: the registry is built per site, and this loop switches sites.
+		$secrets = array();
+		foreach ( array_keys( $network_settings['settings'] ) as $key ) {
+			$secrets[ $key ] = \ZeroSpam\Core\Settings_Schema::is_secret( (string) $key );
+		}
+
 		foreach ( $site_ids as $site_id ) {
 			switch_to_blog( $site_id );
 
 			$site_updated = false;
+			$followed     = array();
 
 			foreach ( $network_settings['settings'] as $key => $config ) {
 				$should_apply = false;
@@ -243,12 +270,26 @@ class Network_Settings_Manager {
 					continue; // Skip if we can't determine the module.
 				}
 
-				// Get current module settings.
-				$module_settings = get_option( "zero-spam-{$module}", array() );
-				$setting_exists = isset( $module_settings[ $key ] );
+				// Get current module settings (with this site's removals so far, in follow mode).
+				$module_settings = $followed[ $module ] ?? get_option( "zero-spam-{$module}", array() );
+				$module_settings = is_array( $module_settings ) ? $module_settings : array();
+				// The 5.x modes keep their isset() test (a stored null is "not set"), so the legacy page's button behaves as before.
+				$setting_exists = 'follow' === $mode ? array_key_exists( $key, $module_settings ) : isset( $module_settings[ $key ] );
 
 				// Determine if we should apply this setting.
 				switch ( $mode ) {
+					case 'follow':
+						// The site goes back to the network value: its own value of an
+						// unlocked setting the network sets is removed (never a locked
+						// one, which comes back when the setting is unlocked, and never a
+						// secret: write-only, so nobody could see what was lost).
+						if ( empty( $config['locked'] ) && isset( $config['value'] ) && $setting_exists && empty( $secrets[ $key ] ) ) {
+							unset( $module_settings[ $key ] );
+							$followed[ $module ] = $module_settings;
+						}
+						$should_apply = false;
+						break;
+
 					case 'locked_only':
 						// Only apply if locked.
 						$should_apply = ! empty( $config['locked'] );
@@ -266,10 +307,14 @@ class Network_Settings_Manager {
 						break;
 				}
 
-				// Don't apply if:
-				// 1. We shouldn't apply based on mode
-				// 2. Setting is not locked AND not forcing AND site has an override
+				// Don't apply if we shouldn't apply based on mode, or if the setting
+				// is not locked, we are not forcing and the site has an override.
 				if ( ! $should_apply ) {
+					continue;
+				}
+
+				// An empty network secret never replaces a site's own (locked empty, it is enforced anyway; a key lost here could never be seen again).
+				if ( ! empty( $secrets[ $key ] ) && ( ! is_scalar( $config['value'] ) || '' === trim( (string) $config['value'] ) ) ) {
 					continue;
 				}
 
@@ -279,17 +324,24 @@ class Network_Settings_Manager {
 
 				// Apply the network setting.
 				$module_settings[ $key ] = $config['value'];
-				
+
 				// Save back to the module-specific option.
 				update_option( "zero-spam-{$module}", $module_settings );
 				$site_updated = true;
 			}
 
+			foreach ( $followed as $module => $values ) {
+				update_option( "zero-spam-{$module}", $values );
+				$site_updated = true;
+			}
+
 			if ( $site_updated ) {
-				$updated_count++;
+				// The site's own settings changed: it counts as configured (and a pending first-run setup ends), as with any settings writer.
+				\ZeroSpam\Core\Admin\Onboarding::settings_saved();
+				++$updated_count;
 				$updated_sites[] = $site_id;
 			} else {
-				$skipped_count++;
+				++$skipped_count;
 			}
 
 			restore_current_blog();
@@ -330,12 +382,16 @@ class Network_Settings_Manager {
 			return false;
 		}
 
+		if ( ! Network_Report::is_on_network( (int) $site_id ) ) {
+			return false;
+		}
+
 		switch_to_blog( $site_id );
 
 		// Get all plugin settings to know all modules.
 		$all_plugin_settings = \ZeroSpam\Core\Settings::get_settings();
-		$modules = array();
-		
+		$modules             = array();
+
 		// Collect all unique modules.
 		foreach ( $all_plugin_settings as $key => $config ) {
 			if ( isset( $config['module'] ) && ! in_array( $config['module'], $modules, true ) ) {
@@ -347,7 +403,7 @@ class Network_Settings_Manager {
 		$deleted_count = 0;
 		foreach ( $modules as $module ) {
 			if ( delete_option( "zero-spam-{$module}" ) ) {
-				$deleted_count++;
+				++$deleted_count;
 			}
 		}
 
@@ -371,7 +427,7 @@ class Network_Settings_Manager {
 			return array();
 		}
 
-		$network_settings = $this->network_settings->get_network_settings();
+		$network_settings     = $this->network_settings->get_network_settings();
 		$settings_with_status = array();
 
 		foreach ( $network_settings['settings'] as $key => $config ) {
@@ -452,9 +508,9 @@ class Network_Settings_Manager {
 					: ( isset( $value['locked'] ) ? $value['locked'] : false );
 
 				$this->set_setting( $key, $value['value'] ?? $value, $locked );
-				$imported_count++;
+				++$imported_count;
 			} else {
-				$skipped_count++;
+				++$skipped_count;
 			}
 		}
 
@@ -495,6 +551,69 @@ class Network_Settings_Manager {
 	}
 
 	/**
+	 * Records a change of one network setting in the network audit log, as the
+	 * current user.
+	 *
+	 * For writes that do not go through set_setting(), such as the
+	 * `zero-spam/v1/settings` route with `scope=network`. Mask secrets before
+	 * passing them.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $setting_key Setting key.
+	 * @param mixed  $old_value   Old value (null when there was none).
+	 * @param mixed  $new_value   New value.
+	 * @return bool Success.
+	 */
+	public function log_setting_change( string $setting_key, $old_value, $new_value ): bool {
+		return (bool) $this->log_audit( 0, 'set', $setting_key, $old_value, $new_value );
+	}
+
+	/**
+	 * Records an entry in the network audit log, as the current user.
+	 *
+	 * For network actions that do not go through this class (templates,
+	 * network-wide blocks, migrations). Secret values are masked.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string      $action_type    One of DB::AUDIT_ACTIONS.
+	 * @param string|null $setting_key    Setting key, if one setting.
+	 * @param mixed       $old_value      Old value, or a plain description.
+	 * @param mixed       $new_value      New value, or a plain description.
+	 * @param int[]       $affected_sites Sites affected.
+	 * @param int         $site_id        Site (0 for the network).
+	 * @return bool Success.
+	 */
+	public function record( string $action_type, ?string $setting_key, $old_value, $new_value, array $affected_sites = array(), int $site_id = 0 ): bool {
+		if ( ! in_array( $action_type, DB::AUDIT_ACTIONS, true ) ) {
+			return false;
+		}
+
+		return (bool) $this->log_audit( $site_id, $action_type, $setting_key, $old_value, $new_value, $affected_sites );
+	}
+
+	/**
+	 * A value as stored in the audit log: a secret is masked (its last four
+	 * characters at most), anything else as given.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string|null $setting_key Setting key.
+	 * @param mixed       $value       Value.
+	 * @return mixed
+	 */
+	public static function audit_safe( ?string $setting_key, $value ) {
+		if ( null === $setting_key || ! \ZeroSpam\Core\Settings_Schema::is_secret( $setting_key ) || is_array( $value ) ) {
+			return $value;
+		}
+
+		$text = is_scalar( $value ) && ! is_bool( $value ) ? trim( (string) $value ) : '';
+
+		return '' === $text ? '' : \ZeroSpam\Core\Settings_Schema::hint( $text );
+	}
+
+	/**
 	 * Log audit entry
 	 *
 	 * @param int    $site_id        Site ID (0 for network level).
@@ -514,7 +633,12 @@ class Network_Settings_Manager {
 
 		$user = wp_get_current_user();
 
+		// Never a secret in the clear (a masked array from the REST route stays as it is).
+		$old_value = self::audit_safe( $setting_key, $old_value );
+		$new_value = self::audit_safe( $setting_key, $new_value );
+
 		$data = array(
+			'network_id'     => (int) get_current_network_id(),
 			'site_id'        => $site_id,
 			'action_type'    => $action_type,
 			'setting_key'    => $setting_key,
@@ -537,6 +661,11 @@ class Network_Settings_Manager {
 	/**
 	 * Get audit log
 	 *
+	 * Filters (since 6.0.0 also `after` and `before`, days in network time,
+	 * and a `site_id` of 0 for network-level entries): `site_id`,
+	 * `action_type`, `setting_key`, `user_id`. Newest first unless `orderby`
+	 * and `order` say otherwise.
+	 *
 	 * @param array $args Query args.
 	 * @return array Audit entries.
 	 */
@@ -553,51 +682,248 @@ class Network_Settings_Manager {
 		}
 
 		$defaults = array(
-			'limit'       => 50,
-			'offset'      => 0,
-			'site_id'     => null,
-			'action_type' => null,
-			'setting_key' => null,
-			'user_id'     => null,
-			'orderby'     => 'date_created',
-			'order'       => 'DESC',
+			'limit'   => 50,
+			'offset'  => 0,
+			'orderby' => 'date_created',
+			'order'   => 'DESC',
 		);
 
 		$args = wp_parse_args( $args, $defaults );
 
-		// Build query.
-		$table = $wpdb->base_prefix . DB::$tables['network_audit'];
-		$where = array( '1=1' );
-
-		if ( null !== $args['site_id'] ) {
-			$where[] = $wpdb->prepare( 'site_id = %d', $args['site_id'] );
-		}
-
-		if ( $args['action_type'] ) {
-			$where[] = $wpdb->prepare( 'action_type = %s', $args['action_type'] );
-		}
-
-		if ( $args['setting_key'] ) {
-			$where[] = $wpdb->prepare( 'setting_key = %s', $args['setting_key'] );
-		}
-
-		if ( $args['user_id'] ) {
-			$where[] = $wpdb->prepare( 'user_id = %d', $args['user_id'] );
-		}
-
-		$where_clause = implode( ' AND ', $where );
+		$table        = $wpdb->base_prefix . DB::$tables['network_audit'];
+		$where_clause = $this->audit_where( $args );
 		$orderby      = sanitize_sql_orderby( $args['orderby'] . ' ' . $args['order'] );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// An invalid order would leave "ORDER BY" empty.
+		if ( ! $orderby ) {
+			$orderby = 'date_created DESC';
+		}
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause only joins prepare()d fragments; $orderby passed sanitize_sql_orderby().
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE {$where_clause} ORDER BY {$orderby} LIMIT %d OFFSET %d",
-				$args['limit'],
-				$args['offset']
+				"SELECT * FROM %i WHERE {$where_clause} ORDER BY {$orderby}, audit_id DESC LIMIT %d OFFSET %d",
+				$table,
+				max( 1, (int) $args['limit'] ),
+				max( 0, (int) $args['offset'] )
 			),
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-		return $results;
+		return is_array( $results ) ? $results : array();
+	}
+
+	/**
+	 * Number of audit entries matching the filters of get_audit_log().
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array $args Filters.
+	 * @return int
+	 */
+	public function count_audit_log( array $args = array() ): int {
+		global $wpdb;
+
+		if ( ! is_multisite() || ! current_user_can( 'manage_network_options' ) ) {
+			return 0;
+		}
+
+		$where_clause = $this->audit_where( $args );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where_clause only joins prepare()d fragments.
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$where_clause}", $wpdb->base_prefix . DB::$tables['network_audit'] ) );
+	}
+
+	/**
+	 * WHERE clause of the audit filters, made of prepared fragments.
+	 *
+	 * @param array $args Filters.
+	 * @return string
+	 */
+	private function audit_where( array $args ): string {
+		global $wpdb;
+
+		$where = array( $wpdb->prepare( 'network_id = %d', (int) get_current_network_id() ) );
+
+		if ( isset( $args['site_id'] ) && '' !== $args['site_id'] ) {
+			$where[] = $wpdb->prepare( 'site_id = %d', (int) $args['site_id'] );
+		}
+
+		if ( ! empty( $args['action_type'] ) ) {
+			$where[] = $wpdb->prepare( 'action_type = %s', (string) $args['action_type'] );
+		}
+
+		if ( ! empty( $args['setting_key'] ) ) {
+			$where[] = $wpdb->prepare( 'setting_key = %s', (string) $args['setting_key'] );
+		}
+
+		if ( isset( $args['user_id'] ) && '' !== $args['user_id'] ) {
+			$where[] = $wpdb->prepare( 'user_id = %d', (int) $args['user_id'] );
+		}
+
+		if ( ! empty( $args['after'] ) && 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $args['after'] ) ) {
+			$where[] = $wpdb->prepare( 'date_created >= %s', $args['after'] . ' 00:00:00' );
+		}
+
+		if ( ! empty( $args['before'] ) && 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) $args['before'] ) ) {
+			$where[] = $wpdb->prepare( 'date_created <= %s', $args['before'] . ' 23:59:59' );
+		}
+
+		return implode( ' AND ', $where );
+	}
+
+	/**
+	 * An audit entry as the REST API returns it: the stored columns, plus
+	 * (since 6.0.0) `id`, `date` (ISO 8601), `user`, `action`, `action_label`,
+	 * `key`, `key_title`, `site_name`, `old` and `new` (secrets masked) and
+	 * `summary`, a plain-language sentence.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array<string, mixed> $row Audit row.
+	 * @return array<string, mixed>
+	 */
+	public static function describe_audit_entry( array $row ): array {
+		$action = (string) ( $row['action_type'] ?? '' );
+		$key    = isset( $row['setting_key'] ) && '' !== (string) $row['setting_key'] ? (string) $row['setting_key'] : null;
+		$entry  = null !== $key ? \ZeroSpam\Core\Settings_Schema::setting( $key ) : null;
+		$title  = null !== $entry && '' !== $entry['title'] ? $entry['title'] : (string) $key;
+		$old    = self::audit_value_text( $key, $row['old_value'] ?? null );
+		$new    = self::audit_value_text( $key, $row['new_value'] ?? null );
+		$site   = (int) ( $row['site_id'] ?? 0 );
+		$user   = (string) ( $row['user_login'] ?? '' );
+		$sites  = isset( $row['affected_sites'] ) ? json_decode( (string) $row['affected_sites'], true ) : null;
+		$count  = is_array( $sites ) ? count( $sites ) : 0;
+
+		switch ( $action ) {
+			case 'set':
+				/* translators: 1: setting name, 2: old value, 3: new value */
+				$summary = sprintf( __( 'Changed “%1$s” from %2$s to %3$s.', 'zero-spam' ), $title, $old, $new );
+				break;
+			case 'lock':
+				/* translators: %s: setting name */
+				$summary = sprintf( __( 'Locked “%s” on every site.', 'zero-spam' ), $title );
+				break;
+			case 'unlock':
+				/* translators: %s: setting name */
+				$summary = sprintf( __( 'Unlocked “%s”: sites can change it again.', 'zero-spam' ), $title );
+				break;
+			case 'apply':
+				/* translators: %s: number of sites */
+				$summary = sprintf( _n( 'Applied the network settings to %s site.', 'Applied the network settings to %s sites.', $count, 'zero-spam' ), number_format_i18n( $count ) );
+				break;
+			case 'reset':
+				$summary = __( 'Reset a site to the network settings.', 'zero-spam' );
+				break;
+			case 'block':
+			case 'unblock':
+			case 'template':
+			case 'import':
+			case 'migrate':
+			case 'bulk':
+			default:
+				$summary = '' !== $new && '—' !== $new ? $new : ucfirst( $action );
+		}
+
+		return array_merge(
+			$row,
+			array(
+				'old_value'    => self::audit_safe( $key, $row['old_value'] ?? null ),
+				'new_value'    => self::audit_safe( $key, $row['new_value'] ?? null ),
+				'id'           => (int) ( $row['audit_id'] ?? 0 ),
+				'date'         => isset( $row['date_created'] ) ? mysql_to_rfc3339( (string) $row['date_created'] ) : null,
+				'user'         => '' !== $user ? $user : __( 'Zero Spam (automatic)', 'zero-spam' ),
+				'action'       => $action,
+				'action_label' => self::action_label( $action ),
+				'key'          => $key,
+				'key_title'    => null !== $key ? $title : null,
+				'site_name'    => $site > 0 ? self::site_name( $site ) : null,
+				'old'          => 'set' === $action ? $old : null,
+				'new'          => 'set' === $action ? $new : null,
+				'summary'      => $summary,
+			)
+		);
+	}
+
+	/**
+	 * A short label for an audit action.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $action Action type.
+	 */
+	public static function action_label( string $action ): string {
+		$labels = array(
+			'set'      => __( 'Change', 'zero-spam' ),
+			'lock'     => __( 'Lock', 'zero-spam' ),
+			'unlock'   => __( 'Unlock', 'zero-spam' ),
+			'apply'    => __( 'Apply', 'zero-spam' ),
+			'bulk'     => __( 'Bulk change', 'zero-spam' ),
+			'template' => __( 'Template', 'zero-spam' ),
+			'import'   => __( 'Import', 'zero-spam' ),
+			'reset'    => __( 'Reset', 'zero-spam' ),
+			'block'    => __( 'Block', 'zero-spam' ),
+			'unblock'  => __( 'Unblock', 'zero-spam' ),
+			'migrate'  => __( 'Update', 'zero-spam' ),
+		);
+
+		return $labels[ $action ] ?? ucfirst( $action );
+	}
+
+	/**
+	 * A stored audit value as text: secrets masked, empty as "(none)",
+	 * switches as On and Off.
+	 *
+	 * @param string|null $key   Setting key.
+	 * @param mixed       $value Stored value (text, JSON or null).
+	 */
+	private static function audit_value_text( ?string $key, $value ): string {
+		$value = self::audit_safe( $key, $value );
+
+		if ( is_string( $value ) && '' !== $value && ( '{' === $value[0] || '[' === $value[0] ) ) {
+			$decoded = json_decode( $value, true );
+			if ( is_array( $decoded ) ) {
+				if ( array_key_exists( 'set', $decoded ) ) {
+					return ! empty( $decoded['set'] ) ? (string) ( $decoded['hint'] ?? "\u{2022}\u{2022}\u{2022}\u{2022}" ) : __( '(none)', 'zero-spam' );
+				}
+				$value = implode( ', ', array_map( 'strval', array_filter( $decoded, 'is_scalar' ) ) );
+			}
+		}
+
+		if ( null === $value || '' === $value || false === $value ) {
+			return __( '(none)', 'zero-spam' );
+		}
+
+		// "1" is On only for a switch; for a number it is the number.
+		$entry  = null !== $key ? \ZeroSpam\Core\Settings_Schema::setting( $key ) : null;
+		$switch = null !== $entry && 'checkbox' === $entry['type'];
+
+		if ( 'enabled' === $value || true === $value || ( $switch && '1' === $value ) ) {
+			return __( 'On', 'zero-spam' );
+		}
+
+		if ( 'disabled' === $value ) {
+			return __( 'Off', 'zero-spam' );
+		}
+
+		$text = is_scalar( $value ) ? (string) $value : (string) wp_json_encode( $value );
+
+		return mb_strlen( $text ) > 120 ? mb_substr( $text, 0, 117 ) . '…' : $text;
+	}
+
+	/**
+	 * A site's name for the audit log.
+	 *
+	 * @param int $site_id Site.
+	 */
+	private static function site_name( int $site_id ): string {
+		$details = get_blog_details( $site_id );
+
+		return $details ? wp_specialchars_decode( (string) $details->blogname, ENT_QUOTES ) : sprintf(
+			/* translators: %d: site ID */
+			__( 'Site %d', 'zero-spam' ),
+			$site_id
+		);
 	}
 }

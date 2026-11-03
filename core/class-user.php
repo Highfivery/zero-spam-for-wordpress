@@ -429,7 +429,7 @@ class User {
 		self::$building = true;
 
 		try {
-			$configured = Utilities::parse_ip_ranges( Settings::get_settings( 'trusted_proxies' ) )['valid'];
+			$configured = Utilities::parse_ip_ranges( Settings_Schema::value( 'trusted_proxies' ) )['valid'];
 
 			/**
 			 * Filters the proxies whose forwarded headers are trusted, in

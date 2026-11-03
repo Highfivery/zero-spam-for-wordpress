@@ -61,6 +61,8 @@ class Give {
 	 * @param array $valid_data List of Valid Data.
 	 */
 	public function process_form( $valid_data ) {
+		unset( $valid_data ); // Passed by GiveWP; the submission is read from $_POST.
+
 		// Get post values.
 		// @codingStandardsIgnoreLine
 		$post_data = give_clean( $_POST );
@@ -143,7 +145,6 @@ class Give {
 	public function sections( $sections ) {
 		$sections['givewp'] = array(
 			'title'    => __( 'GiveWP', 'zero-spam' ),
-			'icon'     => 'modules/give/icon-givewp.png',
 			'supports' => array( 'honeypot', 'email' ),
 		);
 

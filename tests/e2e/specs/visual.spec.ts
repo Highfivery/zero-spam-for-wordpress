@@ -9,7 +9,7 @@
  */
 
 import { expect, test } from '../support/fixtures';
-import { openScreen, prepareState } from '../support/screen-runner';
+import { changesState, openScreen, prepareState } from '../support/screen-runner';
 import { screensFor, type ScreenState } from '../support/screens';
 import { E2E_DIR, resolveTarget } from '../support/targets';
 
@@ -38,8 +38,9 @@ for ( const state of [ 'empty', 'seeded' ] as ScreenState[] ) {
 					await expect( subject ).toHaveScreenshot( `${ screen.id }${ vp.name }.png`, {
 						mask: ( options.mask ?? [] ).map( ( sel ) => shown.locator( sel ) ),
 						stylePath: STYLE,
+						...( options.maxDiffPixels ? { maxDiffPixels: options.maxDiffPixels } : {} ),
 					} );
-					if ( screen.before ) {
+					if ( changesState( screen ) ) {
 						await prepareState( zs, state );
 					}
 				} );

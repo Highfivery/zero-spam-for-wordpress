@@ -33,7 +33,7 @@ class Utilities {
 	 *
 	 * @since 5.7.14
 	 *
-	 * @param string $relative_path Path relative to the plugin directory, e.g. assets/css/admin.css.
+	 * @param string $relative_path Path relative to the plugin directory, e.g. assets/fonts/fonts.css.
 	 * @return string Version for wp_enqueue_style()/wp_enqueue_script().
 	 */
 	public static function asset_version( string $relative_path ): string {
@@ -54,6 +54,85 @@ class Utilities {
 		}
 
 		return ZEROSPAM_VERSION;
+	}
+
+	/**
+	 * The current user's display preferences for Zero Spam's 6.0 screens
+	 * (ui/prefs: `theme` light, dark or auto; `reduce_motion`), as the
+	 * markup's data-zs-theme and data-zs-motion attributes need them.
+	 *
+	 * "auto" follows the operating system only inside the plugin's own
+	 * screens (the app shell). Elsewhere in wp-admin (the dashboard widget
+	 * under WordPress's white postbox header) "auto" renders light; dark
+	 * only when the user chose dark.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param bool     $plugin_screen Whether the markup is on one of the plugin's own screens.
+	 * @param int|null $user_id       User (default: the current user).
+	 * @return array{theme: string, reduce_motion: bool} Theme: light, dark or auto (auto only on the plugin's screens).
+	 */
+	public static function display_prefs( bool $plugin_screen = true, ?int $user_id = null ): array {
+		$stored = get_user_meta( $user_id ?? get_current_user_id(), 'zerospam_ui', true );
+		$theme  = is_array( $stored ) && isset( $stored['theme'] ) && in_array( $stored['theme'], array( 'light', 'dark', 'auto' ), true ) ? (string) $stored['theme'] : 'auto';
+
+		if ( ! $plugin_screen && 'auto' === $theme ) {
+			$theme = 'light';
+		}
+
+		return array(
+			'theme'         => $theme,
+			'reduce_motion' => is_array( $stored ) && isset( $stored['reduce_motion'] ) && true === $stored['reduce_motion'],
+		);
+	}
+
+	/**
+	 * Admin pages other code links to, by view: [ path, network ].
+	 *
+	 * @var array<string, array{0: string, 1: bool}>
+	 */
+	const ADMIN_LINKS = array(
+		'activity'         => array( 'admin.php?page=zero-spam-activity', false ),
+		'api-monitoring'   => array( 'admin.php?page=zero-spam-settings&tab=api', false ),
+		'license'          => array( 'admin.php?page=zero-spam-protection&tab=intelligence&card=zerospam', false ),
+		'network-activity' => array( 'admin.php?page=zero-spam-network&tab=stats', true ),
+		'network-license'  => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
+		'settings'         => array( 'admin.php?page=zero-spam-settings', false ),
+		'network-settings' => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
+		'no-lockout'       => array( 'admin.php?page=zero-spam-rules&tab=no-lockout', false ),
+		'allowlist'        => array( 'admin.php?page=zero-spam-rules&tab=allowlist', false ),
+		'proxies'          => array( 'admin.php?page=zero-spam-settings&section=proxies', false ),
+	);
+
+	/**
+	 * Address of a Zero Spam admin view.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $view activity, api-monitoring, license, settings, no-lockout, allowlist, proxies, network-activity, network-license or network-settings.
+	 * @return string Unescaped admin URL, or '' for an unknown view.
+	 */
+	public static function admin_link( string $view ): string {
+		if ( ! isset( self::ADMIN_LINKS[ $view ] ) ) {
+			return '';
+		}
+
+		list( $path, $network ) = self::ADMIN_LINKS[ $view ];
+
+		return $network ? network_admin_url( $path ) : admin_url( $path );
+	}
+
+	/**
+	 * Address of the activity log: the Activity screen, or the network
+	 * page's Statistics tab.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param bool $network Whether the network admin's activity is wanted.
+	 * @return string Unescaped admin URL.
+	 */
+	public static function activity_url( bool $network = false ): string {
+		return self::admin_link( $network ? 'network-activity' : 'activity' );
 	}
 
 	/**
@@ -278,11 +357,9 @@ class Utilities {
 		 */
 		$htaccess_file = (string) apply_filters( 'zerospam_htaccess_file', get_home_path() . '.htaccess' );
 		if ( wp_is_writable( $htaccess_file ) ) {
+			// No IP is blocked any more: the empty list clears the rules between
+			// the markers, so the last unblocked address is not left denied.
 			$lines = self::htaccess_rules( (string) $settings );
-
-			if ( empty( $lines ) ) {
-				return false;
-			}
 
 			if ( insert_with_markers( $htaccess_file, 'Zero Spam for WordPress', $lines ) ) {
 				return true;
@@ -366,6 +443,9 @@ class Utilities {
 		$module_settings[ $key ] = $value;
 
 		update_option( "zero-spam-$module", $module_settings, true );
+
+		// Saved settings make the site configured (and end a pending first-run setup).
+		\ZeroSpam\Core\Admin\Onboarding::settings_saved();
 
 		return true;
 	}
@@ -486,6 +566,17 @@ class Utilities {
 		 * @param array $excluded Array of field key names to skip.
 		 */
 		return apply_filters( 'zerospam_excluded_fields', $excluded );
+	}
+
+	/**
+	 * Forgets the allowed words and minimum word length read in this request
+	 * (after they are changed).
+	 *
+	 * @since 6.0.0
+	 */
+	public static function reset_word_caches(): void {
+		self::$allowed_words_cache = null;
+		self::$min_length_cache    = null;
 	}
 
 	/**

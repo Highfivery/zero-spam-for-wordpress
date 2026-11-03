@@ -13,7 +13,7 @@
  * Plugin Name:       Zero Spam for WordPress
  * Plugin URI:        https://wordpress.org/plugins/zero-spam/
  * Description:       Tired of all the ineffective WordPress anti-spam & security plugins? Zero Spam for WordPress makes blocking spam &amp; malicious activity a cinch. <strong>Just activate, configure, and say goodbye to spam.</strong>
- * Version:           5.7.14
+ * Version:           6.0.0
  * Requires at least: 6.9
  * Requires PHP:      8.2
  * Author:            Highfivery Studio
@@ -33,7 +33,7 @@ defined( 'ABSPATH' ) || die();
 define( 'ZEROSPAM', __FILE__ );
 define( 'ZEROSPAM_PATH', plugin_dir_path( ZEROSPAM ) );
 define( 'ZEROSPAM_PLUGIN_BASE', plugin_basename( ZEROSPAM ) );
-define( 'ZEROSPAM_VERSION', '5.7.14' );
+define( 'ZEROSPAM_VERSION', '6.0.0' );
 
 if ( defined( 'ZEROSPAM_DEVELOPMENT_URL' ) ) {
 	define( 'ZEROSPAM_URL', ZEROSPAM_DEVELOPMENT_URL );
@@ -108,6 +108,9 @@ function zerospam_plugin_activation( $network_wide = false ) {
 	if ( ! get_option( 'zerospam_activation_time' ) ) {
 		update_option( 'zerospam_activation_time', time() );
 	}
+
+	// A fresh install (no settings yet) activated on its own gets the first-run setup (6.0 admin).
+	\ZeroSpam\Core\Admin\Onboarding::on_activation( (bool) $network_wide );
 
 	// Save the activating administrator's IP so Zero Spam never locks them out (it is still checked for spam).
 	\ZeroSpam\Core\Admin_Safe_IPs::on_activation( (bool) $network_wide );

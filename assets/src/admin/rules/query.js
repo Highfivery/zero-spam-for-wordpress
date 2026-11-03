@@ -1,0 +1,305 @@
+/**
+ * The Rules area's tabs and REST paths (pure; unit tested).
+ *
+ * The first view's paths are preloaded by Admin_App::rules_preloads()
+ * exactly as written here (the page's preload store is keyed by the path),
+ * so the screen paints with its data and makes no request of its own on
+ * load. test/query.test.js checks the two stay in step.
+ */
+
+import { NS } from '../data/api';
+
+/** Tabs, in order (?tab=). */
+export const TABS = [
+	'ips',
+	'locations',
+	'allowlist',
+	'email',
+	'words',
+	'no-lockout',
+];
+
+/** Rows per page of the block lists and the list editors. */
+export const PER_PAGE = 50;
+
+/** The block lists' default order: newest first. */
+export const DEFAULT_SORT = 'date_added:desc';
+
+/**
+ * Width from which the block lists can be a table; below it, always cards.
+ * Wider than the Activity log's: in the widest content (a year in all three
+ * date columns) the table's fixed columns and floors need this viewport with
+ * the WordPress menu and the app's sidebar open. Above it the table still has
+ * to fit its space, or cards show (use-table-fit.js).
+ */
+export const TABLE_MIN_WIDTH = 1440;
+export const TABLE_QUERY = `(min-width: ${ TABLE_MIN_WIDTH }px)`;
+
+/** Overflow up to this many pixels is rounding, not a table that does not fit. */
+export const FIT_TOLERANCE = 1;
+
+/**
+ * Room beyond its need before the table is tried again. More than a page
+ * scrollbar: if the table is taller than the cards, showing it can bring a
+ * scrollbar that narrows the list, which must not make it overflow again.
+ */
+export const RETRY_MARGIN = 20;
+
+/**
+ * The width the list needs for the table to fit, if it does not fit now.
+ *
+ * @param {number} listWidth   The list's width.
+ * @param {number} scrollWidth The table wrap's scrollWidth.
+ * @param {number} clientWidth The table wrap's clientWidth.
+ * @return {number|null} Width needed, or null when the table fits.
+ */
+export function neededWidth( listWidth, scrollWidth, clientWidth ) {
+	const overflow = scrollWidth - clientWidth;
+	return overflow > FIT_TOLERANCE ? listWidth + overflow : null;
+}
+
+/**
+ * Whether a list showing cards because the table overflowed has room to try it again.
+ *
+ * @param {number|undefined} listWidth The list's width.
+ * @param {number|null}      needs     Width the table needed.
+ * @return {boolean} Try the table again.
+ */
+export function shouldRetryTable( listWidth, needs ) {
+	return (
+		null !== needs &&
+		Number.isFinite( listWidth ) &&
+		listWidth >= needs + RETRY_MARGIN
+	);
+}
+
+/** What each control becomes in the other layout; the first one present wins. */
+const CONTROL_TARGETS = {
+	main: [ 'main', 'edit' ],
+	edit: [ 'edit', 'main' ],
+	lookup: [ 'lookup', 'edit' ],
+};
+
+/**
+ * Where a control's focus goes when the layout changes.
+ *
+ * @param {string} control The control's data-zs-ctl.
+ * @return {string[]} Controls to try, in order.
+ */
+export function controlTargets( control ) {
+	return CONTROL_TARGETS[ control ] || [ control ];
+}
+
+/**
+ * The block-list control an element is, to find its match after a switch.
+ *
+ * @param {Element|null}      root    The list's root.
+ * @param {Element|null|void} element Focused element.
+ * @return {{row: string|null, control: string}|null} Row (none for the list's own controls) and control.
+ */
+export function rowControlOf( root, element ) {
+	const control = element?.closest?.( '[data-zs-ctl]' );
+	if ( ! root || ! control || ! root.contains( control ) ) {
+		return null;
+	}
+	return {
+		row: control.closest( '[data-zs-row]' )?.dataset.zsRow ?? null,
+		control: control.dataset.zsCtl,
+	};
+}
+
+/**
+ * Finds the control that matches a noted one in the current layout.
+ *
+ * @param {Element|null}                        root  The list's root.
+ * @param {{row: string|null, control: string}} noted From rowControlOf().
+ * @return {Element|null} The control.
+ */
+export function findControl( root, { row, control } ) {
+	const scope =
+		null === row ? root : root?.querySelector( `[data-zs-row="${ row }"]` );
+	for ( const name of controlTargets( control ) ) {
+		const found = scope?.querySelector( `[data-zs-ctl="${ name }"]` );
+		if ( found ) {
+			return found;
+		}
+	}
+	return null;
+}
+
+/** The list each list tab edits (rules/lists/{list}). */
+export const LIST_OF_TAB = {
+	allowlist: 'allowed-ips',
+	email: 'email-domains',
+	words: 'allowed-words',
+};
+
+/** The block kind of each block tab. */
+export const KIND_OF_TAB = { ips: 'ip', locations: 'location' };
+
+/** Columns the block lists sort by (Rules_Controller::BLOCK_ORDERBY). */
+export const SORT_COLUMNS = [ 'date_added', 'type', 'key', 'start', 'end' ];
+
+/**
+ * A query string from arguments, in the given order, without empty ones.
+ *
+ * @param {Array<[string, unknown]>} args Arguments.
+ * @return {string} Query string with its "?", or ''.
+ */
+const query = ( args ) => {
+	const text = args
+		.filter( ( [ , v ] ) => undefined !== v && null !== v && '' !== v )
+		.map(
+			( [ k, v ] ) =>
+				`${ encodeURIComponent( k ) }=${ encodeURIComponent( v ) }`
+		)
+		.join( '&' );
+	return text ? `?${ text }` : '';
+};
+
+/**
+ * The card list's Sort menu: its own choices, plus the current order when only
+ * the table offers it (a sort chosen before the window narrowed), so the menu
+ * never names an order the list is not in.
+ *
+ * @param {Array<[string, string]>} options Values and names.
+ * @param {string}                  sort    Current order.
+ * @param {string}                  other   Name for an order of the table.
+ * @return {Array<[string, string]>} Values and names.
+ */
+export function sortChoices( options, sort, other ) {
+	return options.some( ( [ value ] ) => value === sort )
+		? options
+		: [ ...options, [ sort, other ] ];
+}
+
+/**
+ * A sort value split into column and direction.
+ *
+ * @param {string} sort column:direction.
+ * @return {[string, string]} Column and asc or desc.
+ */
+export function splitSort( sort ) {
+	const [ col, dir ] = String( sort || '' ).split( ':' );
+	return [
+		SORT_COLUMNS.includes( col ) ? col : 'date_added',
+		'asc' === dir ? 'asc' : 'desc',
+	];
+}
+
+/**
+ * The next sort when a column header is pressed: the other direction for
+ * the current column; a new column starts newest or A–Z first.
+ *
+ * @param {string} sort   Current sort.
+ * @param {string} column Column pressed.
+ * @return {string} New sort.
+ */
+export function toggleSort( sort, column ) {
+	const [ col, dir ] = splitSort( sort );
+	if ( col === column ) {
+		return `${ col }:${ 'asc' === dir ? 'desc' : 'asc' }`;
+	}
+	return `${ column }:${ 'date_added' === column ? 'desc' : 'asc' }`;
+}
+
+/**
+ * aria-sort of a column header.
+ *
+ * @param {string} sort   Current sort.
+ * @param {string} column Column.
+ * @return {string} ascending, descending or none.
+ */
+export function ariaSort( sort, column ) {
+	const parts = splitSort( sort );
+	if ( parts[ 0 ] !== column ) {
+		return 'none';
+	}
+	return 'asc' === parts[ 1 ] ? 'ascending' : 'descending';
+}
+
+/**
+ * The path of a block list page.
+ *
+ * @param {Object} view          View.
+ * @param {string} view.kind     ip or location.
+ * @param {string} [view.search] Search text.
+ * @param {number} [view.page]   Page.
+ * @param {string} [view.sort]   column:direction.
+ * @return {string} Path.
+ */
+export function blocksPath( {
+	kind,
+	search = '',
+	page = 1,
+	sort = DEFAULT_SORT,
+} ) {
+	const [ orderby, order ] = splitSort( sort );
+	return `${ NS }/rules/blocks${ query( [
+		[ 'kind', 'location' === kind ? 'location' : 'ip' ],
+		[ 'per_page', PER_PAGE ],
+		[ 'orderby', orderby ],
+		[ 'order', order ],
+		[ 'page', page > 1 ? page : '' ],
+		[ 'search', search.trim() ],
+	] ) }`;
+}
+
+/**
+ * The path of a list page.
+ *
+ * @param {string} list          allowed-ips, email-domains or allowed-words.
+ * @param {Object} [view]        View.
+ * @param {string} [view.search] Search text.
+ * @param {number} [view.page]   Page.
+ * @return {string} Path.
+ */
+export function listPath( list, { search = '', page = 1 } = {} ) {
+	return `${ NS }/rules/lists/${ list }${ query( [
+		[ 'per_page', PER_PAGE ],
+		[ 'page', page > 1 ? page : '' ],
+		[ 'search', search.trim() ],
+	] ) }`;
+}
+
+/** The never-locked-out addresses. */
+export const NO_LOCKOUT_PATH = `${ NS }/rules/no-lockout`;
+
+/**
+ * The path a tab reads on load (what Admin_App preloads for it).
+ *
+ * @param {string} tab Tab.
+ * @return {string} Path.
+ */
+export function firstPath( tab ) {
+	if ( KIND_OF_TAB[ tab ] ) {
+		return blocksPath( { kind: KIND_OF_TAB[ tab ] } );
+	}
+	if ( LIST_OF_TAB[ tab ] ) {
+		return listPath( LIST_OF_TAB[ tab ] );
+	}
+	return NO_LOCKOUT_PATH;
+}
+
+/**
+ * Pages of a list.
+ *
+ * @param {number} total   Entries.
+ * @param {number} page    Page asked for.
+ * @param {number} [shown] Entries on this page.
+ * @return {{page: number, pages: number, from: number, to: number}} Paging.
+ */
+export function paging( total, page, shown = PER_PAGE ) {
+	const pages = Math.max(
+		1,
+		Math.ceil( ( Number( total ) || 0 ) / PER_PAGE )
+	);
+	const current = Math.min( Math.max( 1, Number( page ) || 1 ), pages );
+	const from = total > 0 ? ( current - 1 ) * PER_PAGE + 1 : 0;
+	return {
+		page: current,
+		pages,
+		from,
+		to: total > 0 ? Math.min( total, from + Math.max( 0, shown ) - 1 ) : 0,
+	};
+}

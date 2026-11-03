@@ -6,6 +6,9 @@
 # directory (core.hooksPath = .githooks). It refuses the push when any check
 # fails so that nothing unchecked reaches GitHub. There is no CI service.
 #
+#   0. check:dist      assets/dist matches a fresh build of assets/src and the
+#                      size budgets hold (bin/check-dist.sh; only when the build
+#                      inputs or outputs changed; needs Node 22, loads nvm)
 #   1. version:check   plugin header, ZEROSPAM_VERSION and Stable tag agree
 #   2. lint:changed    full WPCS ruleset on PHP files changed vs origin/develop
 #   3. lint:tests      WPCS on the test code (phpcs.tests.xml.dist)
@@ -55,6 +58,9 @@ if [[ ! -x vendor/bin/phpcs || ! -x vendor/bin/phpstan || ! -x vendor/bin/phpuni
 fi
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$1"; }
+
+step "0/6 Built assets (assets/dist) and size budgets"
+bin/check-dist.sh
 
 step "1/6 Version consistency"
 bin/check-version.sh

@@ -177,37 +177,155 @@ function clear_records( string $option ): void {
  */
 
 /**
+ * The canned zerospam.org article feed (RSS), so the news tile, the sidebar
+ * and the Help news have the same eight articles on every run. Fixed dates;
+ * "Incident Response" marks a security notice (News_Feed::SECURITY_CATEGORY).
+ *
+ * @return string RSS.
+ */
+function canned_feed(): string {
+	$articles = array(
+		array( 'AI Is Finding Critical Bugs Fast: Is Your Website Ready?', 'ai-found-vulnerabilities-website-owners', 'Fri, 23 Oct 2026 09:00:00 +0000', 'Site Security', 'AI tools found PHP2Shell and a Node.js flaw this month. What that means for site owners, and a plan for the next patch emergency.' ),
+		array( 'PHP2Shell Explained: What to Do Now (Live Updates)', 'php2shell-php-vulnerability-live-updates', 'Thu, 22 Oct 2026 15:00:00 +0000', 'Incident Response', 'A pair of critical PHP flaws lets attackers run code without logging in. Who is affected, and what to do, updated daily.' ),
+		array( 'A Fake Store Every 3 Minutes: How to Protect Your Brand', 'fake-online-stores-brand-clones', 'Thu, 22 Oct 2026 09:00:00 +0000', 'Site Security', 'Fake online stores copying real brands appear about every 3 minutes. How to find clones and report them.' ),
+		array( 'How to Stop Calendar Invite Phishing (2026)', 'stop-calendar-invite-phishing', 'Wed, 21 Oct 2026 09:00:00 +0000', 'Site Security', 'Fake meeting invites can land on your calendar even when the email is filtered. How to lock it down.' ),
+		array( 'Meta’s Muse AI Agent Is Filling Out Your Website Forms', 'meta-muse-ai-agent-website-forms', 'Tue, 20 Oct 2026 09:00:00 +0000', 'Spam Protection', 'An AI agent is hitting forms from cloud IPs without naming itself. Five decisions site owners should make now.' ),
+		array( 'Rank Math PRO 3.0.123 Malware: Check Your Update Time', 'rank-math-pro-3-0-123-malware', 'Mon, 19 Oct 2026 09:00:00 +0000', 'Incident Response', 'Some downloads carried malware in an 11-hour window on Oct 15–16. How to tell if your site got one.' ),
+		array( 'Ghostscript CVE-2026-39919: Check WordPress PDF Uploads', 'ghostscript-cve-2026-39919-wordpress-pdf-uploads', 'Wed, 14 Oct 2026 09:00:00 +0000', 'Incident Response', 'Crafted PDFs can corrupt memory when servers make thumbnails. How to check your uploads.' ),
+		array( 'Google Flags Fake Author Profiles: 5 Checks for Your Site', 'google-fake-author-profiles-ai-content', 'Mon, 12 Oct 2026 09:00:00 +0000', 'Spam Protection', 'Google now treats fake author profiles as deception. What changed, and five checks for your site.' ),
+	);
+
+	$items = '';
+	foreach ( $articles as $a ) {
+		$items .= sprintf(
+			'<item><title>%1$s</title><link>https://www.zerospam.org/%2$s/</link><pubDate>%3$s</pubDate><category><![CDATA[%4$s]]></category><description><![CDATA[%5$s]]></description></item>',
+			esc_xml( $a[0] ),
+			$a[1],
+			$a[2],
+			$a[3],
+			$a[4]
+		);
+	}
+
+	return '<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Zero Spam</title><link>https://www.zerospam.org/articles/</link>' . $items . '</channel></rss>';
+}
+
+/**
+ * Serves strings set through /script-translations as the plugin's script
+ * translations, on token requests, so a test can see the admin in a longer
+ * language without a language pack.
+ */
+add_filter(
+	'pre_load_script_translations',
+	static function ( $translations, $file, $handle, $domain ) {
+		unset( $file, $handle );
+		if ( 'zero-spam' !== $domain || ! is_token_request() ) {
+			return $translations;
+		}
+		$strings = is_multisite() ? get_site_option( 'zs_e2e_script_translations' ) : get_option( 'zs_e2e_script_translations' );
+		if ( empty( $strings ) || ! is_array( $strings ) ) {
+			return $translations;
+		}
+		$messages = array( '' => array( 'domain' => 'messages' ) );
+		foreach ( $strings as $source => $text ) {
+			$messages[ $source ] = array( $text );
+		}
+
+		return wp_json_encode(
+			array(
+				'domain'      => 'messages',
+				'locale_data' => array( 'messages' => $messages ),
+			)
+		);
+	},
+	10,
+	4
+);
+
+/**
+ * Whether a test made the zerospam.org feed fail (route `/news`).
+ *
+ * @return bool
+ */
+function news_down(): bool {
+	return (bool) ( is_multisite() ? get_site_option( 'zs_e2e_news_down' ) : get_option( 'zs_e2e_news_down' ) );
+}
+
+/**
+ * Stop Forum Spam's answer: nothing is listed, except a username or email
+ * containing `e2e-sfs-listed` / `e2esfslisted` and the IP 198.51.100.66.
+ *
+ * @param string $query Request query string.
+ * @return array<string, mixed>
+ */
+function canned_stop_forum_spam( string $query ): array {
+	parse_str( $query, $params );
+
+	$listed = array(
+		'appears'    => 1,
+		'frequency'  => 3,
+		'confidence' => '99.00',
+	);
+	$clean  = array(
+		'appears'   => 0,
+		'frequency' => 0,
+	);
+	$answer = array( 'success' => 1 );
+
+	foreach ( array( 'username', 'email', 'ip' ) as $field ) {
+		$value = isset( $params[ $field ] ) && is_string( $params[ $field ] ) ? $params[ $field ] : null;
+		if ( null === $value && 'ip' !== $field ) {
+			continue;
+		}
+
+		$answer[ $field ] = ( null !== $value && ( str_contains( $value, 'e2e-sfs-listed' ) || str_contains( $value, 'e2esfslisted' ) || '198.51.100.66' === $value ) ) ? $listed : $clean;
+	}
+
+	return $answer;
+}
+
+/**
  * Canned responses keyed by host (and path fragment).
  *
- * @param string $host Request host.
- * @param string $path Request path.
- * @return array|null Body array, or null when the host is not a known service.
+ * The license answer is a valid Business license (what a site on Enhanced
+ * Protection sees); a site is on Basic until a test saves a key. The key
+ * `e2e-invalid` is answered as unknown (an invalid key).
+ *
+ * @param string $host  Request host.
+ * @param string $path  Request path.
+ * @param string $query Request query string.
+ * @return array|string|null Body array (sent as JSON), raw body string, or null when the host is not a known service.
  */
-function canned_body( string $host, string $path ): ?array {
+function canned_body( string $host, string $path, string $query = '' ) {
 	if ( str_ends_with( $host, 'zerospam.org' ) ) {
+		if ( str_contains( $path, 'get-license' ) && str_contains( $query, 'license_key=e2e-invalid' ) ) {
+			return array( 'error' => 'invalid_license' );
+		}
 		if ( str_contains( $path, 'get-license' ) ) {
 			return array(
-				'license_key'       => 'e2e-license',
-				'queries_remaining' => 1000,
+				'license_key'         => 'e2e-license',
+				'product_id'          => 'ZEROSPAMBUSINESS',
+				'queries_limit'       => 50000,
+				'queries_made'        => 31200,
+				'queries_remaining'   => 18800,
+				'subscription_status' => 'active',
 			);
 		}
 		if ( str_contains( $path, 'v3/query' ) ) {
+			// The shape Zero_Spam::query() reads: a 200 status and a body_response.
 			return array(
-				'status' => 200,
-				'result' => array(),
+				'status'        => 200,
+				'body_response' => array( 'ip_addresses' => array() ),
 			);
+		}
+		if ( str_contains( $path, '/articles/feed' ) ) {
+			return canned_feed();
 		}
 		return array( 'status' => 'success' );
 	}
 
 	if ( 'api.stopforumspam.org' === $host ) {
-		return array(
-			'success' => 1,
-			'ip'      => array(
-				'appears'   => 0,
-				'frequency' => 0,
-			),
-		);
+		return canned_stop_forum_spam( $query );
 	}
 
 	if ( in_array( $host, array( 'api.ipstack.com', 'ipinfo.io', 'api.ipinfo.io', 'api.ipbase.com' ), true ) ) {
@@ -258,7 +376,12 @@ add_filter(
 			return $preempt;
 		}
 
-		$body = canned_body( $host, $path );
+		// The news is "down" (Help's news-unavailable screen): the feed request fails.
+		if ( str_ends_with( $host, 'zerospam.org' ) && str_contains( $path, '/articles/feed' ) && news_down() ) {
+			return new WP_Error( 'zs_e2e_news_down', 'Zero Spam e2e: the news feed is down for this test.' );
+		}
+
+		$body = canned_body( $host, $path, (string) wp_parse_url( (string) $url, PHP_URL_QUERY ) );
 
 		append_record(
 			HTTP_CALLS_OPTION,
@@ -277,8 +400,8 @@ add_filter(
 		}
 
 		return array(
-			'headers'  => array( 'content-type' => 'application/json' ),
-			'body'     => (string) wp_json_encode( $body ),
+			'headers'  => array( 'content-type' => is_string( $body ) ? 'application/rss+xml; charset=UTF-8' : 'application/json' ),
+			'body'     => is_string( $body ) ? $body : (string) wp_json_encode( $body ),
 			'response' => array(
 				'code'    => 200,
 				'message' => 'OK',
@@ -357,23 +480,6 @@ add_filter(
 		$fake = fake_ip_header();
 
 		return '' !== $fake && is_test_net( $fake ) ? $fake : $ip;
-	},
-	PHP_INT_MAX
-);
-
-/*
- * The Enhanced Protection promo notice is plugin UI, but showing it on every
- * admin screen would put it into every screenshot. Tests that want it set the
- * zs_e2e_show_promo option (reset route, "promo": true).
- */
-add_filter(
-	'zerospam_display_promo_notice',
-	static function ( $display ) {
-		if ( ! is_token_request() ) {
-			return $display;
-		}
-
-		return $display && (bool) ( is_multisite() ? get_site_option( 'zs_e2e_show_promo' ) : get_option( 'zs_e2e_show_promo' ) );
 	},
 	PHP_INT_MAX
 );
@@ -767,11 +873,85 @@ function plugin_cron_hooks(): array {
 }
 
 /**
+ * Markup the crafted seed writes into log rows; it sets window.__zsXss if it ever runs.
+ */
+const CRAFTED_MARKUP = '<img src="x" onerror="window.__zsXss=1"><b>zs-crafted</b>';
+
+/**
+ * Runs one statement of a reset or restore and says whether it worked.
+ *
+ * With WP_DEBUG, wpdb prints its error as HTML, which sends a 200 and breaks
+ * the JSON before the REST answer is out; the error goes in the answer
+ * instead (db_error()).
+ *
+ * @param callable():mixed $run Runs the statement ($wpdb->query(), insert() …).
+ * @return bool False when the database refused it ($wpdb->last_error says why).
+ */
+function db_ran( callable $run ): bool {
+	global $wpdb;
+
+	$shown  = $wpdb->hide_errors();
+	$result = $run();
+	$wpdb->show_errors( $shown );
+
+	return false !== $result;
+}
+
+/**
+ * The 500 a reset or restore answers when the database refused a statement,
+ * naming the table and the database's own error.
+ *
+ * @param string $code    Error code.
+ * @param string $message What could not be done, e.g. "Reset could not empty wp_x".
+ * @param string $table   The table.
+ * @return WP_Error
+ */
+function db_error( string $code, string $message, string $table ): WP_Error {
+	global $wpdb;
+
+	$error = (string) $wpdb->last_error;
+
+	return new WP_Error(
+		$code,
+		sprintf( '%s: %s', $message, '' !== $error ? $error : 'the database gave no error message' ),
+		array(
+			'status' => 500,
+			'table'  => $table,
+			'error'  => $error,
+		)
+	);
+}
+
+/**
+ * Runs one statement of a reset that empties a table.
+ *
+ * A reset that fails half way must not look like a clean site: when the
+ * database refused (a full disk once made every TRUNCATE fail silently, rows
+ * piled up and unrelated accessibility scans failed), the reset answers 500
+ * with the table and the database's own error.
+ *
+ * @param string $sql   A prepared TRUNCATE or DELETE statement.
+ * @param string $table The table it empties, for the message.
+ * @param string $code  Error code (zs_e2e_reset_failed, or zs_e2e_restore_failed from restore_snapshot()).
+ * @return WP_Error|null Null when the statement ran.
+ */
+function empty_table( string $sql, string $table, string $code = 'zs_e2e_reset_failed' ): ?WP_Error {
+	global $wpdb;
+
+	if ( db_ran( static fn() => $wpdb->query( $sql ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared by every caller.
+		return null;
+	}
+
+	return db_error( $code, ( 'zs_e2e_reset_failed' === $code ? 'Reset' : 'Restore' ) . ' could not empty ' . $table, $table );
+}
+
+/**
  * Resets the current site's plugin state.
  *
  * @param string $preset defaults|recommended|baseline.
+ * @return WP_Error|null Null on success; a 500 error naming the table a TRUNCATE failed on.
  */
-function reset_site( string $preset ): void {
+function reset_site( string $preset ): ?WP_Error {
 	global $wpdb;
 
 	$keep = array( 'zerospam_db_version', 'zerospam_completed_migrations', 'zerospam_davidwalsh_secret', 'wpzerospam_honeypot' );
@@ -793,25 +973,31 @@ function reset_site( string $preset ): void {
 	foreach ( array( 'wpzerospam_log', 'wpzerospam_blocked' ) as $table ) {
 		$full = $wpdb->prefix . $table;
 		if ( $full === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $full ) ) ) {
-			$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $full ) );
+			$failed = empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $full ), $full );
+			if ( $failed ) {
+				return $failed;
+			}
 		}
 	}
 
-	// Past the plugin's three-day wait, so whether the promo notice shows
-	// depends only on the zerospam_display_promo_notice filter below.
-	update_option( 'zerospam_activation_time', time() - ( 4 * DAY_IN_SECONDS ) );
+	// The 5.x settings review notice was removed in 6.0.0; a 5.x value is cleared all the same.
 	delete_option( 'zerospam_show_settings_review_notice' );
+	// The promo switch of earlier versions of this mu-plugin (the promo notice was removed in 6.0.0).
+	delete_option( 'zs_e2e_show_promo' );
+	if ( is_multisite() ) {
+		delete_site_option( 'zs_e2e_show_promo' );
+	}
 
 	wp_cache_flush();
 
 	if ( 'defaults' === $preset || ! class_exists( '\ZeroSpam\Core\Settings' ) ) {
-		return;
+		return null;
 	}
 
 	\ZeroSpam\Core\Settings::auto_configure();
 
 	if ( 'baseline' !== $preset ) {
-		return;
+		return null;
 	}
 
 	$baseline = array(
@@ -837,6 +1023,8 @@ function reset_site( string $preset ): void {
 	}
 
 	wp_cache_flush();
+
+	return null;
 }
 
 /**
@@ -971,9 +1159,17 @@ function validate_snapshot( array $snapshot ) {
 /**
  * Restores a snapshot taken by take_snapshot() (validate it first).
  *
+ * This puts back a Local site's real plugin data after a run, so it never
+ * carries on past a statement the database refused: it stops at the first
+ * CREATE, TRUNCATE or INSERT that fails and answers 500
+ * (zs_e2e_restore_failed) naming the table and the database's error, with
+ * the tables before it restored and the ones after it untouched. The
+ * snapshot file stays in the run's artifacts to POST again.
+ *
  * @param array $snapshot Snapshot.
+ * @return WP_Error|null Null when everything was restored.
  */
-function restore_snapshot( array $snapshot ): void {
+function restore_snapshot( array $snapshot ): ?WP_Error {
 	global $wpdb;
 
 	$restore = static function ( array $site ) use ( $wpdb ): void {
@@ -1031,16 +1227,103 @@ function restore_snapshot( array $snapshot ): void {
 		}
 		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
 			// Dropped during the run (uninstall); recreate it from the saved schema, checked by validate_snapshot().
-			$wpdb->query( (string) $data['create'] ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A CREATE TABLE statement read from this database by take_snapshot() and validated; it has no placeholders.
+			$create = (string) $data['create'];
+			if ( ! db_ran( static fn() => $wpdb->query( $create ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A CREATE TABLE statement read from this database by take_snapshot() and validated; it has no placeholders.
+				wp_cache_flush();
+				return db_error( 'zs_e2e_restore_failed', 'Restore stopped: could not recreate ' . $table, $table );
+			}
 		}
-		$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
-		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
-			$wpdb->insert( $table, (array) $row );
+		$failed = empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ), $table, 'zs_e2e_restore_failed' );
+		if ( $failed ) {
+			wp_cache_flush();
+			return $failed;
+		}
+		foreach ( array_values( (array) ( $data['rows'] ?? array() ) ) as $index => $row ) {
+			$row = (array) $row;
+			if ( ! db_ran( static fn() => $wpdb->insert( $table, $row ) ) ) {
+				wp_cache_flush();
+				return db_error( 'zs_e2e_restore_failed', sprintf( 'Restore stopped: could not insert row %d of %d into %s', $index + 1, count( (array) $data['rows'] ), $table ), $table );
+			}
 		}
 	}
 
 	wp_cache_flush();
+
+	return null;
 }
+
+/**
+ * Option that turns the fake third-party settings section on (POST /fake-section).
+ */
+const FAKE_SECTION_OPTION = 'zs_e2e_fake_section';
+
+/*
+ * A settings section registered the way an extension would (no area, a
+ * verify_* switch, text, radio and multi-select settings), shown in
+ * Protection › Integrations by the generic renderer. Off unless a test
+ * turns it on; every reset turns it off.
+ */
+add_filter(
+	'zerospam_setting_sections',
+	static function ( $sections ) {
+		if ( get_option( FAKE_SECTION_OPTION ) && is_array( $sections ) ) {
+			$sections['zs_e2e_widgets'] = array( 'title' => 'E2E Widget Forms' );
+		}
+
+		return $sections;
+	}
+);
+
+add_filter(
+	'zerospam_settings',
+	static function ( $settings ) {
+		if ( ! get_option( FAKE_SECTION_OPTION ) || ! is_array( $settings ) ) {
+			return $settings;
+		}
+
+		$stored = get_option( 'zero-spam-zs_e2e_widgets', array() );
+		$stored = is_array( $stored ) ? $stored : array();
+		$common = array(
+			'section' => 'zs_e2e_widgets',
+			'module'  => 'zs_e2e_widgets',
+		);
+
+		$settings['verify_zs_e2e_widgets']  = $common + array(
+			'title'   => 'Protect widget forms',
+			'desc'    => 'Checks every widget form for spam.',
+			'type'    => 'checkbox',
+			'options' => array( 'enabled' => 'Enabled' ),
+			'value'   => $stored['verify_zs_e2e_widgets'] ?? false,
+		);
+		$settings['zs_e2e_widgets_message'] = $common + array(
+			'title' => 'Blocked message',
+			'desc'  => 'Shown when a widget form is blocked. <a href="https://example.com/docs">Learn more</a>',
+			'type'  => 'text',
+			'value' => $stored['zs_e2e_widgets_message'] ?? 'Blocked.',
+		);
+		$settings['zs_e2e_widgets_mode']    = $common + array(
+			'title'   => 'Mode',
+			'type'    => 'radio',
+			'options' => array(
+				'strict'  => 'Strict',
+				'relaxed' => 'Relaxed',
+			),
+			'value'   => $stored['zs_e2e_widgets_mode'] ?? 'strict',
+		);
+		$settings['zs_e2e_widgets_roles']   = $common + array(
+			'title'    => 'Roles that skip the check',
+			'type'     => 'select',
+			'multiple' => true,
+			'options'  => array(
+				'administrator' => 'Administrator',
+				'editor'        => 'Editor',
+			),
+			'value'    => $stored['zs_e2e_widgets_roles'] ?? array(),
+		);
+
+		return $settings;
+	}
+);
 
 /**
  * Sample locations for seeded log rows (deterministic).
@@ -1131,17 +1414,12 @@ add_action(
 					}
 
 					$network = is_multisite() && rest_sanitize_boolean( $request->get_param( 'network' ) ?? false );
+					delete_option( FAKE_SECTION_OPTION );
 					// Every capability check before the first write.
 					if ( $network && ! current_user_can( 'manage_network_options' ) ) {
 						return new WP_Error( 'zs_e2e_forbidden', 'Network reset needs manage_network_options.', array( 'status' => 403 ) );
 					}
 
-					$promo = rest_sanitize_boolean( $request->get_param( 'promo' ) ?? false );
-					if ( is_multisite() ) {
-						update_site_option( 'zs_e2e_show_promo', $promo ? 1 : 0 );
-					} else {
-						update_option( 'zs_e2e_show_promo', $promo ? 1 : 0, false );
-					}
 					if ( rest_sanitize_boolean( $request->get_param( 'clearErrorLog' ) ?? false ) && class_exists( '\ZeroSpam\Core\Utilities' ) ) {
 						\ZeroSpam\Core\Utilities::delete_error_log();
 					}
@@ -1153,26 +1431,226 @@ add_action(
 						// network keeps its audit history.
 						$audit = $wpdb->base_prefix . 'wpzerospam_network_audit';
 						if ( defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE && $audit === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $audit ) ) ) {
-							$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $audit ) );
+							$failed = empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $audit ), $audit );
+							if ( $failed ) {
+								return $failed;
+							}
+						}
+						// Network-wide blocks and custom templates (6.0): all of them on a
+						// disposable site; on a Local network only the TEST-NET blocks and
+						// the e2e- templates the tests make.
+						$network_blocked   = $wpdb->base_prefix . 'wpzerospam_network_blocked';
+						$network_templates = $wpdb->base_prefix . 'wpzerospam_network_templates';
+						if ( $network_blocked === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $network_blocked ) ) ) {
+							$failed = defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE
+								? empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $network_blocked ), $network_blocked )
+								: empty_table( $wpdb->prepare( 'DELETE FROM %i WHERE user_ip LIKE %s OR user_ip LIKE %s OR user_ip LIKE %s OR user_ip LIKE %s', $network_blocked, '192.0.2.%', '198.51.100.%', '203.0.113.%', '2001:db8:%' ), $network_blocked );
+							if ( $failed ) {
+								return $failed;
+							}
+						}
+						if ( $network_templates === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $network_templates ) ) ) {
+							$failed = defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE
+								? empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $network_templates ), $network_templates )
+								: empty_table( $wpdb->prepare( 'DELETE FROM %i WHERE template_slug LIKE %s', $network_templates, $wpdb->esc_like( 'e2e-' ) . '%' ), $network_templates );
+							if ( $failed ) {
+								return $failed;
+							}
+						}
+						foreach ( array( 'zerospam_network_blocks', 'zerospam_network_compare', 'zerospam_network_report', 'zerospam_network_stats_v6_today', 'zerospam_network_stats_v6_yesterday', 'zerospam_network_stats_v6_7', 'zerospam_network_stats_v6_30' ) as $transient ) {
+							delete_site_transient( $transient . '_' . get_current_network_id() );
 						}
 						delete_site_option( 'zerospam_network_settings' );
 						delete_site_option( 'zero-spam-network-zerospam' );
-						delete_site_transient( 'zerospam_network_settings' );
+						delete_site_option( 'zerospam_network_notifications_enabled' );
+						delete_site_option( 'zerospam_network_settings_notifications_enabled' );
+						delete_site_transient( 'zerospam_network_settings_' . get_current_network_id() );
 						foreach ( get_sites( array( 'number' => 0 ) ) as $site ) {
 							switch_to_blog( (int) $site->blog_id );
-							reset_site( $preset );
+							$failed = reset_site( $preset );
 							restore_current_blog();
+							if ( $failed ) {
+								return $failed;
+							}
 						}
 					} else {
-						reset_site( $preset );
+						$failed = reset_site( $preset );
+						if ( $failed ) {
+							return $failed;
+						}
+					}
+
+					// The 6.0 admin's per-user preferences (theme, live feed, dismissed
+					// tiles) and the cached news start fresh too.
+					delete_metadata( 'user', 0, 'zerospam_ui', '', true );
+					delete_site_transient( 'zerospam_news' );
+					delete_site_transient( 'zerospam_news_backoff' );
+					if ( is_multisite() ) {
+						delete_site_option( 'zs_e2e_news_down' );
+						delete_site_option( 'zs_e2e_script_translations' );
+					} else {
+						delete_option( 'zs_e2e_news_down' );
+						delete_option( 'zs_e2e_script_translations' );
+					}
+
+					// level=enhanced: a saved license key (the canned answer is a valid
+					// Business license) with Enhanced Protection on; basic: no key.
+					$level = (string) ( $request->get_param( 'level' ) ?? 'basic' );
+					if ( 'enhanced' === $level && 'defaults' !== $preset && class_exists( '\ZeroSpam\Core\Utilities' ) ) {
+						\ZeroSpam\Core\Utilities::update_setting( 'zerospam_license', 'e2e-license' );
+						\ZeroSpam\Core\Utilities::update_setting( 'zerospam', 'enabled' );
+						delete_transient( 'zerospam_license_status' );
+						wp_cache_flush();
 					}
 
 					return new WP_REST_Response(
 						array(
 							'preset'  => $preset,
 							'network' => $network,
+							'level'   => 'enhanced' === $level ? 'enhanced' : 'basic',
 						)
 					);
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/fake-section',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$on = rest_sanitize_boolean( $request->get_param( 'on' ) ?? true );
+					if ( $on ) {
+						update_option( FAKE_SECTION_OPTION, 1, false );
+					} else {
+						delete_option( FAKE_SECTION_OPTION );
+						delete_option( 'zero-spam-zs_e2e_widgets' );
+					}
+
+					return new WP_REST_Response( array( 'on' => $on ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/self-test-reset',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function () {
+					// The self-test runs once a minute per site; screens and specs each start fresh.
+					delete_transient( 'zerospam_self_test_lock' );
+
+					return new WP_REST_Response( array( 'reset' => true ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/ui-prefs',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$prefs = $request->get_param( 'prefs' );
+					if ( ! is_array( $prefs ) || ! $prefs ) {
+						delete_user_meta( get_current_user_id(), 'zerospam_ui' );
+						return new WP_REST_Response( array() );
+					}
+					$current = get_user_meta( get_current_user_id(), 'zerospam_ui', true );
+					$merged  = array_merge( is_array( $current ) ? $current : array(), $prefs );
+					update_user_meta( get_current_user_id(), 'zerospam_ui', $merged );
+
+					return new WP_REST_Response( $merged );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/first-run',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					// fresh: a new install waiting for first-run setup (no settings, flag
+					// pending), as the activation hook leaves it; provisioned: the same,
+					// but with core and comment settings written straight to the options
+					// (as provisioning would, without any save hook: comments off);
+					// upgraded: a site the v6_whats_new migration flagged; none: neither.
+					$mode = (string) ( $request->get_param( 'mode' ) ?? 'none' );
+					if ( ! in_array( $mode, array( 'fresh', 'provisioned', 'upgraded', 'none' ), true ) ) {
+						return new WP_Error( 'zs_e2e_mode', 'Unknown mode.', array( 'status' => 400 ) );
+					}
+
+					delete_option( 'zerospam_onboarding' );
+					delete_option( 'zerospam_onboarding_steps' );
+					delete_option( 'zerospam_whats_new' );
+					delete_user_meta( get_current_user_id(), 'zerospam_ui' );
+
+					if ( 'fresh' === $mode || 'provisioned' === $mode ) {
+						$failed = reset_site( 'defaults' );
+						if ( $failed ) {
+							return $failed;
+						}
+						delete_option( 'zerospam_configured' );
+						update_option( 'zerospam_onboarding', 'pending', true );
+					}
+					if ( 'provisioned' === $mode ) {
+						update_option( 'zero-spam-settings', array( 'log_blocked_ips' => 'enabled' ) );
+						update_option( 'zero-spam-comments', array( 'verify_comments' => false ) );
+						update_option( 'zero-spam-login', array( 'verify_login' => 'enabled' ) );
+					} elseif ( 'upgraded' === $mode ) {
+						update_option( 'zerospam_whats_new', '6.0.0', true );
+					}
+
+					wp_cache_flush();
+
+					return new WP_REST_Response( array( 'mode' => $mode ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/news',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$down = rest_sanitize_boolean( $request->get_param( 'down' ) ?? false );
+					if ( is_multisite() ) {
+						update_site_option( 'zs_e2e_news_down', $down ? 1 : 0 );
+					} else {
+						update_option( 'zs_e2e_news_down', $down ? 1 : 0, false );
+					}
+					delete_site_transient( 'zerospam_news' );
+					delete_site_transient( 'zerospam_news_backoff' );
+
+					return new WP_REST_Response( array( 'down' => $down ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/script-translations',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$strings = array_map( 'strval', array_filter( (array) $request->get_param( 'strings' ), 'is_scalar' ) );
+					if ( is_multisite() ) {
+						update_site_option( 'zs_e2e_script_translations', $strings );
+					} else {
+						update_option( 'zs_e2e_script_translations', $strings, false );
+					}
+
+					return new WP_REST_Response( array( 'count' => count( $strings ) ) );
 				},
 			)
 		);
@@ -1198,6 +1676,31 @@ add_action(
 
 		register_rest_route(
 			$ns,
+			'/timezone',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$zone = (string) ( $request->get_param( 'timezone_string' ) ?? '' );
+					if ( '' !== $zone && ! in_array( $zone, timezone_identifiers_list(), true ) ) {
+						return new WP_Error( 'zs_e2e_timezone', 'Not a time zone name.', array( 'status' => 400 ) );
+					}
+
+					$previous = array(
+						'timezone_string' => (string) get_option( 'timezone_string' ),
+						'gmt_offset'      => (float) get_option( 'gmt_offset' ),
+					);
+
+					update_option( 'timezone_string', $zone );
+					update_option( 'gmt_offset', (float) $request->get_param( 'gmt_offset' ) );
+
+					return new WP_REST_Response( $previous );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			'/seed-log',
 			array(
 				'methods'             => 'POST',
@@ -1211,6 +1714,9 @@ add_action(
 					$ip_prefix = (string) ( $request->get_param( 'ipPrefix' ) ?? '203.0.113.' );
 					$minutes   = max( 1, (int) ( $request->get_param( 'spacingMinutes' ) ?? 60 ) );
 					$fixed_ip  = (string) ( $request->get_param( 'ip' ) ?? '' );
+					$extra     = $request->get_param( 'data' );
+					$extra     = is_array( $extra ) ? array_map( 'strval', array_filter( $extra, 'is_scalar' ) ) : array();
+					$crafted   = rest_sanitize_boolean( $request->get_param( 'crafted' ) ?? false );
 					$locations = sample_locations();
 					$now       = time();
 
@@ -1224,6 +1730,16 @@ add_action(
 
 					for ( $i = 0; $i < $count; $i++ ) {
 						$loc = $locations[ $i % count( $locations ) ];
+						// crafted: markup written straight to the table (as an old or tampered row could hold) to prove the screens print it as text.
+						$row_failed = $failed;
+						$page_url   = home_url( '/e2e-comments/' );
+						if ( $crafted ) {
+							$row_failed = CRAFTED_MARKUP;
+							$loc[1]     = CRAFTED_MARKUP;
+							$loc[3]     = CRAFTED_MARKUP;
+							$loc[4]     = CRAFTED_MARKUP;
+							$page_url   = home_url( '/e2e-comments/?q=' ) . CRAFTED_MARKUP;
+						}
 						$wpdb->insert(
 							$wpdb->prefix . 'wpzerospam_log',
 							array(
@@ -1231,12 +1747,16 @@ add_action(
 								'log_type'        => $type,
 								'user_ip'         => $ips[ $i ],
 								'date_recorded'   => gmdate( 'Y-m-d H:i:s', $now - ( $i * $minutes * MINUTE_IN_SECONDS ) ),
-								'page_url'        => home_url( '/e2e-comments/' ),
+								'page_url'        => $page_url,
+								// `data` adds fields as a form would submit them, stored as given (the XSS fixtures).
 								'submission_data' => wp_json_encode(
-									array(
-										'type'   => $type,
-										'failed' => $failed,
-										'seq'    => $i + 1,
+									array_merge(
+										$extra,
+										array(
+											'type'   => $type,
+											'failed' => $row_failed,
+											'seq'    => $i + 1,
+										)
 									)
 								),
 								'country'         => $loc[0],
@@ -1324,6 +1844,50 @@ add_action(
 					);
 
 					return new WP_REST_Response( array( 'blocked' => (bool) $ok ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/no-lockout',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$ips = array_values( array_filter( array_map( 'strval', (array) $request->get_param( 'ips' ) ) ) );
+					foreach ( $ips as $ip ) {
+						if ( ! is_test_net( $ip ) ) {
+							return new WP_Error( 'zs_e2e_ip', 'Only TEST-NET addresses can be saved as no-lockout addresses by the e2e suite.', array( 'status' => 400 ) );
+						}
+					}
+
+					// What Admin_Safe_IPs saves when an administrator activates or updates the plugin.
+					if ( $ips ) {
+						update_option( \ZeroSpam\Core\Admin_Safe_IPs::OPTION, array_slice( $ips, -\ZeroSpam\Core\Admin_Safe_IPs::MAX_IPS ), false );
+					} else {
+						delete_option( \ZeroSpam\Core\Admin_Safe_IPs::OPTION );
+					}
+
+					return new WP_REST_Response( array( 'ips' => \ZeroSpam\Core\Admin_Safe_IPs::get_ips() ) );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
+			'/rescue-token',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$ip = (string) $request->get_param( 'ip' );
+					if ( ! is_test_net( $ip ) ) {
+						return new WP_Error( 'zs_e2e_ip', 'Only TEST-NET addresses can ask for a rescue token in the e2e suite.', array( 'status' => 400 ) );
+					}
+
+					// A valid single-use token, as an emailed rescue link carries (the "Let me back in" screen).
+					return new WP_REST_Response( array( 'token' => \ZeroSpam\Core\Rescue_Link::issue_token( $ip ) ) );
 				},
 			)
 		);
@@ -1433,7 +1997,10 @@ add_action(
 						if ( is_wp_error( $valid ) ) {
 							return $valid;
 						}
-						restore_snapshot( $snapshot );
+						$failed = restore_snapshot( $snapshot );
+						if ( $failed ) {
+							return $failed;
+						}
 
 						return new WP_REST_Response( array( 'restored' => true ) );
 					},

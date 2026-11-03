@@ -63,6 +63,7 @@ class Plugin {
 		$types['honeypot']             = __( 'Honeypot', 'zero-spam' );
 		$types['blocked_email_domain'] = __( 'Blocked Email Domain', 'zero-spam' );
 		$types['blocked']              = __( 'Blocked IP', 'zero-spam' );
+		$types['blocked_network']      = __( 'Blocked by your network', 'zero-spam' );
 
 		return $types;
 	}
@@ -71,17 +72,28 @@ class Plugin {
 	 * Initializes modules
 	 */
 	private function init_modules() {
+		// Keeps the settings schema cache in step with stored settings.
+		\ZeroSpam\Core\Settings_Schema::register_hooks();
+
 		// Debug module.
 		new \ZeroSpam\Modules\Debug();
 
 		if ( is_admin() ) {
-			// Plugin admin module.
+			// Plugins screen links and the license error notice.
 			new \ZeroSpam\Core\Admin\Admin();
 
-			// Administrator addresses that are never locked out: notice and Settings page list.
+			// Administrator addresses that are never locked out: the notice after one is saved.
 			new \ZeroSpam\Core\Admin_Safe_IPs();
 			// Warns when visitors appear to share one IP address (unknown proxy or CDN).
 			new \ZeroSpam\Core\Admin\Shared_IP_Warning();
+			// The admin: top-level Zero Spam menu, its pages and assets (since 6.0.0).
+			new \ZeroSpam\Core\Admin\Admin_App();
+			// The 5.x screens' addresses redirect to the 6.0 pages (since 6.0.0).
+			new \ZeroSpam\Core\Admin\Legacy_Redirects();
+			// The 5.x screens' AJAX actions and form handlers, deprecated (removed in 6.1.0).
+			new \ZeroSpam\Includes\Legacy_Endpoints();
+			// Hooks of the 5.x screens: a deprecation notice when something still uses one (removed in 7.0.0).
+			new \ZeroSpam\Core\Deprecated_Hooks();
 		}
 
 		// Register REST API routes.
@@ -116,17 +128,7 @@ class Plugin {
 			add_action( 'plugins_loaded', array( $this, 'init_dashboard_widget' ), 20 );
 		}
 
-		// Network Statistics Page (multisite only).
-		if ( is_admin() && is_multisite() ) {
-			new \ZeroSpam\Includes\Admin\Network_Stats_Page();
-		}
-
-		// Network Settings Page (multisite only).
-		if ( is_admin() && is_multisite() ) {
-			new \ZeroSpam\Includes\Admin\Network_Settings_Page();
-		}
-
-		// Site Admin Overrides (network sites): save filters on every request, settings page UI in the admin.
+		// Site Admin Overrides (network sites): locked and unchanged network settings are never stored by a site.
 		if ( is_multisite() && ! is_network_admin() ) {
 			new \ZeroSpam\Includes\Admin\Site_Admin_Overrides();
 		}
@@ -140,6 +142,8 @@ class Plugin {
 		if ( is_multisite() ) {
 			new \ZeroSpam\Includes\Network_Settings();
 			new \ZeroSpam\Includes\Network_Notifications();
+			// Keeps the network page's cached overview in step with network and site settings (since 6.0.0).
+			\ZeroSpam\Includes\Network_Report::register_hooks();
 		}
 
 		// Stop Forum Spam module.
@@ -156,11 +160,6 @@ class Plugin {
 
 		// ipstack module.
 		new \ZeroSpam\Modules\ipstack();
-
-		if ( is_admin() ) {
-			// Google API module.
-			new \ZeroSpam\Modules\Google();
-		}
 
 		// David Walsh module.
 		new \ZeroSpam\Modules\DavidWalsh\DavidWalsh();
@@ -254,10 +253,56 @@ class Plugin {
 		$api_usage_controller = new \ZeroSpam\Includes\Rest\API_Usage_Controller();
 		$api_usage_controller->register_routes();
 
+		// License status and key (since 6.0.0).
+		$license_controller = new \ZeroSpam\Includes\Rest\License_Controller();
+		$license_controller->register_routes();
+
+		// The current user's admin preferences (since 6.0.0).
+		$ui_prefs_controller = new \ZeroSpam\Includes\Rest\UI_Prefs_Controller();
+		$ui_prefs_controller->register_routes();
+
+		// Detection statistics, the activity log, undo, rules and protection modules (since 6.0.0).
+		$data_controllers = array(
+			new \ZeroSpam\Includes\Rest\Stats_Controller(),
+			new \ZeroSpam\Includes\Rest\Activity_Controller(),
+			new \ZeroSpam\Includes\Rest\Undo_Controller(),
+			new \ZeroSpam\Includes\Rest\Rules_Controller(),
+			new \ZeroSpam\Includes\Rest\Protection_Controller(),
+		);
+		foreach ( $data_controllers as $data_controller ) {
+			$data_controller->register_routes();
+		}
+
+		// News and security notices from zerospam.org (since 6.0.0).
+		$news_controller = new \ZeroSpam\Includes\Rest\News_Controller();
+		$news_controller->register_routes();
+
+		// Settings actions, export and import (since 6.0.0).
+		$settings_actions_controller = new \ZeroSpam\Includes\Rest\Settings_Actions_Controller();
+		$settings_actions_controller->register_routes();
+
+		// Self-test of the site's protection (since 6.0.0).
+		$self_test_controller = new \ZeroSpam\Includes\Rest\Self_Test_Controller();
+		$self_test_controller->register_routes();
+
+		// The Help screen's guides and first-run setup (since 6.0.0).
+		$help_docs_controller = new \ZeroSpam\Includes\Rest\Help_Docs_Controller();
+		$help_docs_controller->register_routes();
+		$onboarding_controller = new \ZeroSpam\Includes\Rest\Onboarding_Controller();
+		$onboarding_controller->register_routes();
+
+		// Dismissing the admin notices (since 6.0.0).
+		$notices_controller = new \ZeroSpam\Includes\Rest\Notices_Controller();
+		$notices_controller->register_routes();
+
 		// Network Settings REST API (multisite only).
 		if ( is_multisite() ) {
 			$network_settings_controller = new \ZeroSpam\Includes\Rest\Network_Settings_Controller();
 			$network_settings_controller->register_routes();
+
+			// The 6.0 network page: overview, sites, comparison, statistics, network-wide blocks and notifications (since 6.0.0).
+			$network_controller = new \ZeroSpam\Includes\Rest\Network_Controller();
+			$network_controller->register_routes();
 		}
 	}
 

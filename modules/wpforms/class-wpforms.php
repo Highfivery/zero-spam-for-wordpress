@@ -173,7 +173,6 @@ class WPForms {
 	public function sections( $sections ) {
 		$sections['wpforms'] = array(
 			'title'    => __( 'WPForms', 'zero-spam' ),
-			'icon'     => 'modules/wpforms/icon-wpforms.svg',
 			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 

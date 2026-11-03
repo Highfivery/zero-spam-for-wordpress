@@ -8,6 +8,7 @@
 namespace ZeroSpam\Core;
 
 use ZeroSpam;
+use ZeroSpam\Core\Front\Block_Page;
 
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
@@ -22,6 +23,20 @@ class Access {
 	 * @var string
 	 */
 	const RESCUE_COOKIE = 'zerospam_rescue';
+
+	/**
+	 * Whether terminate_execution() is being intercepted (see intercept_termination()).
+	 *
+	 * @var bool
+	 */
+	private static $intercepting = false;
+
+	/**
+	 * Failed-check key of a visit stopped by a network-wide block (since 6.0.0).
+	 *
+	 * @var string
+	 */
+	const FAILED_NETWORK_BLOCK = 'blocked_network';
 
 	/**
 	 * Constructor
@@ -54,40 +69,67 @@ class Access {
 	}
 
 	/**
-	 * Terminates execution with a custom error message and HTTP status code.
+	 * Runs a check and tells whether it would have stopped the request, without
+	 * stopping it: terminate_execution() and every Front\Block_Page page throw
+	 * instead of sending a page or any header while the callback runs (used by
+	 * the REST self-test).
 	 *
-	 * Registers an action to prevent caching on error conditions by setting
-	 * appropriate HTTP headers before leveraging WordPress's wp_die() function
-	 * to produce an error page with a specified message, title, and HTTP status
-	 * code.
+	 * @since 6.0.0
 	 *
-	 * @param string $title   The text to be used as the page title for the error message.
-	 *                        This content will be sanitized to remove unwanted HTML.
-	 * @param string $message The error message to display. This content will be escaped
-	 *                        to ensure only safe HTML is included.
-	 * @param int    $code    Optional. The HTTP status code to be sent in the header.
-	 *                        Defaults to 403 to indicate a Forbidden error.
-	 * @param bool   $rescue  Optional. Whether to add the "Help for site owners"
-	 *                        section with the rescue link form (the blocked
-	 *                        page only), unless the zerospam_rescue_form_enabled
-	 *                        filter turns it off. Default false.
+	 * @param callable $check Code that may call terminate_execution().
+	 * @return bool Whether it called terminate_execution().
+	 */
+	public static function intercept_termination( callable $check ): bool {
+		$previous           = self::$intercepting;
+		self::$intercepting = true;
+
+		try {
+			$check();
+		} catch ( Termination_Intercepted $stopped ) {
+			return true;
+		} finally {
+			self::$intercepting = $previous;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Whether a check runs inside intercept_termination(): Front\Block_Page
+	 * then throws instead of sending a page or any header.
+	 *
+	 * @since 6.0.0
+	 */
+	public static function is_intercepting_termination(): bool {
+		return self::$intercepting;
+	}
+
+	/**
+	 * Ends the request with a Zero Spam page (see Front\Block_Page): uncached, not indexed.
+	 *
+	 * @param string $title   Page title and, without the rescue form, its heading (plain text).
+	 * @param string $message The message (HTML, filtered with wp_kses_post()).
+	 * @param int    $code    Optional. HTTP status. Default 403.
+	 * @param bool   $rescue  Optional. Whether this is the blocked page, with the
+	 *                        visitor's details and the "Help for site owners"
+	 *                        rescue form (unless the zerospam_rescue_form_enabled
+	 *                        filter turns the form off). Default false.
+	 * @throws Termination_Intercepted Inside intercept_termination(), instead of ending the request.
 	 */
 	public static function terminate_execution( $title, $message, $code = 403, $rescue = false ) {
-		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
-			define( 'DONOTCACHEPAGE', true );
+		// The self-test asks whether a check would stop a request: no page, no headers.
+		if ( self::$intercepting ) {
+			throw new Termination_Intercepted( 'Zero Spam would have stopped this request.' );
 		}
-		nocache_headers();
 
-		$rescue = $rescue && Rescue_Link::form_enabled();
+		if ( $rescue ) {
+			$ip = User::get_ip();
+			Block_Page::blocked( (string) $message, array( 'ip' => is_string( $ip ) ? $ip : '' ), wp_strip_all_tags( (string) $title ) );
 
-		// The administrator's message keeps the post allowlist; only the plugin's own form markup may add form controls and styles.
-		wp_die(
-			$rescue ? '<h1>' . esc_html( $title ) . '</h1>' . wp_kses_post( $message ) . wp_kses( Rescue_Link::form_html(), Rescue_Link::allowed_html() ) : wp_kses_post( $message ),
-			esc_html( $title ),
-			array(
-				'response' => absint( $code ),
-			)
-		);
+			return;
+		}
+
+		Block_Page::detection( (string) $title, (string) $message, absint( $code ) );
 	}
 
 	/**
@@ -203,19 +245,24 @@ class Access {
 	 * the token unused, because email scanners open links on their own. The
 	 * button's POST uses the token: it sets the rescue cookie, logs it and
 	 * sends the visitor to log in. Only requests carrying the token do any
-	 * work; invalid, used and expired tokens are ignored, so the request
-	 * continues as usual.
+	 * work. A used or expired token (any well-formed token that is not valid
+	 * now) shows the "This link has expired" page with the form to ask for a
+	 * new link; malformed values are ignored, so the request continues as
+	 * usual.
 	 */
 	private function redeem_rescue_link(): void {
 		// phpcs:disable WordPress.Security.NonceVerification -- The single-use token is the credential; see Rescue_Link.
 		$method = isset( $_SERVER['REQUEST_METHOD'] ) && is_string( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : 'GET';
 
 		if ( 'POST' === $method && isset( $_POST[ Rescue_Link::TOKEN_PARAM ] ) && is_string( $_POST[ Rescue_Link::TOKEN_PARAM ] ) ) {
-			$grant = Rescue_Link::redeem_token( sanitize_text_field( wp_unslash( $_POST[ Rescue_Link::TOKEN_PARAM ] ) ) );
+			$token = sanitize_text_field( wp_unslash( $_POST[ Rescue_Link::TOKEN_PARAM ] ) );
+			$grant = Rescue_Link::redeem_token( $token );
 		} elseif ( isset( $_GET[ Rescue_Link::TOKEN_PARAM ] ) && is_string( $_GET[ Rescue_Link::TOKEN_PARAM ] ) ) {
 			$token = sanitize_text_field( wp_unslash( $_GET[ Rescue_Link::TOKEN_PARAM ] ) );
 			if ( Rescue_Link::peek_token( $token ) ) {
 				Rescue_Link::show_confirm_page( $token );
+			} elseif ( Rescue_Link::is_token_format( $token ) ) {
+				Rescue_Link::show_expired_page();
 			}
 
 			return;
@@ -225,6 +272,10 @@ class Access {
 		// phpcs:enable
 
 		if ( null === $grant ) {
+			if ( Rescue_Link::is_token_format( $token ) ) {
+				Rescue_Link::show_expired_page();
+			}
+
 			return;
 		}
 
@@ -318,6 +369,9 @@ class Access {
 		if ( ! empty( $access['blocked'] ) ) {
 			$settings = ZeroSpam\Core\Settings::get_settings();
 
+			// The first log row written for this block, shown on the page as its reference.
+			$reference = 0;
+
 			if ( ! empty( $access['details'] ) && is_array( $access['details'] ) ) {
 				foreach ( $access['details'] as $key => $detail ) {
 					if ( ! empty( $detail['blocked'] ) ) {
@@ -326,7 +380,9 @@ class Access {
 						}
 
 						if ( ! empty( $settings['log_blocked_ips']['value'] ) && 'enabled' === $settings['log_blocked_ips']['value'] ) {
-							ZeroSpam\Includes\DB::log( $detail['type'], $detail['details'] );
+							if ( ZeroSpam\Includes\DB::log( $detail['type'], $detail['details'] ) && ! $reference ) {
+								$reference = ZeroSpam\Includes\DB::last_log_id();
+							}
 						}
 					}
 				}
@@ -351,7 +407,13 @@ class Access {
 							$message = $settings['blocked_message']['value'];
 						}
 
-						self::terminate_execution( __( 'Blocked', 'zero-spam' ), $message, 403, true );
+						Block_Page::blocked(
+							(string) $message,
+							array(
+								'ip'        => isset( $access['ip'] ) && is_string( $access['ip'] ) ? $access['ip'] : '',
+								'reference' => $reference,
+							)
+						);
 						break;
 					case 'redirect':
 						$url = 'https://wordpress.org/plugins/zero-spam/';
@@ -369,6 +431,12 @@ class Access {
 	/**
 	 * Helper to get blocked record details.
 	 *
+	 * A block applies from its start (`start_block`, UTC) until its end
+	 * (`end_block`, UTC, temporary blocks only). A NULL or empty start means
+	 * the block has already started; a temporary block without an end, or
+	 * with an end that cannot be read, never applies. Every comparison uses
+	 * one reading of the clock.
+	 *
 	 * @param array|false|null $blocked_record Blocked record from DB::blocked().
 	 * @param string|false     $failed         Failed check key, such as `blocked_ip`.
 	 */
@@ -381,29 +449,15 @@ class Access {
 			return $access_check;
 		}
 
-		$today = new \DateTime();
-
-		// Check the start & end dates (all blocks require a start date).
-		$start_date = new \DateTime();
-		if ( ! empty( $blocked_record['start_block'] ) ) {
-			$start_date = new \DateTime( $blocked_record['start_block'] );
-		}
+		$now   = time();
+		$start = self::block_time( $blocked_record['start_block'] ?? null );
 
 		$blocked = false;
-		if ( $today >= $start_date ) {
-			// Check the end date if temporary block.
-			if (
-				! empty( $blocked_record['blocked_type'] ) &&
-				'temporary' === $blocked_record['blocked_type']
-			) {
-				// Temporary block.
-				if ( ! empty( $blocked_record['end_block'] ) ) {
-					$end_date = new \DateTime( $blocked_record['end_block'] );
-
-					if ( $today < $end_date ) {
-						$blocked = true;
-					}
-				}
+		if ( null === $start || $now >= $start ) {
+			if ( isset( $blocked_record['blocked_type'] ) && 'temporary' === $blocked_record['blocked_type'] ) {
+				// Temporary block: applies until its end.
+				$end     = self::block_time( $blocked_record['end_block'] ?? null );
+				$blocked = null !== $end && $now < $end;
 			} else {
 				// Permanent block.
 				$blocked = true;
@@ -418,6 +472,24 @@ class Access {
 		}
 
 		return $access_check;
+	}
+
+	/**
+	 * A block's start or end as a Unix timestamp.
+	 *
+	 * @param mixed $value Stored date (`Y-m-d H:i:s`, UTC), NULL or empty.
+	 * @return int|null Null when there is no date or it cannot be read.
+	 */
+	private static function block_time( $value ): ?int {
+		if ( ! is_string( $value ) || '' === $value ) {
+			return null;
+		}
+
+		try {
+			return ( new \DateTimeImmutable( $value, new \DateTimeZone( 'UTC' ) ) )->getTimestamp();
+		} catch ( \Exception $e ) {
+			return null;
+		}
 	}
 
 	/**
@@ -459,6 +531,17 @@ class Access {
 			$blocked = \ZeroSpam\Includes\DB::blocked( $user_ip );
 			if ( $blocked ) {
 				$access_checks['blocked'] = self::get_blocked_details( $blocked, 'blocked_ip' );
+			}
+		}
+
+		// Then the network's blocks, which apply to every site (one cached read, see Network_Blocks).
+		if ( empty( $access_checks['blocked']['blocked'] ) && is_multisite() ) {
+			$network_block = \ZeroSpam\Includes\Network_Blocks::find( (string) $user_ip );
+			if ( $network_block ) {
+				$details = self::get_blocked_details( $network_block, self::FAILED_NETWORK_BLOCK );
+				if ( $details['blocked'] ) {
+					$access_checks['blocked'] = $details;
+				}
 			}
 		}
 

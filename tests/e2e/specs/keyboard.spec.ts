@@ -1,8 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import { expect, test } from '../support/fixtures';
-import { BlockIpModal, DashboardPage } from '../support/pages/dashboard-page';
-import { SettingsPage } from '../support/pages/settings-page';
+import { AREA, protectionReady, rulesReady } from '../support/screens';
 
 /**
  * Presses Tab until the focused element matches a selector.
@@ -41,47 +40,43 @@ test.describe( 'Keyboard and motion', () => {
 		await zs.reset( 'baseline' );
 	} );
 
-	test( 'the settings menu and Save are reachable by keyboard with a visible focus indicator', async ( { page } ) => {
-		const settings = new SettingsPage( page );
-		await settings.goto( 'comments' );
+	// The 5.x settings screen's menu, toggles and Save button were checked here; the 6.0 Protection cards replace them.
+	test( 'a protection switch can be reached with Tab, shows focus and switches with Space', async ( { page } ) => {
+		await page.goto( AREA( 'protection' ) );
+		await protectionReady( page );
+		const toggle = page.locator( '#zs-card-comments' ).getByRole( 'switch' ).first();
+		const before = await toggle.getAttribute( 'aria-checked' );
 		await page.locator( 'body' ).click( { position: { x: 1, y: 1 } } );
 
-		expect( await tabTo( page, '.zerospam-dashboard__menu-link' ), 'Tab reaches the settings menu' ).toBe( true );
-		expect( await focusIndicator( page ), 'menu link shows focus' ).toBe( true );
-
-		expect( await tabTo( page, '#submit' ), 'Tab reaches Save Settings' ).toBe( true );
-		expect( await focusIndicator( page ), 'Save shows focus' ).toBe( true );
-	} );
-
-	test( 'a settings toggle can be reached and switched with the keyboard', async ( { page } ) => {
-		const settings = new SettingsPage( page );
-		await settings.goto( 'comments' );
-		const toggle = settings.field( 'verify_comments', 'enabled' );
-		const before = await toggle.isChecked();
-		await page.locator( 'body' ).click( { position: { x: 1, y: 1 } } );
-
-		expect( await tabTo( page, '#verify_commentsenabled', 120 ), 'Tab reaches the "Protect Comments" switch' ).toBe( true );
+		expect( await tabTo( page, '#zs-card-comments [role="switch"]', 150 ), 'Tab reaches the "Protect comments" switch' ).toBe( true );
+		expect( await focusIndicator( page ), 'the switch shows focus' ).toBe( true );
 		await page.keyboard.press( 'Space' );
-		await expect( toggle ).toBeChecked( { checked: ! before } );
+		await expect( toggle ).toHaveAttribute( 'aria-checked', 'true' === before ? 'false' : 'true' );
 	} );
 
-	test( 'the blocked-IP modal takes focus, closes on Escape and returns focus to the button that opened it', async ( { page } ) => {
-		test.fail( true, 'AGENTS.md §8: the add/update block modal has no focus management (focus stays behind the modal and is not returned)' );
-		const dashboard = new DashboardPage( page );
-		const modal = new BlockIpModal( page );
-		await dashboard.goto( 'blocked-ips' );
-		const trigger = page.getByRole( 'button', { name: /Add Blocked IP Address/ } );
+	// The 5.x add/update block modal had no focus management (AGENTS.md §8); the
+	// 6.0 Rules area replaced it with the shared block drawer, which this checks.
+	test( 'the block drawer takes focus, keeps Tab inside, closes on Escape and returns focus to the button that opened it', async ( { page } ) => {
+		await page.goto( AREA( 'rules', 'ips' ) );
+		await rulesReady( page );
+		const trigger = page.getByRole( 'button', { name: 'Block an IP' } );
+		const drawer = page.locator( '.zs-drawer.zs-blockform' );
 		await trigger.focus();
 		await page.keyboard.press( 'Enter' );
-		await expect( modal.root ).toHaveClass( /is-active/ );
+		await expect( drawer ).toBeVisible();
 
-		await test.step( 'focus moves into the modal', async () => {
-			expect( await modal.root.evaluate( ( el ) => el.contains( document.activeElement ) ) ).toBe( true );
+		await test.step( 'focus moves into the drawer and Tab stays there', async () => {
+			expect( await drawer.evaluate( ( el ) => el.contains( document.activeElement ) ) ).toBe( true );
+			for ( let i = 0; i < 25; i++ ) {
+				await page.keyboard.press( 'Tab' );
+				expect( await drawer.evaluate( ( el ) => el.contains( document.activeElement ) ), `Tab ${ i + 1 } left the drawer` ).toBe( true );
+			}
+			expect( await focusIndicator( page ) ).toBe( true );
 		} );
 
 		await test.step( 'Escape closes it and focus returns to the button', async () => {
 			await page.keyboard.press( 'Escape' );
-			await expect( modal.root ).not.toHaveClass( /is-active/ );
+			await expect( drawer ).toBeHidden();
 			await expect( trigger ).toBeFocused();
 		} );
 	} );

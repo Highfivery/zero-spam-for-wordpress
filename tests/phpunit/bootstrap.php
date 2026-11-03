@@ -74,6 +74,7 @@ tests_add_filter(
 	'muplugins_loaded',
 	static function (): void {
 		require_once __DIR__ . '/includes/stubs/core.php';
+		require_once __DIR__ . '/includes/stubs/front.php';
 		require_once __DIR__ . '/includes/stubs/modules.php';
 		require_once __DIR__ . '/includes/stubs/login.php';
 

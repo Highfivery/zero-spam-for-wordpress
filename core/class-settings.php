@@ -16,16 +16,16 @@ defined( 'ABSPATH' ) || die();
 class Settings {
 
 	/**
-	 * Settings
+	 * Core settings registered before the `zerospam_settings` filter runs.
 	 *
-	 * @var Settings
+	 * @var array<string, array<string, mixed>>
 	 */
 	public static $settings = array();
 
 	/**
-	 * Sections
+	 * Core setting sections.
 	 *
-	 * @var Sections
+	 * @var array<string, array<string, mixed>>
 	 */
 	public static $sections = array();
 
@@ -91,6 +91,8 @@ class Settings {
 
 	/**
 	 * Updates core disallowed words.
+	 *
+	 * @return bool Whether the recommended list was read and stored (since 6.0.0).
 	 */
 	public static function update_disallowed_words() {
 		global $wp_filesystem;
@@ -100,45 +102,64 @@ class Settings {
 		}
 		$text = $wp_filesystem->get_contents( ZEROSPAM_PATH . 'assets/blacklist.txt' );
 
-		if ( $text ) {
-			// Prevent autoloading large options.
-			// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
-			update_option( 'disallowed_keys', $text, false );
+		if ( ! $text ) {
+			return false;
 		}
+
+		// Prevent autoloading large options.
+		// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
+		update_option( 'disallowed_keys', $text, false );
+
+		return true;
 	}
 
 	/**
-	 * Updates blocked email domains with recommended settings.
+	 * Replaces the blocked email domains with Zero Spam's recommended list.
+	 *
+	 * Writes only the `zerospam_blocked_email_domains` option (not autoloaded),
+	 * as the REST action does. Before 6.0.0 it also rewrote the whole
+	 * `zero-spam-settings` option with resolved values, which on a network
+	 * turned every network default into a site override.
+	 *
+	 * @since 6.0.0 Writes the blocked email domains option only.
+	 *
+	 * @return bool Whether the recommended list was read and stored.
 	 */
 	public static function update_blocked_email_domains() {
-		$modules                           = self::get_settings_by_module();
-		$recommended_blocked_email_domains = \ZeroSpam\Core\Utilities::blocked_email_domains();
+		$domains = \ZeroSpam\Core\Utilities::blocked_email_domains();
 
-		$new_settings = array();
-		foreach ( $modules['settings'] as $key => $setting ) {
-			if ( 'blocked_email_domains' === $key ) {
-				$domains = trim( implode( "\n", $recommended_blocked_email_domains ) );
-				// Prevent autoloading large options.
-				// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
-				update_option( 'zerospam_blocked_email_domains', $domains, false );
-			} else {
-				$new_settings[ $key ] = isset( $setting['value'] ) ? $setting['value'] : false;
-			}
+		if ( ! $domains ) {
+			return false;
 		}
 
-		if ( $new_settings ) {
-			update_option( 'zero-spam-settings', $new_settings );
-		}
+		// Prevent autoloading large options.
+		// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
+		update_option( 'zerospam_blocked_email_domains', trim( implode( "\n", $domains ) ), false );
+
+		return true;
 	}
 
 	/**
 	 * Configures the plugin's recommended settings.
+	 *
+	 * @since 6.0.0 The `$skip_keys` parameter: settings left as they are, for
+	 *              example those the network administrator has locked. A
+	 *              value the site already stores for one is kept unchanged.
+	 *
+	 * @since 6.0.0 Only settings with a recommended value are written; every
+	 *              other setting keeps what the site stores, and one the site
+	 *              does not store stays unset. Before, every setting was stored
+	 *              with its resolved value, which on a network site turned
+	 *              network defaults (the IP Allowlist among them) into site
+	 *              overrides.
+	 *
+	 * @param string[] $skip_keys Optional. Setting keys not to configure. Default none.
 	 */
-	public static function auto_configure() {
-		$settings = self::get_settings();
-		$modules  = self::get_settings_by_module();
+	public static function auto_configure( array $skip_keys = array() ) {
+		$modules = self::get_settings_by_module();
 
 		foreach ( $modules as $module => $setting ) {
+			$stored               = get_option( "zero-spam-$module" );
 			$recommended_settings = array();
 			foreach ( $setting as $key => $args ) {
 				// Skip action-type settings (buttons) that don't store values.
@@ -146,16 +167,25 @@ class Settings {
 					continue;
 				}
 
-				$recommended_settings[ $key ] = isset( $args['value'] ) ? $args['value'] : false;
+				if ( in_array( $key, $skip_keys, true ) ) {
+					if ( is_array( $stored ) && array_key_exists( $key, $stored ) ) {
+						$recommended_settings[ $key ] = $stored[ $key ];
+					}
+					continue;
+				}
+
 				if ( isset( $args['recommended'] ) ) {
 					$recommended_settings[ $key ] = $args['recommended'];
+				} elseif ( is_array( $stored ) && array_key_exists( $key, $stored ) ) {
+					// No recommendation: the site keeps its own value, and a setting it never stored keeps following its default (or the network's).
+					$recommended_settings[ $key ] = $stored[ $key ];
 				}
 			}
 
 			// Handle blocked_email_domains separately — uses standalone option.
 			if ( isset( $recommended_settings['blocked_email_domains'] ) ) {
 				$blocked_domains = $recommended_settings['blocked_email_domains'];
-				if ( $blocked_domains ) {
+				if ( $blocked_domains && ! in_array( 'blocked_email_domains', $skip_keys, true ) ) {
 					update_option( 'zerospam_blocked_email_domains', $blocked_domains, false );
 				}
 				unset( $recommended_settings['blocked_email_domains'] );
@@ -165,6 +195,9 @@ class Settings {
 		}
 
 		update_option( 'zerospam_configured', 1 );
+
+		// Ends a pending first-run setup, unless the setup applied them itself.
+		\ZeroSpam\Core\Admin\Onboarding::settings_saved();
 	}
 
 	/**
@@ -204,13 +237,11 @@ class Settings {
 			'desc'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( 'Get maximum protection fast with our one-click configuration setup. Please enter any <a href="%1$s" target="_blank" rel="noreferrer noopener">supported plugins</a> are installed & activated first.  <strong>Performing this action will override all existing settings.', 'zero-spam' ),
+					__( 'Get maximum protection fast with one-click setup. Install and activate any <a href="%1$s" target="_blank" rel="noreferrer noopener">supported plugins</a> first. This replaces all of your current settings.', 'zero-spam' ),
 					array(
-						'rel'    => array(),
-						'strong' => array(),
-						'a'      => array(
+						'a' => array(
 							'href'   => array(),
-							'class'  => array(),
+							'rel'    => array(),
 							'target' => array(),
 						),
 					)
@@ -236,6 +267,21 @@ class Settings {
 			'recommended' => 'enabled',
 		);
 
+		// On unless stored: a settings form stores an unticked checkbox as false, which turns it off.
+		self::$settings['show_news'] = array(
+			'title'       => __( 'Zero Spam News', 'zero-spam' ),
+			'desc'        => __( 'Shows the latest articles and security notices from zerospam.org in the Zero Spam admin. Your site only downloads the public news feed; no site data is sent.', 'zero-spam' ),
+			'module'      => 'settings',
+			'section'     => 'general',
+			'type'        => 'checkbox',
+			'options'     => array(
+				'enabled' => __( 'Show Zero Spam news and security notices in the admin.', 'zero-spam' ),
+			),
+			'value'       => is_array( $options ) && array_key_exists( 'show_news', $options ) ? $options['show_news'] : 'enabled',
+			'default'     => 'enabled',
+			'recommended' => 'enabled',
+		);
+
 		// wp_roles() initializes the roles global when needed.
 		$roles       = wp_roles()->roles;
 		$roles_array = array();
@@ -252,7 +298,7 @@ class Settings {
 			'options'     => array(
 				'enabled' => __( 'Display the Zero Spam overview widget on the WordPress dashboard.', 'zero-spam' ),
 			),
-			'desc'        => __( 'Enable or disable the Zero Spam dashboard widget.', 'zero-spam' ),
+			'desc'        => __( 'Show the Zero Spam overview widget on the WordPress dashboard.', 'zero-spam' ),
 			'value'       => ! empty( $options['widget_enabled'] ) ? $options['widget_enabled'] : false,
 			'recommended' => 'enabled',
 		);
@@ -350,8 +396,8 @@ class Settings {
 		);
 
 		self::$settings['ip_whitelist'] = array(
-			'title'       => __( 'IP Whitelist', 'zero-spam' ),
-			'desc'        => __( 'IP addresses that should never be blocked. Put one IP address per line.', 'zero-spam' ),
+			'title'       => __( 'IP Allowlist', 'zero-spam' ),
+			'desc'        => __( 'IP addresses that should never be blocked, one per line. Recommended: your office\'s fixed address, if it has one.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'textarea',

@@ -24,7 +24,7 @@ class Test_Utilities_Asset_Version extends TestCase {
 	public function test_uses_plugin_version_without_script_debug(): void {
 		self::set_static( Utilities::class, 'script_debug', false );
 
-		$this->assertSame( ZEROSPAM_VERSION, Utilities::asset_version( 'assets/css/admin.css' ) );
+		$this->assertSame( ZEROSPAM_VERSION, Utilities::asset_version( 'assets/fonts/fonts.css' ) );
 	}
 
 	/**
@@ -36,7 +36,7 @@ class Test_Utilities_Asset_Version extends TestCase {
 			$this->markTestSkipped( 'SCRIPT_DEBUG is on in this environment.' );
 		}
 
-		$this->assertSame( ZEROSPAM_VERSION, Utilities::asset_version( 'assets/js/admin.js' ) );
+		$this->assertSame( ZEROSPAM_VERSION, Utilities::asset_version( 'assets/fonts/fonts.css' ) );
 	}
 
 	/**
@@ -46,8 +46,8 @@ class Test_Utilities_Asset_Version extends TestCase {
 		self::set_static( Utilities::class, 'script_debug', true );
 
 		$this->assertSame(
-			(string) filemtime( ZEROSPAM_PATH . 'assets/css/admin.css' ),
-			Utilities::asset_version( 'assets/css/admin.css' )
+			(string) filemtime( ZEROSPAM_PATH . 'assets/fonts/fonts.css' ),
+			Utilities::asset_version( 'assets/fonts/fonts.css' )
 		);
 		$this->assertSame(
 			(string) filemtime( ZEROSPAM_PATH . 'modules/davidwalsh/assets/js/davidwalsh.js' ),
@@ -72,11 +72,7 @@ class Test_Utilities_Asset_Version extends TestCase {
 	 */
 	public function test_own_assets_are_enqueued_with_asset_version(): void {
 		$files = array(
-			'core/admin/class-admin.php',
-			'core/admin/class-dashboardwidget.php',
-			'includes/admin/class-networkstatspage.php',
-			'includes/admin/class-networksettingspage.php',
-			'includes/admin/class-siteadminoverrides.php',
+			'core/admin/class-adminapp.php',
 			'modules/davidwalsh/class-davidwalsh.php',
 		);
 

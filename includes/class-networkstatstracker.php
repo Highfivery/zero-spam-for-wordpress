@@ -37,7 +37,8 @@ class Network_Stats_Tracker {
 			);
 		}
 
-		$cache_key = 'zerospam_network_stats_' . $period;
+		// Per network: every network's main site may share an object cache, and the daily table holds every network's rows.
+		$cache_key = 'zerospam_network_stats_' . get_current_network_id() . '_' . $period;
 		if ( $start_date && $end_date ) {
 			$cache_key .= '_' . $start_date . '_' . $end_date;
 		}
@@ -47,8 +48,10 @@ class Network_Stats_Tracker {
 		if ( false === $stats ) {
 			global $wpdb;
 
-			// Try to use aggregated data for better performance.
-			$use_aggregated = ( ! $start_date && ! $end_date && in_array( $period, array( 'week', 'month' ), true ) );
+			// Try to use aggregated data for better performance: the daily totals of this network's sites only
+			// (the table is shared by every network), at most Network_Report::MAX_SITES of them.
+			$site_ids       = Network_Report::site_ids();
+			$use_aggregated = ( $site_ids && ! $start_date && ! $end_date && in_array( $period, array( 'week', 'month' ), true ) );
 
 			if ( $use_aggregated ) {
 				// Calculate date range for aggregation query.
@@ -56,8 +59,10 @@ class Network_Stats_Tracker {
 				$date_from = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
 				$date_to   = gmdate( 'Y-m-d' );
 
+				$placeholders = implode( ', ', array_fill( 0, count( $site_ids ), '%d' ) );
+
 				// Try daily aggregation table first.
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Cached below; $placeholders is a list of %d, one per site ID passed.
 				$aggregated = $wpdb->get_results(
 					$wpdb->prepare(
 						"SELECT
@@ -68,13 +73,13 @@ class Network_Stats_Tracker {
 							top_countries,
 							top_ips
 						FROM {$wpdb->base_prefix}wpzerospam_stats_daily
-						WHERE stat_date >= %s AND stat_date <= %s
+						WHERE stat_date >= %s AND stat_date <= %s AND site_id IN ({$placeholders})
 						GROUP BY site_id",
-						$date_from,
-						$date_to
+						array_merge( array( $date_from, $date_to ), $site_ids )
 					),
 					ARRAY_A
 				);
+				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 				if ( ! empty( $aggregated ) ) {
 					// Use aggregated data.
@@ -183,7 +188,12 @@ class Network_Stats_Tracker {
 			}
 
 			// Fall back to raw log queries if aggregation not available.
-			$sites = get_sites( array( 'number' => 1000 ) );
+			$sites = get_sites(
+				array(
+					'number'     => 1000,
+					'network_id' => get_current_network_id(),
+				)
+			);
 
 			$total_spam     = 0;
 			$all_ips        = array();
@@ -192,7 +202,7 @@ class Network_Stats_Tracker {
 			$ip_counts      = array();
 
 			foreach ( $sites as $site ) {
-				switch_to_blog( $site->blog_id );
+				switch_to_blog( (int) $site->blog_id );
 
 				$date_filter = self::log_filter( self::get_date_filter( $period, $start_date, $end_date ) );
 				$log_table   = $wpdb->prefix . DB::$tables['log'];
@@ -305,7 +315,7 @@ class Network_Stats_Tracker {
 			return array();
 		}
 
-		$cache_key = 'zerospam_site_breakdown_' . $period . '_' . $limit . '_' . $order_by;
+		$cache_key = 'zerospam_site_breakdown_' . get_current_network_id() . '_' . $period . '_' . $limit . '_' . $order_by;
 		if ( $start_date && $end_date ) {
 			$cache_key .= '_' . $start_date . '_' . $end_date;
 		}
@@ -313,13 +323,18 @@ class Network_Stats_Tracker {
 		$breakdown = get_transient( $cache_key );
 
 		if ( false === $breakdown ) {
-			$sites     = get_sites( array( 'number' => 1000 ) );
+			$sites     = get_sites(
+				array(
+					'number'     => 1000,
+					'network_id' => get_current_network_id(),
+				)
+			);
 			$breakdown = array();
 
 			foreach ( $sites as $site ) {
-				switch_to_blog( $site->blog_id );
+				switch_to_blog( (int) $site->blog_id );
 
-				$site_stats = self::get_site_stats( $site->blog_id, $period, $start_date, $end_date );
+				$site_stats = self::get_site_stats( (int) $site->blog_id, $period, $start_date, $end_date );
 
 				$breakdown[] = array(
 					'site_id'      => $site->blog_id,
@@ -330,7 +345,7 @@ class Network_Stats_Tracker {
 					'top_type'     => $site_stats['top_spam_type'],
 					'top_country'  => $site_stats['top_country'],
 					'trend'        => $site_stats['trend'],
-					'has_enhanced' => self::has_enhanced_protection( $site->blog_id ),
+					'has_enhanced' => self::has_enhanced_protection( (int) $site->blog_id ),
 				);
 
 				restore_current_blog();
@@ -566,17 +581,16 @@ class Network_Stats_Tracker {
 	}
 
 	/**
-	 * Check if site has Enhanced Protection enabled
+	 * Whether a site has working Enhanced Protection: switched on with a
+	 * license key its last license check found valid
+	 * (License_Status::site_level()). Before 6.0.0 a site with the setting on
+	 * and no working key was counted too.
 	 *
 	 * @param int $site_id Site ID.
-	 * @return bool True if enabled.
+	 * @return bool True if enabled and licensed.
 	 */
 	private static function has_enhanced_protection( $site_id ) {
-		switch_to_blog( $site_id );
-		$settings = \ZeroSpam\Core\Settings::get_settings();
-		$enabled  = ! empty( $settings['zerospam']['value'] ) && 'enabled' === $settings['zerospam']['value'];
-		restore_current_blog();
-		return $enabled;
+		return \ZeroSpam\Core\License_Status::LEVEL_ENHANCED === \ZeroSpam\Core\License_Status::site_level( (int) $site_id );
 	}
 
 	/**
@@ -636,17 +650,22 @@ class Network_Stats_Tracker {
 			return array();
 		}
 
-		$cache_key = "zerospam_multi_site_attackers_{$min_sites}_{$period_days}";
+		$cache_key = 'zerospam_multi_site_attackers_' . get_current_network_id() . "_{$min_sites}_{$period_days}";
 		$attackers = get_transient( $cache_key );
 
 		if ( false === $attackers ) {
-			$sites = get_sites( array( 'number' => 1000 ) );
+			$sites = get_sites(
+				array(
+					'number'     => 1000,
+					'network_id' => get_current_network_id(),
+				)
+			);
 
 			// Track which IPs appear on which sites.
 			$ip_site_map = array();
 
 			foreach ( $sites as $site ) {
-				switch_to_blog( $site->blog_id );
+				switch_to_blog( (int) $site->blog_id );
 
 				global $wpdb;
 				$log_table  = $wpdb->prefix . DB::$tables['log'];

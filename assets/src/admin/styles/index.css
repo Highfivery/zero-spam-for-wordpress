@@ -1,0 +1,18 @@
+/**
+ * Styles shared by the admin and network apps. Components add their own files
+ * next to them and import them from their entry point.
+ */
+@import "./tokens.css";
+@import "./base.css";
+@import "./logo.css";
+@import "./primitives.css";
+@import "./shell.css";
+@import "./overview.css";
+@import "./rules.css";
+@import "./areas.css";
+@import "./activity.css";
+@import "./protection.css";
+@import "../app/fields/fields.css";
+@import "./settings.css";
+@import "./help.css";
+@import "./network.css";

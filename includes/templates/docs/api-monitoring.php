@@ -62,21 +62,21 @@ defined( 'ABSPATH' ) || die();
 						<?php
 						printf(
 							/* translators: %s: settings page URL */
-							wp_kses_post( __( 'Go to <a href="%s">Settings → API Monitoring</a> and enable "API Usage Monitoring"', 'zero-spam' ) ),
-							esc_url( admin_url( 'admin.php?page=wordpress-zero-spam-settings&subview=api-monitoring' ) )
+							wp_kses_post( __( 'Go to <a href="%s">Zero Spam → Settings → API</a> and enable "API Usage Monitoring"', 'zero-spam' ) ),
+							esc_url( \ZeroSpam\Core\Utilities::admin_link( 'api-monitoring' ) )
 						);
 						?>
 					</p>
 				</li>
 
 				<li>
-					<strong><?php esc_html_e( 'View Dashboard Widget', 'zero-spam' ); ?></strong>
+					<strong><?php esc_html_e( 'Check Your API Usage', 'zero-spam' ); ?></strong>
 					<p>
 						<?php
 						printf(
-							/* translators: %s: dashboard URL */
-							wp_kses_post( __( 'Check your <a href="%s">WordPress Dashboard</a> for the new "Zero Spam API Usage" widget showing real-time statistics', 'zero-spam' ) ),
-							esc_url( admin_url( 'index.php' ) )
+							/* translators: %s: URL of the API Monitoring settings */
+							wp_kses_post( __( 'Monitoring and alerts are set up in the <a href="%s">API Monitoring settings</a>. To see the figures (queries, cache hits, errors), run <code>wp zerospam api_usage</code> or read the <code>zero-spam/v1/api-usage</code> REST route. The Zero Spam dashboard widget shows detections, not API usage.', 'zero-spam' ) ),
+							esc_url( \ZeroSpam\Core\Utilities::admin_link( 'api-monitoring' ) )
 						);
 						?>
 					</p>
@@ -176,6 +176,8 @@ defined( 'ABSPATH' ) || die();
 				</tbody>
 			</table>
 
+			<p><?php esc_html_e( 'Each threshold can be changed next to its alert. Quota thresholds are the share of your quota used; with a Quota Reset Date set, quota alerts only count what the API reported since the last reset (the date repeats every month).', 'zero-spam' ); ?></p>
+
 			<h3><?php esc_html_e( 'Alert Channels', 'zero-spam' ); ?></h3>
 			<ul>
 				<li><strong><?php esc_html_e( 'Email Alerts:', 'zero-spam' ); ?></strong> <?php esc_html_e( 'Sent to your site administrator email', 'zero-spam' ); ?></li>
@@ -186,7 +188,7 @@ defined( 'ABSPATH' ) || die();
 			<div class="zerospam-docs-note">
 				<p>
 					<strong><?php esc_html_e( 'Alert Throttling:', 'zero-spam' ); ?></strong>
-					<?php esc_html_e( 'To prevent alert fatigue, warning-level alerts are limited to 1 email per 24 hours. Critical alerts are sent immediately every time.', 'zero-spam' ); ?>
+					<?php esc_html_e( 'To prevent alert fatigue, warning-level alerts are limited to 1 email per 24 hours, and quota alerts to 1 per quota period (per day without a Quota Reset Date). Other critical alerts are sent immediately every time.', 'zero-spam' ); ?>
 				</p>
 			</div>
 		</div>

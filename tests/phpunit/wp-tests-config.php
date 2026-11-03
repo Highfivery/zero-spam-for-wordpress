@@ -25,6 +25,17 @@ define( 'ABSPATH', $zerospam_tests_config['wp_core_dir'] . '/' );
 // zero-spam/wordpress-zero-spam.php as in production.
 define( 'WP_PLUGIN_DIR', $zerospam_tests_config['wp_plugin_dir'] );
 
+// Everything WordPress and the plugin write while the tests run (uploads/
+// with the plugin's zerospam.log, uploads/sites/{id}/, upgrade/, temporary
+// files) goes to a directory of this checkout, never into the WordPress core
+// shared by every checkout (bin/test.sh empties it before each run).
+define( 'WP_CONTENT_DIR', $zerospam_tests_config['wp_content_dir'] );
+define( 'WP_TEMP_DIR', $zerospam_tests_config['wp_content_dir'] . '/tmp/' );
+
+if ( ! is_dir( WP_TEMP_DIR ) ) {
+	mkdir( WP_TEMP_DIR, 0777, true ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- WordPress is not loaded yet, so wp_mkdir_p() does not exist.
+}
+
 define( 'WP_DEFAULT_THEME', 'default' );
 define( 'WP_DEBUG', true );
 define( 'WP_HTTP_BLOCK_EXTERNAL', true );

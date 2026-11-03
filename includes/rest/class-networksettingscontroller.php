@@ -1,9 +1,10 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps Network_Settings_Controller to this file name.
 /**
  * Network Settings REST API Controller
  *
  * Provides 20+ REST API endpoints for programmatic access
- * to network settings management.
+ * to network settings management. Secrets are write-only: every read
+ * shows a network secret as `{ set, hint }` and a site's as `{ set, source }`.
  *
  * @package ZeroSpam
  */
@@ -16,7 +17,7 @@ defined( 'ABSPATH' ) || die();
 /**
  * Network Settings Controller class
  */
-class Network_Settings_Controller extends \WP_REST_Controller {
+class Network_Settings_Controller extends Base_Controller {
 
 	/**
 	 * Namespace
@@ -83,58 +84,6 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 			)
 		);
 
-		// Get single setting.
-		register_rest_route(
-			$this->namespace,
-			'/' . $this->rest_base . '/(?P<key>[\w-]+)',
-			array(
-				array(
-					'methods'             => \WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'get_item' ),
-					'permission_callback' => array( $this, 'get_item_permissions_check' ),
-				),
-				array(
-					'methods'             => \WP_REST_Server::EDITABLE,
-					'callback'            => array( $this, 'update_item' ),
-					'permission_callback' => array( $this, 'update_item_permissions_check' ),
-					'args'                => array(
-						'value'  => array(
-							'required' => true,
-						),
-						'locked' => array(
-							'type'    => 'boolean',
-							'default' => false,
-						),
-					),
-				),
-			)
-		);
-
-		// Lock/Unlock setting.
-		register_rest_route(
-			$this->namespace,
-			'/' . $this->rest_base . '/(?P<key>[\w-]+)/lock',
-			array(
-				array(
-					'methods'             => \WP_REST_Server::EDITABLE,
-					'callback'            => array( $this, 'lock_item' ),
-					'permission_callback' => array( $this, 'update_item_permissions_check' ),
-				),
-			)
-		);
-
-		register_rest_route(
-			$this->namespace,
-			'/' . $this->rest_base . '/(?P<key>[\w-]+)/unlock',
-			array(
-				array(
-					'methods'             => \WP_REST_Server::EDITABLE,
-					'callback'            => array( $this, 'unlock_item' ),
-					'permission_callback' => array( $this, 'update_item_permissions_check' ),
-				),
-			)
-		);
-
 		// Apply to all sites.
 		register_rest_route(
 			$this->namespace,
@@ -152,7 +101,7 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 						'mode'  => array(
 							'type'    => 'string',
 							'default' => 'all',
-							'enum'    => array( 'all', 'locked_only', 'defaults_only' ),
+							'enum'    => array( 'all', 'locked_only', 'defaults_only', 'follow' ),
 						),
 						'sites' => array(
 							'type'  => 'array',
@@ -198,6 +147,19 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_comparison' ),
 					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => array(
+						'page'     => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+							'default' => 1,
+						),
+						'per_page' => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+							'maximum' => self::MAX_PER_PAGE,
+							'default' => self::MAX_PER_PAGE,
+						),
+					),
 				),
 			)
 		);
@@ -228,16 +190,51 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 						'limit'       => array(
 							'type'    => 'integer',
 							'default' => 50,
+							'minimum' => 1,
+							'maximum' => self::MAX_PER_PAGE,
 						),
 						'offset'      => array(
 							'type'    => 'integer',
 							'default' => 0,
+							'minimum' => 0,
+						),
+						'page'        => array(
+							'description' => __( 'Page (with per_page); the answer then carries X-WP-Total and X-WP-TotalPages (since 6.0.0).', 'zero-spam' ),
+							'type'        => 'integer',
+							'minimum'     => 1,
+						),
+						'per_page'    => array(
+							'type'    => 'integer',
+							'minimum' => 1,
+							'maximum' => self::MAX_PER_PAGE,
+							'default' => 25,
 						),
 						'action_type' => array(
 							'type' => 'string',
+							'enum' => \ZeroSpam\Includes\DB::AUDIT_ACTIONS,
 						),
 						'user_id'     => array(
-							'type' => 'integer',
+							'type'    => 'integer',
+							'minimum' => 0,
+						),
+						'site_id'     => array(
+							'description' => __( 'Entries of one site (0: the network).', 'zero-spam' ),
+							'type'        => 'integer',
+							'minimum'     => 0,
+						),
+						'setting_key' => array(
+							'type'      => 'string',
+							'maxLength' => 191,
+						),
+						'after'       => array(
+							'description' => __( 'Entries on or after this day (YYYY-MM-DD, network time).', 'zero-spam' ),
+							'type'        => 'string',
+							'pattern'     => '^\\d{4}-\\d{2}-\\d{2}$',
+						),
+						'before'      => array(
+							'description' => __( 'Entries on or before this day (YYYY-MM-DD, network time).', 'zero-spam' ),
+							'type'        => 'string',
+							'pattern'     => '^\\d{4}-\\d{2}-\\d{2}$',
 						),
 					),
 				),
@@ -307,6 +304,10 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 						'description' => array(
 							'type' => 'string',
 						),
+						'settings'    => array(
+							'description' => __( 'Values by setting key (since 6.0.0). Without it, the current network values are saved.', 'zero-spam' ),
+							'type'        => 'object',
+						),
 					),
 				),
 			)
@@ -321,6 +322,23 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_template' ),
 					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+				),
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_template' ),
+					'permission_callback' => array( $this, 'update_item_permissions_check' ),
+					'args'                => array(
+						'name'        => array(
+							'type'      => 'string',
+							'maxLength' => 255,
+						),
+						'description' => array(
+							'type' => 'string',
+						),
+						'settings'    => array(
+							'type' => 'object',
+						),
+					),
 				),
 				array(
 					'methods'             => \WP_REST_Server::DELETABLE,
@@ -349,11 +367,70 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 							'type'    => 'boolean',
 							'default' => false,
 						),
+						'force' => array(
+							'description' => __( 'With scope sites: also replace values a site changed itself (since 6.0.0). Locked settings are never written.', 'zero-spam' ),
+							'type'        => 'boolean',
+							'default'     => false,
+						),
 						'sites' => array(
-							'type'  => 'array',
-							'items' => array( 'type' => 'integer' ),
+							'type'     => 'array',
+							'items'    => array( 'type' => 'integer' ),
+							'maxItems' => \ZeroSpam\Includes\Network_Report::MAX_SITES,
 						),
 					),
+				),
+			)
+		);
+
+		// One setting, and its lock (registered last: `{key}` would also match
+		// audit, export, import, templates and the other fixed routes above).
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<key>[\w-]+)',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_item' ),
+					'permission_callback' => array( $this, 'get_item_permissions_check' ),
+				),
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_item' ),
+					'permission_callback' => array( $this, 'update_item_permissions_check' ),
+					'args'                => array(
+						'value'  => array(
+							'required' => true,
+						),
+						'locked' => array(
+							'type'    => 'boolean',
+							'default' => false,
+						),
+					),
+				),
+			)
+		);
+
+		// Lock/Unlock setting.
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<key>[\w-]+)/lock',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'lock_item' ),
+					'permission_callback' => array( $this, 'update_item_permissions_check' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<key>[\w-]+)/unlock',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'unlock_item' ),
+					'permission_callback' => array( $this, 'update_item_permissions_check' ),
 				),
 			)
 		);
@@ -392,13 +469,14 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	/**
 	 * Get all settings
 	 *
+	 * Since 6.0.0 a secret's value is `{ set, hint }` and the site counts
+	 * come from the cached report of the network's active sites.
+	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function get_items( $request ) {
-		$settings = $this->settings_manager->get_all_with_status();
-
-		return rest_ensure_response( $settings );
+		return rest_ensure_response( \ZeroSpam\Includes\Network_Report::settings_status() );
 	}
 
 	/**
@@ -418,7 +496,7 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Update setting
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function update_item( $request ) {
 		$key    = $request->get_param( 'key' );
@@ -428,7 +506,12 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 		$result = $this->settings_manager->set_setting( $key, $value, $locked );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Setting updated' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Setting updated',
+				)
+			);
 		}
 
 		return new \WP_Error( 'update_failed', 'Failed to update setting', array( 'status' => 500 ) );
@@ -438,14 +521,19 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Lock setting
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function lock_item( $request ) {
 		$key    = $request->get_param( 'key' );
 		$result = $this->settings_manager->lock_setting( $key );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Setting locked' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Setting locked',
+				)
+			);
 		}
 
 		return new \WP_Error( 'lock_failed', 'Failed to lock setting', array( 'status' => 500 ) );
@@ -455,14 +543,19 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Unlock setting
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function unlock_item( $request ) {
 		$key    = $request->get_param( 'key' );
 		$result = $this->settings_manager->unlock_setting( $key );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Setting unlocked' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Setting unlocked',
+				)
+			);
 		}
 
 		return new \WP_Error( 'unlock_failed', 'Failed to unlock setting', array( 'status' => 500 ) );
@@ -475,9 +568,9 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function apply_all( $request ) {
-		$force  = $request->get_param( 'force' );
-		$mode   = $request->get_param( 'mode' );
-		$sites  = $request->get_param( 'sites' ) ?? array();
+		$force = $request->get_param( 'force' );
+		$mode  = $request->get_param( 'mode' );
+		$sites = $request->get_param( 'sites' ) ?? array();
 
 		$result = $this->settings_manager->apply_to_sites( $force, $sites, $mode );
 
@@ -487,37 +580,52 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	/**
 	 * Get site settings
 	 *
+	 * Per setting the network holds, `{ value, source }`; since 6.0.0 a
+	 * secret is `{ set, source }`. `source`: locked, override, default, or
+	 * where the network sets no value, site or plugin.
+	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object, or 404 for a site that is not on this network.
 	 */
 	public function get_site_settings( $request ) {
-		$site_id  = $request->get_param( 'site_id' );
-		$settings = $this->settings_manager->get_all_with_status();
-		$result   = array();
+		$site_id = (int) $request->get_param( 'site_id' );
 
-		foreach ( $settings as $key => $config ) {
-			$effective = $this->network_settings->get_effective_value( $key, $site_id );
-			$result[ $key ] = array(
-				'value'  => $effective['value'],
-				'source' => $effective['source'],
-			);
+		if ( ! \ZeroSpam\Includes\Network_Report::is_on_network( $site_id ) ) {
+			return $this->site_not_found();
 		}
 
-		return rest_ensure_response( $result );
+		return rest_ensure_response( \ZeroSpam\Includes\Network_Report::site_values( $site_id ) );
+	}
+
+	/**
+	 * The answer for a site that is not on this network, or does not exist.
+	 */
+	private function site_not_found(): \WP_Error {
+		return new \WP_Error( 'zerospam_site_not_found', __( 'That site is not on this network.', 'zero-spam' ), array( 'status' => 404 ) );
 	}
 
 	/**
 	 * Reset site
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function reset_site( $request ) {
-		$site_id = $request->get_param( 'site_id' );
-		$result  = $this->settings_manager->reset_site( $site_id );
+		$site_id = (int) $request->get_param( 'site_id' );
+
+		if ( ! \ZeroSpam\Includes\Network_Report::is_on_network( $site_id ) ) {
+			return $this->site_not_found();
+		}
+
+		$result = $this->settings_manager->reset_site( $site_id );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Site reset' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Site reset',
+				)
+			);
 		}
 
 		return new \WP_Error( 'reset_failed', 'Failed to reset site', array( 'status' => 500 ) );
@@ -526,59 +634,51 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	/**
 	 * Get comparison
 	 *
+	 * A page of sites (`page`, `per_page`, at most 100; X-WP-Total), since
+	 * 6.0.0: `comparison` by setting key, with `network_value` (a secret as
+	 * `{ set, hint }`), `locked` and `sites` by blog ID (`{ value, source }`,
+	 * a secret as `{ set, source }`), and `sites` (`id`, `name`, `url`).
+	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function get_comparison( $request ) {
-		$sites      = get_sites( array( 'number' => 100 ) );
-		$settings   = $this->settings_manager->get_all_with_status();
-		$comparison = array();
+		$per_page = $this->clamp_per_page( $request->get_param( 'per_page' ), self::MAX_PER_PAGE );
+		$data     = \ZeroSpam\Includes\Network_Report::compare( (int) $request->get_param( 'page' ), $per_page );
 
-		foreach ( $settings as $key => $config ) {
-			$comparison[ $key ] = array(
-				'network_value' => $config['value'],
-				'locked'        => $config['locked'],
-				'sites'         => array(),
-			);
-
-			foreach ( $sites as $site ) {
-				$effective = $this->network_settings->get_effective_value( $key, $site->blog_id );
-				$comparison[ $key ]['sites'][ $site->blog_id ] = array(
-					'value'  => $effective['value'],
-					'source' => $effective['source'],
-				);
-			}
-		}
-
-		return rest_ensure_response( array( 'comparison' => $comparison, 'sites' => $sites ) );
+		return $this->add_pagination_headers(
+			rest_ensure_response(
+				array(
+					'comparison' => (object) $data['comparison'],
+					'sites'      => $data['sites'],
+				)
+			),
+			$data['total'],
+			$per_page
+		);
 	}
 
 	/**
 	 * Get status
 	 *
+	 * From the cached report of the network's active sites (since 6.0.0):
+	 * site changes are counted on at most Network_Report::MAX_SITES sites
+	 * (`checked_sites`, `capped`).
+	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function get_status( $request ) {
-		$sites                = get_sites( array( 'number' => 0 ) );
-		$total_sites          = count( $sites );
-		$settings             = $this->settings_manager->get_all_with_status();
-		$locked_settings      = 0;
-		$total_overrides      = 0;
-
-		foreach ( $settings as $config ) {
-			if ( $config['locked'] ) {
-				$locked_settings++;
-			}
-			$total_overrides += $config['overridden'];
-		}
+		$overview = \ZeroSpam\Includes\Network_Report::overview();
 
 		return rest_ensure_response(
 			array(
-				'total_sites'     => $total_sites,
-				'total_settings'  => count( $settings ),
-				'locked_settings' => $locked_settings,
-				'total_overrides' => $total_overrides,
+				'total_sites'     => $overview['sites'],
+				'checked_sites'   => $overview['checked'],
+				'capped'          => $overview['capped'],
+				'total_settings'  => count( \ZeroSpam\Includes\Network_Report::network_values() ),
+				'locked_settings' => $overview['locked'],
+				'total_overrides' => $overview['overrides'],
 			)
 		);
 	}
@@ -586,45 +686,137 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	/**
 	 * Get audit log
 	 *
+	 * Without `page`, the entries as stored (`limit` and `offset`), as before
+	 * 6.0.0. With `page`, a page of `per_page` entries and the X-WP-Total and
+	 * X-WP-TotalPages headers. Filters: `action_type`, `user_id`, `site_id`,
+	 * `setting_key`, `after` and `before` (days, network time). Since 6.0.0
+	 * each entry also carries `id`, `date` (ISO 8601), `user`, `action`,
+	 * `action_label`, `key`, `key_title`, `site_name`, `old`, `new` (secrets
+	 * masked) and `summary`, a plain-language sentence.
+	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function get_audit( $request ) {
-		$args = array(
-			'limit'       => $request->get_param( 'limit' ),
-			'offset'      => $request->get_param( 'offset' ),
+		$paged    = null !== $request->get_param( 'page' );
+		$per_page = $paged ? $this->clamp_per_page( $request->get_param( 'per_page' ), 25 ) : max( 1, min( self::MAX_PER_PAGE, (int) $request->get_param( 'limit' ) ) );
+		$filters  = array(
 			'action_type' => $request->get_param( 'action_type' ),
 			'user_id'     => $request->get_param( 'user_id' ),
+			'site_id'     => $request->get_param( 'site_id' ),
+			'setting_key' => $request->get_param( 'setting_key' ),
+			'after'       => $request->get_param( 'after' ),
+			'before'      => $request->get_param( 'before' ),
 		);
 
-		$entries = $this->settings_manager->get_audit_log( $args );
+		$total = $paged ? $this->settings_manager->count_audit_log( $filters ) : 0;
+		$page  = $paged ? max( 1, min( (int) $request->get_param( 'page' ), max( 1, (int) ceil( $total / $per_page ) ) ) ) : 1;
 
-		return rest_ensure_response( $entries );
+		$entries = $this->settings_manager->get_audit_log(
+			$filters + array(
+				'limit'  => $per_page,
+				'offset' => $paged ? ( $page - 1 ) * $per_page : max( 0, (int) $request->get_param( 'offset' ) ),
+			)
+		);
+
+		$items = array_map( array( \ZeroSpam\Includes\Network_Settings_Manager::class, 'describe_audit_entry' ), is_array( $entries ) ? $entries : array() );
+
+		$response = rest_ensure_response( $items );
+
+		if ( $paged ) {
+			$response = $this->add_pagination_headers( $response, $total, $per_page );
+			$response->header( 'X-ZeroSpam-Page', (string) $page );
+		}
+
+		return $response;
 	}
 
 	/**
 	 * Export settings
+	 *
+	 * Since 6.0.0 license and API keys and webhook addresses are left out:
+	 * they are secrets, and an export is meant to be copied around. So is a
+	 * key the registry does not know: it could be an inactive extension's
+	 * secret (and the import skips keys it does not know anyway).
 	 *
 	 * @param \WP_REST_Request $request Request object.
 	 * @return \WP_REST_Response Response object.
 	 */
 	public function export_settings( $request ) {
 		$settings = $this->settings_manager->export_settings( 'array' );
+		$settings = is_array( $settings ) ? $settings : array();
 
-		return rest_ensure_response( $settings );
+		foreach ( array_keys( $settings ) as $key ) {
+			if ( \ZeroSpam\Includes\Network_Report::is_hidden( (string) $key ) ) {
+				unset( $settings[ $key ] );
+			}
+		}
+
+		return rest_ensure_response( (object) $settings );
 	}
 
 	/**
 	 * Import settings
 	 *
+	 * Since 6.0.0 only settings Zero Spam knows are imported, with their
+	 * values checked as PATCH /settings checks them; the answer lists what
+	 * was skipped (`skipped_keys`) and what was invalid (`invalid`).
+	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object.
 	 */
 	public function import_settings( $request ) {
 		$settings = $request->get_param( 'settings' );
 		$mode     = $request->get_param( 'mode' );
 
-		$result = $this->settings_manager->import_settings( $settings, $mode );
+		if ( ! is_array( $settings ) || ! $settings ) {
+			return $this->invalid_params_error( array( 'settings' => __( 'The file has no settings.', 'zero-spam' ) ) );
+		}
+
+		$values  = array();
+		$locks   = array();
+		$skipped = array();
+
+		foreach ( $settings as $key => $item ) {
+			$key   = (string) $key;
+			$entry = \ZeroSpam\Core\Settings_Schema::setting( $key );
+
+			if ( null === $entry || 'html' === $entry['type'] ) {
+				$skipped[] = $key;
+				continue;
+			}
+
+			$values[ $key ] = is_array( $item ) && array_key_exists( 'value', $item ) ? $item['value'] : $item;
+			if ( is_array( $item ) && array_key_exists( 'locked', $item ) ) {
+				$locks[ $key ] = (bool) $item['locked'];
+			}
+		}
+
+		$checked = $values ? ( new Settings_Controller() )->validate_values( $values ) : array(
+			'valid'  => array(),
+			'errors' => array(),
+		);
+
+		$import = array();
+		foreach ( $checked['valid'] as $key => $value ) {
+			$import[ $key ] = array(
+				'value'  => $value,
+				'locked' => $locks[ $key ] ?? false,
+			);
+		}
+
+		$result = $import ? $this->settings_manager->import_settings( $import, $mode ) : array(
+			'success'        => true,
+			'imported_count' => 0,
+			'skipped_count'  => 0,
+			'total_settings' => 0,
+		);
+
+		$result['skipped_keys']  = $skipped;
+		$result['invalid']       = (object) $checked['errors'];
+		$result['total_in_file'] = count( $settings );
+
+		\ZeroSpam\Includes\Network_Report::flush();
 
 		return rest_ensure_response( $result );
 	}
@@ -638,14 +830,31 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	public function get_templates( $request ) {
 		$templates = $this->templates_manager->get_all_templates();
 
-		return rest_ensure_response( $templates );
+		return rest_ensure_response( array_map( array( $this, 'without_secrets' ), is_array( $templates ) ? $templates : array() ) );
+	}
+
+	/**
+	 * A template as the API shows it: without secrets (6.0 templates refuse
+	 * them, but one a 5.x network saved can hold every network value).
+	 *
+	 * @param array<string, mixed> $template Template.
+	 * @return array<string, mixed>
+	 */
+	private function without_secrets( array $template ): array {
+		foreach ( array_keys( (array) ( $template['settings'] ?? array() ) ) as $key ) {
+			if ( \ZeroSpam\Core\Settings_Schema::is_secret( (string) $key ) ) {
+				unset( $template['settings'][ $key ] );
+			}
+		}
+
+		return $template;
 	}
 
 	/**
 	 * Get single template
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function get_template( $request ) {
 		$slug     = $request->get_param( 'slug' );
@@ -655,47 +864,172 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 			return new \WP_Error( 'not_found', 'Template not found', array( 'status' => 404 ) );
 		}
 
-		return rest_ensure_response( $template );
+		return rest_ensure_response( $this->without_secrets( $template ) );
 	}
 
 	/**
 	 * Create template
 	 *
+	 * With `settings` (since 6.0.0), a template of those values (checked:
+	 * settings a network can lock, valid values); without, the current
+	 * network values.
+	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function create_template( $request ) {
-		$name        = $request->get_param( 'name' );
-		$slug        = $request->get_param( 'slug' );
-		$description = $request->get_param( 'description' ) ?? '';
+		$name        = trim( (string) $request->get_param( 'name' ) );
+		$slug        = (string) $request->get_param( 'slug' );
+		$description = (string) ( $request->get_param( 'description' ) ?? '' );
+		$settings    = $request->get_param( 'settings' );
+		$errors      = $this->template_errors( $name, $slug );
+		$checked     = array(
+			'valid'  => array(),
+			'errors' => array(),
+		);
 
-		$template_id = $this->templates_manager->save_current_as_template( $name, $slug, $description );
+		if ( ! isset( $errors['slug'] ) && $this->templates_manager->get_template( $slug ) ) {
+			$errors['slug'] = __( 'A template already uses that slug. Choose another.', 'zero-spam' );
+		}
+
+		if ( null !== $settings ) {
+			$checked = \ZeroSpam\Includes\Network_Templates::check_settings( $settings );
+			if ( $checked['errors'] ) {
+				$errors['settings'] = implode( ' ', $checked['errors'] );
+			} elseif ( ! $checked['valid'] ) {
+				$errors['settings'] = __( 'Choose at least one setting.', 'zero-spam' );
+			}
+		}
+
+		if ( $errors ) {
+			return $this->invalid_params_error( $errors );
+		}
+
+		$template_id = null !== $settings
+			? $this->templates_manager->create_template( $name, $slug, $checked['valid'], $description )
+			: $this->templates_manager->save_current_as_template( $name, $slug, $description );
 
 		if ( $template_id ) {
-			return rest_ensure_response(
+			$response = rest_ensure_response(
 				array(
 					'success'     => true,
 					'message'     => 'Template created',
 					'template_id' => $template_id,
+					'template'    => $this->without_secrets( (array) $this->templates_manager->get_template( $slug ) ),
 				)
 			);
+			$response->set_status( 201 );
+
+			return $response;
 		}
 
-		return new \WP_Error( 'create_failed', 'Failed to create template', array( 'status' => 500 ) );
+		return new \WP_Error( 'create_failed', __( 'The template could not be saved. Please try again.', 'zero-spam' ), array( 'status' => 500 ) );
+	}
+
+	/**
+	 * Changes a custom template (since 6.0.0): its name, description and
+	 * settings. Built-in templates cannot be changed (save a copy instead).
+	 *
+	 * @param \WP_REST_Request $request Request object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
+	 */
+	public function update_template( $request ) {
+		$slug     = (string) $request->get_param( 'slug' );
+		$template = $this->templates_manager->get_template( $slug );
+
+		if ( ! $template ) {
+			return new \WP_Error( 'not_found', __( 'Template not found', 'zero-spam' ), array( 'status' => 404 ) );
+		}
+
+		if ( 'custom' !== $template['type'] ) {
+			return new \WP_Error( 'zerospam_template_built_in', __( 'Built-in templates cannot be changed. Save a copy instead.', 'zero-spam' ), array( 'status' => 403 ) );
+		}
+
+		$updates = array();
+		$errors  = array();
+
+		if ( null !== $request->get_param( 'name' ) ) {
+			$updates['name'] = trim( (string) $request->get_param( 'name' ) );
+			if ( '' === $updates['name'] ) {
+				$errors['name'] = __( 'Enter a template name.', 'zero-spam' );
+			}
+		}
+
+		if ( null !== $request->get_param( 'description' ) ) {
+			$updates['description'] = (string) $request->get_param( 'description' );
+		}
+
+		if ( null !== $request->get_param( 'settings' ) ) {
+			$checked = \ZeroSpam\Includes\Network_Templates::check_settings( $request->get_param( 'settings' ), array_keys( (array) $template['settings'] ) );
+			if ( $checked['errors'] ) {
+				$errors['settings'] = implode( ' ', $checked['errors'] );
+			} elseif ( ! $checked['valid'] ) {
+				$errors['settings'] = __( 'Choose at least one setting.', 'zero-spam' );
+			} else {
+				$updates['settings'] = $checked['valid'];
+			}
+		}
+
+		if ( $errors ) {
+			return $this->invalid_params_error( $errors );
+		}
+
+		if ( ! $updates || $this->templates_manager->update_template( $slug, $updates ) ) {
+			return rest_ensure_response( $this->without_secrets( (array) $this->templates_manager->get_template( $slug ) ) );
+		}
+
+		return new \WP_Error( 'update_failed', __( 'The template could not be saved. Please try again.', 'zero-spam' ), array( 'status' => 500 ) );
+	}
+
+	/**
+	 * What is wrong with a template's name and slug.
+	 *
+	 * @param string $name Name.
+	 * @param string $slug Slug.
+	 * @return array<string, string>
+	 */
+	private function template_errors( string $name, string $slug ): array {
+		$errors = array();
+
+		if ( '' === $name ) {
+			$errors['name'] = __( 'Enter a template name.', 'zero-spam' );
+		}
+
+		if ( 1 !== preg_match( '/^[a-z0-9][a-z0-9_-]{0,62}$/', $slug ) ) {
+			$errors['slug'] = __( 'Use lowercase letters, numbers and hyphens, like clinic-sites.', 'zero-spam' );
+		}
+
+		return $errors;
 	}
 
 	/**
 	 * Delete template
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function delete_template( $request ) {
-		$slug   = $request->get_param( 'slug' );
+		$slug     = (string) $request->get_param( 'slug' );
+		$template = $this->templates_manager->get_template( $slug );
+
+		// A template of another network does not exist here.
+		if ( ! $template ) {
+			return new \WP_Error( 'not_found', __( 'Template not found', 'zero-spam' ), array( 'status' => 404 ) );
+		}
+
+		if ( 'custom' !== $template['type'] ) {
+			return new \WP_Error( 'zerospam_template_built_in', __( 'Built-in templates cannot be deleted.', 'zero-spam' ), array( 'status' => 403 ) );
+		}
+
 		$result = $this->templates_manager->delete_template( $slug );
 
 		if ( $result ) {
-			return rest_ensure_response( array( 'success' => true, 'message' => 'Template deleted' ) );
+			return rest_ensure_response(
+				array(
+					'success' => true,
+					'message' => 'Template deleted',
+				)
+			);
 		}
 
 		return new \WP_Error( 'delete_failed', 'Failed to delete template', array( 'status' => 500 ) );
@@ -705,31 +1039,47 @@ class Network_Settings_Controller extends \WP_REST_Controller {
 	 * Apply template
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function apply_template( $request ) {
-		$slug  = $request->get_param( 'slug' );
+		$slug  = (string) $request->get_param( 'slug' );
 		$scope = $request->get_param( 'scope' );
 		$lock  = $request->get_param( 'lock' );
 		$sites = $request->get_param( 'sites' ) ?? array();
+
+		if ( ! $this->templates_manager->get_template( $slug ) ) {
+			return new \WP_Error( 'not_found', __( 'Template not found', 'zero-spam' ), array( 'status' => 404 ) );
+		}
 
 		if ( 'network' === $scope ) {
 			$result = $this->templates_manager->apply_to_network( $slug, $lock );
 
 			if ( $result ) {
-				return rest_ensure_response( array( 'success' => true, 'message' => 'Template applied to network' ) );
+				return rest_ensure_response(
+					array(
+						'success' => true,
+						'message' => 'Template applied to network',
+					)
+				);
 			}
 
 			return new \WP_Error( 'apply_failed', 'Failed to apply template', array( 'status' => 500 ) );
-		} else {
-			if ( empty( $sites ) ) {
-				$all_sites = get_sites( array( 'number' => 0 ) );
-				$sites     = wp_list_pluck( $all_sites, 'blog_id' );
-			}
-
-			$result = $this->templates_manager->apply_to_sites( $slug, $sites );
-
-			return rest_ensure_response( $result );
 		}
+
+		if ( empty( $sites ) ) {
+			$sites = get_sites(
+				array(
+					'fields'     => 'ids',
+					'number'     => \ZeroSpam\Includes\Network_Report::MAX_SITES,
+					'network_id' => get_current_network_id(),
+				)
+			);
+		}
+
+		$result = $this->templates_manager->apply_to_sites( $slug, $sites, (bool) $request->get_param( 'force' ) );
+
+		\ZeroSpam\Includes\Network_Report::flush();
+
+		return rest_ensure_response( $result );
 	}
 }

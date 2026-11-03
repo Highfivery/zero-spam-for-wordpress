@@ -170,7 +170,6 @@ class ProjectHoneypot {
 	public function sections( $sections ) {
 		$sections['project_honeypot'] = array(
 			'title' => __( 'Project Honeypot', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-honeypot.svg',
 		);
 
 		return $sections;

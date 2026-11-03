@@ -39,15 +39,20 @@ This project deliberately uses no hosted CI (GitHub Actions is not used). Instea
 
 ```bash
 composer install        # also points git at .githooks/ so the pre-push hook is active
-composer check          # the gate: version check, WPCS on changed files and the tests, PHP 8.2+ compatibility, PHPStan, PHPUnit
-composer check:all      # WPCS on every file and the tests, PHPStan and the full PHPUnit matrix (red until the pre-existing WPCS backlog is cleared)
+nvm use && npm ci       # Node 22 (.nvmrc): the front-end build, its linters and tests, and the e2e suite
+npx playwright install chromium   # used by the render unit test and the e2e suite
+composer check          # the gate: built assets and budgets, version check, WPCS on changed files and the tests, PHP 8.2+ compatibility, PHPStan, PHPUnit
+composer check:all      # built assets and budgets, WPCS on every file and the tests, PHPStan and the full PHPUnit matrix (red until the pre-existing WPCS backlog is cleared)
 ```
 
 | Script | What it runs |
 |---|---|
+| `npm run build` (`composer build`) | Builds the 6.0 admin front end from `assets/src/` into `assets/dist/` with `@wordpress/scripts`. Commit `assets/dist/` with the source change that produced it; never edit it by hand, and never commit the development output of `npm start` |
+| `composer check:dist` (`npm run check:dist`) | `bin/check-dist.sh`: when the build inputs or outputs changed, runs the JavaScript and CSS linters and unit tests, builds into a temporary directory, refuses an `assets/dist/` that differs from it, and checks the size budgets (`--twice` also proves the build is reproducible; `npm run check:budget` checks the budgets only). Needs Node 22 (loads nvm itself) and an up-to-date `npm ci`; it refuses rather than installing |
+| `npm run lint:js` / `npm run lint:css` / `npm run test:js` | ESLint and stylelint with the WordPress configurations, and the Vitest unit tests (including the design-token contrast test) |
 | `composer lint` / `composer lint:fix` | The full WordPress Coding Standards ruleset (`phpcs.xml.dist`) on every PHP file; `lint:fix` applies the fixes `phpcbf` can make |
 | `composer lint:changed` | WPCS on the PHP files changed against `origin/develop` (whole files, so a touched file is left clean) |
-| `composer check` / `composer check:all` | Version check, WPCS (changed files and the tests / every file and the tests), PHP compatibility, PHPStan and PHPUnit (one run / the full matrix) |
+| `composer check` / `composer check:all` | Built assets and budgets, version check, WPCS (changed files and the tests / every file and the tests), PHP compatibility, PHPStan and PHPUnit (one run / the full matrix) |
 | `composer test` | PHPUnit on single site and multisite against the latest WordPress (`bin/test.sh --mode=all`). Needs MySQL on 127.0.0.1 (`brew services start mysql`); downloads WordPress once into `~/Library/Caches/zero-spam-tests/` |
 | `composer test:unit` / `test:integration` / `test:multisite` | One test suite |
 | `composer test:wp` | The matrix: PHP 8.2 and 8.4 × minimum and latest WordPress × single site and multisite, then checks `Tested up to` and `Requires at least` in `readme.txt` |
@@ -62,7 +67,7 @@ composer check:all      # WPCS on every file and the tests, PHPStan and the full
 | `npm run test:e2e` / `test:e2e:local` / `test:e2e:network` | The suite on the Local single site and/or network (after the one-off `npm run e2e:setup:local`; see `AGENTS.md` section 6) |
 | `npm run test:a11y` / `test:visual` / `test:visual:update` | Accessibility scans only / compare the committed visual baselines / re-record them (in a commit of its own) |
 
-The committed `.githooks/pre-push` hook runs the version check, WPCS and PHP compatibility on changed files, WPCS on the test code, PHPStan and the PHPUnit suite (single site and multisite), and refuses the push when any of them fail. Pushes that only delete branches or only push tags skip the gate. `SKIP_QUALITY_GATE=1 git push` bypasses it for a genuine emergency only; say so in the PR.
+The committed `.githooks/pre-push` hook runs the built-assets check (`bin/check-dist.sh`, step 0), the version check, WPCS and PHP compatibility on changed files, WPCS on the test code, PHPStan and the PHPUnit suite (single site and multisite), and refuses the push when any of them fail. Pushes that only delete branches or only push tags skip the gate. `SKIP_QUALITY_GATE=1 git push` bypasses it for a genuine emergency only; say so in the PR.
 
 `phpstan-baseline.neon` records the pre-existing findings so the gate passes today. Do not regenerate it to silence new findings; fix them, and shrink the baseline whenever you touch a file it lists.
 

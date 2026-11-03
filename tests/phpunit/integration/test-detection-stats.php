@@ -8,9 +8,9 @@
 declare( strict_types=1 );
 
 use ZeroSpam\Core\Admin\Dashboard_Widget;
-use ZeroSpam\Core\Admin\Tables\LogTable;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Network_Stats_Tracker;
+use ZeroSpam\Includes\Rest\Stats_Controller;
 use ZeroSpam\Tests\TestCase;
 
 /**
@@ -47,18 +47,14 @@ class Test_Detection_Stats extends TestCase {
 	}
 
 	/**
-	 * Calls a private method of the dashboard widget.
+	 * The dashboard widget's site data (a private method).
 	 *
-	 * @param string $method Method name.
 	 * @return array<string, mixed>
 	 */
-	private function widget_data( string $method ): array {
-		global $wpdb;
-
+	private function widget_data(): array {
 		$widget = ( new ReflectionClass( Dashboard_Widget::class ) )->newInstanceWithoutConstructor();
-		$call   = new ReflectionMethod( Dashboard_Widget::class, $method );
 
-		return $call->invoke( $widget, $wpdb );
+		return ( new ReflectionMethod( Dashboard_Widget::class, 'site_data' ) )->invoke( $widget );
 	}
 
 	/**
@@ -85,12 +81,13 @@ class Test_Detection_Stats extends TestCase {
 	 * The dashboard widget's site counts skip rescue rows.
 	 */
 	public function test_dashboard_widget_site_counts_skip_rescue_rows(): void {
-		$data = $this->widget_data( 'get_site_data' );
+		Stats_Controller::flush_cache();
+		$data = $this->widget_data();
 
-		$this->assertSame( 3, $data['total_blocked'] );
-		$this->assertSame( 3, $data['unique_ips'] );
-		$this->assertSame( 3, array_sum( array_map( 'intval', array_column( $data['trend_data'], 'count' ) ) ) );
-		$this->assertNotContains( 'rescue', array_column( $data['spam_types'], 'log_type' ) );
+		$this->assertSame( 3, array_sum( $data['days'] ) );
+		$this->assertCount( 3, $data['latest'] );
+		$this->assertNotContains( 'rescue', array_column( $data['latest'], 'type' ) );
+		$this->assertNotContains( self::RESCUE_IP, array_column( $data['latest'], 'ip' ) );
 	}
 
 	/**
@@ -105,20 +102,18 @@ class Test_Detection_Stats extends TestCase {
 	}
 
 	/**
-	 * The Detection Log still lists rescue entries, with their own label.
+	 * The activity log (GET activity) still lists rescue entries, with their own label.
 	 */
 	public function test_log_still_lists_rescue_entries(): void {
-		$this->admin_screen( 'dashboard_page_wordpress-zero-spam-dashboard' );
 		$this->as_role( 'administrator' );
 
-		$table = new LogTable();
-		$table->prepare_items();
+		$items = $this->rest( 'GET', '/zero-spam/v1/activity', array(), array( 'per_page' => 100 ) )->get_data();
+		$types = array_column( $items, 'type' );
 
-		$types = array_column( $table->items, 'log_type' );
 		$this->assertSame( 4, count( array_keys( $types, 'rescue', true ) ) );
 		$this->assertSame( 3, count( array_keys( $types, 'comment', true ) ) );
 
-		$rescue = $table->items[ array_search( 'rescue', $types, true ) ];
-		$this->assertStringContainsString( 'Rescue link used', $table->column_default( $rescue, 'log_type' ) );
+		$rescue = $items[ array_search( 'rescue', $types, true ) ];
+		$this->assertStringContainsString( 'Rescue link used', (string) $rescue['type_label'] );
 	}
 }

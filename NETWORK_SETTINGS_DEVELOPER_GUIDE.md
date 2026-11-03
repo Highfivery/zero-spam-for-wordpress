@@ -138,22 +138,20 @@ add_action('zerospam_network_settings_applied', function($settings, $network_set
 }, 10, 2);
 ```
 
-## Site Settings Page Hooks
+## Site Settings Page Hooks (deprecated in 6.0.0)
 
-On a network site, `Site_Admin_Overrides` (`includes/admin/class-siteadminoverrides.php`) uses these hooks, which the Zero Spam settings page (`core/admin/class-settings.php`) fires. You can use them too.
+The 5.x settings page (`core/admin/class-settings.php`) and its network-site badges and notices were removed in 6.0.0: the 6.0 admin renders every setting from the settings schema (`zero-spam/v1/settings/schema`) in the browser and shows locks and network values itself. These hooks no longer fire; a callback on one raises a deprecation notice (`Core\Deprecated_Hooks`, shown with `WP_DEBUG`), and they are removed in 7.0.0.
 
-| Hook | Type | Arguments | Fired |
-|---|---|---|---|
-| `zerospam_settings_page_top` | action | `string $subview` | At the top of every settings form view (not on Documentation, Import/Export or Error Log). |
-| `zerospam_setting_field_before` | action | `string $setting_key, array $field` | Before each setting's description and control. |
-| `zerospam_setting_field_after` | action | `string $setting_key, array $field` | After each setting's control. |
-| `zerospam_setting_field_disabled` | filter | `bool $disabled, string $setting_key, array $field` | Before each control is rendered. Return `true` to render it disabled. |
-
-`$field` holds the field arguments, including the resolved `value`. A disabled control gets the `disabled` attribute and an `aria-describedby` pointing to a visually hidden "Locked by the network administrator" explanation.
+| Hook | Type | What to use instead |
+|---|---|---|
+| `zerospam_settings_page_top` | action | Nothing: there is no server-rendered settings page. |
+| `zerospam_setting_field_before` | action | Nothing. |
+| `zerospam_setting_field_after` | action | Nothing. |
+| `zerospam_setting_field_disabled` | filter | Lock the setting on the network (`zerospam_network_settings`); the 6.0 screens disable locked settings themselves. |
 
 ### What a site save stores
 
-The settings form submits every field. On a real form submission (the posted `option_page` matches the option being saved), `Settings::settings_validation()` stores the unticked checkboxes and empty multi-selects of that module only as `false` and `[]`; any other write (imports, "Apply to All Sites", WP-CLI, REST) is stored as given.
+Every writer (the REST settings routes, imports, "Apply to sites", templates, WP-CLI, `Utilities::update_setting()`) stores what it is given. Since 6.0.0, `Settings_Schema::sanitize_settings_option()` (on `sanitize_option_zero-spam-settings`, priority 5, every request) moves `blocked_email_domains` into its own non-autoloaded option and keeps only valid `trusted_proxies` entries, whoever writes.
 
 Because `resolve_all_settings()` treats any key stored in a site's `zero-spam-{module}` option as a site override, every write to a network site's options is filtered (`Site_Admin_Overrides::filter_site_save()`, on `sanitize_option_zero-spam-{module}` at priority 20, registered on `init` on every network-site request, so it also covers `wp zerospam set` and the REST settings route):
 
@@ -309,7 +307,7 @@ add_filter('zerospam_settings', function($settings) {
     return $settings;
 }, 200);
 ```
-Locked values are still enforced on save (settings page, REST and WP-CLI), so this only affects what the site reads.
+Locked values are still enforced on save (REST, imports and WP-CLI), so this only affects what the site reads.
 
 ### Q: How do I override just for one site?
 **A:** Check `get_current_blog_id()` in your filter:
@@ -338,6 +336,28 @@ add_filter('zerospam_settings', function($settings) {
 
 ---
 
+## Storage, the settings schema and REST (6.0)
+
+- **One store.** Network values live in the site option `zerospam_network_settings` (`settings` → key → `value`, `locked`, `updated_by`, `updated_at`). The REST route `zero-spam/v1/settings` used a second option, `zero-spam-network-zerospam`, before 6.0; the `v6_network_store` migration merges it once per network (store values win, merged keys are unlocked) and leaves the old option in place, unread and unwritten, so a downgrade to 5.7.x still finds it. It is removed in 6.1, together with the `zerospam_backup_5x` copy of the 5.x settings.
+- **Precedence everywhere.** `Network_Settings::resolve_all_settings()`, `Settings_Resolver`, `Core\Settings_Schema` and the REST routes all apply: locked network value → site override → network default → (license only) `ZEROSPAM_LICENSE_KEY` → plugin default. REST reports the source as `locked`, `site`, `network`, `constant` or `default`.
+- **Optional registry keys.** A setting added with `zerospam_settings` may carry `default`, `secret`, `lockable`, `area`, `group`, `depends_on` (`array( 'key' => …, 'value' => … )`) and `order`. `lockable => false` keeps it off the lock switches; every type but `html` is lockable by default. `secret => true` makes it write-only over REST: reads return `{ set, source, hint }`, and on a network site `{ set, source }` only when the value comes from the network or a constant.
+- **Audit.** A `scope=network` PATCH of `zero-spam/v1/settings` keeps each key's lock and adds one `wpzerospam_network_audit` entry per changed key, as the acting user, with secrets masked.
+- **Schema.** `GET zero-spam/v1/settings/schema` (site administrators) returns every section and setting with these keys plus `locked`, `source` and the value; `Settings_Schema::get()` gives the same in PHP, built once per request.
+
+## The 6.0 network page, templates and network-wide blocks
+
+- **Page.** Network administrators manage everything on `admin.php?page=zero-spam-network` (network admin), in eight tabs (`&tab=overview|settings|templates|audit|comparison|io|notifications|stats`). It uses the routes below; site administrators get 403 on all of them.
+- **Settings tab.** Every setting a network can lock (any type but `html`, unless its registry entry says `lockable => false`) is listed, grouped as in the site admin. Values are saved with `PATCH zero-spam/v1/settings?scope=network` (locks are kept); locks with `POST network-settings/{key}/lock|unlock`. Locking a setting the network does not set locks it at the plugin's default, never at a site's value (a secret has no default, so it is locked empty); unlocking it removes that value again, so sites are as they were. An extension's settings appear automatically, under Integrations unless their entry sets `area`/`group`.
+- **Templates.** Built-in templates use real setting keys (6.0.0). `POST network-settings/templates` takes `name`, `slug`, `description` and `settings` (values checked like `PATCH /settings`; secrets and help text are refused); `PUT network-settings/templates/{slug}` changes a custom template; `POST templates/{slug}/apply` takes `scope` (`network` or `sites`), `sites` (IDs; empty = every site, at most 1,000), `force` (replace values sites changed) and `lock`. Locked settings are never written to sites.
+- **Audit.** `GET network-settings/audit?page=1&per_page=25` (filters `action_type`, `setting_key`, `user_id`, `site_id`, `after`, `before`) answers with `X-WP-Total`; each entry has a plain-language `summary`. Actions: `set`, `lock`, `unlock`, `apply`, `bulk`, `template`, `import`, `reset`, `block`, `unblock`, `migrate`. Record your own with `( new \ZeroSpam\Includes\Network_Settings_Manager() )->record( $action, $key, $old, $new )` (secrets are masked).
+- **Network-wide blocks.** `GET|POST zero-spam/v1/network/blocks` and `DELETE network/blocks/{id}` (with an undo token) manage addresses blocked on every site (`{base_prefix}wpzerospam_network_blocked`). `Access::check_blocked()` applies them after the site's own blocks; the log reason is `blocked_network`. A site's IP Allowlist still lets an address in. Sites read them with `GET rules/network-blocks`. They are enforced by the PHP check only: they are never written to `.htaccess`, also on sites whose block method is `.htaccess` (the site's own blocks are still written there). `POST` refuses loopback and unspecified addresses (127.0.0.0/8, `::1`, `0.0.0.0`, `::`; private ranges are allowed, as visitors behind a proxy or on an intranet have them). Blocking the address of the request itself answers 409 `rest_would_lock_out` unless the body has `confirm: true`. Two requests adding one address at once: the second gets 409 `zerospam_block_exists` (`data.block_id`); blocking an address the network already blocks otherwise replaces its block (200). Every row carries `network_id`; reads and writes are scoped to the current network.
+- **One network.** On an install with several networks, every route above reads and writes the current network's sites only. `network-settings/site/{id}` and `site/{id}/reset` answer 404 for a site on another network, and a site on another network in `sites` is skipped. Network caches are keyed by network: `Network_Settings::network_key( $name )`. Audit entries and custom templates belong to one network (`network_id`, DB 1.6; rows from before 6.0.0 go to the main network): another network's template slug answers 404, and a slug is unique per network. Built-in templates are on every network.
+- **Reads never return a secret.** `GET network-settings` shows a secret's value (and that of a key the registry does not know, which could be an inactive extension's secret) as `{ set, hint }`; `GET network-settings/site/{id}` shows a site's as `{ set, source }`. `GET network-settings/export` leaves them out, and `GET network-settings/templates` leaves out any secret a 5.x template holds.
+- **`compare` and `status`.** Reachable since 6.0.0 (before, `{key}` answered for them). `GET network-settings/compare` takes `page` and `per_page` (at most 100, the default), answers with `X-WP-Total`, and returns `comparison` (by key: `network_value`, `locked`, `sites` by blog ID) and `sites` (`id`, `name`, `url`), read straight from the sites' options and cached with the overview. `GET network-settings/status` returns `total_sites`, `checked_sites`, `capped`, `total_settings`, `locked_settings` and `total_overrides` from the cached overview. Sites means the network's active sites (not archived, deleted or spam); site changes are counted on at most 1,000, and `total_overrides` leaves secrets out.
+- **Apply to all sites.** `POST network-settings/apply-all` takes `mode` (and `force`, `sites`):
+  - `follow` (since 6.0.0; what the 6.0 network page's "Apply to all sites" sends): each site drops its own values of the unlocked settings the network sets, so it follows the network value again, and every later change to it. Locked settings are not touched (a site's earlier value applies again if the setting is unlocked). A site's own secrets (license and API keys, the webhook address) are kept: they are write-only, so nobody could see what was lost. No mode writes an empty network secret over a site's own.
+  - `all` (default), `locked_only`, `defaults_only` (unchanged from 5.x; what `wp zerospam network-settings apply` and the deprecated `zerospam_network_apply_all` AJAX shim use): copy the network values into each site's own settings (`all` skips values a site changed unless `force`; `locked_only` writes locked settings only; `defaults_only` writes settings a site does not store). A copied value is a site value: the site no longer follows later network changes to it.
+
 ## Support
 
 For questions or issues with extensibility:
@@ -348,7 +368,7 @@ For questions or issues with extensibility:
 
 ## More Examples
 
-The examples above are the complete set shipped with the plugin. The in-admin documentation (*Settings → Zero Spam → Documentation*, "Network Settings" and "REST API" tabs) covers the network pages, locked settings and the REST responses, including the `rest_setting_locked` error and the `source` field.
+The examples above are the complete set shipped with the plugin. The in-admin documentation (*Zero Spam → Help*, "Network settings" and "REST API" guides) covers the network pages, locked settings and the REST responses, including the `rest_setting_locked` error and the `source` field.
 
 ---
 
