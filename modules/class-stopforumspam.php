@@ -107,16 +107,16 @@ class StopForumSpam {
 		$options = get_option( 'zero-spam-stop_forum_spam' );
 
 		$settings['stop_forum_spam'] = array(
-			'title'       => __( 'Status', 'zero-spam' ),
-			'section'     => 'stop_forum_spam',
-			'module'      => 'stop_forum_spam',
-			'type'        => 'checkbox',
-			'options'     => array(
+			'title'   => __( 'Status', 'zero-spam' ),
+			'section' => 'stop_forum_spam',
+			'module'  => 'stop_forum_spam',
+			'type'    => 'checkbox',
+			'options' => array(
 				'enabled' => __( 'Enabled', 'zero-spam' ),
 			),
-			'desc'        => __( 'Check if visitors have been reported as spammers by other websites.', 'zero-spam' ),
-			'value'       => ! empty( $options['stop_forum_spam'] ) ? $options['stop_forum_spam'] : false,
-			'recommended' => 'enabled',
+			'desc'    => __( 'Check if visitors have been reported as spammers by other websites. Sends visitors\' IP addresses, and the email addresses entered in comments and registrations, to stopforumspam.com.', 'zero-spam' ),
+			'value'   => ! empty( $options['stop_forum_spam'] ) ? $options['stop_forum_spam'] : false,
+			// No 'recommended' value: it sends visitor data out, so first-run setup asks (WordPress.org guideline 7).
 		);
 
 		$settings['stop_forum_spam_timeout'] = array(

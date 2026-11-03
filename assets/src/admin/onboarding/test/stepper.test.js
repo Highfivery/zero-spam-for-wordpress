@@ -217,11 +217,13 @@ describe( 'step 3, how to block', () => {
 		);
 		expect( changesFor( s ).settings ).toEqual( {
 			block_method: 'htaccess_modern',
+			stop_forum_spam: true,
 			share_data: false,
 			log_blocked_ips: true,
 		} );
 		expect( stepKeys( 3 ) ).toEqual( [
 			'block_method',
+			'stop_forum_spam',
 			'share_data',
 			'log_blocked_ips',
 		] );
@@ -271,18 +273,49 @@ describe( 'a site that already has settings', () => {
 		expect(
 			blockingFrom( [
 				{ key: 'block_method', value: 'htaccess_modern' },
+				{ key: 'stop_forum_spam', value: false },
 				{ key: 'share_data', value: false },
 				{ key: 'log_blocked_ips', value: 'enabled' },
 			] )
 		).toEqual( {
 			block_method: 'htaccess_modern',
+			stop_forum_spam: false,
 			share_data: false,
 			log_blocked_ips: true,
 		} );
 		expect( blockingFrom( undefined ) ).toEqual( {
 			block_method: 'php',
-			share_data: true,
+			stop_forum_spam: true,
+			share_data: false,
 			log_blocked_ips: true,
 		} );
+	} );
+} );
+
+describe( 'Stop Forum Spam is a choice in step 3', () => {
+	it( 'is shown on, and written as the owner leaves it', () => {
+		expect( initialState().blocking.stop_forum_spam ).toBe( true );
+		const off = run( initialState( { step: 3 } ), {
+			type: 'blocking',
+			name: 'stop_forum_spam',
+			value: false,
+		} );
+		expect( changesFor( off ).settings.stop_forum_spam ).toBe( false );
+	} );
+} );
+
+describe( 'data sharing needs consent', () => {
+	it( 'starts off on a new site and only follows an explicit yes', () => {
+		expect( initialState().blocking.share_data ).toBe( false );
+		expect(
+			changesFor( initialState( { step: 3 } ) ).settings.share_data
+		).toBe( false );
+		expect(
+			blockingFrom( [ { key: 'share_data', value: null } ] ).share_data
+		).toBe( false );
+		expect(
+			blockingFrom( [ { key: 'share_data', value: 'enabled' } ] )
+				.share_data
+		).toBe( true );
 	} );
 } );

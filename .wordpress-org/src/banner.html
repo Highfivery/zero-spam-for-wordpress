@@ -1,16 +1,17 @@
 <!doctype html>
 <!--
-	The WordPress.org banner, drawn at 772 x 250 CSS pixels. 1544 x 500 is the
-	same page at a device scale of 2. banner.html?dir=rtl is the right-to-left
-	twin: the background is mirrored and the lockup moves to the other side;
-	the mark and the words are never flipped.
+	The WordPress.org banner, "Bots bounce. People get through.", drawn on a
+	1544 x 500 stage shown at half size, so the page is 772 x 250 CSS pixels:
+	1544 x 500 is the same page at a device scale of 2. banner.html?dir=rtl is
+	the right-to-left twin: the scene is mirrored and the words move to the
+	other side; the mark and the words are never flipped, and the English
+	lines keep their left-to-right order (dir="ltr").
 
-	The hero gradient, the text and halo colours and the type's family come from
-	the admin's tokens and fonts, and the mark is assets/img/zero-spam-mark.svg.
-	The wall's brick colours are written out below. The wall follows the
-	prototype's wallG() generator with a fixed seed, so it always draws the same
-	bricks; here each whole brick comes out of the dark, instead of an airbrushed
-	mask across them. Rendered by bin/render-listing-assets.mjs.
+	Grey bots stream in and bounce off a brick wall; one peach visitor passes
+	through the wall's bright core brick (the mark's live core). The text
+	colours and the type's family come from the admin's tokens and fonts, the
+	mark is assets/img/zero-spam-mark.svg, and the scene's colours are written
+	out below. Rendered by bin/render-listing-assets.mjs.
 -->
 <html lang="en" class="zs-app">
 <head>
@@ -25,88 +26,105 @@
 <style>
 	html, body { margin: 0; width: 772px; height: 250px; overflow: hidden; background: var(--zs-dark-0); }
 
-	.bg { position: absolute; inset: 0; background: var(--zs-hero-bg); }
-	[dir="rtl"] .bg { transform: scaleX(-1); }
+	.stage { position: absolute; top: 0; left: 0; width: 1544px; height: 500px; transform: scale(0.5); transform-origin: 0 0; overflow: hidden; }
+	.bg { position: absolute; inset: 0; background: radial-gradient(circle at 30% 54%, rgba(255, 41, 41, 0.16), transparent 40%), linear-gradient(100deg, #0b0102, var(--zs-dark-1) 60%, var(--zs-dark-2)); }
+	.scene { position: absolute; inset: 0; display: block; }
+	[dir="rtl"] .bg, [dir="rtl"] .scene { transform: scaleX(-1); }
+	/* The tick reads the same in both directions. */
+	[dir="rtl"] .tick { transform: scaleX(-1); transform-box: view-box; transform-origin: 640px 265px; }
 
-	/* The brick lines of the prototype's dark blocks. */
-	.lines { position: absolute; inset: 0; }
-
-	.wall { position: absolute; inset: 0; display: block; }
-
-	.lockup {
+	.copy {
 		position: absolute;
 		inset-block: 0;
-		inset-inline-start: 96px;
+		inset-inline-start: 724px;
 		display: flex;
-		align-items: center;
+		flex-direction: column;
+		align-items: flex-start;
+		justify-content: center;
 		gap: 26px;
+		font-family: "Plus Jakarta Sans";
+		text-align: start;
+		color: var(--zs-white);
 	}
-	.mark { position: relative; display: block; flex: none; width: 108px; height: 108px; }
-	.mark::before { content: ""; position: absolute; inset: -30%; border-radius: 50%; background: radial-gradient(closest-side, var(--zs-halo), var(--zs-halo-0)); }
-	.mark img { position: relative; display: block; width: 100%; height: 100%; }
-
-	.words { display: flex; flex-direction: column; gap: 16px; font-family: "Plus Jakarta Sans"; text-align: start; }
-	.words span { display: block; white-space: nowrap; text-box: trim-both cap alphabetic; }
-	.name { font-size: 66px; font-weight: 800; line-height: 1; letter-spacing: -0.025em; color: var(--zs-white); }
-	.for { font-size: 27px; font-weight: 600; line-height: 1; letter-spacing: -0.005em; color: var(--zs-dark-text); }
+	.lockup { display: flex; align-items: center; gap: 14px; }
+	.mark { display: block; flex: none; width: 52px; height: 52px; }
+	.mark img { display: block; width: 100%; height: 100%; }
+	.words { display: flex; align-items: baseline; gap: 9px; font-size: 32px; letter-spacing: -0.02em; white-space: nowrap; }
+	.name { font-weight: 800; }
+	.for { font-weight: 600; color: var(--zs-dark-text); }
+	.headline { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; font-size: 64px; font-weight: 800; line-height: 1.04; letter-spacing: -0.035em; white-space: nowrap; }
+	.headline .through { color: #ffa17c; }
+	/* Plus Jakarta Sans spaces a full stop away from a heavy letter at this size. */
+	.stop { margin-inline-start: -0.08em; }
+	.sub { font-size: 26px; font-weight: 500; line-height: 1.35; color: var(--zs-dark-text); white-space: nowrap; }
 </style>
 </head>
 <body>
-<div class="bg" aria-hidden="true">
-	<svg class="lines" width="772" height="250" viewBox="0 0 772 250">
-		<defs>
-			<pattern id="bricks" width="64" height="64" patternUnits="userSpaceOnUse">
-				<path d="M0 .5H64M0 32.5H64M.5 0V32M32.5 32V64" fill="none" stroke="#fff" stroke-opacity=".05"/>
-			</pattern>
-		</defs>
-		<rect width="772" height="250" fill="url(#bricks)"/>
-	</svg>
-	<svg class="wall" id="wall" width="772" height="250" viewBox="0 0 772 250"></svg>
-</div>
-<div class="lockup">
-	<span class="mark"><img src="../../assets/img/zero-spam-mark.svg" alt=""></span>
-	<div class="words">
-		<span class="name" data-text>Zero Spam</span>
-		<span class="for" data-text>for WordPress</span>
+<div class="stage">
+<div class="bg" aria-hidden="true"></div>
+<svg class="scene" aria-hidden="true" width="1544" height="500" viewBox="0 0 1544 500">
+	<defs>
+		<pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.2" fill="#fff" fill-opacity="0.06"/></pattern>
+		<linearGradient id="trail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a6f72" stop-opacity="0"/><stop offset="1" stop-color="#8a6f72" stop-opacity="0.9"/></linearGradient>
+		<linearGradient id="ptrail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffa17c" stop-opacity="0"/><stop offset="1" stop-color="#ffa17c"/></linearGradient>
+		<linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a30016"/><stop offset="1" stop-color="#65000e"/></linearGradient>
+		<linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dd0000"/><stop offset="1" stop-color="#9f0000"/></linearGradient>
+		<linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4848"/><stop offset="1" stop-color="#ff0a0a"/></linearGradient>
+		<linearGradient id="g4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8657"/><stop offset="1" stop-color="#ff5a19"/></linearGradient>
+		<linearGradient id="core" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6e5a"/><stop offset=".55" stop-color="#ff2929"/><stop offset="1" stop-color="#d81818"/></linearGradient>
+		<radialGradient id="coreglow"><stop offset="0" stop-color="#ff2929" stop-opacity=".9"/><stop offset=".5" stop-color="#ff2929" stop-opacity=".3"/><stop offset="1" stop-color="#ff2929" stop-opacity="0"/></radialGradient>
+		<radialGradient id="pglow"><stop offset="0" stop-color="#ffa17c" stop-opacity=".7"/><stop offset="1" stop-color="#ffa17c" stop-opacity="0"/></radialGradient>
+		<linearGradient id="person" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc3a8"/><stop offset="1" stop-color="#ff8b5d"/></linearGradient>
+	</defs>
+	<rect width="1544" height="500" fill="url(#dots)"/>
+	<!-- Bots on their way in, and some bouncing back off the wall. -->
+	<g fill="#8a6f72">
+		<g transform="translate(118 78)" opacity="0.45"><rect x="-120" y="-1.5" width="120" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(250 128)" opacity="0.8"><rect x="-150" y="-1.5" width="150" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(70 196)" opacity="0.35"><rect x="-90" y="-1.5" width="90" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(340 200)" opacity="0.9"><rect x="-130" y="-1.5" width="130" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(180 318)" opacity="0.65"><rect x="-160" y="-1.5" width="160" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(358 356)" opacity="0.85"><rect x="-110" y="-1.5" width="110" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(64 416)" opacity="0.4"><rect x="-120" y="-1.5" width="120" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(268 444)" opacity="0.6"><rect x="-130" y="-1.5" width="130" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(300 40)" opacity="0.55"><rect x="-100" y="-1.5" width="100" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(332 102) rotate(206)" opacity="0.5"><rect x="-80" y="-1.5" width="80" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(320 300) rotate(158)" opacity="0.5"><rect x="-90" y="-1.5" width="90" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(300 412) rotate(214)" opacity="0.4"><rect x="-90" y="-1.5" width="90" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+		<g transform="translate(352 166) rotate(150)" opacity="0.45"><rect x="-60" y="-1.5" width="60" height="3" rx="1.5" fill="url(#trail)"/><rect x="-4" y="-6" width="22" height="12" rx="6"/></g>
+	</g>
+	<!-- Sparks where they hit the wall. -->
+	<g stroke="#ff7038" stroke-width="3" stroke-linecap="round" opacity="0.8">
+		<path d="M392 120l-10-8M392 128l-14 2M393 136l-9 8"/>
+		<path d="M392 318l-11-7M392 326l-14 1M393 334l-9 8"/>
+		<path d="M392 420l-10-7M393 428l-13 3"/>
+		<path d="M392 186l-12-5M393 194l-12 6"/>
+	</g>
+	<ellipse cx="460" cy="265" rx="110" ry="130" fill="url(#coreglow)" opacity="0.55"/>
+	<!-- The wall. -->
+	<rect x="400" y="-23" width="56" height="78" rx="8" fill="url(#g1)"/><rect x="462" y="-23" width="58" height="78" rx="8" fill="url(#g2)"/>
+	<rect x="400" y="61" width="120" height="78" rx="8" fill="url(#g2)"/>
+	<rect x="400" y="145" width="76" height="78" rx="8" fill="url(#g1)"/><rect x="482" y="145" width="38" height="78" rx="8" fill="url(#g3)"/>
+	<rect x="400" y="229" width="24" height="78" rx="8" fill="url(#g2)"/><rect x="496" y="229" width="24" height="78" rx="8" fill="url(#g4)"/>
+	<rect x="400" y="313" width="44" height="78" rx="8" fill="url(#g3)"/><rect x="450" y="313" width="70" height="78" rx="8" fill="url(#g1)"/>
+	<rect x="400" y="397" width="120" height="78" rx="8" fill="url(#g2)"/>
+	<rect x="400" y="481" width="58" height="78" rx="8" fill="url(#g1)"/><rect x="464" y="481" width="56" height="78" rx="8" fill="url(#g4)"/>
+	<!-- The visitor, through the core brick. -->
+	<rect x="200" y="263.5" width="440" height="3" rx="1.5" fill="url(#ptrail)"/>
+	<rect x="430" y="229" width="60" height="78" rx="8" fill="url(#core)" opacity="0.9"/>
+	<rect x="430.75" y="229.75" width="58.5" height="76.5" rx="7.25" fill="none" stroke="#fff" stroke-opacity="0.55" stroke-width="1.5"/>
+	<circle cx="640" cy="265" r="60" fill="url(#pglow)"/>
+	<circle cx="640" cy="265" r="24" fill="url(#person)"/>
+	<path class="tick" d="M630 265.5l7 7 13-14" fill="none" stroke="#3a0b06" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+<div class="copy">
+	<div class="lockup">
+		<span class="mark"><img src="../../assets/img/zero-spam-mark.svg" alt=""></span>
+		<div class="words" dir="ltr"><span class="name" data-text>Zero Spam</span><span class="for" data-text>for WordPress</span></div>
 	</div>
+	<div class="headline"><span dir="ltr" data-text>Bots bounce<span class="stop">.</span></span><span class="through" dir="ltr" data-text>People get through<span class="stop">.</span></span></div>
+	<div class="sub" dir="ltr" data-text>Spam stopped at the door. No captchas, no queue.</div>
 </div>
-<script>
-	( function () {
-		const RAMP = [ '#63000D', '#840012', '#BE0000', '#FF2929', '#FF7038', '#FFA17C' ];
-		const w = 772, h = 250, bh = 42, gap = 3, rx = 4;
-		const angle = -6, from = 548, to = 720;
-		let seed = 11;
-		const random = () => {
-			seed = ( Math.imul( seed, 1664525 ) + 1013904223 ) >>> 0;
-			return seed / 4294967296;
-		};
-		const cx = w / 2, cy = h / 2, D = Math.hypot( w, h ) + bh * 2;
-		const rows = Math.ceil( D / bh ) + 1, y0 = cy - ( rows * bh ) / 2;
-		const sin = Math.sin( ( angle * Math.PI ) / 180 ), cos = Math.cos( ( angle * Math.PI ) / 180 );
-		let out = '';
-		for ( let r = 0; r < rows; r++ ) {
-			const y = y0 + r * bh;
-			let x = cx - D / 2 - bh * 1.6 * random();
-			while ( x < cx + D / 2 ) {
-				const bw = bh * [ 1.1, 1.25, 1.6, 1.3 ][ Math.floor( random() * 4 ) ];
-				const jitter = random() - 0.5;
-				/* Where the brick's centre lands once the wall is rotated. */
-				const dx = x + bw / 2 - cx, dy = y + bh / 2 - cy;
-				const X = cx + dx * cos - dy * sin, Y = cy + dx * sin + dy * cos;
-				const reach = ( X - from ) / ( to - from );
-				if ( reach > 0.2 ) {
-					/* Dark bricks fade in; a bright brick is always solid, never a muddy tint. */
-					const t = Math.min( reach, 1.15 ) * 0.56 + ( Y / h ) * 0.12 + jitter * 0.24;
-					const i = Math.max( 0, Math.min( 5, Math.floor( t * 6 ) ) );
-					const opacity = ( i > 1 ? 1 : Math.min( 1, reach * 2 ) ).toFixed( 2 );
-					out += `<rect x="${ ( x + gap / 2 ).toFixed( 1 ) }" y="${ ( y + gap / 2 ).toFixed( 1 ) }" width="${ ( bw - gap ).toFixed( 1 ) }" height="${ bh - gap }" rx="${ rx }" fill="${ RAMP[ i ] }" opacity="${ opacity }"/>`;
-				}
-				x += bw;
-			}
-		}
-		document.getElementById( 'wall' ).innerHTML =
-			`<g transform="rotate(${ angle } ${ cx } ${ cy })">${ out }</g>`;
-	}() );
-</script>
+</div>
 </body>
 </html>

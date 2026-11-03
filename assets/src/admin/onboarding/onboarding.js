@@ -421,6 +421,14 @@ function BlockingStep( { state, dispatch, schema } ) {
 		: [ { value: 'php', label: __( 'PHP (Recommended)', 'zero-spam' ) } ];
 	const set = ( name, value ) =>
 		dispatch( { type: 'blocking', name, value } );
+	// A setting the network locked is not written (writable()), so say so.
+	const entryOf = ( key ) => ( schema || [] ).find( ( s ) => key === s.key );
+	const locked = ( key ) => Boolean( entryOf( key )?.locked );
+	// A locked switch shows the network's value, not the setup's default.
+	const shown = ( key ) =>
+		locked( key )
+			? 'enabled' === entryOf( key )?.value
+			: Boolean( state.blocking[ key ] );
 
 	return (
 		<>
@@ -472,19 +480,46 @@ function BlockingStep( { state, dispatch, schema } ) {
 			</fieldset>
 			<div className="zs-ob-sw">
 				<span>
-					<b id="zs-obs1">
-						{ __( 'Share anonymous spam data', 'zero-spam' ) }
-					</b>
-					<span className="zs-hint" id="zs-obs1-h">
+					<b id="zs-obs3">
 						{ __(
-							'Helps every Zero Spam site block the same spammers sooner. Never personal information.',
+							'Check visitors with Stop Forum Spam',
+							'zero-spam'
+						) }
+					</b>
+					<span className="zs-hint" id="zs-obs3-h">
+						{ __(
+							'Recommended. Looks up visitors’ IP addresses, and the email addresses entered in comments and sign-ups, at stopforumspam.com to block known spammers. Answers are kept on your site.',
 							'zero-spam'
 						) }
 					</span>
 				</span>
 				<Switch
-					checked={ Boolean( state.blocking.share_data ) }
+					checked={ shown( 'stop_forum_spam' ) }
+					labelledBy="zs-obs3"
+					disabled={ locked( 'stop_forum_spam' ) }
+					describedBy="zs-obs3-h"
+					onChange={ ( on ) => set( 'stop_forum_spam', on ) }
+				/>
+			</div>
+			<div className="zs-ob-sw">
+				<span>
+					<b id="zs-obs1">
+						{ __(
+							'Share blocked attempts with Zero Spam',
+							'zero-spam'
+						) }
+					</b>
+					<span className="zs-hint" id="zs-obs1-h">
+						{ __(
+							'Optional. Sends each blocked attempt to zerospam.org (the IP address, any email, name or username entered, and your site’s name and admin email) so other sites can block the same spammers.',
+							'zero-spam'
+						) }
+					</span>
+				</span>
+				<Switch
+					checked={ shown( 'share_data' ) }
 					labelledBy="zs-obs1"
+					disabled={ locked( 'share_data' ) }
 					describedBy="zs-obs1-h"
 					onChange={ ( on ) => set( 'share_data', on ) }
 				/>
@@ -502,8 +537,9 @@ function BlockingStep( { state, dispatch, schema } ) {
 					</span>
 				</span>
 				<Switch
-					checked={ Boolean( state.blocking.log_blocked_ips ) }
+					checked={ shown( 'log_blocked_ips' ) }
 					labelledBy="zs-obs2"
+					disabled={ locked( 'log_blocked_ips' ) }
 					describedBy="zs-obs2-h"
 					onChange={ ( on ) => set( 'log_blocked_ips', on ) }
 				/>
