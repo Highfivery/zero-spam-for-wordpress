@@ -504,6 +504,17 @@ bin/test.sh --php=8.2 --wp=min --mode=multisite -- --filter Test_Access
   drops tables. Do not weaken that check. Choose the install type with
   `--mode`; each PHPUnit configuration declares the type it runs
   (`ZEROSPAM_TESTS_EXPECT_MULTISITE`) and the bootstrap refuses a mismatch.
+- **Files a run writes** are per checkout too: `wp-tests-config.php` sets
+  `WP_CONTENT_DIR` to `content-<checkout-id>/` in the test cache (uploads/
+  with the plugin's `zerospam.log` and `uploads/sites/{id}/`, upgrade/) and
+  `WP_TEMP_DIR` to its `tmp/` (`get_temp_dir()`, `wp_tempnam()`), and
+  `bin/test.sh` empties that directory before each run, as it recreates the
+  database. The WordPress cores and the test library in the cache are only
+  read. Before, uploads/ was the shared core's, so one worktree's run could
+  leave a `zerospam.log` that another's `Test_Uninstall_Network` then found.
+  `Test_Environment::test_writes_go_to_this_checkouts_content_directory`
+  guards it; a test that writes a file uses `wp_upload_dir()`,
+  `get_temp_dir()` or `wp_tempnam()`, never a path under `ABSPATH`.
 - **Tables:** the plugin tables are created for real while WordPress loads.
   Inside a test, WordPress rewrites `CREATE/DROP TABLE` to `TEMPORARY` tables,
   which `SHOW TABLES` (and so `DB::log()`/`DB::query()`) cannot see. Never call
@@ -588,6 +599,13 @@ npm run env:stop                 # stop both wp-env sites
   settings and setup pending; provisioned: the same with settings written
   straight to the options; upgraded: `zerospam_whats_new` set; none);
   `/news` (`down`) makes the zerospam.org feed fail until the next reset.
+  A reset (and `/first-run` fresh or provisioned) that cannot empty a table
+  (`TRUNCATE`, or the `DELETE` of TEST-NET rows on a Local network) answers
+  500 `zs_e2e_reset_failed` naming the table and the database's error (the
+  statement runs with wpdb's error display off: under `WP_DEBUG` its HTML
+  would send a 200 and break the JSON first), and `ZsApi.call()` throws "the site was NOT reset" with that message, so a
+  full Docker disk stops the run at the reset instead of leaving rows that
+  fail unrelated tests later.
 - **Uninstall** always runs `wp plugin uninstall zero-spam --skip-delete`;
   the plugin directory is this repository. The CLI helpers
   (`tests/e2e/support/cli-guard.cjs`, shared by the runner scripts and the
@@ -689,10 +707,13 @@ npm run env:stop                 # stop both wp-env sites
 - WordPress cores and the test library for the minimum version are downloaded
   once, checksum-verified, into `~/Library/Caches/zero-spam-tests/`
   (override with `ZEROSPAM_TESTS_CACHE`). Delete a directory there to force a
-  fresh download. The test WordPress loads plugins from `plugins/` there,
-  where `bin/test.sh` links `zero-spam` to the current checkout, so the suite
+  fresh download. Those are shared by every checkout and only read. The
+  test WordPress loads plugins from `plugins-<checkout-id>/` there, where
+  `bin/test.sh` links `zero-spam` to the current checkout, so the suite
   works from a checkout with any directory name and never sees the Local
-  site's other plugins.
+  site's other plugins, and writes its files to `content-<checkout-id>/`
+  (section 5, Files a run writes). Old `plugins-*` and `content-*`
+  directories of removed worktrees can be deleted.
 - The plugin's email checks reject `.test` addresses; use `@example.com` in
   test data.
 - **Previewing a branch on the Local site:** the single-site Local plugin
