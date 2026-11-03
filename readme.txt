@@ -13,45 +13,64 @@ Free anti-spam for WordPress comments, logins, registrations and forms. No captc
 
 == Description ==
 
-Protect your WordPress website seamlessly with Zero Spam for WordPress! Eliminate spam and malicious attacks that can harm your online presence. Our plugin integrates effortlessly with [Zero Spam](https://www.zerospam.org), [Stop Forum Spam](https://www.stopforumspam.com/), and [Project Honeypot](https://www.projecthoneypot.org/) to offer a strong defense system.
+**Zero Spam is a free anti-spam plugin for WordPress that stops spam bots before they post: no captchas, no moderation queue, nothing to clean up.** It protects your comments, logins, registrations and the forms you already use, and it runs on more than 20,000 WordPress sites.
 
-Rest easy knowing that we utilize multiple detection methods to swiftly identify and halt potential threats. Whether it's pesky spam, devious trolls, or cunning hackers, Zero Spam is here to protect your website.
+= Bots bounce. People get through. =
 
-= Worry-free, Powerful Protection at Your Fingertips =
+Most anti-spam tools either let spam in and leave you to sort it, or make every visitor prove they are human. Zero Spam does neither. It checks each comment, login, sign-up and form submission quietly in the background and turns bots away at the door. Real visitors never see a puzzle, and your comment queue and inbox stay clean.
 
-* No captchas or moderation queues — no longer a admin’s problem.
-* Our system dynamically blocks threats, keeping your site safe.
-* Integration with global IP reputation providers for enhanced security.
-* Block IPs temporarily or permanently, keep unwanted visitors out.
-* Geolocation tracks origins of threats, providing valuable insights.
-* Ability to block countries, regions, zip/postal codes & cities.
-* REST API for programmatic settings management — perfect for CI/CD, staging syncs, and automation.
-* Utilize [splorp's Comment Blacklist](https://github.com/splorp/wordpress-comment-blacklist) to strengthen your disallowed list.
-* Block disposable & malicious email effortlessly with [disposable](https://github.com/disposable).
-* Multiple techniques, including the renowned solution by [David Walsh](https://davidwalsh.name/wordpress-comment-spam).
+= Why site owners choose Zero Spam =
 
-= Seamlessly integrates with popular plugins including: =
+* **No captchas.** Visitors don't click on traffic lights, so you keep the comments, sign-ups and sales a captcha drives away.
+* **No moderation queue.** Spam is refused before it is saved, so there is nothing to review or delete.
+* **Protected in about a minute.** Activate it and a short guided setup turns on the recommended protection.
+* **See exactly what was stopped.** A clear overview, a searchable activity log and reports by day, hour, type and country.
+* **You can't lock yourself out.** Your own address is never blocked, and if anything goes wrong an emailed rescue link gets you back in.
+* **Light on your site.** Built-in checks run on your own server, and answers from outside services are cached, so a visitor is looked up once, not on every page.
+* **Free and open source.** GPL licensed, on WordPress.org since 2014, with every line of code on GitHub.
 
-* [WooCommerce](https://wordpress.org/plugins/woocommerce/) — Secure customer registrations.
-* [GiveWP](https://givewp.com/ref/1118/) — Prevents attempts to test stolen credit cards.
-* [ProfilePress](https://wordpress.org/plugins/wp-user-avatar/) — Keeps registrations safe & secure.
-* [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) — Protects sign-ups from abuse.
-* [Gravity Forms](https://www.gravityforms.com/), [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Formidable Form Builder](https://wordpress.org/plugins/formidable/), [Fluent Forms](https://wordpress.org/plugins/fluentform/), [wpDiscuz](https://wordpress.org/plugins/wpdiscuz/), [Elementor Pro](https://elementor.com/) forms — Versatile form protection.
+= What Zero Spam protects =
 
-With Zero Spam for WordPress, you not only get exceptional protection but also a reliable support that ensures your peace of mind.
+* **Comments**, including bots that post without ever loading your form.
+* **Logins** on wp-login.php, and XML-RPC, which bots use to try many passwords at once (turned off by default).
+* **Registrations**, including fake accounts and throwaway email addresses.
+* **Your forms**, from contact and newsletter forms to checkout and donation forms (the full list is below).
+* **Your whole site**, if you choose: block known bad addresses, or whole countries, regions and cities, from every page.
 
-= Enhance Detection with Optional 3rd-Party Integrations =
+= How it stops spam =
 
-Zero Spam for WordPress can integrate optional services for enhanced spam detection. Before using these, we recommend reviewing their terms and privacy policies.
+Zero Spam uses layers, so a bot that gets past one meets the next. Every layer can be turned on or off.
 
-* **[Zero Spam](https://www.zerospam.org/)** - Utilize our real-time IP reputation analysis. Take a look at our [Privacy Policy](https://www.zerospam.org/privacy/) and [Terms of Use](https://www.zerospam.org/terms/) for more details.
-* **[ipbase.com](https://ipbase.com/)** - Access detailed geolocation information of attackers. Familiarize yourself with their [Privacy Policy](https://ipbase.com/privacy-policy/) & [Terms of Use](https://www.iubenda.com/terms-and-conditions/41661719).
-* **[ipinfo.io](https://ipinfo.io/)** - Gather geolocation details of malicious users. Refer to their [Privacy Policy](https://ipinfo.io/privacy-policy) & [Terms of Use](https://ipinfo.io/terms-of-service) for further information.
-* **[ipstack](https://ipstack.com/)** - Obtain extensive geolocation insights. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://ipstack.com/terms) to learn more.
-* **[Stop Forum Spam](https://www.stopforumspam.com/)** - Verify if visitors' IPs have been reported. Explore their [Privacy Policy](https://www.stopforumspam.com/privacy) and [Terms of Use](https://www.stopforumspam.com/legal) for additional details.
-* **[Project Honeypot](https://www.projecthoneypot.org/)** - Check if visitors' IPs have been flagged. Refer to their [Privacy Policy](https://www.projecthoneypot.org/privacy_policy.php) and [Terms of Use](https://www.projecthoneypot.org/terms_of_use.php) for more information.
+1. **Built-in bot checks:** a hidden check that bots fail and people never notice, blocked words, and a list of disposable email domains.
+2. **Reputation checks (optional, free):** [Stop Forum Spam](https://www.stopforumspam.com/) and [Project Honeypot](https://www.projecthoneypot.org/) recognise addresses already reported for spam.
+3. **Your own rules:** block addresses, countries, regions, cities or postcodes, for good or for a set time. Location rules use a free key from ipbase, IPinfo or ipstack.
+4. **Enhanced Protection (optional, paid):** real-time checks against the [Zero Spam](https://www.zerospam.org/) network's reputation database. It needs a license key from zerospam.org.
 
-Additionally, you have the option to contribute to Zero Spam's improvement by enabling the sharing of detection information. For further information on the shared data, kindly refer to our [FAQ](https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ).
+= Works with the plugins you already use =
+
+* **Forms:** [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Gravity Forms](https://www.gravityforms.com/), [Formidable Forms](https://wordpress.org/plugins/formidable/), [Fluent Forms](https://wordpress.org/plugins/fluentform/) and [Elementor Pro](https://elementor.com/) forms.
+* **Stores and donations:** [WooCommerce](https://wordpress.org/plugins/woocommerce/) customer registrations, and [GiveWP](https://wordpress.org/plugins/give/) donation forms, where it helps stop card testing with stolen cards.
+* **Memberships and newsletters:** [ProfilePress](https://wordpress.org/plugins/wp-user-avatar/) registrations and [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) sign-ups.
+
+Each one turns on by itself when that plugin is active.
+
+= Built for agencies, hosts and networks =
+
+* **Multisite:** set network defaults, lock the settings sites can't change, apply templates, compare sites, read an audit log and block an address on every site at once.
+* **Automation:** manage settings with the REST API and WP-CLI, and extend Zero Spam with documented hooks.
+* **Behind a CDN or proxy:** Cloudflare is recognised automatically, and you can list any other proxy, so Zero Spam sees each visitor's real address.
+
+= Your data stays yours =
+
+Zero Spam works without any outside service, and its activity log stays in your own database. Optional services are only contacted when you turn them on, and the External services section below lists exactly what each one receives, with its terms of use and privacy policy.
+
+= Get started =
+
+1. Install Zero Spam from **Plugins › Add New** and activate it.
+2. Open **Zero Spam** in the admin menu, below Comments.
+3. Follow the short setup. Your site is protected as soon as you finish.
+
+Questions? The built-in Help screen has every guide, and the [wiki](https://github.com/Highfivery/zero-spam-for-wordpress/wiki) covers the developer reference.
 
 = Source code and build =
 
@@ -59,91 +78,84 @@ The plugin's complete source code is on GitHub: [Highfivery/zero-spam-for-wordpr
 
 == Installation ==
 
-1. Upload the entire *zero-spam* folder to the */wp-content/plugins/* directory.
-2. Activate the plugin through the Plugins screen (*Plugins > Installed Plugins*).
-3. Open **Zero Spam** in the admin menu (below Comments): a short setup walks you through the recommended settings.
-
-For more information & developer documentation, see the [wiki](https://github.com/Highfivery/zero-spam-for-wordpress/wiki).
+1. In your WordPress admin, go to **Plugins › Add New**, search for **Zero Spam**, then click **Install Now** and **Activate**. (Or upload the `zero-spam` folder to `/wp-content/plugins/` and activate it on the Plugins screen.)
+2. Open **Zero Spam** in the admin menu, below Comments.
+3. Follow the short setup. It turns on the recommended protection and asks before turning on anything that sends data to an outside service.
+4. Optional: add a free Stop Forum Spam, Project Honeypot or geolocation key, or an Enhanced Protection license key, under **Zero Spam › Protection**.
 
 == Frequently Asked Questions ==
 
-= Does Zero Spam for WordPress block user IPs? =
+= What is Zero Spam for WordPress? =
 
-*Not on its own.* Zero Spam for WordPress does not automatically block IP addresses. If a visitor is blocked, it could be due to manual blocking by the site admin or their presence in IP blacklists such as [Stop Forum Spam](https://www.stopforumspam.com/), [Project Honeypot](https://www.projecthoneypot.org/), or the [Zero Spam](https://www.zerospam.org).
+Zero Spam is a free WordPress plugin that blocks spam and malicious bots on comments, logins, registrations and forms without captchas. It checks each submission in the background, refuses the ones that come from bots or addresses known for spam, and lets real people through. It has been on WordPress.org since 2014 and runs on more than 20,000 sites.
 
-In the event that a legitimate user is blocked, look it up in the admin under Zero Spam → Activity for further details on the reason behind the block. You have the flexibility to adjust the strictness of the 3rd-party blacklist checks or disable them if your users are prone to being flagged as spam or malicious.
+= How do I stop spam comments in WordPress without a captcha? =
 
-= Does Zero Spam for WordPress check Jetpack comments? =
+Install and activate Zero Spam, then follow its short setup. Comment protection is on from the start: bots are refused before their comment is saved, so nothing reaches your moderation queue, and your visitors comment as usual with no puzzle to solve.
 
-**No, it doesn't.** Zero Spam for WordPress does not have integration with Jetpack. If you have any inquiries regarding this, please refer to [https://wordpress.org/support/topic/incompatible-with-jetpack-comments](https://wordpress.org/support/topic/incompatible-with-jetpack-comments) for more details.
+= How do I stop fake user registrations in WordPress? =
 
-= How do I boost performance of Zero Spam for WordPress? =
+Turn on registration protection under Zero Spam › Protection (the setup does this for you). Zero Spam refuses sign-ups from bots, from addresses reported for spam, and from disposable email domains. It also protects WooCommerce and ProfilePress registrations.
 
-**Enable caching for optimal performance.** Enabling caching is highly recommended as it helps prevent repetitive calls to third-party APIs and access checks during each page visit.
+= Is Zero Spam free? =
 
-To further optimize performance, you can adjust the cache and API timeout settings in the admin panel based on your server specifications and specific requirements.
+Yes. Every feature described on this page is free, including the activity log, reports, rules, the form integrations and multisite support. Enhanced Protection is an optional paid upgrade from [zerospam.org](https://www.zerospam.org/) that adds real-time checks against the Zero Spam network's reputation database.
 
-= Does Zero Spam support WP-CLI commands? =
+= Will Zero Spam block my real visitors or customers? =
 
-* `wp zerospam autoconfigure` &mdash; Auto-configures with recommended settings.
-* `wp zerospam settings` &mdash; Displays all plugin settings.
-* `wp zerospam set --[SETTING_KEY]=[VALUE]` &mdash; Updates a plugin setting.
+It is built not to. Logged-in users are never blocked, addresses on your allowlist are never checked, and you can make outside reputation checks stricter or looser. If someone is blocked, Zero Spam › Activity shows exactly why, and you can allow them with one click.
 
-= Can I manage Zero Spam settings programmatically? =
+= Which form plugins does Zero Spam work with? =
 
-**Yes!** Zero Spam provides a secure REST API for reading and updating settings remotely. This is perfect for:
+Contact Form 7, WPForms, Gravity Forms, Formidable Forms, Fluent Forms, Elementor Pro forms, Mailchimp for WordPress, WooCommerce, GiveWP and ProfilePress. Each integration turns on by itself when that plugin is active, and you can switch each one off under Zero Spam › Protection › Integrations.
 
-* Syncing settings between staging and production environments
-* Automating configuration in CI/CD pipelines
-* Managing settings across multiple WordPress sites
-* Remote administration and monitoring
-* Testing configuration changes safely with dry-run mode
+= Will Zero Spam slow down my site? =
 
-The API supports multisite installations with granular control over network defaults and per-site overrides. Authentication uses WordPress Application Passwords for secure, revocable access without exposing your main password.
+It is designed to stay light. The built-in checks run on your own server without calling anyone, and answers from optional services are cached on your site (for example, a Stop Forum Spam answer is kept for up to 14 days), so a visitor is looked up once rather than on every page.
 
-**Getting Started:** Visit Zero Spam → Help for complete details, step-by-step setup instructions, real-world examples, and troubleshooting tips. No technical expertise required!
+= Does Zero Spam send my visitors' data anywhere? =
 
-= Are you getting a `ftp_fget` PHP warning? =
+Only to the optional services you turn on, and only what is listed for each under External services. With no services turned on, nothing about your visitors leaves your site. Sharing detections with the Zero Spam network is off unless you choose to turn it on.
 
-Some hosts have issues with they way they access files. If you're seeing a `ftp_fget` PHP notice, setting the `FS_METHOD` constant to `direct` in `wp-config.php` above the line `/* That's all, stop editing! Happy Pressing. */` should solve the problem:
+= Does Zero Spam work on WordPress Multisite? =
 
-`define('FS_METHOD', 'direct');`
-
-If hosting with Pantheon, see their [known issues page](https://pantheon.io/docs/plugins-known-issues#define-fs_method) for more information and what to do to resolve it with their `$_ENV['PANTHEON_ENVIRONMENT']` variable check.
-
-= Where do I report security bugs found in this plugin? =
-
-You can report security bugs through the Patchstack Vulnerability Disclosure Program. The Patchstack team help validate, triage and handle any security vulnerabilities. [Report a security vulnerability.](https://patchstack.com/database/vdp/zero-spam)
+Yes. A network page lets you set defaults for every site, lock settings sites can't change, apply templates, compare sites, read an audit log and block an address across the whole network. Each site still has its own activity log and rules.
 
 = I blocked myself! How do I get back in? =
 
-On the blocked page, open **Help for site owners**, enter the email address of an administrator account on the site and press **Email me a rescue link**. Open the link in that email (on any device) and press **Let me back in**: that browser is let in for one hour, so you can log in and add your IP address to **Allowed IPs** under Zero Spam → Rules. The link works once, for 15 minutes; a used or expired link opens a page where you can ask for a new one. If the address isn't an administrator's, nothing is sent; the page says the same either way. Logged-in users are never blocked.
+On the blocked page, open **Help for site owners**, enter an administrator's email address and press **Email me a rescue link**. The link works once, for 15 minutes, and lets that browser in for an hour so you can add your address to Allowed IPs under Zero Spam › Rules. Zero Spam also saves the address you activate it from as one it never locks out.
 
-When you activate or update Zero Spam, it also saves your current IP address (public addresses only) as one it never locks out. Visitors from that address are still checked for spam. You can see and remove these addresses under Zero Spam → Rules → No-lockout addresses.
+If email doesn't work on your site, define `ZEROSPAM_RESCUE_KEY` in `wp-config.php` (for example `define( 'ZEROSPAM_RESCUE_KEY', 'a-long-random-secret' );`) and visit any page with `?zerospam_rescue=` and your key added to the address: every check is skipped in that browser for an hour. As a last resort, rename the `wp-content/plugins/zero-spam` folder over FTP.
 
-You can also define the `ZEROSPAM_RESCUE_KEY` constant in your `wp-config.php` file (e.g. `define( 'ZEROSPAM_RESCUE_KEY', 'a-long-random-secret' );`) and visit any page of your site with `?zerospam_rescue={YOUR_KEY}` appended (e.g., `https://example.com/wp-login.php?zerospam_rescue=a-long-random-secret`). All checks are bypassed in that browser for one hour.
+If every visitor, including you, is suddenly blocked, your site is probably behind a CDN or proxy Zero Spam doesn't know about: get back in, then add it under Trusted proxies (next question).
 
-If none of these work (for example, you use an `.htaccess` block method, or your site can't send email), rename the plugin folder via FTP (`wp-content/plugins/zero-spam` -> `zero-spam-disabled`) to gain access.
+= My site uses Cloudflare or another CDN. Does Zero Spam see real visitor addresses? =
 
-If every visitor, including you, suddenly sees "Your IP has been flagged as spam/malicious", your site is probably behind a CDN, load balancer or proxy (for example Hostinger CDN or Sucuri) that Zero Spam doesn't know about, so every visitor appears with the proxy's address. Get back in with the rescue link or Rescue Mode, then add the proxy's IP addresses or ranges under **Trusted proxies** in Zero Spam → Settings → Advanced (your host can tell you what they are). Cloudflare is recognised automatically.
+Yes. Cloudflare is recognised automatically. For any other CDN, load balancer or proxy, list its addresses or ranges under Zero Spam › Settings › Advanced › **Trusted proxies**, one per line (for example `203.0.113.0/24`). Zero Spam only trusts forwarded addresses from those proxies, so visitors can't fake theirs. If many visitors seem to share one address, Zero Spam warns you so you know to check this.
 
-= My site is behind Cloudflare or another CDN. Does Zero Spam see the real visitor IP? =
+= Does it work with two-factor login plugins? =
 
-**Yes.** Cloudflare is recognised automatically. For any other CDN, load balancer or reverse proxy, list its IP addresses or ranges under Zero Spam → Settings → Advanced → **Trusted proxies**, one per line (for example `203.0.113.0/24`), including internal hops such as a load balancer. Zero Spam only reads forwarded IP headers from those addresses, so visitors can't fake their IP. If many visitors appear to share one IP address, Zero Spam shows administrators a warning on its screens so you know to check this setting. Developers can add proxies with the `zerospam_trusted_proxies` filter.
+Yes. Zero Spam checks the username and password step, then leaves the later steps of the same login alone, so plugins such as Two Factor and WPMU DEV Defender Pro work as usual.
 
-= Does Zero Spam work with two-step login plugins like Defender Pro or Two Factor? =
+= Why doesn't the WordPress app or Jetpack connect any more? =
 
-**Yes, since version 5.7.14.** Zero Spam checks the username and password step of the login as before. Once that step succeeds, the later steps of the same login (such as entering a two-factor code from WPMU DEV Defender Pro or the Two Factor plugin) are not checked again. Verification that has expired or was already used, for example from a cached login page or the back button, no longer blocks the login with "Your IP has been flagged as spam/malicious": the visitor is let through, or asked to try again. Developers with custom login flows can use the `zerospam_login_skip_check` filter.
+Zero Spam turns XML-RPC off by default, because bots use it to try many passwords at once. If an app you use needs it, turn off "Disable XML-RPC" under Zero Spam › Protection › Detection › Security.
+
+= Does Zero Spam check Jetpack comments? =
+
+No. Jetpack comments are posted through Jetpack's own service, which Zero Spam doesn't integrate with.
+
+= Can developers automate Zero Spam? =
+
+Yes. Settings can be read and changed through the REST API (with Application Passwords) and WP-CLI, for example `wp zerospam autoconfigure`, `wp zerospam settings` and `wp zerospam set --share_data=enabled`. Zero Spam › Help lists every command, route and hook.
 
 = Does deleting Zero Spam remove its data? =
 
-Yes, by default: deleting the plugin on the Plugins screen removes its settings, activity log, blocked IPs and locations, API usage data and statistics. To keep them for a later reinstall, turn off "Delete Data on Uninstall" before you delete the plugin: Zero Spam → Settings → Logging & data. On a network, each site follows its own setting, and the network's setting decides for the network-wide data.
+Yes, by default: its settings, activity log, blocks and statistics are removed. To keep them for a later reinstall, turn off "Delete Data on Uninstall" under Zero Spam › Settings › Logging & data first. On a network, each site follows its own setting.
 
-= Why can't I access `wp-login.php` or XML-RPC anymore? =
+= How do I report a security issue? =
 
-As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation, or use the emailed rescue link on the blocked page (or the Rescue Mode key) to log in and add your IP address to Allowed IPs (Zero Spam → Rules).
-
-Zero Spam also turns XML-RPC off for everyone by default, because bots use it to try many passwords at once. If an app you use needs it, such as the WordPress mobile app or Jetpack, turn off "Disable XML-RPC" under Zero Spam → Protection → Detection → Security.
+Through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/zero-spam), which validates and handles reports with us.
 
 == External services ==
 
@@ -160,7 +172,7 @@ Used for Enhanced Protection and for sharing detections. [Terms of use](https://
 * License check: when you save a license key, and to show its status in the admin (cached for up to 12 hours), the key is sent to https://www.zerospam.org/wp-json/v2/get-license.
 * Enhanced Protection: when it is on and a license key is set, the IP address of a visitor who is not logged in is sent with your license key to https://www.zerospam.org/wp-json/v3/query to check its reputation. Answers are cached on your site.
 * Test my protection: with Enhanced Protection on, running "Test my protection" sends a fixed test IP address with your license key to https://www.zerospam.org/wp-json/v3/query.
-* Usage Data Sharing: when "Usage Data Sharing" is on, each detection is reported to https://www.zerospam.org/wp-json/v6/report/ in the background: the detection type and reason, the visitor's IP address, the email address and names entered in the blocked submission (if any), and your site's domain, name, tagline, administrator email address, language, WordPress version and plugin version.
+* Usage Data Sharing: off unless you turn it on (in the setup or under Settings). When it is on, each detection is reported to https://www.zerospam.org/wp-json/v6/report/ in the background: the detection type and reason, the visitor's IP address, the email address and names entered in the blocked submission (if any), and your site's domain, name, tagline, administrator email address, language, WordPress version and plugin version.
 
 = Stop Forum Spam =
 
@@ -185,14 +197,15 @@ When you enter an API key for one of these services, the IP address of visitors 
 
 == Screenshots ==
 
-1. See at a glance that your site is protected: what was blocked, what is trending and anything that needs you.
-2. Understand every block: who was stopped, from where and why, with the block and allow actions right there.
-3. Spot the patterns in attacks on your site, by day, hour, type and country.
-4. Decide who gets in: block addresses and locations for good or for a set time, and keep your own addresses on a no-lockout list.
-5. Protect comments, logins and sign-ups with a switch, then prove it works with one test.
-6. Make it yours: clear settings with recommended values, in light or dark.
-7. Run a whole network from one place: shared defaults, locked settings and every site's activity.
-8. Blocked visitors get a clear page, and a locked-out administrator gets back in with an emailed link.
+1. Know you're protected at a glance: what was blocked, how it's trending, and anything that needs you.
+2. Turn protection on with a switch, then prove it works with one click.
+3. Every block explained: who was stopped, from where and why, with Block and Allow right there.
+4. A short guided setup gets your site protected in about a minute.
+5. Spot attack patterns by day, hour, type and country.
+6. Block addresses or whole locations, for good or for a while, without ever locking yourself out.
+7. Bots get a clear "blocked" page, and a locked-out administrator gets back in with an emailed link.
+8. Plain-language settings with recommended values, in light or dark.
+9. Run a whole multisite network from one place: shared defaults, locked settings and every site's activity.
 
 == Changelog ==
 
@@ -209,6 +222,7 @@ When you enter an API key for one of these services, the IP address of visitors 
 * **feat(multisite):** a new network page: network defaults and locks, templates, an audit log, a site comparison, network statistics, and blocking an address on every site at once.
 * **feat(alerts):** the API alert thresholds and the Quota Reset Date now take effect, a used-up quota now sends an alert, and quota alerts come once per period instead of every hour.
 * **feat(uninstall):** "Delete Data on Uninstall" now decides whether deleting the plugin removes its data. It is on, as before.
+* **fix(privacy):** sharing blocked attempts with Zero Spam is now off unless you turn it on, and the setup and settings say exactly what it sends.
 * **fix(stopforumspam):** registration protection now works (on single sites), people with common first names are no longer refused because usernames are no longer checked, and answers are kept so the service is asked far less often.
 * **fix(rules):** permanent blocks saved without a start date now always apply (before, including in 5.7.14, they only applied now and then). Block dates show in your site's time zone and no longer move when you save a block without changing them; loopback addresses such as 127.0.0.1, which would block requests from the server itself, can no longer be blocked.
 * **fix(multisite):** sites follow the network's IP Allowlist unless they keep a list of their own, applying the recommended settings no longer turns network defaults into site settings, license and API keys are never shown in clear, and the built-in templates change the settings they promise.
