@@ -132,6 +132,10 @@ export function blockBody( values, baseline = null ) {
 	const startEdited = values.start && values.start !== baseline?.start;
 	if ( startEdited ) {
 		body.start = withSeconds( values.start );
+	} else if ( ! values.start && baseline?.start ) {
+		// An emptied start: the server reads '' as now, which is what the
+		// field's hint promises. Not sending it would keep the old start.
+		body.start = '';
 	}
 	if ( 'temporary' === values.type ) {
 		// A new start past the end is sent with the end, so the server

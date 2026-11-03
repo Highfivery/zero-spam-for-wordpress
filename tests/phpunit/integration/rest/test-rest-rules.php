@@ -1050,4 +1050,56 @@ class Test_Rest_Rules extends TestCase {
 		$this->assertSame( '2020-01-01T00:00:00Z', $saved->get_data()['start'] );
 		$this->assertSame( '2020-01-02T23:59:59Z', $saved->get_data()['end'] );
 	}
+
+	/**
+	 * The block form sends an emptied start as '' ("Empty starts the block
+	 * now"): an edit with `start: ''` starts the block now instead of keeping
+	 * the stored start. An emptied end is refused, never kept or dropped.
+	 */
+	public function test_an_emptied_start_starts_the_block_now_and_an_emptied_end_is_refused(): void {
+		$created = $this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'kind'  => 'ip',
+				'ip'    => '198.51.100.73',
+				'type'  => 'temporary',
+				'start' => '2098-01-01',
+				'end'   => '2099-01-01',
+			)
+		);
+		$this->assertSame( 201, $created->get_status(), (string) wp_json_encode( $created->get_data() ) );
+
+		$route  = self::BLOCKS . '/' . $created->get_data()['id'];
+		$before = time();
+		$saved  = $this->rest(
+			'PUT',
+			$route,
+			array(
+				'kind'  => 'ip',
+				'ip'    => '198.51.100.73',
+				'type'  => 'temporary',
+				'start' => '',
+			)
+		);
+		$this->assertSame( 200, $saved->get_status(), (string) wp_json_encode( $saved->get_data() ) );
+		$start = (int) strtotime( $saved->get_data()['start'] );
+		$this->assertGreaterThanOrEqual( $before, $start, 'An emptied start is now.' );
+		$this->assertLessThanOrEqual( time(), $start, 'An emptied start is now.' );
+		$this->assertSame( $created->get_data()['end'], $saved->get_data()['end'], 'The end was not sent and is kept.' );
+
+		$emptied = $this->rest(
+			'PUT',
+			$route,
+			array(
+				'kind' => 'ip',
+				'ip'   => '198.51.100.73',
+				'type' => 'temporary',
+				'end'  => '',
+			)
+		);
+		$this->assertSame( 400, $emptied->get_status() );
+		$this->assertArrayHasKey( 'end', $emptied->get_data()['data']['params'] );
+		$this->assertSame( $created->get_data()['end'], $this->rest( 'GET', $route )->get_data()['end'] );
+	}
 }
