@@ -25,8 +25,8 @@ import {
 import { useFeedback } from '../app/primitives/feedback';
 import { Mark } from '../app/mark';
 import { FOLLOW, SocialIcon } from '../app/shell/side-extra';
+import { useCopy } from '../app/copy';
 import {
-	copyText,
 	environmentLine,
 	systemReport,
 	systemRows,
@@ -1342,10 +1342,14 @@ export function NewsTile() {
  */
 export function SystemTile( { schema, wide } ) {
 	const { modules, enhanced } = useApp();
-	const { toast } = useFeedback();
+	const { copy: copyReport, fallback } = useCopy();
 	const rows = systemRows( { modules, enhanced, schema } );
 	const env = environmentLine();
-	const copy = () => copyText( systemReport( rows, enhanced ), toast );
+	const copy = () =>
+		copyReport(
+			systemReport( rows, enhanced ),
+			__( 'System report', 'zero-spam' )
+		);
 
 	return (
 		<Tile span={ wide ? 12 : 5 } labelledBy="zs-sy-h" className="zs-system">
@@ -1376,6 +1380,7 @@ export function SystemTile( { schema, wide } ) {
 					{ __( 'Copy system report', 'zero-spam' ) }
 				</Button>
 			</div>
+			{ fallback }
 		</Tile>
 	);
 }
