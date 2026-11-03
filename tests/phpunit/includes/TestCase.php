@@ -158,6 +158,8 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_rescue_to_test',
 		'zerospam_rescue_token_test',
 		'zerospam_self_test_lock',
+		'zerospam_sfs_circuit_open',
+		'zerospam_sfs_failure_count',
 		'zerospam_shared_ip_warning',
 		'zerospam_stats_summary',
 		'zerospam_stats_timeseries',

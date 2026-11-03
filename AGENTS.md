@@ -222,7 +222,12 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   `Includes\News_Feed` is the only code that reads the zerospam.org feed
   (site transients `zerospam_news` and `zerospam_news_backoff`); every outbound
   service is listed in the readme's External services section: keep it
-  current when adding one.
+  current when adding one. Stop Forum Spam (`modules/class-stopforumspam.php`)
+  sends only emails and IPs, each looked up on its own (never usernames: the
+  service lists common first names, so refusing on them blocks real people),
+  keeps answers in `zerospam_sfs_{md5}` transients (a day when nothing is
+  listed, the Cache Expiration days otherwise) and has its own circuit
+  breaker (five outages in a row pause lookups for ten minutes).
 
 ## 3. Workflow
 
@@ -580,7 +585,10 @@ npm run env:stop                 # stop both wp-env sites
   wp-env on the same port, or a Local site loading another copy).
   Its canned zerospam.org answers: a valid Business license for any key
   (`get-license`), an empty `v3/query` result in the shape the module reads,
-  and eight fixed articles for the news feed. `/reset` also clears every
+  and eight fixed articles for the news feed. Stop Forum Spam lists nothing except a
+  username or email containing `e2esfslisted` or `e2e-sfs-listed` and the IP
+  198.51.100.66 (the plugin never sends usernames; a listed one must still
+  register). `/reset` also clears every
   user's `zerospam_ui` (6.0 preferences) and the cached news, and takes
   `level=enhanced` (saves the key `e2e-license` and turns Enhanced
   Protection on); `/ui-prefs` merges preferences for the current user;
@@ -814,18 +822,15 @@ npm run env:stop                 # stop both wp-env sites
   `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
-  - `modules/class-stopforumspam.php`: `preprocess_registrations()` is hooked
-    to `zerospam_preprocess_registration_submission`, whose arguments are
-    `( array $errors, $post, 'registration_spam_message' )`, so the registration
-    check receives nonsense and would fatal (`$errors->add()` on an array) on a
-    hit; Stop Forum Spam registration protection has never worked. Comment
-    detections from this module are logged with reason `0` (numeric key).
+  - Multisite registrations are never checked: a network registers
+    through `wp-signup.php`, which fires neither `registration_errors` nor
+    `zerospam_preprocess_registration_submission`, so the Registration
+    module and the Stop Forum Spam registration check never run there
+    (hook `wpmu_validate_user_signup` to cover it; its own PR).
   - Cache group mismatch (`wp_cache_get()` default group vs `wp_cache_set()`
     group) in `modules/class-projecthoneypot.php` (~92),
     `modules/ipbase/class-ipbase.php` (~203), `modules/class-ipinfomodule.php`
-    (~293) and `modules/class-ipstack.php` (~173); the Stop Forum Spam cache
-    is object-cache only (no transient fallback), so it lasts one request on
-    hosts without a persistent object cache.
+    (~293) and `modules/class-ipstack.php` (~173).
   - `core/admin/tables/class-blockedtable.php`: the bulk delete never deletes
     (`sanitize_text_field()` on the `ids` array returns `''`) and has no
     capability check of its own; the legacy delete links never refresh
