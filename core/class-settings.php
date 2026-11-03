@@ -237,7 +237,7 @@ class Settings {
 			'desc'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( 'Get strong protection fast with one click. Install and activate any <a href="%1$s" target="_blank" rel="noreferrer noopener">supported plugins</a> first. Every setting with a recommended value gets it; others keep theirs. Services that send data to another site, such as Stop Forum Spam and Usage Data Sharing, are left as they are.', 'zero-spam' ),
+					__( 'Get maximum protection fast with one-click setup. Install and activate any <a href="%1$s" target="_blank" rel="noreferrer noopener">supported plugins</a> first. Every setting with a recommended value gets it; others keep theirs. Services that send data to another site, such as Stop Forum Spam and Usage Data Sharing, are left as they are.', 'zero-spam' ),
 					array(
 						'a' => array(
 							'href'   => array(),

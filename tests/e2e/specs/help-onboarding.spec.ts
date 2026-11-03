@@ -267,6 +267,8 @@ test.describe( 'First-run setup', () => {
 		expect( await stored( zs, 'comments', 'verify_comments' ) ).toBe( 'enabled' );
 		expect( await stored( zs, 'login', 'verify_login' ) ).toBeFalsy();
 		expect( await stored( zs, 'settings', 'share_data' ) ).toBe( 'enabled' );
+		// Stop Forum Spam was shown on, with what it sends, and left on.
+		expect( await stored( zs, 'stop_forum_spam', 'stop_forum_spam' ) ).toBe( 'enabled' );
 		expect( await stored( zs, 'settings', 'log_blocked_ips' ) ).toBe( 'enabled' );
 		expect( await stored( zs, 'settings', 'block_method' ) ).toBe( 'php' );
 		expect( await pending( zs ) ).toBe( false );
