@@ -116,11 +116,11 @@ export const cliCommands = () => [
 		__( 'Use --recommended to replace, --append to add.', 'zero-spam' ),
 	],
 	[
-		'wp zerospam api-usage [--period] [--format]',
+		'wp zerospam api_usage [--period] [--format]',
 		__( 'Show Enhanced Protection API usage.', 'zero-spam' ),
 	],
 	[
-		'wp zerospam network-stats',
+		'wp zerospam network_stats',
 		__( 'Show network statistics (multisite).', 'zero-spam' ),
 	],
 	[
