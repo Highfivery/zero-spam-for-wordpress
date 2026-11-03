@@ -35,6 +35,7 @@ class Admin {
 	 */
 	public function init() {
 		add_filter( 'plugin_action_links_' . ZEROSPAM_PLUGIN_BASE, array( $this, 'plugin_action_links' ) );
+		add_filter( 'network_admin_plugin_action_links_' . ZEROSPAM_PLUGIN_BASE, array( $this, 'network_plugin_action_links' ) );
 		add_filter( 'plugin_row_meta', array( $this, 'plugin_row_meta' ), 10, 2 );
 	}
 
@@ -99,6 +100,29 @@ class Admin {
 	}
 
 	/**
+	 * Network plugin action links
+	 *
+	 * Adds a Settings link to the network admin's Plugins screen, to the
+	 * network page, for users who can manage network options.
+	 *
+	 * Fired by `network_admin_plugin_action_links_{plugin}` filter.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param array $links An array of plugin action links.
+	 * @return array
+	 */
+	public function network_plugin_action_links( $links ) {
+		if ( ! current_user_can( 'manage_network_options' ) ) {
+			return $links;
+		}
+
+		array_unshift( $links, sprintf( '<a href="%1$s">%2$s</a>', esc_url( network_admin_url( 'admin.php?page=zero-spam-network' ) ), esc_html__( 'Settings', 'zero-spam' ) ) );
+
+		return $links;
+	}
+
+	/**
 	 * Plugin row meta.
 	 *
 	 * Adds row meta links to the plugin list table
@@ -113,7 +137,7 @@ class Admin {
 	public function plugin_row_meta( $plugin_meta, $plugin_file ) {
 		if ( ZEROSPAM_PLUGIN_BASE === $plugin_file ) {
 			$row_meta = array(
-				'docs' => '<a href="https://github.com/bmarshall511/wordpress-zero-spam/wiki" aria-label="' . esc_attr( __( 'View Documentation', 'zero-spam' ) ) . '" target="_blank">' . esc_html__( 'Docs & FAQs', 'zero-spam' ) . '</a>',
+				'docs' => '<a href="https://github.com/Highfivery/zero-spam-for-wordpress/wiki" aria-label="' . esc_attr( __( 'View Documentation', 'zero-spam' ) ) . '" target="_blank">' . esc_html__( 'Docs & FAQs', 'zero-spam' ) . '</a>',
 			);
 
 			$plugin_meta = array_merge( $plugin_meta, $row_meta );
