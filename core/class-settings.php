@@ -255,15 +255,15 @@ class Settings {
 		);
 
 		self::$settings['share_data'] = array(
-			'title'       => __( 'Usage Data Sharing', 'zero-spam' ),
-			'desc'        => __( 'Off unless you turn it on. When on, each blocked attempt is sent to zerospam.org to help block the same spammers on other sites: the visitor\'s IP address, any email address and name they entered, the reason it was blocked, and your site\'s address, name, tagline, administrator email, language and versions.', 'zero-spam' ),
-			'module'      => 'settings',
-			'section'     => 'general',
-			'type'        => 'checkbox',
-			'options'     => array(
+			'title'   => __( 'Usage Data Sharing', 'zero-spam' ),
+			'desc'    => __( 'Off unless you turn it on. When on, each blocked attempt is sent to zerospam.org to help block the same spammers on other sites: the visitor\'s IP address, any email address and name they entered, the reason it was blocked, and your site\'s address, name, tagline, administrator email, language and versions.', 'zero-spam' ),
+			'module'  => 'settings',
+			'section' => 'general',
+			'type'    => 'checkbox',
+			'options' => array(
 				'enabled' => false,
 			),
-			'value'       => ! empty( $options['share_data'] ) ? $options['share_data'] : false,
+			'value'   => ! empty( $options['share_data'] ) ? $options['share_data'] : false,
 			// No 'recommended' value: sending data to zerospam.org needs the site owner's own yes (WordPress.org guideline 7).
 		);
 
