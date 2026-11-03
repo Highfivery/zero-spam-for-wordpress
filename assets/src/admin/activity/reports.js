@@ -24,8 +24,9 @@ import { useApp, useMedia } from '../app/context';
 import { Badge, Button, ExtLink, Tile, TileHead } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { BlockForm } from '../app/block-form';
-import { NS, boot, request } from '../data/api';
+import { NS, request } from '../data/api';
 import { day, num, shortDay } from '../data/format';
+import { siteDay } from '../data/site-day';
 import { utm } from '../data/routes';
 import { ColumnChart } from './column-chart';
 import { Country } from './parts';
@@ -144,7 +145,6 @@ export function Reports() {
 	const ev = useMemo( () => enhancedColumns( series.data ), [ series.data ] );
 
 	const lab = ( hour ) => hourLabel( hour, locale() );
-	const shift = boot.nowLocal - Date.now();
 
 	const onSaved = ( saved, created ) => {
 		const ip = saved.ip || saved.key;
@@ -179,7 +179,7 @@ export function Reports() {
 						/* translators: 1: IP address, 2: date the block ends */
 						__( '%1$s blocked until %2$s', 'zero-spam' ),
 						ip,
-						day( new Date( Date.parse( saved.end ) + shift ) )
+						siteDay( saved.end )
 					);
 				},
 				undone: () =>

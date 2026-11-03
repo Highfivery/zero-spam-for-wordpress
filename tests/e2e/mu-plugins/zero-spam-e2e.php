@@ -1506,6 +1506,31 @@ add_action(
 
 		register_rest_route(
 			$ns,
+			'/timezone',
+			array(
+				'methods'             => 'POST',
+				'permission_callback' => permission( 'manage_options' ),
+				'callback'            => static function ( WP_REST_Request $request ) {
+					$zone = (string) ( $request->get_param( 'timezone_string' ) ?? '' );
+					if ( '' !== $zone && ! in_array( $zone, timezone_identifiers_list(), true ) ) {
+						return new WP_Error( 'zs_e2e_timezone', 'Not a time zone name.', array( 'status' => 400 ) );
+					}
+
+					$previous = array(
+						'timezone_string' => (string) get_option( 'timezone_string' ),
+						'gmt_offset'      => (float) get_option( 'gmt_offset' ),
+					);
+
+					update_option( 'timezone_string', $zone );
+					update_option( 'gmt_offset', (float) $request->get_param( 'gmt_offset' ) );
+
+					return new WP_REST_Response( $previous );
+				},
+			)
+		);
+
+		register_rest_route(
+			$ns,
 			'/seed-log',
 			array(
 				'methods'             => 'POST',

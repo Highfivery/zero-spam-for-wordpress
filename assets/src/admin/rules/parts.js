@@ -14,31 +14,10 @@ import { useEffect, useRef, useState } from '@wordpress/element';
  * Internal dependencies
  */
 import { Badge, Button, Icon } from '../app/primitives';
-import { boot, nowLocal } from '../data/api';
-import { day, num, parseDate } from '../data/format';
+import { boot } from '../data/api';
+import { num } from '../data/format';
 
-/**
- * A UTC date from the API (ends in Z) shown as its day in the site's time;
- * a date without a zone is already site time (date_added).
- *
- * @param {string|null} iso Date.
- * @return {string} "Thu, Oct 22", or ''.
- */
-export function siteDay( iso ) {
-	if ( ! iso ) {
-		return '';
-	}
-	const text = String( iso );
-	if ( ! /(Z|[+-]\d{2}:?\d{2})$/.test( text ) ) {
-		return day( text, new Date( nowLocal() ) );
-	}
-	const date = parseDate( text );
-	if ( ! date ) {
-		return '';
-	}
-	const shift = nowLocal() - Date.now();
-	return day( new Date( date.getTime() + shift ), new Date( nowLocal() ) );
-}
+export { siteDay } from '../data/site-day';
 
 /**
  * A search box that waits for a pause in typing (300 ms) before it

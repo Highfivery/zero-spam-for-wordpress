@@ -40,6 +40,7 @@ export const boot = Object.assign(
 		tab: '',
 		version: '',
 		nowLocal: Date.now(),
+		timezone: { name: '', offset: 0 },
 		site: { name: '', url: '' },
 		urls: {},
 		isMultisite: false,
@@ -54,7 +55,14 @@ export const boot = Object.assign(
 
 const offset = boot.nowLocal - Date.now();
 
-/** @return {number} Site-local now in milliseconds (read as UTC). */
+/**
+ * The site's "now", for relative times and today's date: it corrects the
+ * browser's clock. Never use `nowLocal() - Date.now()` as a time zone offset
+ * (it holds the latency and the clock's error, and is only today's offset):
+ * absolute dates go through data/site-time.js.
+ *
+ * @return {number} Site-local now in milliseconds (read as UTC).
+ */
 export const nowLocal = () => Date.now() + offset;
 
 let inFlight = 0;
