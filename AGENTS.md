@@ -874,10 +874,10 @@ npm run env:stop                 # stop both wp-env sites
     site, and a stored value is a site override. Decided by Ben
     (2026-11-02): migration `v6_allowlist_follows_network` removes a stored
     empty IP Allowlist on every site of a network once (lists with entries
-    stay; the precedence is unchanged). `Settings::auto_configure()` still
-    stores every setting of a module, `ip_whitelist` included, so applying
-    the recommended settings on a network site makes it a site override
-    again (follow-up: store only settings with a `recommended` value).
+    stay; the precedence is unchanged). `Settings::auto_configure()` stores
+    only settings with a `recommended` value (and keeps what a site already
+    stores), so applying the recommended settings no longer makes them site
+    overrides again (`test-auto-configure-network.php`).
   - `Network_Settings` is
     instantiated in several places, each registering its own resolver;
     `Network_Settings::is_using_default()` rebuilds the settings registry per
@@ -902,7 +902,9 @@ npm run env:stop                 # stop both wp-env sites
   shims for one release (`Includes\Legacy_Endpoints`, run the REST routes
   through `rest_do_request()`); remove them, and the `zerospam-action`
   shims in `Legacy_Redirects`, in 6.1. `Core\Deprecated_Hooks` lists the
-  5.x screens' hooks until 7.0. The 5.x options of removed notices
+  5.x screens' hooks until 7.0; it checks for callbacks once, on
+  `admin_init`, so one added later in the request (or only on the front
+  end) gets no notice. Left as it is (review of #463). The 5.x options of removed notices
   (`zerospam_api_monitoring_notice_dismissed`,
   `zerospam_show_settings_review_notice`, `zerospam_activation_time`, user
   meta `zerospam_promo_dismissed`, `zerospam_shared_ip_warning_dismissed`)

@@ -146,6 +146,13 @@ class Settings {
 	 *              example those the network administrator has locked. A
 	 *              value the site already stores for one is kept unchanged.
 	 *
+	 * @since 6.0.0 Only settings with a recommended value are written; every
+	 *              other setting keeps what the site stores, and one the site
+	 *              does not store stays unset. Before, every setting was stored
+	 *              with its resolved value, which on a network site turned
+	 *              network defaults (the IP Allowlist among them) into site
+	 *              overrides.
+	 *
 	 * @param string[] $skip_keys Optional. Setting keys not to configure. Default none.
 	 */
 	public static function auto_configure( array $skip_keys = array() ) {
@@ -167,9 +174,11 @@ class Settings {
 					continue;
 				}
 
-				$recommended_settings[ $key ] = isset( $args['value'] ) ? $args['value'] : false;
 				if ( isset( $args['recommended'] ) ) {
 					$recommended_settings[ $key ] = $args['recommended'];
+				} elseif ( is_array( $stored ) && array_key_exists( $key, $stored ) ) {
+					// No recommendation: the site keeps its own value, and a setting it never stored keeps following its default (or the network's).
+					$recommended_settings[ $key ] = $stored[ $key ];
 				}
 			}
 
