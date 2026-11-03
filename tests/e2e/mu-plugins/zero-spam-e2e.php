@@ -895,11 +895,80 @@ function plugin_cron_hooks(): array {
 const CRAFTED_MARKUP = '<img src="x" onerror="window.__zsXss=1"><b>zs-crafted</b>';
 
 /**
+ * Runs one statement of a reset or restore and says whether it worked.
+ *
+ * With WP_DEBUG, wpdb prints its error as HTML, which sends a 200 and breaks
+ * the JSON before the REST answer is out; the error goes in the answer
+ * instead (db_error()).
+ *
+ * @param callable():mixed $run Runs the statement ($wpdb->query(), insert() …).
+ * @return bool False when the database refused it ($wpdb->last_error says why).
+ */
+function db_ran( callable $run ): bool {
+	global $wpdb;
+
+	$shown  = $wpdb->hide_errors();
+	$result = $run();
+	$wpdb->show_errors( $shown );
+
+	return false !== $result;
+}
+
+/**
+ * The 500 a reset or restore answers when the database refused a statement,
+ * naming the table and the database's own error.
+ *
+ * @param string $code    Error code.
+ * @param string $message What could not be done, e.g. "Reset could not empty wp_x".
+ * @param string $table   The table.
+ * @return WP_Error
+ */
+function db_error( string $code, string $message, string $table ): WP_Error {
+	global $wpdb;
+
+	$error = (string) $wpdb->last_error;
+
+	return new WP_Error(
+		$code,
+		sprintf( '%s: %s', $message, '' !== $error ? $error : 'the database gave no error message' ),
+		array(
+			'status' => 500,
+			'table'  => $table,
+			'error'  => $error,
+		)
+	);
+}
+
+/**
+ * Runs one statement of a reset that empties a table.
+ *
+ * A reset that fails half way must not look like a clean site: when the
+ * database refused (a full disk once made every TRUNCATE fail silently, rows
+ * piled up and unrelated accessibility scans failed), the reset answers 500
+ * with the table and the database's own error.
+ *
+ * @param string $sql   A prepared TRUNCATE or DELETE statement.
+ * @param string $table The table it empties, for the message.
+ * @param string $code  Error code (zs_e2e_reset_failed, or zs_e2e_restore_failed from restore_snapshot()).
+ * @return WP_Error|null Null when the statement ran.
+ */
+function empty_table( string $sql, string $table, string $code = 'zs_e2e_reset_failed' ): ?WP_Error {
+	global $wpdb;
+
+	if ( db_ran( static fn() => $wpdb->query( $sql ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Prepared by every caller.
+		return null;
+	}
+
+	return db_error( $code, ( 'zs_e2e_reset_failed' === $code ? 'Reset' : 'Restore' ) . ' could not empty ' . $table, $table );
+}
+
+/**
  * Resets the current site's plugin state.
  *
  * @param string $preset defaults|recommended|baseline.
+ * @return WP_Error|null Null on success; a 500 error naming the table a TRUNCATE failed on.
  */
-function reset_site( string $preset ): void {
+function reset_site( string $preset ): ?WP_Error {
 	global $wpdb;
 
 	$keep = array( 'zerospam_db_version', 'zerospam_completed_migrations', 'zerospam_davidwalsh_secret', 'wpzerospam_honeypot' );
@@ -921,7 +990,10 @@ function reset_site( string $preset ): void {
 	foreach ( array( 'wpzerospam_log', 'wpzerospam_blocked' ) as $table ) {
 		$full = $wpdb->prefix . $table;
 		if ( $full === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $full ) ) ) {
-			$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $full ) );
+			$failed = empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $full ), $full );
+			if ( $failed ) {
+				return $failed;
+			}
 		}
 	}
 
@@ -933,13 +1005,13 @@ function reset_site( string $preset ): void {
 	wp_cache_flush();
 
 	if ( 'defaults' === $preset || ! class_exists( '\ZeroSpam\Core\Settings' ) ) {
-		return;
+		return null;
 	}
 
 	\ZeroSpam\Core\Settings::auto_configure();
 
 	if ( 'baseline' !== $preset ) {
-		return;
+		return null;
 	}
 
 	$baseline = array(
@@ -965,6 +1037,8 @@ function reset_site( string $preset ): void {
 	}
 
 	wp_cache_flush();
+
+	return null;
 }
 
 /**
@@ -1099,9 +1173,17 @@ function validate_snapshot( array $snapshot ) {
 /**
  * Restores a snapshot taken by take_snapshot() (validate it first).
  *
+ * This puts back a Local site's real plugin data after a run, so it never
+ * carries on past a statement the database refused: it stops at the first
+ * CREATE, TRUNCATE or INSERT that fails and answers 500
+ * (zs_e2e_restore_failed) naming the table and the database's error, with
+ * the tables before it restored and the ones after it untouched. The
+ * snapshot file stays in the run's artifacts to POST again.
+ *
  * @param array $snapshot Snapshot.
+ * @return WP_Error|null Null when everything was restored.
  */
-function restore_snapshot( array $snapshot ): void {
+function restore_snapshot( array $snapshot ): ?WP_Error {
 	global $wpdb;
 
 	$restore = static function ( array $site ) use ( $wpdb ): void {
@@ -1159,15 +1241,29 @@ function restore_snapshot( array $snapshot ): void {
 		}
 		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
 			// Dropped during the run (uninstall); recreate it from the saved schema, checked by validate_snapshot().
-			$wpdb->query( (string) $data['create'] ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A CREATE TABLE statement read from this database by take_snapshot() and validated; it has no placeholders.
+			$create = (string) $data['create'];
+			if ( ! db_ran( static fn() => $wpdb->query( $create ) ) ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- A CREATE TABLE statement read from this database by take_snapshot() and validated; it has no placeholders.
+				wp_cache_flush();
+				return db_error( 'zs_e2e_restore_failed', 'Restore stopped: could not recreate ' . $table, $table );
+			}
 		}
-		$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ) );
-		foreach ( (array) ( $data['rows'] ?? array() ) as $row ) {
-			$wpdb->insert( $table, (array) $row );
+		$failed = empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $table ), $table, 'zs_e2e_restore_failed' );
+		if ( $failed ) {
+			wp_cache_flush();
+			return $failed;
+		}
+		foreach ( array_values( (array) ( $data['rows'] ?? array() ) ) as $index => $row ) {
+			$row = (array) $row;
+			if ( ! db_ran( static fn() => $wpdb->insert( $table, $row ) ) ) {
+				wp_cache_flush();
+				return db_error( 'zs_e2e_restore_failed', sprintf( 'Restore stopped: could not insert row %d of %d into %s', $index + 1, count( (array) $data['rows'] ), $table ), $table );
+			}
 		}
 	}
 
 	wp_cache_flush();
+
+	return null;
 }
 
 /**
@@ -1355,7 +1451,10 @@ add_action(
 						// network keeps its audit history.
 						$audit = $wpdb->base_prefix . 'wpzerospam_network_audit';
 						if ( defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE && $audit === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $audit ) ) ) {
-							$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $audit ) );
+							$failed = empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $audit ), $audit );
+							if ( $failed ) {
+								return $failed;
+							}
 						}
 						// Network-wide blocks and custom templates (6.0): all of them on a
 						// disposable site; on a Local network only the TEST-NET blocks and
@@ -1363,17 +1462,19 @@ add_action(
 						$network_blocked   = $wpdb->base_prefix . 'wpzerospam_network_blocked';
 						$network_templates = $wpdb->base_prefix . 'wpzerospam_network_templates';
 						if ( $network_blocked === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $network_blocked ) ) ) {
-							if ( defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE ) {
-								$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $network_blocked ) );
-							} else {
-								$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_ip LIKE %s OR user_ip LIKE %s OR user_ip LIKE %s OR user_ip LIKE %s', $network_blocked, '192.0.2.%', '198.51.100.%', '203.0.113.%', '2001:db8:%' ) );
+							$failed = defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE
+								? empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $network_blocked ), $network_blocked )
+								: empty_table( $wpdb->prepare( 'DELETE FROM %i WHERE user_ip LIKE %s OR user_ip LIKE %s OR user_ip LIKE %s OR user_ip LIKE %s', $network_blocked, '192.0.2.%', '198.51.100.%', '203.0.113.%', '2001:db8:%' ), $network_blocked );
+							if ( $failed ) {
+								return $failed;
 							}
 						}
 						if ( $network_templates === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $network_templates ) ) ) {
-							if ( defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE ) {
-								$wpdb->query( $wpdb->prepare( 'TRUNCATE TABLE %i', $network_templates ) );
-							} else {
-								$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE template_slug LIKE %s', $network_templates, $wpdb->esc_like( 'e2e-' ) . '%' ) );
+							$failed = defined( 'ZEROSPAM_E2E_DISPOSABLE' ) && ZEROSPAM_E2E_DISPOSABLE
+								? empty_table( $wpdb->prepare( 'TRUNCATE TABLE %i', $network_templates ), $network_templates )
+								: empty_table( $wpdb->prepare( 'DELETE FROM %i WHERE template_slug LIKE %s', $network_templates, $wpdb->esc_like( 'e2e-' ) . '%' ), $network_templates );
+							if ( $failed ) {
+								return $failed;
 							}
 						}
 						foreach ( array( 'zerospam_network_blocks', 'zerospam_network_compare', 'zerospam_network_report', 'zerospam_network_stats_v6_today', 'zerospam_network_stats_v6_yesterday', 'zerospam_network_stats_v6_7', 'zerospam_network_stats_v6_30' ) as $transient ) {
@@ -1386,11 +1487,17 @@ add_action(
 						delete_site_transient( 'zerospam_network_settings_' . get_current_network_id() );
 						foreach ( get_sites( array( 'number' => 0 ) ) as $site ) {
 							switch_to_blog( (int) $site->blog_id );
-							reset_site( $preset );
+							$failed = reset_site( $preset );
 							restore_current_blog();
+							if ( $failed ) {
+								return $failed;
+							}
 						}
 					} else {
-						reset_site( $preset );
+						$failed = reset_site( $preset );
+						if ( $failed ) {
+							return $failed;
+						}
 					}
 
 					// The 6.0 admin's per-user preferences (theme, live feed, dismissed
@@ -1506,7 +1613,10 @@ add_action(
 					delete_user_meta( get_current_user_id(), 'zerospam_ui' );
 
 					if ( 'fresh' === $mode || 'provisioned' === $mode ) {
-						reset_site( 'defaults' );
+						$failed = reset_site( 'defaults' );
+						if ( $failed ) {
+							return $failed;
+						}
 						delete_option( 'zerospam_configured' );
 						update_option( 'zerospam_onboarding', 'pending', true );
 					}
@@ -1907,7 +2017,10 @@ add_action(
 						if ( is_wp_error( $valid ) ) {
 							return $valid;
 						}
-						restore_snapshot( $snapshot );
+						$failed = restore_snapshot( $snapshot );
+						if ( $failed ) {
+							return $failed;
+						}
 
 						return new WP_REST_Response( array( 'restored' => true ) );
 					},

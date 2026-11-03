@@ -1154,6 +1154,9 @@ class Rules_Controller extends Base_Controller {
 			if ( null !== $kept && $kept > $start ) {
 				// Unchanged end of the block being edited (it may have passed already).
 				$record['end_block'] = gmdate( 'Y-m-d H:i:s', $kept );
+			} elseif ( null !== $kept ) {
+				// The kept end is not after the new start (an emptied start is now).
+				$errors['end'] = __( 'The end must be in the future and after the start.', 'zero-spam' );
 			} elseif ( ! is_string( $sent ) || '' === trim( $sent ) ) {
 				$errors['end'] = __( 'A temporary block needs an end date.', 'zero-spam' );
 			} else {

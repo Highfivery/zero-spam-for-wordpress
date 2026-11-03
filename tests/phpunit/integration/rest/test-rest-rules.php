@@ -1050,4 +1050,94 @@ class Test_Rest_Rules extends TestCase {
 		$this->assertSame( '2020-01-01T00:00:00Z', $saved->get_data()['start'] );
 		$this->assertSame( '2020-01-02T23:59:59Z', $saved->get_data()['end'] );
 	}
+
+	/**
+	 * Clearing the start of a block whose end has passed: the kept end is now
+	 * before the new start (now), so the server says the end must be in the
+	 * future and after the start (the End field still shows that old date),
+	 * not that a temporary block needs an end date.
+	 */
+	public function test_an_emptied_start_past_a_kept_end_names_the_end(): void {
+		global $wpdb;
+
+		$id = $this->block( '198.51.100.74' );
+		$wpdb->update(
+			$wpdb->prefix . DB::$tables['blocked'],
+			array(
+				'blocked_type' => 'temporary',
+				'start_block'  => '2020-01-01 00:00:00',
+				'end_block'    => '2020-01-02 23:59:59',
+			),
+			array( 'blocked_id' => $id )
+		);
+
+		$saved = $this->rest(
+			'PUT',
+			self::BLOCKS . '/' . $id,
+			array(
+				'kind'  => 'ip',
+				'ip'    => '198.51.100.74',
+				'type'  => 'temporary',
+				'start' => '',
+			)
+		);
+
+		$this->assertSame( 400, $saved->get_status() );
+		$this->assertSame( 'The end must be in the future and after the start.', $saved->get_data()['data']['params']['end'] );
+		$stored = $this->rest( 'GET', self::BLOCKS . '/' . $id )->get_data();
+		$this->assertSame( '2020-01-01T00:00:00Z', $stored['start'], 'Nothing was saved.' );
+		$this->assertSame( '2020-01-02T23:59:59Z', $stored['end'], 'Nothing was saved.' );
+	}
+
+	/**
+	 * The block form sends an emptied start as '' ("Empty starts the block
+	 * now"): an edit with `start: ''` starts the block now instead of keeping
+	 * the stored start. An emptied end is refused, never kept or dropped.
+	 */
+	public function test_an_emptied_start_starts_the_block_now_and_an_emptied_end_is_refused(): void {
+		$created = $this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'kind'  => 'ip',
+				'ip'    => '198.51.100.73',
+				'type'  => 'temporary',
+				'start' => '2098-01-01',
+				'end'   => '2099-01-01',
+			)
+		);
+		$this->assertSame( 201, $created->get_status(), (string) wp_json_encode( $created->get_data() ) );
+
+		$route  = self::BLOCKS . '/' . $created->get_data()['id'];
+		$before = time();
+		$saved  = $this->rest(
+			'PUT',
+			$route,
+			array(
+				'kind'  => 'ip',
+				'ip'    => '198.51.100.73',
+				'type'  => 'temporary',
+				'start' => '',
+			)
+		);
+		$this->assertSame( 200, $saved->get_status(), (string) wp_json_encode( $saved->get_data() ) );
+		$start = (int) strtotime( $saved->get_data()['start'] );
+		$this->assertGreaterThanOrEqual( $before, $start, 'An emptied start is now.' );
+		$this->assertLessThanOrEqual( time(), $start, 'An emptied start is now.' );
+		$this->assertSame( $created->get_data()['end'], $saved->get_data()['end'], 'The end was not sent and is kept.' );
+
+		$emptied = $this->rest(
+			'PUT',
+			$route,
+			array(
+				'kind' => 'ip',
+				'ip'   => '198.51.100.73',
+				'type' => 'temporary',
+				'end'  => '',
+			)
+		);
+		$this->assertSame( 400, $emptied->get_status() );
+		$this->assertArrayHasKey( 'end', $emptied->get_data()['data']['params'] );
+		$this->assertSame( $created->get_data()['end'], $this->rest( 'GET', $route )->get_data()['end'] );
+	}
 }

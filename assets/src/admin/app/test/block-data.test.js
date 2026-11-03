@@ -188,6 +188,23 @@ describe( 'blockBody when a block is edited', () => {
 		expect( untouched.end ).toMatch( /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00$/ );
 	} );
 
+	it( 'sends an emptied start as empty, which the server reads as now ("Empty starts the block now")', () => {
+		const body = edit( { start: '' } );
+		expect( body ).toHaveProperty( 'start', '' );
+		expect( body ).not.toHaveProperty( 'end' );
+		const permanent = edit(
+			{ start: '' },
+			{ ...block, type: 'permanent', end: null }
+		);
+		expect( permanent ).toHaveProperty( 'start', '' );
+	} );
+
+	it( 'sends an emptied end as empty, so it is refused instead of the old end being kept', () => {
+		const body = edit( { end: '' } );
+		expect( body ).toHaveProperty( 'end', '' );
+		expect( body ).not.toHaveProperty( 'start' );
+	} );
+
 	it( 'sends no end when a temporary block is made permanent', () => {
 		expect( edit( { type: 'permanent' } ) ).not.toHaveProperty( 'end' );
 	} );
