@@ -10,7 +10,8 @@ The art for the plugin's page on [WordPress.org](https://wordpress.org/plugins/z
 | `icon-256x256.png`, `icon-128x128.png` | 256, 128 | Plugin icon: the tile with the mark, treatment B "Live core". |
 | `banner-1544x500.png`, `banner-772x250.png` | 1544 x 500, 772 x 250 | Plugin page header, retina and standard. |
 | `banner-1544x500-rtl.png`, `banner-772x250-rtl.png` | the same | The header on right-to-left locales: the layout is mirrored, the mark and the words are not flipped. |
-| `screenshots.md` | | The readme screenshots to capture after the 6.0 cutover, with their captions. |
+| `screenshots/screenshot-1.png` … `screenshot-8.png` | 1280 wide | The readme screenshots, captured from wp-env for 6.0.0. |
+| `screenshots.md` | | How the readme screenshots are captured, with their captions. |
 
 ## Sources
 
@@ -43,7 +44,7 @@ Two checks guard the art:
 
 ## Publish to WordPress.org (maintainer, by hand)
 
-The art goes in the SVN working copy's top-level `assets/` (`/Users/benmarshall/Documents/Projects/zero-spam`, not `trunk/`). It is live as soon as it is committed, with no release, so do this at the 6.0 release. `$PLUGIN` is a checkout of the released tag.
+The art goes in the SVN working copy's top-level `assets/` (`/Users/benmarshall/Documents/Projects/zero-spam`, not `trunk/`). It is live as soon as it is committed, with no release, so do it when the release is committed to SVN. `$PLUGIN` is a checkout of the released tag.
 
 ```bash
 cd /Users/benmarshall/Documents/Projects/zero-spam

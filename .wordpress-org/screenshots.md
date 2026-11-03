@@ -1,6 +1,6 @@
 # Readme screenshots
 
-Capture these **after the 6.0 cutover** (PR 13), when the 6.0 admin is what people get. They replace `screenshot-1.jpg` to `screenshot-5.jpg` in the SVN `assets/` directory (the old files are JPGs, so copying the PNGs in leaves both: remove them, below), and the captions replace `== Screenshots ==` in `readme.txt`, in the same order.
+The 6.0.0 captures are committed in `.wordpress-org/screenshots/` (`screenshot-1.png` to `screenshot-8.png`, not shipped). Capture them again when a screen changes visibly. They replace `screenshot-1.jpg` to `screenshot-5.jpg` in the SVN `assets/` directory (the old files are JPGs, so copying the PNGs in leaves both: remove them, below), and the captions replace `== Screenshots ==` in `readme.txt`, in the same order.
 
 **How:** `npm run env:start`, 1280 px wide, seeded TEST-NET addresses only (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 2001:db8::/32) and `@example.com` addresses, so no real person's data appears. Save as `screenshot-N.png`. No price or plan quota may be visible: crop it or use a Basic site if a screen shows one.
 
@@ -20,7 +20,7 @@ Capture these **after the 6.0 cutover** (PR 13), when the 6.0 admin is what peop
 ```bash
 cd /Users/benmarshall/Documents/Projects/zero-spam
 svn rm assets/screenshot-1.jpg assets/screenshot-2.jpg assets/screenshot-3.jpg assets/screenshot-4.jpg assets/screenshot-5.jpg
-cp <captures>/screenshot-*.png assets/
+cp "$PLUGIN"/.wordpress-org/screenshots/screenshot-*.png assets/   # $PLUGIN: a checkout of the released tag
 svn add assets/screenshot-*.png
 svn propset svn:mime-type image/png assets/screenshot-*.png
 svn status assets
