@@ -506,7 +506,8 @@ class Test_Stop_Forum_Spam extends TestCase {
 	/**
 	 * An answer that is not a clean success never blocks anyone, never
 	 * raises an error and is not remembered. Outages (429, 5xx) also count
-	 * towards the circuit breaker, which skips the sixth lookup.
+	 * towards the circuit breaker, which skips the sixth lookup; client errors
+	 * (400, 403) do not.
 	 *
 	 * @dataProvider data_failed_answers
 	 *
@@ -560,6 +561,9 @@ class Test_Stop_Forum_Spam extends TestCase {
 			'500 with a page'          => array( '<html>Server error</html>', 500, 5 ),
 			'500 with a listed answer' => array( $listed, 500, 5 ),
 			'429 with a listed answer' => array( $listed, 429, 5 ),
+			// Client errors mean the service is up: they never count towards the circuit breaker.
+			'400 with a listed answer' => array( $listed, 400, 6 ),
+			'403 forbidden'            => array( '<html>Forbidden</html>', 403, 6 ),
 			'an empty body'            => array( '', 200, 6 ),
 			'not JSON'                 => array( '<html>Maintenance</html>', 200, 6 ),
 			'cut-off JSON'             => array( '{"success":1,"email":{"appears":1,"confid', 200, 6 ),
