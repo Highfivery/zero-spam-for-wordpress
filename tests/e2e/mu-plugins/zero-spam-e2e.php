@@ -982,6 +982,11 @@ function reset_site( string $preset ): ?WP_Error {
 
 	// The 5.x settings review notice was removed in 6.0.0; a 5.x value is cleared all the same.
 	delete_option( 'zerospam_show_settings_review_notice' );
+	// The promo switch of earlier versions of this mu-plugin (the promo notice was removed in 6.0.0).
+	delete_option( 'zs_e2e_show_promo' );
+	if ( is_multisite() ) {
+		delete_site_option( 'zs_e2e_show_promo' );
+	}
 
 	wp_cache_flush();
 

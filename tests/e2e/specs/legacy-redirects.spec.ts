@@ -59,9 +59,13 @@ test.describe( 'Redirects from the 5.x screens', () => {
 	} );
 
 	test( 'a site administrator opening a network screen gets a permission error', { tag: '@multisite' }, async ( { asSiteAdmin, target } ) => {
-		await asSiteAdmin.goto( subsiteURL( target, 'wp-admin/network/settings.php?page=zerospam-network-settings' ) );
+		const network = await asSiteAdmin.goto( subsiteURL( target, 'wp-admin/network/settings.php?page=zerospam-network-settings' ) );
 		expect( landed( asSiteAdmin.url() ) ).not.toContain( 'zero-spam-network' );
-		await asSiteAdmin.goto( subsiteURL( target, 'wp-admin/options-general.php?page=zerospam-network-settings' ) );
-		await expect( asSiteAdmin.getByText( /not allowed/ ) ).toBeVisible();
+		expect( network?.status() ).toBe( 403 );
+		await expect( asSiteAdmin.getByText( /not allowed to access this page/ ) ).toBeVisible();
+
+		const site = await asSiteAdmin.goto( subsiteURL( target, 'wp-admin/options-general.php?page=zerospam-network-settings' ) );
+		expect( site?.status() ).toBe( 403 );
+		await expect( asSiteAdmin.getByText( /not allowed to access this page/ ) ).toBeVisible();
 	} );
 } );
