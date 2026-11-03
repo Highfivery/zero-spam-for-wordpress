@@ -1,8 +1,9 @@
 <!doctype html>
 <!--
-	The WordPress.org plugin icon: the approved tile with the mark, treatment B
-	"Live core", on the same whole-number brick grid as ../icon.svg (every edge
-	an even number, so it stays on the pixel grid at 128 px too). The grid is
+	The WordPress.org plugin icon: the mark, treatment B "Live core", on a white
+	tile so it sits on the white directory pages like part of them, on the same
+	whole-number brick grid as ../icon.svg (every edge an even number, so it
+	stays on the pixel grid at 128 px too). The grid is
 	drawn here, not taken from assets/img/zero-spam-mark.svg, because that
 	file's edges fall between pixels at this size. The mark's darkest colour
 	(#63000D) is lifted one step to #840012 here and in ../icon.svg: at icon
@@ -15,28 +16,23 @@
 <meta charset="utf-8">
 <title>Zero Spam icon</title>
 <style>
-	html, body { margin: 0; height: 100%; background: #0f0203; }
+	html, body { margin: 0; height: 100%; background: #fff; }
 	svg { display: block; width: 100vw; height: 100vh; }
 </style>
 </head>
 <body>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" aria-hidden="true">
 	<defs>
-		<linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1A0506"/><stop offset="1" stop-color="#0F0203"/></linearGradient>
-		<radialGradient id="tile-glow" cx=".3" cy=".18" r=".78"><stop offset="0" stop-color="#FF2929" stop-opacity=".14"/><stop offset="1" stop-color="#FF2929" stop-opacity="0"/></radialGradient>
-		<radialGradient id="halo"><stop offset="0" stop-color="#FF2929" stop-opacity=".16"/><stop offset="1" stop-color="#FF2929" stop-opacity="0"/></radialGradient>
+		<radialGradient id="core-glow"><stop offset="0" stop-color="#FF2929" stop-opacity=".35"/><stop offset="1" stop-color="#FF2929" stop-opacity="0"/></radialGradient>
 		<linearGradient id="g-840012" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A30016"/><stop offset="1" stop-color="#65000E"/></linearGradient>
 		<linearGradient id="g-be0000" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#DD0000"/><stop offset="1" stop-color="#9F0000"/></linearGradient>
 		<linearGradient id="g-ff2929" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF4848"/><stop offset="1" stop-color="#FF0A0A"/></linearGradient>
 		<linearGradient id="g-ff7038" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF8657"/><stop offset="1" stop-color="#FF5A19"/></linearGradient>
 		<linearGradient id="g-ffa17c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFB79B"/><stop offset="1" stop-color="#FF8B5D"/></linearGradient>
 		<linearGradient id="core" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6E5A"/><stop offset=".55" stop-color="#FF2929"/><stop offset="1" stop-color="#D81818"/></linearGradient>
-		<radialGradient id="core-glow"><stop offset="0" stop-color="#FF2929" stop-opacity=".95"/><stop offset=".45" stop-color="#FF2929" stop-opacity=".4"/><stop offset="1" stop-color="#FF2929" stop-opacity="0"/></radialGradient>
 	</defs>
-	<rect width="256" height="256" fill="url(#tile)"/>
-	<rect width="256" height="256" fill="url(#tile-glow)"/>
-	<ellipse cx="128" cy="128" rx="128" ry="120" fill="url(#halo)"/>
-	<ellipse cx="143" cy="107" rx="35" ry="50" fill="url(#core-glow)" opacity=".85"/>
+	<rect width="256" height="256" fill="#FFF"/>
+	<ellipse cx="143" cy="107" rx="46" ry="60" fill="url(#core-glow)"/>
 	<rect x="40" y="88" width="56" height="38" rx="5" fill="url(#g-840012)"/>
 	<rect x="40" y="172" width="56" height="38" rx="5" fill="url(#g-840012)"/>
 	<rect x="74" y="130" width="52" height="38" rx="5" fill="url(#g-840012)"/>

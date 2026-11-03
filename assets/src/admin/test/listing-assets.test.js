@@ -91,7 +91,7 @@ describe( 'the committed listing art', () => {
 			/gradient|transform|url\(|style|<text|<image/i
 		);
 		expect( svg ).toContain(
-			'<rect width="256" height="256" fill="#1A0506"/>'
+			'<rect width="256" height="256" fill="#FFFFFF"/>'
 		);
 		const expected = bricks( committed( 'src/icon.html' ).toString() );
 		expect( expected ).toHaveLength( 13 );
@@ -194,6 +194,9 @@ describe( 'a fresh render', () => {
 			expect( lines.map( ( line ) => line.text ) ).toEqual( [
 				'Zero Spam',
 				'for WordPress',
+				'Bots bounce.',
+				'People get through.',
+				'Spam stopped at the door. No captchas, no queue.',
 			] );
 			for ( const box of [ mark, ...lines ] ) {
 				expect( box.left ).toBeGreaterThanOrEqual( margin );
@@ -201,6 +204,9 @@ describe( 'a fresh render', () => {
 			}
 			for ( const line of lines ) {
 				expect( line.contrast ).toBeGreaterThanOrEqual( 4.5 );
+			}
+			// The mark leads the name, on the reading side.
+			for ( const line of lines.slice( 0, 2 ) ) {
 				if ( file.includes( '-rtl' ) ) {
 					expect( mark.left ).toBeGreaterThanOrEqual( line.right );
 				} else {
