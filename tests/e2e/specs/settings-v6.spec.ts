@@ -1,5 +1,5 @@
 /**
- * The 6.0 Settings area (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json): no
+ * The 6.0 Settings area: no
  * request of its own on load, the six tabs from the keyboard, unsaved
  * changes across tabs with per-setting errors, display preferences applied
  * live, the quota reset date control, import and export with per-setting

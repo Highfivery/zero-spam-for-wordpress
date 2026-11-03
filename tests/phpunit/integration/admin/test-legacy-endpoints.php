@@ -121,6 +121,24 @@ class Test_Legacy_Endpoints extends TestCase {
 	}
 
 	/**
+	 * A form with an expired nonce blocks nothing and goes back to the blocks list, as 5.x did.
+	 */
+	public function test_add_blocked_ip_with_a_bad_nonce(): void {
+		$end = $this->run_handler(
+			'add_blocked_ip',
+			array(
+				'zerospam'     => 'expired',
+				'blocked_ip'   => '198.51.100.41',
+				'blocked_type' => 'permanent',
+			)
+		);
+
+		$this->assertInstanceOf( RedirectException::class, $end );
+		$this->assertSame( admin_url( 'admin.php?page=zero-spam-rules&tab=ips' ), $end->location );
+		$this->assertSame( 0, $this->count_blocks( '198.51.100.41' ) );
+	}
+
+	/**
 	 * A location goes to the Locations tab.
 	 */
 	public function test_add_blocked_location(): void {

@@ -1,5 +1,5 @@
 /**
- * The 6.0 network page (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json): every
+ * The 6.0 network page: every
  * tab loads with no request of its own, the tabs work from the keyboard,
  * a network value saved and locked here is what a subsite gets (and an
  * empty one reads "(none)"), templates are made, changed and applied with

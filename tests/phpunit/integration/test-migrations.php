@@ -99,7 +99,7 @@ class Test_Migrations extends TestCase {
 		$this->assertSame( 'enabled', $settings['log_blocked_ips'] );
 		$this->assertSame( array( 'stop_forum_spam' => 'enabled' ), get_option( 'zero-spam-stop_forum_spam' ) );
 		$this->assertFalse( get_option( 'wpzerospam' ) );
-		$this->assertTrue( (bool) get_option( Migrations::SETTINGS_REVIEW_NOTICE_OPTION ) );
+		$this->assertFalse( get_option( Migrations::SETTINGS_REVIEW_NOTICE_OPTION ), 'The 5.x settings review notice was removed in 6.0.0: nothing flags it.' );
 	}
 
 	/**

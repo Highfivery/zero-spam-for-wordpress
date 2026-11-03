@@ -1,5 +1,5 @@
 /**
- * The 6.0 admin shell and Overview (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json):
+ * The 6.0 admin shell and Overview:
  * loading without extra requests, keyboard paths (skip link, navigation,
  * level chip and popover, the Compare drawer's focus trap, the chart and
  * its table, Live/Pause, toasts with Undo), phones, and the CPU budget of

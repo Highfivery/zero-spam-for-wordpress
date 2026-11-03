@@ -191,6 +191,28 @@ class Test_Legacy_Endpoints_Network extends TestCase {
 	}
 
 	/**
+	 * A slug is read as 5.x saved it (sanitize_title()), so "My Template" names "my-template".
+	 */
+	public function test_template_slugs_are_read_as_saved(): void {
+		$this->setExpectedDeprecated( 'zerospam_network_save_template' );
+		$this->setExpectedDeprecated( 'zerospam_network_delete_template' );
+		$this->set_network_setting( 'max_logs', 778 );
+
+		$saved = $this->call(
+			'zerospam_network_save_template',
+			array(
+				'name' => 'My Template',
+				'slug' => 'My Template',
+			)
+		);
+		$this->assertTrue( $saved['success'], (string) wp_json_encode( $saved ) );
+		$this->assertSame( 200, $this->rest( 'GET', '/zero-spam/v1/network-settings/templates/my-template' )->get_status() );
+
+		$this->assertTrue( $this->call( 'zerospam_network_delete_template', array( 'slug' => 'My Template' ) )['success'] );
+		$this->assertSame( 404, $this->rest( 'GET', '/zero-spam/v1/network-settings/templates/my-template' )->get_status() );
+	}
+
+	/**
 	 * The notification switches reach the network options.
 	 */
 	public function test_notifications(): void {

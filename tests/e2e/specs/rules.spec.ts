@@ -1,5 +1,5 @@
 /**
- * The 6.0 Rules area (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json): six tabs
+ * The 6.0 Rules area: six tabs
  * that load without requests of their own and follow the keyboard; the
  * shared block drawer to add and change IP and location blocks (checked as
  * typed, focus in and back); Remove and Remove selected with Undo; search

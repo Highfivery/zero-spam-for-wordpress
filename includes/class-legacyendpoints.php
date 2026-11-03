@@ -336,7 +336,7 @@ final class Legacy_Endpoints {
 	 * @param string $action AJAX action.
 	 */
 	private function apply_template( string $action ): void {
-		$slug = sanitize_key( self::post( 'slug' ) );
+		$slug = sanitize_title( self::post( 'slug' ) );
 		self::deprecated( $action, 'network-settings/templates/' . $slug . '/apply' );
 
 		self::send(
@@ -380,7 +380,7 @@ final class Legacy_Endpoints {
 	 * @param string $action AJAX action.
 	 */
 	private function delete_template( string $action ): void {
-		$slug = sanitize_key( self::post( 'slug' ) );
+		$slug = sanitize_title( self::post( 'slug' ) );
 		self::deprecated( $action, 'network-settings/templates/' . $slug );
 		self::send( self::dispatch( 'DELETE', 'network-settings/templates/' . $slug ), __( 'Template deleted successfully', 'zero-spam' ) );
 	}
@@ -499,7 +499,9 @@ final class Legacy_Endpoints {
 		$location = '' !== self::post( 'key_type' );
 
 		if ( ! wp_verify_nonce( self::post( 'zerospam' ), 'zerospam' ) ) {
-			self::back( 'activity' );
+			// As 5.x: back to the blocks list, with nothing changed.
+			wp_safe_redirect( admin_url( 'admin.php?page=zero-spam-rules&tab=' . ( $location ? 'locations' : 'ips' ) ) );
+			exit;
 		}
 
 		self::deprecated( 'admin_action_add_blocked_ip', 'rules/blocks' );

@@ -1,5 +1,5 @@
 /**
- * The 6.0 Activity area (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json): the log
+ * The 6.0 Activity area: the log
  * loads without requests of its own, filters with live counts, sorting
  * (headers and the Location menu), paging past the end, the details
  * drawer (focus in, trap, Previous/Next, Escape returns focus to the row

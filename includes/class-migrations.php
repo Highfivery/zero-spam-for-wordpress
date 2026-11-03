@@ -604,8 +604,7 @@ class Migrations {
 		wp_cache_delete( 'wpzerospam', 'options' );
 		wp_cache_delete( 'alloptions', 'options' );
 
-		// Flag a one-time admin notice so users can verify their settings.
-		update_option( self::SETTINGS_REVIEW_NOTICE_OPTION, true, true );
+		// 5.x also flagged a "review your settings" notice here; that notice was removed in 6.0.0.
 
 		return true;
 	}
