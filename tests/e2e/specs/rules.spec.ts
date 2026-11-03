@@ -757,6 +757,31 @@ test.describe( '6.0 Rules', () => {
 		}
 	} );
 
+	test( 'a sort chosen while a slow Undo runs is the list shown once it finishes', async ( { page, zs } ) => {
+		await seedRules( zs );
+		await openTab( page );
+		await page.getByRole( 'button', { name: 'Remove block for 2001:db8::51' } ).click();
+		await expect( toast( page ) ).toContainText( 'Removed the block on 2001:db8::51' );
+		await expect( rows( page ) ).toHaveCount( 5 );
+
+		// Undo answers 1.5 s late, so its refresh starts after the new sort.
+		await page.route( /undo(%2F|\/)/, async ( route ) => {
+			await new Promise( ( resolve ) => setTimeout( resolve, 1500 ) );
+			await route.continue();
+		} );
+		await toast( page ).getByRole( 'button', { name: 'Undo' } ).click();
+		await page.locator( '[data-zs-sort="key"]' ).click();
+		const keyHeader = page.locator( 'th', { has: page.locator( '[data-zs-sort="key"]' ) } );
+		await expect( keyHeader ).toHaveAttribute( 'aria-sort', 'ascending' );
+
+		await expect( toast( page ) ).toContainText( 'Block restored' );
+		await expect( rows( page ) ).toHaveCount( 6 );
+		await page.waitForTimeout( 1000 );
+		await expect( keyHeader ).toHaveAttribute( 'aria-sort', 'ascending' );
+		await expect( rows( page ).first() ).toContainText( '192.0.2.41' );
+		await page.unroute( /undo(%2F|\/)/ );
+	} );
+
 	test( 'a collapsed WordPress menu does not bring the table below 1,440px', async ( { page, zs } ) => {
 		await seedRules( zs );
 		await page.setViewportSize( { width: 1439, height: 900 } );

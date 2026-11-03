@@ -106,4 +106,23 @@ describe( 'useResource', () => {
 		expect( seen.data ).toEqual( [ 'fresh' ] );
 		expect( seen.loading ).toBe( false );
 	} );
+
+	it( 'a reload kept from an older path (Undo’s refresh after a change of sort) loads the path shown now', async () => {
+		await act( async () => root.render( <Probe path="/list?sort=a" /> ) );
+		const keptReload = seen.reload;
+		await act( async () => root.render( <Probe path="/list?sort=b" /> ) );
+		await act( async () => {
+			keptReload();
+		} );
+		expect( pending.map( ( p ) => p.path ) ).toEqual( [
+			'/list?sort=a',
+			'/list?sort=b',
+			'/list?sort=b',
+		] );
+
+		await answer( 1, [ 'sorted by b' ] );
+		await answer( 2, [ 'sorted by b, refreshed' ] );
+		await answer( 0, [ 'sorted by a' ] );
+		expect( seen.data ).toEqual( [ 'sorted by b, refreshed' ] );
+	} );
 } );
