@@ -19,6 +19,7 @@ import {
 	checkLocation,
 	checkMinLength,
 	isCidr,
+	isNeverBlocked,
 	listEntry,
 	splitEntries,
 } from '../validate';
@@ -174,5 +175,42 @@ describe( 'list entries', () => {
 		expect( checkMinLength( '-1' ).error ).toBeTruthy();
 		expect( checkMinLength( '2.5' ).error ).toBeTruthy();
 		expect( checkMinLength( '' ).error ).toBeTruthy();
+	} );
+} );
+
+describe( 'loopback and unspecified blocks', () => {
+	it( 'refuses addresses no visitor has, as Rules_Controller::is_never_blocked()', () => {
+		for ( const ip of [
+			'127.0.0.1',
+			'127.5.5.5',
+			'::1',
+			'0.0.0.0',
+			'::',
+			'0:0:0:0:0:0:0:1',
+		] ) {
+			expect( checkBlockIp( ip ).error ).toMatch(
+				/server’s own address/
+			);
+		}
+		expect( isNeverBlocked( '127.1.2.3' ) ).toBe( true );
+		expect( isNeverBlocked( '128.0.0.1' ) ).toBe( false );
+	} );
+
+	it( 'allows private ranges', () => {
+		for ( const ip of [
+			'10.0.0.1',
+			'192.168.1.1',
+			'172.16.0.9',
+			'fc00::1',
+		] ) {
+			expect( checkBlockIp( ip ).value ).toBeTruthy();
+		}
+	} );
+
+	it( 'lets a 5.x block of such an address be edited', () => {
+		expect( checkBlockIp( '127.0.0.1', '127.0.0.1' ) ).toEqual( {
+			value: '127.0.0.1',
+		} );
+		expect( checkBlockIp( '127.0.0.2', '127.0.0.1' ).error ).toBeTruthy();
 	} );
 } );

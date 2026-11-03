@@ -28,6 +28,7 @@ import {
 	EXPORT_PER_PAGE,
 	PATHS,
 	PERIODS,
+	periodArg,
 	STATS_PER_PAGE,
 	allStatsSites,
 	levelBadge,
@@ -351,7 +352,9 @@ function NetworkBlocks( { blocks, page, setPage, onChanged, remove } ) {
 export function NetworkStats() {
 	const { toast } = useFeedback();
 	const wide = useMedia( TABLE_QUERY );
-	const [ period, setPeriod ] = useState( '30' );
+	const [ period, setPeriod ] = useState( () =>
+		periodArg( window.location.search )
+	);
 	const [ page, setPage ] = useState( 1 );
 	const [ sort, setSort ] = useState( 'blocked:desc' );
 	const [ blockPage, setBlockPage ] = useState( 1 );

@@ -643,8 +643,12 @@ final class Admin_App {
 			case 'notifications':
 				return array( '/zero-spam/v1/network/notifications' );
 			case 'stats':
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only view state: the period a link asks for (assets/src/admin/network/model.js, periodArg()).
+				$period = isset( $_GET['period'] ) && is_string( $_GET['period'] ) ? sanitize_key( wp_unslash( $_GET['period'] ) ) : '';
+				$period = in_array( $period, \ZeroSpam\Includes\Network_Report::PERIODS, true ) ? $period : '30';
+
 				return array(
-					'/zero-spam/v1/network/stats?period=30&page=1&per_page=' . self::STATS_PER_PAGE . '&orderby=blocked&order=desc',
+					'/zero-spam/v1/network/stats?period=' . $period . '&page=1&per_page=' . self::STATS_PER_PAGE . '&orderby=blocked&order=desc',
 					'/zero-spam/v1/network/blocks?page=1&per_page=' . self::NETWORK_BLOCKS_PER_PAGE,
 				);
 			default:

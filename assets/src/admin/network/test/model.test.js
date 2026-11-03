@@ -28,6 +28,7 @@ import {
 	networkEntry,
 	pageInfo,
 	parseImport,
+	periodArg,
 	readLayer,
 	sitesState,
 	slugify,
@@ -439,5 +440,16 @@ describe( 'files', () => {
 		expect( () => parseImport( '[]' ) ).toThrow();
 		expect( () => parseImport( '{}' ) ).toThrow();
 		expect( () => parseImport( 'nope' ) ).toThrow();
+	} );
+} );
+
+describe( 'periodArg', () => {
+	it( 'reads the period of a link (5.x Network Stats redirects), else 30 days', () => {
+		expect(
+			periodArg( '?page=zero-spam-network&tab=stats&period=7' )
+		).toBe( '7' );
+		expect( periodArg( '?period=today' ) ).toBe( 'today' );
+		expect( periodArg( '?period=month' ) ).toBe( '30' );
+		expect( periodArg( '' ) ).toBe( '30' );
 	} );
 } );

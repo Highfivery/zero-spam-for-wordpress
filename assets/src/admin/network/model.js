@@ -32,6 +32,18 @@ export const EXPORT_MAX_PAGES = 10;
 export const PERIODS = [ 'today', 'yesterday', '7', '30' ];
 
 /**
+ * The period a link asks for (&period=, as the 5.x Network Stats addresses
+ * redirect to it), or the last 30 days.
+ *
+ * @param {string} search location.search.
+ * @return {string} Period.
+ */
+export const periodArg = ( search ) => {
+	const value = new URLSearchParams( search || '' ).get( 'period' );
+	return PERIODS.includes( value ) ? value : '30';
+};
+
+/**
  * Builds a query string from defined arguments, in the given order.
  *
  * @param {Array<[string, unknown]>} args Arguments.
