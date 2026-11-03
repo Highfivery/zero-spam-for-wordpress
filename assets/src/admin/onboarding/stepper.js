@@ -47,7 +47,8 @@ export function initialState( seed = {} ) {
 		protect: { ...( seed.protect || {} ) },
 		blocking: {
 			block_method: 'php',
-			share_data: true,
+			// Sending data to zerospam.org needs the owner's own yes.
+			share_data: false,
 			log_blocked_ips: true,
 			...( seed.blocking || {} ),
 		},
@@ -246,7 +247,8 @@ export function blockingFrom( schema ) {
 	};
 	return {
 		block_method: 'string' === typeof method && method ? method : 'php',
-		share_data: on( 'share_data' ),
+		// Only an explicit yes: an unset value is off, unlike the log.
+		share_data: 'enabled' === value( 'share_data' ),
 		log_blocked_ips: on( 'log_blocked_ips' ),
 	};
 }

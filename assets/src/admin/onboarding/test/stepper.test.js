@@ -281,8 +281,24 @@ describe( 'a site that already has settings', () => {
 		} );
 		expect( blockingFrom( undefined ) ).toEqual( {
 			block_method: 'php',
-			share_data: true,
+			share_data: false,
 			log_blocked_ips: true,
 		} );
+	} );
+} );
+
+describe( 'data sharing needs consent', () => {
+	it( 'starts off on a new site and only follows an explicit yes', () => {
+		expect( initialState().blocking.share_data ).toBe( false );
+		expect(
+			changesFor( initialState( { step: 3 } ) ).settings.share_data
+		).toBe( false );
+		expect(
+			blockingFrom( [ { key: 'share_data', value: null } ] ).share_data
+		).toBe( false );
+		expect(
+			blockingFrom( [ { key: 'share_data', value: 'enabled' } ] )
+				.share_data
+		).toBe( true );
 	} );
 } );

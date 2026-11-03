@@ -45,4 +45,30 @@ class Test_Auto_Configure extends TestCase {
 		$this->assertSame( 10000, (int) Settings_Schema::value( 'max_logs' ) );
 		$this->assertSame( 1, (int) get_option( 'zerospam_configured' ) );
 	}
+
+	/**
+	 * Sending detections to zerospam.org needs the site owner's consent
+	 * (WordPress.org plugin guideline 7): the recommended settings never turn
+	 * Usage Data Sharing on, and keep it on where the owner turned it on.
+	 */
+	public function test_recommended_settings_never_turn_on_data_sharing(): void {
+		delete_option( 'zero-spam-settings' );
+		self::reset_static_caches();
+
+		$this->assertArrayNotHasKey( 'recommended', Settings::get_settings()['share_data'] );
+
+		Settings::auto_configure();
+		self::reset_static_caches();
+
+		$this->assertNotSame( 'enabled', get_option( 'zero-spam-settings' )['share_data'] ?? null );
+		$this->assertNotSame( 'enabled', Settings_Schema::value( 'share_data' ) );
+
+		update_option( 'zero-spam-settings', array( 'share_data' => 'enabled' ) );
+		self::reset_static_caches();
+
+		Settings::auto_configure();
+		self::reset_static_caches();
+
+		$this->assertSame( 'enabled', get_option( 'zero-spam-settings' )['share_data'] );
+	}
 }
