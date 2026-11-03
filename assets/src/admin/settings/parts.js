@@ -16,8 +16,8 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 import { useApp, useMedia } from '../app/context';
 import { Badge, Button, Icon, Switch, cx } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
+import { useCopy } from '../app/copy';
 import {
-	copyText,
 	environmentLine,
 	systemReport,
 	systemRows,
@@ -518,7 +518,7 @@ export function QuotaHint( { value, onClear, disabled } ) {
  */
 export function SystemReport( { schema } ) {
 	const { modules, enhanced } = useApp();
-	const { toast } = useFeedback();
+	const { copy, fallback } = useCopy();
 	const rows = systemRows( { modules, enhanced, schema } );
 	const report = systemReport( rows, enhanced );
 	return (
@@ -543,11 +543,14 @@ export function SystemReport( { schema } ) {
 					variant="secondary"
 					size="sm"
 					icon="copy"
-					onClick={ () => copyText( report, toast ) }
+					onClick={ () =>
+						copy( report, __( 'System report', 'zero-spam' ) )
+					}
 				>
 					{ __( 'Copy system report', 'zero-spam' ) }
 				</Button>
 			</div>
+			{ fallback }
 		</div>
 	);
 }

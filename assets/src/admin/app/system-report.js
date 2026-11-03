@@ -121,25 +121,3 @@ export const systemReport = ( rows, enhanced ) =>
 		enhanced ? __( 'Enhanced', 'zero-spam' ) : __( 'Basic', 'zero-spam' ),
 		...rows.map( ( [ k, v ] ) => `${ k }: ${ v }` ),
 	].join( ' · ' );
-
-/**
- * Copies text to the clipboard and says how it went.
- *
- * @param {string}                    text  Text.
- * @param {(message: string) => void} toast Shows a message.
- */
-export function copyText( text, toast ) {
-	const done = () => toast( __( 'Copied to clipboard', 'zero-spam' ) );
-	const fail = () =>
-		toast(
-			__(
-				'Copy did not work. Select the text and press Ctrl+C or Cmd+C.',
-				'zero-spam'
-			)
-		);
-	try {
-		window.navigator.clipboard.writeText( text ).then( done, fail );
-	} catch {
-		fail();
-	}
-}

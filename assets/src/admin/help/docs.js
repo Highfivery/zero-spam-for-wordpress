@@ -14,9 +14,8 @@ import { useEffect, useRef, useState } from '@wordpress/element';
  * Internal dependencies
  */
 import { ExtLink, Icon, Tile, TileHead } from '../app/primitives';
-import { useFeedback } from '../app/primitives/feedback';
 import { PATHS, useResource } from '../data/api';
-import { copyText } from './copy';
+import { useCopy } from '../app/copy';
 import { failedAnswer } from './news-model';
 import { LINKS } from './lists';
 
@@ -40,7 +39,7 @@ import { LINKS } from './lists';
  */
 function GuideHtml( { html } ) {
 	const ref = useRef( null );
-	const { toast } = useFeedback();
+	const { copy, fallback } = useCopy();
 
 	useEffect( () => {
 		const root = ref.current;
@@ -56,20 +55,23 @@ function GuideHtml( { html } ) {
 				button.getAttribute( 'data-clipboard-target' ) || ''
 			);
 			if ( target ) {
-				copyText( target.textContent || '', toast );
+				copy( target.textContent || '' );
 			}
 		};
 		root.addEventListener( 'click', onClick );
 		return () => root.removeEventListener( 'click', onClick );
-	}, [ toast ] );
+	}, [ copy ] );
 
 	return (
-		<div
-			ref={ ref }
-			className="zs-doc"
-			// Sanitised on the server with wp_kses_post(); see the comment above.
-			dangerouslySetInnerHTML={ { __html: html } }
-		/>
+		<>
+			<div
+				ref={ ref }
+				className="zs-doc"
+				// Sanitised on the server with wp_kses_post(); see the comment above.
+				dangerouslySetInnerHTML={ { __html: html } }
+			/>
+			{ fallback }
+		</>
 	);
 }
 
