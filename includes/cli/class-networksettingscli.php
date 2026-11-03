@@ -1,4 +1,4 @@
-<?php
+<?php // phpcs:ignore WordPress.Files.FileName.InvalidClassFileName -- includes/class-autoloader.php maps the class to this file name.
 /**
  * Network Settings WP-CLI Commands
  *
@@ -88,7 +88,7 @@ class Network_Settings_CLI {
 		foreach ( $settings as $key => $config ) {
 			$items[] = array(
 				'Setting'       => $key,
-				'Value'         => is_string( $config['value'] ) ? $config['value'] : wp_json_encode( $config['value'] ),
+				'Value'         => self::display_value( (string) $key, $config['value'] ),
 				'Locked'        => $config['locked'] ? 'Yes' : 'No',
 				'Using Default' => $config['using_default'],
 				'Overridden'    => $config['overridden'],
@@ -121,6 +121,8 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function show( $args, $assoc_args ) {
+		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
+
 		if ( ! is_multisite() ) {
 			\WP_CLI::error( 'This command requires a multisite installation.' );
 		}
@@ -191,6 +193,8 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function lock( $args, $assoc_args ) {
+		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
+
 		if ( ! is_multisite() ) {
 			\WP_CLI::error( 'This command requires a multisite installation.' );
 		}
@@ -221,6 +225,8 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function unlock( $args, $assoc_args ) {
+		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
+
 		if ( ! is_multisite() ) {
 			\WP_CLI::error( 'This command requires a multisite installation.' );
 		}
@@ -271,9 +277,9 @@ class Network_Settings_CLI {
 			\WP_CLI::error( 'This command requires a multisite installation.' );
 		}
 
-		$force    = isset( $assoc_args['force'] );
-		$mode     = $assoc_args['mode'] ?? 'all';
-		$sites    = ! empty( $assoc_args['sites'] ) ? array_map( 'intval', explode( ',', $assoc_args['sites'] ) ) : array();
+		$force = isset( $assoc_args['force'] );
+		$mode  = $assoc_args['mode'] ?? 'all';
+		$sites = ! empty( $assoc_args['sites'] ) ? array_map( 'intval', explode( ',', $assoc_args['sites'] ) ) : array();
 
 		$result = $this->settings_manager->apply_to_sites( $force, $sites, $mode );
 
@@ -300,6 +306,8 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function reset_site( $args, $assoc_args ) {
+		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
+
 		if ( ! is_multisite() ) {
 			\WP_CLI::error( 'This command requires a multisite installation.' );
 		}
@@ -325,19 +333,21 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function status( $args, $assoc_args ) {
+		unset( $args, $assoc_args ); // WP-CLI passes both; this command takes none of them.
+
 		if ( ! is_multisite() ) {
 			\WP_CLI::error( 'This command requires a multisite installation.' );
 		}
 
-		$sites                = get_sites( array( 'number' => 0 ) );
-		$total_sites          = count( $sites );
-		$settings             = $this->settings_manager->get_all_with_status();
-		$locked_settings      = 0;
-		$total_overrides      = 0;
+		$sites           = get_sites( array( 'number' => 0 ) );
+		$total_sites     = count( $sites );
+		$settings        = $this->settings_manager->get_all_with_status();
+		$locked_settings = 0;
+		$total_overrides = 0;
 
 		foreach ( $settings as $config ) {
 			if ( $config['locked'] ) {
-				$locked_settings++;
+				++$locked_settings;
 			}
 			$total_overrides += $config['overridden'];
 		}
@@ -387,10 +397,10 @@ class Network_Settings_CLI {
 			}
 
 			$item = array(
-				'Setting'        => $key,
-				'Network Value'  => is_string( $config['value'] ) ? $config['value'] : wp_json_encode( $config['value'] ),
-				'Locked'         => $config['locked'] ? 'Yes' : 'No',
-				'Sites w/Default' => $config['using_default'],
+				'Setting'          => $key,
+				'Network Value'    => self::display_value( (string) $key, $config['value'] ),
+				'Locked'           => $config['locked'] ? 'Yes' : 'No',
+				'Sites w/Default'  => $config['using_default'],
 				'Sites w/Override' => $config['overridden'],
 			);
 
@@ -442,7 +452,7 @@ class Network_Settings_CLI {
 			$items[] = array(
 				'Site ID'   => $site_id,
 				'Site Name' => $site->blogname ?? 'N/A',
-				'Value'     => is_string( $value ) ? $value : wp_json_encode( $value ),
+				'Value'     => self::display_value( (string) $key, $value ),
 			);
 		}
 
@@ -450,7 +460,28 @@ class Network_Settings_CLI {
 	}
 
 	/**
+	 * A setting's value as the commands print it: a secret (license and API
+	 * keys, webhook addresses) only as its masked hint, never in clear.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $key   Setting key.
+	 * @param mixed  $value Value.
+	 */
+	private static function display_value( string $key, $value ): string {
+		if ( \ZeroSpam\Core\Settings_Schema::is_secret( $key ) ) {
+			$text = is_scalar( $value ) ? trim( (string) $value ) : '';
+
+			return '' === $text ? '' : \ZeroSpam\Core\Settings_Schema::hint( $text );
+		}
+
+		return is_string( $value ) ? $value : (string) wp_json_encode( $value );
+	}
+
+	/**
 	 * Export network settings
+	 *
+	 * Secrets (license and API keys, webhook addresses) are left out.
 	 *
 	 * ## OPTIONS
 	 *
@@ -478,10 +509,22 @@ class Network_Settings_CLI {
 			\WP_CLI::error( 'This command requires a multisite installation.' );
 		}
 
-		$json = $this->settings_manager->export_settings( 'json' );
+		// As the REST export (since 6.0.0): secrets (license and API keys, webhook
+		// addresses) and keys the registry does not know are left out, so an
+		// export never shows a secret in clear.
+		$settings = $this->settings_manager->export_settings( 'array' );
+		$settings = is_array( $settings ) ? $settings : array();
+
+		foreach ( array_keys( $settings ) as $key ) {
+			if ( \ZeroSpam\Includes\Network_Report::is_hidden( (string) $key ) ) {
+				unset( $settings[ $key ] );
+			}
+		}
+
+		$json = (string) wp_json_encode( (object) $settings, JSON_PRETTY_PRINT );
 
 		if ( ! empty( $assoc_args['file'] ) ) {
-			file_put_contents( $assoc_args['file'], $json );
+			file_put_contents( $assoc_args['file'], $json ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP-CLI writes the local file the operator named.
 			\WP_CLI::success( 'Settings exported to ' . $assoc_args['file'] );
 		} else {
 			\WP_CLI::line( $json );
@@ -525,7 +568,7 @@ class Network_Settings_CLI {
 			\WP_CLI::error( "File not found: $file" );
 		}
 
-		$json = file_get_contents( $file );
+		$json = file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- WP-CLI reads the local file the operator named.
 		$data = json_decode( $json, true );
 
 		if ( ! is_array( $data ) ) {
@@ -601,12 +644,12 @@ class Network_Settings_CLI {
 		$items = array();
 		foreach ( $entries as $entry ) {
 			$items[] = array(
-				'Date'       => $entry['date_created'],
-				'User'       => $entry['user_login'],
-				'Action'     => $entry['action_type'],
-				'Setting'    => $entry['setting_key'] ?? 'N/A',
-				'Old Value'  => substr( $entry['old_value'] ?? '', 0, 30 ),
-				'New Value'  => substr( $entry['new_value'] ?? '', 0, 30 ),
+				'Date'      => $entry['date_created'],
+				'User'      => $entry['user_login'],
+				'Action'    => $entry['action_type'],
+				'Setting'   => $entry['setting_key'] ?? 'N/A',
+				'Old Value' => substr( $entry['old_value'] ?? '', 0, 30 ),
+				'New Value' => substr( $entry['new_value'] ?? '', 0, 30 ),
 			);
 		}
 
@@ -707,7 +750,7 @@ class Network_Settings_CLI {
 				\WP_CLI::error( "Failed to apply template '$slug'" );
 			}
 		} else {
-			$sites    = ! empty( $assoc_args['sites'] ) ? array_map( 'intval', explode( ',', $assoc_args['sites'] ) ) : array();
+			$sites = ! empty( $assoc_args['sites'] ) ? array_map( 'intval', explode( ',', $assoc_args['sites'] ) ) : array();
 			if ( empty( $sites ) ) {
 				$all_sites = get_sites( array( 'number' => 0 ) );
 				$sites     = wp_list_pluck( $all_sites, 'blog_id' );
@@ -779,6 +822,8 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function template_delete( $args, $assoc_args ) {
+		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
+
 		if ( ! is_multisite() ) {
 			\WP_CLI::error( 'This command requires a multisite installation.' );
 		}

@@ -19,9 +19,9 @@ class DB {
 	const DB_VERSION = '1.6';
 
 	/**
-	 * Log types that are recorded in the Detection Log but are not detections.
+	 * Log types that are recorded in the activity log but are not detections.
 	 *
-	 * The Log lists them; totals, charts, top lists, the dashboard widget and
+	 * Zero Spam → Activity lists them; totals, charts, top lists, the dashboard widget and
 	 * the network statistics leave them out (see detections_sql()).
 	 * `rescue`: an emailed rescue link was used (Core\Rescue_Link).
 	 *
@@ -112,8 +112,10 @@ class DB {
 		$main      = (int) get_main_network_id();
 
 		foreach ( array( $audit, $templates ) as $table ) {
+			// IGNORE: a template whose slug the main network already has stays at 0 instead of making the
+			// whole statement fail (and leaving every row at 0); only rows inserted outside the plugin can collide.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Upgrade of the plugin's own table, by an indexed column.
-			$wpdb->query( $wpdb->prepare( 'UPDATE %i SET `network_id` = %d WHERE `network_id` = 0', $table, $main ) );
+			$wpdb->query( $wpdb->prepare( 'UPDATE IGNORE %i SET `network_id` = %d WHERE `network_id` = 0', $table, $main ) );
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Upgrade of the plugin's own table.
