@@ -237,7 +237,7 @@ class Settings {
 			'desc'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
-					__( 'Get maximum protection fast with one-click setup. Install and activate any <a href="%1$s" target="_blank" rel="noreferrer noopener">supported plugins</a> first. This replaces all of your current settings.', 'zero-spam' ),
+					__( 'Get maximum protection fast with one-click setup. Install and activate any <a href="%1$s" target="_blank" rel="noreferrer noopener">supported plugins</a> first. Every setting with a recommended value gets it; others keep theirs. Services that send data to another site, such as Stop Forum Spam and Usage Data Sharing, are left as they are.', 'zero-spam' ),
 					array(
 						'a' => array(
 							'href'   => array(),
@@ -255,16 +255,16 @@ class Settings {
 		);
 
 		self::$settings['share_data'] = array(
-			'title'       => __( 'Usage Data Sharing', 'zero-spam' ),
-			'desc'        => __( 'Help us catch more spam by sharing anonymous spam data. We never share personal information.', 'zero-spam' ),
-			'module'      => 'settings',
-			'section'     => 'general',
-			'type'        => 'checkbox',
-			'options'     => array(
+			'title'   => __( 'Usage Data Sharing', 'zero-spam' ),
+			'desc'    => __( 'Off unless you turn it on. When on, each blocked attempt is sent to zerospam.org to help block the same spammers on other sites: the visitor\'s IP address, any email address and name they entered, the reason it was blocked, and your site\'s address, name, tagline, administrator email, language and versions.', 'zero-spam' ),
+			'module'  => 'settings',
+			'section' => 'general',
+			'type'    => 'checkbox',
+			'options' => array(
 				'enabled' => false,
 			),
-			'value'       => ! empty( $options['share_data'] ) ? $options['share_data'] : false,
-			'recommended' => 'enabled',
+			'value'   => ! empty( $options['share_data'] ) ? $options['share_data'] : false,
+			// No 'recommended' value: sending data to zerospam.org needs the site owner's own yes (WordPress.org guideline 7).
 		);
 
 		// On unless stored: a settings form stores an unticked checkbox as false, which turns it off.

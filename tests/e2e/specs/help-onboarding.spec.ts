@@ -249,11 +249,13 @@ test.describe( 'First-run setup', () => {
 		await expect( steps.nth( 2 ) ).toHaveAttribute( 'aria-current', 'step' );
 		await expect( page.locator( '#zs-ob-h' ) ).toBeFocused();
 
-		// Step 3: the switches are switches; turn on protection.
-		await expect( page.getByRole( 'switch', { name: 'Share anonymous spam data' } ) ).toHaveAttribute( 'aria-checked', 'true' );
-		await page.getByRole( 'switch', { name: 'Share anonymous spam data' } ).focus();
+		// Step 3: the switches are switches. Sharing with zerospam.org starts
+		// off (it needs the owner's own yes); turn it on, then turn on protection.
+		const share = page.getByRole( 'switch', { name: 'Share blocked attempts with Zero Spam' } );
+		await expect( share ).toHaveAttribute( 'aria-checked', 'false' );
+		await share.focus();
 		await page.keyboard.press( 'Space' );
-		await expect( page.getByRole( 'switch', { name: 'Share anonymous spam data' } ) ).toHaveAttribute( 'aria-checked', 'false' );
+		await expect( share ).toHaveAttribute( 'aria-checked', 'true' );
 		await submitStep( page, 'Turn on protection' );
 
 		await expect( page.locator( '#zs-ob-h' ) ).toContainText( 'Your wall is up.' );
@@ -264,7 +266,9 @@ test.describe( 'First-run setup', () => {
 
 		expect( await stored( zs, 'comments', 'verify_comments' ) ).toBe( 'enabled' );
 		expect( await stored( zs, 'login', 'verify_login' ) ).toBeFalsy();
-		expect( await stored( zs, 'settings', 'share_data' ) ).toBeFalsy();
+		expect( await stored( zs, 'settings', 'share_data' ) ).toBe( 'enabled' );
+		// Stop Forum Spam was shown on, with what it sends, and left on.
+		expect( await stored( zs, 'stop_forum_spam', 'stop_forum_spam' ) ).toBe( 'enabled' );
 		expect( await stored( zs, 'settings', 'log_blocked_ips' ) ).toBe( 'enabled' );
 		expect( await stored( zs, 'settings', 'block_method' ) ).toBe( 'php' );
 		expect( await pending( zs ) ).toBe( false );
