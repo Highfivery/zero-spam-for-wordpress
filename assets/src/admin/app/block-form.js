@@ -20,9 +20,14 @@ import { useEffect, useRef, useState } from '@wordpress/element';
  */
 import { Button } from './primitives';
 import { Drawer } from './primitives/drawer';
-import { NS, nowLocal, request } from '../data/api';
+import { NS, boot, nowLocal, request } from '../data/api';
 import { LOCATION_TYPES, checkBlockIp, checkLocation } from '../data/validate';
-import { blockBody, initialLocationValues, initialValues } from './block-data';
+import {
+	blockBody,
+	editBaseline,
+	initialLocationValues,
+	initialValues,
+} from './block-data';
 import { NetworkBlockNote, findNetworkBlock } from './network-block-note';
 
 /**
@@ -92,14 +97,14 @@ export function BlockForm( {
 	onSaved,
 	returnFocus,
 } ) {
-	const shift = nowLocal() - Date.now();
+	const zone = boot.timezone;
 	const isLocation = 'location' === kind;
 	const [ record, setRecord ] = useState( block );
 	const [ finding, setFinding ] = useState( lookup && ! block );
 	const [ values, setValues ] = useState( () =>
 		isLocation
-			? initialLocationValues( block, nowLocal(), shift )
-			: initialValues( block, ip, nowLocal(), shift )
+			? initialLocationValues( block, nowLocal(), zone )
+			: initialValues( block, ip, nowLocal(), zone )
 	);
 	const [ errors, setErrors ] = useState( {} );
 	const [ failure, setFailure ] = useState( '' );
@@ -135,7 +140,7 @@ export function BlockForm( {
 			.then( ( found ) => {
 				if ( alive && found ) {
 					setRecord( found );
-					setValues( initialValues( found, ip, nowLocal(), shift ) );
+					setValues( initialValues( found, ip, nowLocal(), zone ) );
 				}
 			} )
 			.catch( () => {} )
@@ -181,10 +186,13 @@ export function BlockForm( {
 				? `${ NS }/rules/blocks/${ record.id }`
 				: `${ NS }/rules/blocks`,
 			method: record ? 'PUT' : 'POST',
-			data: blockBody( {
-				...values,
-				[ isLocation ? 'key' : 'ip' ]: checked.value,
-			} ),
+			data: blockBody(
+				{
+					...values,
+					[ isLocation ? 'key' : 'ip' ]: checked.value,
+				},
+				editBaseline( record, zone )
+			),
 			parse: false,
 		} )
 			.then( ( response ) =>
