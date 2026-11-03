@@ -321,6 +321,50 @@ test.describe( '6.0 Settings', () => {
 		expect( text ).not.toMatch( /\d+\.\d+\.\d+\.\d+/ );
 	} );
 
+	test( 'without the Clipboard API (a plain http:// admin), the system report is still copied', async ( { page, context } ) => {
+		await context.grantPermissions( [ 'clipboard-read', 'clipboard-write' ] );
+		// navigator.clipboard does not exist on a non-secure origin; wp-env's localhost is secure, so remove it.
+		await page.addInitScript( () => {
+			Object.defineProperty( Navigator.prototype, 'clipboard', { get: () => undefined, configurable: true } );
+		} );
+		await openSettings( page, 'debug' );
+		expect( await page.evaluate( () => typeof navigator.clipboard ) ).toBe( 'undefined' );
+		const button = page.getByRole( 'button', { name: 'Copy system report' } );
+		await button.click();
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( 'Copied to clipboard' );
+		await expect( page.locator( '.zs-copyfb' ) ).toHaveCount( 0 );
+		await expect( button ).toBeFocused();
+
+		// Read it back from a page that still has the Clipboard API.
+		const reader = await context.newPage();
+		await reader.goto( page.url() );
+		const text = await reader.evaluate( () => navigator.clipboard.readText() );
+		await reader.close();
+		expect( text ).toMatch( /^Zero Spam \S+ · WordPress \S+ · PHP \S+ · Basic · / );
+	} );
+
+	test( 'when the browser cannot copy, the system report is shown selected for Ctrl+C', async ( { page } ) => {
+		await page.addInitScript( () => {
+			Object.defineProperty( Navigator.prototype, 'clipboard', { get: () => undefined, configurable: true } );
+			Document.prototype.execCommand = () => false;
+		} );
+		await openSettings( page, 'debug' );
+		const button = page.getByRole( 'button', { name: 'Copy system report' } );
+		await button.click();
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( 'Copy did not work. The text is selected below' );
+
+		const field = page.getByRole( 'textbox', { name: 'System report' } );
+		await expect( field ).toBeFocused();
+		await expect( field ).toHaveAttribute( 'readonly', '' );
+		await expect( field ).toHaveValue( /^Zero Spam \S+ · WordPress \S+ · PHP \S+ · Basic · / );
+		const selected = await field.evaluate( ( el: HTMLTextAreaElement ) => el.selectionEnd - el.selectionStart === el.value.length && el.value.length > 0 );
+		expect( selected ).toBe( true );
+
+		await page.locator( '.zs-copyfb' ).getByRole( 'button', { name: 'Hide' } ).click();
+		await expect( field ).toHaveCount( 0 );
+		await expect( button ).toBeFocused();
+	} );
+
 	// Replaces the 5.x settings spec's check that every settings subview had a screen.
 	test( 'every area and tab a settings section lands on has a screen in screens.ts', async ( { page } ) => {
 		await openSettings( page );

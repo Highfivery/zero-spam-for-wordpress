@@ -32,7 +32,7 @@ import { roadmap } from '../app/compare';
 import { boot } from '../data/api';
 import { ago, day, parseDate } from '../data/format';
 import { areaUrl, utm } from '../data/routes';
-import { copyText } from './copy';
+import { useCopy } from '../app/copy';
 import { DocsTile } from './docs';
 import { LINKS, cliCommands, commandParts, hooks, restRoutes } from './lists';
 import {
@@ -61,7 +61,7 @@ const readSection = () => {
  */
 function SupportTile() {
 	const { enhanced } = useApp();
-	const { toast } = useFeedback();
+	const { copy, fallback } = useCopy();
 	const report = [
 		sprintf(
 			/* translators: 1: Zero Spam version, 2: WordPress version, 3: PHP version */
@@ -99,11 +99,14 @@ function SupportTile() {
 				<Button
 					variant="secondary"
 					icon="copy"
-					onClick={ () => copyText( report, toast ) }
+					onClick={ () =>
+						copy( report, __( 'System report', 'zero-spam' ) )
+					}
 				>
 					{ __( 'Copy system report', 'zero-spam' ) }
 				</Button>
 			</div>
+			{ fallback }
 			<p className="zs-hint">
 				<ExtLink
 					href={ utm( LINKS.contact, 'help-support' ) }
@@ -531,40 +534,46 @@ function LevelTile() {
  * @param {string}                 props.label List name.
  */
 function RefList( { items, cli = false, label } ) {
-	const { toast } = useFeedback();
+	const { copy, fallback } = useCopy();
 	return (
-		<ul className="zs-hooks" aria-label={ label }>
-			{ items.map( ( [ code, text ] ) => (
-				<li key={ code }>
-					<code>
-						{ cli
-							? commandParts( code ).map( ( part, i ) =>
-									part.flag ? (
-										<span key={ i } className="zs-cli-flag">
-											{ part.text }
-										</span>
-									) : (
-										part.text
+		<>
+			<ul className="zs-hooks" aria-label={ label }>
+				{ items.map( ( [ code, text ] ) => (
+					<li key={ code }>
+						<code>
+							{ cli
+								? commandParts( code ).map( ( part, i ) =>
+										part.flag ? (
+											<span
+												key={ i }
+												className="zs-cli-flag"
+											>
+												{ part.text }
+											</span>
+										) : (
+											part.text
+										)
 									)
-								)
-							: code }
-					</code>
-					<span className="zs-hooks-d">{ text }</span>
-					<Button
-						variant="ghost"
-						size="sm"
-						iconOnly
-						icon="copy"
-						aria-label={ sprintf(
-							/* translators: %s: hook, route or command */
-							__( 'Copy %s', 'zero-spam' ),
-							code
-						) }
-						onClick={ () => copyText( code, toast ) }
-					/>
-				</li>
-			) ) }
-		</ul>
+								: code }
+						</code>
+						<span className="zs-hooks-d">{ text }</span>
+						<Button
+							variant="ghost"
+							size="sm"
+							iconOnly
+							icon="copy"
+							aria-label={ sprintf(
+								/* translators: %s: hook, route or command */
+								__( 'Copy %s', 'zero-spam' ),
+								code
+							) }
+							onClick={ () => copy( code ) }
+						/>
+					</li>
+				) ) }
+			</ul>
+			{ fallback }
+		</>
 	);
 }
 

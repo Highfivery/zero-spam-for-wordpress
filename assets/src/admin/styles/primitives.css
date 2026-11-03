@@ -1172,6 +1172,32 @@
 	display: none;
 }
 
+/* Copy fallback (app/copy.js): the text a copy could not put on the clipboard, selected. */
+.zs-copyfb {
+	display: flex;
+	flex-direction: column;
+	gap: var(--zs-space-2);
+	width: 100%;
+	margin-top: var(--zs-space-3);
+}
+
+.zs-copyfb .zs-hint {
+	margin: 0;
+}
+
+.zs-copyfb-l {
+	color: var(--zs-ink);
+	font-size: var(--zs-text-md);
+	font-weight: var(--zs-weight-semibold);
+}
+
+.zs-app .zs-input.zs-copyfb-t {
+	min-height: 6em;
+	font-size: var(--zs-text-sm);
+	line-height: 1.5;
+	resize: vertical;
+}
+
 .zs-search {
 	position: relative;
 }

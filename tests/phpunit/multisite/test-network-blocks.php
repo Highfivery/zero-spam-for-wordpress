@@ -157,6 +157,33 @@ class Test_Network_Blocks extends TestCase {
 	}
 
 	/**
+	 * A network block whose start is NULL (an imported or hand-written row)
+	 * is enforced on every request on every site.
+	 */
+	public function test_block_with_a_null_start_is_always_enforced(): void {
+		global $wpdb;
+
+		$wpdb->insert(
+			Network_Blocks::table(),
+			array(
+				'network_id'   => Network_Blocks::network_id(),
+				'blocked_type' => 'permanent',
+				'user_ip'      => '203.0.113.74',
+				'date_added'   => current_time( 'mysql' ),
+				'start_block'  => null,
+				'end_block'    => null,
+			)
+		);
+		Network_Blocks::flush();
+
+		foreach ( array( get_main_site_id(), self::$site_b ) as $blog_id ) {
+			for ( $i = 0; $i < 25; $i++ ) {
+				$this->assertSame( Access::FAILED_NETWORK_BLOCK, $this->blocked_on( $blog_id, '203.0.113.74' ), "Site {$blog_id}, request {$i}" );
+			}
+		}
+	}
+
+	/**
 	 * The front-end check reads the cached index, never the table, while it is complete.
 	 */
 	public function test_hot_path_is_one_cached_read(): void {
