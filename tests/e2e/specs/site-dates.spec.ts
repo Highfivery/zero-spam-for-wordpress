@@ -201,6 +201,47 @@ test.describe( '6.0 dates in the site’s time zone', () => {
 		}
 	} );
 
+	test( 'an emptied start starts the block now, as the hint says, and keeps the end', async ( { zs, newRoleContext } ) => {
+		await siteZone( zs, 'America/New_York' );
+		const page = await browserPage( newRoleContext, 'Asia/Tokyo' );
+		// A scheduled block, not in effect yet.
+		const seeded = await seed( zs, '2098-01-15', '2099-01-15' );
+
+		await openDrawer( page );
+		await expect( drawer( page ) ).toContainText( 'Empty starts the block now.' );
+		await page.locator( '#zs-bf-start' ).fill( '' );
+		const before = Date.now();
+		await saveDrawer( page );
+		const stored = await zs.plugin< Block >( 'GET', `rules/blocks/${ seeded.id }` );
+		const start = Date.parse( stored.start );
+		// Second precision on the server; a minute of slack for clock drift between the host and the container.
+		expect( Math.abs( start - before ), `The start is now, not ${ seeded.start }.` ).toBeLessThan( MINUTE );
+		expect( stored.end, 'The end was not edited.' ).toBe( seeded.end );
+	} );
+
+	test( 'an emptied end is refused in the drawer and changes nothing', async ( { zs, newRoleContext } ) => {
+		await siteZone( zs, 'America/New_York' );
+		const page = await browserPage( newRoleContext, 'Asia/Tokyo' );
+		const seeded = await seed( zs, '2026-01-15', '2099-01-15' );
+		let sent = 0;
+		page.on( 'request', ( r ) => {
+			if ( /rules(\/|%2F)blocks(\/|%2F)\d+/.test( r.url() ) && 'GET' !== r.method() ) {
+				sent++;
+			}
+		} );
+
+		await openDrawer( page );
+		await page.locator( '#zs-bf-end' ).fill( '' );
+		await drawer( page ).getByRole( 'button', { name: 'Save block' } ).click();
+		await expect( drawer( page ) ).toContainText( 'Choose when the block ends, or make it permanent.' );
+		await expect( page.locator( '#zs-bf-end' ) ).toBeFocused();
+		await expect( page.locator( '#zs-bf-end' ) ).toHaveAttribute( 'aria-invalid', 'true' );
+		expect( sent, 'Nothing was sent.' ).toBe( 0 );
+		const stored = await zs.plugin< Block >( 'GET', `rules/blocks/${ seeded.id }` );
+		expect( stored.start ).toBe( seeded.start );
+		expect( stored.end ).toBe( seeded.end );
+	} );
+
 	for ( const [ name, skew, start, end, shows, notShown ] of [
 		[ '10 minutes fast', 10 * MINUTE, '2026-07-15T00:05:00', '2099-01-15', 'Jul 15', 'Jul 14' ],
 		[ '10 minutes slow', -10 * MINUTE, '2026-01-15', '2099-07-15T23:55:00', 'Jul 15, 2099', 'Jul 16, 2099' ],
