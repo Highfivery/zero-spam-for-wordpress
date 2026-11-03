@@ -2,11 +2,11 @@
 
 The 6.0.0 captures are committed in `.wordpress-org/screenshots/` (`screenshot-1.png` to `screenshot-8.png`, not shipped). Capture them again when a screen changes visibly. They replace `screenshot-1.jpg` to `screenshot-5.jpg` in the SVN `assets/` directory (the old files are JPGs, so copying the PNGs in leaves both: remove them, below), and the captions replace `== Screenshots ==` in `readme.txt`, in the same order.
 
-**How:** `npm run env:start`, 1280 px wide, seeded TEST-NET addresses only (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 2001:db8::/32) and `@example.com` addresses, so no real person's data appears. Save as `screenshot-N.png`. No price or plan quota may be visible: crop it or use a Basic site if a screen shows one.
+**How:** `npm run env:start`, 1280 px wide, seeded TEST-NET addresses only (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24, 2001:db8::/32) and `@example.com` addresses, so no real person's data appears. Name the site "Example Site" and the network "Example Network" while capturing (`wp option update blogname`, `wp network meta update 1 site_name`), and put the names back afterwards. Save as `screenshot-N.png`, 1280 × 800. No price or plan quota may be visible: crop it or use a Basic site if a screen shows one.
 
 | # | Screen | Set-up | Caption |
 |---|---|---|---|
-| 1 | Overview | Seeded detections, Enhanced Protection on | See at a glance that your site is protected: what was blocked, what is trending and anything that needs you. |
+| 1 | Overview | Seeded detections, Basic (on Enhanced the sidebar shows the plan and the queries left) | See at a glance that your site is protected: what was blocked, what is trending and anything that needs you. |
 | 2 | Activity › Log, details drawer open | Seeded detections | Understand every block: who was stopped, from where and why, with the block and allow actions right there. |
 | 3 | Activity › Reports | 30 days of seeded detections | Spot the patterns in attacks on your site, by day, hour, type and country. |
 | 4 | Rules › Blocked IPs | Seeded blocks | Decide who gets in: block addresses and locations for good or for a set time, and keep your own addresses on a no-lockout list. |
