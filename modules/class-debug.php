@@ -57,7 +57,6 @@ class Debug {
 	public function sections( $sections ) {
 		$sections['debug'] = array(
 			'title' => __( 'Debug', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-bug.svg',
 		);
 
 		return $sections;

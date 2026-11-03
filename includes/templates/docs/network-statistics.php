@@ -64,7 +64,7 @@ defined( 'ABSPATH' ) || die();
 			<strong><?php esc_html_e( 'Statistics Page', 'zero-spam' ); ?></strong>
 		</button>
 		<div class="zerospam-docs-accordion-content">
-			<p><?php esc_html_e( 'Access the full Network Statistics page from Network Admin → Settings → Zero Spam Stats.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'Open the full statistics from Network Admin → Zero Spam → Network stats.', 'zero-spam' ); ?></p>
 
 			<h3><?php esc_html_e( 'Site Comparison Table', 'zero-spam' ); ?></h3>
 			<p><?php esc_html_e( 'Compare all sites in your network with the following metrics:', 'zero-spam' ); ?></p>
@@ -75,7 +75,6 @@ defined( 'ABSPATH' ) || die();
 				<li><?php esc_html_e( 'Top country of origin', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Trend (percentage change from previous period)', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Protection level (Enhanced or Free)', 'zero-spam' ); ?></li>
-				<li><?php esc_html_e( 'Recommendation level', 'zero-spam' ); ?></li>
 			</ul>
 
 			<h3><?php esc_html_e( 'Multi-Site Attackers', 'zero-spam' ); ?></h3>

@@ -2,7 +2,7 @@ import type { APIRequestContext } from '@playwright/test';
 
 import { expect, test } from '../support/fixtures';
 import { COMMENTS_POST_PATH, CommentForm } from '../support/pages/front';
-import { DashboardPage } from '../support/pages/dashboard-page';
+import { AREA, activityReady } from '../support/screens';
 
 /**
  * Reads what a bot needs from the post page: the post ID and the honeypot name.
@@ -58,11 +58,12 @@ test.describe( 'Comment protection', () => {
 		const rows = await zs.logRows( { ip: bot.ip, type: 'comment' } );
 		expect( rows.map( ( r ) => r.submission_data?.failed ) ).toContain( 'honeypot' );
 
-		await test.step( 'the detection appears in the Log screen', async () => {
-			const dashboard = new DashboardPage( page );
-			await dashboard.goto( 'log', `&s=${ bot.ip }` );
-			await expect( dashboard.rows.filter( { hasText: bot.ip } ).first() ).toContainText( 'Comment' );
-			await gallery.capture( page, 'detection in the log' );
+		await test.step( 'the detection appears on Activity', async () => {
+			await page.goto( AREA( 'activity', '', { ip: bot.ip } ) );
+			await activityReady( page );
+			await expect( page.locator( '.zs-log' ).getByText( bot.ip ).first() ).toBeVisible();
+			await expect( page.locator( '.zs-log' ) ).toContainText( 'Comment' );
+			await gallery.capture( page, 'detection on Activity' );
 		} );
 	} );
 

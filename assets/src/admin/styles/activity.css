@@ -36,7 +36,13 @@
 
 .zs-logbar .zs-field:not(.zs-search) {
 	flex: 0 1 200px;
-	min-width: 160px;
+	min-width: min(100%, 160px);
+}
+
+/* A long option ("All countries (1,234)") must not widen the filter past a 320px screen (WCAG 1.4.10). */
+.zs-logbar .zs-field .zs-select {
+	min-width: 0;
+	max-width: 100%;
 }
 
 .zs-netchip {

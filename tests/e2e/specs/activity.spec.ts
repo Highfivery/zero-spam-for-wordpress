@@ -1,5 +1,5 @@
 /**
- * The 6.0 Activity area (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json): the log
+ * The 6.0 Activity area: the log
  * loads without requests of its own, filters with live counts, sorting
  * (headers and the Location menu), paging past the end, the details
  * drawer (focus in, trap, Previous/Next, Escape returns focus to the row
@@ -167,6 +167,34 @@ test.describe( '6.0 Activity', () => {
 		// The first entry has no Previous.
 		await page.locator( '[data-zs-open]' ).first().click();
 		await expect( drawer.getByRole( 'button', { name: 'Previous detection (Alt+Up)' } ) ).toBeDisabled();
+	} );
+
+	test( 'the details drawer sits above the admin bar and the admin menu', async ( { page, zs } ) => {
+		await zs.seedLog( 3 );
+		await openLog( page );
+		await page.locator( '[data-zs-open]' ).first().click();
+		const drawer = page.locator( '.zs-drawer.zs-details' );
+		await expect( drawer ).toBeVisible();
+
+		const hit = await drawer.evaluate( ( el ) => {
+			const box = el.getBoundingClientRect();
+			const corners = [
+				[ box.left + 2, box.top + 2 ],
+				[ box.left + 2, box.bottom - 2 ],
+			];
+			return corners.map( ( [ x, y ] ) => {
+				const found = document.elementFromPoint( x, y );
+				return {
+					inside: !! found && el.contains( found ),
+					underChrome: !! found?.closest( '#wpadminbar, #adminmenuwrap, #adminmenu' ),
+				};
+			} );
+		} );
+
+		for ( const corner of hit ) {
+			expect( corner.inside, 'the drawer is the top element at its corners' ).toBe( true );
+			expect( corner.underChrome ).toBe( false );
+		}
 	} );
 
 	test( 'Block IP from the drawer, then Undo removes the block', async ( { page, zs } ) => {

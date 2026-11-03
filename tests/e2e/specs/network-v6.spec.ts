@@ -1,5 +1,5 @@
 /**
- * The 6.0 network page (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json): every
+ * The 6.0 network page: every
  * tab loads with no request of its own, the tabs work from the keyboard,
  * a network value saved and locked here is what a subsite gets (and an
  * empty one reads "(none)"), templates are made, changed and applied with
@@ -122,6 +122,43 @@ test.describe( '6.0 Network', { tag: '@multisite' }, () => {
 			await asSiteAdmin.reload();
 			await expect( asSiteAdmin.locator( '#zs-f-max_logs' ) ).toBeEnabled();
 			await expect( asSiteAdmin.locator( '#zs-row-max_logs' ) ).toContainText( /Using the network default: 30,000/ );
+		} );
+	} );
+
+	// The 5.x network spec's path (removed with the legacy page): a lock wins over a site's own value, and unlocking gives the site its value back.
+	test( "a lock overrides a subsite's own value; unlocking lets the site's own value win again", async ( { page, zs, asSiteAdmin, target, gallery } ) => {
+		const site = zs.forSite( target.subsitePath! );
+		await site.call( 'POST', 'reset', { preset: 'defaults', network: false } );
+		await site.set( { max_logs: 4321 } );
+		await zs.networkSetting( 'max_logs', 30000 );
+
+		await test.step( 'before the lock the site keeps its own value', async () => {
+			await asSiteAdmin.goto( subsiteURL( target, AREA( 'settings', 'data' ) ) );
+			await expect( asSiteAdmin.locator( '#zs-f-max_logs' ) ).toHaveValue( '4321' );
+			await expect( asSiteAdmin.locator( '#zs-f-max_logs' ) ).toBeEnabled();
+		} );
+
+		await test.step( 'locked: the site shows the network value, disabled', async () => {
+			await openNetwork( page, 'settings', { group: 'settings' } );
+			const lock = page.locator( '[data-zs-lock="max_logs"]' );
+			await lock.click();
+			await expect( lock ).toHaveAttribute( 'aria-pressed', 'true' );
+
+			await asSiteAdmin.reload();
+			await expect( asSiteAdmin.locator( '#zs-f-max_logs' ) ).toBeDisabled();
+			await expect( asSiteAdmin.locator( '#zs-f-max_logs' ) ).toHaveValue( '30000' );
+			await expect( asSiteAdmin.locator( '#zs-row-max_logs' ) ).toContainText( 'Locked by network' );
+			await gallery.capture( asSiteAdmin.locator( '#zs-row-max_logs' ), 'site value overridden by a lock' );
+		} );
+
+		await test.step( "unlocked: the site's own value wins again", async () => {
+			await page.locator( '[data-zs-lock="max_logs"]' ).click();
+			await expect( page.locator( '[data-zs-lock="max_logs"]' ) ).toHaveAttribute( 'aria-pressed', 'false' );
+
+			await asSiteAdmin.reload();
+			await expect( asSiteAdmin.locator( '#zs-f-max_logs' ) ).toBeEnabled();
+			await expect( asSiteAdmin.locator( '#zs-f-max_logs' ) ).toHaveValue( '4321' );
+			await expect( asSiteAdmin.locator( '#zs-row-max_logs' ) ).not.toContainText( 'Using the network default' );
 		} );
 	} );
 

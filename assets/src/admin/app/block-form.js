@@ -164,7 +164,7 @@ export function BlockForm( {
 		const local = {};
 		const checked = isLocation
 			? checkLocation( values.key_type, values.key )
-			: checkBlockIp( values.ip );
+			: checkBlockIp( values.ip, block?.ip || '' );
 		if ( checked.error ) {
 			local[ isLocation ? 'key' : 'ip' ] = checked.error;
 		}

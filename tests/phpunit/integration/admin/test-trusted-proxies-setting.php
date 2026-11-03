@@ -7,50 +7,36 @@
 
 declare( strict_types=1 );
 
-use ZeroSpam\Core\Admin\Settings as Settings_Page;
 use ZeroSpam\Core\Settings;
 use ZeroSpam\Core\Utilities;
 use ZeroSpam\Tests\TestCase;
 
 /**
- * The setting is registered next to the IP Whitelist, keeps only valid IP
- * addresses and CIDR ranges, and reports the lines it dropped.
+ * The setting is registered next to the IP Allowlist and, whoever writes the
+ * core settings option, keeps only valid IP addresses and CIDR ranges
+ * (Settings_Schema::sanitize_settings_option(), since 6.0.0; the REST route
+ * refuses invalid entries with their list before that).
  *
  * @covers \ZeroSpam\Core\Settings::get_settings
- * @covers \ZeroSpam\Core\Admin\Settings::settings_validation
+ * @covers \ZeroSpam\Core\Settings_Schema::sanitize_settings_option
  * @covers \ZeroSpam\Core\Utilities::parse_ip_ranges
  */
 class Test_Trusted_Proxies_Setting extends TestCase {
 
 	/**
-	 * Registers the settings as admin_init does.
+	 * Starts without core settings.
 	 */
 	public function set_up(): void {
 		parent::set_up();
 
-		$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
 		$this->as_role( 'administrator' );
 		delete_option( 'zero-spam-settings' );
-
-		( new Settings_Page() )->register_settings();
 	}
 
 	/**
-	 * Forgets the simulated form post and the settings errors.
+	 * The setting is a textarea, right after the IP Allowlist.
 	 */
-	public function tear_down(): void {
-		global $wp_settings_errors;
-
-		unset( $_POST['option_page'] );
-		$wp_settings_errors = array(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Reset between tests.
-
-		parent::tear_down();
-	}
-
-	/**
-	 * The setting is a textarea on the Settings tab, right after the IP Whitelist.
-	 */
-	public function test_setting_is_registered_after_the_ip_whitelist(): void {
+	public function test_setting_is_registered_after_the_ip_allowlist(): void {
 		$settings = Settings::get_settings();
 
 		$this->assertArrayHasKey( 'trusted_proxies', $settings );
@@ -76,39 +62,37 @@ class Test_Trusted_Proxies_Setting extends TestCase {
 	}
 
 	/**
-	 * Saving keeps valid lines, drops the others and lists them in a notice.
+	 * Any write of the option keeps the valid lines and drops the others.
 	 */
-	public function test_save_drops_invalid_lines_and_reports_them(): void {
-		$_POST['option_page'] = 'zero-spam-settings';
+	public function test_save_drops_invalid_lines(): void {
 		update_option(
 			'zero-spam-settings',
 			array( 'trusted_proxies' => " 192.0.2.10 \r\nnot-an-ip\n\n203.0.113.0/24\n2001:db8::/32\n10.0.0.0/33\n<b>x</b>" )
 		);
-		unset( $_POST['option_page'] );
 
 		$stored = get_option( 'zero-spam-settings' );
 		$this->assertIsArray( $stored );
 		$this->assertSame( "192.0.2.10\n203.0.113.0/24\n2001:db8::/32", $stored['trusted_proxies'] );
-
-		$errors = wp_list_filter( get_settings_errors( 'zero-spam' ), array( 'code' => 'zerospam_trusted_proxies_invalid' ) );
-		$this->assertCount( 1, $errors );
-		$error = array_shift( $errors );
-		$this->assertSame( 'warning', $error['type'] );
-		$this->assertStringContainsString( 'not-an-ip', $error['message'] );
-		$this->assertStringContainsString( '10.0.0.0/33', $error['message'] );
-		$this->assertStringContainsString( '&lt;b&gt;x&lt;/b&gt;', $error['message'], 'Dropped lines are escaped.' );
 	}
 
 	/**
-	 * A clean list saves without a notice.
+	 * Utilities::update_setting() (WP-CLI `wp zerospam set`) stores the cleaned list too.
 	 */
-	public function test_valid_list_saves_without_notice(): void {
+	public function test_update_setting_drops_invalid_lines(): void {
+		Utilities::update_setting( 'trusted_proxies', "192.0.2.10\nnope" );
+
+		$this->assertSame( '192.0.2.10', get_option( 'zero-spam-settings' )['trusted_proxies'] );
+	}
+
+	/**
+	 * A clean list is stored as given.
+	 */
+	public function test_valid_list_is_stored_as_given(): void {
 		update_option( 'zero-spam-settings', array( 'trusted_proxies' => "192.0.2.10\n2001:db8::1" ) );
 
 		$stored = get_option( 'zero-spam-settings' );
 		$this->assertIsArray( $stored );
 		$this->assertSame( "192.0.2.10\n2001:db8::1", $stored['trusted_proxies'] );
-		$this->assertSame( array(), wp_list_filter( get_settings_errors( 'zero-spam' ), array( 'code' => 'zerospam_trusted_proxies_invalid' ) ) );
 	}
 
 	/**
@@ -197,22 +181,14 @@ class Test_Trusted_Proxies_Setting extends TestCase {
 	}
 
 	/**
-	 * Saving drops too-broad ranges and says why.
+	 * Saving drops too-broad ranges.
 	 */
-	public function test_save_drops_too_broad_ranges_with_the_reason(): void {
+	public function test_save_drops_too_broad_ranges(): void {
 		update_option( 'zero-spam-settings', array( 'trusted_proxies' => "0.0.0.0/0\n::/0\n10.0.0.0/4\n10.0.0.0/8\nnope" ) );
 
 		$stored = get_option( 'zero-spam-settings' );
 		$this->assertIsArray( $stored );
 		$this->assertSame( '10.0.0.0/8', $stored['trusted_proxies'] );
-
-		$errors = wp_list_filter( get_settings_errors( 'zero-spam' ), array( 'code' => 'zerospam_trusted_proxies_invalid' ) );
-		$this->assertCount( 1, $errors );
-		$message = array_shift( $errors )['message'];
-		foreach ( array( '0.0.0.0/0', '::/0', '10.0.0.0/4' ) as $range ) {
-			$this->assertStringContainsString( $range . ' (too broad: would trust every visitor&#039;s X-Forwarded-For)', $message );
-		}
-		$this->assertStringContainsString( 'nope', $message );
 	}
 
 	/**
@@ -230,7 +206,5 @@ class Test_Trusted_Proxies_Setting extends TestCase {
 		$stored = get_option( 'zero-spam-settings' );
 		$this->assertIsArray( $stored );
 		$this->assertSame( '192.0.2.0/24', $stored['trusted_proxies'] );
-		$errors = wp_list_filter( get_settings_errors( 'zero-spam' ), array( 'code' => 'zerospam_trusted_proxies_invalid' ) );
-		$this->assertStringContainsString( '::ffff:0.0.0.0/64', array_shift( $errors )['message'] );
 	}
 }

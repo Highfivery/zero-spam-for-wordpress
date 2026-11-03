@@ -62,8 +62,8 @@ defined( 'ABSPATH' ) || die();
 						<?php
 						printf(
 							/* translators: %s: settings page URL */
-							wp_kses_post( __( 'Go to <a href="%s">Settings → API Monitoring</a> and enable "API Usage Monitoring"', 'zero-spam' ) ),
-							esc_url( admin_url( 'admin.php?page=wordpress-zero-spam-settings&subview=api-monitoring' ) )
+							wp_kses_post( __( 'Go to <a href="%s">Zero Spam → Settings → API</a> and enable "API Usage Monitoring"', 'zero-spam' ) ),
+							esc_url( \ZeroSpam\Core\Utilities::admin_link( 'api-monitoring' ) )
 						);
 						?>
 					</p>

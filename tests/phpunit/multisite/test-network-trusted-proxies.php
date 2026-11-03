@@ -9,9 +9,9 @@ declare( strict_types=1 );
 
 use ZeroSpam\Core\Admin\Shared_IP_Warning;
 use ZeroSpam\Core\Utilities;
-use ZeroSpam\Includes\Admin\Network_Settings_Page;
 use ZeroSpam\Core\Settings;
 use ZeroSpam\Core\User;
+use ZeroSpam\Includes\Legacy_Endpoints;
 use ZeroSpam\Includes\Migrations;
 use ZeroSpam\Includes\Network_Settings;
 use ZeroSpam\Includes\Network_Settings_Manager;
@@ -25,7 +25,8 @@ use ZeroSpam\Tests\TestCase;
  * @covers \ZeroSpam\Includes\Network_Settings_Manager::set_setting
  * @covers \ZeroSpam\Core\User::get_ip
  * @covers \ZeroSpam\Core\Admin\Shared_IP_Warning::render
- * @covers \ZeroSpam\Includes\Admin\Network_Settings_Page::ajax_set_setting
+ * @covers \ZeroSpam\Includes\Rest\Settings_Controller::update_settings
+ * @covers \ZeroSpam\Includes\Legacy_Endpoints::network_ajax
  */
 class Test_Network_Trusted_Proxies extends TestCase {
 
@@ -40,13 +41,34 @@ class Test_Network_Trusted_Proxies extends TestCase {
 	}
 
 	/**
-	 * Saves one setting through the network settings screen's AJAX handler.
+	 * Saves one setting as the network page does (PATCH settings?scope=network).
+	 *
+	 * @param string $key   Setting key.
+	 * @param string $value Submitted value.
+	 * @return WP_REST_Response
+	 */
+	private function network_save( string $key, string $value ): WP_REST_Response {
+		$this->as_role( 'administrator' );
+		grant_super_admin( get_current_user_id() );
+
+		$request = new WP_REST_Request( 'PATCH', '/zero-spam/v1/settings' );
+		$request->set_query_params( array( 'scope' => 'network' ) );
+		$request->set_header( 'content-type', 'application/json' );
+		$request->set_body( (string) wp_json_encode( array( $key => $value ) ) );
+
+		return rest_ensure_response( rest_do_request( $request ) );
+	}
+
+	/**
+	 * Saves one setting through the 5.x network screen's AJAX action, kept as
+	 * a deprecated shim (Legacy_Endpoints).
 	 *
 	 * @param string $key   Setting key.
 	 * @param string $value Submitted value.
 	 * @return array<string, mixed> Decoded JSON response.
 	 */
 	private function ajax_set_setting( string $key, string $value ): array {
+		$this->setExpectedDeprecated( 'zerospam_network_set_setting' );
 		$this->as_role( 'administrator' );
 		grant_super_admin( get_current_user_id() );
 
@@ -70,11 +92,13 @@ class Test_Network_Trusted_Proxies extends TestCase {
 
 		ob_start();
 		try {
-			( new Network_Settings_Page() )->ajax_set_setting();
+			$GLOBALS['wp_current_filter'][] = 'wp_ajax_zerospam_network_set_setting';
+			( new Legacy_Endpoints() )->network_ajax();
 		} catch ( WPDieException $e ) {
 			unset( $e );
 		}
 		$response = json_decode( (string) ob_get_clean(), true );
+		array_pop( $GLOBALS['wp_current_filter'] );
 
 		$this->assertIsArray( $response, 'The handler answered with JSON.' );
 
@@ -94,33 +118,44 @@ class Test_Network_Trusted_Proxies extends TestCase {
 	}
 
 	/**
-	 * Saving Trusted Proxy IPs on the network screen keeps one entry per line.
+	 * Saving Trusted Proxy IPs on the network page keeps one entry per line.
 	 */
 	public function test_network_save_keeps_trusted_proxies_one_per_line(): void {
-		$response = $this->ajax_set_setting( 'trusted_proxies', "192.0.2.0/24\n10.0.0.0/8\n::ffff:198.51.100.0/120" );
+		$response = $this->network_save( 'trusted_proxies', "192.0.2.0/24\n10.0.0.0/8\n::ffff:198.51.100.0/120" );
 
-		$this->assertTrue( $response['success'] );
+		$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
 		$this->assertSame( "192.0.2.0/24\n10.0.0.0/8\n198.51.100.0/24", $this->network_value( 'trusted_proxies' ) );
 	}
 
 	/**
-	 * Invalid or too-broad entries are refused on the network screen, with
-	 * the entries listed (escaped) in the error, and nothing is stored.
+	 * Invalid or too-broad entries are refused on the network page, with
+	 * the entries listed in the error, and nothing is stored.
 	 */
 	public function test_network_save_rejects_invalid_and_too_broad_trusted_proxies(): void {
-		$response = $this->ajax_set_setting( 'trusted_proxies', "192.0.2.0/24\n0.0.0.0/0\nnot-an-ip" );
+		$response = $this->network_save( 'trusted_proxies', "192.0.2.0/24\n0.0.0.0/0\nnot-an-ip" );
+
+		$this->assertSame( 400, $response->get_status() );
+		$message = (string) ( $response->get_data()['data']['params']['trusted_proxies'] ?? '' );
+		$this->assertStringContainsString( 'not-an-ip', $message );
+		$this->assertStringContainsString( '0.0.0.0/0 (too broad', $message );
+		$this->assertNull( $this->network_value( 'trusted_proxies' ) );
+	}
+
+	/**
+	 * The 5.x AJAX action (a deprecated shim) checks the value the same way:
+	 * a clean list is stored, an invalid one refused.
+	 */
+	public function test_legacy_ajax_action_still_validates(): void {
+		$response = $this->ajax_set_setting( 'trusted_proxies', "192.0.2.0/24\nnot-an-ip" );
 
 		$this->assertFalse( $response['success'] );
-		$this->assertStringContainsString( 'not-an-ip', $response['data']['message'] );
-		$this->assertStringContainsString( '0.0.0.0/0 (too broad', $response['data']['message'] );
-		$this->assertSame( array( 'not-an-ip', '0.0.0.0/0 (too broad: would trust every visitor&#039;s X-Forwarded-For)' ), $response['data']['invalid'], 'Escaped like the message.' );
+		$this->assertStringContainsString( 'not-an-ip', (string) wp_json_encode( $response['data'] ) );
 		$this->assertNull( $this->network_value( 'trusted_proxies' ) );
 
-		// Tags are stripped by the sanitiser; quotes and ampersands survive it and are escaped.
-		$response = $this->ajax_set_setting( 'trusted_proxies', 'x"y\'z&' );
-		$this->assertFalse( $response['success'] );
-		$this->assertStringContainsString( 'x&quot;y&#039;z&amp;', $response['data']['message'], 'Escaped for the inline message.' );
-		$this->assertSame( array( 'x&quot;y&#039;z&amp;' ), $response['data']['invalid'] );
+		$response = $this->ajax_set_setting( 'trusted_proxies', "192.0.2.0/24\n::ffff:198.51.100.0/120" );
+
+		$this->assertTrue( $response['success'] );
+		$this->assertSame( "192.0.2.0/24\n198.51.100.0/24", $this->network_value( 'trusted_proxies' ) );
 	}
 
 	/**
@@ -128,9 +163,9 @@ class Test_Network_Trusted_Proxies extends TestCase {
 	 * so every address on it is whitelisted (it used to be collapsed to one line).
 	 */
 	public function test_network_save_keeps_ip_whitelist_lines(): void {
-		$response = $this->ajax_set_setting( 'ip_whitelist', "192.0.2.1\n198.51.100.2" );
+		$response = $this->network_save( 'ip_whitelist', "192.0.2.1\n198.51.100.2" );
 
-		$this->assertTrue( $response['success'] );
+		$this->assertSame( 200, $response->get_status() );
 		$this->assertSame( "192.0.2.1\n198.51.100.2", $this->network_value( 'ip_whitelist' ) );
 
 		self::reset_static_caches();
@@ -168,7 +203,8 @@ class Test_Network_Trusted_Proxies extends TestCase {
 	 * for the network administrator instead of linking to a disabled field.
 	 */
 	public function test_warning_points_to_the_network_admin_when_locked(): void {
-		$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
+		$this->admin_screen( 'zero-spam_page_zero-spam-settings' );
+		$GLOBALS['plugin_page'] = 'zero-spam-settings'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the Settings page.
 		$this->as_role( 'administrator' );
 		$this->set_network_setting( 'trusted_proxies', '192.0.2.0/24', true );
 		delete_transient( Shared_IP_Warning::TRANSIENT );
@@ -178,10 +214,11 @@ class Test_Network_Trusted_Proxies extends TestCase {
 
 		ob_start();
 		( new Shared_IP_Warning() )->render();
-		$html = (string) ob_get_clean();
+		$html                   = (string) ob_get_clean();
+		$GLOBALS['plugin_page'] = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the screen.
 
 		$this->assertStringContainsString( 'ask your network administrator', $html );
-		$this->assertStringNotContainsString( 'subview=settings#trusted_proxies', $html, 'No link to the locked field.' );
+		$this->assertStringNotContainsString( 'section=proxies', $html, 'No link to the locked field.' );
 		$this->assertStringContainsString( 'action=' . Shared_IP_Warning::ACTION, $html, 'It can still be dismissed.' );
 	}
 }

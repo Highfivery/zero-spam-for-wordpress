@@ -290,6 +290,23 @@ class Test_DB_Schema extends TestCase {
 		$this->assertSame( '7', $wpdb->get_var( "SELECT network_id FROM {$templates} WHERE network_id = 7" ) );
 		$this->assertSame( '3', $wpdb->get_var( "SELECT COUNT(*) FROM {$audit}" ) );
 
+		// Rows inserted later outside the plugin, one with a slug the main network already has:
+		// the others still move (UPDATE IGNORE), the colliding one stays where it was.
+		$this->assertSame( 1, $wpdb->insert( $templates, array_merge( $row, array( 'network_id' => 0 ) ) ) );
+		$this->assertSame( 1, $wpdb->insert( $templates, array_merge( $row, array( 'network_id' => 0, 'template_slug' => 'other' ) ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short list.
+		$this->assertSame( 1, $wpdb->insert( $audit, array( 'network_id' => 0, 'action_type' => 'set', 'new_value' => 'late', 'user_id' => 1, 'user_login' => 'admin', 'ip_address' => '192.0.2.1', 'date_created' => '2026-01-01 00:00:00' ) ) ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- One row.
+		add_filter( 'get_main_network_id', $main );
+		$suppress = $wpdb->suppress_errors( true );
+		try {
+			DB::upgrade_network_tables( $audit, $templates );
+		} finally {
+			$wpdb->suppress_errors( $suppress );
+			remove_filter( 'get_main_network_id', $main );
+		}
+		$this->assertSame( (string) $expected, $wpdb->get_var( "SELECT network_id FROM {$templates} WHERE template_slug = 'other'" ), 'One collision does not stop the move.' );
+		$this->assertSame( '0', $wpdb->get_var( "SELECT network_id FROM {$templates} WHERE template_slug = 'clinic' AND template_id > 2 AND network_id <> 7" ) );
+		$this->assertSame( (string) $expected, $wpdb->get_var( "SELECT network_id FROM {$audit} WHERE new_value = 'late'" ) );
+
 		$wpdb->query( "DROP TABLE {$audit}" );
 		$wpdb->query( "DROP TABLE {$templates}" );
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared

@@ -85,17 +85,17 @@ class Autoloader {
 	 *
 	 * For a given class, check if it exist and load it.
 	 *
-	 * @param string $class Class name.
+	 * @param string $class_name Class name.
 	 */
-	private static function autoload( $class ) {
-		if ( 0 !== strpos( $class, self::$default_namespace . '\\' ) ) {
+	private static function autoload( $class_name ) {
+		if ( 0 !== strpos( $class_name, self::$default_namespace . '\\' ) ) {
 			return;
 		}
 
 		$relative_class_name = preg_replace(
 			'/^' . self::$default_namespace . '\\\/',
 			'',
-			$class
+			$class_name
 		);
 
 		$final_class_name = self::$default_namespace . '\\' . $relative_class_name;

@@ -490,7 +490,6 @@ class Login {
 	public function sections( $sections ) {
 		$sections['login'] = array(
 			'title'    => __( 'User Login', 'zero-spam' ),
-			'icon'     => 'assets/img/icon-wordpress.svg',
 			'supports' => array( 'honeypot', 'davidwalsh' ),
 		);
 

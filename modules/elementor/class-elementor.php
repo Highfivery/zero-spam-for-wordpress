@@ -63,7 +63,6 @@ class Elementor {
 	public function sections( $sections ) {
 		$sections['elementor'] = array(
 			'title'    => __( 'Elementor', 'zero-spam' ),
-			'icon'     => 'modules/elementor/icon-elementor.svg',
 			'supports' => array( 'davidwalsh', 'email', 'words' ),
 		);
 

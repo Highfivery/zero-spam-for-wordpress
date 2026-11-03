@@ -224,10 +224,13 @@ const findModule = ( modules, key ) =>
  */
 function attentionAction( item, modules ) {
 	if ( item.id.startsWith( 'entry_point_off:' ) ) {
-		// The classic screen until the 6.0 Protection area lands (PR 7).
+		// The module's card on Protection (sign-in, registration and comments are on Detection).
 		return {
 			label: __( 'Turn it on', 'zero-spam' ),
-			href: `${ boot.urls.legacy }&subview=${ encodeURIComponent( item.module ) }`,
+			href: areaUrl( 'protection', {
+				tab: findModule( modules, item.module )?.group || 'detection',
+				card: item.module,
+			} ),
 		};
 	}
 	if ( item.id.startsWith( 'integration_unprotected:' ) ) {

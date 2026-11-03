@@ -341,7 +341,6 @@ class DavidWalsh {
 	public function sections( $sections ) {
 		$sections['davidwalsh'] = array(
 			'title' => __( 'David Walsh', 'zero-spam' ),
-			'icon'  => 'modules/davidwalsh/icon-david-walsh.png',
 		);
 
 		return $sections;

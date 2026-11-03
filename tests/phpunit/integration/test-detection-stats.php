@@ -8,7 +8,6 @@
 declare( strict_types=1 );
 
 use ZeroSpam\Core\Admin\Dashboard_Widget;
-use ZeroSpam\Core\Admin\Tables\LogTable;
 use ZeroSpam\Includes\DB;
 use ZeroSpam\Includes\Network_Stats_Tracker;
 use ZeroSpam\Includes\Rest\Stats_Controller;
@@ -103,20 +102,18 @@ class Test_Detection_Stats extends TestCase {
 	}
 
 	/**
-	 * The Detection Log still lists rescue entries, with their own label.
+	 * The activity log (GET activity) still lists rescue entries, with their own label.
 	 */
 	public function test_log_still_lists_rescue_entries(): void {
-		$this->admin_screen( 'dashboard_page_wordpress-zero-spam-dashboard' );
 		$this->as_role( 'administrator' );
 
-		$table = new LogTable();
-		$table->prepare_items();
+		$items = $this->rest( 'GET', '/zero-spam/v1/activity', array(), array( 'per_page' => 100 ) )->get_data();
+		$types = array_column( $items, 'type' );
 
-		$types = array_column( $table->items, 'log_type' );
 		$this->assertSame( 4, count( array_keys( $types, 'rescue', true ) ) );
 		$this->assertSame( 3, count( array_keys( $types, 'comment', true ) ) );
 
-		$rescue = $table->items[ array_search( 'rescue', $types, true ) ];
-		$this->assertStringContainsString( 'Rescue link used', $table->column_default( $rescue, 'log_type' ) );
+		$rescue = $items[ array_search( 'rescue', $types, true ) ];
+		$this->assertStringContainsString( 'Rescue link used', (string) $rescue['type_label'] );
 	}
 }

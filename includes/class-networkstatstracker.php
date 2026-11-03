@@ -37,7 +37,8 @@ class Network_Stats_Tracker {
 			);
 		}
 
-		$cache_key = 'zerospam_network_stats_' . $period;
+		// Per network: every network's main site may share an object cache, and the daily table holds every network's rows.
+		$cache_key = 'zerospam_network_stats_' . get_current_network_id() . '_' . $period;
 		if ( $start_date && $end_date ) {
 			$cache_key .= '_' . $start_date . '_' . $end_date;
 		}
@@ -47,8 +48,10 @@ class Network_Stats_Tracker {
 		if ( false === $stats ) {
 			global $wpdb;
 
-			// Try to use aggregated data for better performance.
-			$use_aggregated = ( ! $start_date && ! $end_date && in_array( $period, array( 'week', 'month' ), true ) );
+			// Try to use aggregated data for better performance: the daily totals of this network's sites only
+			// (the table is shared by every network), at most Network_Report::MAX_SITES of them.
+			$site_ids       = Network_Report::site_ids();
+			$use_aggregated = ( $site_ids && ! $start_date && ! $end_date && in_array( $period, array( 'week', 'month' ), true ) );
 
 			if ( $use_aggregated ) {
 				// Calculate date range for aggregation query.
@@ -56,8 +59,10 @@ class Network_Stats_Tracker {
 				$date_from = gmdate( 'Y-m-d', strtotime( "-{$days} days" ) );
 				$date_to   = gmdate( 'Y-m-d' );
 
+				$placeholders = implode( ', ', array_fill( 0, count( $site_ids ), '%d' ) );
+
 				// Try daily aggregation table first.
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+				// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Cached below; $placeholders is a list of %d, one per site ID passed.
 				$aggregated = $wpdb->get_results(
 					$wpdb->prepare(
 						"SELECT
@@ -68,13 +73,13 @@ class Network_Stats_Tracker {
 							top_countries,
 							top_ips
 						FROM {$wpdb->base_prefix}wpzerospam_stats_daily
-						WHERE stat_date >= %s AND stat_date <= %s
+						WHERE stat_date >= %s AND stat_date <= %s AND site_id IN ({$placeholders})
 						GROUP BY site_id",
-						$date_from,
-						$date_to
+						array_merge( array( $date_from, $date_to ), $site_ids )
 					),
 					ARRAY_A
 				);
+				// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 				if ( ! empty( $aggregated ) ) {
 					// Use aggregated data.
@@ -310,7 +315,7 @@ class Network_Stats_Tracker {
 			return array();
 		}
 
-		$cache_key = 'zerospam_site_breakdown_' . $period . '_' . $limit . '_' . $order_by;
+		$cache_key = 'zerospam_site_breakdown_' . get_current_network_id() . '_' . $period . '_' . $limit . '_' . $order_by;
 		if ( $start_date && $end_date ) {
 			$cache_key .= '_' . $start_date . '_' . $end_date;
 		}
@@ -645,7 +650,7 @@ class Network_Stats_Tracker {
 			return array();
 		}
 
-		$cache_key = "zerospam_multi_site_attackers_{$min_sites}_{$period_days}";
+		$cache_key = 'zerospam_multi_site_attackers_' . get_current_network_id() . "_{$min_sites}_{$period_days}";
 		$attackers = get_transient( $cache_key );
 
 		if ( false === $attackers ) {

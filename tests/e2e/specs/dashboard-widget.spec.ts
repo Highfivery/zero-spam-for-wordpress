@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 
 import { expect, test } from '../support/fixtures';
-import { DashboardWidget } from '../support/pages/network-pages';
+import { DashboardWidget } from '../support/pages/dashboard-widget';
 
 /**
  * Clicks Refresh and waits for the REST answers (stats/timeseries and

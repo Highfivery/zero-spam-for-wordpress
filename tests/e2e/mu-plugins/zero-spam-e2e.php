@@ -484,23 +484,6 @@ add_filter(
 	PHP_INT_MAX
 );
 
-/*
- * The Enhanced Protection promo notice is plugin UI, but showing it on every
- * admin screen would put it into every screenshot. Tests that want it set the
- * zs_e2e_show_promo option (reset route, "promo": true).
- */
-add_filter(
-	'zerospam_display_promo_notice',
-	static function ( $display ) {
-		if ( ! is_token_request() ) {
-			return $display;
-		}
-
-		return $display && (bool) ( is_multisite() ? get_site_option( 'zs_e2e_show_promo' ) : get_option( 'zs_e2e_show_promo' ) );
-	},
-	PHP_INT_MAX
-);
-
 add_filter(
 	'comment_flood_filter',
 	static function ( $flood ) {
@@ -997,10 +980,13 @@ function reset_site( string $preset ): ?WP_Error {
 		}
 	}
 
-	// Past the plugin's three-day wait, so whether the promo notice shows
-	// depends only on the zerospam_display_promo_notice filter below.
-	update_option( 'zerospam_activation_time', time() - ( 4 * DAY_IN_SECONDS ) );
+	// The 5.x settings review notice was removed in 6.0.0; a 5.x value is cleared all the same.
 	delete_option( 'zerospam_show_settings_review_notice' );
+	// The promo switch of earlier versions of this mu-plugin (the promo notice was removed in 6.0.0).
+	delete_option( 'zs_e2e_show_promo' );
+	if ( is_multisite() ) {
+		delete_site_option( 'zs_e2e_show_promo' );
+	}
 
 	wp_cache_flush();
 
@@ -1434,12 +1420,6 @@ add_action(
 						return new WP_Error( 'zs_e2e_forbidden', 'Network reset needs manage_network_options.', array( 'status' => 403 ) );
 					}
 
-					$promo = rest_sanitize_boolean( $request->get_param( 'promo' ) ?? false );
-					if ( is_multisite() ) {
-						update_site_option( 'zs_e2e_show_promo', $promo ? 1 : 0 );
-					} else {
-						update_option( 'zs_e2e_show_promo', $promo ? 1 : 0, false );
-					}
 					if ( rest_sanitize_boolean( $request->get_param( 'clearErrorLog' ) ?? false ) && class_exists( '\ZeroSpam\Core\Utilities' ) ) {
 						\ZeroSpam\Core\Utilities::delete_error_log();
 					}

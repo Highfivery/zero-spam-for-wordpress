@@ -1,36 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Parameter \#3 \$deps of function wp_enqueue_style expects array\<string\>, false given\.$#'
-			identifier: argument.type
-			count: 1
-			path: core/admin/class-admin.php
-
-		-
-			message: '#^Parameter \#3 \$value of static method ZeroSpam\\Includes\\DB\:\:delete\(\) expects string, int\<1, max\> given\.$#'
-			identifier: argument.type
-			count: 2
-			path: core/admin/class-settings.php
-
-		-
-			message: '#^Offset ''where'' on array\{order\: mixed, orderby\: mixed, where\: array\{key_type\: array\{value\: array\{''country_code'', ''region_code'', ''zip'', ''city''\}, relation\: ''IN''\}, user_ip\?\: array\{value\: mixed\}\}\} in empty\(\) always exists and is not falsy\.$#'
-			identifier: empty.offset
-			count: 1
-			path: core/admin/tables/class-blockedlocations.php
-
-		-
-			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: int\<0, max\>, per_page\: 50, total_pages\: float, orderby\: non\-falsy\-string\|false, order\: string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: core/admin/tables/class-blockedlocations.php
-
-		-
-			message: '#^Parameter \#1 \$args of method WP_List_Table\:\:set_pagination_args\(\) expects array\{total_items\?\: int, total_pages\?\: int, per_page\?\: int\}, array\{total_items\: int\<0, max\>, per_page\: 50, total_pages\: float, orderby\: non\-falsy\-string\|false, order\: string\} given\.$#'
-			identifier: argument.type
-			count: 1
-			path: core/admin/tables/class-blockedtable.php
-
-		-
 			message: '#^Right side of \|\| is always false\.$#'
 			identifier: booleanOr.rightAlwaysFalse
 			count: 1
@@ -73,42 +43,6 @@ parameters:
 			path: core/class-utilities.php
 
 		-
-			message: '#^Parameter \#1 \$text of function esc_html expects string, \(float\|int\) given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/admin/class-networksettingspage.php
-
-		-
-			message: '#^Parameter \#1 \$text of function esc_html expects string, \(float\|int\<1, max\>\) given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/admin/class-networksettingspage.php
-
-		-
-			message: '#^Parameter \#1 \$text of function esc_html expects string, int\<0, max\> given\.$#'
-			identifier: argument.type
-			count: 4
-			path: includes/admin/class-networksettingspage.php
-
-		-
-			message: '#^Parameter \#2 \$site_id of method ZeroSpam\\Includes\\Network_Settings\:\:get_effective_value\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: includes/admin/class-networksettingspage.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 8
-			path: includes/admin/class-networksettingspage.php
-
-		-
-			message: '#^Parameter \#1 \$text of function esc_html expects string, float\|int\<0, max\> given\.$#'
-			identifier: argument.type
-			count: 2
-			path: includes/admin/class-networkstatspage.php
-
-		-
 			message: '#^Parameter \#1 \$months of static method ZeroSpam\\Includes\\Stats_Aggregator\:\:backfill_monthly\(\) expects int, float given\.$#'
 			identifier: argument.type
 			count: 1
@@ -137,21 +71,6 @@ parameters:
 			identifier: argument.type
 			count: 2
 			path: includes/class-statsaggregator.php
-
-		-
-			message: '#^Variable \$entries might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: includes/templates/admin-hours-list.php
-
-		-
-			message: '#^Variable \$item might not be defined\.$#'
-			identifier: variable.undefined
-			count: 8
-			path: includes/templates/admin-modal-details.php
-
-
-
 
 		-
 			message: '#^Action callback returns true but should not return anything\.$#'
@@ -218,12 +137,6 @@ parameters:
 			identifier: class.notFound
 			count: 1
 			path: modules/gravityforms/class-gravityforms.php
-
-		-
-			message: '#^Default value of the parameter \#2 \$ip_address_details \(array\) of method ZeroSpam\\Modules\\ipbase\\ipbase\:\:ip_address_details\(\) is incompatible with type string\.$#'
-			identifier: parameter.defaultValue
-			count: 1
-			path: modules/ipbase/class-ipbase.php
 
 		-
 			message: '#^Undefined variable\: \$cache_key$#'

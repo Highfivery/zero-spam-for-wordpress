@@ -615,17 +615,6 @@ class Network_Controller extends Base_Controller {
 	}
 
 	/**
-	 * Whether a canonical address is one no visitor has: loopback (127.0.0.0/8,
-	 * ::1) or unspecified (0.0.0.0, ::). Private ranges can be blocked: behind
-	 * a proxy or on an intranet, visitors really have those addresses.
-	 *
-	 * @param string $canonical Address in canonical form.
-	 */
-	private static function is_never_blocked( string $canonical ): bool {
-		return in_array( $canonical, array( '::1', '::', '0.0.0.0' ), true ) || str_starts_with( $canonical, '127.' );
-	}
-
-	/**
 	 * Checks a block sent by a client.
 	 *
 	 * @param array<string, mixed> $body Request body: ip, type, end, reason.
@@ -645,7 +634,7 @@ class Network_Controller extends Base_Controller {
 
 			if ( '' === $canonical ) {
 				$errors['ip'] = __( 'Must be an IPv4 or IPv6 address.', 'zero-spam' );
-			} elseif ( self::is_never_blocked( $canonical ) ) {
+			} elseif ( Rules_Controller::is_never_blocked( $canonical ) ) {
 				$errors['ip'] = __( 'That is this server’s own address or no address at all, so visitors never use it. Enter the visitor’s address.', 'zero-spam' );
 			} else {
 				$record['user_ip'] = $canonical;

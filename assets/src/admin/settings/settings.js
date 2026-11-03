@@ -49,13 +49,18 @@ import {
 } from './parts';
 
 /**
- * The ?section= (or ?card=) argument, if any.
+ * The ?section= (or ?card=) argument, or a 5.x #setting fragment, if any.
  *
  * @return {string} Card or setting key.
  */
 const sectionArg = () => {
 	const args = new URLSearchParams( window.location.search );
-	const value = args.get( 'section' ) || args.get( 'card' ) || '';
+	// A 5.x link's fragment (#trusted_proxies) survives the redirect from the
+	// classic settings screen (Legacy_Redirects): it names a setting too.
+	const value =
+		args.get( 'section' ) ||
+		args.get( 'card' ) ||
+		window.location.hash.replace( /^#/, '' );
 	return /^[a-z0-9_-]{1,64}$/i.test( value ) ? value : '';
 };
 

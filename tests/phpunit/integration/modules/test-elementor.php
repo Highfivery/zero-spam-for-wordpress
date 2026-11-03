@@ -218,7 +218,7 @@ class Test_Elementor extends TestCase {
 
 		$sections = apply_filters( 'zerospam_setting_sections', array() );
 		$this->assertArrayHasKey( 'elementor', $sections );
-		$this->assertSame( 'modules/elementor/icon-elementor.svg', $sections['elementor']['icon'] );
+		$this->assertArrayNotHasKey( 'icon', $sections['elementor'], 'The 5.x section icons were removed in 6.0.0.' );
 
 		$registry = Settings::get_settings();
 		foreach ( array( 'elementor_enabled', 'elementor_flagged_msg', 'elementor_log_flagged_attempts' ) as $key ) {

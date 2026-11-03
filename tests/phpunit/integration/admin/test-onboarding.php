@@ -48,7 +48,6 @@ class Test_Onboarding extends TestCase {
 	 */
 	public function tear_down(): void {
 		unset( $_REQUEST['action'], $_REQUEST['action2'], $_GET['page'] );
-		remove_all_filters( 'zerospam_admin_v6' );
 		remove_all_filters( 'zerospam_news_feed_enabled' );
 
 		parent::tear_down();
@@ -252,7 +251,6 @@ class Test_Onboarding extends TestCase {
 	 * The page shell prints the setup's own skeleton while it is pending.
 	 */
 	public function test_shell_prints_the_setup_skeleton(): void {
-		add_filter( 'zerospam_admin_v6', '__return_true' );
 		$this->as_role( 'administrator' );
 		update_option( Onboarding::OPTION, Onboarding::PENDING );
 		$_GET['page'] = 'zero-spam';
@@ -277,28 +275,6 @@ class Test_Onboarding extends TestCase {
 		update_option( Onboarding::WHATS_NEW_OPTION, '6.0.0' );
 		$this->assertSame( '6.0.0', $app->bootstrap( 'overview' )['whatsNew'] );
 		$this->assertSame( '', $app->bootstrap( 'network' )['whatsNew'] );
-	}
-
-	/**
-	 * The legacy welcome notice is replaced by the setup when the 6.0 admin
-	 * is on; with the 6.0 admin off it still shows.
-	 */
-	public function test_legacy_welcome_notice_gives_way_to_the_setup(): void {
-		$this->admin_screen();
-		$this->as_role( 'administrator' );
-		update_option( Onboarding::OPTION, Onboarding::PENDING );
-		$admin = new \ZeroSpam\Core\Admin\Admin();
-
-		ob_start();
-		$admin->admin_notices();
-		$off = (string) ob_get_clean();
-		$this->assertStringContainsString( 'Thanks for installing Zero Spam for WordPress!', $off );
-
-		add_filter( 'zerospam_admin_v6', '__return_true' );
-		ob_start();
-		$admin->admin_notices();
-		$on = (string) ob_get_clean();
-		$this->assertStringNotContainsString( 'Thanks for installing Zero Spam for WordPress!', $on );
 	}
 
 	/**

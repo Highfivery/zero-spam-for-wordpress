@@ -1,5 +1,5 @@
 /**
- * The 6.0 Settings area (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json): no
+ * The 6.0 Settings area: no
  * request of its own on load, the six tabs from the keyboard, unsaved
  * changes across tabs with per-setting errors, display preferences applied
  * live, the quota reset date control, import and export with per-setting
@@ -13,7 +13,7 @@ import type { Page, Request } from '@playwright/test';
 
 import { expect, test } from '../support/fixtures';
 import { focusObscured } from '../support/focus';
-import { AREA, settingsReady } from '../support/screens';
+import { AREA, SCREENS, settingsReady } from '../support/screens';
 import { subsiteURL } from '../support/targets';
 
 const SETTINGS = AREA( 'settings' );
@@ -321,9 +321,30 @@ test.describe( '6.0 Settings', () => {
 		expect( text ).not.toMatch( /\d+\.\d+\.\d+\.\d+/ );
 	} );
 
-	test( 'the classic settings page stays reachable', async ( { page } ) => {
-		await page.goto( 'wp-admin/options-general.php?page=wordpress-zero-spam-settings&subview=settings' );
-		await expect( page.locator( '#wpbody-content form' ).first() ).toBeVisible();
+	// Replaces the 5.x settings spec's check that every settings subview had a screen.
+	test( 'every area and tab a settings section lands on has a screen in screens.ts', async ( { page } ) => {
+		await openSettings( page );
+		const sections = await page.evaluate( async () => {
+			const schema = ( await ( window as unknown as { wp: { apiFetch: ( o: { path: string } ) => Promise< { sections: Array< { key: string; area: string; group: string } > } > } } ).wp.apiFetch( { path: '/zero-spam/v1/settings/schema' } ) );
+			return schema.sections;
+		} );
+		const paths = SCREENS.map( ( s ) => {
+			try {
+				return s.path( { baseURL: 'http://x/' } as never );
+			} catch {
+				return '';
+			}
+		} );
+		const tabOf = ( area: string, group: string ) => ( 'settings' === area && 'proxies' === group ? 'advanced' : group );
+		const missing = sections
+			.filter( ( s ) => [ 'protection', 'settings' ].includes( s.area ) )
+			.filter( ( s ) => {
+				const tab = tabOf( s.area, s.group );
+				const first = 'protection' === s.area ? 'detection' : 'general';
+				return ! paths.some( ( p ) => p.includes( `page=zero-spam-${ s.area }` ) && ( p.includes( `tab=${ tab }` ) || ( tab === first && ! p.includes( 'tab=' ) ) ) );
+			} )
+			.map( ( s ) => `${ s.key } (${ s.area } › ${ s.group })` );
+		expect( missing ).toEqual( [] );
 	} );
 
 	for ( const width of [ 1280, 782 ] ) {

@@ -74,7 +74,6 @@ class GravityForms {
 	public function sections( $sections ) {
 		$sections['gravityforms'] = array(
 			'title'    => __( 'Gravity Forms', 'zero-spam' ),
-			'icon'     => 'modules/gravityforms/icon-gravity-forms.svg',
 			'supports' => array( 'honeypot', 'davidwalsh', 'email', 'words' ),
 		);
 
@@ -97,16 +96,30 @@ class GravityForms {
 	 *
 	 * @see https://docs.gravityforms.com/gform_form_tag/#h-add-hidden-input
 	 *
-	 * @param string $form_tag The string containing the <form> tag
-	 * @param array  $form The current form object to be filtered.
+	 * @param string $form_tag The string containing the <form> tag.
+	 * @param array  $form     The current form object to be filtered.
 	 */
 	public function add_honeypot( $form_tag, $form ) {
+		unset( $form ); // Passed by Gravity Forms; not needed here.
+
 		$form_tag .= \ZeroSpam\Core\Utilities::honeypot_field();
 
 		return $form_tag;
 	}
 
+	/**
+	 * Replaces the confirmation of an entry that was not saved or is spam
+	 * with the detection message.
+	 *
+	 * @param string|array $confirmation The confirmation message or redirect.
+	 * @param array        $form         The form.
+	 * @param array        $entry        The entry.
+	 * @param bool         $ajax         Whether the form is submitted with AJAX.
+	 * @return string|array
+	 */
 	public function confirmation_message( $confirmation, $form, $entry, $ajax ) {
+		unset( $form, $ajax ); // Passed by Gravity Forms; not needed here.
+
 		if ( empty( $entry ) || rgar( $entry, 'status' ) === 'spam' ) {
 			$error_message = \ZeroSpam\Core\Utilities::detection_message( 'gravityforms_spam_message' );
 
@@ -123,6 +136,8 @@ class GravityForms {
 	 * @param FormObject $form     The form currently being processed.
 	 */
 	public function process_form( $do_abort, $form ) {
+		unset( $form ); // Passed by Gravity Forms; the submission is read from $_POST.
+
 		// If submission is already marked to be aborted early, don't change it.
 		if ( $do_abort ) {
 			return true;
@@ -149,8 +164,8 @@ class GravityForms {
 		}
 
 		// Check submitted fields for blocked email domains and disallowed words.
-		$check_blocked_emails  = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_gravityforms_blocked_email_domains' );
-		$check_disallowed      = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_gravityforms_disallowed_words' );
+		$check_blocked_emails = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_gravityforms_blocked_email_domains' );
+		$check_disallowed     = 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_gravityforms_disallowed_words' );
 
 		if ( $check_blocked_emails || $check_disallowed ) {
 			// Extract only user-input fields (input_X or input_X_Y naming).

@@ -130,7 +130,6 @@ class Zero_Spam {
 	public function sections( $sections ) {
 		$sections['zerospam'] = array(
 			'title' => __( 'Enhanced Protection', 'zero-spam' ),
-			'icon'  => 'assets/img/icon.svg',
 		);
 
 		return $sections;

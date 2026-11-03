@@ -35,6 +35,9 @@ class Test_Migrations extends TestCase {
 		'v6_thresholds_sanitize',
 		'v6_whats_new',
 		'v6_template_orphans',
+		'v6_dismissals',
+		'v6_allowlist_follows_network',
+		'v6_remove_google_api',
 	);
 
 	/**
@@ -96,7 +99,7 @@ class Test_Migrations extends TestCase {
 		$this->assertSame( 'enabled', $settings['log_blocked_ips'] );
 		$this->assertSame( array( 'stop_forum_spam' => 'enabled' ), get_option( 'zero-spam-stop_forum_spam' ) );
 		$this->assertFalse( get_option( 'wpzerospam' ) );
-		$this->assertTrue( (bool) get_option( Migrations::SETTINGS_REVIEW_NOTICE_OPTION ) );
+		$this->assertFalse( get_option( Migrations::SETTINGS_REVIEW_NOTICE_OPTION ), 'The 5.x settings review notice was removed in 6.0.0: nothing flags it.' );
 	}
 
 	/**

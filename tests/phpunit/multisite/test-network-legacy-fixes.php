@@ -8,21 +8,19 @@
 declare( strict_types=1 );
 
 use ZeroSpam\Core\License_Status;
-use ZeroSpam\Includes\Admin\Site_Admin_Overrides;
 use ZeroSpam\Includes\Network_Settings;
 use ZeroSpam\Includes\Network_Settings_Manager;
 use ZeroSpam\Includes\Network_Stats_Tracker;
 use ZeroSpam\Tests\TestCase;
 
 /**
- * An empty network default reads "(none)" on a subsite; Network Stats calls
+ * Network Stats calls
  * a site "Enhanced" only when its license is valid; locking a secret the
  * network does not set never copies the main site's key, and locking any
  * other uses the plugin default (undoing it removes that value); unlocking
  * a setting the network does not set creates nothing.
  *
  * @group ms-required
- * @covers \ZeroSpam\Includes\Admin\Site_Admin_Overrides::render_override_notice
  * @covers \ZeroSpam\Includes\Network_Stats_Tracker::get_site_breakdown
  * @covers \ZeroSpam\Core\License_Status::site_level
  * @covers \ZeroSpam\Includes\Network_Settings_Manager::lock_setting
@@ -41,25 +39,11 @@ class Test_Network_Legacy_Fixes extends TestCase {
 		delete_option( 'zero-spam-zerospam' );
 		delete_option( 'zero-spam-ipinfo' );
 		delete_transient( License_Status::TRANSIENT );
-		delete_transient( 'zerospam_site_breakdown_month_10_spam_count' );
+		delete_transient( 'zerospam_site_breakdown_' . get_current_network_id() . '_month_10_spam_count' );
 
 		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		grant_super_admin( $user );
 		wp_set_current_user( $user );
-	}
-
-	/**
-	 * An empty network value is shown as "(none)", not an empty box.
-	 */
-	public function test_empty_network_default_reads_none(): void {
-		$this->set_network_setting( 'comment_spam_message', '' );
-
-		ob_start();
-		( new Site_Admin_Overrides() )->render_override_notice( 'comment_spam_message' );
-		$html = (string) ob_get_clean();
-
-		$this->assertStringContainsString( '<code>(none)</code>', $html );
-		$this->assertStringNotContainsString( '<code></code>', $html );
 	}
 
 	/**
@@ -75,7 +59,7 @@ class Test_Network_Legacy_Fixes extends TestCase {
 		);
 
 		$site = static function (): array {
-			delete_transient( 'zerospam_site_breakdown_month_10_spam_count' );
+			delete_transient( 'zerospam_site_breakdown_' . get_current_network_id() . '_month_10_spam_count' );
 			$rows = array_column( Network_Stats_Tracker::get_site_breakdown(), null, 'site_id' );
 
 			return $rows[ get_main_site_id() ];

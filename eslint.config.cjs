@@ -14,7 +14,6 @@ module.exports = [
 			'build/**',
 			'artifacts/**',
 			'assets/dist/**',
-			'assets/js/**',
 			'tests/**',
 			'.claude/**',
 		],

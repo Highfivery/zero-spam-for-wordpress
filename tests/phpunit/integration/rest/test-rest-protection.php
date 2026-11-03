@@ -39,6 +39,7 @@ class Test_Rest_Protection extends TestCase {
 			delete_option( "zero-spam-{$module}" );
 		}
 		delete_option( Shared_IP_Warning::DISMISSED_OPTION );
+		delete_option( \ZeroSpam\Core\Admin\Notices::OPTION );
 
 		$this->as_role( 'administrator' );
 	}
@@ -183,7 +184,7 @@ class Test_Rest_Protection extends TestCase {
 
 		$this->assertSame( '10.0.0.5', $this->attention()['shared_ip']['ip'] );
 
-		update_option( Shared_IP_Warning::DISMISSED_OPTION, 'shared_ip:10.0.0.5', false );
+		\ZeroSpam\Core\Admin\Notices::remember( Shared_IP_Warning::NOTICE_ID, 'shared_ip:10.0.0.5' );
 		$this->assertArrayNotHasKey( 'shared_ip', $this->attention() );
 	}
 

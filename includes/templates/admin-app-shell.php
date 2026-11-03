@@ -76,9 +76,15 @@ $zerospam_icons = array(
 	<noscript>
 		<div class="zs-noscript">
 			<h1 class="zs-h2"><?php esc_html_e( 'Zero Spam needs JavaScript for this screen', 'zero-spam' ); ?></h1>
+			<p><?php esc_html_e( 'Your site is still protected. Turn on JavaScript in your browser to see this screen.', 'zero-spam' ); ?></p>
 			<p>
-				<?php esc_html_e( 'Your site is still protected. Turn on JavaScript in your browser to see this screen, or use the classic settings screen.', 'zero-spam' ); ?>
-				<a href="<?php echo esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ); ?>"><?php esc_html_e( 'Open the classic settings', 'zero-spam' ); ?></a>
+				<?php
+				printf(
+					/* translators: %s: the WP-CLI command, wp zerospam */
+					esc_html__( 'Server administrators can also change Zero Spam\'s settings from the command line with WP-CLI (%s).', 'zero-spam' ),
+					'<code>wp zerospam</code>'
+				);
+				?>
 			</p>
 		</div>
 	</noscript>

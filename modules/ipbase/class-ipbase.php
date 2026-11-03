@@ -10,10 +10,13 @@ namespace ZeroSpam\Modules\ipbase;
 // Security Note: Blocks direct access to the plugin PHP files.
 defined( 'ABSPATH' ) || die();
 
+// phpcs:disable PEAR.NamingConventions.ValidClassName.StartWithCapital -- Public class name since 5.x (ZeroSpam\Modules\ipbase\ipbase), loaded by the autoloader from its file name.
 /**
- * ipbase
+ * The ipbase geolocation service.
  */
 class ipbase {
+	// phpcs:enable PEAR.NamingConventions.ValidClassName.StartWithCapital
+
 	/**
 	 * Constructor
 	 */
@@ -86,7 +89,6 @@ class ipbase {
 	public function sections( $sections ) {
 		$sections['ipbase'] = array(
 			'title' => __( 'ipbase (geolocation)', 'zero-spam' ),
-			'icon'  => 'modules/ipbase/icon-ipbase.svg',
 		);
 
 		return $sections;
@@ -154,9 +156,10 @@ class ipbase {
 	/**
 	 * Returns an IP addresses' details
 	 *
-	 * @param string $ip_address_details IP address details.
+	 * @param string $ip_address         IP address.
+	 * @param array  $ip_address_details IP address details found so far.
 	 */
-	public function ip_address_details( $ip_address, $ip_address_details = [] ) {
+	public function ip_address_details( $ip_address, $ip_address_details = array() ) {
 		$response_mapping = array(
 			'country_code' => 'country_code',
 			'country_name' => 'country_name',

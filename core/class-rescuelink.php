@@ -651,8 +651,7 @@ final class Rescue_Link {
 					array(
 						'type' => 'text',
 						'size' => 'small',
-						// TODO(6.0 cutover): menu path ("IP Allowlist under Zero Spam → Rules").
-						'text' => __( 'After you log in, add your IP address to the IP Whitelist under Settings → Zero Spam → Settings so you aren\'t blocked again.', 'zero-spam' ),
+						'text' => __( 'After you log in, add your IP address to Allowed IPs under Zero Spam → Rules so you aren\'t blocked again.', 'zero-spam' ),
 					),
 					array(
 						'type' => 'text',

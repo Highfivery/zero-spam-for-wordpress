@@ -38,7 +38,6 @@ class IPinfoModule {
 	public function sections( $sections ) {
 		$sections['ipinfo'] = array(
 			'title' => __( 'IPinfo (geolocation)', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-ipinfo.svg',
 		);
 
 		return $sections;
@@ -174,8 +173,8 @@ class IPinfoModule {
 				'desc'  => esc_html__( 'Leave a test comment or submit a contact form on your site.', 'zero-spam' ),
 			),
 			array(
-				'title' => esc_html__( '4. Check the log', 'zero-spam' ),
-				'desc'  => esc_html__( 'Go to Dashboard → Zero Spam → Log. You should see location information (country, city, etc.) for your test submission.', 'zero-spam' ),
+				'title' => esc_html__( '4. Check the activity', 'zero-spam' ),
+				'desc'  => esc_html__( 'Go to Zero Spam → Activity. You should see location information (country, city, etc.) for your test submission.', 'zero-spam' ),
 			),
 		);
 
@@ -281,7 +280,7 @@ class IPinfoModule {
 		}
 
 		// Generate cache keys.
-		$cache_key      = \ZeroSpam\Core\Utilities::cache_key(
+		$cache_key     = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'ipinfo',
 				$ip,

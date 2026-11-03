@@ -62,6 +62,8 @@ class MailchimpForWP {
 	 * @param MC4WP_Form_Element $element Form element.
 	 */
 	public function add_honeypot( $content, $form, $element ) {
+		unset( $form, $element ); // Passed by Mailchimp for WordPress; not needed here.
+
 		$content .= \ZeroSpam\Core\Utilities::honeypot_field();
 
 		return $content;

@@ -39,8 +39,7 @@ class WPUserAvatar {
 			'enabled' === \ZeroSpam\Core\Settings::get_settings( 'verify_wp_user_avatar_registrations' ) &&
 			\ZeroSpam\Core\Access::process()
 		) {
-			// Can't currently support the David Walsh method due to how the plugin has been built, see https://wordpress.org/support/topic/zero-spam-support/#post-16762404
-			// add_filter( 'ppress_registration_form', array( $this, 'add_scripts' ), 10, 1 );
+			// The David Walsh method is not supported: ProfilePress's forms give no place for its script (https://wordpress.org/support/topic/zero-spam-support/#post-16762404).
 			add_filter( 'ppress_form_field_structure', array( $this, 'add_honeypot_field' ), 10, 2 );
 			add_filter( 'ppress_registration_validation', array( $this, 'process_registration_form' ), 10, 3 );
 		}
@@ -61,23 +60,17 @@ class WPUserAvatar {
 	}
 
 	/**
-	 * Load the scripts
-	 */
-	/*
-	public function add_scripts( $structure ) {
-		// Only add scripts to the appropriate pages.
-		if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'davidwalsh' ) ) {
-			wp_enqueue_script( 'zerospam-davidwalsh' );
-			wp_add_inline_script( 'zerospam-davidwalsh-wp-user-avatar', 'jQuery(".pp-registration-form-wrapper form").ZeroSpamDavidWalsh();' );
-		}
-
-		return $structure;
-	}*/
-
-	/**
 	 * Preprocess registrations
+	 *
+	 * @param \WP_Error $reg_errors Registration errors so far.
+	 * @param int       $form_id    ProfilePress form ID.
+	 * @param array     $user_data  The user data ProfilePress collected.
+	 * @return \WP_Error
 	 */
 	public function process_registration_form( $reg_errors, $form_id, $user_data ) {
+		unset( $form_id, $user_data ); // Passed by ProfilePress; the submission is read from $_POST.
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- ProfilePress verifies its registration form before this filter; values are sanitized here.
 		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
 
 		// Get the error message.
@@ -155,8 +148,13 @@ class WPUserAvatar {
 
 	/**
 	 * Add a 'honeypot' field to the registration form
+	 *
+	 * @param string $registration_structure The form's markup.
+	 * @param int    $id                     ProfilePress form ID.
+	 * @return string
 	 */
 	public function add_honeypot_field( $registration_structure, $id ) {
+		unset( $id ); // Passed by ProfilePress; not needed here.
 
 		$registration_structure .= \ZeroSpam\Core\Utilities::honeypot_field();
 
@@ -171,7 +169,6 @@ class WPUserAvatar {
 	public function sections( $sections ) {
 		$sections['wp-user-avatar'] = array(
 			'title'    => __( 'ProfilePress', 'zero-spam' ),
-			'icon'     => 'modules/wpuseravatar/icon-profilepress.png',
 			'supports' => array( 'honeypot', 'email' ),
 		);
 

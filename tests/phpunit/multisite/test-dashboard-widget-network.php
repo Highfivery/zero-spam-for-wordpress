@@ -123,7 +123,7 @@ class Test_Dashboard_Widget_Network extends TestCase {
 
 		$this->assertStringNotContainsString( 'data-zs-refresh', $html );
 		$this->assertStringNotContainsString( '<script', $html );
-		$this->assertStringContainsString( esc_url( network_admin_url( 'settings.php?page=wordpress-zero-spam-network-stats' ) ), $html );
+		$this->assertStringContainsString( esc_url( network_admin_url( 'admin.php?page=zero-spam-network&tab=stats' ) ), $html );
 		$this->assertStringContainsString( 'View network activity', $html );
 
 		( new Dashboard_Widget() )->enqueue_assets( 'index.php' );

@@ -180,12 +180,23 @@ export const isCidr = ( value ) =>
 	/\/\d{0,3}$/.test( String( value ?? '' ).trim() );
 
 /**
+ * Whether a canonical address is one no visitor has: loopback (127.0.0.0/8,
+ * ::1) or unspecified (0.0.0.0, ::), as Rules_Controller::is_never_blocked().
+ *
+ * @param {string} ip Canonical address.
+ * @return {boolean} Never blocked.
+ */
+export const isNeverBlocked = ( ip ) =>
+	[ '::1', '::', '0.0.0.0' ].includes( ip ) || ip.startsWith( '127.' );
+
+/**
  * An address to block.
  *
- * @param {string} value Address as typed.
+ * @param {string} value   Address as typed.
+ * @param {string} current The address of the block being edited, if any (a block saved before 6.0 may hold a loopback address).
  * @return {{value?: string, error?: string}} The canonical address, or what is wrong.
  */
-export function checkBlockIp( value ) {
+export function checkBlockIp( value, current = '' ) {
 	const text = String( value ?? '' ).trim();
 	if ( ! text ) {
 		return {
@@ -205,9 +216,19 @@ export function checkBlockIp( value ) {
 		};
 	}
 	const ip = canonicalIp( text );
-	return ip
-		? { value: ip }
-		: { error: __( 'Must be an IPv4 or IPv6 address.', 'zero-spam' ) };
+	if ( ! ip ) {
+		return { error: __( 'Must be an IPv4 or IPv6 address.', 'zero-spam' ) };
+	}
+	if ( isNeverBlocked( ip ) && ip !== canonicalIp( current ) ) {
+		// The route's own message (Rules_Controller::check_block()).
+		return {
+			error: __(
+				'That is this server’s own address or no address at all, so visitors never use it. Enter the visitor’s address.',
+				'zero-spam'
+			),
+		};
+	}
+	return { value: ip };
 }
 
 /**

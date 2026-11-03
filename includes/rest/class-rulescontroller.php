@@ -29,6 +29,8 @@ defined( 'ABSPATH' ) || die();
  *
  * - `rules/blocks`, `rules/blocks/{id}` and `rules/blocks/bulk-delete`:
  *   blocked IP addresses and locations (the wpzerospam_blocked table).
+ *   Loopback and unspecified addresses are refused (is_never_blocked();
+ *   private ranges are not), also by `rules/blocks/bulk`, since 6.0.0.
  *   Deleting returns an undo token. In an .htaccess block mode the deny rules are rewritten after
  *   every change, also when the last blocked address is removed.
  * - `rules/lists/{allowed-ips|email-domains|allowed-words}`: the IP
@@ -1084,9 +1086,13 @@ class Rules_Controller extends Base_Controller {
 				$errors['ip'] = __( 'Blocks are for single addresses; ranges (CIDR) are not supported yet.', 'zero-spam' );
 			} else {
 				$canonical = User::normalize_ip( $ip );
+				$unchanged = null !== $existing && User::normalize_ip( (string) $existing['user_ip'] ) === $canonical;
 
 				if ( '' === $canonical ) {
 					$errors['ip'] = __( 'Must be an IPv4 or IPv6 address.', 'zero-spam' );
+				} elseif ( self::is_never_blocked( $canonical ) && ! $unchanged ) {
+					// A block of such an address saved before 6.0 can still be edited (and removed).
+					$errors['ip'] = __( 'That is this server’s own address or no address at all, so visitors never use it. Enter the visitor’s address.', 'zero-spam' );
 				} else {
 					$record['user_ip']     = $canonical;
 					$record['key_type']    = 'ip';
@@ -1488,6 +1494,20 @@ class Rules_Controller extends Base_Controller {
 		$network = \ZeroSpam\Includes\Network_Blocks::find( $ip );
 
 		return null !== $network && ! empty( Access::get_blocked_details( $network )['blocked'] );
+	}
+
+	/**
+	 * Whether a canonical address is one no visitor has: loopback (127.0.0.0/8,
+	 * ::1) or unspecified (0.0.0.0, ::). Blocks refuse them, on a site and
+	 * network-wide (since 6.0.0). Private ranges can be blocked: behind a proxy
+	 * or on an intranet, visitors really have those addresses.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $canonical Address in canonical form (User::normalize_ip()).
+	 */
+	public static function is_never_blocked( string $canonical ): bool {
+		return in_array( $canonical, array( '::1', '::', '0.0.0.0' ), true ) || str_starts_with( $canonical, '127.' );
 	}
 
 	/**

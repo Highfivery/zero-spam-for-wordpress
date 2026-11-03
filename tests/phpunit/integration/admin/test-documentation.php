@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for the in-admin documentation page.
+ * Tests for the in-admin documentation (Zero Spam → Help).
  *
  * @package ZeroSpam\Tests
  */
@@ -10,34 +10,33 @@ declare( strict_types=1 );
 use ZeroSpam\Tests\TestCase;
 
 /**
- * The Documentation tab lists the developer hooks added in 5.7.14.
+ * The Help guides list the developer hooks added in 5.7.14.
  *
- * @coversNothing
+ * @covers \ZeroSpam\Core\Admin\Documentation::sections
+ * @covers \ZeroSpam\Core\Admin\Documentation::render
  */
 class Test_Documentation extends TestCase {
 
 	/**
-	 * Renders the documentation template.
+	 * Renders the Developer Hooks guide as Help gets it.
 	 *
-	 * @return string Page HTML.
+	 * @return string Guide HTML.
 	 */
 	private function render(): string {
 		$this->as_role( 'administrator' );
 
-		ob_start();
-		require ZEROSPAM_PATH . 'includes/templates/admin-documentation.php';
+		$sections = \ZeroSpam\Core\Admin\Documentation::sections();
+		$this->assertArrayHasKey( 'developer-hooks', $sections );
 
-		return (string) ob_get_clean();
+		return \ZeroSpam\Core\Admin\Documentation::render( $sections['developer-hooks']['template'] );
 	}
 
 	/**
-	 * The Developer Hooks section is registered, linked from the table of
-	 * contents and rendered.
+	 * The Developer Hooks section is registered and rendered.
 	 */
 	public function test_developer_hooks_section_is_rendered(): void {
 		$html = $this->render();
 
-		$this->assertStringContainsString( 'href="#section-developer-hooks"', $html );
 		$this->assertStringContainsString( 'id="developer-hooks-docs"', $html );
 		$this->assertStringContainsString( 'https://github.com/Highfivery/zero-spam-for-wordpress/wiki/Hooks', $html );
 	}
@@ -84,6 +83,10 @@ class Test_Documentation extends TestCase {
 		}
 
 		foreach ( $documented as $hook ) {
+			if ( isset( \ZeroSpam\Core\Deprecated_Hooks::HOOKS[ $hook ] ) ) {
+				continue; // Deprecated in 6.0.0: documented as such, never fired.
+			}
+
 			$this->assertMatchesRegularExpression(
 				'/(apply_filters|do_action)\(\s*\'' . preg_quote( $hook, '/' ) . '\'/',
 				$source,

@@ -536,7 +536,7 @@ console.log(result);</code></pre>
 			</div>
 
 			<h3><?php esc_html_e( 'Locked Settings', 'zero-spam' ); ?></h3>
-			<p><?php esc_html_e( 'A Super Admin can lock a setting on the Network Settings page. Locked settings are shown as locked on every site\'s settings page, the settings page never saves them, and a scope=site REST request that includes one is refused with a 403 "rest_setting_locked" error (see the PATCH section above). WP-CLI "wp zerospam set" warns and exits with an error for a locked setting.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'A Super Admin can lock a setting under Network Admin → Zero Spam → Settings. Locked settings are shown as locked on every site\'s Zero Spam screens, are never saved for a site, and a scope=site REST request that includes one is refused with a 403 "rest_setting_locked" error (see the PATCH section above). WP-CLI "wp zerospam set" warns and exits with an error for a locked setting.', 'zero-spam' ); ?></p>
 
 			<h3><?php esc_html_e( 'Checking Where Settings Come From', 'zero-spam' ); ?></h3>
 			<p><?php esc_html_e( 'Use the "sources" field in the response:', 'zero-spam' ); ?></p>

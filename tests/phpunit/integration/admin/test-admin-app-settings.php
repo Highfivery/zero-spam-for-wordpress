@@ -39,7 +39,6 @@ class Test_Admin_App_Settings extends TestCase {
 		wp_default_packages( $GLOBALS['wp_scripts'] );
 
 		add_filter( 'zerospam_news_feed_enabled', '__return_false' );
-		add_filter( 'zerospam_admin_v6', '__return_true' );
 	}
 
 	/**
@@ -47,7 +46,6 @@ class Test_Admin_App_Settings extends TestCase {
 	 */
 	public function tear_down(): void {
 		$this->reset_menus();
-		remove_all_filters( 'zerospam_admin_v6' );
 		remove_all_filters( 'zerospam_news_feed_enabled' );
 		unset( $_GET['tab'], $_GET['section'], $_GET['page'], $_GET['card'] );
 		$GLOBALS['wp_scripts'] = null;

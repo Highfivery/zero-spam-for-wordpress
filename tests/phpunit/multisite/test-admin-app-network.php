@@ -34,7 +34,6 @@ class Test_Admin_App_Network extends TestCase {
 		$GLOBALS['submenu']           = array();
 		$GLOBALS['admin_page_hooks']  = array();
 		$GLOBALS['_registered_pages'] = array();
-		add_filter( 'zerospam_admin_v6', '__return_true' );
 		add_filter( 'zerospam_news_feed_enabled', '__return_false' );
 	}
 
@@ -42,7 +41,6 @@ class Test_Admin_App_Network extends TestCase {
 	 * Removes the flag.
 	 */
 	public function tear_down(): void {
-		remove_all_filters( 'zerospam_admin_v6' );
 		$GLOBALS['menu']    = array();
 		$GLOBALS['submenu'] = array();
 

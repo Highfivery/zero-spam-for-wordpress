@@ -50,7 +50,6 @@ Zero Spam for WordPress can integrate optional services for enhanced spam detect
 * **[ipstack](https://ipstack.com/)** - Obtain extensive geolocation insights. Review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://ipstack.com/terms) to learn more.
 * **[Stop Forum Spam](https://www.stopforumspam.com/)** - Verify if visitors' IPs have been reported. Explore their [Privacy Policy](https://www.stopforumspam.com/privacy) and [Terms of Use](https://www.stopforumspam.com/legal) for additional details.
 * **[Project Honeypot](https://www.projecthoneypot.org/)** - Check if visitors' IPs have been flagged. Refer to their [Privacy Policy](https://www.projecthoneypot.org/privacy_policy.php) and [Terms of Use](https://www.projecthoneypot.org/terms_of_use.php) for more information.
-* **[Google Maps](https://developers.google.com/maps)** - Plot attack locations on Google Maps. Please review their [Privacy Policy](https://www.ideracorp.com/Legal/APILayer/PrivacyStatement) & [Terms of Use](https://developers.google.com/terms/site-terms) for complete details.
 
 Additionally, you have the option to contribute to Zero Spam's improvement by enabling the sharing of detection information. For further information on the shared data, kindly refer to our [FAQ](https://github.com/Highfivery/zero-spam-for-wordpress/wiki/FAQ).
 
@@ -62,7 +61,7 @@ The plugin's complete source code is on GitHub: [Highfivery/zero-spam-for-wordpr
 
 1. Upload the entire *zero-spam* folder to the */wp-content/plugins/* directory.
 2. Activate the plugin through the Plugins screen (*Plugins > Installed Plugins*).
-3. Visit the plugin setting to configure as needed (*Settings > Zero Spam*).
+3. Open **Zero Spam** in the admin menu (below Comments): a short setup walks you through the recommended settings.
 
 For more information & developer documentation, see the [wiki](https://github.com/Highfivery/zero-spam-for-wordpress/wiki).
 
@@ -72,7 +71,7 @@ For more information & developer documentation, see the [wiki](https://github.co
 
 *Not on its own.* Zero Spam for WordPress does not automatically block IP addresses. If a visitor is blocked, it could be due to manual blocking by the site admin or their presence in IP blacklists such as [Stop Forum Spam](https://www.stopforumspam.com/), [Project Honeypot](https://www.projecthoneypot.org/), or the [Zero Spam](https://www.zerospam.org).
 
-In the event that a legitimate user is blocked, refer to the Log (Admin > Dashboard > Zero Spam > Log) for further details on the reason behind the block. You have the flexibility to adjust the strictness of the 3rd-party blacklist checks or disable them if your users are prone to being flagged as spam or malicious.
+In the event that a legitimate user is blocked, look it up in the admin under Zero Spam → Activity for further details on the reason behind the block. You have the flexibility to adjust the strictness of the 3rd-party blacklist checks or disable them if your users are prone to being flagged as spam or malicious.
 
 = Does Zero Spam for WordPress check Jetpack comments? =
 
@@ -102,7 +101,7 @@ To further optimize performance, you can adjust the cache and API timeout settin
 
 The API supports multisite installations with granular control over network defaults and per-site overrides. Authentication uses WordPress Application Passwords for secure, revocable access without exposing your main password.
 
-**Getting Started:** Visit the Documentation tab in Settings > Zero Spam for complete details, step-by-step setup instructions, real-world examples, and troubleshooting tips. No technical expertise required!
+**Getting Started:** Visit Zero Spam → Help for complete details, step-by-step setup instructions, real-world examples, and troubleshooting tips. No technical expertise required!
 
 = Are you getting a `ftp_fget` PHP warning? =
 
@@ -118,19 +117,19 @@ You can report security bugs through the Patchstack Vulnerability Disclosure Pro
 
 = I blocked myself! How do I get back in? =
 
-On the blocked page, open **Help for site owners**, enter the email address of an administrator account on the site and press **Email me a rescue link**. Open the link in that email (on any device) and press **Let me back in**: that browser is let in for one hour, so you can log in and add your IP address to **IP Whitelist** under Settings → Zero Spam → Settings. The link works once, for 15 minutes; a used or expired link opens a page where you can ask for a new one. If the address isn't an administrator's, nothing is sent; the page says the same either way. Logged-in users are never blocked.
+On the blocked page, open **Help for site owners**, enter the email address of an administrator account on the site and press **Email me a rescue link**. Open the link in that email (on any device) and press **Let me back in**: that browser is let in for one hour, so you can log in and add your IP address to **Allowed IPs** under Zero Spam → Rules. The link works once, for 15 minutes; a used or expired link opens a page where you can ask for a new one. If the address isn't an administrator's, nothing is sent; the page says the same either way. Logged-in users are never blocked.
 
-When you activate or update Zero Spam, it also saves your current IP address (public addresses only) as one it never locks out. Visitors from that address are still checked for spam. You can see and remove these addresses under the IP Whitelist on Settings → Zero Spam → Settings.
+When you activate or update Zero Spam, it also saves your current IP address (public addresses only) as one it never locks out. Visitors from that address are still checked for spam. You can see and remove these addresses under Zero Spam → Rules → No-lockout addresses.
 
 You can also define the `ZEROSPAM_RESCUE_KEY` constant in your `wp-config.php` file (e.g. `define( 'ZEROSPAM_RESCUE_KEY', 'a-long-random-secret' );`) and visit any page of your site with `?zerospam_rescue={YOUR_KEY}` appended (e.g., `https://example.com/wp-login.php?zerospam_rescue=a-long-random-secret`). All checks are bypassed in that browser for one hour.
 
 If none of these work (for example, you use an `.htaccess` block method, or your site can't send email), rename the plugin folder via FTP (`wp-content/plugins/zero-spam` -> `zero-spam-disabled`) to gain access.
 
-If every visitor, including you, suddenly sees "Your IP has been flagged as spam/malicious", your site is probably behind a CDN, load balancer or proxy (for example Hostinger CDN or Sucuri) that Zero Spam doesn't know about, so every visitor appears with the proxy's address. Get back in with the rescue link or Rescue Mode, then add the proxy's IP addresses or ranges under **Trusted Proxy IPs** in Settings → Zero Spam → Settings (your host can tell you what they are). Cloudflare is recognised automatically.
+If every visitor, including you, suddenly sees "Your IP has been flagged as spam/malicious", your site is probably behind a CDN, load balancer or proxy (for example Hostinger CDN or Sucuri) that Zero Spam doesn't know about, so every visitor appears with the proxy's address. Get back in with the rescue link or Rescue Mode, then add the proxy's IP addresses or ranges under **Trusted proxies** in Zero Spam → Settings → Advanced (your host can tell you what they are). Cloudflare is recognised automatically.
 
 = My site is behind Cloudflare or another CDN. Does Zero Spam see the real visitor IP? =
 
-**Yes.** Cloudflare is recognised automatically. For any other CDN, load balancer or reverse proxy, list its IP addresses or ranges under Settings → Zero Spam → Settings → **Trusted Proxy IPs**, one per line (for example `203.0.113.0/24`), including internal hops such as a load balancer. Zero Spam only reads forwarded IP headers from those addresses, so visitors can't fake their IP. If many visitors appear to share one IP address, Zero Spam shows administrators a warning on its screens so you know to check this setting. Developers can add proxies with the `zerospam_trusted_proxies` filter.
+**Yes.** Cloudflare is recognised automatically. For any other CDN, load balancer or reverse proxy, list its IP addresses or ranges under Zero Spam → Settings → Advanced → **Trusted proxies**, one per line (for example `203.0.113.0/24`), including internal hops such as a load balancer. Zero Spam only reads forwarded IP headers from those addresses, so visitors can't fake their IP. If many visitors appear to share one IP address, Zero Spam shows administrators a warning on its screens so you know to check this setting. Developers can add proxies with the `zerospam_trusted_proxies` filter.
 
 = Does Zero Spam work with two-step login plugins like Defender Pro or Two Factor? =
 
@@ -138,13 +137,13 @@ If every visitor, including you, suddenly sees "Your IP has been flagged as spam
 
 = Does deleting Zero Spam remove its data? =
 
-Yes, by default: deleting the plugin on the Plugins screen removes its settings, activity log, blocked IPs and locations, API usage data and statistics. To keep them for a later reinstall, turn off "Delete Data on Uninstall" before you delete the plugin: Zero Spam → Settings → Logging & data in the new admin, or Settings → Zero Spam → API Monitoring on the current screens. On a network, each site follows its own setting, and the network's setting decides for the network-wide data.
+Yes, by default: deleting the plugin on the Plugins screen removes its settings, activity log, blocked IPs and locations, API usage data and statistics. To keep them for a later reinstall, turn off "Delete Data on Uninstall" before you delete the plugin: Zero Spam → Settings → Logging & data. On a network, each site follows its own setting, and the network's setting decides for the network-wide data.
 
 = Why can't I access `wp-login.php` or XML-RPC anymore? =
 
-As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation, or use the emailed rescue link on the blocked page (or the Rescue Mode key) to log in and whitelist your IP.
+As of version 5.7.1, Zero Spam now actively protects `wp-login.php` and `xmlrpc.php` from blocked IPs. If you are blocked, check your IP reputation, or use the emailed rescue link on the blocked page (or the Rescue Mode key) to log in and add your IP address to Allowed IPs (Zero Spam → Rules).
 
-Zero Spam also turns XML-RPC off for everyone by default, because bots use it to try many passwords at once. If an app you use needs it, such as the WordPress mobile app or Jetpack, turn off "Disable XML-RPC" in Zero Spam's Security settings.
+Zero Spam also turns XML-RPC off for everyone by default, because bots use it to try many passwords at once. If an app you use needs it, such as the WordPress mobile app or Jetpack, turn off "Disable XML-RPC" under Zero Spam → Protection → Detection → Security.
 
 == External services ==
 
@@ -177,14 +176,6 @@ When you enter an API key for one of these services, the IP address of visitors 
 * ipbase: https://api.ipbase.com/. [Terms of service](https://ipbase.com/terms-of-service/), [privacy policy](https://ipbase.com/privacy-policy/).
 * IPinfo: https://api.ipinfo.io/. [Terms](https://ipinfo.io/terms), [privacy policy](https://ipinfo.io/privacy).
 * ipstack: http://api.ipstack.com/ (ipstack's free plan does not offer HTTPS). [Terms](https://ipstack.com/terms), [privacy policy](https://ipstack.com/privacy).
-
-= Google Maps =
-
-When a Google API key is set, the detection details in the admin show a map: your browser loads it from www.google.com with your key and the detection's latitude and longitude. [Google Maps Platform terms](https://cloud.google.com/maps-platform/terms), [Google privacy policy](https://policies.google.com/privacy).
-
-= Admin dashboard: Facebook, X (Twitter) and jsDelivr =
-
-The Zero Spam dashboard screen shows Zero Spam's Facebook page and X (Twitter) timeline, which your browser loads from facebook.com and platform.twitter.com, and its charts load the Chart.js library from cdn.jsdelivr.net. Only administrators viewing that screen load them; those services see the visitor's browser request (IP address, user agent) as with any embedded content. [Facebook terms](https://www.facebook.com/terms.php) and [privacy policy](https://www.facebook.com/privacy/policy/), [X terms](https://x.com/en/tos) and [privacy policy](https://x.com/en/privacy), [jsDelivr terms](https://www.jsdelivr.com/terms) and [privacy policy](https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net).
 
 = Addresses you configure =
 

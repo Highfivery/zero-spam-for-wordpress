@@ -41,7 +41,8 @@ abstract class TestCase extends WP_UnitTestCase {
 
 	/**
 	 * Every module key used in the source (`'module' => '…'`); each stores its
-	 * settings in the option `zero-spam-{module}`.
+	 * settings in the option `zero-spam-{module}`. The `google` module of 5.x
+	 * (removed in 6.0.0) is in PLUGIN_SITE_OPTIONS.
 	 */
 	const PLUGIN_MODULES = array(
 		'api-monitoring',
@@ -53,7 +54,6 @@ abstract class TestCase extends WP_UnitTestCase {
 		'fluent_form',
 		'formidable',
 		'givewp',
-		'google',
 		'gravityforms',
 		'ipbase',
 		'ipinfo',
@@ -122,6 +122,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_davidwalsh_data',
 		'zerospam_davidwalsh_secret',
 		'zerospam_db_version',
+		'zerospam_dismissed_notices',
 		'zerospam_migration_cursor_canonical_blocked_ips',
 		'zerospam_migration_lock_canonical_blocked_ips',
 		'zerospam_migration_lock_network',
@@ -133,6 +134,7 @@ abstract class TestCase extends WP_UnitTestCase {
 		'zerospam_shared_ip_warning_dismissed',
 		'zerospam_show_settings_review_notice',
 		'zerospam_whats_new',
+		'zero-spam-google',
 		'zero-spam-last-update',
 		'zero_spam_last_api_report',
 	);

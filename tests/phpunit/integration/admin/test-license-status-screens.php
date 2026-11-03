@@ -1,7 +1,7 @@
 <?php
 /**
- * Tests that the admin header, the dashboard widget and the notices agree
- * on the license status.
+ * Tests that the license route (the 6.0 admin's level chip and license
+ * panel), the dashboard widget and the notices agree on the license status.
  *
  * @package ZeroSpam\Tests
  */
@@ -19,7 +19,8 @@ use ZeroSpam\Tests\TestCase;
  * Before 6.0 the widget asked a second endpoint (and treated its errors as
  * "valid"), so it could say "Enhanced Protection Active" while the header
  * said the key was invalid or out of queries (inventory §12.20). Both now
- * read License_Status, with one request between them.
+ * read License_Status, with one request between them. Since 6.0.0 the 5.x
+ * admin header is gone; the license route is what the admin shows.
  *
  * @covers \ZeroSpam\Core\Admin\Dashboard_Widget::render_widget
  * @covers \ZeroSpam\Core\Admin\Admin::admin_notices
@@ -60,13 +61,10 @@ class Test_License_Status_Screens extends TestCase {
 	}
 
 	/**
-	 * The admin header's HTML.
+	 * The license status the admin shows (GET license).
 	 */
 	private function header(): string {
-		ob_start();
-		require ZEROSPAM_PATH . 'includes/templates/admin-header.php';
-
-		return (string) ob_get_clean();
+		return (string) ( $this->rest( 'GET', '/zero-spam/v1/license' )->get_data()['status'] ?? '' );
 	}
 
 	/**
@@ -94,7 +92,7 @@ class Test_License_Status_Screens extends TestCase {
 	}
 
 	/**
-	 * API answer, what the header says, and the widget's protection level line.
+	 * API answer, the status the admin shows, and the widget's protection level line.
 	 *
 	 * @return array<string, array{0: array<string, mixed>|string, 1: int, 2: string, 3: string|null}>
 	 */
@@ -108,7 +106,7 @@ class Test_License_Status_Screens extends TestCase {
 					'queries_remaining' => 900,
 				),
 				200,
-				'900 queries available',
+				License_Status::VALID,
 				'Enhanced · Active',
 			),
 			'quota used up'   => array(
@@ -119,7 +117,7 @@ class Test_License_Status_Screens extends TestCase {
 					'queries_remaining' => 0,
 				),
 				200,
-				'License query limit reached.',
+				License_Status::QUOTA_EXCEEDED,
 				'Enhanced · Query limit reached',
 			),
 			'invalid'         => array(
@@ -128,21 +126,21 @@ class Test_License_Status_Screens extends TestCase {
 					'response' => 'invalid_license',
 				),
 				200,
-				'(invalid license)',
+				License_Status::INVALID,
 				'Enhanced · License not valid',
 			),
-			'API unreachable' => array( 'down', 503, 'Couldn\'t verify your license right now', 'Enhanced · Couldn’t verify the license right now' ),
+			'API unreachable' => array( 'down', 503, License_Status::UNREACHABLE, 'Enhanced · Couldn’t verify the license right now' ),
 		);
 	}
 
 	/**
-	 * The header and the widget say the same thing, from one request.
+	 * The admin and the widget say the same thing, from one request.
 	 *
 	 * @dataProvider data_statuses
 	 *
 	 * @param array<string, mixed>|string $body   API answer.
 	 * @param int                         $code   HTTP status.
-	 * @param string                      $header Text in the header.
+	 * @param string                      $header Status the admin shows.
 	 * @param string|null                 $banner Widget protection level, or null for none.
 	 */
 	public function test_header_and_widget_agree( $body, int $code, string $header, ?string $banner ): void {
@@ -151,7 +149,7 @@ class Test_License_Status_Screens extends TestCase {
 		$header_html = $this->header();
 		$widget_html = $this->widget();
 
-		$this->assertStringContainsString( esc_html( $header ), $header_html );
+		$this->assertSame( $header, $header_html );
 
 		foreach ( array( 'Enhanced · Active', 'Enhanced · Query limit reached', 'Enhanced · License not valid', 'Enhanced · Couldn’t verify the license right now', 'Protection level: <b>Basic' ) as $candidate ) {
 			if ( $candidate === $banner ) {
@@ -186,13 +184,13 @@ class Test_License_Status_Screens extends TestCase {
 	}
 
 	/**
-	 * With Enhanced Protection off the header says so and nothing is requested.
+	 * With Enhanced Protection off the widget says Basic and nothing is requested.
 	 */
 	public function test_disabled_makes_no_request(): void {
 		update_option( 'zero-spam-zerospam', array( 'zerospam_license' => self::KEY ) );
 		self::reset_static_caches();
 
-		$this->assertStringContainsString( 'DISABLED', $this->header() );
+		$this->assertStringContainsString( 'Protection level: <b>Basic', $this->widget() );
 		$this->assertSame( array(), HttpMock::requests() );
 	}
 }

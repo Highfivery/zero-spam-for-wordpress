@@ -135,17 +135,15 @@ export class ZsApi {
 	 * @param preset                defaults | recommended | baseline (see the mu-plugin).
 	 * @param options               Options.
 	 * @param options.network       Reset the network settings and every site (super admin; default on a network).
-	 * @param options.promo         Let the Enhanced Protection promo notice show.
 	 * @param options.clearErrorLog Delete the plugin's error log file.
 	 * @param options.level         basic (no license key, the default) or enhanced (a key the canned API accepts as a Business license).
 	 *
 	 * Every reset also clears each user's 6.0 admin preferences (ui/prefs) and the cached news.
 	 */
-	reset( preset: Preset = 'baseline', options: { network?: boolean; promo?: boolean; clearErrorLog?: boolean; level?: Level } = {} ) {
+	reset( preset: Preset = 'baseline', options: { network?: boolean; clearErrorLog?: boolean; level?: Level } = {} ) {
 		return this.call( 'POST', 'reset', {
 			preset,
 			network: options.network ?? this.multisite,
-			promo: Boolean( options.promo ),
 			clearErrorLog: Boolean( options.clearErrorLog ),
 			level: options.level ?? 'basic',
 		} );

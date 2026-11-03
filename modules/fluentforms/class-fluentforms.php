@@ -59,7 +59,7 @@ class FluentForms {
 	 *
 	 * @see https://fluentforms.com/docs/fluentform_rendering_form/
 	 *
-	 * @param $form The $form Object.
+	 * @param object $form The form object.
 	 */
 	public function render_form( $form ) {
 		// Add Zero Spam's honeypot field.
@@ -197,6 +197,8 @@ class FluentForms {
 	 * @param object $form      The $form Object.
 	 */
 	public function validate_email( $error, $field, $form_data, $fields, $form ) {
+		unset( $fields, $form ); // Passed by Fluent Forms; not needed here.
+
 		$field_name = $field['name'];
 		if ( empty( $form_data[ $field_name ] ) ) {
 			return $error;
@@ -240,7 +242,6 @@ class FluentForms {
 	public function sections( $sections ) {
 		$sections['fluent_form'] = array(
 			'title' => __( 'Fluent Forms', 'zero-spam' ),
-			'icon'  => 'modules/fluentforms/icon-fluent-forms.svg',
 		);
 
 		return $sections;

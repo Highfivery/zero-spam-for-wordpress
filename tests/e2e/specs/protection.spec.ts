@@ -1,5 +1,5 @@
 /**
- * The 6.0 Protection area (ZEROSPAM_ADMIN_V6 is on in .wp-env*.json): no
+ * The 6.0 Protection area: no
  * request of its own on load, the tabs from the keyboard, cards built from
  * the settings schema (a third-party section included), saving with the
  * unsaved-changes bar (per-setting errors, Undo), the two new Security

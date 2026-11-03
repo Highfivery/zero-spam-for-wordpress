@@ -224,6 +224,9 @@ class Migrations {
 			// Upgraded sites show "What's new in 6.0" once per administrator; fresh installs get first-run setup instead.
 			'v6_whats_new'                 => array( \ZeroSpam\Core\Admin\Onboarding::class, 'migrate_whats_new' ),
 			'v6_template_orphans'          => array( $this, 'remove_template_orphans' ),
+			'v6_dismissals'                => array( $this, 'move_dismissals' ),
+			'v6_allowlist_follows_network' => array( $this, 'allowlist_follows_network' ),
+			'v6_remove_google_api'         => array( $this, 'remove_google_api' ),
 		);
 	}
 
@@ -601,8 +604,7 @@ class Migrations {
 		wp_cache_delete( 'wpzerospam', 'options' );
 		wp_cache_delete( 'alloptions', 'options' );
 
-		// Flag a one-time admin notice so users can verify their settings.
-		update_option( self::SETTINGS_REVIEW_NOTICE_OPTION, true, true );
+		// 5.x also flagged a "review your settings" notice here; that notice was removed in 6.0.0.
 
 		return true;
 	}
@@ -941,6 +943,133 @@ class Migrations {
 							number_format_i18n( $templates )
 						)
 					);
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * Moves the notice dismissals of 5.x into the one store of 6.0
+	 * (Core\Admin\Notices, option `zerospam_dismissed_notices`).
+	 *
+	 * Only the shared-IP warning survives the cutover, so only its dismissal
+	 * moves (`zerospam_shared_ip_warning_dismissed` → `shared-ip`); the 5.x
+	 * option stays in place for a downgrade. The dismissals of the notices
+	 * removed in 6.0 (API monitoring, settings review, the Enhanced
+	 * Protection promo) have nothing to move to; uninstall still removes
+	 * them. A dismissal already in the store wins.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return true
+	 */
+	public function move_dismissals(): bool {
+		$legacy = get_option( \ZeroSpam\Core\Admin\Shared_IP_Warning::DISMISSED_OPTION );
+
+		if ( is_string( $legacy ) && '' !== $legacy && null === \ZeroSpam\Core\Admin\Notices::dismissed( \ZeroSpam\Core\Admin\Shared_IP_Warning::NOTICE_ID ) ) {
+			\ZeroSpam\Core\Admin\Notices::remember( \ZeroSpam\Core\Admin\Shared_IP_Warning::NOTICE_ID, $legacy );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Lets a network site's empty IP Allowlist follow the network's list.
+	 *
+	 * 5.x stored `ip_whitelist` on a site whenever its settings were saved or
+	 * the recommended settings applied, as `false` or an empty string, and
+	 * any stored value is a site override (locked network value → site
+	 * override → network default): such a site never followed the list the
+	 * network administrator set. On a network, a stored value that is empty
+	 * (false, null, or only white space) is removed, so the site follows the
+	 * network's list (or has none, as before, when the network sets none).
+	 * A list with entries is the site's own and stays. Single sites are not
+	 * changed. The 5.x backup (`v6_backup_5x`, which runs first) keeps the
+	 * value removed here. Decided by the maintainer on 2026-11-02.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return true
+	 */
+	public function allowlist_follows_network(): bool {
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		$options = get_option( 'zero-spam-settings' );
+
+		if ( ! is_array( $options ) || ! array_key_exists( 'ip_whitelist', $options ) ) {
+			return true;
+		}
+
+		$value = $options['ip_whitelist'];
+
+		if ( false === $value || null === $value || ( is_string( $value ) && '' === trim( $value ) ) ) {
+			unset( $options['ip_whitelist'] );
+
+			// As a network write (switch_to_blog()): the site save filter would keep a value the network has locked, and the lock may be lifted later.
+			switch_to_blog( get_current_blog_id() );
+			update_option( 'zero-spam-settings', $options );
+			restore_current_blog();
+		}
+
+		return true;
+	}
+
+	/**
+	 * Removes the Google Maps API key, which nothing uses since 6.0.0 (the
+	 * detection details link to Google Maps instead of embedding a map).
+	 *
+	 * Deletes the site's `zero-spam-google` option and, once per network,
+	 * `google_api` from the network settings and the custom templates. The
+	 * 5.x backup (`v6_backup_5x`, which runs first) keeps the key; uninstall
+	 * still deletes `zero-spam-google`. Decided by the maintainer on
+	 * 2026-11-02.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request (another request
+	 *              holds the network lock).
+	 */
+	public function remove_google_api(): bool {
+		delete_option( 'zero-spam-google' );
+
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_remove_google_api',
+			static function (): bool {
+				global $wpdb;
+
+				$store = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( Network_Settings::META_KEY, array() ) );
+
+				if ( array_key_exists( 'google_api', $store['settings'] ) ) {
+					unset( $store['settings']['google_api'] );
+					update_site_option( Network_Settings::META_KEY, $store );
+					delete_site_transient( Network_Settings::cache_key() );
+				}
+
+				$table = $wpdb->base_prefix . DB::$tables['network_templates'];
+
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
+				$exists = $table === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table; only templates naming the key.
+				$rows = $exists ? $wpdb->get_results( $wpdb->prepare( 'SELECT template_id, settings FROM %i WHERE `network_id` = %d AND `settings` LIKE %s LIMIT %d', $table, (int) get_current_network_id(), '%' . $wpdb->esc_like( '"google_api"' ) . '%', 1000 ), ARRAY_A ) : array();
+
+				foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+					$settings = json_decode( (string) $row['settings'], true );
+
+					if ( ! is_array( $settings ) || ! array_key_exists( 'google_api', $settings ) ) {
+						continue;
+					}
+
+					unset( $settings['google_api'] );
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own row.
+					$wpdb->update( $table, array( 'settings' => wp_json_encode( $settings ) ), array( 'template_id' => (int) $row['template_id'] ) );
 				}
 
 				return true;
