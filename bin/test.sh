@@ -246,9 +246,10 @@ esac
 # Several checkouts of this repository (git worktrees used by parallel agents,
 # a second clone) may run the suite at the same time, so everything a run
 # writes is keyed by a short hash of the checkout path: the plugins directory
-# below and, unless WP_TESTS_DB_NAME is given, the test database names
-# (zerospam_tests_<id> and zerospam_tests_<id>_ms). The WordPress core and
-# test-library downloads in the cache are read-only and stay shared.
+# and the content directory below and, unless WP_TESTS_DB_NAME is given, the
+# test database names (zerospam_tests_<id> and zerospam_tests_<id>_ms). The
+# WordPress core and test-library downloads in the cache are read-only and
+# stay shared: nothing a run writes lands in them.
 checkout_id="$("${php_cmd[@]}" -r 'echo substr( md5( $argv[1] ), 0, 8 );' "$PWD")"
 
 # WordPress loads plugins from a plugins directory of its own, in which the
@@ -258,8 +259,18 @@ plugins_dir="$cache_dir/plugins-$checkout_id"
 mkdir -p "$plugins_dir"
 ln -sfn "$PWD" "$plugins_dir/zero-spam"
 
+# WP_CONTENT_DIR and WP_TEMP_DIR of the test install (wp-tests-config.php):
+# uploads/ (the plugin's zerospam.log, uploads/sites/{id}/ on a network,
+# fonts), upgrade/ and the temporary files of wp_tempnam() and get_temp_dir().
+# Before, uploads/ was the shared core's wp-content/uploads, so a run in one
+# checkout could leave a zerospam.log that another checkout's uninstall test
+# then found. Emptied before each run (single site and multisite), like the
+# database.
+content_dir="$cache_dir/content-$checkout_id"
+
 export ZEROSPAM_TESTS_CACHE="$cache_dir"
 export ZEROSPAM_WP_PLUGIN_DIR="$plugins_dir"
+export ZEROSPAM_WP_CONTENT_DIR="$content_dir"
 export ZEROSPAM_WP_VERSION="$wp_version"
 export ZEROSPAM_WP_CORE_DIR="$core_dir"
 export ZEROSPAM_WP_TESTS_DIR="$testlib_dir"
@@ -306,6 +317,16 @@ run_mode() {
 	local db_name="${user_db_name:-zerospam_tests_${checkout_id}}"
 	[[ "$run" == "multisite" ]] && db_name="${db_name}_ms"
 	export WP_TESTS_DB_NAME="$db_name"
+	# A fresh content directory for each run, as the database is recreated.
+	# Only this checkout's own directory in the cache is ever removed. An
+	# empty themes/ keeps the installer from calling wp_is_block_theme()
+	# "incorrectly" on a missing theme root.
+	if [[ -z "$checkout_id" || "$content_dir" != "$cache_dir/content-$checkout_id" ]]; then
+		echo "test.sh: unexpected content directory '${content_dir}'." >&2
+		return 1
+	fi
+	rm -rf "$content_dir"
+	mkdir -p "$content_dir/uploads" "$content_dir/tmp" "$content_dir/themes"
 	[[ -n "$suite" ]] && args+=(--testsuite "$suite")
 	[[ $known_defects -eq 1 ]] && args+=(--group known-defect)
 	if [[ $coverage -eq 1 ]]; then

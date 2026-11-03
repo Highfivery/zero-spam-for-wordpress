@@ -93,4 +93,36 @@ class Test_Environment extends TestCase {
 		$this->assertSame( realpath( dirname( __DIR__, 3 ) ), realpath( WP_PLUGIN_DIR . '/zero-spam' ) );
 		$this->assertSame( 'zero-spam/wordpress-zero-spam.php', plugin_basename( ZEROSPAM ) );
 	}
+
+	/**
+	 * What a run writes (uploads, the plugin's zerospam.log, temporary files)
+	 * goes to this checkout's own content directory, never into the WordPress
+	 * core that every checkout shares, so parallel runs from several
+	 * worktrees never see each other's files.
+	 */
+	public function test_writes_go_to_this_checkouts_content_directory(): void {
+		$content = getenv( 'ZEROSPAM_WP_CONTENT_DIR' );
+		$this->assertNotFalse( $content, 'bin/test.sh sets ZEROSPAM_WP_CONTENT_DIR.' );
+
+		$checkout_id = substr( md5( (string) realpath( dirname( __DIR__, 3 ) ) ), 0, 8 );
+		$this->assertStringEndsWith( '/content-' . $checkout_id, $content, 'The content directory is keyed by the checkout, like the databases.' );
+		$this->assertSame( $content, WP_CONTENT_DIR );
+
+		$core    = trailingslashit( (string) realpath( ABSPATH ) );
+		$uploads = wp_upload_dir( null, false )['basedir'];
+		$temp    = wp_tempnam( 'zerospam-env' );
+		wp_delete_file( $temp );
+		$paths = array(
+			'uploads'     => $uploads,
+			'error log'   => trailingslashit( $uploads ) . 'zerospam.log',
+			'temporary'   => get_temp_dir(),
+			'wp_tempnam'  => dirname( $temp ),
+			'upgrade dir' => WP_CONTENT_DIR . '/upgrade',
+		);
+
+		foreach ( $paths as $name => $path ) {
+			$this->assertStringStartsWith( $content . '/', trailingslashit( $path ), "{$name} is inside this checkout's content directory." );
+			$this->assertStringStartsNotWith( $core, trailingslashit( $path ), "{$name} is not inside the shared WordPress core." );
+		}
+	}
 }

@@ -107,10 +107,22 @@ export class ZsApi {
 			response = await send();
 		}
 		const body = await response.json().catch( async () => ( { raw: await response.text() } ) );
+		if ( body && 'string' === typeof body.raw && body.raw.includes( '"code":"zs_e2e_reset_failed"' ) ) {
+			// Output before the REST answer (a PHP notice) turns the 500 into a 200.
+			throw new Error( `zero-spam-e2e ${ method } ${ route }: the site was NOT reset. ${ body.raw }` );
+		}
 		if ( ! response.ok() ) {
 			if ( body && 'rest_cookie_invalid_nonce' === body.code ) {
 				await requestUtils.setupRest();
 				return this.call< T >( method, route, data );
+			}
+			if ( body && 'zs_e2e_reset_failed' === body.code ) {
+				// A reset that could not empty a table leaves the rows of earlier
+				// tests behind; stop here instead of failing later for no clear reason.
+				throw new Error( `zero-spam-e2e ${ method } ${ route }: the site was NOT reset. ${ body.message } (is the database or Docker disk full?)` );
+			}
+			if ( body && 'zs_e2e_restore_failed' === body.code ) {
+				throw new Error( `zero-spam-e2e ${ method } ${ route }: the site was only PARTLY restored. ${ body.message }. Tables before ${ body.data?.table ?? 'it' } are restored, the rest are not; fix the cause and POST the same snapshot again.` );
 			}
 			throw new Error( `zero-spam-e2e ${ method } ${ route } failed (${ response.status() }): ${ JSON.stringify( body ) }` );
 		}
