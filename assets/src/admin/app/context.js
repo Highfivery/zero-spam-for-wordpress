@@ -49,18 +49,24 @@ export function isEnhanced( license ) {
 /**
  * Follows a media query.
  *
- * @param {string} query Media query.
+ * @param {string}     query            Media query.
+ * @param {() => void} [onBeforeChange] Called just before a change is rendered, while the page still shows the old state.
  * @return {boolean} Matches.
  */
-export function useMedia( query ) {
+export function useMedia( query, onBeforeChange ) {
 	const get = () =>
 		'undefined' !== typeof window && window.matchMedia
 			? window.matchMedia( query ).matches
 			: false;
 	const [ matches, setMatches ] = useState( get );
+	const before = useRef( onBeforeChange );
+	before.current = onBeforeChange;
 	useEffect( () => {
 		const mq = window.matchMedia( query );
-		const on = () => setMatches( mq.matches );
+		const on = () => {
+			before.current?.();
+			setMatches( mq.matches );
+		};
 		mq.addEventListener( 'change', on );
 		return () => mq.removeEventListener( 'change', on );
 	}, [ query ] );

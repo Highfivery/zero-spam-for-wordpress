@@ -14,10 +14,11 @@ import { siteWall } from './site-time';
  * (a block's start or end, ending in Z) in the zone's offset for that date; a
  * date without a zone is already site time (date_added).
  *
- * @param {string|null} value Date.
+ * @param {string|null} value     Date.
+ * @param {Object}      [options] Options for day(), such as compact.
  * @return {string} "Thu, Oct 22", or ''.
  */
-export function siteDay( value ) {
+export function siteDay( value, options = {} ) {
 	const wall = siteWall( value, boot.timezone );
-	return wall ? day( wall, new Date( nowLocal() ) ) : '';
+	return wall ? day( wall, new Date( nowLocal() ), options ) : '';
 }

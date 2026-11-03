@@ -127,7 +127,7 @@ describe( 'a fresh render', () => {
 	afterAll( async () => {
 		await browser?.close();
 		rmSync( outDir, { recursive: true, force: true } );
-	} );
+	}, 60000 );
 
 	it.each( files )(
 		'%s still looks like what the sources render',
