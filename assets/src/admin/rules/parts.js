@@ -16,8 +16,17 @@ import { useEffect, useRef, useState } from '@wordpress/element';
 import { Badge, Button, Icon } from '../app/primitives';
 import { boot } from '../data/api';
 import { num } from '../data/format';
+import { siteDay as siteDayOf } from '../data/site-day';
 
-export { siteDay } from '../data/site-day';
+/**
+ * A block's date in the site's time zone (data/site-day.js), in the compact
+ * form the Rules lists use: no weekday next to a year ("Jan 15, 2099"), which
+ * keeps their date columns narrow. Other screens keep the weekday.
+ *
+ * @param {string|null} value Date.
+ * @return {string} "Thu, Oct 22" or "Jan 15, 2099", or ''.
+ */
+export const siteDay = ( value ) => siteDayOf( value, { compact: true } );
 
 /**
  * A search box that waits for a pause in typing (300 ms) before it

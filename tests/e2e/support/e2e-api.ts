@@ -179,6 +179,15 @@ export class ZsApi {
 	}
 
 	/**
+	 * Serves these strings as the plugin's script translations until the next reset.
+	 *
+	 * @param strings Translations by source string.
+	 */
+	scriptTranslations( strings: Record< string, string > ) {
+		return this.call( 'POST', 'script-translations', { strings } );
+	}
+
+	/**
 	 * Turns the fake third-party settings section on or off (Protection ›
 	 * Integrations renders it generically). Every reset turns it off.
 	 *

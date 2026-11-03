@@ -22,7 +22,7 @@ const SERVER_NOW = Date.UTC( 2026, 10, 2, 15, 0, 0 );
  * @param {Object} zone      The bootstrap's time zone.
  * @param {number} [skew]    Browser clock minus the real time, in milliseconds.
  * @param {number} [latency] Milliseconds between PHP and the script.
- * @return {Promise<Object>} siteDay and nowLocal.
+ * @return {Promise<Object>} siteDay, the Rules lists' compact siteDay and nowLocal.
  */
 async function page( zone, skew = 0, latency = 899 ) {
 	vi.resetModules();
@@ -35,9 +35,10 @@ async function page( zone, skew = 0, latency = 899 ) {
 			timezone: zone,
 		},
 	};
-	const { siteDay } = await import( '../../rules/parts' );
+	const { siteDay } = await import( '../site-day' );
+	const { siteDay: rulesDay } = await import( '../../rules/parts' );
 	const { nowLocal } = await import( '../api' );
-	return { siteDay, nowLocal };
+	return { siteDay, rulesDay, nowLocal };
 }
 
 describe( 'siteDay', () => {
@@ -95,5 +96,14 @@ describe( 'nowLocal (relative times)', () => {
 			const { nowLocal } = await page( NEW_YORK, skew, 0 );
 			expect( nowLocal() ).toBe( SERVER_NOW + NEW_YORK.offset * 1000 );
 		}
+	} );
+
+	it( 'the Rules lists drop the weekday next to a year, and only there', async () => {
+		const { siteDay, rulesDay } = await page( UTC );
+		expect( rulesDay( '2025-11-26T00:00:00Z' ) ).toBe( 'Nov 26, 2025' );
+		expect( siteDay( '2025-11-26T00:00:00Z' ) ).toBe( 'Wed, Nov 26, 2025' );
+		expect( rulesDay( '2026-10-22T00:00:00' ) ).toBe(
+			siteDay( '2026-10-22T00:00:00' )
+		);
 	} );
 } );
