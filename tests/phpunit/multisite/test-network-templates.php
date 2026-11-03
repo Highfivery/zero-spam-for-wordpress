@@ -163,6 +163,36 @@ class Test_Network_Templates extends TestCase {
 	}
 
 	/**
+	 * A built-in template cannot be deleted (403); a custom one can.
+	 */
+	public function test_delete_built_in_is_refused(): void {
+		foreach ( array( 'balanced', 'strict', 'relaxed' ) as $slug ) {
+			$exists = $this->rest( 'GET', '/zero-spam/v1/network-settings/templates/' . $slug );
+			if ( 200 !== $exists->get_status() ) {
+				continue;
+			}
+
+			$response = $this->rest( 'DELETE', '/zero-spam/v1/network-settings/templates/' . $slug );
+			$this->assertSame( 403, $response->get_status(), $slug );
+			$this->assertSame( 'zerospam_template_built_in', $response->get_data()['code'] );
+			$this->assertSame( 200, $this->rest( 'GET', '/zero-spam/v1/network-settings/templates/' . $slug )->get_status(), "{$slug} is still there." );
+		}
+
+		$this->assertSame( 403, $this->rest( 'DELETE', '/zero-spam/v1/network-settings/templates/balanced' )->get_status() );
+
+		$this->rest(
+			'POST',
+			'/zero-spam/v1/network-settings/templates',
+			array(
+				'name'     => 'Mine',
+				'slug'     => 'mine',
+				'settings' => array( 'max_logs' => 6000 ),
+			)
+		);
+		$this->assertSame( 200, $this->rest( 'DELETE', '/zero-spam/v1/network-settings/templates/mine' )->get_status() );
+	}
+
+	/**
 	 * Applying to the network writes the store once and keeps each lock.
 	 */
 	public function test_apply_to_network_writes_once(): void {

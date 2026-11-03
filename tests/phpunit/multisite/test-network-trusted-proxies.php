@@ -214,7 +214,7 @@ class Test_Network_Trusted_Proxies extends TestCase {
 
 		ob_start();
 		( new Shared_IP_Warning() )->render();
-		$html = (string) ob_get_clean();
+		$html                   = (string) ob_get_clean();
 		$GLOBALS['plugin_page'] = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the screen.
 
 		$this->assertStringContainsString( 'ask your network administrator', $html );

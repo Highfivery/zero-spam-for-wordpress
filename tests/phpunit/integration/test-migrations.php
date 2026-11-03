@@ -35,9 +35,9 @@ class Test_Migrations extends TestCase {
 		'v6_thresholds_sanitize',
 		'v6_whats_new',
 		'v6_template_orphans',
-			'v6_dismissals',
-			'v6_allowlist_follows_network',
-			'v6_remove_google_api',
+		'v6_dismissals',
+		'v6_allowlist_follows_network',
+		'v6_remove_google_api',
 	);
 
 	/**
