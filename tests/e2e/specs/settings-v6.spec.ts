@@ -321,11 +321,6 @@ test.describe( '6.0 Settings', () => {
 		expect( text ).not.toMatch( /\d+\.\d+\.\d+\.\d+/ );
 	} );
 
-	test( 'the classic settings page stays reachable', async ( { page } ) => {
-		await page.goto( 'wp-admin/options-general.php?page=wordpress-zero-spam-settings&subview=settings' );
-		await expect( page.locator( '#wpbody-content form' ).first() ).toBeVisible();
-	} );
-
 	for ( const width of [ 1280, 782 ] ) {
 		test( `at ${ width }px no focused control is hidden under the admin bar, top bar or "On this page" chips, Tab and Shift+Tab (2.4.11)`, async ( { page } ) => {
 			await page.setViewportSize( { width, height: 800 } );

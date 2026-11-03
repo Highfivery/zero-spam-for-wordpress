@@ -217,7 +217,7 @@ test.describe( 'First-run setup', () => {
 		await page.goto( OVERVIEW );
 		await onboardingReady( page );
 
-		// The legacy welcome notice gives way to the setup.
+		// The 5.x welcome notice is gone (removed in 6.0.0).
 		await expect( page.locator( '.notice', { hasText: 'Thanks for installing Zero Spam' } ) ).toHaveCount( 0 );
 
 		const steps = page.locator( '.zs-ob-steps li' );
