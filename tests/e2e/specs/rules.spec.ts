@@ -798,6 +798,8 @@ test.describe( '6.0 Rules', () => {
 	} );
 
 	test( 'narrow screens: cards with Select all and a Sort menu, Edit block from a card; no sideways scrolling', async ( { zs, newRoleContext } ) => {
+		// 30 page loads (five widths, six tabs): about a minute when both targets run at once.
+		test.slow();
 		await seedRules( zs );
 		for ( const [ width, height ] of [
 			[ 1439, 900 ],
