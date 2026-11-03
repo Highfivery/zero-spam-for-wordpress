@@ -63,11 +63,19 @@ final class Deprecated_Hooks {
 	}
 
 	/**
+	 * Raises a deprecation notice for each deprecated hook that has a callback
+	 * (the `admin_init` callback).
+	 */
+	public static function warn(): void {
+		self::check();
+	}
+
+	/**
 	 * Raises a deprecation notice for each deprecated hook that has a callback.
 	 *
 	 * @return string[] The hooks that have callbacks.
 	 */
-	public static function warn(): array {
+	public static function check(): array {
 		$hooked = array();
 
 		foreach ( self::HOOKS as $hook => $replacement ) {

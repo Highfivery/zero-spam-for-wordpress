@@ -274,13 +274,14 @@ final class Legacy_Endpoints {
 	}
 
 	/**
-	 * `zerospam_network_get_comparison`: GET network/comparison.
+	 * `zerospam_network_get_comparison`: GET network/comparison (its first
+	 * page of 20 sites, the most the route answers at once).
 	 *
 	 * @param string $action AJAX action.
 	 */
 	private function get_comparison( string $action ): void {
 		self::deprecated( $action, 'network/comparison' );
-		self::send( self::dispatch( 'GET', 'network/comparison', array( 'per_page' => 100 ) ), '' );
+		self::send( self::dispatch( 'GET', 'network/comparison', array( 'per_page' => 20 ) ), '' );
 	}
 
 	/**

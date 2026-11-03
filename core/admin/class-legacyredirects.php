@@ -101,7 +101,7 @@ final class Legacy_Redirects {
 	/**
 	 * 5.x network statistics periods and the 6.0 ones.
 	 *
-	 * @var array<string, string>
+	 * @var array<string|int, string>
 	 */
 	const PERIODS = array(
 		'today'     => 'today',
