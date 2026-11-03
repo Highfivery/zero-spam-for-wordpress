@@ -431,6 +431,12 @@ class Access {
 	/**
 	 * Helper to get blocked record details.
 	 *
+	 * A block applies from its start (`start_block`, UTC) until its end
+	 * (`end_block`, UTC, temporary blocks only). A NULL or empty start means
+	 * the block has already started; a temporary block without an end, or
+	 * with an end that cannot be read, never applies. Every comparison uses
+	 * one reading of the clock.
+	 *
 	 * @param array|false|null $blocked_record Blocked record from DB::blocked().
 	 * @param string|false     $failed         Failed check key, such as `blocked_ip`.
 	 */
@@ -443,29 +449,15 @@ class Access {
 			return $access_check;
 		}
 
-		$today = new \DateTime();
-
-		// Check the start & end dates (all blocks require a start date).
-		$start_date = new \DateTime();
-		if ( ! empty( $blocked_record['start_block'] ) ) {
-			$start_date = new \DateTime( $blocked_record['start_block'] );
-		}
+		$now   = time();
+		$start = self::block_time( $blocked_record['start_block'] ?? null );
 
 		$blocked = false;
-		if ( $today >= $start_date ) {
-			// Check the end date if temporary block.
-			if (
-				! empty( $blocked_record['blocked_type'] ) &&
-				'temporary' === $blocked_record['blocked_type']
-			) {
-				// Temporary block.
-				if ( ! empty( $blocked_record['end_block'] ) ) {
-					$end_date = new \DateTime( $blocked_record['end_block'] );
-
-					if ( $today < $end_date ) {
-						$blocked = true;
-					}
-				}
+		if ( null === $start || $now >= $start ) {
+			if ( isset( $blocked_record['blocked_type'] ) && 'temporary' === $blocked_record['blocked_type'] ) {
+				// Temporary block: applies until its end.
+				$end     = self::block_time( $blocked_record['end_block'] ?? null );
+				$blocked = null !== $end && $now < $end;
 			} else {
 				// Permanent block.
 				$blocked = true;
@@ -480,6 +472,24 @@ class Access {
 		}
 
 		return $access_check;
+	}
+
+	/**
+	 * A block's start or end as a Unix timestamp.
+	 *
+	 * @param mixed $value Stored date (`Y-m-d H:i:s`, UTC), NULL or empty.
+	 * @return int|null Null when there is no date or it cannot be read.
+	 */
+	private static function block_time( $value ): ?int {
+		if ( ! is_string( $value ) || '' === $value ) {
+			return null;
+		}
+
+		try {
+			return ( new \DateTimeImmutable( $value, new \DateTimeZone( 'UTC' ) ) )->getTimestamp();
+		} catch ( \Exception $e ) {
+			return null;
+		}
 	}
 
 	/**

@@ -8,6 +8,8 @@
 declare( strict_types=1 );
 
 use ZeroSpam\Core\Access;
+use ZeroSpam\Core\Utilities;
+use ZeroSpam\Includes\DB;
 use ZeroSpam\Tests\Stubs;
 use ZeroSpam\Tests\TestCase;
 
@@ -197,6 +199,79 @@ class Test_Access extends TestCase {
 		$checks = ( new Access() )->check_blocked( array(), self::DEFAULT_IP, array() );
 
 		$this->assertSame( $expected, ! empty( $checks['blocked']['blocked'] ) );
+	}
+
+	/**
+	 * Blocks without a start date, and whether they block now.
+	 *
+	 * Rows saved by 5.x screens, imports or other code can leave `start_block`
+	 * NULL; a missing start means the block has already started.
+	 *
+	 * @return array<string, array{0: string, 1: string|null, 2: int|null, 3: bool}>
+	 */
+	public static function data_blocks_without_a_start(): array {
+		return array(
+			'permanent, NULL start'                 => array( 'permanent', null, null, true ),
+			'permanent, empty start'                => array( 'permanent', '', null, true ),
+			'temporary, NULL start, active'         => array( 'temporary', null, DAY_IN_SECONDS, true ),
+			'temporary, empty start, active'        => array( 'temporary', '', DAY_IN_SECONDS, true ),
+			'temporary, NULL start, expired'        => array( 'temporary', null, -HOUR_IN_SECONDS, false ),
+			'temporary, NULL start, without an end' => array( 'temporary', null, null, false ),
+		);
+	}
+
+	/**
+	 * A block without a start date is enforced on every check, not only when
+	 * two clock readings happen to fall in the same microsecond.
+	 *
+	 * @dataProvider data_blocks_without_a_start
+	 *
+	 * @param string      $type     Block type.
+	 * @param string|null $start    Stored start (NULL or empty).
+	 * @param int|null    $end      End, seconds from now.
+	 * @param bool        $expected Whether the block applies now.
+	 */
+	public function test_block_without_a_start_has_started( string $type, ?string $start, ?int $end, bool $expected ): void {
+		$record = array(
+			'blocked_type' => $type,
+			'user_ip'      => self::DEFAULT_IP,
+			'start_block'  => $start,
+			'end_block'    => null === $end ? null : gmdate( 'Y-m-d H:i:s', time() + $end ),
+		);
+
+		for ( $i = 0; $i < 200; $i++ ) {
+			$this->assertSame( $expected, Access::get_blocked_details( $record, 'blocked_ip' )['blocked'], "Check {$i}" );
+		}
+	}
+
+	/**
+	 * A permanent block row whose start is NULL blocks the address on every
+	 * request, and is written to the .htaccess rules.
+	 */
+	public function test_permanent_block_with_a_null_start_is_always_enforced(): void {
+		global $wpdb;
+
+		$wpdb->insert(
+			$wpdb->prefix . DB::$tables['blocked'],
+			array(
+				'blocked_type' => 'permanent',
+				'user_ip'      => self::DEFAULT_IP,
+				'key_type'     => 'ip',
+				'date_added'   => current_time( 'mysql' ),
+				'start_block'  => null,
+				'end_block'    => null,
+				'reason'       => 'Test block',
+			)
+		);
+		$this->assertNull( $wpdb->get_var( $wpdb->prepare( 'SELECT start_block FROM %i WHERE blocked_id = %d', $wpdb->prefix . DB::$tables['blocked'], $wpdb->insert_id ) ) );
+
+		$access = new Access();
+		for ( $i = 0; $i < 50; $i++ ) {
+			$checks = $access->check_blocked( array(), self::DEFAULT_IP, array() );
+			$this->assertTrue( ! empty( $checks['blocked']['blocked'] ), "Request {$i} was let through." );
+		}
+
+		$this->assertContains( 'Require not ip ' . self::DEFAULT_IP, Utilities::htaccess_rules( 'htaccess_modern' ) );
 	}
 
 	/**
