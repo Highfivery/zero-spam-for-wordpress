@@ -39,7 +39,7 @@ class Test_Network_Legacy_Fixes extends TestCase {
 		delete_option( 'zero-spam-zerospam' );
 		delete_option( 'zero-spam-ipinfo' );
 		delete_transient( License_Status::TRANSIENT );
-		delete_transient( 'zerospam_site_breakdown_month_10_spam_count' );
+		delete_transient( 'zerospam_site_breakdown_' . get_current_network_id() . '_month_10_spam_count' );
 
 		$user = self::factory()->user->create( array( 'role' => 'administrator' ) );
 		grant_super_admin( $user );
@@ -59,7 +59,7 @@ class Test_Network_Legacy_Fixes extends TestCase {
 		);
 
 		$site = static function (): array {
-			delete_transient( 'zerospam_site_breakdown_month_10_spam_count' );
+			delete_transient( 'zerospam_site_breakdown_' . get_current_network_id() . '_month_10_spam_count' );
 			$rows = array_column( Network_Stats_Tracker::get_site_breakdown(), null, 'site_id' );
 
 			return $rows[ get_main_site_id() ];
