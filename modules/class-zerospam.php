@@ -192,7 +192,7 @@ class Zero_Spam {
 			'type'        => 'number',
 			'field_class' => 'small-text',
 			'suffix'      => __( 'day(s)', 'zero-spam' ),
-			'placeholder' => WEEK_IN_SECONDS,
+			'placeholder' => 14,
 			'min'         => 0,
 			'desc'        => __( 'How long to remember spam check results. Recommended: 14 days.', 'zero-spam' ),
 			'value'       => ! empty( $options['zerospam_cache'] ) ? $options['zerospam_cache'] : 14,
@@ -550,8 +550,8 @@ class Zero_Spam {
 		$response = get_transient( $cache_key );
 
 		if ( false === $response ) {
-			// A lapsed subscription: no visitor waits for an answer that cannot help.
-			if ( \ZeroSpam\Core\License_Status::is_inactive( (string) $settings['zerospam_license']['value'] ) ) {
+			// A lapsed subscription or a used-up plan: no visitor waits for an answer that cannot help.
+			if ( \ZeroSpam\Core\License_Status::lookups_paused( (string) $settings['zerospam_license']['value'] ) ) {
 				return false;
 			}
 
@@ -588,6 +588,10 @@ class Zero_Spam {
 					\ZeroSpam\Core\License_Status::mark_inactive( (string) $settings['zerospam_license']['value'] );
 				}
 
+				if ( is_array( $response ) && isset( $response['response'] ) && 'exceeded_requests' === $response['response'] ) {
+					\ZeroSpam\Core\License_Status::mark_quota_exceeded( (string) $settings['zerospam_license']['value'] );
+				}
+
 				if (
 					! is_array( $response ) ||
 					empty( $response['status'] ) ||
@@ -609,8 +613,8 @@ class Zero_Spam {
 				$response = $response['body_response'];
 
 				$expiration = 14 * DAY_IN_SECONDS;
-				if ( ! empty( $settings['zerospam_confidence_min']['value'] ) ) {
-					$expiration = $settings['zerospam_confidence_min']['value'] * DAY_IN_SECONDS;
+				if ( ! empty( $settings['zerospam_cache']['value'] ) ) {
+					$expiration = (int) $settings['zerospam_cache']['value'] * DAY_IN_SECONDS;
 				}
 
 				// Store persistently.

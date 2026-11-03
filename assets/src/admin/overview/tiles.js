@@ -245,7 +245,7 @@ function attentionAction( item, modules ) {
 			} ),
 		};
 	}
-	if ( 'license_inactive' === item.id ) {
+	if ( 'license_inactive' === item.id || 'quota_used_up' === item.id ) {
 		return {
 			label: __( 'Review your license', 'zero-spam' ),
 			href: areaUrl( 'protection', {

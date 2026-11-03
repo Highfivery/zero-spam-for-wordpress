@@ -39,6 +39,7 @@ class Test_Migrations extends TestCase {
 		'v6_allowlist_follows_network',
 		'v6_remove_google_api',
 		'v6_spam_message_wording',
+		'v6_usage_endpoint_privacy',
 	);
 
 	/**

@@ -50,6 +50,13 @@ final class License_Status {
 	const TRANSIENT = 'zerospam_license_status';
 
 	/**
+	 * Transient holding the hash of the key whose lookups are paused.
+	 *
+	 * @var string
+	 */
+	const PAUSE_TRANSIENT = 'zerospam_lookups_paused';
+
+	/**
 	 * How long an answer is kept.
 	 *
 	 * @var int
@@ -64,11 +71,12 @@ final class License_Status {
 	const UNREACHABLE_TTL = 15 * MINUTE_IN_SECONDS;
 
 	/**
-	 * How long an "inactive" answer is kept, so a renewal is seen soon.
+	 * How long a pause, an `inactive` answer or a `quota_exceeded` answer is
+	 * kept, so a renewal or a plan's reset is seen soon.
 	 *
 	 * @var int
 	 */
-	const INACTIVE_TTL = HOUR_IN_SECONDS;
+	const PAUSED_TTL = HOUR_IN_SECONDS;
 
 	/**
 	 * Plan names by the product IDs the API reports.
@@ -291,15 +299,58 @@ final class License_Status {
 	 * @return bool True if the subscription is inactive.
 	 */
 	public static function is_inactive( ?string $key = null ): bool {
+		return self::INACTIVE === self::cached_status( $key );
+	}
+
+	/**
+	 * Whether lookups are pointless for now: the subscription lapsed, or a
+	 * lookup was refused because the plan's queries are used up. Fail open: the
+	 * other checks keep working.
+	 *
+	 * A used-up plan pauses only on a refused lookup, never on the license
+	 * route's numbers, which can lag behind what the lookups would answer.
+	 * Only reads cached answers: no API request, so lookups can ask it.
+	 *
+	 * @param string|null $key The key in use, when the caller has it already.
+	 * @return bool True if lookups should not be made.
+	 */
+	public static function lookups_paused( ?string $key = null ): bool {
 		$key = trim( $key ?? self::key() );
 
 		if ( '' === $key ) {
 			return false;
 		}
 
+		return md5( $key ) === get_transient( self::PAUSE_TRANSIENT ) || self::is_inactive( $key );
+	}
+
+	/**
+	 * Lifts a pause: a lookup was answered, so the plan has queries again.
+	 */
+	public static function clear_pause(): void {
+		delete_transient( self::PAUSE_TRANSIENT );
+
+		if ( self::QUOTA_EXCEEDED === self::cached_status() ) {
+			delete_transient( self::TRANSIENT );
+			self::$current = array();
+		}
+	}
+
+	/**
+	 * The cached status of a key, or '' when none is cached for it.
+	 *
+	 * @param string|null $key The key in use, when the caller has it already.
+	 */
+	private static function cached_status( ?string $key = null ): string {
+		$key = trim( $key ?? self::key() );
+
+		if ( '' === $key ) {
+			return '';
+		}
+
 		$cached = get_transient( self::TRANSIENT );
 
-		return is_array( $cached ) && isset( $cached['hash'], $cached['answer']['status'] ) && md5( $key ) === $cached['hash'] && self::INACTIVE === $cached['answer']['status'];
+		return is_array( $cached ) && isset( $cached['hash'], $cached['answer']['status'] ) && md5( $key ) === $cached['hash'] ? (string) $cached['answer']['status'] : '';
 	}
 
 	/**
@@ -309,6 +360,35 @@ final class License_Status {
 	 */
 	public static function mark_inactive( string $key ): void {
 		self::remember( $key, self::answer( self::INACTIVE ) );
+	}
+
+	/**
+	 * Records that a lookup was refused because the plan's queries are used
+	 * up: lookups pause for an hour, so at most one an hour finds out when the
+	 * plan has queries again. A cached answer says so too, keeping the plan.
+	 *
+	 * @param string $key License key.
+	 */
+	public static function mark_quota_exceeded( string $key ): void {
+		$key = trim( $key );
+
+		set_transient( self::PAUSE_TRANSIENT, md5( $key ), self::PAUSED_TTL );
+
+		$cached = get_transient( self::TRANSIENT );
+
+		if ( ! is_array( $cached ) || ! isset( $cached['hash'], $cached['answer'] ) || md5( $key ) !== $cached['hash'] ) {
+			return;
+		}
+
+		$answer           = $cached['answer'];
+		$answer['status'] = self::QUOTA_EXCEEDED;
+
+		if ( isset( $answer['queries']['limit'] ) ) {
+			$answer['queries']['used']      = $answer['queries']['limit'];
+			$answer['queries']['remaining'] = 0;
+		}
+
+		self::remember( $key, $answer );
 	}
 
 	/**
@@ -322,6 +402,7 @@ final class License_Status {
 		}
 
 		delete_transient( self::TRANSIENT );
+		delete_transient( self::PAUSE_TRANSIENT );
 		self::$current = array();
 	}
 
@@ -397,7 +478,7 @@ final class License_Status {
 				'hash'   => $hash,
 				'answer' => $answer,
 			),
-			self::UNREACHABLE === $answer['status'] ? self::UNREACHABLE_TTL : ( self::INACTIVE === $answer['status'] ? self::INACTIVE_TTL : self::TTL )
+			self::UNREACHABLE === $answer['status'] ? self::UNREACHABLE_TTL : ( in_array( $answer['status'], array( self::INACTIVE, self::QUOTA_EXCEEDED ), true ) ? self::PAUSED_TTL : self::TTL )
 		);
 
 		return $answer;

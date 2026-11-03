@@ -149,6 +149,20 @@ class Migrations {
 	public float $blocked_ip_time_budget = 2.0;
 
 	/**
+	 * Where the usage table's cleaning has got to.
+	 *
+	 * @var string
+	 */
+	private const USAGE_CURSOR_OPTION = 'zerospam_usage_clean_cursor';
+
+	/**
+	 * Row IDs of the usage table cleaned per request.
+	 *
+	 * @var int
+	 */
+	private static int $usage_batch = 5000;
+
+	/**
 	 * The settings that held an old default message, by module.
 	 *
 	 * @var array<string, string[]>
@@ -247,6 +261,7 @@ class Migrations {
 			'v6_allowlist_follows_network' => array( $this, 'allowlist_follows_network' ),
 			'v6_remove_google_api'         => array( $this, 'remove_google_api' ),
 			'v6_spam_message_wording'      => array( $this, 'spam_message_wording' ),
+			'v6_usage_endpoint_privacy'    => array( $this, 'usage_endpoint_privacy' ),
 		);
 	}
 
@@ -1095,6 +1110,84 @@ class Migrations {
 				return true;
 			}
 		);
+	}
+
+	/**
+	 * Removes what earlier versions stored in the usage table.
+	 *
+	 * `endpoint` held whole request URLs: the license key and, for lookups, the
+	 * visitor's address. `request_params` of a cache hit held the address too.
+	 * Nothing reads either. The table is the network's, so this runs once per
+	 * network, one range of rows per request and one request at a time (it runs
+	 * on `init`, also for visitors).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to carry on with a later request.
+	 */
+	public function usage_endpoint_privacy(): bool {
+		if ( is_multisite() ) {
+			return $this->run_network_once(
+				'v6_usage_endpoint_privacy',
+				static function (): bool {
+					return self::clean_usage_rows();
+				}
+			);
+		}
+
+		if ( ! self::acquire_lock( self::NETWORK_LOCK_OPTION ) ) {
+			return false;
+		}
+
+		try {
+			return self::clean_usage_rows();
+		} finally {
+			delete_option( self::NETWORK_LOCK_OPTION );
+		}
+	}
+
+	/**
+	 * Cleans one range of the usage table, continuing where the last one ended.
+	 *
+	 * @return bool True when the table is done; false to carry on, also after a
+	 *              database error (the keys must not stay behind).
+	 */
+	private static function clean_usage_rows(): bool {
+		global $wpdb;
+
+		$table = $wpdb->base_prefix . DB::$tables['api_usage'];
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
+		$bounds = $wpdb->get_row( $wpdb->prepare( 'SELECT MIN(`usage_id`) AS low, MAX(`usage_id`) AS high FROM %i', $table ), ARRAY_A );
+
+		if ( ! is_array( $bounds ) || null === $bounds['high'] ) {
+			return true;
+		}
+
+		$from = max( (int) get_site_option( self::USAGE_CURSOR_OPTION, 0 ), (int) $bounds['low'] - 1 );
+		$to   = $from + self::$usage_batch;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table, by primary key range.
+		$rows = $wpdb->query( $wpdb->prepare( "UPDATE %i SET `endpoint` = SUBSTRING_INDEX(`endpoint`, %s, 1), `request_params` = IF(`event_type` = 'cache_hit', NULL, `request_params`) WHERE `usage_id` > %d AND `usage_id` <= %d", $table, '?', $from, $to ) );
+
+		if ( false === $rows ) {
+			return false;
+		}
+
+		if ( $to >= (int) $bounds['high'] ) {
+			delete_site_option( self::USAGE_CURSOR_OPTION );
+
+			return true;
+		}
+
+		update_site_option( self::USAGE_CURSOR_OPTION, $to );
+
+		return false;
 	}
 
 	/**

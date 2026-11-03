@@ -290,6 +290,27 @@ class Test_Rest_Self_Test extends TestCase {
 		list( , $steps ) = $this->run_self_test();
 
 		$this->assertTrue( $steps['reputation']['services'][0]['ok'] );
+		$this->assertSame( 'warn', $steps['reputation']['status'] );
+		$this->assertStringContainsString( 'used up', $steps['reputation']['message'] );
+
+		list( , $steps ) = $this->run_self_test();
+
+		$this->assertStringContainsString( 'used up', $steps['reputation']['message'] );
+
+		// The plan was reset: the owner's own test finds that and ends the pause.
+		HttpMock::reset();
+		$this->mock_http(
+			'#/wp-json/v3/query#',
+			array(
+				'status'        => 200,
+				'body_response' => array(),
+			)
+		);
+
+		list( , $steps ) = $this->run_self_test();
+
+		$this->assertSame( 'pass', $steps['reputation']['status'] );
+		$this->assertFalse( \ZeroSpam\Core\License_Status::lookups_paused() );
 	}
 
 	/**
