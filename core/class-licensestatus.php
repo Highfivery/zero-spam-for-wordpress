@@ -287,10 +287,11 @@ final class License_Status {
 	 *
 	 * Only reads the cached answer: no API request, so lookups can ask it.
 	 *
+	 * @param string|null $key The key in use, when the caller has it already.
 	 * @return bool True if the subscription is inactive.
 	 */
-	public static function is_inactive(): bool {
-		$key = self::key();
+	public static function is_inactive( ?string $key = null ): bool {
+		$key = trim( $key ?? self::key() );
 
 		if ( '' === $key ) {
 			return false;

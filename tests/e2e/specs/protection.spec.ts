@@ -369,6 +369,15 @@ test.describe( '6.0 Protection', () => {
 		await expect( card.locator( '.zs-notice-warn' ) ).toContainText( "Your subscription isn't active" );
 		await expect( card.getByRole( 'link', { name: 'Renew your subscription' } ) ).toHaveAttribute( 'href', /zerospam\.org\/pricing/ );
 		await expect( card ).toContainText( 'Subscription inactive' );
+
+		await card.getByRole( 'button', { name: 'Check again' } ).click();
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( "still isn't active" );
+		await expect( card.getByRole( 'button', { name: 'Check again' } ) ).toBeFocused();
+
+		await card.getByRole( 'button', { name: 'Remove license key' } ).click();
+		await card.getByRole( 'button', { name: 'Yes, remove the key' } ).click();
+		await expect( page.locator( '.zs-toasts' ) ).toContainText( 'License key removed' );
+		await expect( card.locator( '.zs-notice-warn' ) ).toHaveCount( 0 );
 	} );
 
 	test( 'Enhanced: the license panel, early access and the self-test latency', async ( { page, zs } ) => {

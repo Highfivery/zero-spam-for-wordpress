@@ -480,8 +480,8 @@ class Zero_Spam {
 
 		// A real key whose subscription lapsed: the API answers, without the key.
 		if ( isset( $license_data['response'] ) && 'subscription_inactive' === $license_data['response'] ) {
+			// Not cached here: License_Status keeps it for an hour, so a renewal is seen then.
 			$license_data['status'] = 'inactive';
-			set_transient( $cache_key, $license_data, HOUR_IN_SECONDS );
 
 			return $license_data;
 		}
@@ -551,7 +551,7 @@ class Zero_Spam {
 
 		if ( false === $response ) {
 			// A lapsed subscription: no visitor waits for an answer that cannot help.
-			if ( \ZeroSpam\Core\License_Status::is_inactive() ) {
+			if ( \ZeroSpam\Core\License_Status::is_inactive( (string) $settings['zerospam_license']['value'] ) ) {
 				return false;
 			}
 

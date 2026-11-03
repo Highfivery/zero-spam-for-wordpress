@@ -1183,8 +1183,17 @@ class Migrations {
 			"We're sorry, but we're unable to process the transaction. Your IP has been flagged as possible spam.",
 		);
 
+		// The stored text is in the site's language; in wp-admin __() follows the administrator's.
+		$switched = switch_to_locale( get_locale() );
+
 		// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- Looks up the old defaults' translations; the strings are no longer in the plugin, but language packs may still hold them.
-		return array_values( array_unique( array_merge( $old, array_map( static fn( string $text ): string => __( $text, 'zero-spam' ), $old ) ) ) );
+		$translated = array_map( static fn( string $text ): string => __( $text, 'zero-spam' ), $old );
+
+		if ( $switched ) {
+			restore_previous_locale();
+		}
+
+		return array_values( array_unique( array_merge( $old, $translated ) ) );
 	}
 
 	/**

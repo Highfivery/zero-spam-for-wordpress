@@ -305,6 +305,30 @@ class Test_Rest_Self_Test extends TestCase {
 
 		$this->assertSame( 0, HttpMock::hits( '#/wp-json/v3/query#' ) );
 		$this->assertNotContains( 'zero_spam', array_column( $steps['reputation']['services'], 'id' ) );
+		$this->assertSame( 'warn', $steps['reputation']['status'] );
+		$this->assertStringContainsString( 'subscription', $steps['reputation']['message'] );
+	}
+
+	/**
+	 * A lapse the cached license does not know yet is not reported as an outage.
+	 */
+	public function test_zero_spam_finding_a_lapse_says_so(): void {
+		$this->set_setting( 'zerospam', 'enabled' );
+		$this->set_setting( 'zerospam_license', 'test-key-1' );
+		$this->mock_http(
+			'#/wp-json/v3/query#',
+			array(
+				'status'   => 403,
+				'response' => 'subscription_inactive',
+			),
+			403
+		);
+
+		list( , $steps ) = $this->run_self_test();
+
+		$this->assertSame( 'warn', $steps['reputation']['status'] );
+		$this->assertStringContainsString( 'subscription', $steps['reputation']['message'] );
+		$this->assertTrue( \ZeroSpam\Core\License_Status::is_inactive() );
 	}
 
 	/**

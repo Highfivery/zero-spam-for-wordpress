@@ -449,9 +449,23 @@ class Self_Test_Controller extends Base_Controller {
 					);
 				},
 				static function ( array $data ): bool {
-					// A plan with no queries left is refused with its reason: the network is answering.
-					return ( isset( $data['status'] ) && 200 === (int) $data['status'] ) || ( isset( $data['response'] ) && 'exceeded_requests' === $data['response'] );
+					$reason = $data['response'] ?? '';
+
+					if ( 'subscription_inactive' === $reason ) {
+						License_Status::mark_inactive( License_Status::key() );
+					}
+
+					// A plan with no queries left or a lapsed subscription is refused with its reason: the network is answering.
+					return ( isset( $data['status'] ) && 200 === (int) $data['status'] ) || in_array( $reason, array( 'exceeded_requests', 'subscription_inactive' ), true );
 				}
+			);
+		}
+
+		if ( License_Status::is_enabled() && License_Status::is_inactive() ) {
+			return array(
+				'status'   => 'warn',
+				'message'  => __( 'Your Zero Spam subscription isn\'t active, so visitors aren\'t being checked against the Zero Spam network until you renew. Every other check keeps working.', 'zero-spam' ),
+				'services' => $services,
 			);
 		}
 
