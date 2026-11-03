@@ -437,7 +437,7 @@ class Test_Login_Flows extends TestCase {
 
 		$result = $this->log_in( $post, self::PASSWORD );
 		$this->assertRefused( $result );
-		$this->assertSame( 'Your IP has been flagged as spam/malicious.', $result->get_error_message() );
+		$this->assertSame( \ZeroSpam\Core\Utilities::spam_message(), $result->get_error_message() );
 	}
 
 	/**
@@ -452,7 +452,7 @@ class Test_Login_Flows extends TestCase {
 
 		$result = $this->log_in( $this->full_form( self::PASSWORD, 'not-a-valid-key' ), self::PASSWORD );
 		$this->assertRefused( $result );
-		$this->assertSame( 'Your IP has been flagged as spam/malicious.', $result->get_error_message() );
+		$this->assertSame( \ZeroSpam\Core\Utilities::spam_message(), $result->get_error_message() );
 		$this->assertSame( 'david_walsh_invalid', $this->last_login_log()['failed'] ?? null );
 	}
 

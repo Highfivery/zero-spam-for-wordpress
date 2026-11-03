@@ -212,6 +212,126 @@ export function KeyForm( {
 }
 
 /**
+ * A lapsed subscription: what it means, how to renew, how to check again after
+ * renewing, and how to stop being reminded by removing the key.
+ *
+ * @param {Object}                          props             Props.
+ * @param {(...args: unknown[]) => unknown} [props.onChanged] After the key changed.
+ */
+function InactiveNotice( { onChanged } ) {
+	const { license, setLicense, modulesState } = useApp();
+	const { toast } = useFeedback();
+	const [ busy, setBusy ] = useState( false );
+	const [ asking, setAsking ] = useState( false );
+	const [ error, setError ] = useState( '' );
+	const check = useRef( null );
+	const focusAfterRender = useFocusAfterRender();
+
+	const fail = ( failure ) => {
+		setBusy( false );
+		setError( keyError( failure ) );
+		focusAfterRender( () => focusIfEnabled( check.current ) );
+	};
+
+	const checkAgain = () => {
+		setBusy( true );
+		setError( '' );
+		request( { path: `${ NS }/license?refresh=1` } )
+			.then( ( answer ) => {
+				const still = 'inactive' === answer?.status;
+				setLicense( answer );
+				modulesState?.reload?.();
+				toast(
+					still
+						? __(
+								"The subscription still isn't active.",
+								'zero-spam'
+							)
+						: __( 'Your license was checked again.', 'zero-spam' )
+				);
+				setBusy( false );
+				if ( still ) {
+					focusAfterRender( () => focusIfEnabled( check.current ) );
+				} else {
+					focusCard( 'zerospam' );
+				}
+			} )
+			.catch( fail );
+	};
+
+	const remove = () => {
+		setBusy( true );
+		setError( '' );
+		request( { path: `${ NS }/license`, method: 'DELETE' } )
+			.then( ( answer ) => {
+				setLicense( answer );
+				modulesState?.reload?.();
+				onChanged?.();
+				toast(
+					__(
+						"License key removed. You're on Basic protection.",
+						'zero-spam'
+					)
+				);
+				focusCard( 'zerospam' );
+			} )
+			.catch( fail );
+	};
+
+	return (
+		<div className="zs-notice zs-notice-warn" role="note">
+			<Icon name="warn" size="sm" />
+			<div>
+				<p>
+					{ __(
+						"Your subscription isn't active, so Enhanced Protection is paused. Every other check keeps working, and your license key stays saved: once you renew, it starts again by itself.",
+						'zero-spam'
+					) }{ ' ' }
+					<a
+						href="https://www.zerospam.org/pricing/"
+						target="_blank"
+						rel="noreferrer noopener"
+					>
+						{ __( 'Renew your subscription', 'zero-spam' ) }
+					</a>
+				</p>
+				<div className="zs-inline-row">
+					<Button
+						ref={ check }
+						variant="secondary"
+						size="sm"
+						onClick={ checkAgain }
+						disabled={ busy }
+					>
+						{ __( 'Check again', 'zero-spam' ) }
+					</Button>
+					{ canRemoveKey( license ) &&
+						( asking ? (
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={ remove }
+								disabled={ busy }
+							>
+								{ __( 'Yes, remove the key', 'zero-spam' ) }
+							</Button>
+						) : (
+							<button
+								type="button"
+								className="zs-linkbtn zs-linkbtn-quiet"
+								onClick={ () => setAsking( true ) }
+							>
+								{ __( 'Remove license key', 'zero-spam' ) }
+							</button>
+						) ) }
+				</div>
+				{ error && <p role="alert">{ error }</p> }
+			</div>
+		</div>
+	);
+}
+
+/**
  * Basic: what Enhanced adds, with Compare levels and the key form.
  *
  * @param {Object}                          props             Props.
@@ -294,6 +414,9 @@ function BasicPanel( { locked, onChanged } ) {
 						) }
 					</span>
 				</p>
+			) }
+			{ 'inactive' === license?.status && (
+				<InactiveNotice onChanged={ onChanged } />
 			) }
 			<div id="zs-keyform-wrap" hidden={ ! form }>
 				{ form && (
@@ -525,6 +648,7 @@ export function LevelPanel( { latency, locked, onChanged } ) {
 	if (
 		license?.key?.set &&
 		'invalid' !== license.status &&
+		'inactive' !== license.status &&
 		'none' !== license.status
 	) {
 		return (

@@ -128,4 +128,11 @@ describe( 'key flow', () => {
 			canRemoveKey( { key: { set: false, source: 'default' } } )
 		).toBe( false );
 	} );
+
+	it( 'says a saved key with a lapsed subscription is paused, and does not turn it on', () => {
+		const result = keySaved( { status: 'inactive', enabled: true } );
+		expect( result.working ).toBe( false );
+		expect( result.enable ).toBe( false );
+		expect( result.message ).toContain( "subscription isn't active" );
+	} );
 } );

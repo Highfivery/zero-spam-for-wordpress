@@ -450,6 +450,7 @@ class Zero_Spam {
 	 * @param string $license The license key.
 	 * @return array|false License data (with `license_key`) when valid,
 	 *                     `array( 'status' => 'invalid' )` when the API rejected the key,
+	 *                     the answer with `status` `inactive` when its subscription lapsed,
 	 *                     or false when the key couldn't be verified (API unreachable).
 	 */
 	public static function get_license( $license ) {
@@ -476,6 +477,14 @@ class Zero_Spam {
 		}
 
 		$license_data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		// A real key whose subscription lapsed: the API answers, without the key.
+		if ( isset( $license_data['response'] ) && 'subscription_inactive' === $license_data['response'] ) {
+			// Not cached here: License_Status keeps it for an hour, so a renewal is seen then.
+			$license_data['status'] = 'inactive';
+
+			return $license_data;
+		}
 
 		if ( ! empty( $license_data['license_key'] ) ) {
 			set_transient( $cache_key, $license_data, HOUR_IN_SECONDS );
@@ -541,6 +550,11 @@ class Zero_Spam {
 		$response = get_transient( $cache_key );
 
 		if ( false === $response ) {
+			// A lapsed subscription: no visitor waits for an answer that cannot help.
+			if ( \ZeroSpam\Core\License_Status::is_inactive( (string) $settings['zerospam_license']['value'] ) ) {
+				return false;
+			}
+
 			$endpoint = ZEROSPAM_URL . 'wp-json/v3/query';
 
 			$query_params = array(
@@ -569,6 +583,10 @@ class Zero_Spam {
 			if ( $raw_response && ! is_wp_error( $raw_response ) ) {
 				$body     = wp_remote_retrieve_body( $raw_response );
 				$response = json_decode( $body, true );
+
+				if ( is_array( $response ) && isset( $response['response'] ) && 'subscription_inactive' === $response['response'] ) {
+					\ZeroSpam\Core\License_Status::mark_inactive( (string) $settings['zerospam_license']['value'] );
+				}
 
 				if (
 					! is_array( $response ) ||

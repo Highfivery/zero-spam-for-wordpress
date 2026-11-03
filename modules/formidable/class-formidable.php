@@ -97,7 +97,7 @@ class Formidable {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'Your IP has been flagged as spam/malicious.', 'zero-spam' );
+		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['formidable_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),

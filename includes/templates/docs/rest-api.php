@@ -413,7 +413,7 @@ console.log(result);</code></pre>
 			</div>
 
 			<h3><?php esc_html_e( 'GET, PUT and DELETE /license — The Zero Spam License', 'zero-spam' ); ?></h3>
-			<p><?php esc_html_e( 'GET returns the license status (none, valid, invalid, unreachable or quota_exceeded), the plan, query counts and the masked key; add refresh=1 to ask the Zero Spam API again. PUT with {"license_key": "…"} checks the key and saves it (a rejected key is not saved). DELETE removes the key this site stores; a key set by the network or in wp-config.php is refused with 409. Administrators only.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'GET returns the license status (none, valid, invalid, inactive, unreachable or quota_exceeded), the plan, query counts and the masked key; add refresh=1 to ask the Zero Spam API again. PUT with {"license_key": "…"} checks the key and saves it (a rejected key is not saved). DELETE removes the key this site stores; a key set by the network or in wp-config.php is refused with 409. Administrators only.', 'zero-spam' ); ?></p>
 			<div class="zerospam-docs-code-block">
 				<pre><code>curl -X PUT -u "admin:APP_PASSWORD" \
 	-H "Content-Type: application/json" \
