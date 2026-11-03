@@ -307,7 +307,9 @@ test.describe( '6.0 Network', { tag: '@multisite' }, () => {
 			for await ( const chunk of stream ) {
 				csv += String( chunk );
 			}
-			expect( csv.trim().split( '\r\n' ) ).toHaveLength( 3 );
+			// A header, then one line per site of the network (wp-env has two, a Local network may have more).
+			const sites = await page.evaluate( () => ( window as unknown as { zeroSpamAdmin: { network: { sites: number } } } ).zeroSpamAdmin.network.sites );
+			expect( csv.trim().split( '\r\n' ) ).toHaveLength( 1 + sites );
 		} );
 	} );
 

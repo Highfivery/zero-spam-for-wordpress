@@ -44,6 +44,30 @@ async function tabTo( page: Page, selector: string, max = 150 ): Promise< boolea
 /** Text of the screen reader live regions. */
 const announced = ( page: Page ) => page.locator( '[data-zs-live]' ).allTextContents().then( ( t ) => t.join( ' ' ) );
 
+/**
+ * Records what each copy puts on the clipboard. A plain http:// admin (the
+ * Local sites) has no navigator.clipboard, so a test cannot read it back
+ * there: the selection a copy event copies is what reached the clipboard.
+ */
+async function recordCopies( page: Page ): Promise< void > {
+	await page.addInitScript( () => {
+		const w = window as unknown as { zsCopied: string[] };
+		w.zsCopied = [];
+		document.addEventListener( 'copy', () => {
+			const field = document.activeElement as HTMLTextAreaElement | null;
+			const selected = field && 'TEXTAREA' === field.tagName ? field.value.slice( field.selectionStart, field.selectionEnd ) : String( window.getSelection() );
+			w.zsCopied.push( selected );
+		}, true );
+	} );
+}
+
+/** The copied text: the Clipboard API where the page has it, else the last recorded copy. */
+async function copiedText( page: Page ): Promise< string > {
+	return page.evaluate( () =>
+		navigator.clipboard ? navigator.clipboard.readText() : ( ( window as unknown as { zsCopied: string[] } ).zsCopied.at( -1 ) ?? '' )
+	);
+}
+
 test.describe( '6.0 Settings', () => {
 	test.beforeEach( async ( { zs } ) => {
 		await zs.reset( 'baseline' );
@@ -313,10 +337,11 @@ test.describe( '6.0 Settings', () => {
 
 	test( 'the system report is copied to the clipboard', async ( { page, context } ) => {
 		await context.grantPermissions( [ 'clipboard-read', 'clipboard-write' ] );
+		await recordCopies( page );
 		await openSettings( page, 'debug' );
 		await page.getByRole( 'button', { name: 'Copy system report' } ).click();
 		await expect( page.locator( '.zs-toasts' ) ).toContainText( 'Copied to clipboard' );
-		const text = await page.evaluate( () => navigator.clipboard.readText() );
+		const text = await copiedText( page );
 		expect( text ).toMatch( /^Zero Spam \S+ · WordPress \S+ · PHP \S+ · Basic · / );
 		expect( text ).not.toMatch( /\d+\.\d+\.\d+\.\d+/ );
 	} );
@@ -327,6 +352,7 @@ test.describe( '6.0 Settings', () => {
 		await page.addInitScript( () => {
 			Object.defineProperty( Navigator.prototype, 'clipboard', { get: () => undefined, configurable: true } );
 		} );
+		await recordCopies( page );
 		await openSettings( page, 'debug' );
 		expect( await page.evaluate( () => typeof navigator.clipboard ) ).toBe( 'undefined' );
 		const button = page.getByRole( 'button', { name: 'Copy system report' } );
@@ -335,11 +361,8 @@ test.describe( '6.0 Settings', () => {
 		await expect( page.locator( '.zs-copyfb' ) ).toHaveCount( 0 );
 		await expect( button ).toBeFocused();
 
-		// Read it back from a page that still has the Clipboard API.
-		const reader = await context.newPage();
-		await reader.goto( page.url() );
-		const text = await reader.evaluate( () => navigator.clipboard.readText() );
-		await reader.close();
+		// What execCommand( 'copy' ) put on the clipboard: the selection it copied.
+		const text = await page.evaluate( () => ( window as unknown as { zsCopied: string[] } ).zsCopied.at( -1 ) ?? '' );
 		expect( text ).toMatch( /^Zero Spam \S+ · WordPress \S+ · PHP \S+ · Basic · / );
 	} );
 
