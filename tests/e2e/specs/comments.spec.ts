@@ -34,6 +34,16 @@ test.describe( 'Comment protection', () => {
 		expect( await zs.logRows( { ip: visitor.ip } ) ).toEqual( [] );
 	} );
 
+	test( 'Stop Forum Spam: a comment from a listed email is blocked and logged with a real reason', async ( { visitor, zs } ) => {
+		await zs.set( { stop_forum_spam: 'enabled' } );
+		const form = new CommentForm( visitor.page );
+		await form.goto();
+		await form.fill( { author: 'Listed Person', email: 'e2e-sfs-listed@example.com', comment: `Listed ${ Date.now() }` } );
+		expect( await form.submit() ).toBe( 403 );
+		const rows = await zs.logRows( { ip: visitor.ip, type: 'comment' } );
+		expect( rows.map( ( r ) => r.submission_data?.failed ) ).toEqual( [ 'stop_forum_spam_email' ] );
+	} );
+
 	test( 'a bot that fills the honeypot is blocked with the comment spam message and logged as comment/honeypot', async ( { bot, zs, page, gallery } ) => {
 		const { postId, honeypot } = await scrapeForm( bot.request );
 		expect( honeypot, 'the honeypot field is rendered' ).not.toBe( '' );
