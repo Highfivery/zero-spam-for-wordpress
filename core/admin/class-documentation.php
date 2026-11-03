@@ -27,9 +27,6 @@ defined( 'ABSPATH' ) || die();
  * with images from s.w.org). The result is passed through wp_kses_post(),
  * always last, so whatever a section prints, only post-safe HTML leaves.
  *
- * The classic Documentation tab (includes/templates/admin-documentation.php)
- * keeps its own list until the 6.0 cutover.
- *
  * @since 6.0.0
  */
 final class Documentation {
@@ -107,7 +104,26 @@ final class Documentation {
 	 * @return array<string, array{title: string, template: string, priority: int}>
 	 */
 	public static function sections(): array {
-		/** This filter is documented in includes/templates/admin-documentation.php */
+		/**
+		 * Filters the guides of Zero Spam → Help.
+		 *
+		 * Each guide is a PHP template; its markup is reshaped for the Help
+		 * screen and passed through wp_kses_post().
+		 *
+		 * Example:
+		 * add_filter( 'zerospam_documentation_sections', function( $sections ) {
+		 *     $sections['my-feature'] = array(
+		 *         'title'    => 'My Feature',
+		 *         'template' => PLUGIN_PATH . 'includes/templates/docs/my-feature.php',
+		 *         'priority' => 10,
+		 *     );
+		 *     return $sections;
+		 * } );
+		 *
+		 * @since 5.7.0
+		 *
+		 * @param array<string, array{title: string, template: string, priority?: int}> $sections Guides by ID.
+		 */
 		$sections = apply_filters( 'zerospam_documentation_sections', self::defaults() );
 		$sections = is_array( $sections ) ? $sections : array();
 		$valid    = array();

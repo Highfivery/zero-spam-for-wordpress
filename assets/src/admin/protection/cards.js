@@ -151,11 +151,6 @@ export const cardMeta = () => ( {
 			'zero-spam'
 		),
 	},
-	google: {
-		icon: 'globe',
-		title: __( 'Google Maps', 'zero-spam' ),
-		blurb: __( 'Shows a map in detection details.', 'zero-spam' ),
-	},
 } );
 
 /** Card order per tab; other sections follow in schema order. */
@@ -187,7 +182,6 @@ export const ORDER = {
 		'ipinfo',
 		'ipstack',
 		'ipbase',
-		'google',
 	],
 };
 

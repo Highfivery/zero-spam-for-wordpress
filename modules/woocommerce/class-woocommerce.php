@@ -69,7 +69,7 @@ class WooCommerce {
 				! isset( $options['verify_woocommerce_checkout'] )
 			) {
 				$options['verify_woocommerce_checkout'] = $options['verify_woocommerce_registrations'];
-				$updated = true;
+				$updated                                = true;
 			}
 
 			// Carry over logging preference to the new checkout logging setting.
@@ -78,7 +78,7 @@ class WooCommerce {
 				! isset( $options['log_blocked_woocommerce_checkouts'] )
 			) {
 				$options['log_blocked_woocommerce_checkouts'] = $options['log_blocked_woocommerce_registrations'];
-				$updated = true;
+				$updated                                      = true;
 			}
 
 			if ( $updated ) {
@@ -117,7 +117,6 @@ class WooCommerce {
 	public function sections( $sections ) {
 		$sections['woocommerce'] = array(
 			'title'    => __( 'WooCommerce', 'zero-spam' ),
-			'icon'     => 'modules/woocommerce/icon-woocommerce.svg',
 			'supports' => array( 'honeypot', 'email', 'davidwalsh' ),
 		);
 

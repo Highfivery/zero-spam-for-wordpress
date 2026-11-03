@@ -38,7 +38,6 @@ class IPinfoModule {
 	public function sections( $sections ) {
 		$sections['ipinfo'] = array(
 			'title' => __( 'IPinfo (geolocation)', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-ipinfo.svg',
 		);
 
 		return $sections;
@@ -281,7 +280,7 @@ class IPinfoModule {
 		}
 
 		// Generate cache keys.
-		$cache_key      = \ZeroSpam\Core\Utilities::cache_key(
+		$cache_key     = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'ipinfo',
 				$ip,

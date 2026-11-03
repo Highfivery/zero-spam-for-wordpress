@@ -119,7 +119,6 @@ class Security {
 	public function sections( $sections ) {
 		$sections['security'] = array(
 			'title' => __( 'Security', 'zero-spam' ),
-			'icon'  => 'modules/security/icon-security.svg',
 		);
 
 		return $sections;
