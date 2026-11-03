@@ -979,6 +979,7 @@ npm run env:stop                 # stop both wp-env sites
   `UPDATE IGNORE`: a template whose slug the main network already has stays
   at `network_id` 0, unreachable; only rows inserted outside the plugin can
   collide). Say so in the 6.0.0 release notes.
+- The WordPress.org readme validator reports a fatal error for the name "Zero Spam for WordPress" (restricted term "wordpress"). The name predates the rule, every release has been accepted with it, and Ben decided to keep it (2026-11-03): do not rename the plugin header or readme title to clear it.
 - Release pitfall: in March 2026 a release shipped as 5.5.8 instead of 5.7.8.
   `composer version:check` exists because of it.
 - Multi-network: the 6.0 network page, its REST routes, `Network_Report`,
