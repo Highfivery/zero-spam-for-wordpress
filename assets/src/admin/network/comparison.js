@@ -204,7 +204,14 @@ export function Comparison( { setTab } ) {
 				</span>
 			</div>
 			{ wide ? (
-				<div className="zs-tbl-wrap">
+				// One column per site, so it scrolls sideways on a bigger
+				// network: focusable, so the keyboard can scroll it (WCAG 2.1.1).
+				<div
+					className="zs-tbl-wrap"
+					role="region"
+					aria-label={ caption }
+					tabIndex={ 0 }
+				>
 					<table
 						className="zs-t zs-cmp-t"
 						aria-busy={ data.loading ? 'true' : undefined }

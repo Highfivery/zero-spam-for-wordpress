@@ -730,6 +730,12 @@
 	background: var(--zs-surface);
 }
 
+/* A table that scrolls sideways takes focus so the keyboard can scroll it. */
+.zs-tbl-wrap[tabindex]:focus-visible {
+	outline: var(--zs-focus-width) solid var(--zs-focus);
+	outline-offset: var(--zs-focus-offset);
+}
+
 .zs-t {
 	width: 100%;
 	border-collapse: collapse;
