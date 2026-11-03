@@ -7,16 +7,19 @@
 
 declare( strict_types=1 );
 
+use ZeroSpam\Core\Admin\Notices;
 use ZeroSpam\Core\Admin\Shared_IP_Warning;
 use ZeroSpam\Includes\Migrations;
 use ZeroSpam\Tests\RedirectException;
 use ZeroSpam\Tests\TestCase;
 
 /**
- * Administrators are warned on the Zero Spam screens when recent detections
+ * Administrators are warned on the Zero Spam screens (not the Overview,
+ * which lists it under "Needs attention") when recent detections
  * point to a proxy or CDN Zero Spam does not know about.
  *
  * @covers \ZeroSpam\Core\Admin\Shared_IP_Warning
+ * @covers \ZeroSpam\Core\Admin\Notices
  */
 class Test_Shared_IP_Warning extends TestCase {
 
@@ -31,13 +34,24 @@ class Test_Shared_IP_Warning extends TestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
+		$this->admin_screen( 'zero-spam_page_zero-spam-settings' );
+		$GLOBALS['plugin_page'] = 'zero-spam-settings'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the Settings page.
 		$this->as_role( 'administrator' );
 		delete_transient( Shared_IP_Warning::TRANSIENT );
 		delete_option( Shared_IP_Warning::DISMISSED_OPTION );
+		delete_option( Notices::OPTION );
 
 		// Installed a day ago: every row insert_log_rows() adds is newer.
 		update_option( Migrations::PROXY_DETECTION_SINCE_OPTION, wp_date( 'Y-m-d H:i:s', time() - DAY_IN_SECONDS ) );
+	}
+
+	/**
+	 * Leaves the simulated page.
+	 */
+	public function tear_down(): void {
+		$GLOBALS['plugin_page'] = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the screen.
+
+		parent::tear_down();
 	}
 
 	/**
@@ -112,12 +126,13 @@ class Test_Shared_IP_Warning extends TestCase {
 		$html = $this->notices();
 
 		$this->assertStringContainsString( 'Many different visitors appear to share one IP address', $html );
-		$this->assertStringContainsString( 'Settings → Zero Spam → Settings → Trusted Proxy IPs', $html );
+		$this->assertStringContainsString( 'Zero Spam → Settings → Advanced → Trusted proxies', $html );
 		$this->assertStringContainsString( 'The last 20 detections all came from', $html );
 		$this->assertStringContainsString( 'aria-label="Dismiss the shared IP address warning"', $html );
 		$this->assertStringNotContainsString( 'network administrator', $html );
 		$this->assertStringContainsString( self::SHARED_IP, $html );
-		$this->assertStringContainsString( 'subview=settings#trusted_proxies', $html );
+		$this->assertStringContainsString( esc_url( admin_url( 'admin.php?page=zero-spam-settings&section=proxies' ) ), $html );
+		$this->assertStringNotContainsString( 'wordpress-zero-spam-settings', $html );
 		$this->assertStringContainsString( 'action=' . Shared_IP_Warning::ACTION, $html );
 	}
 
@@ -250,18 +265,25 @@ class Test_Shared_IP_Warning extends TestCase {
 	}
 
 	/**
-	 * It is only checked on the Zero Spam settings and dashboard screens.
+	 * It is only checked on the Zero Spam areas, not on the Overview (which
+	 * lists it under "Needs attention") or other screens.
 	 */
 	public function test_only_on_zero_spam_screens(): void {
 		$this->shared_detections();
 		$this->forwarded_request();
 
+		$GLOBALS['plugin_page'] = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the WordPress dashboard.
 		set_current_screen( 'dashboard' );
 		$this->assertSame( '', $this->notices() );
 		$this->assertFalse( get_transient( Shared_IP_Warning::TRANSIENT ), 'Nothing is computed elsewhere.' );
 
-		set_current_screen( 'dashboard_page_wordpress-zero-spam-dashboard' );
-		$this->assertStringContainsString( self::SHARED_IP, $this->notices() );
+		$GLOBALS['plugin_page'] = 'zero-spam'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the Overview.
+		$this->assertSame( '', $this->notices() );
+
+		foreach ( array( 'zero-spam-activity', 'zero-spam-rules', 'zero-spam-protection', 'zero-spam-settings', 'zero-spam-help' ) as $page ) {
+			$GLOBALS['plugin_page'] = $page; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the page.
+			$this->assertStringContainsString( self::SHARED_IP, $this->notices(), $page );
+		}
 	}
 
 	/**
@@ -355,7 +377,20 @@ class Test_Shared_IP_Warning extends TestCase {
 		$_REQUEST['_wpnonce'] = wp_create_nonce( Shared_IP_Warning::ACTION );
 		$this->assertInstanceOf( WPDieException::class, $this->run_dismiss(), 'Not an administrator.' );
 
-		$this->assertFalse( get_option( Shared_IP_Warning::DISMISSED_OPTION ) );
+		$this->assertNull( Notices::dismissed( Shared_IP_Warning::NOTICE_ID ) );
+	}
+
+	/**
+	 * A dismissal is kept in the notices store, as what it covers.
+	 */
+	public function test_dismissal_is_kept_in_the_notices_store(): void {
+		$this->shared_detections();
+		$this->forwarded_request();
+
+		$this->assertTrue( Notices::dismiss( Shared_IP_Warning::NOTICE_ID ) );
+		$this->assertSame( 'shared_ip:' . self::SHARED_IP, Notices::dismissed( Shared_IP_Warning::NOTICE_ID ) );
+		$this->assertFalse( get_option( Shared_IP_Warning::DISMISSED_OPTION ), 'The 5.x option is not written any more.' );
+		$this->assertTrue( Shared_IP_Warning::is_dismissed( Shared_IP_Warning::get_verdict() ) );
 	}
 
 	/**

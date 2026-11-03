@@ -134,12 +134,13 @@ class Test_Rest_Settings_Schema extends TestCase {
 			}
 		}
 
-		// Every listed secret is registered (the Google module is loaded outside wp-admin too since 6.0.0).
-		$expected = Settings_Schema::SECRET_KEYS;
+		// Every listed secret is registered, but the Google Maps key (removed in 6.0.0; kept in the list so a leftover is never shown).
+		$expected = array_values( array_diff( Settings_Schema::SECRET_KEYS, array( 'google_api' ) ) );
 		sort( $secrets );
 		sort( $expected );
 		$this->assertSame( $expected, $secrets );
-		$this->assertCount( 7, $secrets );
+		$this->assertCount( 6, $secrets );
+		$this->assertTrue( Settings_Schema::is_secret( 'google_api' ) );
 		$this->assertContains( 'alert_webhook_url', $secrets, 'Webhook URLs work as credentials.' );
 
 		$license = self::by_key( Settings_Schema::get()['settings'] )['zerospam_license'];

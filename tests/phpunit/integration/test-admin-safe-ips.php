@@ -379,18 +379,9 @@ class Test_Admin_Safe_IPs extends TestCase {
 			$this->assertStringNotContainsString( self::PUBLIC_IP, $rules, 'A saved administrator address is denied by the web server.' );
 			$this->assertSame( array( 'Require not ip 1.1.1.1' ), array_values( preg_grep( '/^Require not ip/', \ZeroSpam\Core\Utilities::htaccess_rules( 'htaccess_modern' ) ) ) );
 
-			// Removing it from the list puts it back.
-			$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
-			$_GET     = array(
-				'ip'       => self::PUBLIC_IP,
-				'_wpnonce' => wp_create_nonce( Admin_Safe_IPs::REMOVE_ACTION . '|' . self::PUBLIC_IP ),
-			);
-			$_REQUEST = $_GET;
-			$this->catch_redirect(
-				static function () {
-					( new Admin_Safe_IPs() )->remove_ip();
-				}
-			);
+			// Removing it from the list (Rules → No-lockout addresses) puts it back.
+			$removed = $this->rest( 'DELETE', '/zero-spam/v1/rules/no-lockout/' . self::PUBLIC_IP, array( 'confirm' => true ) );
+			$this->assertSame( 200, $removed->get_status(), (string) wp_json_encode( $removed->get_data() ) );
 			$rules = (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Throwaway test file.
 			$this->assertStringContainsString( self::PUBLIC_IP, $rules, 'Removing the address did not refresh the rules.' );
 		} finally {
@@ -398,22 +389,6 @@ class Test_Admin_Safe_IPs extends TestCase {
 			$_GET     = array();
 			$_REQUEST = array();
 		}
-	}
-
-	/**
-	 * The Settings list escapes what is stored.
-	 */
-	public function test_settings_list_escapes_stored_values(): void {
-		update_option( Admin_Safe_IPs::OPTION, array( '<script>alert(1)</script>' ), false );
-		$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
-		$this->as_role( 'administrator' );
-
-		ob_start();
-		( new Admin_Safe_IPs() )->settings_list( 'ip_whitelist' );
-		$html = (string) ob_get_clean();
-
-		$this->assertStringNotContainsString( '<script>', $html );
-		$this->assertStringContainsString( '&lt;script&gt;', $html );
 	}
 
 	/**
@@ -458,7 +433,8 @@ class Test_Admin_Safe_IPs extends TestCase {
 
 		$this->assertStringContainsString( self::PUBLIC_IP, $html );
 		$this->assertStringContainsString( "can't be locked out by Zero Spam from this address. Visitors from it are still checked.", $html );
-		$this->assertStringContainsString( 'options-general.php?page=wordpress-zero-spam-settings', $html );
+		$this->assertStringContainsString( 'page=zero-spam-rules&amp;tab=no-lockout', $html );
+		$this->assertStringContainsString( 'Zero Spam → Rules → No-lockout addresses', $html );
 		$this->assertStringNotContainsString( 'is-dismissible', $html, 'The X only hides the notice until the next page; the Dismiss button is the one that lasts.' );
 
 		// Another administrator does not see someone else's IP.
@@ -485,76 +461,6 @@ class Test_Admin_Safe_IPs extends TestCase {
 		);
 		$this->assertFalse( get_option( Admin_Safe_IPs::NOTICE_OPTION ) );
 		$this->assertSame( array( self::PUBLIC_IP ), Admin_Safe_IPs::get_ips(), 'Dismissing the notice removed the address.' );
-	}
-
-	/**
-	 * The Settings page lists the addresses under the IP Whitelist, each with a Remove control that needs the capability and a nonce.
-	 */
-	public function test_settings_list_and_remove(): void {
-		update_option( Admin_Safe_IPs::OPTION, array( self::PUBLIC_IP, '1.1.1.1' ), false );
-		$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
-		$this->as_role( 'administrator' );
-		$safe_ips = new Admin_Safe_IPs();
-
-		ob_start();
-		do_action( 'zerospam_setting_field_after', 'ip_whitelist', array() );
-		$html = (string) ob_get_clean();
-
-		$this->assertStringContainsString( 'Administrator addresses that can never be locked out', $html );
-		$this->assertStringContainsString( '<code>' . self::PUBLIC_IP . '</code>', $html );
-		$this->assertStringContainsString( 'aria-label="Remove ' . self::PUBLIC_IP, $html );
-
-		ob_start();
-		do_action( 'zerospam_setting_field_after', 'max_logs', array() );
-		$this->assertSame( '', ob_get_clean(), 'The list is shown under another setting.' );
-
-		// Without a valid nonce nothing is removed.
-		$_REQUEST = array(
-			'ip'       => self::PUBLIC_IP,
-			'_wpnonce' => 'bad',
-		);
-		$_GET     = $_REQUEST;
-		try {
-			$safe_ips->remove_ip();
-			$this->fail( 'Removed without a valid nonce.' );
-		} catch ( WPDieException $e ) {
-			$this->assertCount( 2, Admin_Safe_IPs::get_ips() );
-		}
-
-		// Without the capability nothing is removed.
-		$this->as_role( 'editor' );
-		$_REQUEST['_wpnonce'] = wp_create_nonce( Admin_Safe_IPs::REMOVE_ACTION . '|' . self::PUBLIC_IP );
-		$_GET                 = $_REQUEST;
-		try {
-			$safe_ips->remove_ip();
-			$this->fail( 'An editor removed an address.' );
-		} catch ( WPDieException $e ) {
-			$this->assertCount( 2, Admin_Safe_IPs::get_ips() );
-		}
-
-		$this->as_role( 'administrator' );
-
-		// A nonce made for another address does not remove this one.
-		$_REQUEST['_wpnonce'] = wp_create_nonce( Admin_Safe_IPs::REMOVE_ACTION . '|1.1.1.1' );
-		$_GET                 = $_REQUEST;
-		try {
-			$safe_ips->remove_ip();
-			$this->fail( 'Removed with a nonce for another address.' );
-		} catch ( WPDieException $e ) {
-			$this->assertCount( 2, Admin_Safe_IPs::get_ips() );
-		}
-
-		$_REQUEST['_wpnonce'] = wp_create_nonce( Admin_Safe_IPs::REMOVE_ACTION . '|' . self::PUBLIC_IP );
-		$_GET                 = $_REQUEST;
-		$this->catch_redirect(
-			static function () use ( $safe_ips ) {
-				$safe_ips->remove_ip();
-			}
-		);
-		$this->assertSame( array( '1.1.1.1' ), Admin_Safe_IPs::get_ips() );
-
-		$_GET     = array();
-		$_REQUEST = array();
 	}
 
 	/**

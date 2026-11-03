@@ -1,6 +1,6 @@
 <?php
 /**
- * Tests for the 6.0 admin app: flag, menu, pages, assets and preloading.
+ * Tests for the 6.0 admin app: menu, pages, assets and preloading.
  *
  * @package ZeroSpam\Tests
  */
@@ -12,13 +12,12 @@ use ZeroSpam\Core\Utilities;
 use ZeroSpam\Tests\TestCase;
 
 /**
- * The 6.0 admin is registered only behind its flag (ZEROSPAM_ADMIN_V6 /
- * `zerospam_admin_v6`); then a top-level "Zero Spam" menu below Comments
+ * The admin is always registered (the 6.0 flag was removed at the cutover):
+ * a top-level "Zero Spam" menu below Comments
  * holds six pages for administrators, each printing the app shell and
  * loading the admin bundle with the first REST responses preloaded.
  *
  * @covers \ZeroSpam\Core\Admin\Admin_App
- * @covers \ZeroSpam\Core\Utilities::admin_v6
  * @covers \ZeroSpam\Core\Utilities::display_prefs
  */
 class Test_Admin_App extends TestCase {
@@ -45,7 +44,6 @@ class Test_Admin_App extends TestCase {
 	 */
 	public function tear_down(): void {
 		$this->reset_menus();
-		remove_all_filters( 'zerospam_admin_v6' );
 		$GLOBALS['wp_scripts'] = null;
 		$GLOBALS['wp_styles']  = null;
 
@@ -61,13 +59,6 @@ class Test_Admin_App extends TestCase {
 		$GLOBALS['admin_page_hooks']  = array();
 		$GLOBALS['_registered_pages'] = array();
 		$GLOBALS['_parent_pages']     = array();
-	}
-
-	/**
-	 * Turns the flag on with the filter.
-	 */
-	private function flag_on(): void {
-		add_filter( 'zerospam_admin_v6', '__return_true' );
 	}
 
 	/**
@@ -119,53 +110,9 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
-	 * Off by default; the filter switches it on.
-	 */
-	public function test_flag_is_off_by_default_and_the_filter_turns_it_on(): void {
-		$this->assertFalse( Utilities::admin_v6() );
-
-		$this->flag_on();
-		$this->assertTrue( Utilities::admin_v6() );
-	}
-
-	/**
-	 * With the flag off nothing is registered or enqueued.
-	 */
-	public function test_flag_off_registers_nothing(): void {
-		$this->as_role( 'administrator' );
-		$app = $this->registered_app();
-		$app->register_network_menu();
-
-		$this->assertSame( array(), $app->hooks() );
-		$this->assertArrayNotHasKey( 'zero-spam', $GLOBALS['admin_page_hooks'] );
-		$this->assertSame( array(), $GLOBALS['menu'] );
-
-		$app->enqueue( 'toplevel_page_zero-spam' );
-		$this->assertSame( array(), $this->app_handles( 'script' ) );
-		$this->assertSame( array(), $this->app_handles( 'style' ) );
-		$this->assertFalse( wp_style_is( Admin_App::FONTS_HANDLE, 'enqueued' ) );
-	}
-
-	/**
-	 * The legacy screens keep their own menu entries in this release.
-	 */
-	public function test_flag_on_keeps_the_legacy_screens(): void {
-		$this->flag_on();
-		$this->as_role( 'administrator' );
-
-		( new \ZeroSpam\Core\Admin\Settings() )->admin_menu();
-		$this->registered_app();
-
-		$legacy = preg_grep( '/_page_wordpress-zero-spam-settings$/', array_keys( $GLOBALS['_registered_pages'] ) );
-		$this->assertNotEmpty( $legacy, 'The legacy settings page is still registered.' );
-		$this->assertArrayHasKey( 'toplevel_page_zero-spam', $GLOBALS['_registered_pages'] );
-	}
-
-	/**
 	 * A top-level menu at position 26 (below Comments) with the mark as its icon.
 	 */
 	public function test_top_level_menu_below_comments(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$this->registered_app();
 
@@ -182,7 +129,6 @@ class Test_Admin_App extends TestCase {
 	 * Six pages, in order, for administrators only.
 	 */
 	public function test_six_area_pages_need_manage_options(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$app = $this->registered_app();
 
@@ -203,7 +149,6 @@ class Test_Admin_App extends TestCase {
 	 * Users without manage_options cannot open the pages.
 	 */
 	public function test_editor_cannot_open_a_page(): void {
-		$this->flag_on();
 		$this->as_role( 'editor' );
 		$_GET['page'] = 'zero-spam';
 
@@ -220,7 +165,6 @@ class Test_Admin_App extends TestCase {
 	 * no-JavaScript message.
 	 */
 	public function test_page_prints_the_shell(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$_GET['page'] = 'zero-spam-rules';
 
@@ -232,7 +176,8 @@ class Test_Admin_App extends TestCase {
 		$this->assertMatchesRegularExpression( '/<div\s+id="zerospam-app"\s+class="zs-app"\s+data-area="rules"\s+data-zs-theme="auto"/', $html );
 		$this->assertStringContainsString( '<symbol id="zs-mark"', $html );
 		$this->assertStringContainsString( '<noscript>', $html );
-		$this->assertStringContainsString( 'options-general.php?page=wordpress-zero-spam-settings', $html );
+		$this->assertStringNotContainsString( 'wordpress-zero-spam-settings', $html, 'No link to the removed 5.x screen.' );
+		$this->assertStringContainsString( 'wp zerospam', $html );
 		$this->assertStringContainsString( 'class="zs-skel"', $html );
 		$this->assertStringContainsString( 'aria-current="page"', $html );
 		$this->assertStringNotContainsString( 'data-zs-motion', $html );
@@ -242,7 +187,6 @@ class Test_Admin_App extends TestCase {
 	 * The root carries the user's saved theme and motion preference.
 	 */
 	public function test_shell_uses_the_saved_display_preferences(): void {
-		$this->flag_on();
 		$user = $this->as_role( 'administrator' );
 		update_user_meta(
 			$user,
@@ -287,7 +231,6 @@ class Test_Admin_App extends TestCase {
 	 * translations.
 	 */
 	public function test_assets_come_from_the_asset_file_with_translations(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-help' );
 
@@ -341,7 +284,6 @@ class Test_Admin_App extends TestCase {
 	 * @param string $hook Hook suffix of its page.
 	 */
 	public function test_each_page_enqueues_only_its_own_entry( string $area, string $hook ): void {
-		$this->flag_on();
 		$user = $this->as_role( 'administrator' );
 		// The network page needs manage_network_options (single site and network alike).
 		get_userdata( $user )->add_cap( 'manage_network_options' );
@@ -411,7 +353,6 @@ class Test_Admin_App extends TestCase {
 	 * Nothing is loaded on other admin screens.
 	 */
 	public function test_no_assets_on_other_screens(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$app = $this->registered_app();
 
@@ -429,7 +370,6 @@ class Test_Admin_App extends TestCase {
 	 * administrator, with real answers.
 	 */
 	public function test_overview_preloads_its_first_requests(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$this->insert_log_rows( 3 );
 		$this->registered_app()->enqueue( 'toplevel_page_zero-spam' );
@@ -461,7 +401,6 @@ class Test_Admin_App extends TestCase {
 	 * headers) and the filter counts.
 	 */
 	public function test_activity_preloads_the_log(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$this->insert_log_rows( 30 );
 		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-activity' );
@@ -539,7 +478,6 @@ class Test_Admin_App extends TestCase {
 	 * markup stay inside their scripts.
 	 */
 	public function test_overview_inline_scripts_escape_markup(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		update_option( 'blogname', 'Shop </script><!--<script>' );
 		$this->insert_log_rows(
@@ -569,7 +507,6 @@ class Test_Admin_App extends TestCase {
 	 * never end or change the script element.
 	 */
 	public function test_preloaded_logged_data_cannot_end_the_script(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$ids = $this->insert_log_rows(
 			1,
@@ -601,7 +538,6 @@ class Test_Admin_App extends TestCase {
 	 * shell), and nothing of the Overview's.
 	 */
 	public function test_help_preloads_its_guides(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-help' );
 
@@ -637,7 +573,6 @@ class Test_Admin_App extends TestCase {
 			$this->assertSame( array( '/zero-spam/v1/settings/schema', $path ), Admin_App::rules_preloads( array( 'tab' => $tab ) ), "Tab \"{$tab}\"." );
 		}
 
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$this->block( '198.51.100.90' );
 		$_GET['tab'] = 'ips';
@@ -692,7 +627,6 @@ class Test_Admin_App extends TestCase {
 		update_option( 'timezone_string', $zone );
 		update_option( 'gmt_offset', $gmt );
 
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$before = time();
 		$boot   = $this->registered_app()->bootstrap( 'rules' );
@@ -710,7 +644,6 @@ class Test_Admin_App extends TestCase {
 	 * other pages do not compute them.
 	 */
 	public function test_rules_bootstrap_carries_the_tab_counts(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$this->block( '198.51.100.91' );
 		$this->block( '198.51.100.92' );
@@ -730,7 +663,6 @@ class Test_Admin_App extends TestCase {
 	public function test_rules_preloads_escape_markup(): void {
 		global $wpdb;
 
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$id = $this->block( '198.51.100.93' );
 		$wpdb->update( $wpdb->prefix . \ZeroSpam\Includes\DB::$tables['blocked'], array( 'reason' => '</script><script>alert(1)</script>' ), array( 'blocked_id' => $id ) );
@@ -742,22 +674,6 @@ class Test_Admin_App extends TestCase {
 		$this->assertStringNotContainsString( '</script>', $inline );
 		$this->assertStringNotContainsString( '<script>', $inline );
 		$this->assertStringContainsString( '\u003C\/script\u003E', $inline );
-	}
-
-	/**
-	 * The classic Blocked IPs and Blocked Locations screens stay reachable
-	 * while the 6.0 Rules page is on (they are redirected at the cutover).
-	 */
-	public function test_flag_on_keeps_the_legacy_blocked_screens(): void {
-		$this->flag_on();
-		$this->as_role( 'administrator' );
-
-		( new \ZeroSpam\Core\Admin\Dashboard() )->admin_menu();
-		$this->registered_app();
-
-		$legacy = preg_grep( '/_page_wordpress-zero-spam-dashboard$/', array_keys( $GLOBALS['_registered_pages'] ) );
-		$this->assertNotEmpty( $legacy, 'The legacy dashboard (Blocked IPs and Locations subviews) is still registered.' );
-		$this->assertArrayHasKey( 'zero-spam_page_zero-spam-rules', $GLOBALS['_registered_pages'] );
 	}
 
 	/**
@@ -800,7 +716,6 @@ class Test_Admin_App extends TestCase {
 	 * in the preloaded REST answers (they carry a masked hint only).
 	 */
 	public function test_license_key_never_appears_in_the_page(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$key = 'ZS-SECRET-LICENSE-9f3c7a';
 		$this->set_setting( 'zerospam_license', $key, 'zerospam' );
@@ -831,7 +746,6 @@ class Test_Admin_App extends TestCase {
 	 * and the settings schema, so it makes no request of its own on load.
 	 */
 	public function test_protection_preloads_schema_modules_and_license(): void {
-		$this->flag_on();
 		$this->as_role( 'administrator' );
 		$this->registered_app()->enqueue( 'zero-spam_page_zero-spam-protection' );
 
@@ -853,7 +767,6 @@ class Test_Admin_App extends TestCase {
 	 * Only administrators open the Protection page.
 	 */
 	public function test_editor_cannot_open_protection(): void {
-		$this->flag_on();
 		$this->as_role( 'editor' );
 		$_GET['page'] = 'zero-spam-protection';
 
@@ -864,5 +777,52 @@ class Test_Admin_App extends TestCase {
 		} finally {
 			unset( $_GET['page'] );
 		}
+	}
+
+	/**
+	 * Without any constant or filter the menus register for whoever may see them.
+	 */
+	public function test_menus_are_always_registered(): void {
+		$this->as_role( 'administrator' );
+		$app = $this->registered_app();
+
+		$this->assertArrayHasKey( 'overview', $app->hooks() );
+		$this->assertCount( 6, $app->hooks() );
+		$this->assertFalse( method_exists( Utilities::class, 'admin_v6' ) );
+	}
+
+	/**
+	 * The bootstrap has no link to the removed 5.x screens.
+	 */
+	public function test_bootstrap_has_no_legacy_url(): void {
+		$this->as_role( 'administrator' );
+		$urls = $this->registered_app()->bootstrap( 'overview' )['urls'];
+
+		$this->assertArrayNotHasKey( 'legacy', $urls );
+		$this->assertStringNotContainsString( 'wordpress-zero-spam', (string) wp_json_encode( $urls ) );
+	}
+
+	/**
+	 * The area of the current page comes from the page slug.
+	 */
+	public function test_current_area(): void {
+		global $plugin_page;
+
+		$plugin_page = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertNull( Admin_App::current_area() );
+
+		$plugin_page = 'zero-spam-rules'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertSame( 'rules', Admin_App::current_area() );
+
+		$plugin_page = 'zero-spam'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertSame( 'overview', Admin_App::current_area() );
+
+		$plugin_page = 'zero-spam-network'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertNull( Admin_App::current_area(), 'The network page only counts in the network admin.' );
+
+		$plugin_page = 'wordpress-zero-spam-settings'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Simulates the screen.
+		$this->assertNull( Admin_App::current_area() );
+
+		$plugin_page = null; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- Restores the screen.
 	}
 }

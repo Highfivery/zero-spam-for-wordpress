@@ -1,13 +1,12 @@
 <?php
 /**
- * Tests for the settings page on a network site: lock UI and what a save stores.
+ * Tests for what a network site stores when its settings are saved.
  *
  * @package ZeroSpam\Tests
  */
 
 declare( strict_types=1 );
 
-use ZeroSpam\Core\Admin\Settings as Settings_Page;
 use ZeroSpam\Core\Settings;
 use ZeroSpam\Core\Utilities;
 use ZeroSpam\Includes\Admin\Site_Admin_Overrides;
@@ -16,16 +15,15 @@ use ZeroSpam\Includes\Network_Settings_Manager;
 use ZeroSpam\Tests\TestCase;
 
 /**
- * The settings page fires the hooks Site_Admin_Overrides listens to, and a
- * site save neither stores locked settings nor turns untouched ones into
- * overrides.
+ * A site save (REST, WP-CLI, imports) neither stores locked settings nor
+ * turns values equal to the network's into overrides (Site_Admin_Overrides'
+ * save filters). The 5.x settings page and its lock UI were removed in
+ * 6.0.0.
  *
  * Saves run on the main site without switch_to_blog(): writes made while
  * switched are network operations, which the save filter leaves alone.
  *
  * @group ms-required
- * @covers \ZeroSpam\Core\Admin\Settings::settings_field
- * @covers \ZeroSpam\Core\Admin\Settings::settings_page
  * @covers \ZeroSpam\Includes\Admin\Site_Admin_Overrides
  */
 class Test_Site_Admin_Overrides extends TestCase {
@@ -46,13 +44,6 @@ class Test_Site_Admin_Overrides extends TestCase {
 	const OPTION = 'zero-spam-comments';
 
 	/**
-	 * Settings page under test.
-	 *
-	 * @var Settings_Page
-	 */
-	private Settings_Page $page;
-
-	/**
 	 * A second network site, for "Apply to All Sites".
 	 *
 	 * @var int
@@ -69,7 +60,7 @@ class Test_Site_Admin_Overrides extends TestCase {
 	}
 
 	/**
-	 * Sets up a site administrator on the settings screen with the network UI loaded.
+	 * Sets up a site administrator.
 	 *
 	 * The save filters are not registered here: the plugin registers them on
 	 * `init` for every request on a network site (not only in the admin), and
@@ -78,80 +69,20 @@ class Test_Site_Admin_Overrides extends TestCase {
 	public function set_up(): void {
 		parent::set_up();
 
-		$this->admin_screen( 'settings_page_wordpress-zero-spam-settings' );
 		$this->as_role( 'administrator' );
 		delete_option( self::OPTION );
 		delete_option( 'zerospam_blocked_email_domains' );
-
-		// The settings page UI; is_admin() is true now, which it was not when the plugin loaded.
-		new Site_Admin_Overrides();
-
-		$this->page = new Settings_Page();
-		$this->page->register_settings();
 	}
 
 	/**
-	 * Forgets the simulated form post.
-	 */
-	public function tear_down(): void {
-		unset( $_POST['option_page'] );
-
-		parent::tear_down();
-	}
-
-	/**
-	 * Renders a view of the settings page.
+	 * Saves a module option as a site writer does (not switched).
 	 *
-	 * @param string $subview View (section key).
-	 * @return string HTML.
-	 */
-	private function render_comments_view( string $subview = 'comments' ): string {
-		// Fields capture their resolved value when registered, as on admin_init.
-		self::reset_static_caches();
-		$this->page->register_settings();
-		$this->set_request( '/wp-admin/options-general.php?page=wordpress-zero-spam-settings&subview=' . $subview );
-
-		ob_start();
-		$this->page->settings_page();
-
-		return (string) ob_get_clean();
-	}
-
-	/**
-	 * Parses rendered HTML.
-	 *
-	 * @param string $html HTML.
-	 */
-	private function xpath( string $html ): DOMXPath {
-		$dom      = new DOMDocument();
-		$previous = libxml_use_internal_errors( true );
-		$dom->loadHTML( '<!doctype html><html><body>' . $html . '</body></html>' );
-		libxml_clear_errors();
-		libxml_use_internal_errors( $previous );
-
-		return new DOMXPath( $dom );
-	}
-
-	/**
-	 * Text content of a node, whitespace trimmed.
-	 *
-	 * @param DOMNode|null $node Node.
-	 */
-	private static function text_of( ?DOMNode $node ): string {
-		return null === $node ? '' : trim( $node->textContent ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- DOM API property.
-	}
-
-	/**
-	 * Saves a settings view the way options.php does for the settings form.
-	 *
-	 * @param array<string, mixed> $submitted Submitted fields (unticked checkboxes are absent).
-	 * @param string               $option    Option (and option page) saved.
+	 * @param array<string, mixed> $submitted Values written.
+	 * @param string               $option    Option saved.
 	 * @return array<string, mixed> What was stored.
 	 */
 	private function save( array $submitted, string $option = self::OPTION ): array {
-		$_POST['option_page'] = $option;
 		update_option( $option, $submitted );
-		unset( $_POST['option_page'] );
 
 		$stored = get_option( $option );
 
@@ -171,101 +102,6 @@ class Test_Site_Admin_Overrides extends TestCase {
 	}
 
 	/**
-	 * Every hook fires with the setting key and the field arguments.
-	 */
-	public function test_hooks_fire_while_rendering(): void {
-		$this->set_network_setting( self::TEXT_KEY, 'Network locked message.', true );
-
-		$calls = array(
-			'top'      => array(),
-			'before'   => array(),
-			'after'    => array(),
-			'disabled' => array(),
-		);
-		add_action(
-			'zerospam_settings_page_top',
-			static function ( $subview ) use ( &$calls ) {
-				$calls['top'][] = $subview;
-			}
-		);
-		add_action(
-			'zerospam_setting_field_before',
-			static function ( $key, $args ) use ( &$calls ) {
-				$calls['before'][ $key ] = $args;
-			},
-			10,
-			2
-		);
-		add_action(
-			'zerospam_setting_field_after',
-			static function ( $key, $args ) use ( &$calls ) {
-				$calls['after'][ $key ] = $args;
-			},
-			10,
-			2
-		);
-		add_filter(
-			'zerospam_setting_field_disabled',
-			static function ( $disabled, $key, $args ) use ( &$calls ) {
-				$calls['disabled'][ $key ] = array( $disabled, $args );
-
-				return $disabled;
-			},
-			5,
-			3
-		);
-
-		$this->render_comments_view();
-
-		$this->assertSame( array( 'comments' ), $calls['top'], 'zerospam_settings_page_top fires once with the view.' );
-
-		foreach ( array( self::TEXT_KEY, self::CHECKBOX_KEY, 'verify_comments' ) as $key ) {
-			foreach ( array( 'before', 'after' ) as $hook ) {
-				$this->assertArrayHasKey( $key, $calls[ $hook ], "zerospam_setting_field_{$hook} fires for {$key}." );
-				$this->assertSame( $key, $calls[ $hook ][ $key ]['label_for'] );
-				$this->assertSame( 'comments', $calls[ $hook ][ $key ]['module'] );
-			}
-			$this->assertArrayHasKey( $key, $calls['disabled'], "zerospam_setting_field_disabled runs for {$key}." );
-			$this->assertFalse( $calls['disabled'][ $key ][0], 'The filter starts from false.' );
-		}
-
-		$this->assertSame( 'Network locked message.', $calls['before'][ self::TEXT_KEY ]['value'], 'The field arguments carry the resolved value.' );
-	}
-
-	/**
-	 * A locked setting is shown as locked and disabled, with an accessible explanation.
-	 */
-	public function test_locked_field_renders_locked_and_disabled(): void {
-		$this->set_network_setting( self::TEXT_KEY, 'Network locked message.', true );
-
-		$xpath = $this->xpath( $this->render_comments_view() );
-
-		$notice = $xpath->query( '//div[contains(@class, "zerospam-network-notice")]' );
-		$this->assertSame( 1, $notice->length, 'The network notice is printed at the top.' );
-		$this->assertStringContainsString( 'inline', (string) $notice->item( 0 )->getAttribute( 'class' ), 'The notice stays where it is printed.' );
-
-		$input = $xpath->query( '//input[@id="' . self::TEXT_KEY . '"]' )->item( 0 );
-		$this->assertInstanceOf( DOMElement::class, $input );
-		$this->assertTrue( $input->hasAttribute( 'disabled' ), 'The locked control is disabled.' );
-		$this->assertSame( 'Network locked message.', $input->getAttribute( 'value' ) );
-
-		$description_id = $input->getAttribute( 'aria-describedby' );
-		$this->assertNotSame( '', $description_id );
-		$description = $xpath->query( '//*[@id="' . $description_id . '"]' )->item( 0 );
-		$this->assertInstanceOf( DOMElement::class, $description );
-		$this->assertStringContainsString( 'Locked by the network administrator', self::text_of( $description ) );
-
-		$badge = $xpath->query( '//tr[.//input[@id="' . self::TEXT_KEY . '"]]//*[contains(@class, "zerospam-locked-badge")]' );
-		$this->assertSame( 1, $badge->length, 'The row shows the lock badge.' );
-		$this->assertStringContainsString( 'Locked by Network Admin', self::text_of( $badge->item( 0 ) ) );
-
-		$unlocked = $xpath->query( '//input[@id="' . self::CHECKBOX_KEY . 'enabled"]' )->item( 0 );
-		$this->assertInstanceOf( DOMElement::class, $unlocked );
-		$this->assertFalse( $unlocked->hasAttribute( 'disabled' ), 'Settings that are not locked stay editable.' );
-		$this->assertFalse( $unlocked->hasAttribute( 'aria-describedby' ) );
-	}
-
-	/**
 	 * A tampered save cannot store a locked setting, and keeps the override the site had before the lock.
 	 */
 	public function test_locked_key_is_not_persisted(): void {
@@ -277,7 +113,7 @@ class Test_Site_Admin_Overrides extends TestCase {
 		$this->assertSame( 'Site message before the lock.', $stored[ self::TEXT_KEY ], 'The stored value is unchanged.' );
 		$this->assertSame( 'Network locked message.', $this->resolved( self::TEXT_KEY ) );
 
-		// A disabled control is not submitted at all; the stored value survives that too.
+		// A write without the key keeps the stored value too.
 		$stored = $this->save( array() );
 		$this->assertSame( 'Site message before the lock.', $stored[ self::TEXT_KEY ] );
 	}
@@ -305,11 +141,11 @@ class Test_Site_Admin_Overrides extends TestCase {
 	 */
 	public static function data_unlocked_saves(): array {
 		$cases = array(
-			'unticked checkbox, network disabled' => array( self::CHECKBOX_KEY, 'disabled', array(), false, null ),
-			'unticked checkbox, network empty'    => array( self::CHECKBOX_KEY, '', array(), false, null ),
+			'unticked checkbox, network disabled' => array( self::CHECKBOX_KEY, 'disabled', array( self::CHECKBOX_KEY => false ), false, null ),
+			'unticked checkbox, network empty'    => array( self::CHECKBOX_KEY, '', array( self::CHECKBOX_KEY => false ), false, null ),
 			'ticked checkbox, network enabled'    => array( self::CHECKBOX_KEY, 'enabled', array( self::CHECKBOX_KEY => 'enabled' ), false, null ),
 			'unchanged text'                      => array( self::TEXT_KEY, 'Network message.', array( self::TEXT_KEY => 'Network message.' ), false, null ),
-			'unticked checkbox, network enabled'  => array( self::CHECKBOX_KEY, 'enabled', array(), true, false ),
+			'unticked checkbox, network enabled'  => array( self::CHECKBOX_KEY, 'enabled', array( self::CHECKBOX_KEY => false ), true, false ),
 			'ticked checkbox, network disabled'   => array( self::CHECKBOX_KEY, 'disabled', array( self::CHECKBOX_KEY => 'enabled' ), true, 'enabled' ),
 			'changed text'                        => array( self::TEXT_KEY, 'Network message.', array( self::TEXT_KEY => 'Site message.' ), true, 'Site message.' ),
 		);
@@ -358,7 +194,7 @@ class Test_Site_Admin_Overrides extends TestCase {
 	 */
 	public function test_network_default_still_applies_after_an_unchanged_save(): void {
 		$this->set_network_setting( self::CHECKBOX_KEY, 'disabled' );
-		$this->save( array() );
+		$this->save( array( self::CHECKBOX_KEY => false ) );
 
 		$this->set_network_setting( self::CHECKBOX_KEY, 'enabled' );
 
@@ -372,7 +208,7 @@ class Test_Site_Admin_Overrides extends TestCase {
 		$this->set_setting( self::CHECKBOX_KEY, false, 'comments' );
 		$this->set_network_setting( self::CHECKBOX_KEY, 'disabled' );
 
-		$stored = $this->save( array() );
+		$stored = $this->save( array( self::CHECKBOX_KEY => false ) );
 
 		$this->assertArrayNotHasKey( self::CHECKBOX_KEY, $stored );
 	}
@@ -383,7 +219,12 @@ class Test_Site_Admin_Overrides extends TestCase {
 	public function test_settings_without_network_value_are_stored_as_before(): void {
 		$this->set_network_setting( self::TEXT_KEY, 'Network message.' );
 
-		$stored = $this->save( array() );
+		$stored = $this->save(
+			array(
+				self::CHECKBOX_KEY => false,
+				'verify_comments'  => false,
+			)
+		);
 
 		$this->assertArrayHasKey( self::CHECKBOX_KEY, $stored );
 		$this->assertFalse( $stored[ self::CHECKBOX_KEY ] );
@@ -409,10 +250,10 @@ class Test_Site_Admin_Overrides extends TestCase {
 	/**
 	 * "Apply to All Sites" (defaults only) leaves a site on the network defaults.
 	 *
-	 * It writes one key at a time inside switch_to_blog(), through admin-ajax.php
-	 * where settings_validation() is registered. Filling every unticked checkbox
-	 * on each write stored verify_comments = false before verify_comments itself
-	 * was applied, so the site skipped it and resolved protection off.
+	 * It writes one key at a time inside switch_to_blog(). In 5.x, through
+	 * admin-ajax.php, the settings page's sanitize callback filled every
+	 * unticked checkbox on each write, which stored verify_comments = false
+	 * before verify_comments itself was applied.
 	 */
 	public function test_apply_defaults_to_a_site_keeps_its_network_defaults(): void {
 		$this->set_network_setting( self::CHECKBOX_KEY, 'enabled' );
@@ -451,17 +292,6 @@ class Test_Site_Admin_Overrides extends TestCase {
 	}
 
 	/**
-	 * A form save fills in only the unticked checkboxes of the module being saved.
-	 */
-	public function test_form_save_fills_only_its_own_module(): void {
-		$stored = $this->save( array( self::TEXT_KEY => 'Site message.' ) );
-
-		foreach ( array_keys( $stored ) as $key ) {
-			$this->assertSame( 'comments', Settings::get_settings()[ $key ]['module'] ?? null, "{$key} belongs to another module." );
-		}
-	}
-
-	/**
 	 * A tampered save cannot change a locked blocked_email_domains, which has its own option.
 	 */
 	public function test_locked_blocked_email_domains_survive_a_tampered_save(): void {
@@ -486,6 +316,25 @@ class Test_Site_Admin_Overrides extends TestCase {
 	}
 
 	/**
+	 * The recommended list replaces only the domains option: every network
+	 * default stays followed (AGENTS.md §8; before 6.0.0 it rewrote
+	 * `zero-spam-settings` with resolved values, turning network defaults
+	 * into site overrides).
+	 */
+	public function test_update_action_leaves_the_core_settings_alone(): void {
+		$this->set_network_setting( 'max_logs', 4321 );
+		$this->set_network_setting( 'log_blocked_ips', 'enabled' );
+		delete_option( 'zero-spam-settings' );
+
+		$this->assertTrue( Settings::update_blocked_email_domains() );
+
+		$this->assertFalse( get_option( 'zero-spam-settings' ), 'Nothing becomes a site override.' );
+		$this->assertNotSame( '', (string) get_option( 'zerospam_blocked_email_domains' ) );
+		$this->assertTrue( ( new Network_Settings() )->is_using_default( 'max_logs' ) );
+		$this->assertSame( 4321, (int) $this->resolved( 'max_logs' ) );
+	}
+
+	/**
 	 * Unlocked, the action updates the list as before.
 	 */
 	public function test_unlocked_blocked_email_domains_can_be_updated(): void {
@@ -495,36 +344,6 @@ class Test_Site_Admin_Overrides extends TestCase {
 		Settings::update_blocked_email_domains();
 
 		$this->assertNotSame( 'site.example', get_option( 'zerospam_blocked_email_domains' ) );
-	}
-
-	/**
-	 * While blocked_email_domains is locked, its update control is a disabled, described button with the lock badge.
-	 */
-	public function test_blocked_email_domains_button_is_disabled_while_locked(): void {
-		$this->set_network_setting( 'blocked_email_domains', 'network.example', true );
-
-		$xpath = $this->xpath( $this->render_comments_view( 'settings' ) );
-
-		$this->assertSame( 0, $xpath->query( '//a[contains(@href, "zerospam-action=update-blocked-emails")]' )->length, 'Not a link.' );
-		$button = $xpath->query( '//button[@type="button" and contains(@class, "button")]' )->item( 0 );
-		$this->assertInstanceOf( DOMElement::class, $button );
-		$this->assertTrue( $button->hasAttribute( 'disabled' ) );
-		$this->assertStringContainsString( 'Override & Update Blocked Email Domains', self::text_of( $button ) );
-		$description = $xpath->query( '//*[@id="' . $button->getAttribute( 'aria-describedby' ) . '"]' )->item( 0 );
-		$this->assertStringContainsString( 'Locked by the network administrator', self::text_of( $description ) );
-		$badge = $xpath->query( '//tr[.//button]//*[contains(@class, "zerospam-locked-badge")]' );
-		$this->assertSame( 1, $badge->length, 'The row shows the lock badge.' );
-	}
-
-	/**
-	 * Unlocked, the update control is a normal link without a lock badge.
-	 */
-	public function test_blocked_email_domains_button_is_a_link_while_unlocked(): void {
-		$xpath = $this->xpath( $this->render_comments_view( 'settings' ) );
-
-		$this->assertSame( 1, $xpath->query( '//a[contains(@href, "zerospam-action=update-blocked-emails")]' )->length );
-		$this->assertSame( 0, $xpath->query( '//button[@disabled]' )->length );
-		$this->assertSame( 0, $xpath->query( '//*[contains(@class, "zerospam-locked-badge")]' )->length );
 	}
 
 	/**

@@ -24,7 +24,6 @@ use ZeroSpam\Tests\TestCase;
  * @covers \ZeroSpam\Core\Admin\Dashboard_Widget
  * @covers \ZeroSpam\Core\Admin\Icons
  * @covers \ZeroSpam\Core\Utilities::activity_url
- * @covers \ZeroSpam\Core\Utilities::admin_v6
  * @covers \ZeroSpam\Core\Utilities::display_prefs
  */
 class Test_Dashboard_Widget extends TestCase {
@@ -278,7 +277,7 @@ class Test_Dashboard_Widget extends TestCase {
 
 		$this->assertStringContainsString( 'data-zs-refresh', $html );
 		$this->assertMatchesRegularExpression( '#<p class="zs-w-status" role="status" aria-live="polite" data-zs-field="status"></p>#', $html );
-		$this->assertStringContainsString( 'href="' . esc_url( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&subview=log' ) ) . '"', $html );
+		$this->assertStringContainsString( 'href="' . esc_url( admin_url( 'admin.php?page=zero-spam-activity' ) ) . '"', $html );
 	}
 
 	/**
@@ -296,14 +295,9 @@ class Test_Dashboard_Widget extends TestCase {
 	}
 
 	/**
-	 * The activity link follows the 6.0 admin flag (one helper).
+	 * The activity link goes to the Activity page (one helper).
 	 */
-	public function test_activity_link_follows_the_v6_flag(): void {
-		$this->assertFalse( Utilities::admin_v6() );
-		$this->assertSame( admin_url( 'index.php?page=wordpress-zero-spam-dashboard&subview=log' ), Utilities::activity_url() );
-
-		add_filter( 'zerospam_admin_v6', '__return_true' );
-
+	public function test_activity_link_goes_to_activity(): void {
 		$this->assertSame( admin_url( 'admin.php?page=zero-spam-activity' ), Utilities::activity_url() );
 		$this->assertStringContainsString( esc_url( admin_url( 'admin.php?page=zero-spam-activity' ) ), $this->render() );
 	}
@@ -575,7 +569,7 @@ class Test_Dashboard_Widget extends TestCase {
 		$html = (string) ob_get_clean();
 
 		$this->assertStringContainsString( 'href="' . esc_url( Utilities::admin_link( 'api-monitoring' ) ) . '"', $html );
-		$this->assertStringContainsString( 'subview=api-monitoring', $html );
+		$this->assertStringNotContainsString( 'subview=', $html );
 		$this->assertStringNotContainsString( 'API Usage Dashboard', $html );
 	}
 }

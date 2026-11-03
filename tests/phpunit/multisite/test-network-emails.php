@@ -109,7 +109,7 @@ class Test_Network_Emails extends TestCase {
 		$this->assertStringContainsString( 'Main &amp; &lt;Site&gt;', $html );
 		$this->assertStringContainsString( '&lt;script&gt;enabled&lt;/script&gt;', $html );
 		$this->assertStringContainsString( 'Network administrator ' . get_userdata( $admin )->display_name . ' changed', $text );
-		$this->assertStringContainsString( esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ) ), $html );
+		$this->assertStringContainsString( esc_url( admin_url( 'admin.php?page=zero-spam-settings' ) ), $html );
 
 		foreach ( array( 'Not set', 'Locked by the network: sites can\'t change it.', 'View your Zero Spam settings' ) as $string ) {
 			$this->assertContains( $string, $this->translated, "\"{$string}\" is not translated." );
@@ -137,8 +137,8 @@ class Test_Network_Emails extends TestCase {
 		$this->assertNotEmpty( $sent );
 		$parts = $this->mail_parts( $sent[0] );
 		$this->assertArrayHasKey( 'text/html', $parts );
-		$this->assertStringContainsString( esc_url( network_admin_url( 'settings.php?page=zerospam-network-settings' ) ), $parts['text/html'] );
-		$this->assertStringNotContainsString( esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring' ) ), $parts['text/html'] );
+		$this->assertStringContainsString( esc_url( network_admin_url( 'admin.php?page=zero-spam-network&tab=settings' ) ), $parts['text/html'] );
+		$this->assertStringNotContainsString( esc_url( admin_url( 'admin.php?page=zero-spam-settings&tab=api' ) ), $parts['text/html'] );
 	}
 
 	/**
@@ -165,7 +165,7 @@ class Test_Network_Emails extends TestCase {
 		$this->assertArrayHasKey( 'text/plain', $parts );
 		$this->assertArrayHasKey( 'text/html', $parts );
 		$this->assertStringContainsString( 'Total sites', $parts['text/plain'] );
-		$this->assertStringContainsString( esc_url( network_admin_url( 'settings.php?page=zerospam-network-settings' ) ), $parts['text/html'] );
+		$this->assertStringContainsString( esc_url( network_admin_url( 'admin.php?page=zero-spam-network&tab=settings' ) ), $parts['text/html'] );
 
 		foreach ( array( 'Weekly summary', 'Total sites', 'Locked settings', 'Site overrides', 'View network settings' ) as $string ) {
 			$this->assertContains( $string, $this->translated, "\"{$string}\" is not translated." );

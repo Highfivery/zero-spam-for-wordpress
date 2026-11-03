@@ -450,18 +450,18 @@ class Test_Rest_Settings extends TestCase {
 	}
 
 	/**
-	 * The Google API key can be saved through the route (the Google module
-	 * is loaded outside wp-admin too), and it stays write-only.
+	 * The Google Maps key was removed in 6.0.0: it is not a setting, and
+	 * the route refuses it rather than storing it.
 	 */
-	public function test_google_key_is_a_writable_secret(): void {
+	public function test_google_key_is_not_a_setting(): void {
 		delete_option( 'zero-spam-google' );
 		self::reset_static_caches();
 
 		$response = $this->rest( 'PATCH', self::ROUTE, array( 'google_api' => 'AIza-test-key-9z8y' ) );
 
-		$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
-		$this->assertSame( 'AIza-test-key-9z8y', get_option( 'zero-spam-google' )['google_api'] );
-		$this->assertTrue( $response->get_data()['settings']['google_api']['set'] );
+		$this->assertSame( 400, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+		$this->assertFalse( get_option( 'zero-spam-google' ) );
+		$this->assertNull( \ZeroSpam\Core\Settings_Schema::setting( 'google_api' ) );
 		$this->assertStringNotContainsString( 'AIza-test-key', (string) wp_json_encode( $response->get_data() ) );
 	}
 }

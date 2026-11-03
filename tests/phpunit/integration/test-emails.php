@@ -283,7 +283,7 @@ class Test_Emails extends TestCase {
 		$this->assertStringContainsString( 'Lakeside &lt;Dental&gt;', $html );
 		$this->assertStringNotContainsString( 'Lakeside <Dental>', $html );
 		$this->assertStringContainsString( 'API calls', $text );
-		$this->assertStringContainsString( esc_url( admin_url( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring' ) ), $html, 'The settings link is broken.' );
+		$this->assertStringContainsString( esc_url( admin_url( 'admin.php?page=zero-spam-settings&tab=api' ) ), $html, 'The settings link is broken.' );
 
 		foreach ( array( $html, $text ) as $body ) {
 			$this->assertDoesNotMatchRegularExpression( '/pricing|upgrade|money-back|\$\d|subscription|billing|Explorer|Essentials|Business|Platform|queries\/month/i', $body, 'The alert sells a plan or links to billing.' );
