@@ -76,6 +76,7 @@ final class Settings_Schema {
 		'ipbase_api_key',
 		'ipinfo_access_token',
 		'ipstack_api',
+		// The Google Maps key, removed in 6.0.0 (migration `v6_remove_google_api`): a value left in an import or an old store is still never shown.
 		'google_api',
 		'alert_webhook_url',
 	);
@@ -99,7 +100,6 @@ final class Settings_Schema {
 		'ipbase'           => array( 'protection', 'intelligence' ),
 		'ipinfo'           => array( 'protection', 'intelligence' ),
 		'ipstack'          => array( 'protection', 'intelligence' ),
-		'google'           => array( 'protection', 'intelligence' ),
 		'settings'         => array( 'settings', 'general' ),
 		'api-monitoring'   => array( 'settings', 'api' ),
 		'debug'            => array( 'settings', 'debug' ),
@@ -184,6 +184,46 @@ final class Settings_Schema {
 		foreach ( array( 'add_site_option_', 'update_site_option_', 'delete_site_option_' ) as $prefix ) {
 			add_action( $prefix . Network_Settings::META_KEY, array( self::class, 'reset_cache' ), 10, 0 );
 		}
+
+		// Every writer of the core settings option stores them the same way (before the network save filters, priority 20).
+		add_filter( 'sanitize_option_zero-spam-settings', array( self::class, 'sanitize_settings_option' ), 5, 1 );
+	}
+
+	/**
+	 * Normalizes the core settings option (`zero-spam-settings`) whoever
+	 * writes it: the REST routes, WP-CLI, network "Apply to sites" and
+	 * templates, imports and Utilities::update_setting().
+	 *
+	 * - `blocked_email_domains` is moved to its own option, which is never
+	 *   autoloaded (OWN_OPTIONS), and removed from the module option;
+	 * - `trusted_proxies` keeps only valid IP addresses and CIDR ranges, one
+	 *   per line (the REST route refuses invalid entries before this).
+	 *
+	 * The 5.x settings screen did this in its sanitize callback, which only
+	 * ran on admin requests (since 6.0.0).
+	 *
+	 * @param mixed $value Option value.
+	 * @return mixed Value to store.
+	 */
+	public static function sanitize_settings_option( $value ) {
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+
+		if ( array_key_exists( 'blocked_email_domains', $value ) ) {
+			$domains = $value['blocked_email_domains'];
+			unset( $value['blocked_email_domains'] );
+
+			if ( is_string( $domains ) ) {
+				update_option( self::OWN_OPTIONS['blocked_email_domains'], $domains, false );
+			}
+		}
+
+		if ( isset( $value['trusted_proxies'] ) && ( is_string( $value['trusted_proxies'] ) || is_array( $value['trusted_proxies'] ) ) ) {
+			$value['trusted_proxies'] = implode( "\n", Utilities::parse_ip_ranges( $value['trusted_proxies'] )['valid'] );
+		}
+
+		return $value;
 	}
 
 	/**

@@ -2,9 +2,10 @@
 /**
  * Site Admin Overrides
  *
- * On a network site: shows network settings and lock indicators on the
- * settings page, and keeps locked or unchanged settings out of what the
- * site stores, whichever path writes them (settings page, WP-CLI, REST).
+ * On a network site: keeps locked or unchanged settings out of what the
+ * site stores, whichever path writes them (REST, WP-CLI, imports). The 6.0
+ * admin shows locks and network values from the settings schema; the 5.x
+ * settings page's lock badges and notices were removed in 6.0.0.
  *
  * @package ZeroSpam
  */
@@ -27,20 +28,12 @@ class Site_Admin_Overrides {
 	private ?\ZeroSpam\Includes\Network_Settings $network_settings = null;
 
 	/**
-	 * Module of each setting key, read once per request.
-	 *
-	 * @var array<string, string>|null
-	 */
-	private ?array $module_by_key = null;
-
-	/**
 	 * Keys filter_site_save() removed, per option, while the option did not exist yet.
 	 *
 	 * WordPress sanitizes the value twice when update_option() adds a missing
-	 * option (once itself, once in add_option()). On the second pass of a
-	 * settings form submission Settings::settings_validation() puts `false`
-	 * back for every checkbox the first pass removed, so filter_site_save()
-	 * removes those keys again.
+	 * option (once itself, once in add_option()). A writer that puts `false`
+	 * back for a key the first pass removed (the 5.x settings form did, for
+	 * every unticked checkbox) has it removed again.
 	 *
 	 * @var array<string, string[]>
 	 */
@@ -57,23 +50,6 @@ class Site_Admin_Overrides {
 
 		// Keep locked and unchanged settings out of what this site stores, on every request.
 		add_action( 'init', array( $this, 'register_save_filters' ), 20 );
-
-		if ( ! is_admin() ) {
-			return;
-		}
-
-		// Add lock indicators to settings fields.
-		add_action( 'zerospam_setting_field_before', array( $this, 'render_lock_indicator' ) );
-		add_action( 'zerospam_setting_field_after', array( $this, 'render_override_notice' ) );
-
-		// Enqueue site admin styles.
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
-
-		// Add info notice at top of settings page.
-		add_action( 'zerospam_settings_page_top', array( $this, 'render_network_notice' ) );
-
-		// Disable locked fields.
-		add_filter( 'zerospam_setting_field_disabled', array( $this, 'disable_locked_field' ), 10, 2 );
 	}
 
 	/**
@@ -91,224 +67,11 @@ class Site_Admin_Overrides {
 	}
 
 	/**
-	 * Enqueue assets
-	 *
-	 * @param string $hook_suffix Current admin page.
-	 */
-	public function enqueue_assets( $hook_suffix ) {
-		// Only on Zero Spam settings page.
-		if ( 'settings_page_wordpress-zero-spam-settings' !== $hook_suffix ) {
-			return;
-		}
-
-		wp_enqueue_style(
-			'zerospam-site-overrides',
-			plugin_dir_url( ZEROSPAM ) . 'assets/css/site-overrides.css',
-			array(),
-			\ZeroSpam\Core\Utilities::asset_version( 'assets/css/site-overrides.css' )
-		);
-	}
-
-	/**
-	 * Render network notice
-	 */
-	public function render_network_notice() {
-		$all_settings   = $this->network_settings()->get_network_settings();
-		$locked_count   = 0;
-		$override_count = 0;
-
-		if ( ! empty( $all_settings['settings'] ) ) {
-			foreach ( $all_settings['settings'] as $key => $config ) {
-				if ( ! empty( $config['locked'] ) ) {
-					++$locked_count;
-				} elseif ( ! $this->uses_network_default( (string) $key ) ) {
-					++$override_count;
-				}
-			}
-		}
-
-		if ( 0 === $locked_count && 0 === $override_count ) {
-			return; // No network settings, no need to show notice.
-		}
-
-		// The inline class keeps WordPress from moving the notice below the first heading.
-		?>
-		<div class="notice notice-info inline zerospam-network-notice">
-			<p>
-				<strong><?php esc_html_e( 'Network Settings Active', 'zero-spam' ); ?></strong>
-			</p>
-			<p>
-				<?php
-				if ( $locked_count > 0 ) {
-					printf(
-						esc_html(
-							/* translators: %d: number of locked settings */
-							_n(
-								'%d setting is locked by your Network Administrator and cannot be changed.',
-								'%d settings are locked by your Network Administrator and cannot be changed.',
-								$locked_count,
-								'zero-spam'
-							)
-						),
-						(int) $locked_count
-					);
-				}
-
-				if ( $override_count > 0 ) {
-					echo ' ';
-					printf(
-						esc_html(
-							/* translators: %d: number of overridden settings */
-							_n(
-								'You have %d customized setting that overrides a network default.',
-								'You have %d customized settings that override network defaults.',
-								$override_count,
-								'zero-spam'
-							)
-						),
-						(int) $override_count
-					);
-				}
-				?>
-			</p>
-		</div>
-		<?php
-	}
-
-	/**
-	 * Render lock indicator before field
-	 *
-	 * @param string $field_key Setting key.
-	 */
-	public function render_lock_indicator( $field_key ) {
-		if ( ! $this->network_settings()->is_locked( self::lock_key( (string) $field_key ) ) ) {
-			return;
-		}
-
-		?>
-		<p class="zerospam-locked-badge">
-			<span class="dashicons dashicons-lock" aria-hidden="true"></span>
-			<?php esc_html_e( 'Locked by Network Admin', 'zero-spam' ); ?>
-		</p>
-		<?php
-	}
-
-	/**
-	 * Render override notice after field
-	 *
-	 * @param string $field_key Setting key.
-	 */
-	public function render_override_notice( $field_key ) {
-		// Skip if locked (locked settings show their own indicator).
-		if ( $this->network_settings()->is_locked( $field_key ) ) {
-			return;
-		}
-
-		$network_default = $this->network_settings()->get_network_default( $field_key );
-
-		if ( null === $network_default ) {
-			return;
-		}
-
-		$network_display = is_string( $network_default ) ? $network_default : (string) wp_json_encode( $network_default );
-
-		// An empty network value reads "(none)", not an empty box.
-		if ( in_array( $network_default, array( '', false, array() ), true ) || '' === trim( $network_display ) ) {
-			$network_display = __( '(none)', 'zero-spam' );
-		}
-
-		// Check if using network default or has override.
-		if ( $this->uses_network_default( (string) $field_key ) ) {
-			?>
-			<p class="description zerospam-network-default-notice">
-				<span class="dashicons dashicons-info-outline" aria-hidden="true"></span>
-				<?php esc_html_e( 'Using network default', 'zero-spam' ); ?>:
-				<code><?php echo esc_html( $network_display ); ?></code>
-			</p>
-			<?php
-		} else {
-			?>
-			<p class="description zerospam-override-notice">
-				<span class="dashicons dashicons-warning" aria-hidden="true"></span>
-				<?php esc_html_e( 'You have customized this setting', 'zero-spam' ); ?>.
-				<?php esc_html_e( 'Network default', 'zero-spam' ); ?>:
-				<code><?php echo esc_html( $network_display ); ?></code>
-			</p>
-			<?php
-		}
-	}
-
-	/**
-	 * Whether the current site follows the network value for a setting.
-	 *
-	 * Same answer as Network_Settings::is_using_default() for the current
-	 * site, without its switch_to_blog() and settings registry rebuild per
-	 * call: the page asks once per network-configured field.
-	 *
-	 * @param string $setting_key Setting key.
-	 */
-	private function uses_network_default( string $setting_key ): bool {
-		if ( $this->network_settings()->is_locked( $setting_key ) ) {
-			return true;
-		}
-
-		$network_default = $this->network_settings()->get_network_default( $setting_key );
-
-		if ( null === $network_default ) {
-			return false;
-		}
-
-		if ( null === $this->module_by_key ) {
-			$this->module_by_key = array();
-			foreach ( \ZeroSpam\Core\Settings::get_settings() as $key => $setting ) {
-				if ( isset( $setting['module'] ) ) {
-					$this->module_by_key[ (string) $key ] = (string) $setting['module'];
-				}
-			}
-		}
-
-		if ( ! isset( $this->module_by_key[ $setting_key ] ) ) {
-			return true;
-		}
-
-		$stored = get_option( 'zero-spam-' . $this->module_by_key[ $setting_key ], array() );
-
-		return ! ( is_array( $stored ) && isset( $stored[ $setting_key ] ) && $stored[ $setting_key ] !== $network_default );
-	}
-
-	/**
-	 * Disable locked fields
-	 *
-	 * @param bool   $disabled  Whether field is disabled.
-	 * @param string $field_key Setting key.
-	 * @return bool True if should be disabled.
-	 */
-	public function disable_locked_field( $disabled, $field_key ) {
-		if ( $this->network_settings()->is_locked( self::lock_key( (string) $field_key ) ) ) {
-			return true;
-		}
-
-		return $disabled;
-	}
-
-	/**
-	 * Setting whose lock applies to a settings page field.
-	 *
-	 * The "Override & Update Blocked Email Domains" button rewrites
-	 * blocked_email_domains; every other field is its own setting.
-	 *
-	 * @param string $field_key Field (setting) key.
-	 */
-	private static function lock_key( string $field_key ): string {
-		return 'update_blocked_email_domains' === $field_key ? 'blocked_email_domains' : $field_key;
-	}
-
-	/**
 	 * Hooks the save filters into every module option and the blocked email domains option.
 	 *
-	 * Uses the same option names as Settings::register_settings()
-	 * (`zero-spam-{section}`), at priority 20 so filter_site_save() runs after
-	 * Settings::settings_validation() (priority 10) where that is registered.
+	 * Uses the option names `zero-spam-{section}`, at priority 20 so
+	 * filter_site_save() runs after Settings_Schema::sanitize_settings_option()
+	 * (priority 5).
 	 */
 	public function register_save_filters(): void {
 		foreach ( array_keys( \ZeroSpam\Core\Settings::get_sections() ) as $section ) {
@@ -331,10 +94,10 @@ class Site_Admin_Overrides {
 	/**
 	 * Keeps a locked `blocked_email_domains` from being changed on the site.
 	 *
-	 * The setting is stored in its own option, written by
-	 * Settings::settings_validation() before filter_site_save() runs, by the
-	 * "Override & Update Blocked Email Domains" action and by
-	 * Utilities::update_setting(). Writes inside switch_to_blog() are left alone.
+	 * The setting is stored in its own option, written by the REST settings
+	 * routes and actions, by Settings_Schema::sanitize_settings_option(), by
+	 * Utilities::update_setting() and by WP-CLI. Writes inside
+	 * switch_to_blog() are left alone.
 	 *
 	 * @param mixed $value     New value.
 	 * @param mixed $old_value Stored value (false when the option does not exist).
@@ -353,10 +116,9 @@ class Site_Admin_Overrides {
 	 *
 	 * Network_Settings::resolve_all_settings() treats any key stored in a
 	 * site's `zero-spam-{module}` option as a site override, whatever its
-	 * value. The settings form submits every field, and on a form submission
-	 * Settings::settings_validation() stores `false` for every unticked
-	 * checkbox, so without this filter one save would turn every setting into
-	 * an override and network defaults would stop reaching the site.
+	 * value. A writer that saves every field (the 5.x settings form did, with
+	 * `false` for every unticked checkbox) would otherwise turn every setting
+	 * into an override, and network defaults would stop reaching the site.
 	 *
 	 * For each setting the network administrator has configured:
 	 *

@@ -114,27 +114,29 @@ class Settings {
 	}
 
 	/**
-	 * Updates blocked email domains with recommended settings.
+	 * Replaces the blocked email domains with Zero Spam's recommended list.
+	 *
+	 * Writes only the `zerospam_blocked_email_domains` option (not autoloaded),
+	 * as the REST action does. Before 6.0.0 it also rewrote the whole
+	 * `zero-spam-settings` option with resolved values, which on a network
+	 * turned every network default into a site override.
+	 *
+	 * @since 6.0.0 Writes the blocked email domains option only.
+	 *
+	 * @return bool Whether the recommended list was read and stored.
 	 */
 	public static function update_blocked_email_domains() {
-		$modules                           = self::get_settings_by_module();
-		$recommended_blocked_email_domains = \ZeroSpam\Core\Utilities::blocked_email_domains();
+		$domains = \ZeroSpam\Core\Utilities::blocked_email_domains();
 
-		$new_settings = array();
-		foreach ( $modules['settings'] as $key => $setting ) {
-			if ( 'blocked_email_domains' === $key ) {
-				$domains = trim( implode( "\n", $recommended_blocked_email_domains ) );
-				// Prevent autoloading large options.
-				// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
-				update_option( 'zerospam_blocked_email_domains', $domains, false );
-			} else {
-				$new_settings[ $key ] = isset( $setting['value'] ) ? $setting['value'] : false;
-			}
+		if ( ! $domains ) {
+			return false;
 		}
 
-		if ( $new_settings ) {
-			update_option( 'zero-spam-settings', $new_settings );
-		}
+		// Prevent autoloading large options.
+		// See https://10up.github.io/Engineering-Best-Practices/php/#performance.
+		update_option( 'zerospam_blocked_email_domains', trim( implode( "\n", $domains ) ), false );
+
+		return true;
 	}
 
 	/**

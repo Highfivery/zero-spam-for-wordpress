@@ -40,7 +40,6 @@ class API_Monitoring {
 	public function sections( $sections ) {
 		$sections['api-monitoring'] = array(
 			'title' => __( 'API Monitoring', 'zero-spam' ),
-			'icon'  => 'assets/img/icon-reports.svg',
 		);
 
 		return $sections;
@@ -183,14 +182,14 @@ class API_Monitoring {
 			);
 		}
 
-		// Test alert buttons.
+		// Test alert buttons: the Settings screen renders them (POST settings/actions/test-alert-{channel}).
 		$settings['test_alerts'] = array(
 			'title'   => __( 'Test Alerts', 'zero-spam' ),
 			'desc'    => __( 'Send a test alert to verify your configuration is working correctly.', 'zero-spam' ),
 			'section' => 'api-monitoring',
 			'module'  => 'api-monitoring',
 			'type'    => 'html',
-			'html'    => $this->render_test_alert_buttons(),
+			'html'    => '',
 		);
 
 		// Quota reset date setting (read by License_Status::quota_period() since 6.0.0).
@@ -278,36 +277,5 @@ class API_Monitoring {
 		);
 
 		return isset( $suffixes[ $type ] ) ? $suffixes[ $type ] : '';
-	}
-
-	/**
-	 * Render test alert buttons
-	 *
-	 * @return string HTML for test alert buttons.
-	 */
-	private function render_test_alert_buttons() {
-		$html = '<div class="zerospam-test-alerts">';
-
-		$html .= sprintf(
-			'<a href="%s" class="button button-secondary">%s</a> ',
-			wp_nonce_url( admin_url( 'admin.php?page=wordpress-zero-spam-settings&subview=api-monitoring&zerospam-action=test-alert-email' ), 'test-alert-email', 'zero-spam' ),
-			__( 'Send Test Email', 'zero-spam' )
-		);
-
-		$html .= sprintf(
-			'<a href="%s" class="button button-secondary">%s</a> ',
-			wp_nonce_url( admin_url( 'admin.php?page=wordpress-zero-spam-settings&subview=api-monitoring&zerospam-action=test-alert-notice' ), 'test-alert-notice', 'zero-spam' ),
-			__( 'Trigger Admin Notice', 'zero-spam' )
-		);
-
-		$html .= sprintf(
-			'<a href="%s" class="button button-secondary">%s</a>',
-			wp_nonce_url( admin_url( 'admin.php?page=wordpress-zero-spam-settings&subview=api-monitoring&zerospam-action=test-alert-webhook' ), 'test-alert-webhook', 'zero-spam' ),
-			__( 'Send Test Webhook', 'zero-spam' )
-		);
-
-		$html .= '</div>';
-
-		return $html;
 	}
 }
