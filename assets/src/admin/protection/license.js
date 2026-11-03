@@ -283,10 +283,15 @@ function InactiveNotice( { onChanged } ) {
 			<Icon name="warn" size="sm" />
 			<div>
 				<p>
-					{ __(
-						"Your subscription isn't active, so Enhanced Protection is paused. Every other check keeps working, and your license key stays saved: once you renew, it starts again by itself.",
-						'zero-spam'
-					) }{ ' ' }
+					{ license?.enabled
+						? __(
+								"Your subscription isn't active, so Enhanced Protection is paused. Every other check keeps working, and your license key stays saved: once you renew, it starts again by itself.",
+								'zero-spam'
+							)
+						: __(
+								"Your subscription isn't active, so Enhanced Protection can't run. Every other check keeps working, and your license key stays saved: once you renew, turn it on below.",
+								'zero-spam'
+							) }{ ' ' }
 					<a
 						href="https://www.zerospam.org/pricing/"
 						target="_blank"
