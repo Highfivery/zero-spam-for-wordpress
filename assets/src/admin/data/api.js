@@ -220,6 +220,13 @@ export function useResource( path, { parse = true } = {} ) {
 		};
 	}, [ load, path ] );
 
+	// reload() always refreshes the path shown now: a caller may keep it from
+	// an older render (an Undo's refresh after the sort changed), and loading
+	// that older path would replace the newer list.
+	const loadRef = useRef( load );
+	loadRef.current = load;
+	const reload = useCallback( () => loadRef.current(), [] );
+
 	const setData = useCallback(
 		( updater ) =>
 			setState( ( s ) => ( {
@@ -230,5 +237,5 @@ export function useResource( path, { parse = true } = {} ) {
 		[]
 	);
 
-	return { ...state, reload: load, setData };
+	return { ...state, reload, setData };
 }
