@@ -108,16 +108,21 @@ final class Legacy_Endpoints {
 	 * @param string               $method HTTP method.
 	 * @param string               $route  Route below the namespace, such as `network-settings/export`.
 	 * @param array<string, mixed> $params Query (GET) or JSON body parameters.
+	 * @param array<string, mixed> $query  Query parameters of a request with a body.
 	 * @return WP_REST_Response
 	 */
-	public static function dispatch( string $method, string $route, array $params = array() ): WP_REST_Response {
+	public static function dispatch( string $method, string $route, array $params = array(), array $query = array() ): WP_REST_Response {
 		$request = new WP_REST_Request( $method, '/zero-spam/v1/' . ltrim( $route, '/' ) );
 
 		if ( 'GET' === $method ) {
 			$request->set_query_params( $params );
-		} elseif ( $params ) {
-			$request->set_header( 'content-type', 'application/json' );
-			$request->set_body( (string) wp_json_encode( $params ) );
+		} else {
+			$request->set_query_params( $query );
+
+			if ( $params ) {
+				$request->set_header( 'content-type', 'application/json' );
+				$request->set_body( (string) wp_json_encode( $params ) );
+			}
 		}
 
 		return rest_ensure_response( rest_do_request( $request ) );
@@ -186,28 +191,30 @@ final class Legacy_Endpoints {
 	}
 
 	/**
-	 * `zerospam_network_set_setting`: PUT network-settings/{key}.
+	 * `zerospam_network_set_setting`: PATCH settings?scope=network (which checks
+	 * the value as the 5.x screen did, Trusted Proxy IPs included, and keeps
+	 * the lock), then POST network-settings/{key}/lock when `locked` is 1.
 	 *
 	 * @param string $action AJAX action.
 	 */
 	private function set_setting( string $action ): void {
 		$key = sanitize_key( self::post( 'key' ) );
-		self::deprecated( $action, 'network-settings/' . $key );
+		self::deprecated( $action, 'settings?scope=network' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Nonce checked in network_ajax(); a multi-select sends a list, validated by the route.
 		$value = isset( $_POST['value'] ) && is_array( $_POST['value'] ) ? array_map( 'strval', wp_unslash( $_POST['value'] ) ) : self::post( 'value' );
 
-		self::send(
-			self::dispatch(
-				'PUT',
-				'network-settings/' . $key,
-				array(
-					'value'  => $value,
-					'locked' => '1' === self::post( 'locked' ),
-				)
-			),
-			__( 'Setting saved successfully!', 'zero-spam' )
-		);
+		if ( '' === $key ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid setting key', 'zero-spam' ) ), 400 );
+		}
+
+		$response = self::dispatch( 'PATCH', 'settings', array( $key => $value ), array( 'scope' => 'network' ) );
+
+		if ( ! $response->is_error() && '1' === self::post( 'locked' ) ) {
+			$response = self::dispatch( 'POST', 'network-settings/' . $key . '/lock' );
+		}
+
+		self::send( $response, __( 'Setting saved successfully!', 'zero-spam' ) );
 	}
 
 	/**
