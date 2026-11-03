@@ -71,7 +71,7 @@ For more information & developer documentation, see the [wiki](https://github.co
 
 *Not on its own.* Zero Spam for WordPress does not automatically block IP addresses. If a visitor is blocked, it could be due to manual blocking by the site admin or their presence in IP blacklists such as [Stop Forum Spam](https://www.stopforumspam.com/), [Project Honeypot](https://www.projecthoneypot.org/), or the [Zero Spam](https://www.zerospam.org).
 
-In the event that a legitimate user is blocked, refer to the Log (Admin > Dashboard > Zero Spam > Log) for further details on the reason behind the block. You have the flexibility to adjust the strictness of the 3rd-party blacklist checks or disable them if your users are prone to being flagged as spam or malicious.
+In the event that a legitimate user is blocked, look it up in the admin under Zero Spam → Activity for further details on the reason behind the block. You have the flexibility to adjust the strictness of the 3rd-party blacklist checks or disable them if your users are prone to being flagged as spam or malicious.
 
 = Does Zero Spam for WordPress check Jetpack comments? =
 

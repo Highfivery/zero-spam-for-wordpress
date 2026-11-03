@@ -317,7 +317,7 @@ npm ci               # Node 22 (nvm use): the front-end build, its linters and t
 composer check       # built assets and budgets (check:dist), version check, WPCS on changed files
                      # and tests, PHP 8.2+ compat, PHPStan, PHPUnit
 composer check:all   # check:dist, WPCS on every file and the tests, compat, PHPStan, the PHPUnit
-                     # matrix (red until the WPCS backlog is cleared)
+                     # matrix (green since the 6.0 cutover cleared the WPCS backlog)
 composer lint:fix    # apply the WPCS fixes phpcbf can make
 ```
 
@@ -810,13 +810,13 @@ npm run env:stop                 # stop both wp-env sites
 - Report outcomes faithfully: failing checks with their output, skipped steps
   as skipped.
 
-## 8. Known debt and pitfalls (October 2026, 5.7.14)
+## 8. Known debt and pitfalls (November 2026, 6.0 cutover)
 
-- WPCS backlog at 5.7.14: 143 errors / 172 warnings in 32 files (176
-  auto-fixable), down from 293 / 292 in 52 files at 5.7.13 and 429 / 367 in
-  62 files before; PHPStan level 5 baseline of 81 findings in 53 entries
-  after PR 9 (87 in 57 before it, 135 in 93 at 5.7.14, 144 in 99 at 5.7.13), with no
-  unmatched entries. Clearing them is planned work; do it
+- WPCS backlog: 0 errors / 0 warnings since the 6.0 cutover (PR 13; 44 / 54
+  in 18 files before it, 143 / 172 in 32 files at 5.7.14, 293 / 292 in 52
+  at 5.7.13): keep `composer lint` clean. PHPStan level 5 baseline: 48
+  findings in 39 entries after the cutover (81 in 53 after PR 9, 135 in 93
+  at 5.7.14, 144 in 99 at 5.7.13), with no unmatched entries; shrink it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
   `build/`; `composer compat` runs the `phpcs.compat.xml.dist` ruleset with the
@@ -1004,8 +1004,6 @@ npm run env:stop                 # stop both wp-env sites
   A development copy that already ran DB 1.6 before audit and templates got
   `network_id` (the PR's commits up to 7342b62) does not upgrade by itself: set
   `zerospam_db_version` back to 1.5 on each site once.
-- Rules visual baselines (`v6-rules-*`) fail on `develop` too, independent of
-  the network page; recorded for Ben, not re-recorded here.
 - `GET network-settings/{key}` still counts sites through
   `Network_Settings::get_application_status()`, one registry build per site.
 - Follow-ups from the Rules review (#452):

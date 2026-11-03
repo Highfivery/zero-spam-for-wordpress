@@ -307,7 +307,7 @@ add_filter('zerospam_settings', function($settings) {
     return $settings;
 }, 200);
 ```
-Locked values are still enforced on save (settings page, REST and WP-CLI), so this only affects what the site reads.
+Locked values are still enforced on save (REST, imports and WP-CLI), so this only affects what the site reads.
 
 ### Q: How do I override just for one site?
 **A:** Check `get_current_blog_id()` in your filter:
@@ -356,8 +356,7 @@ add_filter('zerospam_settings', function($settings) {
 - **`compare` and `status`.** Reachable since 6.0.0 (before, `{key}` answered for them). `GET network-settings/compare` takes `page` and `per_page` (at most 100, the default), answers with `X-WP-Total`, and returns `comparison` (by key: `network_value`, `locked`, `sites` by blog ID) and `sites` (`id`, `name`, `url`), read straight from the sites' options and cached with the overview. `GET network-settings/status` returns `total_sites`, `checked_sites`, `capped`, `total_settings`, `locked_settings` and `total_overrides` from the cached overview. Sites means the network's active sites (not archived, deleted or spam); site changes are counted on at most 1,000, and `total_overrides` leaves secrets out.
 - **Apply to all sites.** `POST network-settings/apply-all` takes `mode` (and `force`, `sites`):
   - `follow` (since 6.0.0; what the 6.0 network page's "Apply to all sites" sends): each site drops its own values of the unlocked settings the network sets, so it follows the network value again, and every later change to it. Locked settings are not touched (a site's earlier value applies again if the setting is unlocked). A site's own secrets (license and API keys, the webhook address) are kept: they are write-only, so nobody could see what was lost. No mode writes an empty network secret over a site's own.
-  - `all` (default), `locked_only`, `defaults_only` (unchanged from 5.x; what the legacy network settings page and `wp zerospam network-settings apply` use): copy the network values into each site's own settings (`all` skips values a site changed unless `force`; `locked_only` writes locked settings only; `defaults_only` writes settings a site does not store). A copied value is a site value: the site no longer follows later network changes to it.
-  The legacy page's button keeps its 5.x behaviour until the 6.0 cutover.
+  - `all` (default), `locked_only`, `defaults_only` (unchanged from 5.x; what `wp zerospam network-settings apply` and the deprecated `zerospam_network_apply_all` AJAX shim use): copy the network values into each site's own settings (`all` skips values a site changed unless `force`; `locked_only` writes locked settings only; `defaults_only` writes settings a site does not store). A copied value is a site value: the site no longer follows later network changes to it.
 
 ## Support
 
