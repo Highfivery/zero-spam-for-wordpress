@@ -318,13 +318,15 @@ run_mode() {
 	[[ "$run" == "multisite" ]] && db_name="${db_name}_ms"
 	export WP_TESTS_DB_NAME="$db_name"
 	# A fresh content directory for each run, as the database is recreated.
-	# Only this checkout's own directory in the cache is ever removed.
+	# Only this checkout's own directory in the cache is ever removed. An
+	# empty themes/ keeps the installer from calling wp_is_block_theme()
+	# "incorrectly" on a missing theme root.
 	if [[ -z "$checkout_id" || "$content_dir" != "$cache_dir/content-$checkout_id" ]]; then
 		echo "test.sh: unexpected content directory '${content_dir}'." >&2
 		return 1
 	fi
 	rm -rf "$content_dir"
-	mkdir -p "$content_dir/uploads" "$content_dir/tmp"
+	mkdir -p "$content_dir/uploads" "$content_dir/tmp" "$content_dir/themes"
 	[[ -n "$suite" ]] && args+=(--testsuite "$suite")
 	[[ $known_defects -eq 1 ]] && args+=(--group known-defect)
 	if [[ $coverage -eq 1 ]]; then
