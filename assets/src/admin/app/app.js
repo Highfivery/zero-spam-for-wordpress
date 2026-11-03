@@ -19,7 +19,6 @@ import { FeedbackProvider } from './primitives/feedback';
 import { CompareDrawer } from './compare';
 import { Shell, networkTabs } from './shell/shell';
 import { useTab } from '../data/routes';
-import { boot } from '../data/api';
 
 const NETWORK_TABS = networkTabs().map( ( [ key ] ) => key );
 
@@ -56,9 +55,12 @@ export function AreaView( { area, children } ) {
 	);
 }
 
+/** Zero Spam's support forum on WordPress.org. */
+const SUPPORT_URL = 'https://wordpress.org/support/plugin/zero-spam/';
+
 /**
  * Keeps a rendering error from leaving an empty page: the site is still
- * protected, and the classic screens still work.
+ * protected; reloading usually helps, and the support forum is a link away.
  */
 class ErrorBoundary extends Component {
 	constructor( props ) {
@@ -82,12 +84,12 @@ class ErrorBoundary extends Component {
 				<p>
 					{ createInterpolateElement(
 						__(
-							'Your site is still protected. Reload the page, or use the classic settings screen. <a>Open the classic settings</a>',
+							'Your site is still protected. Reload the page to try again. If it keeps happening, <a>ask for help in the support forum</a>.',
 							'zero-spam'
 						),
 						{
 							// eslint-disable-next-line jsx-a11y/anchor-has-content -- createInterpolateElement puts the translated link text inside.
-							a: <a href={ this.props.legacy } />,
+							a: <a href={ SUPPORT_URL } />,
 						}
 					) }
 				</p>
@@ -103,7 +105,7 @@ class ErrorBoundary extends Component {
  */
 export function App( { root, children } ) {
 	return (
-		<ErrorBoundary legacy={ boot.urls.legacy }>
+		<ErrorBoundary>
 			<FeedbackProvider>
 				<AppProvider root={ root }>
 					{ children }

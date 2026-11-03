@@ -33,7 +33,7 @@ class Utilities {
 	 *
 	 * @since 5.7.14
 	 *
-	 * @param string $relative_path Path relative to the plugin directory, e.g. assets/css/admin.css.
+	 * @param string $relative_path Path relative to the plugin directory, e.g. assets/fonts/fonts.css.
 	 * @return string Version for wp_enqueue_style()/wp_enqueue_script().
 	 */
 	public static function asset_version( string $relative_path ): string {
@@ -54,32 +54,6 @@ class Utilities {
 		}
 
 		return ZEROSPAM_VERSION;
-	}
-
-	/**
-	 * Whether the 6.0 admin screens are switched on.
-	 *
-	 * Until the 6.0 cutover the new admin stays behind a flag so develop can
-	 * ship: the ZEROSPAM_ADMIN_V6 constant (wp-config.php) wins, otherwise
-	 * the `zerospam_admin_v6` filter decides (off by default).
-	 *
-	 * @since 6.0.0
-	 */
-	public static function admin_v6(): bool {
-		if ( defined( 'ZEROSPAM_ADMIN_V6' ) ) {
-			return (bool) constant( 'ZEROSPAM_ADMIN_V6' );
-		}
-
-		/**
-		 * Filters whether the 6.0 admin screens are switched on.
-		 *
-		 * The ZEROSPAM_ADMIN_V6 constant, when defined, takes precedence.
-		 *
-		 * @since 6.0.0
-		 *
-		 * @param bool $enabled Whether the 6.0 admin is on. Default false.
-		 */
-		return (bool) apply_filters( 'zerospam_admin_v6', false );
 	}
 
 	/**
@@ -113,49 +87,29 @@ class Utilities {
 	}
 
 	/**
-	 * Admin pages other code links to, by view: the legacy (5.x) address and
-	 * the 6.0 address (build plan redirect map), each [ path, network ].
+	 * Admin pages other code links to, by view: [ path, network ].
 	 *
-	 * @var array<string, array{legacy: array{0: string, 1: bool}, v6: array{0: string, 1: bool}}>
+	 * @var array<string, array{0: string, 1: bool}>
 	 */
 	const ADMIN_LINKS = array(
-		'activity'         => array(
-			'legacy' => array( 'index.php?page=wordpress-zero-spam-dashboard&subview=log', false ),
-			'v6'     => array( 'admin.php?page=zero-spam-activity', false ),
-		),
-		'api-monitoring'   => array(
-			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings&subview=api-monitoring', false ),
-			'v6'     => array( 'admin.php?page=zero-spam-settings&tab=api', false ),
-		),
-		'license'          => array(
-			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings&subview=zerospam', false ),
-			'v6'     => array( 'admin.php?page=zero-spam-protection&tab=intelligence&card=zerospam', false ),
-		),
-		'network-activity' => array(
-			'legacy' => array( 'settings.php?page=wordpress-zero-spam-network-stats', true ),
-			'v6'     => array( 'admin.php?page=zero-spam-network&tab=stats', true ),
-		),
-		'network-license'  => array(
-			'legacy' => array( 'settings.php?page=zerospam-network-settings', true ),
-			'v6'     => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
-		),
-		'settings'         => array(
-			'legacy' => array( 'options-general.php?page=wordpress-zero-spam-settings', false ),
-			'v6'     => array( 'admin.php?page=zero-spam-settings', false ),
-		),
-		'network-settings' => array(
-			'legacy' => array( 'settings.php?page=zerospam-network-settings', true ),
-			'v6'     => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
-		),
+		'activity'         => array( 'admin.php?page=zero-spam-activity', false ),
+		'api-monitoring'   => array( 'admin.php?page=zero-spam-settings&tab=api', false ),
+		'license'          => array( 'admin.php?page=zero-spam-protection&tab=intelligence&card=zerospam', false ),
+		'network-activity' => array( 'admin.php?page=zero-spam-network&tab=stats', true ),
+		'network-license'  => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
+		'settings'         => array( 'admin.php?page=zero-spam-settings', false ),
+		'network-settings' => array( 'admin.php?page=zero-spam-network&tab=settings', true ),
+		'no-lockout'       => array( 'admin.php?page=zero-spam-rules&tab=no-lockout', false ),
+		'allowlist'        => array( 'admin.php?page=zero-spam-rules&tab=allowlist', false ),
+		'proxies'          => array( 'admin.php?page=zero-spam-settings&section=proxies', false ),
 	);
 
 	/**
-	 * Address of a Zero Spam admin view, following the 6.0 admin flag: the
-	 * 6.0 page when the new admin is on, the legacy page otherwise.
+	 * Address of a Zero Spam admin view.
 	 *
 	 * @since 6.0.0
 	 *
-	 * @param string $view activity, api-monitoring, license, settings, network-activity, network-license or network-settings.
+	 * @param string $view activity, api-monitoring, license, settings, no-lockout, allowlist, proxies, network-activity, network-license or network-settings.
 	 * @return string Unescaped admin URL, or '' for an unknown view.
 	 */
 	public static function admin_link( string $view ): string {
@@ -163,15 +117,14 @@ class Utilities {
 			return '';
 		}
 
-		list( $path, $network ) = self::ADMIN_LINKS[ $view ][ self::admin_v6() ? 'v6' : 'legacy' ];
+		list( $path, $network ) = self::ADMIN_LINKS[ $view ];
 
 		return $network ? network_admin_url( $path ) : admin_url( $path );
 	}
 
 	/**
-	 * Address of the activity log: the 6.0 Activity screen (or network
-	 * Statistics tab) when the new admin is on, the legacy Detection Log (or
-	 * Network Stats) otherwise.
+	 * Address of the activity log: the Activity screen, or the network
+	 * page's Statistics tab.
 	 *
 	 * @since 6.0.0
 	 *

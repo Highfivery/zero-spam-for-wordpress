@@ -17,10 +17,9 @@ use ZeroSpam\Includes\Rest\Rules_Controller;
 defined( 'ABSPATH' ) || die();
 
 /**
- * Registers the 6.0 admin behind the `ZEROSPAM_ADMIN_V6` constant and the
- * `zerospam_admin_v6` filter (Utilities::admin_v6(); off by default).
+ * Registers the Zero Spam admin.
  *
- * When it is on, a top-level "Zero Spam" menu sits directly below Comments
+ * A top-level "Zero Spam" menu sits directly below Comments
  * (position 26) with six pages, one per area: Overview (`zero-spam`),
  * Activity, Rules, Protection, Settings and Help (`zero-spam-{area}`); the
  * network admin gets one page (`zero-spam-network`). Every page prints the
@@ -29,8 +28,7 @@ defined( 'ABSPATH' ) || die();
  * .css), with the first REST responses preloaded so the Overview makes no
  * request of its own on load.
  *
- * The legacy screens are not touched: they stay registered and reachable
- * until the cutover (build plan PR 13).
+ * The 5.x screens are gone; their addresses redirect here (Legacy_Redirects).
  *
  * @since 6.0.0
  */
@@ -267,8 +265,7 @@ final class Admin_App {
 	private array $hooks = array();
 
 	/**
-	 * Registers the hooks. Each callback checks the flag, so a filter added
-	 * after this runs still decides.
+	 * Registers the hooks.
 	 */
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'register_menu' ) );
@@ -308,10 +305,6 @@ final class Admin_App {
 	 * Registers the top-level menu and its six pages.
 	 */
 	public function register_menu(): void {
-		if ( ! Utilities::admin_v6() ) {
-			return;
-		}
-
 		$titles = self::area_titles();
 		$render = array( $this, 'render_page' );
 
@@ -350,10 +343,6 @@ final class Admin_App {
 	 * Registers the network admin page (super admins only).
 	 */
 	public function register_network_menu(): void {
-		if ( ! Utilities::admin_v6() ) {
-			return;
-		}
-
 		$hook = add_menu_page(
 			__( 'Zero Spam', 'zero-spam' ),
 			__( 'Zero Spam', 'zero-spam' ),
@@ -376,6 +365,28 @@ final class Admin_App {
 	 */
 	public function area_for_hook( string $hook_suffix ): ?string {
 		$area = array_search( $hook_suffix, $this->hooks, true );
+
+		return false === $area ? null : (string) $area;
+	}
+
+	/**
+	 * The area of the Zero Spam page this request shows (`network` on the
+	 * network page), or null on any other screen. Read from the page slug,
+	 * which, unlike the screen ID, does not change with the menu title's
+	 * translation.
+	 */
+	public static function current_area(): ?string {
+		global $plugin_page;
+
+		if ( ! is_admin() || ! is_string( $plugin_page ) || '' === $plugin_page ) {
+			return null;
+		}
+
+		if ( self::NETWORK_SLUG === $plugin_page ) {
+			return is_network_admin() ? 'network' : null;
+		}
+
+		$area = is_network_admin() ? false : array_search( $plugin_page, self::AREAS, true );
 
 		return false === $area ? null : (string) $area;
 	}
@@ -416,10 +427,6 @@ final class Admin_App {
 	 * @param string $hook_suffix Hook suffix of the screen.
 	 */
 	public function enqueue( $hook_suffix ): void {
-		if ( ! Utilities::admin_v6() ) {
-			return;
-		}
-
 		$area = $this->area_for_hook( (string) $hook_suffix );
 		if ( null === $area ) {
 			return;
@@ -808,7 +815,6 @@ final class Admin_App {
 			'urls'              => $urls + array(
 				'network'   => is_multisite() && current_user_can( 'manage_network_options' ) ? network_admin_url( 'admin.php?page=' . self::NETWORK_SLUG ) : '',
 				'siteAdmin' => admin_url( 'admin.php?page=' . self::AREAS['overview'] ),
-				'legacy'    => admin_url( 'options-general.php?page=wordpress-zero-spam-settings' ),
 				'flags'     => plugins_url( 'assets/img/flags/', ZEROSPAM ),
 				'ipLookup'  => ZEROSPAM_URL . 'ip-lookup/',
 			),
