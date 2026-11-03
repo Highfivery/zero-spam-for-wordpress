@@ -162,7 +162,7 @@ type TestFixtures = {
 	bot: Bot;
 	gallery: Gallery;
 	phpErrorCheck: void;
-	newRoleContext: ( role: Role | null, options?: { ip?: string; viewport?: { width: number; height: number } } ) => Promise< BrowserContext >;
+	newRoleContext: ( role: Role | null, options?: { ip?: string; viewport?: { width: number; height: number }; timezoneId?: string } ) => Promise< BrowserContext >;
 };
 
 type WorkerFixtures = {
@@ -179,11 +179,12 @@ type WorkerFixtures = {
  * @param target  Target.
  * @param guard   Collector.
  * @param role    Role, or null for a visitor.
- * @param options Visitor IP and viewport.
+ * @param options Visitor IP, viewport and time zone.
  * @param options.ip Visitor IP header.
  * @param options.viewport Viewport.
+ * @param options.timezoneId The browser's time zone (default UTC).
  */
-async function roleContext( browser: Browser, target: Target, guard: Guard, role: Role | null, options: { ip?: string; viewport?: { width: number; height: number } } = {} ): Promise< BrowserContext > {
+async function roleContext( browser: Browser, target: Target, guard: Guard, role: Role | null, options: { ip?: string; viewport?: { width: number; height: number }; timezoneId?: string } = {} ): Promise< BrowserContext > {
 	const headers: Record< string, string > = { 'X-ZeroSpam-E2E-Token': target.token };
 	if ( options.ip ) {
 		headers[ 'X-ZeroSpam-E2E-IP' ] = options.ip;
@@ -195,7 +196,7 @@ async function roleContext( browser: Browser, target: Target, guard: Guard, role
 		viewport: options.viewport ?? { width: 1280, height: 900 },
 		deviceScaleFactor: 1,
 		locale: 'en-US',
-		timezoneId: 'UTC',
+		timezoneId: options.timezoneId ?? 'UTC',
 		colorScheme: 'light',
 		reducedMotion: 'reduce',
 	} );

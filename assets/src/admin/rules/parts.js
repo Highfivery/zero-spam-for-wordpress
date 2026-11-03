@@ -14,33 +14,19 @@ import { useEffect, useRef, useState } from '@wordpress/element';
  * Internal dependencies
  */
 import { Badge, Button, Icon } from '../app/primitives';
-import { boot, nowLocal } from '../data/api';
-import { day, num, parseDate } from '../data/format';
+import { boot } from '../data/api';
+import { num } from '../data/format';
+import { siteDay as siteDayOf } from '../data/site-day';
 
 /**
- * A UTC date from the API (ends in Z) shown as its day in the site's time;
- * a date without a zone is already site time (date_added).
+ * A block's date in the site's time zone (data/site-day.js), in the compact
+ * form the Rules lists use: no weekday next to a year ("Jan 15, 2099"), which
+ * keeps their date columns narrow. Other screens keep the weekday.
  *
- * @param {string|null} iso Date.
- * @return {string} "Thu, Oct 22" or "Jan 15, 2099" (a narrow column: no weekday next to a year), or ''.
+ * @param {string|null} value Date.
+ * @return {string} "Thu, Oct 22" or "Jan 15, 2099", or ''.
  */
-export function siteDay( iso ) {
-	if ( ! iso ) {
-		return '';
-	}
-	const text = String( iso );
-	if ( ! /(Z|[+-]\d{2}:?\d{2})$/.test( text ) ) {
-		return day( text, new Date( nowLocal() ), { compact: true } );
-	}
-	const date = parseDate( text );
-	if ( ! date ) {
-		return '';
-	}
-	const shift = nowLocal() - Date.now();
-	return day( new Date( date.getTime() + shift ), new Date( nowLocal() ), {
-		compact: true,
-	} );
-}
+export const siteDay = ( value ) => siteDayOf( value, { compact: true } );
 
 /**
  * A search box that waits for a pause in typing (300 ms) before it

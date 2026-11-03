@@ -3,22 +3,24 @@
  * for the inputs, and the body `zero-spam/v1/rules/blocks` takes.
  */
 
+/**
+ * Internal dependencies
+ */
+import { siteWall } from '../data/site-time';
+
 const DAY = 86400000;
 
 /**
  * A UTC date from the API as the value of a datetime-local input, in the
- * site's time.
+ * site's time for that date (seconds are not shown: see editBaseline()).
  *
- * @param {string|null} iso   UTC date (ends in Z).
- * @param {number}      shift Site time minus browser time, in milliseconds.
+ * @param {string|null} iso  UTC date (ends in Z).
+ * @param {Object}      zone The bootstrap's time zone (data/site-time.js).
  * @return {string} YYYY-MM-DDTHH:MM, or '' without a date.
  */
-export function toSiteInput( iso, shift ) {
-	const t = iso ? Date.parse( iso ) : NaN;
-	if ( Number.isNaN( t ) ) {
-		return '';
-	}
-	return new Date( t + shift ).toISOString().slice( 0, 16 );
+export function toSiteInput( iso, zone ) {
+	const wall = siteWall( iso, zone );
+	return wall ? wall.toISOString().slice( 0, 16 ) : '';
 }
 
 /**
@@ -27,18 +29,18 @@ export function toSiteInput( iso, shift ) {
  * @param {Object|null} block Block being changed (rules/blocks shape), or null.
  * @param {string}      ip    Address to block.
  * @param {number}      now   Site-local now in milliseconds (read as UTC).
- * @param {number}      shift Site time minus browser time, in milliseconds.
+ * @param {Object}      zone  The bootstrap's time zone (for a block's dates).
  * @return {{ip: string, type: string, reason: string, start: string, end: string}} Values.
  */
-export function initialValues( block, ip, now, shift ) {
+export function initialValues( block, ip, now, zone ) {
 	if ( block ) {
 		return {
 			ip: block.ip || block.key || '',
 			type: 'temporary' === block.type ? 'temporary' : 'permanent',
 			reason: block.reason || '',
-			start: toSiteInput( block.start, shift ),
+			start: toSiteInput( block.start, zone ),
 			end:
-				toSiteInput( block.end, shift ) ||
+				toSiteInput( block.end, zone ) ||
 				new Date( now + 7 * DAY ).toISOString().slice( 0, 16 ),
 		};
 	}
@@ -58,11 +60,11 @@ export function initialValues( block, ip, now, shift ) {
  *
  * @param {Object|null} block Location block being changed, or null.
  * @param {number}      now   Site-local now in milliseconds (read as UTC).
- * @param {number}      shift Site time minus browser time, in milliseconds.
+ * @param {Object}      zone  The bootstrap's time zone (for a block's dates).
  * @return {{key_type: string, key: string, type: string, reason: string, start: string, end: string}} Values.
  */
-export function initialLocationValues( block, now, shift ) {
-	const { ip, ...rest } = initialValues( block, '', now, shift );
+export function initialLocationValues( block, now, zone ) {
+	const { ip, ...rest } = initialValues( block, '', now, zone );
 	return {
 		key_type: block?.key_type || 'country_code',
 		key: block ? block.key || '' : ip,
@@ -81,13 +83,38 @@ export const withSeconds = ( value ) =>
 	/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test( value ) ? `${ value }:00` : value;
 
 /**
- * The request body (times without an offset are the site's time). Values
- * with a `key_type` are a location block (initialLocationValues()).
+ * The dates a block being edited has in the form, to tell which were edited.
  *
- * @param {Object} values Values.
+ * The inputs show minutes in the site's wall clock, which cannot hold a
+ * stored date exactly: the seconds of a date-only end (23:59:59), or which of
+ * the two 01:30 of the night the clocks go back. So a date the form did not
+ * change is not sent, and the server keeps the stored one to the second.
+ *
+ * @param {Object|null} block Block being changed (rules/blocks shape), or null.
+ * @param {Object}      zone  The bootstrap's time zone.
+ * @return {{start: string, end: string}|null} Form values of its dates, or null.
+ */
+export function editBaseline( block, zone ) {
+	if ( ! block ) {
+		return null;
+	}
+	return {
+		start: toSiteInput( block.start, zone ),
+		end: toSiteInput( block.end, zone ),
+	};
+}
+
+/**
+ * The request body. Times without an offset are the site's wall clock; the
+ * server reads them (Rules_Controller::parse_utc(): a time the clocks skip
+ * moves forward by the skip, a time they repeat is its first occurrence).
+ * Values with a `key_type` are a location block (initialLocationValues()).
+ *
+ * @param {Object}                            values     Values.
+ * @param {{start: string, end: string}|null} [baseline] editBaseline() of the block being edited: dates still at these values are not sent.
  * @return {Object} Body.
  */
-export function blockBody( values ) {
+export function blockBody( values, baseline = null ) {
 	const body = values.key_type
 		? {
 				kind: 'location',
@@ -102,11 +129,20 @@ export function blockBody( values ) {
 				type: values.type,
 				reason: values.reason.trim(),
 			};
-	if ( values.start ) {
+	const startEdited = values.start && values.start !== baseline?.start;
+	if ( startEdited ) {
 		body.start = withSeconds( values.start );
 	}
 	if ( 'temporary' === values.type ) {
-		body.end = withSeconds( values.end );
+		// A new start past the end is sent with the end, so the server
+		// answers on the end field that it must come after the start.
+		const endKept =
+			baseline?.end &&
+			values.end === baseline.end &&
+			! ( startEdited && values.start >= baseline.end );
+		if ( ! endKept ) {
+			body.end = withSeconds( values.end );
+		}
 	}
 	return body;
 }

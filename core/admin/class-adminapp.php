@@ -765,6 +765,20 @@ final class Admin_App {
 	}
 
 	/**
+	 * The site's time zone for the browser (assets/src/admin/data/site-time.js).
+	 *
+	 * @return array{name: string, offset: int} The IANA name, or '' when WordPress is set to a manual offset such as UTC+5:30, which has none; the offset from UTC right now, in seconds.
+	 */
+	public static function site_time_zone(): array {
+		$name = wp_timezone_string();
+
+		return array(
+			'name'   => 1 === preg_match( '/^[+-]\d{2}:\d{2}$/', $name ) ? '' : $name,
+			'offset' => ( new \DateTimeImmutable( 'now', wp_timezone() ) )->getOffset(),
+		);
+	}
+
+	/**
 	 * What the app needs before its first request: the area, the page
 	 * addresses, the site and the environment.
 	 *
@@ -777,12 +791,16 @@ final class Admin_App {
 			$urls[ $key ] = admin_url( 'admin.php?page=' . $slug );
 		}
 
+		$time_zone = self::site_time_zone();
+
 		return array(
 			'area'              => $area,
 			'tab'               => self::view_args()['tab'],
 			'version'           => ZEROSPAM_VERSION,
 			// Site-local "now" in milliseconds (read as UTC), so relative times match the log's site-local dates.
-			'nowLocal'          => ( time() + ( new \DateTimeImmutable( 'now', wp_timezone() ) )->getOffset() ) * 1000,
+			'nowLocal'          => ( time() + $time_zone['offset'] ) * 1000,
+			// For absolute dates (block starts and ends): assets/src/admin/data/site-time.js.
+			'timezone'          => $time_zone,
 			'site'              => array(
 				'name' => wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ),
 				'url'  => home_url( '/' ),

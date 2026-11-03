@@ -24,8 +24,9 @@ import { Badge, Button, Icon, cx } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { BlockForm } from '../app/block-form';
 import { blockAll, bulkBlockPlan, initialValues } from '../app/block-data';
-import { NS, boot, nowLocal, request } from '../data/api';
-import { ago, day, dayTime, minutesAgo, num } from '../data/format';
+import { NS, nowLocal, request } from '../data/api';
+import { ago, dayTime, minutesAgo, num } from '../data/format';
+import { siteDay } from '../data/site-day';
 import { createAnnounceGate } from '../data/poll';
 import { useLiveFeed } from '../data/use-live-feed';
 import { typeIcon } from '../overview/tiles';
@@ -290,12 +291,7 @@ export function Log( { onChanged, summary } ) {
 						/* translators: 1: IP address, 2: date the block ends */
 						__( '%1$s blocked until %2$s', 'zero-spam' ),
 						ip,
-						day(
-							new Date(
-								Date.parse( saved.end ) +
-									( boot.nowLocal - Date.now() )
-							)
-						)
+						siteDay( saved.end )
 					);
 				},
 				undone: () =>
@@ -423,7 +419,7 @@ export function Log( { onChanged, summary } ) {
 			toast( alreadyText );
 			return;
 		}
-		const end = initialValues( null, '', nowLocal(), 0 ).end;
+		const end = initialValues( null, '', nowLocal() ).end;
 		runUndoable( {
 			run: () =>
 				blockAll( { ips: plan.ips, end, request } ).then( ( result ) =>

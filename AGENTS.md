@@ -152,6 +152,34 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   on the plugin's own screens and is light elsewhere in wp-admin (the
   dashboard widget calls `display_prefs( false )`). The activity route's
   `date_gmt` carries `+00:00`; clients read an offset-less time as UTC.
+- **Dates in the 6.0 admin.** Three kinds, and only these: site-local dates
+  without a zone (`date_added`, the log, the network audit, templates) are
+  shown as they are; absolute times ending in `Z` (a block's `start` and
+  `end`, stored in UTC) go through `assets/src/admin/data/site-time.js`
+  (`siteWall()`, or `siteDay()` from `data/site-day.js`), which uses the
+  bootstrap's `timezone` (`Admin_App::site_time_zone()`: `name` for
+  `Intl.DateTimeFormat`, the offset of that date with its DST rules; `name`
+  is `''` on a manual offset such as UTC+5:30; `offset`, today's offset in
+  seconds, is the only value then, and the fallback for a name the browser
+  does not know, right to the hour only on today's side of a DST change);
+  and `nowLocal()` is for "now" alone (relative times, today's date), since
+  it corrects the browser's clock. **Never use `nowLocal() - Date.now()` as a
+  time zone offset:** it also holds the page's latency and the clock's error
+  (an exact midnight lands on the day before) and is only today's offset
+  (`data/test/no-offset.test.js` fails on it).
+- **The block drawer's dates.** A datetime-local input holds a wall-clock
+  minute, which cannot hold every stored date (a date-only end's 23:59:59, the
+  second 01:30 of the night the clocks go back). So `blockBody()` does not
+  send a date still at its `editBaseline()` value and the server keeps the
+  stored one to the second: saving without edits changes nothing. A date
+  that was edited is sent as a wall clock without an offset and read by
+  `Rules_Controller::parse_utc()` in the site's time zone. On the night clocks
+  go forward, a time that does not exist moves forward by the gap (02:30 in
+  New York is stored as 03:30 EDT; a date alone whose midnight is skipped
+  starts at the first moment of that day); on the night they go back, a
+  time that happens twice is its first occurrence (01:30 EDT). That is PHP's
+  `date_create()` behaviour, which `get_gmt_from_date()` uses;
+  `test-rest-rules.php` pins it.
 - 6.0 data routes (`feat/rest-data`): `stats/*`, `activity*`, `undo/{token}`,
   `rules/*`, `protection/modules`, `settings/actions|export|import`,
   `self-test`, `news`; the internal `ui/help/docs` (GET, `manage_options`:
