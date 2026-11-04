@@ -166,7 +166,7 @@ class Dashboard_Widget {
 			return (bool) $filtered;
 		}
 
-		$settings = Core_Settings::get_settings();
+		$settings = Core_Settings::get_settings_without_lists();
 
 		// Check master toggle first.
 		if ( empty( $settings['widget_enabled']['value'] ) || 'enabled' !== $settings['widget_enabled']['value'] ) {
