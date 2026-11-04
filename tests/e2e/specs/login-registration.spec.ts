@@ -25,7 +25,7 @@ test.describe( 'Login and registration protection', () => {
 			await login.goto();
 			await honeypot( login.form ).evaluate( ( el: HTMLInputElement ) => ( el.value = 'filled-by-bot' ) );
 			await login.login( account.username, account.password );
-			await expect( login.error ).toContainText( 'Your IP has been flagged as spam/malicious.' );
+			await expect( login.error ).toContainText( 'This looks like spam, so it wasn' );
 			await expect( botPage.locator( '#wpadminbar' ) ).toHaveCount( 0 );
 			await gallery.capture( botPage, 'bot login rejected' );
 			const rows = await zs.logRows( { ip, type: 'login' } );

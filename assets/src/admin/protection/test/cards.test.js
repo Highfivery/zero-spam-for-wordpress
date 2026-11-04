@@ -169,6 +169,12 @@ describe( 'cardStatus', () => {
 				status: 'invalid',
 			} )
 		).toEqual( { tone: 'danger', label: 'Key not valid' } );
+		expect(
+			cardStatus( zerospam, valueOf, {
+				...enhancedLicense(),
+				status: 'inactive',
+			} )
+		).toEqual( { tone: 'warn', label: 'Subscription inactive' } );
 	} );
 
 	it( 'says when the plugin is not active, and nothing for the honeypot', () => {

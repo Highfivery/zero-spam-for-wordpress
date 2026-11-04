@@ -86,7 +86,12 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   `Settings_Schema::resolve()` / `registry()` in new code. Optional registry
   keys: `default`, `secret`, `lockable`, `area`, `group`, `depends_on`,
   `order`. `Core\License_Status` is the one license status (header, widget,
-  notices, REST); never ask the license API from elsewhere.
+  notices, REST); never ask the license API from elsewhere. `inactive` is a
+  real key whose subscription lapsed: it reads as Basic in the admin, with a
+  renew link. `Zero_Spam::query()` asks nothing while `lookups_paused()`
+  (no API request): the subscription is `inactive`, or a lookup was refused
+  with `exceeded_requests` within the hour. Only a refused lookup pauses for
+  quota: the license route's numbers can lag behind what lookups answer.
 - REST controllers extend `Includes\Rest\Base_Controller` (permission
   helpers, `rest_invalid_param` with `data.params`, `per_page` ≤ 100, paging
   headers, `_fields`). Secrets are write-only over REST.
@@ -127,6 +132,13 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   `DB::AUDIT_ACTIONS`). `wpzerospam_blacklist` is listed there; 4.x created it and
   current versions do not, but uninstall still drops it. Schema changes go through `DB::update()` and a
   `DB_VERSION` bump.
+- `Utilities::is_disallowed()` matches an entry anywhere in ordinary text, as
+  WordPress's list does, and whole inside an email address (an entry with an
+  `@` also inside a message): `123@` must not refuse jane123@example.com.
+  Comments use WordPress's own check, which WordPress runs again itself.
+- `API_Usage_Tracker` stores an endpoint's address only, and no parameters on
+  cache hits: request URLs carry the license key and visitor data, which must
+  not reach the usage table. Report calls are not tracked (they use no queries).
 - Logged submission data is sanitized on write (keys and values) and must be
   escaped on read: it has carried a stored XSS before (CVE-2026-96752).
   The REST routes (`activity/{id}`) return it as stored; the client escapes
@@ -979,6 +991,7 @@ npm run env:stop                 # stop both wp-env sites
   `UPDATE IGNORE`: a template whose slug the main network already has stays
   at `network_id` 0, unreachable; only rows inserted outside the plugin can
   collide). Say so in the 6.0.0 release notes.
+- The WordPress.org readme validator reports a fatal error for the name "Zero Spam for WordPress" (restricted term "wordpress"). The name predates the rule, every release has been accepted with it, and Ben decided to keep it (2026-11-03): do not rename the plugin header or readme title to clear it.
 - Release pitfall: in March 2026 a release shipped as 5.5.8 instead of 5.7.8.
   `composer version:check` exists because of it.
 - Multi-network: the 6.0 network page, its REST routes, `Network_Report`,

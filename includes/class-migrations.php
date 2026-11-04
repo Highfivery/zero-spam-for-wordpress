@@ -149,6 +149,39 @@ class Migrations {
 	public float $blocked_ip_time_budget = 2.0;
 
 	/**
+	 * Where the usage table's cleaning has got to.
+	 *
+	 * @var string
+	 */
+	private const USAGE_CURSOR_OPTION = 'zerospam_usage_clean_cursor';
+
+	/**
+	 * Row IDs of the usage table cleaned per request.
+	 *
+	 * @var int
+	 */
+	private static int $usage_batch = 5000;
+
+	/**
+	 * The settings that held an old default message, by module.
+	 *
+	 * @var array<string, string[]>
+	 */
+	private const SPAM_MESSAGE_SETTINGS = array(
+		'comments'       => array( 'comment_spam_message' ),
+		'contactform7'   => array( 'contactform7_spam_message' ),
+		'fluent_form'    => array( 'fluentforms_spam_message' ),
+		'formidable'     => array( 'formidable_spam_message' ),
+		'givewp'         => array( 'givewp_spam_message' ),
+		'login'          => array( 'login_spam_message' ),
+		'mailchimp4wp'   => array( 'mailchimp4wp_spam_message' ),
+		'registration'   => array( 'registration_spam_message' ),
+		'woocommerce'    => array( 'woocommerce_registration_spam_message' ),
+		'wp-user-avatar' => array( 'wp_user_avatar_spam_message' ),
+		'wpforms'        => array( 'wpforms_spam_message' ),
+	);
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -227,6 +260,8 @@ class Migrations {
 			'v6_dismissals'                => array( $this, 'move_dismissals' ),
 			'v6_allowlist_follows_network' => array( $this, 'allowlist_follows_network' ),
 			'v6_remove_google_api'         => array( $this, 'remove_google_api' ),
+			'v6_spam_message_wording'      => array( $this, 'spam_message_wording' ),
+			'v6_usage_endpoint_privacy'    => array( $this, 'usage_endpoint_privacy' ),
 		);
 	}
 
@@ -1075,6 +1110,183 @@ class Migrations {
 				return true;
 			}
 		);
+	}
+
+	/**
+	 * Removes what earlier versions stored in the usage table.
+	 *
+	 * `endpoint` held whole request URLs: the license key and, for lookups, the
+	 * visitor's address. `request_params` of a cache hit held the address too.
+	 * Nothing reads either. The table is the network's, so this runs once per
+	 * network, one range of rows per request and one request at a time (it runs
+	 * on `init`, also for visitors).
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to carry on with a later request.
+	 */
+	public function usage_endpoint_privacy(): bool {
+		if ( is_multisite() ) {
+			return $this->run_network_once(
+				'v6_usage_endpoint_privacy',
+				static function (): bool {
+					return self::clean_usage_rows();
+				}
+			);
+		}
+
+		if ( ! self::acquire_lock( self::NETWORK_LOCK_OPTION ) ) {
+			return false;
+		}
+
+		try {
+			return self::clean_usage_rows();
+		} finally {
+			delete_option( self::NETWORK_LOCK_OPTION );
+		}
+	}
+
+	/**
+	 * Cleans one range of the usage table, continuing where the last one ended.
+	 *
+	 * @return bool True when the table is done; false to carry on, also after a
+	 *              database error (the keys must not stay behind).
+	 */
+	private static function clean_usage_rows(): bool {
+		global $wpdb;
+
+		$table = $wpdb->base_prefix . DB::$tables['api_usage'];
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
+		if ( $table !== $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) ) ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table.
+		$bounds = $wpdb->get_row( $wpdb->prepare( 'SELECT MIN(`usage_id`) AS low, MAX(`usage_id`) AS high FROM %i', $table ), ARRAY_A );
+
+		if ( ! is_array( $bounds ) || null === $bounds['high'] ) {
+			return true;
+		}
+
+		$from = max( (int) get_site_option( self::USAGE_CURSOR_OPTION, 0 ), (int) $bounds['low'] - 1 );
+		$to   = $from + self::$usage_batch;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Run-once migration of the plugin's own table, by primary key range.
+		$rows = $wpdb->query( $wpdb->prepare( "UPDATE %i SET `endpoint` = SUBSTRING_INDEX(`endpoint`, %s, 1), `request_params` = IF(`event_type` = 'cache_hit', NULL, `request_params`) WHERE `usage_id` > %d AND `usage_id` <= %d", $table, '?', $from, $to ) );
+
+		if ( false === $rows ) {
+			return false;
+		}
+
+		if ( $to >= (int) $bounds['high'] ) {
+			delete_site_option( self::USAGE_CURSOR_OPTION );
+
+			return true;
+		}
+
+		update_site_option( self::USAGE_CURSOR_OPTION, $to );
+
+		return false;
+	}
+
+	/**
+	 * Moves the messages that kept an old default to the new wording.
+	 *
+	 * "Your IP has been flagged as spam/malicious." was shown for every failed
+	 * check, also a form's hidden trap, disallowed words and blocked email
+	 * domains, where no address was flagged. "Recommended settings" stored it,
+	 * so most sites have it as a value. A stored old default is removed, in
+	 * English or the site's language, so the site gets the new default (on a
+	 * network, it follows the network again); a network value with it gets the
+	 * new wording and keeps its lock. A message the owner wrote is not touched.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return bool False to try again on a later request (another request
+	 *              holds the network lock).
+	 */
+	public function spam_message_wording(): bool {
+		$old = self::old_spam_messages();
+
+		foreach ( self::SPAM_MESSAGE_SETTINGS as $module => $keys ) {
+			$options = get_option( 'zero-spam-' . $module );
+
+			if ( ! is_array( $options ) ) {
+				continue;
+			}
+
+			$stored = $options;
+
+			foreach ( $keys as $key ) {
+				if ( isset( $options[ $key ] ) && in_array( $options[ $key ], $old, true ) ) {
+					unset( $options[ $key ] );
+				}
+			}
+
+			if ( $stored !== $options ) {
+				// As a network write (switch_to_blog()): the site save filter would keep a value the network has locked.
+				if ( is_multisite() ) {
+					switch_to_blog( get_current_blog_id() );
+				}
+
+				update_option( 'zero-spam-' . $module, $options );
+
+				if ( is_multisite() ) {
+					restore_current_blog();
+				}
+			}
+		}
+
+		if ( ! is_multisite() ) {
+			return true;
+		}
+
+		return $this->run_network_once(
+			'v6_spam_message_wording',
+			static function () use ( $old ): bool {
+				$store   = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( Network_Settings::META_KEY, array() ) );
+				$changed = false;
+
+				foreach ( array_merge( ...array_values( self::SPAM_MESSAGE_SETTINGS ) ) as $key ) {
+					if ( isset( $store['settings'][ $key ]['value'] ) && in_array( $store['settings'][ $key ]['value'], $old, true ) ) {
+						$store['settings'][ $key ]['value'] = \ZeroSpam\Core\Utilities::spam_message();
+						$changed                            = true;
+					}
+				}
+
+				if ( $changed ) {
+					update_site_option( Network_Settings::META_KEY, $store );
+					delete_site_transient( Network_Settings::cache_key() );
+				}
+
+				return true;
+			}
+		);
+	}
+
+	/**
+	 * The old default messages, in English and in the site's language.
+	 *
+	 * @return string[]
+	 */
+	private static function old_spam_messages(): array {
+		$old = array(
+			'Your IP has been flagged as spam/malicious.',
+			"We're sorry, but we're unable to process the transaction. Your IP has been flagged as possible spam.",
+		);
+
+		// The stored text is in the site's language; in wp-admin __() follows the administrator's.
+		$switched = switch_to_locale( get_locale() );
+
+		// phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText -- Looks up the old defaults' translations; the strings are no longer in the plugin, but language packs may still hold them.
+		$translated = array_map( static fn( string $text ): string => __( $text, 'zero-spam' ), $old );
+
+		if ( $switched ) {
+			restore_previous_locale();
+		}
+
+		return array_values( array_unique( array_merge( $old, $translated ) ) );
 	}
 
 	/**

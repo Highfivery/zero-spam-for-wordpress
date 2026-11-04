@@ -186,7 +186,7 @@ class Give {
 			'recommended' => 'enabled',
 		);
 
-		$message = __( 'We\'re sorry, but we\'re unable to process the transaction. Your IP has been flagged as possible spam.', 'zero-spam' );
+		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['givewp_spam_message'] = array(
 			'title'       => __( 'Flagged Message', 'zero-spam' ),

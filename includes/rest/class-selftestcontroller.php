@@ -431,7 +431,7 @@ class Self_Test_Controller extends Base_Controller {
 			);
 		}
 
-		if ( License_Status::is_enabled() && License_Status::has_key() ) {
+		if ( License_Status::is_enabled() && License_Status::has_key() && ! License_Status::is_inactive() ) {
 			$services[] = $this->ping(
 				'zero_spam',
 				static function () {
@@ -449,8 +449,40 @@ class Self_Test_Controller extends Base_Controller {
 					);
 				},
 				static function ( array $data ): bool {
-					return isset( $data['status'] ) && 200 === (int) $data['status'];
+					$reason = $data['response'] ?? '';
+
+					// Answered: the plan has queries, whatever an earlier lookup found.
+					if ( isset( $data['status'] ) && 200 === (int) $data['status'] ) {
+						License_Status::clear_pause();
+					}
+
+					if ( 'subscription_inactive' === $reason ) {
+						License_Status::mark_inactive( License_Status::key() );
+					}
+
+					if ( 'exceeded_requests' === $reason ) {
+						License_Status::mark_quota_exceeded( License_Status::key() );
+					}
+
+					// A plan with no queries left or a lapsed subscription is refused with its reason: the network is answering.
+					return ( isset( $data['status'] ) && 200 === (int) $data['status'] ) || in_array( $reason, array( 'exceeded_requests', 'subscription_inactive' ), true );
 				}
+			);
+		}
+
+		if ( License_Status::is_enabled() && License_Status::is_inactive() ) {
+			return array(
+				'status'   => 'warn',
+				'message'  => __( 'Your Zero Spam subscription isn\'t active, so visitors aren\'t being checked against the Zero Spam network until you renew. Every other check keeps working.', 'zero-spam' ),
+				'services' => $services,
+			);
+		}
+
+		if ( License_Status::is_enabled() && License_Status::lookups_paused() ) {
+			return array(
+				'status'   => 'warn',
+				'message'  => __( 'Your plan\'s lookups for this period are used up, so visitors aren\'t being checked against the Zero Spam network until they reset. Every other check keeps working.', 'zero-spam' ),
+				'services' => $services,
 			);
 		}
 
@@ -506,7 +538,7 @@ class Self_Test_Controller extends Base_Controller {
 		$response = $request();
 		$ms       = (int) round( ( microtime( true ) - $start ) * 1000 );
 		$code     = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );
-		$data     = 200 === $code ? json_decode( (string) wp_remote_retrieve_body( $response ), true ) : null;
+		$data     = in_array( $code, array( 200, 403 ), true ) ? json_decode( (string) wp_remote_retrieve_body( $response ), true ) : null;
 
 		return array(
 			'id'   => $id,

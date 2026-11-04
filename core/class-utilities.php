@@ -672,8 +672,9 @@ class Utilities {
 
 			// Check against disallowed words list.
 			// Note: email values that pass the blocked domain check above will
-			// still be checked here for disallowed words. This is intentional —
-			// an email address can contain spam strings regardless of its domain.
+			// still be checked here for disallowed words, as whole words
+			// (is_disallowed()): an address can hold a spam word, but not by
+			// accident in the middle of someone's name.
 			if ( $check_disallowed && self::is_disallowed( $value ) ) {
 				$errors[] = 'disallowed_list';
 				break;
@@ -759,6 +760,7 @@ class Utilities {
 	 *
 	 * @since 5.0.0
 	 * @since 5.7.8 Added allowed words and minimum word length support.
+	 * @since 6.0.0 Entries match whole inside email addresses (matches_whole()).
 	 *
 	 * @param string $content The content to check.
 	 * @return bool True if the content contains a disallowed word.
@@ -774,7 +776,8 @@ class Utilities {
 		$disallowed_words = explode( "\n", $disallowed_keys );
 
 		// Ensure HTML tags are not being used to bypass the list of disallowed characters and words.
-		$content = wp_strip_all_tags( $content );
+		$content  = wp_strip_all_tags( $content );
+		$is_email = (bool) is_email( $content );
 
 		foreach ( (array) $disallowed_words as $word ) {
 			$word = trim( $word );
@@ -793,16 +796,49 @@ class Utilities {
 				continue;
 			}
 
-			// Do some escaping magic so that '#' chars in the spam words don't break things.
-			$word = preg_quote( $word, '#' );
+			// Most of a long list is not in the content at all: no regular expression for those.
+			if ( false === stripos( $content, $word ) ) {
+				continue;
+			}
 
-			$pattern = "#$word#i";
-			if ( preg_match( $pattern, $content ) ) {
+			$has_at = false !== strpos( $word, '@' );
+
+			if ( ! $is_email && ! $has_at ) {
+				return true;
+			}
+
+			if ( self::matches_whole( $word, $content, $has_at ) ) {
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * Whether a disallowed entry appears whole in an email address.
+	 *
+	 * A list entry such as "ugg" or "123@" must not refuse hugg@example.com or
+	 * jane123@example.com: people do not choose what their address happens to
+	 * contain. An edge of the entry that is a letter or digit must not run on
+	 * into another one, and an entry with an @ must match the whole name or
+	 * domain label next to it, so "123@" also passes jane.123@example.com. An
+	 * edge that is punctuation, as in "@gmai.", is the entry's own boundary.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @param string $word    The list entry.
+	 * @param string $content The content.
+	 * @param bool   $has_at  Whether the entry holds an @.
+	 * @return bool True if it appears whole.
+	 */
+	private static function matches_whole( string $word, string $content, bool $has_at ): bool {
+		// Bytes above 0x7F are the letters of other alphabets (no /u: invalid UTF-8 would stop every match).
+		$letters = 'a-z0-9\\x80-\\xff';
+		$before  = ctype_alnum( $word[0] ) ? '(?<![' . $letters . ( $has_at ? '._+\\-' : '' ) . '])' : '';
+		$after   = ctype_alnum( substr( $word, -1 ) ) ? '(?![' . $letters . ( $has_at ? '\\-' : '' ) . '])' : '';
+
+		return 1 === preg_match( '#' . $before . preg_quote( $word, '#' ) . $after . '#i', $content );
 	}
 
 	/**
@@ -817,12 +853,27 @@ class Utilities {
 	}
 
 	/**
+	 * The default message a blocked submission gets.
+	 *
+	 * It is shown for every failed check (a form's hidden trap, disallowed
+	 * words, a blocked email domain, a reputation lookup), so it does not say
+	 * that the visitor's IP address was flagged: most of the time it was not.
+	 *
+	 * @since 6.0.0
+	 *
+	 * @return string The message.
+	 */
+	public static function spam_message(): string {
+		return __( 'This looks like spam, so it wasn\'t accepted. If we got that wrong, please try again or contact the site owner.', 'zero-spam' );
+	}
+
+	/**
 	 * Returns the default detection message.
 	 *
 	 * @param string $setting_msg_key Optional. Setting message key.
 	 */
 	public static function detection_message( $setting_msg_key = false ) {
-		$message = __( 'You have been flagged as spam/malicious user.', 'zero-spam' );
+		$message = self::spam_message();
 
 		if ( $setting_msg_key && ! empty( ZeroSpam\Core\Settings::get_settings( $setting_msg_key ) ) ) {
 			$message = ZeroSpam\Core\Settings::get_settings( $setting_msg_key );

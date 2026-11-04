@@ -134,6 +134,11 @@ export function keySaved( answer ) {
 			"Your license key is saved. Zero Spam's network couldn't be reached to check it; it is checked again shortly.",
 			'zero-spam'
 		);
+	} else if ( 'inactive' === answer?.status ) {
+		message = __(
+			"Your license key is saved, but its subscription isn't active, so Enhanced Protection is paused. Renew it to turn it back on.",
+			'zero-spam'
+		);
 	} else if ( plan ) {
 		message = sprintf(
 			/* translators: %s: plan name, such as Business */

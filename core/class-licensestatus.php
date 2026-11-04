@@ -22,7 +22,8 @@ defined( 'ABSPATH' ) || die();
  * they could disagree. They all read this service now. It asks the Zero Spam
  * API through Zero_Spam::get_license() (`v2/get-license`).
  *
- * Statuses: `none` (no key), `valid`, `invalid`, `unreachable` (the API did
+ * Statuses: `none` (no key), `valid`, `invalid`, `inactive` (a real key whose
+ * subscription lapsed: no lookups until it is renewed), `unreachable` (the API did
  * not answer; protection stays on) and `quota_exceeded` (valid key with no
  * queries left). The answer is cached per site in a transient for 12 hours,
  * 15 minutes when the API was unreachable, and refreshed when the key changes.
@@ -39,6 +40,7 @@ final class License_Status {
 	const INVALID        = 'invalid';
 	const UNREACHABLE    = 'unreachable';
 	const QUOTA_EXCEEDED = 'quota_exceeded';
+	const INACTIVE       = 'inactive';
 
 	/**
 	 * Transient holding the last answer.
@@ -46,6 +48,13 @@ final class License_Status {
 	 * @var string
 	 */
 	const TRANSIENT = 'zerospam_license_status';
+
+	/**
+	 * Transient holding the hash of the key whose lookups are paused.
+	 *
+	 * @var string
+	 */
+	const PAUSE_TRANSIENT = 'zerospam_lookups_paused';
 
 	/**
 	 * How long an answer is kept.
@@ -60,6 +69,14 @@ final class License_Status {
 	 * @var int
 	 */
 	const UNREACHABLE_TTL = 15 * MINUTE_IN_SECONDS;
+
+	/**
+	 * How long a pause, an `inactive` answer or a `quota_exceeded` answer is
+	 * kept, so a renewal or a plan's reset is seen soon.
+	 *
+	 * @var int
+	 */
+	const PAUSED_TTL = HOUR_IN_SECONDS;
 
 	/**
 	 * Plan names by the product IDs the API reports.
@@ -146,6 +163,7 @@ final class License_Status {
 	const LEVEL_ENHANCED   = 'enhanced';
 	const LEVEL_BASIC      = 'basic';
 	const LEVEL_INVALID    = 'invalid';
+	const LEVEL_INACTIVE   = 'inactive';
 	const LEVEL_UNVERIFIED = 'unverified';
 
 	/**
@@ -156,7 +174,7 @@ final class License_Status {
 	 * `enhanced` only when Enhanced Protection is on and the site's last
 	 * license answer (its cached status, for the key in use) says the key is
 	 * valid (or valid with no queries left); `invalid` when it said the key
-	 * is not valid; `unverified` when it is on with a key that has not been
+	 * is not valid; `inactive` when its subscription lapsed; `unverified` when it is on with a key that has not been
 	 * checked recently, or the API could not be reached; `basic` otherwise.
 	 * The values follow the precedence of the settings: a locked network
 	 * value, the site's own value, the network default, then (for the key)
@@ -211,6 +229,10 @@ final class License_Status {
 
 		if ( self::VALID === $status || self::QUOTA_EXCEEDED === $status ) {
 			return self::LEVEL_ENHANCED;
+		}
+
+		if ( self::INACTIVE === $status ) {
+			return self::LEVEL_INACTIVE;
 		}
 
 		return self::INVALID === $status ? self::LEVEL_INVALID : self::LEVEL_UNVERIFIED;
@@ -269,6 +291,107 @@ final class License_Status {
 	}
 
 	/**
+	 * Whether the last answer for the key in use says its subscription lapsed.
+	 *
+	 * Only reads the cached answer: no API request, so lookups can ask it.
+	 *
+	 * @param string|null $key The key in use, when the caller has it already.
+	 * @return bool True if the subscription is inactive.
+	 */
+	public static function is_inactive( ?string $key = null ): bool {
+		return self::INACTIVE === self::cached_status( $key );
+	}
+
+	/**
+	 * Whether lookups are pointless for now: the subscription lapsed, or a
+	 * lookup was refused because the plan's queries are used up. Fail open: the
+	 * other checks keep working.
+	 *
+	 * A used-up plan pauses only on a refused lookup, never on the license
+	 * route's numbers, which can lag behind what the lookups would answer.
+	 * Only reads cached answers: no API request, so lookups can ask it.
+	 *
+	 * @param string|null $key The key in use, when the caller has it already.
+	 * @return bool True if lookups should not be made.
+	 */
+	public static function lookups_paused( ?string $key = null ): bool {
+		$key = trim( $key ?? self::key() );
+
+		if ( '' === $key ) {
+			return false;
+		}
+
+		return md5( $key ) === get_transient( self::PAUSE_TRANSIENT ) || self::is_inactive( $key );
+	}
+
+	/**
+	 * Lifts a pause: a lookup was answered, so the plan has queries again.
+	 */
+	public static function clear_pause(): void {
+		delete_transient( self::PAUSE_TRANSIENT );
+
+		if ( self::QUOTA_EXCEEDED === self::cached_status() ) {
+			delete_transient( self::TRANSIENT );
+			self::$current = array();
+		}
+	}
+
+	/**
+	 * The cached status of a key, or '' when none is cached for it.
+	 *
+	 * @param string|null $key The key in use, when the caller has it already.
+	 */
+	private static function cached_status( ?string $key = null ): string {
+		$key = trim( $key ?? self::key() );
+
+		if ( '' === $key ) {
+			return '';
+		}
+
+		$cached = get_transient( self::TRANSIENT );
+
+		return is_array( $cached ) && isset( $cached['hash'], $cached['answer']['status'] ) && md5( $key ) === $cached['hash'] ? (string) $cached['answer']['status'] : '';
+	}
+
+	/**
+	 * Records that a lookup found the key's subscription lapsed.
+	 *
+	 * @param string $key License key.
+	 */
+	public static function mark_inactive( string $key ): void {
+		self::remember( $key, self::answer( self::INACTIVE ) );
+	}
+
+	/**
+	 * Records that a lookup was refused because the plan's queries are used
+	 * up: lookups pause for an hour, so at most one an hour finds out when the
+	 * plan has queries again. A cached answer says so too, keeping the plan.
+	 *
+	 * @param string $key License key.
+	 */
+	public static function mark_quota_exceeded( string $key ): void {
+		$key = trim( $key );
+
+		set_transient( self::PAUSE_TRANSIENT, md5( $key ), self::PAUSED_TTL );
+
+		$cached = get_transient( self::TRANSIENT );
+
+		if ( ! is_array( $cached ) || ! isset( $cached['hash'], $cached['answer'] ) || md5( $key ) !== $cached['hash'] ) {
+			return;
+		}
+
+		$answer           = $cached['answer'];
+		$answer['status'] = self::QUOTA_EXCEEDED;
+
+		if ( isset( $answer['queries']['limit'] ) ) {
+			$answer['queries']['used']      = $answer['queries']['limit'];
+			$answer['queries']['remaining'] = 0;
+		}
+
+		self::remember( $key, $answer );
+	}
+
+	/**
 	 * Forgets the cached answers, the API answer for the current key included.
 	 */
 	public static function reset_cache(): void {
@@ -279,6 +402,7 @@ final class License_Status {
 		}
 
 		delete_transient( self::TRANSIENT );
+		delete_transient( self::PAUSE_TRANSIENT );
 		self::$current = array();
 	}
 
@@ -302,7 +426,9 @@ final class License_Status {
 			return self::answer( self::UNREACHABLE );
 		}
 
-		if ( ! is_array( $license ) || empty( $license['license_key'] ) ) {
+		$inactive = is_array( $license ) && isset( $license['status'] ) && 'inactive' === $license['status'];
+
+		if ( ! $inactive && ( ! is_array( $license ) || empty( $license['license_key'] ) ) ) {
 			return self::answer( self::INVALID );
 		}
 
@@ -316,6 +442,7 @@ final class License_Status {
 		}
 
 		$status = isset( $license['queries_remaining'] ) && (int) $license['queries_remaining'] <= 0 ? self::QUOTA_EXCEEDED : self::VALID;
+		$status = $inactive ? self::INACTIVE : $status;
 
 		$plan = null;
 		if ( ! empty( $license['product_id'] ) && is_scalar( $license['product_id'] ) ) {
@@ -351,7 +478,7 @@ final class License_Status {
 				'hash'   => $hash,
 				'answer' => $answer,
 			),
-			self::UNREACHABLE === $answer['status'] ? self::UNREACHABLE_TTL : self::TTL
+			self::UNREACHABLE === $answer['status'] ? self::UNREACHABLE_TTL : ( in_array( $answer['status'], array( self::INACTIVE, self::QUOTA_EXCEEDED ), true ) ? self::PAUSED_TTL : self::TTL )
 		);
 
 		return $answer;

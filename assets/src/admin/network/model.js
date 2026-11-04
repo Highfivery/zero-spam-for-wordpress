@@ -582,6 +582,11 @@ export function levelBadge( level ) {
 				text: __( 'License not valid', 'zero-spam' ),
 				tone: 'warn',
 			};
+		case 'inactive':
+			return {
+				text: __( 'Subscription inactive', 'zero-spam' ),
+				tone: 'warn',
+			};
 		case 'unverified':
 			return { text: __( 'Not verified yet', 'zero-spam' ), tone: '' };
 		default:

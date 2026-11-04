@@ -482,8 +482,9 @@ class Dashboard_Widget {
 			License_Status::VALID          => __( 'Enhanced · Active', 'zero-spam' ),
 			License_Status::INVALID        => __( 'Enhanced · License not valid', 'zero-spam' ),
 			License_Status::QUOTA_EXCEEDED => __( 'Enhanced · Query limit reached', 'zero-spam' ),
+			License_Status::INACTIVE       => __( 'Enhanced · Subscription inactive', 'zero-spam' ),
 		);
-		$warn   = License_Status::INVALID === $status || License_Status::QUOTA_EXCEEDED === $status;
+		$warn   = in_array( $status, array( License_Status::INVALID, License_Status::QUOTA_EXCEEDED, License_Status::INACTIVE ), true );
 		$can    = current_user_can( $network ? 'manage_network_options' : 'manage_options' );
 
 		return array(
