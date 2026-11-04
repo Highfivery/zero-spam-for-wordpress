@@ -378,6 +378,41 @@ class Test_License_Status extends TestCase {
 	}
 
 	/**
+	 * Every plan the service sells has a name, older ones too: the license
+	 * panel would show the raw product ID otherwise.
+	 *
+	 * @dataProvider data_plan_names
+	 *
+	 * @param string $id   Product ID.
+	 * @param string $name Plan name.
+	 */
+	public function test_plan_names( string $id, string $name ): void {
+		$this->set_setting( 'zerospam_license', self::KEY );
+		$this->mock_http( self::ENDPOINT, array_merge( self::valid_body(), array( 'product_id' => $id ) ) );
+
+		$this->assertSame(
+			array(
+				'id'   => $id,
+				'name' => $name,
+			),
+			License_Status::get()['plan']
+		);
+	}
+
+	/**
+	 * The older plans.
+	 *
+	 * @return array<string, array{0: string, 1: string}>
+	 */
+	public static function data_plan_names(): array {
+		return array(
+			'premium'   => array( 'ZEROSPAMPREMIUM', 'Premium' ),
+			'unlimited' => array( 'ZEROSPAMUNLIMITED', 'Unlimited' ),
+			'tier i'    => array( 'ZEROSPAMTIERI', 'Multi-License Tier I' ),
+		);
+	}
+
+	/**
 	 * A valid answer carries the plan and the query counts.
 	 */
 	public function test_valid_details(): void {
