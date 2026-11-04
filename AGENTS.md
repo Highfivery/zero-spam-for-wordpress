@@ -121,6 +121,17 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   site's `{ set, source }`; `test-network-settings-secrets.php` sweeps every
   GET of `network-settings/*` and fails when a new one is not in its list.
 
+### Registrations on a network
+A network registers through `wp-signup.php` (main site only; core redirects
+subsites and `wp-login.php?action=register` there), which fires neither
+`registration_errors` nor `register_form` and never `template_redirect`.
+`Registration` checks it from `before_signup_header`, which is what scopes
+the `wpmu_validate_user_signup` filter to that page: core runs that filter for
+`wp user create`, REST and Add User as well, and those have no honeypot or
+David Walsh key. Both steps of the form validate the user again, so a
+token counts one use per step. `Access` runs its block check on the same
+action. `Registration::is_spam()` is the shared check, log and share.
+
 ### Data
 - Per-site tables `{prefix}wpzerospam_log`, `{prefix}wpzerospam_blocked`;
   network-wide (`base_prefix`) `wpzerospam_api_usage`,
@@ -861,11 +872,6 @@ npm run env:stop                 # stop both wp-env sites
   `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
-  - Multisite registrations are never checked: a network registers
-    through `wp-signup.php`, which fires neither `registration_errors` nor
-    `zerospam_preprocess_registration_submission`, so the Registration
-    module and the Stop Forum Spam registration check never run there
-    (hook `wpmu_validate_user_signup` to cover it; its own PR).
   - Cache group mismatch (`wp_cache_get()` default group vs `wp_cache_set()`
     group) in `modules/class-projecthoneypot.php` (~92),
     `modules/ipbase/class-ipbase.php` (~203), `modules/class-ipinfomodule.php`

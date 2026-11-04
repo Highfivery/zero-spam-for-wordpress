@@ -64,6 +64,9 @@ class Access {
 		// Protect login.
 		add_action( 'login_init', array( $this, 'login_access_check' ) );
 
+		// Protect a network's sign-up page, which never fires template_redirect.
+		add_action( 'before_signup_header', array( $this, 'login_access_check' ) );
+
 		// Protect XML-RPC.
 		add_action( 'xmlrpc_call', array( $this, 'xmlrpc_access_check' ) );
 	}

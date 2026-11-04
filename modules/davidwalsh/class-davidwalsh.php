@@ -614,6 +614,7 @@ class DavidWalsh {
 			'.comment-form',
 			'#commentform',
 			'#registerform',
+			'#setupform',
 			'#loginform',
 
 			// Third-party integrations.

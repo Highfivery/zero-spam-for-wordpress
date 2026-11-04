@@ -98,8 +98,6 @@ class Test_Signup_Protection extends TestCase {
 	 * error wp-signup.php prints above the form, logged and shared with what
 	 * it submitted.
 	 *
-	 * @group known-defect
-	 *
 	 * @covers \ZeroSpam\Modules\Registration\Registration::process_signup
 	 */
 	public function test_filled_trap_is_refused_logged_and_shared(): void {
@@ -128,8 +126,6 @@ class Test_Signup_Protection extends TestCase {
 	/**
 	 * A blocked email domain, disposable domains included, is refused.
 	 *
-	 * @group known-defect
-	 *
 	 * @covers \ZeroSpam\Modules\Registration\Registration::process_signup
 	 */
 	public function test_blocked_email_domain_is_refused(): void {
@@ -144,8 +140,6 @@ class Test_Signup_Protection extends TestCase {
 	/**
 	 * A submission without the browser check's key is refused; one with a key
 	 * this site issued goes through.
-	 *
-	 * @group known-defect
 	 *
 	 * @covers \ZeroSpam\Modules\Registration\Registration::process_signup
 	 */
@@ -177,8 +171,6 @@ class Test_Signup_Protection extends TestCase {
 	/**
 	 * Stop Forum Spam looks up the sign-up's email; a listed one is refused.
 	 * The username is never sent.
-	 *
-	 * @group known-defect
 	 *
 	 * @covers \ZeroSpam\Modules\Registration\Registration::process_signup
 	 */
@@ -232,8 +224,6 @@ class Test_Signup_Protection extends TestCase {
 	/**
 	 * Logging is the site's choice, as on a single site: the refusal is not.
 	 *
-	 * @group known-defect
-	 *
 	 * @covers \ZeroSpam\Modules\Registration\Registration::process_signup
 	 */
 	public function test_refused_without_a_log_row_when_logging_is_off(): void {
@@ -247,8 +237,6 @@ class Test_Signup_Protection extends TestCase {
 
 	/**
 	 * The message goes through the page unescaped, so it is cleaned here.
-	 *
-	 * @group known-defect
 	 *
 	 * @covers \ZeroSpam\Modules\Registration\Registration::process_signup
 	 */
@@ -311,8 +299,6 @@ class Test_Signup_Protection extends TestCase {
 	 * Both steps of the form carry the trap and load the browser check, and
 	 * the browser check knows the form.
 	 *
-	 * @group known-defect
-	 *
 	 * @covers \ZeroSpam\Modules\Registration\Registration::init
 	 */
 	public function test_the_form_carries_the_checks(): void {
@@ -336,8 +322,6 @@ class Test_Signup_Protection extends TestCase {
 	/**
 	 * A blocked address is stopped before the form, as it is at wp-login.php
 	 * on a single site: wp-signup.php never fires `template_redirect`.
-	 *
-	 * @group known-defect
 	 *
 	 * @covers \ZeroSpam\Core\Access::init
 	 */
