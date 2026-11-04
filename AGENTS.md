@@ -53,8 +53,10 @@ in the same PR.
 | `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
 
 ### How a module works
-Constructor hooks `init`; adds its sections, settings and types through the
-`zerospam_setting_sections`, `zerospam_settings`, `zerospam_types` and
+Constructor adds its `zerospam_settings` filter (there, not in `init()`: each
+filter added later makes the next read build the registry again) and hooks
+`init`; `init()` adds its sections and types through the
+`zerospam_setting_sections`, `zerospam_types` and
 `zerospam_failed_types` filters; when its own setting is `'enabled'` and
 `Access::process()` is true it hooks the relevant form (`zerospam_preprocess_*`
 filters, `zerospam_access_checks`), logs with `DB::log()` and fires
@@ -65,8 +67,16 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 - Core settings live in option `zero-spam-settings`; each module in
   `zero-spam-{module}`. `blocked_email_domains` has its own non-autoloaded
   option. Read through `Settings::get_settings( $key )`.
-- `Settings::get_settings()` rebuilds the whole registry on every call and is
-  expensive. Do not call it in loops or hot paths; read once and reuse.
+- `Settings::get_settings()` with no key rebuilds the whole registry on every
+  call and reads the blocked email domains (about 1.1 MB with the recommended
+  list). Do not call it in loops or hot paths. On what runs for visitors use
+  `Settings::get_settings( $key )`, `Settings_Schema::value( $key )` or
+  `Settings::get_settings_without_lists()`: these share one registry per
+  request and site, without that list's value, built again when a settings
+  option changes, a `zerospam_settings` filter is added or removed, the user
+  changes, WordPress finishes loading or the query has run
+  (`test-settings-front-end-read.php` holds a page view to one build and no
+  read of the list). Only the blocked email domains' own key reads the list.
 - A switch that is on unless turned off declares `'default' => 'enabled'`
   (its own "on" choice) and reads an absent key as `enabled`; turning it off
   stores `disabled` (the settings form and `PATCH /settings` do this through
@@ -1017,16 +1027,13 @@ npm run env:stop                 # stop both wp-env sites
   `zerospam_db_version` back to 1.5 on each site once.
 - `GET network-settings/{key}` still counts sites through
   `Network_Settings::get_application_status()`, one registry build per site.
-- Blocked email domains and every request (#404): `v6_blocked_domains_option`
-  took the list out of the autoloaded options, but `Settings::get_settings()`
-  still reads `zerospam_blocked_email_domains` while building the registry,
-  so an anonymous front-end request sends a separate query for the whole list
-  (about 1.1 MB with the recommended one). On a network the list can also sit
-  in `zerospam_network_settings`. `ip_whitelist` and `allowed_words` stay in
-  the autoloaded `zero-spam-settings` (3,000 addresses are 32 KB; the 100,000
-  a list may hold are 1.4 MB). `zerospam_settings_audit` keeps a list's whole
-  old and new values in each of its 100 entries (not autoloaded, not bounded
-  in bytes).
+- Blocked email domains (#404): a visitor's page view no longer reads the list
+  from the site's own option, but on a network the list can sit in
+  `zerospam_network_settings`, loaded whole on every request through a site
+  transient. `ip_whitelist` and `allowed_words` stay in the autoloaded
+  `zero-spam-settings` (3,000 addresses are 32 KB; the 100,000 a list may hold
+  are 1.4 MB). `zerospam_settings_audit` keeps a list's whole old and new
+  values in each of its 100 entries (not autoloaded, not bounded in bytes).
 - Follow-ups from the Rules review (#452):
   - Rules: IPv6 addresses sort as text; sort them numerically with
     `INET6_ATON()` where the database has it.

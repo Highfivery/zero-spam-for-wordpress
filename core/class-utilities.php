@@ -1275,7 +1275,7 @@ class Utilities {
 			return false;
 		}
 
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$settings = ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		if ( empty( $settings['ip_whitelist']['value'] ) || ! is_string( $settings['ip_whitelist']['value'] ) ) {
 			return false;

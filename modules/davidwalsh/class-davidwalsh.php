@@ -137,6 +137,8 @@ class DavidWalsh {
 	 * Constructor
 	 */
 	public function __construct() {
+		// Before the other modules' settings, in the order they have in the admin.
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 9, 1 );
 		add_action( 'init', array( $this, 'init' ), 0 );
 		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, array( $this, 'ajax_get_key' ) );
@@ -150,7 +152,6 @@ class DavidWalsh {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_failed_types', array( $this, 'failed_types' ), 10, 1 );
 
 		// Keys are no longer rotated by cron (tokens carry their own expiry).

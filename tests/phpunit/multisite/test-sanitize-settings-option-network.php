@@ -177,4 +177,40 @@ class Test_Sanitize_Settings_Option_Network extends TestCase {
 		$this->assertSame( array( 'share_data' => 'enabled' ), get_option( 'zero-spam-settings' ) );
 		$this->assertFalse( ms_is_switched() );
 	}
+
+	/**
+	 * Reading settings without the list keeps each site's values and the network's.
+	 */
+	public function test_cached_settings_follow_the_site_and_the_network(): void {
+		$options                    = (array) get_option( 'zero-spam-settings', array() );
+		$options['blocked_message'] = 'main-site';
+		update_option( 'zero-spam-settings', $options );
+
+		$this->assertSame( 'main-site', \ZeroSpam\Core\Settings::get_settings( 'blocked_message' ) );
+
+		switch_to_blog( self::$site );
+		$this->assertNotSame( 'main-site', \ZeroSpam\Core\Settings::get_settings( 'blocked_message' ) );
+		restore_current_blog();
+
+		$this->assertSame( 'main-site', \ZeroSpam\Core\Settings::get_settings( 'blocked_message' ) );
+
+		$this->set_network_setting( 'blocked_message', 'locked-by-network', true );
+		Settings_Schema::reset_cache();
+
+		$this->assertSame( 'locked-by-network', \ZeroSpam\Core\Settings::get_settings( 'blocked_message' ) );
+	}
+
+	/**
+	 * A form check uses the list the network locks, read on demand.
+	 */
+	public function test_form_check_uses_the_locked_network_list(): void {
+		$this->set_network_setting( 'blocked_email_domains', self::DOMAINS, true );
+		update_option( 'zerospam_blocked_email_domains', 'site-list.example', false );
+		Settings_Schema::reset_cache();
+
+		\ZeroSpam\Core\Settings::get_settings_without_lists();
+
+		$this->assertTrue( \ZeroSpam\Core\Utilities::is_email_domain_blocked( 'jane@spam-network.example' ) );
+		$this->assertFalse( \ZeroSpam\Core\Utilities::is_email_domain_blocked( 'jane@site-list.example' ) );
+	}
 }

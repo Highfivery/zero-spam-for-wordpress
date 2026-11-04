@@ -20,6 +20,7 @@ class Security {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -36,13 +37,12 @@ class Security {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 
 		// Fired on detections.
 		add_action( 'zero_spam_detection', array( $this, 'handle_detection' ), 10, 2 );
 
 		// The registry is rebuilt on every Settings::get_settings() call: read it once.
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 		$enabled  = static function ( string $key ) use ( $settings ): bool {
 			return isset( $settings[ $key ]['value'] ) && 'enabled' === $settings[ $key ]['value'];
 		};

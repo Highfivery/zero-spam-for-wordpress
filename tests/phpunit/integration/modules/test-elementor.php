@@ -206,7 +206,7 @@ class Test_Elementor extends TestCase {
 
 		$this->run_init_modules();
 
-		$this->assertSame( array( 'init' ), $this->hooks_with_elementor_callbacks() );
+		$this->assertSame( array( 'init', 'zerospam_settings' ), $this->hooks_with_elementor_callbacks() );
 	}
 
 	/**

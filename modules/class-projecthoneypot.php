@@ -18,6 +18,7 @@ class ProjectHoneypot {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -26,7 +27,6 @@ class ProjectHoneypot {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 
 		if ( \ZeroSpam\Core\Access::process() ) {
 			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 2 );
@@ -40,7 +40,7 @@ class ProjectHoneypot {
 	 * @param string $user_ip       IP address to check.
 	 */
 	public function access_check( $access_checks, $user_ip ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		$access_checks['project_honeypot'] = array(
 			'blocked' => false,
@@ -75,7 +75,7 @@ class ProjectHoneypot {
 	 * @param string $ip IP address to query.
 	 */
 	public function query( $ip ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		// Check that an access key has been provided.
 		if ( empty( $settings['project_honeypot_access_key']['value'] ) || ! $ip ) {
