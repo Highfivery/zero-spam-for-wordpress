@@ -1,5 +1,5 @@
 /**
- * Front-end forms: the comment form, wp-login.php and the registration form.
+ * Front-end forms: the comment form, wp-login.php, the registration form and a network's sign-up page.
  */
 
 import { expect, type Locator, type Page } from '@playwright/test';
@@ -86,5 +86,42 @@ export class RegisterPage {
 		await this.form.locator( '#user_login' ).fill( username );
 		await this.form.locator( '#user_email' ).fill( email );
 		await Promise.all( [ this.page.waitForLoadState(), this.form.locator( '#wp-submit' ).click() ] );
+	}
+}
+
+/** A network's sign-up page: wp-signup.php, the user step and the site step share the form's id. */
+export class SignupPage {
+	readonly form: Locator;
+
+	constructor( readonly page: Page ) {
+		this.form = page.locator( '#setupform' );
+	}
+
+	async goto(): Promise< void > {
+		await this.page.goto( 'wp-signup.php' );
+		await expect( this.form ).toBeVisible();
+	}
+
+	/**
+	 * Fills the user step like a person (focus fetches a fresh David Walsh key) and sends it.
+	 *
+	 * @param username Username.
+	 * @param email    Email address.
+	 * @param signupFor Whether to ask for just a username or a site as well.
+	 */
+	async signUp( username: string, email: string, signupFor: 'user' | 'blog' = 'user' ): Promise< void > {
+		await this.form.locator( '#user_name' ).click();
+		await this.form.locator( '#user_name' ).fill( username );
+		await this.form.locator( '#user_email' ).fill( email );
+		await this.form.locator( 'user' === signupFor ? '#signupuser' : '#signupblog' ).check();
+		await this.submit();
+	}
+
+	async submit(): Promise< void > {
+		await Promise.all( [ this.page.waitForLoadState(), this.form.locator( 'input[type="submit"]' ).click() ] );
+	}
+
+	get error(): Locator {
+		return this.page.locator( '#wp-signup-generic-error' );
 	}
 }
