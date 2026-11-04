@@ -262,6 +262,7 @@ class Migrations {
 			'v6_remove_google_api'         => array( $this, 'remove_google_api' ),
 			'v6_spam_message_wording'      => array( $this, 'spam_message_wording' ),
 			'v6_usage_endpoint_privacy'    => array( $this, 'usage_endpoint_privacy' ),
+			'v6_blocked_domains_option'    => array( $this, 'blocked_domains_own_option' ),
 		);
 	}
 
@@ -1049,6 +1050,56 @@ class Migrations {
 			update_option( 'zero-spam-settings', $options );
 			restore_current_blog();
 		}
+
+		return true;
+	}
+
+	/**
+	 * Takes the blocked email domains out of what WordPress autoloads.
+	 *
+	 * A list saved before 5.5.9 stayed inside the autoloaded
+	 * `zero-spam-settings` until the next save (the recommended list is about
+	 * 1.1 MB), and rows 5.x wrote can leave the list's own option autoloaded,
+	 * which update_option() does not correct while the value is unchanged.
+	 *
+	 * The copy moves to the own option unless that option exists (then it holds
+	 * the current list, even an emptied one) and is removed from the settings.
+	 * A fresh install gets no option. The 5.x backup (`v6_backup_5x`, which
+	 * runs first) keeps the value removed here. On a network the site's copy
+	 * was an override of an unlocked network default and the own option is
+	 * not, as on any save since 5.5.9.
+	 *
+	 * @see https://github.com/Highfivery/zero-spam-for-wordpress/issues/404
+	 *
+	 * @since 6.0.1
+	 *
+	 * @return true
+	 */
+	public function blocked_domains_own_option(): bool {
+		$own     = \ZeroSpam\Core\Settings_Schema::OWN_OPTIONS['blocked_email_domains'];
+		$options = get_option( 'zero-spam-settings' );
+
+		if ( is_array( $options ) && array_key_exists( 'blocked_email_domains', $options ) ) {
+			$copy = $options['blocked_email_domains'];
+			unset( $options['blocked_email_domains'] );
+
+			if ( is_string( $copy ) && '' !== trim( $copy ) ) {
+				add_option( $own, $copy, '', false );
+			}
+
+			// As a network write (switch_to_blog()): a site's save filter would keep the copy while the network locks the list.
+			if ( is_multisite() ) {
+				switch_to_blog( get_current_blog_id() );
+			}
+
+			update_option( 'zero-spam-settings', $options );
+
+			if ( is_multisite() ) {
+				restore_current_blog();
+			}
+		}
+
+		wp_set_option_autoload( $own, false );
 
 		return true;
 	}

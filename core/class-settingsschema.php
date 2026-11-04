@@ -195,7 +195,9 @@ final class Settings_Schema {
 	 * templates, imports and Utilities::update_setting().
 	 *
 	 * - `blocked_email_domains` is moved to its own option, which is never
-	 *   autoloaded (OWN_OPTIONS), and removed from the module option;
+	 *   autoloaded (OWN_OPTIONS), and removed from the module option. An old
+	 *   copy a writer only carried along (the value this option already stores)
+	 *   never replaces the list's own option, which is the one read;
 	 * - `trusted_proxies` keeps only valid IP addresses and CIDR ranges, one
 	 *   per line (the REST route refuses invalid entries before this).
 	 *
@@ -214,7 +216,7 @@ final class Settings_Schema {
 			$domains = $value['blocked_email_domains'];
 			unset( $value['blocked_email_domains'] );
 
-			if ( is_string( $domains ) ) {
+			if ( is_string( $domains ) && ! self::is_carried_copy( $domains ) ) {
 				update_option( self::OWN_OPTIONS['blocked_email_domains'], $domains, false );
 			}
 		}
@@ -224,6 +226,21 @@ final class Settings_Schema {
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Whether a blocked email domains value only repeats the copy 5.x left in
+	 * `zero-spam-settings` while the list's own option holds the current list.
+	 *
+	 * @param string $domains Value being written.
+	 */
+	private static function is_carried_copy( string $domains ): bool {
+		$stored = get_option( 'zero-spam-settings' );
+
+		return is_array( $stored )
+			&& isset( $stored['blocked_email_domains'] )
+			&& $stored['blocked_email_domains'] === $domains
+			&& false !== get_option( self::OWN_OPTIONS['blocked_email_domains'] );
 	}
 
 	/**

@@ -1023,6 +1023,16 @@ npm run env:stop                 # stop both wp-env sites
   `zerospam_db_version` back to 1.5 on each site once.
 - `GET network-settings/{key}` still counts sites through
   `Network_Settings::get_application_status()`, one registry build per site.
+- Blocked email domains and every request (#404): `v6_blocked_domains_option`
+  took the list out of the autoloaded options, but `Settings::get_settings()`
+  still reads `zerospam_blocked_email_domains` while building the registry,
+  so an anonymous front-end request sends a separate query for the whole list
+  (about 1.1 MB with the recommended one). On a network the list can also sit
+  in `zerospam_network_settings`. `ip_whitelist` and `allowed_words` stay in
+  the autoloaded `zero-spam-settings` (3,000 addresses are 32 KB; the 100,000
+  a list may hold are 1.4 MB). `zerospam_settings_audit` keeps a list's whole
+  old and new values in each of its 100 entries (not autoloaded, not bounded
+  in bytes).
 - Follow-ups from the Rules review (#452):
   - Rules: IPv6 addresses sort as text; sort them numerically with
     `INET6_ATON()` where the database has it.
