@@ -58,6 +58,25 @@ class Test_Settings_Front_End_Read extends TestCase {
 	}
 
 	/**
+	 * Admin pages outside Zero Spam: the API alerts notice on every page and
+	 * the dashboard widget's access check.
+	 */
+	public function test_admin_pages_do_not_read_the_list(): void {
+		$this->as_role( 'administrator' );
+		$this->set_setting( 'alert_admin_notice', 'enabled' );
+		$this->set_setting( 'widget_enabled', 'enabled' );
+
+		$reads = $this->list_reads(
+			static function (): void {
+				( new \ZeroSpam\Includes\API_Usage_Alerts() )->display_admin_notices();
+				( new \ZeroSpam\Core\Admin\Dashboard_Widget() )->enqueue_assets( 'index.php' );
+			}
+		);
+
+		$this->assertSame( array(), $reads );
+	}
+
+	/**
 	 * What every request does while the plugin loads, and the block check.
 	 */
 	public function test_anonymous_page_view_does_not_read_the_list(): void {

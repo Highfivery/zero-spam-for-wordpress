@@ -205,7 +205,7 @@ class API_Usage_Alerts {
 	 * @param int   $site_id Site ID.
 	 */
 	private function send_alert( $anomaly, $site_id ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		// Check if this alert type is enabled.
 		$alert_key = 'alert_' . $anomaly['type'];
@@ -257,7 +257,7 @@ class API_Usage_Alerts {
 			return;
 		}
 
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		// Check if network alerts are enabled.
 		if ( empty( $settings['alert_network']['value'] ) || 'enabled' !== $settings['alert_network']['value'] ) {
@@ -433,7 +433,7 @@ class API_Usage_Alerts {
 			return;
 		}
 
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		// Check if admin notices are enabled.
 		if ( empty( $settings['alert_admin_notice']['value'] ) || 'enabled' !== $settings['alert_admin_notice']['value'] ) {
@@ -529,7 +529,7 @@ class API_Usage_Alerts {
 				return true;
 
 			case 'webhook':
-				$settings = \ZeroSpam\Core\Settings::get_settings();
+				$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 				if ( ! empty( $settings['alert_webhook_url']['value'] ) ) {
 					$response = $instance->send_webhook_alert( $test_anomaly, get_current_blog_id(), $settings['alert_webhook_url']['value'] );
 					$code     = is_wp_error( $response ) ? 0 : (int) wp_remote_retrieve_response_code( $response );

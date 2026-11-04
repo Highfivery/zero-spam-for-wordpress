@@ -420,7 +420,7 @@ class Utilities {
 	 * @param string $value Setting value.
 	 */
 	public static function update_setting( $key, $value ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 		if ( empty( $settings[ $key ] ) ) {
 			self::log( $key . ' is not a valid setting key.' );
 			return false;

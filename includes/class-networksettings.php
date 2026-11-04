@@ -225,7 +225,7 @@ class Network_Settings {
 		// Check if site has override in module-specific option.
 		switch_to_blog( $site_id );
 
-		$all_settings = \ZeroSpam\Core\Settings::get_settings();
+		$all_settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 		$module       = $all_settings[ $setting_key ]['module'] ?? null;
 		$has_override = false;
 
@@ -285,7 +285,7 @@ class Network_Settings {
 
 		switch_to_blog( $site_id );
 
-		$all_settings   = \ZeroSpam\Core\Settings::get_settings();
+		$all_settings   = \ZeroSpam\Core\Settings::get_settings_without_lists();
 		$module         = $all_settings[ $setting_key ]['module'] ?? null;
 		$override_value = null;
 
@@ -445,7 +445,7 @@ class Network_Settings {
 		if ( ! is_multisite() ) {
 			switch_to_blog( $site_id );
 
-			$all_settings = \ZeroSpam\Core\Settings::get_settings();
+			$all_settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 			$module       = $all_settings[ $setting_key ]['module'] ?? null;
 			$value        = null;
 

@@ -41,7 +41,7 @@ class Security {
 		// Fired on detections.
 		add_action( 'zero_spam_detection', array( $this, 'handle_detection' ), 10, 2 );
 
-		// The registry is rebuilt on every Settings::get_settings() call: read it once.
+		// Without the blocked email domains list, which this module does not need.
 		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 		$enabled  = static function ( string $key ) use ( $settings ): bool {
 			return isset( $settings[ $key ]['value'] ) && 'enabled' === $settings[ $key ]['value'];
