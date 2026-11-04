@@ -43,6 +43,7 @@ class Zero_Spam {
 	 * Adds necessary hooks for initialization.
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -54,7 +55,6 @@ class Zero_Spam {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'zerospam_share_detection', array( $this, 'share_detection' ), 10, 1 );
 		add_filter( 'zerospam_failed_types', array( $this, 'failed_types' ), 10, 1 );
 
@@ -93,7 +93,7 @@ class Zero_Spam {
 	 * @return array Updated access checks with Zero Spam results.
 	 */
 	public function access_check( $access_checks, $user_ip ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		$access_checks['zero_spam'] = array(
 			'blocked' => false,
@@ -536,7 +536,7 @@ class Zero_Spam {
 			return false;
 		}
 
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		if ( empty( $settings['zerospam_license']['value'] ) ) {
 			return false;

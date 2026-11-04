@@ -355,9 +355,20 @@ final class Settings_Schema {
 	 * @return mixed
 	 */
 	public static function value( string $key ) {
-		$registry = self::registry();
+		$registry = isset( self::OWN_OPTIONS[ $key ] ) ? self::registry() : self::registry_for_values();
 
 		return ! empty( $registry[ $key ]['value'] ) ? $registry[ $key ]['value'] : false;
+	}
+
+	/**
+	 * The registry to read one setting from: the one already built for this
+	 * request if there is one, so a request builds it once, otherwise the one
+	 * without lists.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function registry_for_values(): array {
+		return self::$cache[ get_current_blog_id() ]['registry'] ?? Settings::get_settings_without_lists();
 	}
 
 	/**
@@ -506,6 +517,7 @@ final class Settings_Schema {
 	 */
 	public static function reset_cache(): void {
 		self::$cache = array();
+		Settings::reset_cache();
 	}
 
 	/**

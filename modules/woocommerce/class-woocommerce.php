@@ -24,6 +24,7 @@ class WooCommerce {
 	 * Class constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_action( 'init', array( $this, 'init' ) );
 
 		// Run one-time option key migration.
@@ -219,7 +220,6 @@ class WooCommerce {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		$should_process = \ZeroSpam\Core\Access::process();

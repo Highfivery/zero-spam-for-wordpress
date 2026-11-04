@@ -5,6 +5,7 @@ The `readme.txt` changelog (shown on WordPress.org) carries only the current min
 ## v6.0.1
 
 - **perf(settings):** migration `v6_blocked_domains_option` moves a `blocked_email_domains` copy left in the autoloaded `zero-spam-settings` option into `zerospam_blocked_email_domains` (an existing own option wins, even empty) and turns autoload off on that option, which `update_option()` does not correct while the value is unchanged ([#404](https://github.com/Highfivery/zero-spam-for-wordpress/issues/404)). On a network, a copy that was overriding an unlocked network default stops overriding it, as on any save since 5.5.9.
+- **perf(settings):** a visitor's page view no longer reads `zerospam_blocked_email_domains` and builds the settings registry far fewer times: `Settings::get_settings( $key )`, `Settings_Schema::value()` and the new `Settings::get_settings_without_lists()` share one registry per request and site. Only `get_settings()` with no key and `get_settings( 'blocked_email_domains' )` read the list. Modules add their `zerospam_settings` filter in the constructor instead of on `init`. For developers: the registry passed to `zerospam_access_checks` and a `zerospam_settings` filter on these reads has no `value` for `blocked_email_domains`; use `Utilities::get_blocked_email_domains()`.
 - **fix(settings):** `Settings_Schema::sanitize_settings_option()` no longer lets an old copy carried along by a save replace the newer list in `zerospam_blocked_email_domains`.
 
 ## v6.0.0

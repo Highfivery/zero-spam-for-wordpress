@@ -21,6 +21,7 @@ class ipbase {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -29,7 +30,6 @@ class ipbase {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zero_spam_ip_address_details', array( $this, 'ip_address_details' ), 10, 2 );
 		add_filter( 'zerospam_log_record', array( $this, 'log_record' ) );
 	}
@@ -190,7 +190,7 @@ class ipbase {
 	 * @param string $ip_address IP address to query.
 	 */
 	public static function query_ip_address( $ip_address ) {
-		$plugin_settings = \ZeroSpam\Core\Settings::get_settings();
+		$plugin_settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		if ( empty( $plugin_settings['ipbase_api_key']['value'] ) || ! rest_is_ip_address( $ip_address ) ) {
 			return false;

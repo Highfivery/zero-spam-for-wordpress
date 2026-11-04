@@ -18,6 +18,7 @@ class IPinfoModule {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -26,7 +27,6 @@ class IPinfoModule {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_log_record', array( $this, 'log_record' ) );
 	}
 
@@ -273,7 +273,7 @@ class IPinfoModule {
 	 * @return array|false Normalized location array or false on failure.
 	 */
 	public static function get_geolocation( $ip ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		if ( empty( $settings['ipinfo_access_token']['value'] ) ) {
 			return false;

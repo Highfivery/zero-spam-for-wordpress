@@ -370,7 +370,7 @@ class Access {
 		$access = self::get_access();
 
 		if ( ! empty( $access['blocked'] ) ) {
-			$settings = ZeroSpam\Core\Settings::get_settings();
+			$settings = ZeroSpam\Core\Settings::get_settings_without_lists();
 
 			// The first log row written for this block, shown on the page as its reference.
 			$reference = 0;
@@ -555,7 +555,7 @@ class Access {
 	 * Gets the current user's access
 	 */
 	public function get_access() {
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$settings = ZeroSpam\Core\Settings::get_settings_without_lists();
 		$user_ip  = ZeroSpam\Core\User::get_ip();
 
 		$access = array(

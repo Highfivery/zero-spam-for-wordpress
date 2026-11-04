@@ -30,6 +30,13 @@ class Settings {
 	public static $sections = array();
 
 	/**
+	 * The registry without lists kept for the request, by blog ID.
+	 *
+	 * @var array<int, array{signature: string, settings: array<string, array<string, mixed>>}>
+	 */
+	private static array $without_lists = array();
+
+	/**
 	 * Returns the plugin setting sections
 	 */
 	public static function get_sections() {
@@ -227,9 +234,95 @@ class Settings {
 	/**
 	 * Returns the plugin settings.
 	 *
+	 * Reading one setting uses the registry kept for the request
+	 * (get_settings_without_lists()); only the whole registry and the blocked
+	 * email domains read that list, which can be about 1.1 MB (since 6.0.1).
+	 *
 	 * @param string $key Setting key to retrieve.
 	 */
 	public static function get_settings( $key = false ) {
+		if ( $key && ! isset( Settings_Schema::OWN_OPTIONS[ $key ] ) ) {
+			$settings = self::get_settings_without_lists();
+
+			return ! empty( $settings[ $key ]['value'] ) ? $settings[ $key ]['value'] : false;
+		}
+
+		$settings = self::build( true );
+
+		if ( $key ) {
+			return ! empty( $settings[ $key ]['value'] ) ? $settings[ $key ]['value'] : false;
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * The settings registry without the value of the blocked email domains,
+	 * built once per request.
+	 *
+	 * For whatever runs on every request and does not need that list; the
+	 * entry's `value` is absent unless the network sets the list. It is built
+	 * again when a settings option changes (Settings_Schema::reset_cache()), on
+	 * another site, and when filters_signature() changes.
+	 *
+	 * @since 6.0.1
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function get_settings_without_lists(): array {
+		$blog_id   = get_current_blog_id();
+		$signature = self::filters_signature();
+
+		if ( isset( self::$without_lists[ $blog_id ] ) && $signature === self::$without_lists[ $blog_id ]['signature'] ) {
+			return self::$without_lists[ $blog_id ]['settings'];
+		}
+
+		$settings = self::build( false );
+
+		self::$without_lists[ $blog_id ] = array(
+			'signature' => $signature,
+			'settings'  => $settings,
+		);
+
+		return $settings;
+	}
+
+	/**
+	 * Forgets the registry kept for the request.
+	 *
+	 * @since 6.0.1
+	 */
+	public static function reset_cache(): void {
+		self::$without_lists = array();
+	}
+
+	/**
+	 * Identifies what a `zerospam_settings` filter's answer may depend on: the
+	 * filters in place, the current user (the developer guide's example) and
+	 * how far the request got (conditional tags work once the query has run).
+	 */
+	private static function filters_signature(): string {
+		global $wp_filter;
+
+		$signature = (int) did_action( 'wp_loaded' ) . (int) did_action( 'wp' ) . '.' . did_action( 'set_current_user' );
+		$hook      = $wp_filter['zerospam_settings'] ?? null;
+
+		if ( $hook instanceof \WP_Hook ) {
+			foreach ( $hook->callbacks as $priority => $callbacks ) {
+				$signature .= '|' . $priority . ':' . implode( ',', array_keys( $callbacks ) );
+			}
+		}
+
+		return $signature;
+	}
+
+	/**
+	 * Builds the settings registry.
+	 *
+	 * @param bool $with_lists Whether to read the blocked email domains.
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function build( bool $with_lists ): array {
 		$options = get_option( 'zero-spam-settings' );
 
 		self::$settings['use_recommended_settings'] = array(
@@ -425,8 +518,11 @@ class Settings {
 			'type'        => 'textarea',
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
-			'value'       => get_option( 'zerospam_blocked_email_domains', ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false ),
 		);
+
+		if ( $with_lists ) {
+			self::$settings['blocked_email_domains']['value'] = get_option( 'zerospam_blocked_email_domains', ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false );
+		}
 
 		self::$settings['update_blocked_email_domains'] = array(
 			'title'   => __( 'Use Blocked Email Domains Recommendation', 'zero-spam' ),
@@ -512,14 +608,6 @@ class Settings {
 			}
 		}
 		unset( $s );
-
-		if ( $key ) {
-			if ( ! empty( $settings[ $key ]['value'] ) ) {
-				return $settings[ $key ]['value'];
-			}
-
-			return false;
-		}
 
 		return $settings;
 	}
