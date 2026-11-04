@@ -2,6 +2,11 @@
 
 The `readme.txt` changelog (shown on WordPress.org) carries only the current minor series. This file carries the full release history, newest first.
 
+## v6.0.1
+
+- **perf(settings):** migration `v6_blocked_domains_option` moves a `blocked_email_domains` copy left in the autoloaded `zero-spam-settings` option into `zerospam_blocked_email_domains` (an existing own option wins, even empty) and turns autoload off on that option, which `update_option()` does not correct while the value is unchanged ([#404](https://github.com/Highfivery/zero-spam-for-wordpress/issues/404)). On a network, a copy that was overriding an unlocked network default stops overriding it, as on any save since 5.5.9.
+- **fix(settings):** `Settings_Schema::sanitize_settings_option()` no longer lets an old copy carried along by a save replace the newer list in `zerospam_blocked_email_domains`.
+
 ## v6.0.0
 
 Release notes:

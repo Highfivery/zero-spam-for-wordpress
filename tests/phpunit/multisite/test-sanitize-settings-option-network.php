@@ -143,4 +143,38 @@ class Test_Sanitize_Settings_Option_Network extends TestCase {
 		$this->assertSame( self::DOMAINS, $state['settings']['blocked_email_domains'] ?? null );
 		$this->assertFalse( $state['domains'] );
 	}
+
+	/**
+	 * With the list locked, a site's save filter keeps what the site stores:
+	 * the migration writes as the network, or the older copy would stay
+	 * autoloaded for as long as the lock is on.
+	 */
+	public function test_migration_removes_the_copy_while_the_list_is_locked(): void {
+		$this->set_network_setting( 'blocked_email_domains', self::DOMAINS, true );
+		delete_option( 'zerospam_blocked_email_domains' );
+		update_option( 'zero-spam-settings', array( 'share_data' => 'enabled' ) );
+
+		// Stored as 5.x left it: 6.0 writers cannot put the key there.
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes the row an old version left.
+		$wpdb->update(
+			$wpdb->options,
+			array(
+				'option_value' => maybe_serialize(
+					array(
+						'share_data'            => 'enabled',
+						'blocked_email_domains' => 'old.example',
+					)
+				),
+			),
+			array( 'option_name' => 'zero-spam-settings' )
+		);
+		wp_cache_delete( 'zero-spam-settings', 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+
+		( new \ZeroSpam\Includes\Migrations() )->blocked_domains_own_option();
+
+		$this->assertSame( array( 'share_data' => 'enabled' ), get_option( 'zero-spam-settings' ) );
+		$this->assertFalse( ms_is_switched() );
+	}
 }
