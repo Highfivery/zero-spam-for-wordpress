@@ -188,7 +188,7 @@ When you enter an API key for one of these services, the IP address of visitors 
 
 * ipbase: https://api.ipbase.com/. [Terms of service](https://ipbase.com/terms-of-service/), [privacy policy](https://ipbase.com/privacy-policy/).
 * IPinfo: https://api.ipinfo.io/. [Terms](https://ipinfo.io/terms), [privacy policy](https://ipinfo.io/privacy).
-* ipstack: http://api.ipstack.com/ (ipstack's free plan does not offer HTTPS). [Terms](https://ipstack.com/terms), [privacy policy](https://ipstack.com/privacy).
+* ipstack: https://api.ipstack.com/ (HTTPS only). [Terms](https://ipstack.com/terms), [privacy policy](https://ipstack.com/privacy).
 
 = Addresses you configure =
 

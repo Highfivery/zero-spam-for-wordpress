@@ -139,30 +139,6 @@ parameters:
 			path: modules/gravityforms/class-gravityforms.php
 
 		-
-			message: '#^Undefined variable\: \$cache_key$#'
-			identifier: variable.undefined
-			count: 1
-			path: modules/ipbase/class-ipbase.php
-
-		-
-			message: '#^Undefined variable\: \$expiration$#'
-			identifier: variable.undefined
-			count: 1
-			path: modules/ipbase/class-ipbase.php
-
-		-
-			message: '#^Undefined variable\: \$settings$#'
-			identifier: variable.undefined
-			count: 2
-			path: modules/ipbase/class-ipbase.php
-
-		-
-			message: '#^Variable \$settings in empty\(\) is never defined\.$#'
-			identifier: empty.variable
-			count: 2
-			path: modules/ipbase/class-ipbase.php
-
-		-
 			message: '#^Constant COOKIEPATH not found\.$#'
 			identifier: constant.notFound
 			count: 1

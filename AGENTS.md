@@ -992,11 +992,6 @@ npm run env:stop                 # stop both wp-env sites
   `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
-  - Cache group mismatch (`wp_cache_get()` default group vs `wp_cache_set()`
-    group) in `modules/class-projecthoneypot.php` (~92),
-    `modules/ipbase/class-ipbase.php` (~203), `modules/class-ipinfomodule.php`
-    (~293) and `modules/class-ipstack.php` (~173).
-  - ipstack is queried over plain `http://`.
   - `modules/security/class-security.php`: the emoji setting is incomplete
     since WordPress 6.4 (`wp_enqueue_emoji_styles` on
     `wp_enqueue_scripts`/`admin_enqueue_scripts` and the `embed_head` script

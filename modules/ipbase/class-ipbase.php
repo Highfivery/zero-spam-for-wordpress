@@ -192,42 +192,55 @@ class ipbase {
 	public static function query_ip_address( $ip_address ) {
 		$plugin_settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
-		if ( empty( $plugin_settings['ipbase_api_key']['value'] ) || ! rest_is_ip_address( $ip_address ) ) {
+		if ( empty( $plugin_settings['ipbase_api_key']['value'] ) || ! rest_is_ip_address( (string) $ip_address ) ) {
 			return false;
 		}
 
-		$queried_cache_key = \ZeroSpam\Core\Utilities::cache_key(
+		$cache_key = \ZeroSpam\Core\Utilities::cache_key(
 			array(
-				'ipinfo',
-				$ip_address,
+				'ipbase',
+				md5( $ip_address ),
 			)
 		);
 
-		$result = wp_cache_get( $queried_cache_key );
+		$result = wp_cache_get( $cache_key, 'zerospam' );
 		if ( false === $result ) {
-			$endpoint = esc_url( "https://api.ipbase.com/json/$ip_address?apikey=" . $plugin_settings['ipbase_api_key']['value'] );
+			$endpoint = 'https://api.ipbase.com/json/' . $ip_address . '?apikey=' . rawurlencode( (string) $plugin_settings['ipbase_api_key']['value'] );
 
 			$response_timeout = 5;
-			if ( ! empty( $settings['ipbase_api_timeout'] ) ) {
-				$response_timeout = intval( $settings['ipbase_api_timeout']['value'] );
+			if ( ! empty( $plugin_settings['ipbase_api_timeout']['value'] ) ) {
+				$response_timeout = intval( $plugin_settings['ipbase_api_timeout']['value'] );
 			}
 
-			$response = \ZeroSpam\Core\Utilities::remote_get( $endpoint, array( 'timeout' => $response_timeout ) );
-			if ( $response ) {
-				$result = json_decode( $response, true );
-
-				if ( empty( $result ) || ! empty( $result['message'] ) ) {
-					\ZeroSpam\Core\Utilities::log( 'ipbase_api: ' . $result['message'] );
-					return false;
-				}
-
-				$cache_expiration = 14 * DAY_IN_SECONDS;
-				if ( ! empty( $settings['ipbase_cache']['value'] ) ) {
-					$expiration = $settings['ipbase_cache']['value'] * DAY_IN_SECONDS;
-				}
-
-				wp_cache_set( $cache_key, $result, 'zerospam', $expiration );
+			$response = wp_remote_get( $endpoint, array( 'timeout' => $response_timeout ) );
+			if ( is_wp_error( $response ) ) {
+				\ZeroSpam\Core\Utilities::log( 'ipbase_api: ' . $response->get_error_message() );
+				return false;
 			}
+
+			$code = (int) wp_remote_retrieve_response_code( $response );
+			if ( 200 !== $code ) {
+				// Never cached: a refused key, a quota or an outage is not an answer.
+				\ZeroSpam\Core\Utilities::log( 'ipbase_api: status code ' . $code );
+				return false;
+			}
+
+			$result = json_decode( wp_remote_retrieve_body( $response ), true );
+			if ( ! is_array( $result ) ) {
+				\ZeroSpam\Core\Utilities::log( 'ipbase_api: unreadable answer' );
+				return false;
+			}
+			if ( ! empty( $result['message'] ) ) {
+				\ZeroSpam\Core\Utilities::log( 'ipbase_api: ' . wp_json_encode( $result['message'] ) );
+				return false;
+			}
+
+			$expiration = 14 * DAY_IN_SECONDS;
+			if ( ! empty( $plugin_settings['ipbase_cache']['value'] ) ) {
+				$expiration = absint( $plugin_settings['ipbase_cache']['value'] ) * DAY_IN_SECONDS;
+			}
+
+			wp_cache_set( $cache_key, $result, 'zerospam', $expiration );
 		}
 
 		return $result;

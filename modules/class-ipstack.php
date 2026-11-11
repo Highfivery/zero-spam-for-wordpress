@@ -59,7 +59,7 @@ class ipstack {
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the ipstack URL, %2$s: Replaced with the ipstack product URL */
-					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">ipstack API key</a> to enable geolocation features. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a>', 'zero-spam' ),
+					__( 'Enter your <a href="%1$s" target="_blank" rel="noopener noreferrer">ipstack API key</a> to enable geolocation features. Don\'t have an API key? <a href="%2$s" target="_blank" rel="noopener noreferrer"><strong>Get one for free!</strong></a> Zero Spam sends each visitor\'s IP address to ipstack to look up its location, only over a secure (HTTPS) connection. If no locations appear in Activity, check your ipstack plan or use ipbase or IPinfo instead.', 'zero-spam' ),
 					array(
 						'strong' => array(),
 						'a'      => array(
@@ -161,24 +161,24 @@ class ipstack {
 	public static function get_geolocation( $ip ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
-		if ( empty( $settings['ipstack_api']['value'] ) ) {
+		if ( empty( $settings['ipstack_api']['value'] ) || ! rest_is_ip_address( (string) $ip ) ) {
 			return false;
 		}
 
 		$cache_key = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'ipstack',
-				$ip,
+				md5( $ip ),
 			)
 		);
 
-		$result = wp_cache_get( $cache_key );
+		$result = wp_cache_get( $cache_key, 'zerospam' );
 		if ( false === $result ) {
-			$endpoint  = 'http://api.ipstack.com/';
-			$endpoint .= $ip . '?access_key=' . $settings['ipstack_api']['value'];
+			// HTTPS only: never send the key and the visitor's address in clear.
+			$endpoint = 'https://api.ipstack.com/' . $ip . '?access_key=' . rawurlencode( (string) $settings['ipstack_api']['value'] );
 
 			$timeout = 5;
-			if ( ! empty( $settings['ipstack_timeout'] ) ) {
+			if ( ! empty( $settings['ipstack_timeout']['value'] ) ) {
 				$timeout = intval( $settings['ipstack_timeout']['value'] );
 			}
 
@@ -186,15 +186,26 @@ class ipstack {
 			if ( $response ) {
 				$result = json_decode( $response, true );
 
-				if ( ! empty( $result ) && ! empty( $result['error'] ) ) {
-					\ZeroSpam\Core\Utilities::log( 'ipstack: ' . wp_json_encode( $result['error'] ) );
+				if ( ! is_array( $result ) ) {
+					\ZeroSpam\Core\Utilities::log( 'ipstack: unreadable answer' );
+
+					return false;
+				}
+
+				if ( ! empty( $result['error'] ) ) {
+					$type = is_array( $result['error'] ) ? (string) ( $result['error']['type'] ?? '' ) : '';
+					if ( 'https_access_restricted' === $type ) {
+						\ZeroSpam\Core\Utilities::log( 'ipstack: this API key cannot be used over HTTPS, and Zero Spam never sends it over HTTP. Use ipbase or IPinfo instead.' );
+					} else {
+						\ZeroSpam\Core\Utilities::log( 'ipstack: ' . wp_json_encode( $result['error'] ) );
+					}
 
 					return false;
 				}
 
 				$expiration = 14 * DAY_IN_SECONDS;
 				if ( ! empty( $settings['ipstack_cache']['value'] ) ) {
-					$expiration = $settings['ipstack_cache']['value'] * DAY_IN_SECONDS;
+					$expiration = absint( $settings['ipstack_cache']['value'] ) * DAY_IN_SECONDS;
 				}
 				wp_cache_set( $cache_key, $result, 'zerospam', $expiration );
 			}
