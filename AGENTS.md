@@ -1017,10 +1017,6 @@ npm run env:stop                 # stop both wp-env sites
     only settings with a `recommended` value (and keeps what a site already
     stores), so applying the recommended settings no longer makes them site
     overrides again (`test-auto-configure-network.php`).
-  - `Network_Settings` is
-    instantiated in several places, each registering its own resolver;
-    `Network_Settings::is_using_default()` rebuilds the settings registry per
-    call.
 - Fixed by the 6.0 cutover (PR 13), with the 5.x screens: the blocked
   table's bulk delete, capability check and location search; the Log
   table's N+1 query and page past the end; the block modal's focus; the
@@ -1141,8 +1137,11 @@ npm run env:stop                 # stop both wp-env sites
   A development copy that already ran DB 1.6 before audit and templates got
   `network_id` (the PR's commits up to 7342b62) does not upgrade by itself: set
   `zerospam_db_version` back to 1.5 on each site once.
-- `GET network-settings/{key}` still counts sites through
-  `Network_Settings::get_application_status()`, one registry build per site.
+- `GET network-settings/{key}` counts sites through
+  `Network_Settings::get_application_status()`: one `switch_to_blog()` and
+  option read per site (no registry build since 6.0.1); `Network_Report`
+  reads them in chunks and could serve it instead. `Network_Settings` adds
+  its hooks once per request (`$hooked`), however many instances exist.
 - Blocked email domains (#404): a visitor's page view reads the list neither
   from the site's own option nor, on a network, from
   `zerospam_network_settings`: the network settings cache leaves each list's
@@ -1154,8 +1153,9 @@ npm run env:stop                 # stop both wp-env sites
   list, although the admin reports it as the site's value (decision pending
   with Ben). `ip_whitelist` and `allowed_words` stay in the autoloaded
   `zero-spam-settings` (3,000 addresses are 32 KB; the 100,000 a list may hold
-  are 1.4 MB). `zerospam_settings_audit` keeps a list's whole old and new
-  values in each of its 100 entries (not autoloaded, not bounded in bytes).
+  are 1.4 MB). `zerospam_settings_audit` keeps a list's old and new
+  values summarised above 2 KB (`Settings_Controller::AUDIT_VALUE_MAX_BYTES`)
+  and stays under 256 KB (`AUDIT_MAX_BYTES`), oldest entries dropped first.
 - Follow-ups from the Rules review (#452):
   - Rules: IPv6 addresses sort as text; sort them numerically with
     `INET6_ATON()` where the database has it.

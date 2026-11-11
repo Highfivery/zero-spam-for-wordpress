@@ -553,6 +553,72 @@ class Test_Rest_Rules extends TestCase {
 	}
 
 	/**
+	 * Saving a long list keeps the audit small: an entry records a summary of
+	 * the list instead of its whole old and new values, and the audit log
+	 * stays within its byte budget however many lists are saved (#404).
+	 */
+	public function test_long_list_changes_keep_the_audit_small(): void {
+		$route   = '/zero-spam/v1/rules/lists/email-domains';
+		$domains = array();
+		for ( $i = 0; $i < 20000; $i++ ) {
+			$domains[] = "spam-{$i}.example";
+		}
+
+		for ( $round = 0; $round < 8; $round++ ) {
+			$this->assertSame( 200, $this->rest( 'PUT', $route, array( 'items' => array_slice( $domains, $round, 19000 ) ) )->get_status() );
+		}
+
+		$audit = get_option( 'zerospam_settings_audit' );
+		$this->assertIsArray( $audit );
+		$this->assertLessThan( 256 * KB_IN_BYTES, strlen( serialize( $audit ) ), 'The audit log stays within its budget.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Measures the stored size.
+
+		$change = $audit[0]['changes']['blocked_email_domains'];
+		$this->assertSame( 19000, $change['new']['lines'], 'The new list is summarised.' );
+		$this->assertSame( 19000, $change['old']['lines'], 'The old list is summarised.' );
+		$this->assertArrayHasKey( 'sha1', $change['new'] );
+		$this->assertLessThan( 1 * KB_IN_BYTES, strlen( (string) wp_json_encode( $change ) ) );
+	}
+
+	/**
+	 * A short value is still audited as it is.
+	 */
+	public function test_short_values_are_audited_as_they_are(): void {
+		$this->rest( 'PUT', '/zero-spam/v1/rules/lists/email-domains', array( 'items' => array( 'one.example' ) ) );
+
+		$this->assertSame( 'one.example', get_option( 'zerospam_settings_audit' )[0]['changes']['blocked_email_domains']['new'] );
+	}
+
+	/**
+	 * Entries saved before 6.0.1 that hold whole lists are summarised on the
+	 * next save, and recent entries are kept rather than dropped for them.
+	 */
+	public function test_old_audit_entries_are_shrunk_on_the_next_save(): void {
+		$list = implode( "\n", array_map( static fn( int $i ): string => "old-{$i}.example", range( 1, 30000 ) ) );
+		$old  = array();
+		for ( $i = 0; $i < 6; $i++ ) {
+			$old[] = array(
+				'timestamp' => '2026-01-0' . ( $i + 1 ) . ' 00:00:00',
+				'scope'     => 'site',
+				'changes'   => array(
+					'blocked_email_domains' => array(
+						'old' => $list,
+						'new' => $list . "\nextra-{$i}.example",
+					),
+				),
+			);
+		}
+		update_option( 'zerospam_settings_audit', $old, false );
+
+		$this->rest( 'PUT', '/zero-spam/v1/rules/lists/email-domains', array( 'items' => array( 'one.example' ) ) );
+
+		$audit = get_option( 'zerospam_settings_audit' );
+		$this->assertCount( 7, $audit, 'No entry is dropped once the old ones are summarised.' );
+		$this->assertLessThan( 256 * KB_IN_BYTES, strlen( serialize( $audit ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Measures the stored size.
+		$this->assertSame( 30000, $audit[1]['changes']['blocked_email_domains']['old']['lines'] );
+		$this->assertSame( 30001, $audit[1]['changes']['blocked_email_domains']['new']['lines'] );
+	}
+
+	/**
 	 * Blocked email domains live in their own non-autoloaded option, can be
 	 * searched and paged, and are lower-cased.
 	 */
