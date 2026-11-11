@@ -122,7 +122,10 @@ Fires AFTER all network hierarchy has been applied.
  * Post-process all settings after network management
  *
  * @param array $settings         Final settings array
- * @param array $network_settings Complete network configuration
+ * @param array $network_settings Complete network configuration. Since 6.0.1
+ *                                lists (the blocked email domains) carry
+ *                                `value_in_store` instead of their value; read
+ *                                one with Network_Settings::list_value( $key ).
  */
 add_action('zerospam_network_settings_applied', function($settings, $network_settings) {
     // Audit: Compare final values vs network policy

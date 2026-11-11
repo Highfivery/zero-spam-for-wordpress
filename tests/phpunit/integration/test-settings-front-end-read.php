@@ -153,6 +153,79 @@ class Test_Settings_Front_End_Read extends TestCase {
 	}
 
 	/**
+	 * A form with several email fields builds the list once for the request (#404).
+	 */
+	public function test_form_check_builds_the_list_once_per_request(): void {
+		$builds = $this->count_registry_builds(
+			static function (): void {
+				foreach ( array( 'a@listed.example', 'b@fine.example', 'c@other.example', 'd@fine.example' ) as $email ) {
+					Utilities::is_email_domain_blocked( $email );
+				}
+				Utilities::get_blocked_email_domains();
+			}
+		);
+
+		$this->assertSame( 1, $builds );
+	}
+
+	/**
+	 * Reading the list through the schema and then checking forms builds it once.
+	 */
+	public function test_schema_and_form_check_share_one_build(): void {
+		$builds = $this->count_registry_builds(
+			static function (): void {
+				Settings_Schema::value( 'blocked_email_domains' );
+				Utilities::is_email_domain_blocked( 'a@listed.example' );
+			}
+		);
+
+		$this->assertSame( 1, $builds );
+	}
+
+	/**
+	 * Lines that are not plain domains are still cleaned, and plain ones kept.
+	 */
+	public function test_list_lines_are_cleaned(): void {
+		update_option( self::OWN, " spaced.example \r\n<b>tagged.example</b>\nplain-1.example\n\n0", false );
+
+		$this->assertTrue( Utilities::is_email_domain_blocked( 'jane@spaced.example' ) );
+		$this->assertTrue( Utilities::is_email_domain_blocked( 'jane@tagged.example' ) );
+		$this->assertTrue( Utilities::is_email_domain_blocked( 'jane@plain-1.example' ) );
+		$this->assertSame( array( 'spaced.example', 'tagged.example', 'plain-1.example' ), Utilities::get_blocked_email_domains() );
+	}
+
+	/**
+	 * A list given as an array (a filter or an old store) still blocks.
+	 */
+	public function test_list_given_as_an_array_still_blocks(): void {
+		$filter = static function ( $settings ) {
+			if ( isset( $settings['blocked_email_domains'] ) && array_key_exists( 'value', $settings['blocked_email_domains'] ) ) {
+				$settings['blocked_email_domains']['value'] = array( 'array.example', 'other.example' );
+			}
+
+			return $settings;
+		};
+		add_filter( 'zerospam_settings', $filter, 200 );
+		try {
+			$this->assertTrue( Utilities::is_email_domain_blocked( 'jane@array.example' ) );
+		} finally {
+			remove_filter( 'zerospam_settings', $filter, 200 );
+		}
+	}
+
+	/**
+	 * A list saved during the request is the one the next check uses.
+	 */
+	public function test_form_check_follows_a_list_saved_in_the_request(): void {
+		$this->assertFalse( Utilities::is_email_domain_blocked( 'jane@new.example' ) );
+
+		update_option( self::OWN, 'new.example', false );
+
+		$this->assertTrue( Utilities::is_email_domain_blocked( 'jane@new.example' ) );
+		$this->assertFalse( Utilities::is_email_domain_blocked( 'jane@listed.example' ) );
+	}
+
+	/**
 	 * The registry without lists differs from the whole one by the list's value only.
 	 */
 	public function test_without_lists_differs_only_by_the_list(): void {

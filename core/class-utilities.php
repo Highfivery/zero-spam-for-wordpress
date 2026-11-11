@@ -277,36 +277,62 @@ class Utilities {
 	 * @param string $email Email address.
 	 */
 	public static function is_email_domain_blocked( $email ) {
-		$blocked_domains = self::get_blocked_email_domains();
-		$domain          = explode( '@', $email );
-		$domain          = trim( array_pop( $domain ) );
+		$blocked_domains = self::blocked_email_domain_index();
+		$domain          = explode( '@', (string) $email );
+		$domain          = trim( (string) array_pop( $domain ) );
 
-		if ( $blocked_domains && in_array( $domain, $blocked_domains, true ) ) {
-			return true;
-		}
-
-		return false;
+		return '' !== $domain && isset( $blocked_domains[ $domain ] );
 	}
 
 	/**
 	 * Returns the saved blocked email domains.
+	 *
+	 * @return string[]|false
 	 */
 	public static function get_blocked_email_domains() {
-		$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
-		if ( ! $blocked_email_domains ) {
-			return false;
+		$domains = array_keys( self::blocked_email_domain_index() );
+
+		return empty( $domains ) ? false : array_map( 'strval', $domains );
+	}
+
+	/**
+	 * The blocked email domains as a lookup (domain => true), parsed once per
+	 * request for each list value: a form may check several addresses, and
+	 * the list can hold tens of thousands of domains (#404).
+	 *
+	 * @return array<string, true>
+	 */
+	private static function blocked_email_domain_index(): array {
+		static $source = null;
+		static $index  = array();
+
+		$raw = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
+		if ( is_array( $raw ) ) {
+			$raw = implode( "\n", array_filter( $raw, 'is_scalar' ) ); // A list stored as an array still blocks.
+		}
+		if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
+			return array();
 		}
 
-		$domains = explode( "\n", $blocked_email_domains );
-		$domains = array_map( 'trim', $domains );
-		$domains = self::sanitize_array( $domains );
-		$domains = array_filter( $domains );
-
-		if ( empty( $domains ) ) {
-			return false;
+		// Settings keeps the value for the request, so an unchanged list is the
+		// same string and this comparison is immediate; a changed list is parsed again.
+		if ( $raw !== $source ) {
+			$index = array();
+			foreach ( explode( "\n", $raw ) as $line ) {
+				$line = trim( $line );
+				// A plain domain is what sanitize_text_field() would return anyway;
+				// only other lines need it (it costs regular expressions per line).
+				if ( '' !== $line && ! preg_match( '/^[A-Za-z0-9.-]+$/', $line ) ) {
+					$line = sanitize_text_field( $line );
+				}
+				if ( '' !== $line && '0' !== $line ) {
+					$index[ $line ] = true;
+				}
+			}
+			$source = $raw;
 		}
 
-		return $domains;
+		return $index;
 	}
 
 	/**

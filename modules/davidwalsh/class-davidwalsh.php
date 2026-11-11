@@ -664,7 +664,8 @@ class DavidWalsh {
 		$site    = is_array( $options ) && isset( $options['davidwalsh_form_selectors'] ) && is_scalar( $options['davidwalsh_form_selectors'] ) ? (string) $options['davidwalsh_form_selectors'] : null;
 
 		if ( is_multisite() ) {
-			$store   = \ZeroSpam\Core\Settings_Schema::normalize_network_store( get_site_option( \ZeroSpam\Includes\Network_Settings::META_KEY, array() ) );
+			// The cached copy: reading the store itself would load the network's lists on every page (#404).
+			$store   = \ZeroSpam\Core\Settings_Schema::normalize_network_store( \ZeroSpam\Includes\Network_Settings::cached_without_lists() );
 			$network = $store['settings']['davidwalsh_form_selectors'] ?? null;
 
 			if ( is_array( $network ) && isset( $network['value'] ) && is_scalar( $network['value'] ) && ( ! empty( $network['locked'] ) || null === $site ) ) {

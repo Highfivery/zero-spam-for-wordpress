@@ -37,6 +37,14 @@ class Settings {
 	private static array $without_lists = array();
 
 	/**
+	 * The lists' values (Settings_Schema::OWN_OPTIONS), read once per request
+	 * and site, by key: blog id => key => signature and value.
+	 *
+	 * @var array<int, array<string, array{signature: string, value: mixed}>>
+	 */
+	private static array $lists = array();
+
+	/**
 	 * Returns the plugin setting sections
 	 */
 	public static function get_sections() {
@@ -247,13 +255,28 @@ class Settings {
 			return ! empty( $settings[ $key ]['value'] ) ? $settings[ $key ]['value'] : false;
 		}
 
-		$settings = self::build( true );
-
 		if ( $key ) {
-			return ! empty( $settings[ $key ]['value'] ) ? $settings[ $key ]['value'] : false;
+			// A list: the whole registry has to be built to resolve it, so keep
+			// the answer for the request (a form may check several addresses, #404).
+			$blog_id   = get_current_blog_id();
+			$signature = self::filters_signature();
+
+			if ( isset( self::$lists[ $blog_id ][ $key ] ) && $signature === self::$lists[ $blog_id ][ $key ]['signature'] ) {
+				return self::$lists[ $blog_id ][ $key ]['value'];
+			}
+
+			$settings = self::build( true );
+			$value    = ! empty( $settings[ $key ]['value'] ) ? $settings[ $key ]['value'] : false;
+
+			self::$lists[ $blog_id ][ $key ] = array(
+				'signature' => $signature,
+				'value'     => $value,
+			);
+
+			return $value;
 		}
 
-		return $settings;
+		return self::build( true );
 	}
 
 	/**
@@ -261,7 +284,7 @@ class Settings {
 	 * built once per request.
 	 *
 	 * For whatever runs on every request and does not need that list; the
-	 * entry's `value` is absent unless the network sets the list. It is built
+	 * entry has no `value`, on a network too. It is built
 	 * again when a settings option changes (Settings_Schema::reset_cache()), on
 	 * another site, and when filters_signature() changes.
 	 *
@@ -294,6 +317,7 @@ class Settings {
 	 */
 	public static function reset_cache(): void {
 		self::$without_lists = array();
+		self::$lists         = array();
 	}
 
 	/**
