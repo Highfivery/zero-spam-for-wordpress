@@ -19,12 +19,19 @@ import guard  # noqa: E402
 
 
 def decide(command, branch="feature/x", destination="origin/feature/x", pr_base="develop",
-           tags=(), aliases=None, committed=True, cwd="/tmp"):
+           tags=(), aliases=None, committed=True, cwd="/tmp", config=None, repo="o/r"):
     aliases = aliases or {}
+    config = dict(config or {})
+    if repo:
+        config.setdefault("remote.origin.url", f"git@github.com:{repo}.git")
 
     def fake_git_out(path, *args):
         if args[:2] == ("config", "--get") and args[2].startswith("alias."):
             return aliases.get(args[2][6:])
+        if args[:2] == ("config", "--get"):
+            return config.get(args[2])
+        if args[:2] == ("config", "--get-regexp"):
+            return config.get("regexp:" + args[2])
         return None
 
     with mock.patch.object(guard, "current_branch", return_value=branch), \
@@ -38,6 +45,31 @@ def decide(command, branch="feature/x", destination="origin/feature/x", pr_base=
 
 class Denied(unittest.TestCase):
     CASES = [
+        "git push --force origin feature/x",
+        "git push -f",
+        "git push -uf origin fix/x",
+        "git push -fu origin fix/x",
+        "git push --force-with-lease origin feature/x",
+        "git push --force-with-lease=feature/x origin feature/x",
+        "git push origin +feature/x",
+        "git -C . push --force origin feature/x",
+        "git push --mirror",
+        "git push --no-verify origin feature/x",
+        "git push --no-v origin feature/x",
+        "git push --forc origin feature/x",
+        "git push --mir origin",
+        "git push -u origin fix/x --force 2>&1",
+    ]
+
+    def test_denied(self):
+        for cmd in self.CASES:
+            with self.subTest(cmd=cmd):
+                self.assertEqual(decide(cmd), "deny")
+
+
+class Asked(unittest.TestCase):
+    CASES = [
+        # SVN writes publish to WordPress.org: the release pauses here
         "svn commit -m 'Release 6.0.1'",
         "svn ci -m x",
         "cd trunk && svn commit",
@@ -57,27 +89,10 @@ class Denied(unittest.TestCase):
         "svnmucc -m x rm https://plugins.svn.wordpress.org/zero-spam/tags/1.0",
         "git svn dcommit",
         "git svn tag 6.0.1",
-        "git push --force origin feature/x",
-        "git push -f",
-        "git push -uf origin fix/x",
-        "git push -fu origin fix/x",
-        "git push --force-with-lease origin feature/x",
-        "git push --force-with-lease=feature/x origin feature/x",
-        "git push origin +feature/x",
-        "git -C . push --force origin feature/x",
-        "git push --mirror",
         "# release step\nsvn commit -m x",
         "svn \\\n  commit -m x",
-    ]
-
-    def test_denied(self):
-        for cmd in self.CASES:
-            with self.subTest(cmd=cmd):
-                self.assertEqual(decide(cmd), "deny")
-
-
-class Asked(unittest.TestCase):
-    CASES = [
+        "git --no-pager svn dcommit",
+        "svn commit --targets list.txt",
         # main, develop and tags
         "git push origin main",
         "git push origin HEAD:main",
@@ -99,7 +114,6 @@ class Asked(unittest.TestCase):
         "git push origin :feature/old",
         "git push --delete origin v6.0.0",
         "git push -d origin feature/old",
-        "git push --no-verify origin feature/x",
         "git push https://github.com/x/y feature/x",
         "git tag v6.0.1",
         "git tag -a v6.0.1 -m 'Release'",
@@ -158,7 +172,56 @@ class Asked(unittest.TestCase):
         "cat <(git push origin main)",
         ">log git push origin main",
         "sudo -s",
+        # second review: hiding commands
+        "echo \"it's\" && git push origin main",
+        "echo \"<<EOF\"; git push origin main",
+        "cat <<'EOF' | bash\ngit push origin main\nEOF",
+        "bash <<'EOF'\ngit push origin main\nEOF",
+        "perl -pe 'system(\"git push origin main\")' f",
+        "python3 -Ic \"import os; os.system('git push origin main')\"",
+        "node --eval=\"require('child_process').execSync('git push origin main')\"",
+        "python3 < script.py",
+        "node -",
+        "find . -name x -exec git push origin main \\;",
+        "flock /tmp/l git push origin main",
+        "flock /tmp/l -c 'git push origin main'",
+        "git rebase -x 'git push origin main' origin/develop",
+        "git rebase -i origin/develop",
+        "git submodule foreach git push origin main",
+        "git bisect run ./x.sh",
+        "script -q -c 'git push origin main' /dev/null",
+        "env --split-string='git push origin main'",
+        "git push origin main 2>&1",
+        "g*t push origin main",
+        "(cd /elsewhere); git push",
+        "pushd /x && git push",
+        "git push origin -- main",
+        "export GIT_DIR=../x/.git",
+        "SKIP_QUALITY_GATE=1 git push -u origin fix/x",
+        "GH_TOKEN=x gh pr list",
+        "GH_REPO=other/repo gh pr merge 5",
+        "git rebase origin/develop main",
+        "git pull origin main:main",
+        "git worktree add -B main ../x",
+        "git config core.sshCommand 'sh -c x'",
+        "git config -f .git/config core.hooksPath /dev/null",
+        "echo '[alias]' >> .git/config",
+        "cd .claude && sed -i s/ask/allow/ settings.json",
+        "sed -i s/a/b/ .claude//settings.json",
+        "sed -i s/a/b/ .githooks/pre-push",
+        "chmod -x .githooks/pre-push",
+        "git apply",
+        "patch -p1",
+        "curl -X POST https://api.github.com/repos/o/r/releases -d '{}'",
+        "curl --data x https://api.wordpress.org/x",
         # GitHub
+        "gh pr review 5 --approve",
+        "gh pr merge 5 -R other/repo",
+        "gh api -X PUT repos/other/repo/pulls/5/merge",
+        "gh api -X=DELETE repos/o/r/git/refs/heads/x",
+        "gh api graphql -F query=@q.graphql",
+        "gh api graphql --input q.json",
+        "gh api graphql -f query=\"$Q\"",
         "gh release create v6.0.1",
         "gh release delete v6.0.0 --yes",
         "gh pr create --base main --title Release",
@@ -224,6 +287,23 @@ class Asked(unittest.TestCase):
         self.assertEqual(decide("gh pr merge 490 --admin", pr_base="develop"), "ask")
         self.assertEqual(decide("gh api repos/o/r/pulls/490/merge --method PUT -f merge_method=merge", pr_base="main"), "ask")
         self.assertEqual(decide("gh api --method=PUT repos/o/r/pulls/45/merge", pr_base="main"), "ask")
+
+    def test_push_settings_that_push_more(self):
+        self.assertEqual(decide("git push", config={"push.default": "matching"}), "ask")
+        self.assertEqual(decide("git push", config={r"regexp:^remote\..*\.(push|mirror)$": "remote.origin.mirror true"}), "ask")
+
+    def test_unknown_repository(self):
+        self.assertEqual(decide("gh pr merge 5", repo=None), "ask")
+
+    def test_changed_task_runner_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            subprocess.run(["git", "init", "-q", tmp], check=True)
+            with open(os.path.join(tmp, "package.json"), "w") as fh:
+                fh.write('{"scripts":{"test":"git push origin main"}}')
+            self.assertEqual(decide("npm test", cwd=tmp), "ask")
+            with open(os.path.join(tmp, "package.json"), "w") as fh:
+                fh.write('{"scripts":{"test":"vitest"}}')
+            self.assertIsNone(decide("npm test", cwd=tmp))
 
     def test_tags_without_a_v(self):
         self.assertEqual(decide("git push origin release-6", tags=("release-6",)), "ask")
@@ -297,6 +377,20 @@ class Allowed(unittest.TestCase):
         "bin/test.sh --mode=all",
         "bin/check-dist.sh",
         "wp plugin list --path=/tmp/wp",
+        # second review: no false alarms on everyday work
+        "git push -u origin fix/x 2>&1",
+        "git push -u origin fix/x 2>&1 | tail -5",
+        "gh pr create --base develop --title x --body 'Edits .claude/settings.json and .githooks/pre-push'",
+        "git add .claude/hooks/guard.py .claude/settings.json",
+        "git commit -m 'chore(guard): update .claude/hooks/guard.py'",
+        "git config user.email claude@example.com",
+        "echo \"it's fine\"",
+        "python3 -m unittest discover -s .claude/hooks -p 'test_*.py' 2>&1 | tail -3",
+        "node bin/render-listing-assets.mjs --check",
+        "python3 --version",
+        "find . -name '*.php' -exec grep -l foo {} +",
+        "git rebase origin/develop",
+        "gh api repos/o/r/pulls/483 --jq .base.ref",
     ]
 
     def test_allowed(self):
@@ -318,12 +412,12 @@ class Hook(unittest.TestCase):
         )
 
     def test_denial_is_reported_as_json(self):
-        out = self.run_hook(json.dumps({"tool_name": "Bash", "tool_input": {"command": "svn commit -m x"}, "cwd": "/tmp"}))
+        out = self.run_hook(json.dumps({"tool_name": "Bash", "tool_input": {"command": "git push --force origin x"}, "cwd": "/tmp"}))
         self.assertEqual(out.returncode, 0)
         body = json.loads(out.stdout)["hookSpecificOutput"]
         self.assertEqual(body["hookEventName"], "PreToolUse")
         self.assertEqual(body["permissionDecision"], "deny")
-        self.assertIn("maintainer", body["permissionDecisionReason"])
+        self.assertIn("Zero Spam guardrail", body["permissionDecisionReason"])
 
     def test_silent_for_routine_and_other_tools(self):
         self.assertEqual(self.run_hook(json.dumps({"tool_name": "Bash", "tool_input": {"command": "composer check"}, "cwd": "/tmp"})).stdout, "")
@@ -336,7 +430,8 @@ class Hook(unittest.TestCase):
                 self.assertEqual(json.loads(out.stdout)["hookSpecificOutput"]["permissionDecision"], "ask")
 
     def test_unparseable_keeps_deny(self):
-        self.assertEqual(decide("svn commit -m 'unterminated"), "deny")
+        self.assertEqual(decide("svn commit -m 'unterminated"), "ask")
+        self.assertEqual(decide("git push --no-verify 'x"), "deny")
         self.assertEqual(decide("git push --force origin 'x"), "deny")
         self.assertEqual(decide("git tag v6 'x"), "ask")
         self.assertEqual(decide("gh api repos/o/r/merges -f 'x"), "ask")

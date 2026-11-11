@@ -61,6 +61,9 @@
       "Bash(git push * main)",
       "Bash(git push * main *)",
       "Bash(git push * HEAD:main)",
+      "Bash(git push * develop)",
+      "Bash(git push * develop *)",
+      "Bash(git push * HEAD:develop)",
       "Bash(git push --tags *)",
       "Bash(git push * --tags)",
       "Bash(git push --follow-tags *)",
@@ -76,19 +79,23 @@
       "Bash(./bin/deploy.sh *)",
       "Bash(ssh *)",
       "Bash(scp *)",
-      "Edit(./.claude/settings.json)",
-      "Edit(./.claude/settings.local.json)",
-      "Edit(./.claude/hooks/**)"
-    ],
-    "deny": [
       "Bash(svn commit *)",
       "Bash(svn ci *)",
       "Bash(svn import *)",
       "Bash(svnmucc *)",
+      "Edit(**/.claude/settings*.json)",
+      "Edit(**/.claude/hooks/**)",
+      "Edit(**/.githooks/**)",
+      "Edit(**/.git/config)"
+    ],
+    "deny": [
       "Bash(git push --force *)",
       "Bash(git push -f *)",
       "Bash(git push --force-with-lease *)",
-      "Bash(git push --mirror *)"
+      "Bash(git push --mirror *)",
+      "Bash(git push --no-verify *)",
+      "Bash(git push * --no-verify)",
+      "Bash(git push * --no-verify *)"
     ]
   },
   "hooks": {
