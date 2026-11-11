@@ -81,12 +81,29 @@ class Test_Security extends TestCase {
 	public function test_disable_emojis_covers_enqueued_styles_and_embeds(): void {
 		$this->init_with( 'disable_emojis' );
 
+		// The admin adds its emoji hooks after `init` (admin-filters.php), then fires admin_init.
+		add_action( 'admin_print_scripts', 'print_emoji_detection_script' );
+		add_action( 'admin_enqueue_scripts', 'wp_enqueue_emoji_styles' );
+		add_action( 'admin_print_styles', 'print_emoji_styles' );
+		// Run the module's admin_init callback (all of admin_init would ask WordPress.org for updates).
+		$ran = false;
+		foreach ( $GLOBALS['wp_filter']['admin_init']->callbacks as $callbacks ) {
+			foreach ( $callbacks as $callback ) {
+				if ( is_array( $callback['function'] ) && $callback['function'][0] instanceof Security ) {
+					call_user_func( $callback['function'] );
+					$ran = true;
+				}
+			}
+		}
+		$this->assertTrue( $ran, 'Nothing removes the admin hooks on admin_init.' );
+
 		$hooks = array(
 			array( 'wp_enqueue_scripts', 'wp_enqueue_emoji_styles' ),
 			array( 'admin_enqueue_scripts', 'wp_enqueue_emoji_styles' ),
 			array( 'enqueue_embed_scripts', 'wp_enqueue_emoji_styles' ),
 			array( 'embed_head', 'print_emoji_detection_script' ),
 			array( 'admin_print_scripts', 'print_emoji_detection_script' ),
+			array( 'admin_print_styles', 'print_emoji_styles' ),
 		);
 		foreach ( $hooks as $hook ) {
 			$this->assertFalse( has_action( $hook[0], $hook[1] ), "{$hook[1]} is still on {$hook[0]}." );

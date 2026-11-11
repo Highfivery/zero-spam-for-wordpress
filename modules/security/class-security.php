@@ -72,14 +72,14 @@ class Security {
 
 		if ( $enabled( 'disable_emojis' ) ) {
 			remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
-			remove_action( 'admin_print_scripts', 'print_emoji_detection_script' );
 			remove_action( 'embed_head', 'print_emoji_detection_script' );
 			// Since WordPress 6.4 the styles are enqueued; the print_* hooks are kept for older code.
 			remove_action( 'wp_enqueue_scripts', 'wp_enqueue_emoji_styles' );
-			remove_action( 'admin_enqueue_scripts', 'wp_enqueue_emoji_styles' );
 			remove_action( 'enqueue_embed_scripts', 'wp_enqueue_emoji_styles' );
 			remove_action( 'wp_print_styles', 'print_emoji_styles' );
-			remove_action( 'admin_print_styles', 'print_emoji_styles' );
+			// The admin's emoji hooks are added by wp-admin/includes/admin-filters.php,
+			// which loads after `init`: remove them once the admin has loaded.
+			add_action( 'admin_init', array( $this, 'disable_admin_emojis' ) );
 			remove_filter( 'the_content_feed', 'wp_staticize_emoji' );
 			remove_filter( 'comment_text_rss', 'wp_staticize_emoji' );
 			remove_filter( 'wp_mail', 'wp_staticize_emoji_for_email' );
@@ -247,6 +247,17 @@ class Security {
 		} else {
 			return array();
 		}
+	}
+
+	/**
+	 * Removes the emoji script and styles from the admin (the `admin_init` callback).
+	 *
+	 * @since 6.0.1
+	 */
+	public function disable_admin_emojis(): void {
+		remove_action( 'admin_print_scripts', 'print_emoji_detection_script' );
+		remove_action( 'admin_enqueue_scripts', 'wp_enqueue_emoji_styles' );
+		remove_action( 'admin_print_styles', 'print_emoji_styles' );
 	}
 
 	/**
