@@ -64,14 +64,45 @@ class Network_Settings {
 	}
 
 	/**
-	 * Constructor
+	 * The instance whose hooks are added (they are the same for every
+	 * instance: the plugin, the manager, REST and CLI each create one).
+	 *
+	 * @since 6.0.1
+	 *
+	 * @var Network_Settings|null
+	 */
+	private static ?Network_Settings $hooked = null;
+
+	/**
+	 * Constructor. The hooks are added once per request, by the first
+	 * instance, and again by a later one if they were removed since.
 	 */
 	public function __construct() {
+		if ( null !== self::$hooked && false !== has_filter( 'zerospam_settings', array( self::$hooked, 'resolve_all_settings' ) ) ) {
+			return;
+		}
+		self::$hooked = $this;
+
 		add_filter( 'zerospam_settings', array( $this, 'resolve_all_settings' ), 100, 1 );
 		add_action( 'update_site_option_' . self::META_KEY, array( $this, 'clear_cache' ) );
 		add_action( 'add_site_option_' . self::META_KEY, array( $this, 'clear_cache' ) );
 		add_action( 'delete_site_option_' . self::META_KEY, array( $this, 'clear_cache' ) );
 		add_action( 'updated_option', array( $this, 'clear_site_cache_on_update' ), 10, 3 );
+	}
+
+	/**
+	 * A setting's module, from the current site's registry without lists
+	 * (built once per request): a setting belongs to the same module on
+	 * every site, so per-site checks need not build the registry there.
+	 *
+	 * @since 6.0.1
+	 *
+	 * @param string $setting_key Setting key.
+	 */
+	private static function module_of( string $setting_key ): ?string {
+		$module = \ZeroSpam\Core\Settings::get_settings_without_lists()[ $setting_key ]['module'] ?? null;
+
+		return is_string( $module ) && '' !== $module ? $module : null;
 	}
 
 	/**
@@ -385,10 +416,8 @@ class Network_Settings {
 		}
 
 		// Check if site has override in module-specific option.
+		$module = self::module_of( (string) $setting_key );
 		switch_to_blog( $site_id );
-
-		$all_settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
-		$module       = $all_settings[ $setting_key ]['module'] ?? null;
 
 		// Site has an override if it stores a value AND the value differs from network default.
 		list( $has_own, $site_value ) = self::site_value( (string) $setting_key, $module );
@@ -442,10 +471,9 @@ class Network_Settings {
 		// Get network default.
 		$network_default = $this->get_network_default( $setting_key );
 
+		$module = self::module_of( (string) $setting_key );
 		switch_to_blog( $site_id );
 
-		$all_settings   = \ZeroSpam\Core\Settings::get_settings_without_lists();
-		$module         = $all_settings[ $setting_key ]['module'] ?? null;
 		$override_value = null;
 
 		list( $has_own, $site_value ) = self::site_value( (string) $setting_key, $module );
@@ -540,8 +568,13 @@ class Network_Settings {
 			)
 		);
 		$total_sites   = count( $sites );
-		$using_default = count( $this->get_sites_using_default( $setting_key ) );
-		$overridden    = count( $this->get_sites_with_overrides( $setting_key ) );
+		$using_default = 0;
+		foreach ( $sites as $site ) {
+			if ( $this->is_using_default( $setting_key, (int) $site->blog_id ) ) {
+				++$using_default;
+			}
+		}
+		$overridden = $total_sites - $using_default;
 
 		return array(
 			'total_sites'   => $total_sites,

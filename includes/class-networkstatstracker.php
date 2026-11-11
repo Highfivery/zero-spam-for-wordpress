@@ -605,7 +605,7 @@ class Network_Stats_Tracker {
 			$wpdb->prepare(
 				"DELETE FROM {$wpdb->options}
 				WHERE option_name LIKE %s",
-				'_transient_zerospam_network_stats_%'
+				$wpdb->esc_like( '_transient_zerospam_network_stats_' ) . '%'
 			)
 		);
 
@@ -614,7 +614,7 @@ class Network_Stats_Tracker {
 			$wpdb->prepare(
 				"DELETE FROM {$wpdb->options}
 				WHERE option_name LIKE %s",
-				'_transient_timeout_zerospam_network_stats_%'
+				$wpdb->esc_like( '_transient_timeout_zerospam_network_stats_' ) . '%'
 			)
 		);
 
@@ -624,7 +624,7 @@ class Network_Stats_Tracker {
 			$wpdb->prepare(
 				"DELETE FROM {$wpdb->options}
 				WHERE option_name LIKE %s",
-				'_transient_zerospam_site_breakdown_%'
+				$wpdb->esc_like( '_transient_zerospam_site_breakdown_' ) . '%'
 			)
 		);
 
@@ -633,7 +633,7 @@ class Network_Stats_Tracker {
 			$wpdb->prepare(
 				"DELETE FROM {$wpdb->options}
 				WHERE option_name LIKE %s",
-				'_transient_timeout_zerospam_site_breakdown_%'
+				$wpdb->esc_like( '_transient_timeout_zerospam_site_breakdown_' ) . '%'
 			)
 		);
 	}
