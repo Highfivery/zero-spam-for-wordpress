@@ -50,6 +50,7 @@ in the same PR.
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `.wordpress-org/`, `bin/render-listing-assets.mjs` | WordPress.org listing art, not shipped (`.distignore`): `icon.svg` (flat), `icon-256x256.png`, `icon-128x128.png`, `banner-1544x500.png`, `banner-772x250.png` and `-rtl` twins, rendered from the HTML in `.wordpress-org/src/` (Playwright Chromium, no network). The banner ("Bots bounce. People get through.", a 1544 × 500 stage at half size; its `-rtl` twin mirrors the scene but keeps the English lines and the tick in reading order) reads `tokens.css` (dark surfaces and text colours), the fonts and the mark; the scene's colours are written out in `src/banner.html`, and `src/icon.html` and `icon.svg` (the mark on a white tile) hold every colour and brick themselves, so a token or mark change does not reach the icons. Re-render with `node bin/render-listing-assets.mjs` and commit the PNGs after changing any of these (section 5, Front-end build, has the two checks). `README.md` there has the SVN steps, `screenshots.md` how the readme screenshots in `screenshots/` are captured, with their captions. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
+| `.claude/settings.json`, `.claude/agents/`, `docs/superpowers/` | Agent tooling (section 3, Agent workflow): the committed Claude Code project settings, the read-only reviewer agents, and committed designs and plans. `.claude/worktrees/` and `.claude/settings.local.json` are git-ignored. None of it ships (`.distignore`). |
 | `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
 
 ### How a module works
@@ -304,6 +305,51 @@ action. `Registration::is_spam()` is the shared check, log and share.
   public API for site owners and developers. Changing or removing one needs a
   migration, a changelog entry and, ideally, a deprecation period.
 
+### Agent workflow (Superpowers and the reviewer agents)
+
+Claude Code sessions in this repository use the
+[Superpowers](https://github.com/obra/superpowers) plugin, enabled in the
+committed `.claude/settings.json` (from the official marketplace, with its
+telemetry turned off). Its skills run the work; this file still sets the
+rules, and where the two differ this file wins:
+
+- **Questions:** brainstorming asks one question at a time, each with a
+  recommendation (section 7).
+- **Designs and plans** go to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+  and `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`, committed on the
+  feature branch and linked from the PR. `docs/` is in `.distignore`, so
+  they never ship. Plans that change settings, multisite behaviour or a
+  release still need the maintainer's approval before editing (section 7).
+- **Worktrees** live in `.claude/worktrees/<branch>` (git-ignored; WPCS and
+  compat already exclude `.claude/`), never `.worktrees/`. Branch from
+  `develop` with the prefixes above.
+- **Tests first:** test-driven development is this file's failing-first
+  rule; a known defect loses its `known-defect` tag in the PR that fixes it
+  (section 5, PHPUnit).
+- **Finishing a branch** always means push and open a PR against `develop`
+  with the section 5 evidence. Never merge locally: `develop` and `main`
+  are PR-only. The agent may merge its own verified PR into `develop` when
+  the maintainer has said so; merging to `main`, tagging and SVN always need
+  the maintainer's yes (section 7).
+- **Verification before completion** means section 5's "Done means proven".
+
+Reviewer agents in `.claude/agents/` (read-only; adapted from
+[ECC](https://github.com/affaan-m/ECC), MIT, see
+`.claude/agents/LICENSE-ECC.md`) run before a PR is opened, alongside
+Superpowers' code review, on the parts they cover:
+
+| Agent | When |
+|---|---|
+| `php-reviewer` | Every PHP change. |
+| `security-reviewer` | Input, output, REST, admin actions, SQL, files, outgoing HTTP, secrets or visitor data. |
+| `performance-optimizer` | Anything on a visitor's request, settings reads, queries, caches, multisite paths or admin bundles. |
+| `a11y-architect` | Any UI change (admin, widget, blocked pages, emails). |
+| `silent-failure-hunter` | Calls to outside services, the database, the filesystem or WordPress APIs that can fail. |
+
+Their findings, and what was done about each, go in the PR. ECC's
+installer, hooks, commands and rules are not used; never send code or
+diffs to another AI service (for example ECC's `/astra-review`).
+
 ## 4. Engineering standards (non-negotiable)
 
 - **WordPress Coding Standards** (`phpcs.xml.dist`, WordPress-Core/Extra/Docs)
@@ -370,8 +416,10 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
   recordings for any UI change, the `readme.txt` changelog entry, and a note
   of anything not verified and why. Do not claim something works without
   having run it.
-- Do not create markdown process files (`NOTES.md`, `PLAN.md`, "what I did"
-  files). Plans and findings go in the PR or in the conversation.
+- Designs and plans are committed under `docs/superpowers/` (section 3,
+  Agent workflow) and linked from the PR. Do not create other markdown
+  process files (`NOTES.md`, `PLAN.md`, "what I did" files) anywhere else;
+  findings go in the PR or in the conversation.
 
 ### Front-end build (`@wordpress/scripts`)
 
