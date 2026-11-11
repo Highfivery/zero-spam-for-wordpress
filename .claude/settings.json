@@ -64,13 +64,21 @@
       "Bash(git push --tags *)",
       "Bash(git push * --tags)",
       "Bash(git push --follow-tags *)",
-      "Bash(git tag *)",
-      "Bash(gh release *)",
+      "Bash(git tag -a *)",
+      "Bash(git tag -s *)",
+      "Bash(git tag -d *)",
+      "Bash(gh release create *)",
+      "Bash(gh release edit *)",
+      "Bash(gh release delete *)",
+      "Bash(gh release upload *)",
       "Bash(gh pr create --base main *)",
       "Bash(bin/deploy.sh *)",
       "Bash(./bin/deploy.sh *)",
       "Bash(ssh *)",
-      "Bash(scp *)"
+      "Bash(scp *)",
+      "Edit(./.claude/settings.json)",
+      "Edit(./.claude/settings.local.json)",
+      "Edit(./.claude/hooks/**)"
     ],
     "deny": [
       "Bash(svn commit *)",
@@ -90,9 +98,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.py",
-            "args": [],
-            "timeout": 30
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.py\" || exit 2",
+            "timeout": 60
           }
         ]
       }

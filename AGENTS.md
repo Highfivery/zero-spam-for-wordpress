@@ -355,32 +355,44 @@ diffs to another AI service (for example ECC's `/astra-review`).
 The committed `.claude/settings.json` enforces section 7's approval rule in
 the tool, not only in writing (decided by the maintainer, 2026-11-11):
 
-- **Always blocked** (the maintainer runs these himself): `svn commit`,
-  `svn ci`, `svn import`, `svnmucc` and SVN copy/mkdir/delete/move against a
-  repository URL; force pushes (`--force`, `-f`, `--force-with-lease`,
-  `--mirror`, `+refspec`).
+- **Always blocked** (the maintainer runs these himself): SVN writes to the
+  repository (`svn commit`/`ci`/`import`, `svnmucc`, `git svn dcommit`, and
+  copy/move/delete/mkdir/propedit against a repository URL, including `^/`
+  URLs) and force or mirror pushes (`--force`, `-f` in any flag bundle,
+  `--force-with-lease`, `--mirror`, `+refspec`).
 - **Stop and ask the maintainer at the prompt** (his approval there is the
-  yes): pushing to, merging into or deleting `main`; a PR or local change on
-  `main`; creating, deleting or pushing tags; GitHub releases; writing
-  releases, refs, tags, merges or branch protection through `gh api`; merging
-  any PR whose base is not `develop`; deploy scripts, `ssh`, `scp`, remote
-  `rsync` and remote WP-CLI.
+  yes): pushing straight to `main` or `develop` (both change only through
+  PRs); local changes on them; creating, deleting or pushing tags; GitHub
+  releases, PRs into `main`, merges whose base is not `develop`, and any
+  other GitHub write (`gh api`, GraphQL mutations, repo settings, issues);
+  deploys, `ssh`/`scp`/remote `rsync`, remote WP-CLI and npm/composer/make
+  deploy, release or publish tasks; `git push --no-verify` and changes to git
+  aliases, remotes or hooks; and any change to `.claude/settings*.json` or
+  `.claude/hooks/`.
 - **Allowed without a prompt** (once the folder is trusted): the quality gate
   (`composer`, `npm run`, `bin/` checks, `vendor/bin/` tools, wp-env), git
-  work on branches, `gh pr` create/view/merge into `develop`, and the guard's
-  own tests.
+  work on feature branches (including `git push -u origin <branch>`), opening
+  PRs into `develop`, merging PRs whose base is `develop`, commenting on PRs,
+  and the guard's own tests.
 
-Permission rules only match the literal command text (`git -C . push origin
-main` slips past a `git push * main` rule), so `.claude/hooks/guard.py`, a
-`PreToolUse` hook on every Bash call, parses the command itself: separators,
-subshells, `bash -c`, `eval`, wrappers, environment assignments, `git -C`/`-c`,
-inline Python/Node/PHP code, variables in a push target and scripts piped to a
-shell. When it can't tell, it asks. It is standard-library Python 3; its tests
-are `python3 -m unittest discover -s .claude/hooks -p 'test_*.py'` (run them
-after changing the guard). It reduces risk; it is not a sandbox: a program
-that runs git or svn by itself (for example a build script) is not seen.
-Never weaken, skip or work around a guardrail; when one stops something that
-should be allowed, say so and propose the change in a PR.
+Permission rules only match the literal command text, so
+`.claude/hooks/guard.py`, a `PreToolUse` hook on every Bash call, reads each
+command itself and **fails closed**: a command that uses git, gh, svn, a
+remote shell, a deploy or the guardrails must match a known-safe shape, or
+the guard asks. It follows separators, comments, line continuations,
+heredocs, subshells and substitutions, `bash -c`, `eval`, `env -S`, wrappers,
+`git -C`/`-c`/`--git-dir`, `cd` and branch switches earlier in the same
+command, inline Python/Node/PHP code, and new or changed scripts run by path
+(committed scripts were reviewed in a PR). It asks when a program or target
+comes from a variable, when it can't parse a command, when a lookup fails,
+and after 20 seconds. The hook entry runs `python3 guard.py || exit 2`, so a
+missing interpreter or a crash blocks the command instead of letting it
+through. The guard is standard-library Python 3; its tests are
+`python3 -m unittest discover -s .claude/hooks -p 'test_*.py'`. It reduces
+risk; it is not a sandbox: a committed program that runs git or svn by
+itself is not seen. Never weaken, skip or work around a guardrail; when one
+stops something that should be allowed, say so and propose the change in a
+PR.
 
 ## 4. Engineering standards (non-negotiable)
 
