@@ -18,3 +18,4 @@
 # Claude Code: project settings and agents are committed; worktrees and personal settings are not.
 /.claude/worktrees/
 /.claude/settings.local.json
+/.claude/hooks/__pycache__/

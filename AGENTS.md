@@ -50,7 +50,7 @@ in the same PR.
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `.wordpress-org/`, `bin/render-listing-assets.mjs` | WordPress.org listing art, not shipped (`.distignore`): `icon.svg` (flat), `icon-256x256.png`, `icon-128x128.png`, `banner-1544x500.png`, `banner-772x250.png` and `-rtl` twins, rendered from the HTML in `.wordpress-org/src/` (Playwright Chromium, no network). The banner ("Bots bounce. People get through.", a 1544 × 500 stage at half size; its `-rtl` twin mirrors the scene but keeps the English lines and the tick in reading order) reads `tokens.css` (dark surfaces and text colours), the fonts and the mark; the scene's colours are written out in `src/banner.html`, and `src/icon.html` and `icon.svg` (the mark on a white tile) hold every colour and brick themselves, so a token or mark change does not reach the icons. Re-render with `node bin/render-listing-assets.mjs` and commit the PNGs after changing any of these (section 5, Front-end build, has the two checks). `README.md` there has the SVN steps, `screenshots.md` how the readme screenshots in `screenshots/` are captured, with their captions. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
-| `.claude/settings.json`, `.claude/agents/`, `docs/superpowers/` | Agent tooling (section 3, Agent workflow): the committed Claude Code project settings, the read-only reviewer agents, and committed designs and plans. `.claude/worktrees/` and `.claude/settings.local.json` are git-ignored. None of it ships (`.distignore`). |
+| `.claude/settings.json`, `.claude/hooks/`, `.claude/agents/`, `docs/superpowers/` | Agent tooling (section 3, Agent workflow and Guardrails): the committed Claude Code project settings and permission rules, the guard hook (`guard.py`) and its tests (`test_guard.py`), the read-only reviewer agents, and committed designs and plans. `.claude/worktrees/` and `.claude/settings.local.json` are git-ignored. None of it ships (`.distignore`). |
 | `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
 
 ### How a module works
@@ -292,7 +292,7 @@ action. `Registration::is_spam()` is the shared check, log and share.
 - **Versions:** `Version:` header, `ZEROSPAM_VERSION` and `Stable tag` must
   agree and never go backwards (`composer version:check`). Bump
   `Tested up to` only after testing on that WordPress release.
-- **WordPress.org SVN `assets/`:** the directory's listing art lives in the SVN working copy's top-level `assets/`, not in `trunk/`, and goes live on commit, without a release. The sources are in `.wordpress-org/`; the maintainer copies and commits them by hand (`.wordpress-org/README.md`). Agents never run SVN commits or change that working copy's `assets/`.
+- **WordPress.org SVN `assets/`:** the directory's listing art lives in the SVN working copy's top-level `assets/`, not in `trunk/`, and goes live on commit, without a release. The sources are in `.wordpress-org/`; copy them as `.wordpress-org/README.md` describes. Claude Code may prepare that working copy; the commit is an SVN write and waits for the maintainer's yes (section 3, Guardrails).
 - **Docs:** when behavior changes, update `readme.txt` (description, FAQ) and
   the in-admin docs in `includes/templates/docs/`. The 6.0 Help screen shows
   them through `Core\Admin\Documentation` (`zero-spam/v1/ui/help/docs`): keep
@@ -329,8 +329,9 @@ rules, and where the two differ this file wins:
 - **Finishing a branch** always means push and open a PR against `develop`
   with the section 5 evidence. Never merge locally: `develop` and `main`
   are PR-only. The agent may merge its own verified PR into `develop` when
-  the maintainer has said so; merging to `main`, tagging and SVN always need
-  the maintainer's yes (section 7).
+  the maintainer has said so; merging to `main`, tagging and SVN commits
+  pause for the maintainer's yes at the prompt (section 3, Guardrails;
+  section 7).
 - **Verification before completion** means section 5's "Done means proven".
 
 Reviewer agents in `.claude/agents/` (read-only; adapted from
@@ -349,6 +350,66 @@ Superpowers' code review, on the parts they cover:
 Their findings, and what was done about each, go in the PR. ECC's
 installer, hooks, commands and rules are not used; never send code or
 diffs to another AI service (for example ECC's `/astra-review`).
+
+### Guardrails (what Claude Code may do on its own)
+
+Claude Code does the coding and runs releases end to end (develop → main
+PR, tag, GitHub release, WordPress.org SVN, deploys), pausing for the
+maintainer at each outward step (decided 2026-11-11). The committed
+`.claude/settings.json` and its guard hook enforce that in the tool:
+
+- **Never** (denied): force or mirror pushes (`--force`, `-f` in any flag
+  bundle, `--force-with-lease`, `--mirror`, `+refspec`, abbreviations such
+  as `--forc`) and `git push --no-verify`, which skips the quality gate.
+- **Stop and ask the maintainer at the prompt** (his approval there is the
+  yes, each time): SVN writes to the repository (`svn commit`/`ci`/`import`,
+  `svnmucc`, `git svn dcommit`, copy/move/delete/mkdir/propedit against a
+  repository URL, including `^/`, and revision properties); pushing to
+  `main` or `develop` and local changes on them; creating, deleting or
+  pushing tags; GitHub releases, PRs into `main`, merges whose base is not
+  `develop`, PR reviews, and any other GitHub write (`gh api` writes,
+  GraphQL other than a literal query, repo settings, issues, secrets,
+  workflows, `curl` writes to GitHub, WordPress.org or zerospam.org) and
+  anything acting on another repository; deploys, `ssh`/`scp`/remote
+  `rsync`, remote WP-CLI and npm/composer/make deploy, release or publish
+  tasks; `SKIP_QUALITY_GATE`, `GIT_*`/`GH_*` variables, git settings other
+  than name, email and display options, remotes and aliases; and any change
+  to `.claude/settings*.json`, `.claude/hooks/`, `.githooks/` or
+  `.git/config`.
+- **Allowed without a prompt** (once the folder is trusted): the quality gate
+  (`composer`, `npm run`, `bin/` checks, `vendor/bin/` tools, wp-env), git
+  work on feature branches (including `git push -u origin <branch>`), opening
+  PRs into `develop`, merging PRs whose base is `develop`, commenting on PRs,
+  local SVN work (`svn up`, `status`, `diff`, `add`, `cp` inside the working
+  copy), and the guard's own tests.
+
+The prompts are a speed bump, not the boundary. The boundary is the
+maintainer's credentials: keep the WordPress.org SVN password in the macOS
+Keychain (never cached in plaintext) and the deploy SSH key behind Touch ID
+or a passphrase, so an outward step also waits for him there.
+
+Permission rules only match the literal command text, so
+`.claude/hooks/guard.py`, a `PreToolUse` hook on every Bash call, reads each
+command itself and **fails closed**: a command that uses git, gh, svn, a
+remote shell, a deploy, a network client or the guardrails must match a
+known-safe shape, or the guard asks. It follows separators, comments, line
+continuations, heredocs and here-strings, subshells and substitutions,
+`bash -c`, `eval`, `env -S`, `find -exec`, `flock`, wrappers,
+`git -C`/`-c`/`--git-dir`, `cd` and branch switches earlier in the same
+command, inline Python/Node/PHP/Perl code, push settings that push more than
+one branch, and new or changed scripts (run by path, by a shell or an
+interpreter, or through `npm`/`composer`/`make` when `package.json`,
+`composer.json`, a `Makefile` or `bin/` changed; committed scripts were
+reviewed in a PR). It asks when a program or target comes from a variable or
+a pattern, when commands come from input it can't see, when it can't parse a
+command, when a lookup fails, and after 20 seconds. The hook entry runs
+`python3 guard.py || exit 2`, so a missing interpreter or a crash blocks the
+command instead of letting it through. The guard is standard-library
+Python 3; its tests are
+`python3 -m unittest discover -s .claude/hooks -p 'test_*.py'`. It is not a
+sandbox: a committed program that runs git or svn by itself is not seen.
+Never weaken, skip or work around a guardrail; when one stops something
+that should be allowed, say so and propose the change in a PR.
 
 ## 4. Engineering standards (non-negotiable)
 
@@ -886,7 +947,8 @@ npm run env:stop                 # stop both wp-env sites
   acceptance criteria) and get approval before editing.
 - Outward-facing actions need explicit approval each time: merging to `main`,
   tagging, SVN commits, WordPress.org changes, vulnerability-program
-  submissions, anything that posts or emails.
+  submissions, anything that posts or emails. Claude Code runs these steps
+  itself and stops at the prompt for that approval (section 3, Guardrails).
 - When reviewing or touching code, also report nearby cleanup, performance,
   security and bug opportunities, each as its own suggestion.
 - Report outcomes faithfully: failing checks with their output, skipped steps

@@ -42,9 +42,9 @@ Two checks guard the art:
 
 **When to re-render:** whenever `--check` fails, which is whenever you change one of those paths and the art is not byte-identical on your machine. That includes a change that does not alter the art, if the PNGs were last rendered on another machine or browser version. Run `node bin/render-listing-assets.mjs`, look at the PNGs and commit them. A Playwright or macOS upgrade alone does not trigger the byte check; the next change to an input will, and may need a re-render.
 
-## Publish to WordPress.org (maintainer, by hand)
+## Publish to WordPress.org
 
-The art goes in the SVN working copy's top-level `assets/` (`/Users/benmarshall/Documents/Projects/zero-spam`, not `trunk/`). It is live as soon as it is committed, with no release, so do it when the release is committed to SVN. `$PLUGIN` is a checkout of the released tag.
+Claude Code runs these steps as part of a release; the `svn commit` stops for the maintainer's yes and his SVN password (`AGENTS.md` section 3, Guardrails). The art goes in the SVN working copy's top-level `assets/` (`/Users/benmarshall/Documents/Projects/zero-spam`, not `trunk/`). It is live as soon as it is committed, with no release, so do it when the release is committed to SVN. `$PLUGIN` is a checkout of the released tag.
 
 ```bash
 cd /Users/benmarshall/Documents/Projects/zero-spam

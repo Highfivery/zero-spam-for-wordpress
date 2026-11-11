@@ -5,5 +5,111 @@
   },
   "env": {
     "SUPERPOWERS_DISABLE_TELEMETRY": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(composer install)",
+      "Bash(composer install *)",
+      "Bash(composer check)",
+      "Bash(composer check:*)",
+      "Bash(composer test)",
+      "Bash(composer test:*)",
+      "Bash(composer lint)",
+      "Bash(composer lint:*)",
+      "Bash(composer compat)",
+      "Bash(composer analyse)",
+      "Bash(composer version:check)",
+      "Bash(composer e2e:install)",
+      "Bash(npm ci)",
+      "Bash(npm run *)",
+      "Bash(npx playwright install chromium)",
+      "Bash(npx vitest *)",
+      "Bash(npx wp-env *)",
+      "Bash(bin/check-dist.sh)",
+      "Bash(bin/check-dist.sh *)",
+      "Bash(bin/check-version.sh)",
+      "Bash(bin/lint-changed.sh)",
+      "Bash(bin/test.sh *)",
+      "Bash(bin/test-matrix.sh *)",
+      "Bash(vendor/bin/phpcs *)",
+      "Bash(vendor/bin/phpcbf *)",
+      "Bash(vendor/bin/phpstan *)",
+      "Bash(vendor/bin/phpunit *)",
+      "Bash(python3 -m unittest discover -s .claude/hooks *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git switch *)",
+      "Bash(git checkout *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git merge *)",
+      "Bash(git stash *)",
+      "Bash(git restore *)",
+      "Bash(git worktree *)",
+      "Bash(git push *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)"
+    ],
+    "ask": [
+      "Bash(git push * main)",
+      "Bash(git push * main *)",
+      "Bash(git push * HEAD:main)",
+      "Bash(git push * develop)",
+      "Bash(git push * develop *)",
+      "Bash(git push * HEAD:develop)",
+      "Bash(git push --tags *)",
+      "Bash(git push * --tags)",
+      "Bash(git push --follow-tags *)",
+      "Bash(git tag -a *)",
+      "Bash(git tag -s *)",
+      "Bash(git tag -d *)",
+      "Bash(gh release create *)",
+      "Bash(gh release edit *)",
+      "Bash(gh release delete *)",
+      "Bash(gh release upload *)",
+      "Bash(gh pr create --base main *)",
+      "Bash(bin/deploy.sh *)",
+      "Bash(./bin/deploy.sh *)",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(svn commit *)",
+      "Bash(svn ci *)",
+      "Bash(svn import *)",
+      "Bash(svnmucc *)",
+      "Edit(**/.claude/settings*.json)",
+      "Edit(**/.claude/hooks/**)",
+      "Edit(**/.githooks/**)",
+      "Edit(**/.git/config)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease *)",
+      "Bash(git push --mirror *)",
+      "Bash(git push --no-verify *)",
+      "Bash(git push * --no-verify)",
+      "Bash(git push * --no-verify *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.py\" || exit 2",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
   }
 }
