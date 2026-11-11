@@ -248,16 +248,19 @@ class Settings_Resolver {
 			return $network;
 		}
 
-		$stored = get_site_transient( Network_Settings::cache_key() );
-		if ( false === $stored ) {
-			$stored = get_site_option( Network_Settings::META_KEY, array() );
-		}
-		$store    = Settings_Schema::normalize_network_store( $stored );
-		$registry = Settings_Schema::registry();
+		$store = Settings_Schema::normalize_network_store( Network_Settings::cached_without_lists() );
+		// Modules only: the registry without lists is enough.
+		$registry = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		foreach ( $store['settings'] as $key => $config ) {
 			if ( ! is_array( $config ) || ! isset( $registry[ $key ]['module'] ) || $module !== $registry[ $key ]['module'] ) {
 				continue;
+			}
+
+			if ( ! empty( $config[ Network_Settings::VALUE_IN_STORE ] ) ) {
+				// A list of this module: its value stays in the store until asked for.
+				unset( $config[ Network_Settings::VALUE_IN_STORE ] );
+				$config['value'] = Network_Settings::list_value( (string) $key );
 			}
 
 			// Locked whatever its value, as Network_Settings enforces it: a locked

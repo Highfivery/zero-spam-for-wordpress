@@ -355,7 +355,12 @@ final class Settings_Schema {
 	 * @return mixed
 	 */
 	public static function value( string $key ) {
-		$registry = isset( self::OWN_OPTIONS[ $key ] ) ? self::registry() : self::registry_for_values();
+		if ( isset( self::OWN_OPTIONS[ $key ] ) ) {
+			// A list: Settings keeps it for the request, so a form reads it once (#404).
+			return Settings::get_settings( $key );
+		}
+
+		$registry = self::registry_for_values();
 
 		return ! empty( $registry[ $key ]['value'] ) ? $registry[ $key ]['value'] : false;
 	}
@@ -784,6 +789,7 @@ final class Settings_Schema {
 						remove_filter( $hook, $callback, PHP_INT_MAX );
 					}
 					Settings::$settings = $core;
+					Settings::reset_cache(); // Nothing read under the empty options stays cached.
 				}
 
 				$defaults = array();
@@ -812,17 +818,26 @@ final class Settings_Schema {
 		$network = self::remember(
 			'network',
 			static function (): array {
-				$stored = get_site_transient( Network_Settings::cache_key() );
-
-				if ( false === $stored ) {
-					$stored = get_site_option( Network_Settings::META_KEY, array() );
-				}
-
-				return self::normalize_network_store( $stored );
+				// The cached copy (lists' values stay in the store, read below when asked for).
+				return self::normalize_network_store( Network_Settings::cached_without_lists() );
 			}
 		);
 
-		return isset( $network['settings'][ $key ] ) && is_array( $network['settings'][ $key ] ) ? $network['settings'][ $key ] : null;
+		if ( ! isset( $network['settings'][ $key ] ) || ! is_array( $network['settings'][ $key ] ) ) {
+			return null;
+		}
+
+		$entry = $network['settings'][ $key ];
+		if ( ! empty( $entry[ Network_Settings::VALUE_IN_STORE ] ) ) {
+			// The cache leaves a list's value in the store; read it only when asked for.
+			unset( $entry[ Network_Settings::VALUE_IN_STORE ] );
+			$value = Network_Settings::list_value( $key );
+			if ( null !== $value ) {
+				$entry['value'] = $value;
+			}
+		}
+
+		return $entry;
 	}
 
 	/**

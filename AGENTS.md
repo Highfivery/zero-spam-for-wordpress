@@ -1143,10 +1143,16 @@ npm run env:stop                 # stop both wp-env sites
   `zerospam_db_version` back to 1.5 on each site once.
 - `GET network-settings/{key}` still counts sites through
   `Network_Settings::get_application_status()`, one registry build per site.
-- Blocked email domains (#404): a visitor's page view no longer reads the list
-  from the site's own option, but on a network the list can sit in
-  `zerospam_network_settings`, loaded whole on every request through a site
-  transient. `ip_whitelist` and `allowed_words` stay in the autoloaded
+- Blocked email domains (#404): a visitor's page view reads the list neither
+  from the site's own option nor, on a network, from
+  `zerospam_network_settings`: the network settings cache leaves each list's
+  value in the store (`Network_Settings::without_lists()`, marked
+  `VALUE_IN_STORE`; read it with `list_value()` or `get_network_settings()`,
+  never by reading the store on a per-request path), and a form reads and
+  parses the list once per request. On a network, a site's own list
+  (`zerospam_blocked_email_domains`) does not override an unlocked network
+  list, although the admin reports it as the site's value (decision pending
+  with Ben). `ip_whitelist` and `allowed_words` stay in the autoloaded
   `zero-spam-settings` (3,000 addresses are 32 KB; the 100,000 a list may hold
   are 1.4 MB). `zerospam_settings_audit` keeps a list's whole old and new
   values in each of its 100 entries (not autoloaded, not bounded in bytes).
