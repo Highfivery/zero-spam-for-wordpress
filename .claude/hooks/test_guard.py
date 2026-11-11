@@ -25,11 +25,11 @@ def decide(command, branch="feature/x", destination="origin/feature/x", pr_base=
     if repo:
         config.setdefault("remote.origin.url", f"git@github.com:{repo}.git")
 
-    def fake_git_out(path, *args):
-        if args[:2] == ("config", "--get") and args[2].startswith("alias."):
-            return aliases.get(args[2][6:])
+    def fake_git_out(path, *args, strict=False):
+        if args[:2] == ("config", "--get") and args[-1].startswith("alias."):
+            return aliases.get(args[-1][6:])
         if args[:2] == ("config", "--get"):
-            return config.get(args[2])
+            return config.get(args[-1])
         if args[:2] == ("config", "--get-regexp"):
             return config.get("regexp:" + args[2])
         return None
@@ -214,6 +214,50 @@ class Asked(unittest.TestCase):
         "patch -p1",
         "curl -X POST https://api.github.com/repos/o/r/releases -d '{}'",
         "curl --data x https://api.wordpress.org/x",
+        # third review (security-reviewer and silent-failure-hunter)
+        "git push origin HEAD:heads/main",
+        "git push origin feature/x:heads/develop",
+        "git push origin HEAD:tags/v1",
+        "git -C $(git rev-parse --show-toplevel) push origin main",
+        "git config core.hooksPath list",
+        "git config set core.hooksPath get",
+        "git remote -v set-url origin https://example.com/x.git",
+        "git tag -i v6.1.0",
+        "git tag --sort=refname v6.1.0",
+        "git -c core.fsmonitor='git push origin main' status",
+        "git -c core.sshCommand='sh -c x' ls-remote origin",
+        "csh -c 'git push origin main'",
+        "watch 'git push origin main'",
+        "coproc git push origin main",
+        "trap 'git push origin main' EXIT",
+        "strace -f git push origin main",
+        ": <<'X-1'\nX-1\n./x.sh",
+        "bash /dev/stdin <<< 'git push origin main'",
+        "cat > x.sh <<'EOF'\ngit push origin main\nEOF\nbash x.sh",
+        "python3 -c \"" + " " * 4100 + "import os\"",
+        "rm -rf .claude",
+        "find .claude -delete",
+        "mv .git /tmp/g",
+        "git restore --source=HEAD~3 .claude",
+        "git checkout HEAD~1 -- .claude",
+        "npm version 6.0.1",
+        "npx -c 'git push -f origin x'",
+        "npm exec -c 'git push origin main'",
+        "awk 'BEGIN{system(\"git push --force\")}'",
+        "sed -i s/a/b/ .claude/*.json",
+        "perl -pi -e s/a/b/ .claude/*.json",
+        "sed -i s/a/b/ .Claude/Settings.json",
+        "python3 -m json.tool n.json .claude/settings.json",
+        "patch -p1 < fix.diff",
+        "svn lock trunk/readme.txt",
+        "curl -sd '{}' https://api.github.com/repos/o/r/releases",
+        "curl -d@body.json https://api.github.com/repos/o/r/releases",
+        "http POST api.github.com/repos/o/r/issues title=x",
+        "git checkout -Bdevelop origin/develop",
+        "git switch --force-create=develop origin/develop",
+        "xargs ./evil.sh",
+        "pwsh -Command 'git push origin main'",
+        "gh pr merge https://github.com/other/repo/pull/1",
         # GitHub
         "gh pr review 5 --approve",
         "gh pr merge 5 -R other/repo",
@@ -280,6 +324,14 @@ class Asked(unittest.TestCase):
         self.assertEqual(decide("git commit -m x", branch="develop"), "ask")
         self.assertEqual(decide("git pull", branch="main"), "ask")
         self.assertEqual(decide("git reset --hard origin/main", branch=None), "ask")
+        self.assertEqual(decide("git branch -m develop-old", branch="develop"), "ask")
+        self.assertEqual(decide("git push -u origin fix/x", config={"push.followTags": "true"}), "ask")
+
+    def test_commands_follow_env_chdir(self):
+        with mock.patch.object(guard, "current_branch", side_effect=lambda p: "develop" if p.endswith("wt") else "feature/x"), \
+                mock.patch.object(guard, "git_out", return_value=None):
+            self.assertEqual(guard.evaluate("env -C /tmp/wt git commit -m x", "/tmp")[0], "ask")
+            self.assertIsNone(guard.evaluate("git commit -m x", "/tmp")[0])
 
     def test_github_merges_outside_develop(self):
         self.assertEqual(decide("gh pr merge 490 --merge", pr_base="main"), "ask")
@@ -297,13 +349,20 @@ class Asked(unittest.TestCase):
 
     def test_changed_task_runner_files(self):
         with tempfile.TemporaryDirectory() as tmp:
+            git = ["git", "-C", tmp, "-c", "user.name=t", "-c", "user.email=t@example.com"]
             subprocess.run(["git", "init", "-q", tmp], check=True)
             with open(os.path.join(tmp, "package.json"), "w") as fh:
-                fh.write('{"scripts":{"test":"git push origin main"}}')
-            self.assertEqual(decide("npm test", cwd=tmp), "ask")
-            with open(os.path.join(tmp, "package.json"), "w") as fh:
                 fh.write('{"scripts":{"test":"vitest"}}')
-            self.assertIsNone(decide("npm test", cwd=tmp))
+            subprocess.run(git + ["add", "package.json"], check=True)
+            subprocess.run(git + ["commit", "-qm", "x"], check=True)
+            subprocess.run(git + ["update-ref", "refs/remotes/origin/develop", "HEAD"], check=True)
+            with mock.patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": tmp}):
+                self.assertIsNone(decide("npm test", cwd=tmp))
+                with open(os.path.join(tmp, "package.json"), "w") as fh:
+                    fh.write('{"scripts":{"test":"git push origin main"}}')
+                self.assertEqual(decide("npm test", cwd=tmp), "ask")
+                subprocess.run(git + ["commit", "-qam", "y"], check=True)
+                self.assertEqual(decide("npm test", cwd=tmp), "ask")  # committed on a branch is not reviewed
 
     def test_tags_without_a_v(self):
         self.assertEqual(decide("git push origin release-6", tags=("release-6",)), "ask")
@@ -374,8 +433,6 @@ class Allowed(unittest.TestCase):
         "bash -lc 'composer check'",
         "while read l; do echo $l; done < f",
         "ssh-add -l",
-        "bin/test.sh --mode=all",
-        "bin/check-dist.sh",
         "wp plugin list --path=/tmp/wp",
         # second review: no false alarms on everyday work
         "git push -u origin fix/x 2>&1",
@@ -386,11 +443,22 @@ class Allowed(unittest.TestCase):
         "git config user.email claude@example.com",
         "echo \"it's fine\"",
         "python3 -m unittest discover -s .claude/hooks -p 'test_*.py' 2>&1 | tail -3",
-        "node bin/render-listing-assets.mjs --check",
         "python3 --version",
         "find . -name '*.php' -exec grep -l foo {} +",
         "git rebase origin/develop",
         "gh api repos/o/r/pulls/483 --jq .base.ref",
+        # third review: no false alarms
+        "cd /home/claude/wt && git commit -m 'fix(login): x'",
+        "cd /home/claude/wt && git pull origin develop",
+        "php -d x=1 $(which wp) plugin list",
+        "git commit -m \"$(cat <<'EOF'\nfix(x): steps 1) and 2)\nEOF\n)\"",
+        "gh pr create --base develop --title 'fix(x): y' --body \"$(cat <<'EOF'\nSteps: 1) run\nEOF\n)\"",
+        "git -c color.ui=always log --oneline -3",
+        "git remote -v",
+        "git tag --sort=-v:refname",
+        "gh pr merge 490 --merge --repo o/r",
+        "mkdir -p .claude/worktrees",
+        "sed -n p .claude/settings.json",
     ]
 
     def test_allowed(self):
@@ -399,6 +467,12 @@ class Allowed(unittest.TestCase):
                 continue
             with self.subTest(cmd=cmd):
                 self.assertIsNone(decide(cmd))
+
+    def test_committed_project_scripts(self):
+        repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        for cmd in ["bin/test.sh --mode=all", "bin/check-dist.sh", "node bin/render-listing-assets.mjs --check"]:
+            with self.subTest(cmd=cmd):
+                self.assertIsNone(decide(cmd, cwd=repo))
 
     def test_variable_push_target_asks(self):
         self.assertEqual(decide("git push -u origin $(git branch --show-current)"), "ask")

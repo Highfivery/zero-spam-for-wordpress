@@ -26,6 +26,7 @@ Standard library only; tested by .claude/hooks/test_guard.py.
 
 from __future__ import annotations
 
+import glob
 import json
 import os
 import re
@@ -53,7 +54,7 @@ OUTWARD_RE = re.compile(
     r"check_call|check_output|getoutput|run)\s*\(",
     re.I,
 )
-SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "fish"}
+SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "fish", "csh", "tcsh", "mksh", "yash", "busybox"}
 INTERPRETERS = {"python": "c", "python3": "c", "node": "ep", "nodejs": "ep", "php": "rB",
                 "perl": "eE", "ruby": "e", "osascript": "e", "deno": "", "bun": "e", "tclsh": "",
                 "lua": "e", "pwsh": "c", "powershell": "c"}
@@ -62,7 +63,7 @@ INFO_FLAGS = {"--version", "-V", "-v", "--help", "-h"}
 SEPARATORS = {"&&", "||", ";", "|", "|&", "&", ";;", "(", ")", "{", "}", "!"}
 REDIRECT_OPS = {">", ">>", "<", ">|", "&>", "&>>", ">&", "<&", "<>"}
 SHELL_KEYWORDS = {"do", "then", "else", "elif", "if", "while", "until"}
-EXECUTORS = {"script", "parallel", "doas", "nsenter", "chroot", "su", "runuser", "unshare", "ssh-agent",
+EXECUTORS = {"coproc", "unbuffer", "strace", "ltrace", "watch", "trap", "sshpass", "script", "parallel", "doas", "nsenter", "chroot", "su", "runuser", "unshare", "ssh-agent",
              "screen", "tmux", "at", "batch", "crontab", "launchctl", "osascript", "open"}
 WRAPPERS = {  # wrapper programs and the options of theirs that take a value
     "timeout": {"-s", "--signal", "-k", "--kill-after"},
@@ -77,7 +78,6 @@ WRAPPERS = {  # wrapper programs and the options of theirs that take a value
     "caffeinate": {"-t", "-w"},
     "env": {"-u", "--unset", "-C", "--chdir"},
     "sudo": {"-u", "-g", "-C", "-D", "-h", "-p", "-U", "-T", "-r", "-t"},
-    "watch": {"-n", "--interval"},
     "ionice": {"-c", "-n", "-p"},
     "setsid": set(),
 }
@@ -107,7 +107,7 @@ SVN_SAFE = {"status", "st", "stat", "diff", "di", "update", "up", "info", "log",
             "proplist", "pl", "propget", "pg", "checkout", "co", "export", "help", "changelist", "cl",
             "patch", "switch", "sw", "upgrade", "mergeinfo"}
 SVN_LOCAL_IF_NO_URL = {"copy", "cp", "move", "mv", "rename", "ren", "delete", "del", "remove", "rm",
-                       "mkdir", "propset", "ps", "propdel", "pd", "propedit", "pe", "lock", "unlock"}
+                       "mkdir", "propset", "ps", "propdel", "pd", "propedit", "pe"}
 SVN_VALUE_OPTIONS = {"--username", "--password", "--config-dir", "--config-option", "-m", "--message",
                      "-F", "--file", "-r", "--revision", "--depth", "--encoding", "--with-revprop",
                      "--editor-cmd", "--cl", "--changelist", "-c", "--change", "-l", "--limit",
@@ -116,7 +116,10 @@ SVN_URL_RE = re.compile(r"^(\^/|file://|https?://|svn(\+[a-z]+)?://)", re.I)
 BRANCH_NAME_RE = re.compile(r"^[A-Za-z0-9._/-]+$")
 VERSION_LIKE_RE = re.compile(r"^v?\d+(\.\d+)+([-+][0-9A-Za-z.-]+)?$")
 ASSIGNMENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-GUARD_TEXT_RE = re.compile(r"\.claude/+(settings[^/\s'\"]*\.json|hooks\b)|\.githooks\b|\.git/+(config|hooks)\b")
+GUARD_TEXT_RE = re.compile(r"\.claude/+(settings[^/\s'\"]*\.json|hooks\b)|\.githooks\b|\.git/+(config|hooks)\b", re.I)
+GUARD_LOCATIONS = (".claude/settings.json", ".claude/settings.local.json", ".claude/hooks", ".githooks", ".git/config", ".git/hooks")
+DESTRUCTIVE = {"rm", "rmdir", "mv", "cp", "rsync", "ln", "chmod", "chown", "truncate", "shred", "dd", "tar", "unzip",
+               "find", "trash", "install", "tee", "sed", "perl", "touch"}
 READ_ONLY_PROGRAMS = {"cat", "less", "more", "head", "tail", "grep", "egrep", "fgrep", "rg", "wc", "diff",
                       "ls", "stat", "file", "jq", "bat", "sha256sum", "shasum", "md5sum", "realpath",
                       "dirname", "basename", "test", "[", "echo", "printf", "true", "false", ":", "cmp",
@@ -147,11 +150,15 @@ def check_deadline() -> None:
 def run(cmd: list[str], cwd: str, timeout: float = 8.0) -> subprocess.CompletedProcess | None:
     """Run a lookup in its own process group, killed whole on timeout."""
     check_deadline()
+    if cmd and cmd[0] == "git":
+        cmd = ["git", "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null"] + cmd[1:]
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GH_PROMPT_DISABLED="1", GIT_OPTIONAL_LOCKS="0")
     remaining = DEADLINE_SECONDS - (time.monotonic() - _started)
     limit = max(0.5, min(timeout, remaining))
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                cwd=cwd if os.path.isdir(cwd) else None, start_new_session=True)
+        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                text=True, env=env, cwd=cwd if os.path.isdir(cwd) else None,
+                                start_new_session=True)
     except OSError:
         return None
     try:
@@ -161,21 +168,24 @@ def run(cmd: list[str], cwd: str, timeout: float = 8.0) -> subprocess.CompletedP
             os.killpg(proc.pid, signal.SIGKILL)
         except OSError:
             pass
-        proc.communicate()
+        try:
+            proc.communicate(timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
         ask("A lookup the guard needed took too long.")
     return subprocess.CompletedProcess(cmd, proc.returncode, out, err)
 
 
 def matches_outward(text: str) -> bool:
     for line in text.splitlines() or [text]:
-        if OUTWARD_RE.search(line[:LINE_SCAN_LIMIT]):
+        if len(line) > LINE_SCAN_LIMIT or OUTWARD_RE.search(line):
             return True
     return False
 
 
 # --- normalising: heredocs, continuations, comments, fd numbers ----------------------
 
-HEREDOC_START_RE = re.compile(r"<<(-?)[ \t]*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\2")
+HEREDOC_START_RE = re.compile(r"<<(-?)[ \t]*(?:'([^'\n]+)'|\"([^\"\n]+)\"|([^\s;&|<>()'\"]+))")
 
 
 def normalise(text: str) -> str:
@@ -230,7 +240,8 @@ def normalise(text: str) -> str:
             feeds = any(os.path.basename(w) in set(SHELLS) | set(INTERPRETERS) | EXECUTORS |
                         {"ssh", "eval", "xargs", "source", "sudo", "env", "gh", "git", "svn", "wp", "patch"}
                         for w in words)
-            pending.append((m.group(3), m.group(1) == "-", feeds))
+            word = m.group(2) or m.group(3) or m.group(4).replace("\\", "")
+            pending.append((word, m.group(1) == "-", feeds))
             out.append(" ")
             i = m.end()
             prev = " "
@@ -271,7 +282,70 @@ def normalise(text: str) -> str:
 
 def substitutions(text: str) -> list[str]:
     """Bodies of $(...), <(...), >(...) and backticks, honouring single and double quotes."""
-    found: list[str] = []
+    return [body for body, _, _ in substitution_spans(text)]
+
+
+def substitution_end(text: str, j: int) -> int:
+    """Index just past the `)` closing a substitution whose body starts at j,
+    skipping quotes, nested substitutions and heredoc bodies."""
+    depth = 1
+    heredocs: list[tuple[str, bool]] = []
+    while j < len(text):
+        c = text[j]
+        if c == "\\":
+            j += 2
+            continue
+        if c == "'":
+            k = text.find("'", j + 1)
+            if k == -1:
+                raise ValueError("unterminated quote")
+            j = k + 1
+            continue
+        if c == '"':
+            k = j + 1
+            while k < len(text) and text[k] != '"':
+                if text[k] == "\\":
+                    k += 1
+                elif text.startswith("$(", k):
+                    k = substitution_end(text, k + 2) - 1
+                k += 1
+            if k >= len(text):
+                raise ValueError("unterminated quote")
+            j = k + 1
+            continue
+        if text.startswith("<<", j) and not text.startswith("<<<", j):
+            m = HEREDOC_START_RE.match(text, j)
+            if m:
+                word = m.group(2) or m.group(3) or m.group(4).replace("\\", "")
+                heredocs.append((word, m.group(1) == "-"))
+                j = m.end()
+                continue
+        if c == "\n" and heredocs:
+            j += 1
+            for word, strip_tabs in heredocs:
+                while True:
+                    if j >= len(text):
+                        raise ValueError("unterminated heredoc")
+                    end = text.find("\n", j)
+                    line = text[j:] if end == -1 else text[j:end]
+                    j = len(text) if end == -1 else end + 1
+                    if (line.lstrip("\t") if strip_tabs else line) == word:
+                        break
+            heredocs = []
+            continue
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+            if depth == 0:
+                return j + 1
+        j += 1
+    raise ValueError("unterminated substitution")
+
+
+def substitution_spans(text: str) -> list[tuple[str, int, int]]:
+    """(body, start, end) of each top-level substitution."""
+    found: list[tuple[str, int, int]] = []
     i = 0
     in_double = False
     while i < len(text):
@@ -290,27 +364,41 @@ def substitutions(text: str) -> list[str]:
             i += 1
             continue
         if text.startswith(("$(", "<(", ">("), i) and not (in_double and text[i] != "$"):
-            depth, j = 1, i + 2
-            while j < len(text) and depth:
-                if text[j] == "(":
-                    depth += 1
-                elif text[j] == ")":
-                    depth -= 1
-                j += 1
-            if depth:
-                raise ValueError("unterminated substitution")
-            found.append(text[i + 2 : j - 1])
+            j = substitution_end(text, i + 2)
+            found.append((text[i + 2 : j - 1], i, j))
             i = j
             continue
         if c == "`":
             j = text.find("`", i + 1)
             if j == -1:
                 raise ValueError("unterminated backtick")
-            found.append(text[i + 1 : j])
+            found.append((text[i + 1 : j], i, j + 1))
             i = j + 1
             continue
         i += 1
     return found
+
+
+def unquoted_paren(text: str) -> bool:
+    masked = text
+    for _, start, end in reversed(substitution_spans(text)):
+        masked = masked[:start] + "X" + masked[end:]
+    state = None
+    i = 0
+    while i < len(masked):
+        c = masked[i]
+        if c == "\\" and state != "'":
+            i += 2
+            continue
+        if state:
+            if c == state:
+                state = None
+        elif c in "'\"":
+            state = c
+        elif c in "()":
+            return True
+        i += 1
+    return False
 
 
 REDIRECT_MARK = "\x00redirect:"
@@ -319,8 +407,13 @@ REDIRECT_MARK = "\x00redirect:"
 def split_commands(text: str) -> list[list[str]]:
     """Simple commands of a normalised string; redirect targets kept as marked words."""
     commands: list[list[str]] = []
-    for inner in substitutions(text):
-        commands.extend(split_commands(normalise(inner)))
+    spans = substitution_spans(text)
+    masked = text
+    for body, start, end in reversed(spans):
+        commands[:0] = split_commands(normalise(body))
+        which = re.fullmatch(r"\s*(?:which|command\s+-v)\s+([A-Za-z0-9_.+-]+)\s*", body)
+        masked = masked[:start] + (which.group(1) if which else "$SUBST") + masked[end:]
+    text = masked
     lexer = shlex.shlex(text, posix=True, punctuation_chars=";&|()<>")
     lexer.whitespace_split = True
     lexer.commenters = ""
@@ -422,6 +515,9 @@ def unwrap(cmd: list[str], depth: int = 0) -> list[list[str]]:
                     return unwrap_all(split_commands(normalise(payload + " " + rest)), depth + 1)
                 if head == "sudo" and (opt in {"-s", "-i", "--shell", "--login"} or (re.match(r"^-[A-Za-z]+$", opt) and set(opt[1:]) & {"s", "i"})):
                     ask("sudo starts a shell the guard can't see.")
+                if head in {"env", "sudo"} and (opt in {"-C", "--chdir", "-D"} or opt.startswith("--chdir=")):
+                    target = opt.split("=", 1)[1] if "=" in opt else (args.pop(0) if args else "")
+                    return [["cd", target]] + unwrap(args, depth + 1)
                 if opt in value_opts and args:
                     args.pop(0)
             if head == "timeout" and args and re.match(r"^[\d.]+[smhd]?$", args[0]):
@@ -445,18 +541,22 @@ def unwrap(cmd: list[str], depth: int = 0) -> list[list[str]]:
             args = rest
             continue
         if head == "xargs":
-            if any(os.path.basename(a) not in READ_ONLY_PROGRAMS for a in args[1:] if not a.startswith("-") and "/" not in a and not a.startswith(REDIRECT_MARK)):
-                inner = [a for a in args[1:] if not a.startswith("-")]
-                if inner and os.path.basename(inner[0]) not in READ_ONLY_PROGRAMS:
-                    ask("xargs builds a command from input the guard can't see.")
-            return [args]
+            rest = args[1:]
+            while rest and rest[0].startswith("-"):
+                opt = rest.pop(0)
+                if opt in {"-I", "-n", "-P", "-L", "-d", "-E", "-s", "-a"} and rest:
+                    rest.pop(0)
+            rest = [a for a in rest if not a.startswith(REDIRECT_MARK)]
+            if not rest or os.path.basename(rest[0]) in READ_ONLY_PROGRAMS - {"find"}:
+                return [args] if not rest else unwrap(rest, depth + 1)
+            ask("xargs builds a command from input the guard can't see.")
         if head in {"find", "fd"}:
             for flag in ("-exec", "-execdir", "-ok", "-okdir", "-x", "--exec", "-X", "--exec-batch"):
                 if flag in args:
                     inner = args[args.index(flag) + 1 :]
                     inner = [a for a in inner if a not in {";", "+", "{}", "\\;"}]
                     if inner:
-                        return unwrap_all([inner], depth + 1) + [[args[0]] + args[1 : args.index(flag)]]
+                        return unwrap_all([inner], depth + 1) + [[args[0]] + args[1 : args.index(flag)] + ["-exec"]]
             return [args]
         if head == "eval":
             code = " ".join(args[1:])
@@ -469,7 +569,7 @@ def unwrap(cmd: list[str], depth: int = 0) -> list[list[str]]:
             while rest and (rest[0].startswith("-") or rest[0].startswith("+")) and not rest[0].startswith(REDIRECT_MARK):
                 opt = rest.pop(0)
                 opts.append(opt)
-                if opt in {"-o", "+o", "--rcfile", "--init-file"} and rest:
+                if opt in {"-o", "+o", "-O", "+O", "--rcfile", "--init-file"} and rest:
                     rest.pop(0)
             if any(o == "-c" or (o.startswith("-") and not o.startswith("--") and "c" in o[1:]) for o in opts):
                 return unwrap_all(split_commands(normalise(rest[0])), depth + 1) if rest else []
@@ -499,7 +599,7 @@ class Context:
         self.cwd = cwd
         self.branch_unknown = False
         self.pr_changed = False
-        self.subshells = "(" in text
+        self.subshells = unquoted_paren(text)
         self._repo: str | None | bool = False
         self._root: str | None | bool = False
 
@@ -527,9 +627,26 @@ def resolve(path: str, ctx: Context) -> str:
     return os.path.normpath(os.path.join(ctx.cwd, os.path.expanduser(path)))
 
 
-def is_guard_path(path: str, ctx: Context) -> bool:
+def is_guard_path(path: str, ctx: Context, ancestors: bool = False) -> bool:
+    """A guard file itself or, with `ancestors`, a folder that contains one."""
+    if any(ch in path for ch in "*?[") and "$" not in path:
+        matches = glob.glob(resolve(path, ctx))
+        if not matches:
+            matches = [resolve(path.split("*")[0].split("?")[0].split("[")[0] or ".", ctx)]
+        return any(is_guard_path(m, ctx, True) for m in matches)
     full = resolve(path, ctx)
-    return bool(GUARD_TEXT_RE.search(full.replace(os.sep, "/") + ("/" if os.path.isdir(full) else "")))
+    if GUARD_TEXT_RE.search(full.replace(os.sep, "/") + ("/" if os.path.isdir(full) else "")):
+        return True
+    if not ancestors:
+        return False
+    roots = {r for r in (ctx.project_root(), os.environ.get("CLAUDE_PROJECT_DIR"), ctx.cwd) if r}
+    lowered = full.lower().rstrip("/") + "/"
+    for root in roots:
+        for loc in GUARD_LOCATIONS:
+            target = os.path.normpath(os.path.join(root, loc)).lower() + "/"
+            if target.startswith(lowered):
+                return True
+    return False
 
 
 # --- git -------------------------------------------------------------------------------
@@ -555,9 +672,17 @@ def git_path(globals_: list[str], ctx: Context) -> str:
     return path
 
 
-def git_out(path: str, *args: str) -> str | None:
+def git_out(path: str, *args: str, strict: bool = False) -> str | None:
+    """stdout of a git lookup; None when empty or not found. With `strict`, any
+    failure other than "not set" (exit 1) asks instead of reading as None."""
     res = run(["git", "-C", path, *args], path, timeout=5)
-    if res is None or res.returncode != 0:
+    if res is None:
+        if strict:
+            ask("A git lookup the guard needed failed.")
+        return None
+    if res.returncode != 0:
+        if strict and res.returncode != 1:
+            ask("A git lookup the guard needed failed.")
         return None
     return res.stdout.strip() or None
 
@@ -572,39 +697,54 @@ def push_destination(path: str) -> str | None:
 
 def push_config_risky(path: str, remote: str | None) -> bool:
     """True when git config would push more than the current branch."""
-    default = (git_out(path, "config", "--get", "push.default") or "simple").lower()
+    if (git_out(path, "config", "--get", "--type=bool", "push.followTags", strict=True) or "false") == "true":
+        return True
+    default = (git_out(path, "config", "--get", "push.default", strict=True) or "simple").lower()
     if default not in {"simple", "current", "upstream", "tracking"}:
         return True
     pattern = r"^remote\..*\.(push|mirror)$" if remote is None else rf"^remote\.{re.escape(remote)}\.(push|mirror)$"
-    return git_out(path, "config", "--get-regexp", pattern) is not None
+    return git_out(path, "config", "--get-regexp", pattern, strict=True) is not None
 
 
 def is_tag(path: str, name: str) -> bool:
     if VERSION_LIKE_RE.match(name):
         return True
     res = run(["git", "-C", path, "show-ref", "--verify", "--quiet", f"refs/tags/{name}"], path, timeout=5)
-    return res is not None and res.returncode == 0
+    if res is None or res.returncode not in (0, 1):
+        ask("The guard could not check whether this is a tag.")
+    return res.returncode == 0
 
 
 def check_git(args: list[str], ctx: Context) -> None:
     globals_, sub, rest = git_parts(args)
     if sub is None:
         return
-    if any(g.split("=", 1)[0] in GIT_RISKY_GLOBALS for g in globals_) and sub not in GIT_READ_ONLY:
+    if any("$" in g or "`" in g for g in globals_):
+        ask("git runs with an option the guard can't resolve.")
+    for i, g in enumerate(globals_):
+        name = g.split("=", 1)[0]
+        if name not in GIT_RISKY_GLOBALS:
+            continue
+        value = g.split("=", 1)[1] if "=" in g else (globals_[i + 1] if i + 1 < len(globals_) else "")
+        if name == "-c" and re.match(r"^(color\.[\w.-]+|core\.quotepath|core\.pager|advice\.[\w.-]+|"
+                                     r"user\.(name|email)|log\.\w+|diff\.(algorithm|renames))=", value, re.I):
+            continue
         ask("git runs with configuration or repository overrides the guard can't follow.")
     path = git_path(globals_, ctx)
     if sub not in GIT_KNOWN:
         ask(f"`git {sub}` is an alias, extension or unknown command; the guard can't see what it runs.")
-    if sub not in GIT_READ_ONLY and any(is_guard_path(a, ctx) for a in rest if not a.startswith("-") and sub not in {"commit", "tag", "push", "fetch", "pull", "merge", "add", "notes"}):
+    if sub not in GIT_READ_ONLY and sub not in {"commit", "tag", "push", "fetch", "pull", "merge", "add", "notes"} and any(
+            is_guard_path(a.split("=", 1)[-1], ctx, ancestors=True) for a in rest
+            if not a.startswith("-") or a.startswith("--pathspec-from-file")):
         ask("This git command could change the guardrails or the quality gate; it needs the maintainer's yes.")
     if sub == "push":
         check_git_push(rest, path, ctx)
     elif sub == "tag":
         listing = {"-l", "--list", "-v", "--verify", "--contains", "--no-contains", "--merged",
-                   "--no-merged", "--points-at", "--column", "--no-column", "-i", "--ignore-case"}
-        is_listing = not rest or any(a in listing or a.startswith(("--sort", "--format", "-n", "--contains=",
-                                                                     "--points-at=", "--merged="))
-                                     for a in rest)
+                   "--no-merged", "--points-at"}
+        positional = [a for a in rest if not a.startswith("-")]
+        is_listing = not positional or any(
+            a in listing or re.match(r"^(-n\d*|--(no-)?(contains|merged)=|--points-at=)", a) for a in rest)
         creating = any(a in {"-a", "-s", "-d", "-f", "--delete", "--force", "-m", "-F", "-u", "--annotate", "--sign"} for a in rest)
         if creating or not is_listing:
             ask("Creating or deleting a git tag needs the maintainer's yes.")
@@ -632,7 +772,9 @@ def check_git(args: list[str], ctx: Context) -> None:
         flags: set[str] = set()
         for a in rest:
             flags |= short_flags(a)
-        if (flags & {"B", "C"} or "--force-create" in rest) and any(a in PROTECTED_BRANCHES for a in rest):
+        glued = [m.group(1) for a in rest for m in [re.match(r"^(?:-[A-Za-z]*[BC]|--force-create=|--orphan=)(.+)$", a)] if m]
+        if ((flags & {"B", "C"} or "--force-create" in rest) and any(a in PROTECTED_BRANCHES for a in rest)) or \
+                any(g in PROTECTED_BRANCHES for g in glued):
             ask("Resetting a protected branch needs the maintainer's yes.")
     elif sub == "worktree":
         if any(a in {"-B"} for a in rest) and any(a in PROTECTED_BRANCHES for a in rest):
@@ -647,6 +789,11 @@ def check_git(args: list[str], ctx: Context) -> None:
             a in {"--delete", "--move", "--force", "--copy", "--set-upstream-to"} or a.startswith("--set-upstream-to=") for a in rest)
         if touches and changing:
             ask("Changing a protected branch, or pointing a branch at one, needs the maintainer's yes.")
+        if flags & {"m", "M", "d", "D"} or any(a in {"--move", "--delete"} for a in rest):
+            if len(names) <= 1:
+                branch = current_branch(path)
+                if branch is None or branch in PROTECTED_BRANCHES:
+                    ask("Renaming or deleting the current protected branch needs the maintainer's yes.")
     elif sub == "fetch":
         for a in rest:
             if ":" in a and a.split(":", 1)[1].lstrip("+").removeprefix("refs/heads/") in PROTECTED_BRANCHES:
@@ -654,9 +801,10 @@ def check_git(args: list[str], ctx: Context) -> None:
     elif sub == "update-ref":
         ask("`git update-ref` changes refs directly; it needs the maintainer's yes.")
     elif sub == "config":
-        reading = {"--get", "--get-all", "--get-regexp", "-l", "--list", "--show-origin", "--show-scope",
-                   "get", "list", "--name-only", "--get-urlmatch", "--get-color", "--get-colorbool"}
-        if not any(a in reading for a in rest):
+        reading = {"--get", "--get-all", "--get-regexp", "-l", "--list", "--get-urlmatch", "--get-color",
+                   "--get-colorbool"}
+        first = next((a for a in rest if not a.startswith("-")), None)
+        if not (any(a in reading for a in rest) or first in {"get", "list"}):
             keys: list[str] = []
             skip = False
             for a in rest:
@@ -674,7 +822,8 @@ def check_git(args: list[str], ctx: Context) -> None:
             if not keys or not GIT_CONFIG_SAFE_KEYS.match(keys[0]):
                 ask("Changing git settings (other than name, email and display options) needs the maintainer's yes.")
     elif sub == "remote":
-        if rest and rest[0] in {"add", "set-url", "rename", "remove", "rm", "set-branches", "set-head"}:
+        first = next((a for a in rest if not a.startswith("-")), None)
+        if first not in {None, "show", "get-url", "prune", "update"}:
             ask("Changing git remotes needs the maintainer's yes.")
     elif sub in {"submodule", "bisect"}:
         if rest and rest[0] in {"foreach", "run"}:
@@ -748,6 +897,8 @@ def check_git_push(rest: list[str], path: str, ctx: Context) -> None:
         return
     if "tag" in refspecs:
         ask("Pushing a tag needs the maintainer's yes (release step).")
+    if (git_out(path, "config", "--get", "--type=bool", "push.followTags", strict=True) or "false") == "true":
+        ask("git is set to push tags along with branches (push.followTags).")
     for ref in refspecs:
         if ref.startswith("+"):
             deny("Force pushes (+refspec) are never run by Claude Code.")
@@ -772,7 +923,12 @@ def check_git_push(rest: list[str], path: str, ctx: Context) -> None:
 
 
 def check_destination(branch: str, path: str) -> None:
-    if not branch or not BRANCH_NAME_RE.match(branch) or branch.startswith("refs/"):
+    branch = branch.removeprefix("refs/heads/")
+    if branch.startswith(("refs/", "tags/", "remotes/")):
+        ask("The push destination is not a plain branch name.")
+    while branch.startswith("heads/"):
+        branch = branch[len("heads/"):]
+    if not branch or not BRANCH_NAME_RE.match(branch):
         ask("The push destination is not a plain branch name.")
     if branch in PROTECTED_BRANCHES:
         ask(f"Pushing straight to {branch} needs the maintainer's yes (release step, or it changes only through PRs).")
@@ -894,6 +1050,15 @@ def check_gh(args: list[str], ctx: Context) -> None:
         target = positional[0] if positional else None
         if target and ("$" in target or "`" in target):
             ask("The PR to merge comes from a variable the guard can't resolve.")
+        if target and not re.fullmatch(r"#?\d+", target):
+            m = re.match(r"^https?://github\.com/([^/]+/[^/]+)/pull/\d+", target)
+            if not m or m.group(1).lower() != repo:
+                ask("The PR to merge is not a plain number in this repository.")
+        if given is None:
+            res = run(["gh", "repo", "set-default", "--view"], ctx.cwd, timeout=8)
+            default = (res.stdout.strip().lower() if res is not None and res.returncode == 0 else "")
+            if default and default != repo:
+                ask(f"gh's default repository is {default}, not this one.")
         base = pr_base(target, repo, ctx.cwd)
         if base != INTEGRATION_BRANCH:
             ask(f"Merging a PR into {base or 'a base the guard could not confirm'} needs the maintainer's yes (only develop is pre-approved).")
@@ -980,12 +1145,23 @@ def wp_remote(args: list[str]) -> bool:
 
 
 def committed_unchanged(full: str, cwd: str) -> bool:
+    """True only for a file of this project that is identical to origin/develop:
+    what develop holds was reviewed in a PR; a feature branch's commits were not."""
+    root = os.environ.get("CLAUDE_PROJECT_DIR") or ""
     directory = os.path.dirname(full) or cwd
-    tracked = run(["git", "-C", directory, "ls-files", "--error-unmatch", "--", full], directory, timeout=5)
-    if tracked is None or tracked.returncode != 0:
+    top = run(["git", "-C", directory, "rev-parse", "--show-toplevel"], directory, timeout=5)
+    if top is None or top.returncode != 0:
         return False
-    status = run(["git", "-C", directory, "status", "--porcelain", "--", full], directory, timeout=5)
-    return status is not None and status.returncode == 0 and status.stdout.strip() == ""
+    top_dir = top.stdout.strip()
+    project = run(["git", "-C", root or top_dir, "rev-parse", "--git-common-dir"], top_dir, timeout=5)
+    here = run(["git", "-C", top_dir, "rev-parse", "--git-common-dir"], top_dir, timeout=5)
+    if root and (project is None or here is None or
+                 os.path.realpath(os.path.join(root, project.stdout.strip())) !=
+                 os.path.realpath(os.path.join(top_dir, here.stdout.strip()))):
+        return False  # a file of another repository
+    same = run(["git", "-C", top_dir, "diff", "--quiet", "origin/develop", "--", full], top_dir, timeout=5)
+    tracked = run(["git", "-C", top_dir, "ls-files", "--error-unmatch", "--", full], top_dir, timeout=5)
+    return same is not None and same.returncode == 0 and tracked is not None and tracked.returncode == 0
 
 
 def scan_file(full: str, why: str) -> None:
@@ -1003,8 +1179,10 @@ def scan_script(path: str, ctx: Context) -> None:
     if "$" in path or "`" in path:
         ask("The script to run comes from a variable the guard can't resolve.")
     full = resolve(path, ctx)
+    if not os.path.exists(full):
+        ask("This command runs a script that doesn't exist yet, so the guard can't check it.")
     if not os.path.isfile(full):
-        return
+        ask("This command runs something that isn't a regular file, so the guard can't check it.")
     if committed_unchanged(full, ctx.cwd):
         return  # committed scripts were reviewed in a PR
     scan_file(full, "This command runs a new or changed script that contains an outward-facing command.")
@@ -1012,15 +1190,17 @@ def scan_script(path: str, ctx: Context) -> None:
 
 def check_task_runner(head: str, ctx: Context) -> None:
     """npm/composer/make run scripts from files an edit could change: scan changed ones."""
-    root = ctx.project_root() or ctx.cwd
-    res = run(["git", "-C", root, "status", "--porcelain", "--", "package.json", "composer.json", "Makefile",
-               "bin", ".githooks", "tests/e2e/bin"], root, timeout=6)
-    if res is None or res.returncode != 0:
-        if os.path.isdir(os.path.join(root, ".git")) or os.path.isfile(os.path.join(root, ".git")):
-            ask(f"The guard can't check whether `{head}`'s scripts changed.")
-        return
-    for line in res.stdout.splitlines():
-        rel = line[3:].strip().strip('"')
+    root = ctx.project_root()
+    if not root:
+        return  # not in a git checkout: nothing of this project to run
+    paths = ["package.json", "composer.json", "Makefile", "bin", ".githooks", "tests/e2e", "webpack.config.js",
+             "vitest.config.mjs", "eslint.config.cjs"]
+    changed = run(["git", "-C", root, "diff", "--name-only", "-z", "origin/develop", "--", *paths], root, timeout=6)
+    untracked = run(["git", "-C", root, "ls-files", "-z", "--others", "--exclude-standard", "--", *paths], root,
+                    timeout=6)
+    if changed is None or changed.returncode != 0 or untracked is None or untracked.returncode != 0:
+        ask(f"The guard can't check whether `{head}`'s scripts changed.")
+    for rel in [r for r in (changed.stdout + untracked.stdout).split("\0") if r]:
         full = os.path.join(root, rel)
         if os.path.isfile(full):
             scan_file(full, f"`{head}` would run a new or changed script that contains an outward-facing command.")
@@ -1038,6 +1218,9 @@ def interpreter_code(base: str, args: list[str]) -> tuple[list[str], str | None,
         if a.startswith(REDIRECT_MARK):
             i += 1
             continue
+        if base in {"pwsh", "powershell"} and a.lower() in {"-command", "-c", "-encodedcommand", "-ec"}:
+            codes.append(args[i + 1] if i + 1 < len(args) else "")
+            return codes, None, i + 1
         if a.startswith("--"):
             name, eq, val = a.partition("=")
             if name in LONG_CODE_FLAGS:
@@ -1076,7 +1259,9 @@ def interpreter_code(base: str, args: list[str]) -> tuple[list[str], str | None,
 def check_network_client(head: str, args: list[str]) -> None:
     joined = " ".join(args[1:])
     if re.search(r"(api\.)?github\.com|wordpress\.org|zerospam\.org|svn\.", joined, re.I):
-        writing = re.search(r"(^|\s)(-X|--request)\s*=?\s*(POST|PUT|PATCH|DELETE)|(^|\s)(-d|--data\S*|-F|--form\S*|-T|--upload-file|--json|--method)(\s|=|$)|--post-(data|file)", joined, re.I)
+        writing = re.search(r"(^|\s)-[A-Za-z]*(X|-request)\s*=?\s*['\"]?(POST|PUT|PATCH|DELETE)|(^|\s)-[A-Za-z]*[dFT]|"
+                            r"--(data|form|upload-file|json|method|post-data|post-file)|"
+                            r"(^|\s)(POST|PUT|PATCH|DELETE)(\s|$)|(^|\s)\S+(:=|=@|==)", joined)
         if writing:
             ask(f"`{head}` sends data to GitHub, WordPress.org or zerospam.org; it needs the maintainer's yes.")
 
@@ -1141,13 +1326,48 @@ def check_program(args: list[str], ctx: Context) -> None:
         words = [a for a in args[1:] if not a.startswith("-")]
         if any(re.search(r"deploy|release|publish", t, re.I) for t in words):
             ask(f"`{head}` runs a deploy, release or publish task; it needs the maintainer's yes.")
+        if words[:1] in (["version"], ["exec"], ["dlx"], ["x"]) or (head == "npx" and "-c" in args):
+            if words[:1] == ["version"] or matches_outward(" ".join(args[1:])):
+                ask(f"`{head} {words[0] if words else ''}` can commit, tag or run commands the guard can't follow.")
+        if matches_outward(" ".join(args[1:])):
+            ask(f"`{head}` is given an outward-facing command to run.")
         if head != "npx":
             check_task_runner(head, ctx)
+    if head in {"patch"} or (head == "git" and len(args) > 1 and args[1] == "am"):
+        sources = targets + [a for a in args[1:] if not a.startswith("-") and os.path.isfile(resolve(a, ctx))]
+        sources += [args[i + 1] for i, a in enumerate(args[:-1]) if a in {"-i", "--input"}]
+        for src in sources:
+            try:
+                with open(resolve(src, ctx), encoding="utf-8", errors="replace") as fh:
+                    if GUARD_TEXT_RE.search(fh.read(SCRIPT_SCAN_LIMIT)):
+                        ask("This patch changes the guardrails or the quality gate; it needs the maintainer's yes.")
+            except OSError:
+                ask("The guard can't read the patch this command applies.")
     if "/" in word and head not in READ_ONLY_PROGRAMS and not word.startswith(REDIRECT_MARK):
         scan_script(word, ctx)
-    mutating = head not in READ_ONLY_PROGRAMS | {"git", "gh", "svn"} and base not in {"python", "python3"}
-    if mutating:
-        if any(is_guard_path(a, ctx) for a in args[1:] if not a.startswith("-") or "/" in a):
+    known = READ_ONLY_PROGRAMS | {"git", "gh", "svn", "cd", "npm", "pnpm", "yarn", "bun", "composer", "make", "npx",
+                                  "wp", "patch", "rsync", "ssh", "scp", "sftp"} | set(INTERPRETERS)
+    if head not in known and base not in INTERPRETERS and "/" not in word:
+        text = " ".join(args[1:]) + (" " + word if re.search(r"\s", word) else "")
+        text = re.sub(r"\S*(\.claude|\.githooks|\.git/)\S*", " ", text, flags=re.I)  # guard paths: checked below
+        if matches_outward(text) or any(
+                os.path.basename(a) in {"git", "gh", "svn", "svnmucc", "ssh", "scp"} | SHELLS for a in args[1:]):
+            ask(f"`{head}` is given an outward-facing command to run.")
+    in_place = any(a.startswith("-i") or a == "--in-place" or re.match(r"^-[a-z]*i", a) for a in args[1:])
+    destructive = head in DESTRUCTIVE and (head != "find" or "-delete" in args)
+    if head in {"sed", "perl"}:
+        destructive = in_place
+    positional = [a for a in args[1:] if not a.startswith("-") or "/" in a]
+    if head in {"cp", "rsync", "ln", "install", "tar", "unzip", "tee", "touch"} and positional:
+        positional = positional[-1:] if head not in {"tee", "touch"} else positional
+    if head == "sed" and not in_place:
+        positional = []
+    if base in INTERPRETERS:
+        if not (len(args) > 2 and args[1] == "-m" and args[2] == "unittest"):
+            if any(is_guard_path(a, ctx) for a in args[1:] if not a.startswith("-")):
+                ask("This command could change the guardrails or the quality gate; it needs the maintainer's yes.")
+    elif head not in READ_ONLY_PROGRAMS | {"git", "gh", "svn"} or destructive:
+        if any(is_guard_path(a, ctx, ancestors=destructive) for a in positional):
             ask("This command could change the guardrails or the quality gate (.claude/settings, .claude/hooks, .githooks, .git/config); it needs the maintainer's yes.")
         if GUARD_TEXT_RE.search(resolve(".", ctx).replace(os.sep, "/") + "/"):
             ask("This command runs inside the guardrails folder; it needs the maintainer's yes.")
@@ -1158,6 +1378,8 @@ def check_program(args: list[str], ctx: Context) -> None:
 def classify(command: str, cwd: str) -> None:
     text = normalise(command)
     ctx = Context(cwd, text)
+    if substitution_spans(text) and re.search(r"\b(switch|checkout|pushd|popd)\b|\bcd\b", text):
+        ctx.branch_unknown = True
     for cmd in unwrap_all(split_commands(text)):
         check_deadline()
         if not cmd:
@@ -1199,8 +1421,7 @@ def evaluate(command: str, cwd: str) -> tuple[str | None, str]:
     except (ValueError, IndexError, RecursionError):
         if FALLBACK_DENY_RE.search(command):
             return "deny", "The guard could not parse this command; it contains a force push or skips the quality gate."
-        if FALLBACK_ASK_RE.search(command) or matches_outward(command):
-            return "ask", "The guard could not parse this command and it mentions an outward-facing action."
+        return "ask", "The guard could not parse this command, so it can't confirm it is safe."
     return None, ""
 
 
