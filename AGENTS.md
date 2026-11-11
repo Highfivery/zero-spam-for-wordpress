@@ -50,7 +50,7 @@ in the same PR.
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `.wordpress-org/`, `bin/render-listing-assets.mjs` | WordPress.org listing art, not shipped (`.distignore`): `icon.svg` (flat), `icon-256x256.png`, `icon-128x128.png`, `banner-1544x500.png`, `banner-772x250.png` and `-rtl` twins, rendered from the HTML in `.wordpress-org/src/` (Playwright Chromium, no network). The banner ("Bots bounce. People get through.", a 1544 × 500 stage at half size; its `-rtl` twin mirrors the scene but keeps the English lines and the tick in reading order) reads `tokens.css` (dark surfaces and text colours), the fonts and the mark; the scene's colours are written out in `src/banner.html`, and `src/icon.html` and `icon.svg` (the mark on a white tile) hold every colour and brick themselves, so a token or mark change does not reach the icons. Re-render with `node bin/render-listing-assets.mjs` and commit the PNGs after changing any of these (section 5, Front-end build, has the two checks). `README.md` there has the SVN steps, `screenshots.md` how the readme screenshots in `screenshots/` are captured, with their captions. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
-| `.claude/settings.json`, `.claude/agents/`, `docs/superpowers/` | Agent tooling (section 3, Agent workflow): the committed Claude Code project settings, the read-only reviewer agents, and committed designs and plans. `.claude/worktrees/` and `.claude/settings.local.json` are git-ignored. None of it ships (`.distignore`). |
+| `.claude/settings.json`, `.claude/hooks/`, `.claude/agents/`, `docs/superpowers/` | Agent tooling (section 3, Agent workflow and Guardrails): the committed Claude Code project settings and permission rules, the guard hook and its tests, the read-only reviewer agents, and committed designs and plans. `.claude/worktrees/` and `.claude/settings.local.json` are git-ignored. None of it ships (`.distignore`). |
 | `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
 
 ### How a module works
@@ -349,6 +349,38 @@ Superpowers' code review, on the parts they cover:
 Their findings, and what was done about each, go in the PR. ECC's
 installer, hooks, commands and rules are not used; never send code or
 diffs to another AI service (for example ECC's `/astra-review`).
+
+### Guardrails (what Claude Code may do on its own)
+
+The committed `.claude/settings.json` enforces section 7's approval rule in
+the tool, not only in writing (decided by the maintainer, 2026-11-11):
+
+- **Always blocked** (the maintainer runs these himself): `svn commit`,
+  `svn ci`, `svn import`, `svnmucc` and SVN copy/mkdir/delete/move against a
+  repository URL; force pushes (`--force`, `-f`, `--force-with-lease`,
+  `--mirror`, `+refspec`).
+- **Stop and ask the maintainer at the prompt** (his approval there is the
+  yes): pushing to, merging into or deleting `main`; a PR or local change on
+  `main`; creating, deleting or pushing tags; GitHub releases; writing
+  releases, refs, tags, merges or branch protection through `gh api`; merging
+  any PR whose base is not `develop`; deploy scripts, `ssh`, `scp`, remote
+  `rsync` and remote WP-CLI.
+- **Allowed without a prompt** (once the folder is trusted): the quality gate
+  (`composer`, `npm run`, `bin/` checks, `vendor/bin/` tools, wp-env), git
+  work on branches, `gh pr` create/view/merge into `develop`, and the guard's
+  own tests.
+
+Permission rules only match the literal command text (`git -C . push origin
+main` slips past a `git push * main` rule), so `.claude/hooks/guard.py`, a
+`PreToolUse` hook on every Bash call, parses the command itself: separators,
+subshells, `bash -c`, `eval`, wrappers, environment assignments, `git -C`/`-c`,
+inline Python/Node/PHP code, variables in a push target and scripts piped to a
+shell. When it can't tell, it asks. It is standard-library Python 3; its tests
+are `python3 -m unittest discover -s .claude/hooks -p 'test_*.py'` (run them
+after changing the guard). It reduces risk; it is not a sandbox: a program
+that runs git or svn by itself (for example a build script) is not seen.
+Never weaken, skip or work around a guardrail; when one stops something that
+should be allowed, say so and propose the change in a PR.
 
 ## 4. Engineering standards (non-negotiable)
 
