@@ -1700,8 +1700,12 @@ class Utilities {
 				}
 			}
 		}
-		// 2. Query ipbase
-		$location_details = apply_filters( 'zero_spam_ip_address_details', $ip, $location_details );
+		// 2. Query ipbase. The filter's first argument is the IP (historical); a
+		// callback that returns anything but an array leaves the details as they are.
+		$filtered = apply_filters( 'zero_spam_ip_address_details', $ip, $location_details );
+		if ( is_array( $filtered ) ) {
+			$location_details = $filtered;
+		}
 
 		// 3. Query the IPinfo API.
 		$ipinfo_location = ZeroSpam\Modules\IPinfoModule::get_geolocation( $ip );
@@ -1749,8 +1753,10 @@ class Utilities {
 			}
 		}
 
-		// Cache the result.
-		set_transient( $cache_key, $location_details, WEEK_IN_SECONDS );
+		// Cache the result: a week when a provider answered, 15 minutes when
+		// none did (a refused key, a timeout), so location rules apply again soon.
+		$answered = array() !== array_filter( $location_details );
+		set_transient( $cache_key, $location_details, $answered ? WEEK_IN_SECONDS : 15 * MINUTE_IN_SECONDS );
 
 		return self::add_proxy_country( $location_details );
 	}

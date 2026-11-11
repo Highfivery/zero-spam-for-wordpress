@@ -275,7 +275,7 @@ class IPinfoModule {
 	public static function get_geolocation( $ip ) {
 		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
-		if ( empty( $settings['ipinfo_access_token']['value'] ) ) {
+		if ( empty( $settings['ipinfo_access_token']['value'] ) || ! rest_is_ip_address( (string) $ip ) ) {
 			return false;
 		}
 
@@ -283,13 +283,13 @@ class IPinfoModule {
 		$cache_key     = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'ipinfo',
-				$ip,
+				md5( $ip ),
 			)
 		);
 		$transient_key = 'zerospam_ipinfo_' . md5( $ip );
 
 		// Check object cache first (non-persistent, fastest).
-		$result = wp_cache_get( $cache_key );
+		$result = wp_cache_get( $cache_key, 'zerospam' );
 		if ( false !== $result ) {
 			return $result;
 		}
@@ -300,7 +300,7 @@ class IPinfoModule {
 			// Store in object cache for this request.
 			$expiration = 14 * DAY_IN_SECONDS;
 			if ( ! empty( $settings['ipinfo_cache']['value'] ) ) {
-				$expiration = $settings['ipinfo_cache']['value'] * DAY_IN_SECONDS;
+				$expiration = absint( $settings['ipinfo_cache']['value'] ) * DAY_IN_SECONDS;
 			}
 			wp_cache_set( $cache_key, $result, 'zerospam', $expiration );
 			return $result;
@@ -387,7 +387,7 @@ class IPinfoModule {
 		// Cache the result in both transient and object cache.
 		$expiration = 14 * DAY_IN_SECONDS;
 		if ( ! empty( $settings['ipinfo_cache']['value'] ) ) {
-			$expiration = $settings['ipinfo_cache']['value'] * DAY_IN_SECONDS;
+			$expiration = absint( $settings['ipinfo_cache']['value'] ) * DAY_IN_SECONDS;
 		}
 
 		set_transient( $transient_key, $result, $expiration );
