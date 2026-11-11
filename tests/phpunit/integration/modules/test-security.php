@@ -75,6 +75,56 @@ class Test_Security extends TestCase {
 	}
 
 	/**
+	 * "Disable emojis" also stops the emoji styles WordPress enqueues since
+	 * 6.4, in the admin and in embeds.
+	 */
+	public function test_disable_emojis_covers_enqueued_styles_and_embeds(): void {
+		$this->init_with( 'disable_emojis' );
+
+		$hooks = array(
+			array( 'wp_enqueue_scripts', 'wp_enqueue_emoji_styles' ),
+			array( 'admin_enqueue_scripts', 'wp_enqueue_emoji_styles' ),
+			array( 'enqueue_embed_scripts', 'wp_enqueue_emoji_styles' ),
+			array( 'embed_head', 'print_emoji_detection_script' ),
+			array( 'admin_print_scripts', 'print_emoji_detection_script' ),
+		);
+		foreach ( $hooks as $hook ) {
+			$this->assertFalse( has_action( $hook[0], $hook[1] ), "{$hook[1]} is still on {$hook[0]}." );
+		}
+	}
+
+	/**
+	 * The query-argument filter is hooked with the one argument it takes.
+	 */
+	public function test_remove_resource_query_params_is_hooked_with_one_argument(): void {
+		$this->init_with( 'remove_resource_query_parameters' );
+
+		$found = 0;
+		foreach ( array( 'style_loader_src', 'script_loader_src' ) as $hook ) {
+			foreach ( $GLOBALS['wp_filter'][ $hook ]->callbacks as $callbacks ) {
+				foreach ( $callbacks as $callback ) {
+					if ( is_array( $callback['function'] ) && $callback['function'][0] instanceof Security ) {
+						$this->assertSame( 1, $callback['accepted_args'], $hook );
+						++$found;
+					}
+				}
+			}
+		}
+		$this->assertGreaterThanOrEqual( 2, $found, 'The filter is not hooked on both loaders.' );
+	}
+
+	/**
+	 * Only the WordPress version is removed, never a longer version that starts with it.
+	 */
+	public function test_remove_resource_query_params_matches_the_version_exactly(): void {
+		$plugin  = new Security();
+		$version = get_bloginfo( 'version' );
+
+		$this->assertSame( "https://example.org/a.css?ver={$version}.1", $plugin->remove_resource_query_params( "https://example.org/a.css?ver={$version}.1" ) );
+		$this->assertSame( "https://example.org/a.css?server={$version}", $plugin->remove_resource_query_params( "https://example.org/a.css?server={$version}" ) );
+	}
+
+	/**
 	 * "Remove resource query parameters" strips ?ver= and leaves emojis alone.
 	 */
 	public function test_remove_resource_query_parameters_only_strips_versions(): void {
@@ -134,6 +184,7 @@ class Test_Security extends TestCase {
 	 */
 	public static function restore_core_hooks(): void {
 		remove_all_filters( 'xmlrpc_enabled' );
+		remove_all_filters( 'bloginfo_url' ); // Core adds none; the module's pingback filter.
 		add_action( 'wp_head', 'wp_generator' );
 		add_action( 'opml_head', 'the_generator' );
 	}
@@ -160,7 +211,8 @@ class Test_Security extends TestCase {
 		$security = $this->init_with_option( null );
 
 		$this->assertFalse( $this->xmlrpc_enabled(), 'XML-RPC is still enabled.' );
-		$this->assertNotFalse( has_action( 'init', array( $security, 'block_xmlrpc' ) ), 'xmlrpc.php is not blocked.' );
+		$this->assertSame( '', (string) get_bloginfo( 'pingback_url', 'display' ), 'xmlrpc.php is not blocked.' );
+		unset( $security );
 		$this->assertFalse( $this->head_prints_generator(), 'The generator tag is still printed.' );
 		$this->assertFalse( has_action( 'opml_head', 'the_generator' ) );
 	}
@@ -172,7 +224,8 @@ class Test_Security extends TestCase {
 		$security = $this->init_with_option( array( 'disable_xmlrpc' => 'disabled' ) );
 
 		$this->assertTrue( $this->xmlrpc_enabled(), 'XML-RPC stays disabled.' );
-		$this->assertFalse( has_action( 'init', array( $security, 'block_xmlrpc' ) ), 'xmlrpc.php is still blocked.' );
+		$this->assertNotSame( '', (string) get_bloginfo( 'pingback_url', 'display' ), 'xmlrpc.php is still blocked.' );
+		unset( $security );
 		$this->assertFalse( $this->head_prints_generator(), 'Turning XML-RPC on showed the version.' );
 	}
 
@@ -238,5 +291,19 @@ class Test_Security extends TestCase {
 		$this->init_with_option( array( 'disable_xmlrpc' => 'enabled' ) );
 
 		$this->assertTrue( $this->xmlrpc_enabled(), 'The locked network value did not apply.' );
+	}
+
+	/**
+	 * "Disable XML-RPC" takes effect when the module starts on `init`, as it
+	 * does on a real request: the pingback address is removed. Adding the
+	 * blocker to `init` while `init` ran at the same priority skipped it.
+	 */
+	public function test_disable_xmlrpc_applies_during_init(): void {
+		$security = new Security();
+		$this->assertSame( 10, has_action( 'init', array( $security, 'init' ) ) );
+
+		do_action( 'init' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Core hook.
+
+		$this->assertSame( '', (string) get_bloginfo( 'pingback_url', 'display' ), 'The pingback address is still published.' );
 	}
 }

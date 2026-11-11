@@ -870,12 +870,20 @@ class Utilities {
 	/**
 	 * Returns the default detection meta title.
 	 *
+	 * Nothing in the plugin has called it since 6.0.0 (the 5.x screens that
+	 * showed it are gone), so the `zerospam_detection_title` filter no longer
+	 * fires on its own. Removed in 7.0.0.
+	 *
+	 * @deprecated 6.0.1 No replacement.
+	 *
 	 * @param string $setting_msg_key Optional. Setting message key.
 	 */
 	public static function detection_title( $setting_msg_key = false ) {
+		_deprecated_function( __METHOD__, '6.0.1' );
+
 		$title = __( 'Blocked for Suspected Malicious IP/Spam', 'zero-spam' );
 
-		return apply_filters( 'zerospam_detection_title', $title, $setting_msg_key );
+		return apply_filters_deprecated( 'zerospam_detection_title', array( $title, $setting_msg_key ), '6.0.1' );
 	}
 
 	/**
@@ -1175,11 +1183,16 @@ class Utilities {
 	/**
 	 * Returns a country flag image URL.
 	 *
-	 * @access public
+	 * Unused since 6.0.0: the admin builds flag URLs from its bootstrap
+	 * (`boot.urls.flags`). Removed in 7.0.0.
+	 *
+	 * @deprecated 6.0.1 No replacement.
 	 *
 	 * @param string $country_code Two-character country code.
 	 */
 	public static function country_flag_url( $country_code ) {
+		_deprecated_function( __METHOD__, '6.0.1' );
+
 		return plugins_url( 'assets/img/flags/' . strtolower( $country_code ) . '.svg', ZEROSPAM );
 	}
 

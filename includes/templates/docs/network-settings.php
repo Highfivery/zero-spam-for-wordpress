@@ -240,6 +240,7 @@ defined( 'ABSPATH' ) || die();
 		</button>
 		<div class="zerospam-docs-accordion-content">
 			<p><?php esc_html_e( 'All commands for automation and power users:', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'Run them as a super admin: add --user= followed by the login of a super admin to each command (for example --user=admin).', 'zero-spam' ); ?></p>
 
 			<h3><?php esc_html_e( 'Basic Operations', 'zero-spam' ); ?></h3>
 			<div class="zerospam-docs-code-block">
@@ -247,19 +248,19 @@ defined( 'ABSPATH' ) || die();
 					<?php esc_html_e( 'Copy', 'zero-spam' ); ?>
 				</button>
 				<pre id="cli-basic"><code># List all settings
-wp zerospam network-settings list
+wp zerospam network-settings list --user=admin
 
 # Show specific setting
-wp zerospam network-settings show zerospam
+wp zerospam network-settings show zerospam --user=admin
 
 # Set a setting
-wp zerospam network-settings set api_monitoring_enabled enabled
+wp zerospam network-settings set api_monitoring_enabled enabled --user=admin
 
 # Lock a setting
-wp zerospam network-settings lock api_monitoring_enabled
+wp zerospam network-settings lock api_monitoring_enabled --user=admin
 
 # Unlock a setting
-wp zerospam network-settings unlock api_monitoring_enabled</code></pre>
+wp zerospam network-settings unlock api_monitoring_enabled --user=admin</code></pre>
 			</div>
 
 			<h3><?php esc_html_e( 'Bulk Operations', 'zero-spam' ); ?></h3>
@@ -268,16 +269,16 @@ wp zerospam network-settings unlock api_monitoring_enabled</code></pre>
 					<?php esc_html_e( 'Copy', 'zero-spam' ); ?>
 				</button>
 				<pre id="cli-bulk"><code># Apply to all sites
-wp zerospam network-settings apply-all
+wp zerospam network-settings apply-all --user=admin
 
 # Apply only locked settings
-wp zerospam network-settings apply-all --mode=locked_only
+wp zerospam network-settings apply-all --mode=locked_only --user=admin
 
 # Apply to specific sites
-wp zerospam network-settings apply-all --sites=2,5,8
+wp zerospam network-settings apply-all --sites=2,5,8 --user=admin
 
 # Reset a site to defaults
-wp zerospam network-settings reset 5</code></pre>
+wp zerospam network-settings reset 5 --user=admin</code></pre>
 			</div>
 
 			<h3><?php esc_html_e( 'Templates', 'zero-spam' ); ?></h3>
@@ -286,16 +287,16 @@ wp zerospam network-settings reset 5</code></pre>
 					<?php esc_html_e( 'Copy', 'zero-spam' ); ?>
 				</button>
 				<pre id="cli-templates"><code># List templates
-wp zerospam network-settings template-list
+wp zerospam network-settings template-list --user=admin
 
 # Apply template
-wp zerospam network-settings template-apply strict_protection
+wp zerospam network-settings template-apply strict_protection --user=admin
 
 # Create template
-wp zerospam network-settings template-create "My Config" my-config
+wp zerospam network-settings template-create "My Config" my-config --user=admin
 
 # Delete template
-wp zerospam network-settings template-delete my-config</code></pre>
+wp zerospam network-settings template-delete my-config --user=admin</code></pre>
 			</div>
 
 			<p><?php esc_html_e( 'See the full command reference with', 'zero-spam' ); ?> <code>wp help zerospam network-settings</code></p>
