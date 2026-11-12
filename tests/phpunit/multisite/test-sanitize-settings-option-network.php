@@ -105,13 +105,17 @@ class Test_Sanitize_Settings_Option_Network extends TestCase {
 	}
 
 	/**
-	 * Apply to sites (5.x mode `all`, forced).
+	 * Apply to sites (5.x mode `all`, forced) never copies the list into a
+	 * site, where it would stop later network changes from reaching it
+	 * (since 6.0.1, a site's own list overrides an unlocked network list).
 	 */
-	public function test_apply_all_moves_the_domains_to_their_own_option(): void {
+	public function test_apply_all_does_not_copy_the_domains_into_the_site(): void {
 		$result = ( new Network_Settings_Manager() )->apply_to_sites( true, array( self::$site ), 'all' );
 		$this->assertTrue( $result['success'] );
 
-		$this->assert_moved( $this->site_state() );
+		$state = $this->site_state();
+		$this->assertFalse( $state['domains'] );
+		$this->assertFalse( is_array( $state['settings'] ) && array_key_exists( 'blocked_email_domains', $state['settings'] ) );
 	}
 
 	/**
@@ -133,8 +137,11 @@ class Test_Sanitize_Settings_Option_Network extends TestCase {
 	public function test_without_the_filter_the_domains_stay_in_the_module_option(): void {
 		remove_filter( 'sanitize_option_zero-spam-settings', array( Settings_Schema::class, 'sanitize_settings_option' ), 5 );
 
+		$templates = new Network_Templates();
+		$this->assertNotFalse( $templates->save_current_as_template( 'Domains', 'e2e-domains-raw', '' ) );
+
 		try {
-			( new Network_Settings_Manager() )->apply_to_sites( true, array( self::$site ), 'all' );
+			$templates->apply_to_sites( 'e2e-domains-raw', array( self::$site ), true );
 		} finally {
 			add_filter( 'sanitize_option_zero-spam-settings', array( Settings_Schema::class, 'sanitize_settings_option' ), 5, 1 );
 		}
