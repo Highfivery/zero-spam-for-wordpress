@@ -45,6 +45,7 @@ function Probe() {
 				focusIfEnabled( document.getElementById( 'in-b' ) )
 			);
 		},
+		request: ( run, fallback ) => focusAfterRender( run, fallback ),
 		missing: () =>
 			focusAfterRender(
 				() => focusIfEnabled( document.getElementById( 'nope' ) ),
@@ -137,6 +138,50 @@ describe( 'useFocusAfterRender', () => {
 		expect( document.activeElement?.id ).toBe( 'late-target' );
 		act( () => lateRoot.unmount() );
 		host.remove();
+	} );
+
+	it( 'runs only the last of several requests, without the first one’s fallback', async () => {
+		let firstFellBack = false;
+		await act( async () => {
+			await Promise.resolve();
+			api.request(
+				() => focusIfEnabled( document.getElementById( 'nope' ) ),
+				() => {
+					firstFellBack = true;
+				}
+			);
+			api.showB();
+		} );
+		expect( firstFellBack ).toBe( false );
+		expect( document.activeElement?.id ).toBe( 'in-b' );
+	} );
+
+	it( 'runs a request that changes no other state', async () => {
+		await act( async () => {
+			await Promise.resolve();
+			api.finish();
+		} );
+		document.activeElement?.blur();
+		await act( async () => {
+			await Promise.resolve();
+			api.request( () =>
+				focusIfEnabled( document.getElementById( 'field' ) )
+			);
+		} );
+		expect( document.activeElement?.id ).toBe( 'field' );
+	} );
+
+	it( 'does nothing when unmounted with a request waiting', () => {
+		expect( () =>
+			act( () => {
+				api.request( () =>
+					focusIfEnabled( document.getElementById( 'field' ) )
+				);
+				root.unmount();
+			} )
+		).not.toThrow();
+		root = createRoot( container );
+		act( () => root.render( <Probe /> ) );
 	} );
 
 	it( 'focusIfEnabled refuses a disabled control', () => {

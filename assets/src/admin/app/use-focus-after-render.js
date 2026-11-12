@@ -6,10 +6,13 @@
  * update made outside an event handler (in a promise callback, an effect)
  * may be committed after the frame, so focus() hits a control that is still
  * disabled, or on a tab that is not shown yet, and focus falls to the body.
- * A request made here is kept until the next commit (which includes the
- * state changes made with it), then `run` is called from an effect; when it
- * returns false (the target is missing, disabled or locked), `fallback` is
- * called instead.
+ * A request made here is kept until the first commit that includes the
+ * state changes made with it (not an earlier commit whose effects had not
+ * run yet), then `run` is called from an effect; when it returns false (the
+ * target is missing, disabled or locked), `fallback` is called instead. A
+ * later request replaces one still waiting. The changes must be made in the
+ * same update as the request (not in `startTransition`), or the request can
+ * run before them.
  */
 
 /**
@@ -18,7 +21,7 @@
 import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
 
 /**
- * @return {(run: () => boolean, fallback?: () => void) => void} Requests focus after the next render.
+ * @return {(run: () => boolean, fallback?: () => void) => void} Requests focus after the render that carries the caller's change.
  */
 export function useFocusAfterRender() {
 	const pending = useRef( null );
