@@ -262,7 +262,16 @@ export function BlockForm( {
 							);
 						} else if ( params && 'object' === typeof params ) {
 							setErrors( params );
-							focusField( Object.keys( params )[ 0 ] );
+							// After the errors render: a confirm also asked for the address field above, and this request replaces it.
+							focusAfterRender( () =>
+								focusIfEnabled(
+									form.current?.querySelector(
+										`[name="${
+											Object.keys( params )[ 0 ]
+										}"]`
+									)
+								)
+							);
 						} else {
 							setFailure(
 								data?.message ||
