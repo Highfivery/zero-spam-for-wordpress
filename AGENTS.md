@@ -1146,8 +1146,11 @@ npm run env:stop                 # stop both wp-env sites
   parses the list once per request. On a network, a site's own list
   (`zerospam_blocked_email_domains`) overrides an unlocked network list
   since 6.0.1, as every other unlocked setting does (Ben, 2026-11-12;
-  `Network_Settings::site_value()`); an empty stored list does not count,
-  so the site keeps the network's. The network page's override counts
+  `Network_Settings::own_list()`); an empty or whitespace-only stored
+  list, or one identical to the network's, does not count, so the site keeps
+  the network's. Apply `follow`/`all` and `reset_site()` delete a site's own
+  list (Apply never copies a list into a site), and `is_using_default()`
+  compares lists by `MD5()` in the database, never loading them. The network page's override counts
   (`Network_Report`) read only `zero-spam-{module}` options, so they do not
   count a site's own list (reading every site's list would cost up to
   1.1 MB each). `ip_whitelist` and `allowed_words` stay in the autoloaded

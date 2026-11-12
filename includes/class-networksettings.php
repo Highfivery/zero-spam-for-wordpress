@@ -115,7 +115,7 @@ class Network_Settings {
 	public function clear_site_cache_on_update( $option, $old_value, $value ) {
 		unset( $old_value, $value ); // The updated_option action passes them.
 
-		if ( 0 === strpos( $option, 'zero-spam-' ) ) {
+		if ( 0 === strpos( $option, 'zero-spam-' ) || in_array( $option, \ZeroSpam\Core\Settings_Schema::OWN_OPTIONS, true ) ) {
 			$this->clear_site_cache( get_current_blog_id() );
 		}
 	}
@@ -207,6 +207,53 @@ class Network_Settings {
 	}
 
 	/**
+	 * The current site's own list (is_list()), or null when it stores none.
+	 *
+	 * Lists live in an option of their own (Settings_Schema::OWN_OPTIONS),
+	 * not in the module option. An empty stored list (left by old saves)
+	 * reads as none, so the site keeps following the network's list.
+	 * The 5.x copy in `zero-spam-settings` is ignored here: an old copy
+	 * follows the network too.
+	 *
+	 * @param string $setting_key List setting key.
+	 * @return string|null
+	 */
+	public static function own_list( string $setting_key ): ?string {
+		if ( ! self::is_list( $setting_key ) ) {
+			return null;
+		}
+
+		$own = get_option( \ZeroSpam\Core\Settings_Schema::OWN_OPTIONS[ $setting_key ], false );
+
+		return is_string( $own ) && '' !== trim( $own ) ? $own : null;
+	}
+
+	/**
+	 * The MD5 of the current site's own list, read in the database so the
+	 * list (up to about 1.1 MB) is neither loaded into PHP nor kept in the
+	 * object cache: the network admin compares every site's list with the
+	 * network's. Null when the site stores none (or only whitespace).
+	 *
+	 * @param string $setting_key List setting key.
+	 * @return string|null
+	 */
+	private static function own_list_md5( string $setting_key ): ?string {
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Deliberate: get_option() would load and cache a list of up to 1.1 MB for every site of the network; only its digest is needed, once.
+		$digest = $wpdb->get_var(
+			$wpdb->prepare(
+				// Whitespace only (spaces, tabs, line breaks) reads as no list, as in own_list().
+				"SELECT MD5(option_value) FROM %i WHERE option_name = %s AND REPLACE(REPLACE(REPLACE(REPLACE(option_value, ' ', ''), CHAR(9), ''), CHAR(10), ''), CHAR(13), '') <> ''",
+				$wpdb->options,
+				\ZeroSpam\Core\Settings_Schema::OWN_OPTIONS[ $setting_key ]
+			)
+		);
+
+		return is_string( $digest ) && '' !== $digest ? $digest : null;
+	}
+
+	/**
 	 * Whether the current site stores its own value for a setting (a site
 	 * override), and that value.
 	 *
@@ -221,11 +268,9 @@ class Network_Settings {
 	 */
 	private static function site_value( string $setting_key, ?string $module ): array {
 		if ( self::is_list( $setting_key ) ) {
-			$own = get_option( \ZeroSpam\Core\Settings_Schema::OWN_OPTIONS[ $setting_key ], false );
+			$own = self::own_list( $setting_key );
 
-			return is_string( $own ) && '' !== trim( $own )
-				? array( true, $own )
-				: array( false, null );
+			return null === $own ? array( false, null ) : array( true, $own );
 		}
 
 		if ( ! $module ) {
@@ -294,7 +339,11 @@ class Network_Settings {
 
 			// Level 2: Site Override (if exists and not locked).
 			if ( ! is_network_admin() ) {
-				list( $has_own ) = self::site_value( (string) $setting_key, $setting_config['module'] ?? null );
+				list( $has_own, $own ) = self::site_value( (string) $setting_key, $setting_config['module'] ?? null );
+				// A site's own list identical to the network's follows the network.
+				if ( $has_own && self::is_list( (string) $setting_key ) && ( $network_config['value'] ?? null ) === $own ) {
+					$has_own = false;
+				}
 				if ( $has_own ) {
 					do_action( 'zerospam_network_setting_overridden', $setting_key, $original_value, $network_config['value'] ?? null, get_current_blog_id() );
 					continue;
@@ -432,9 +481,15 @@ class Network_Settings {
 		$module = self::module_of( (string) $setting_key );
 		switch_to_blog( $site_id );
 
-		// Site has an override if it stores a value AND the value differs from network default.
-		list( $has_own, $site_value ) = self::site_value( (string) $setting_key, $module );
-		$has_override                 = $has_own && $site_value !== $network_default;
+		if ( self::is_list( (string) $setting_key ) ) {
+			// Compared in the database: this runs for every site of the network.
+			$digest       = self::own_list_md5( (string) $setting_key );
+			$has_override = null !== $digest && md5( (string) $network_default ) !== $digest;
+		} else {
+			// Site has an override if it stores a value AND the value differs from network default.
+			list( $has_own, $site_value ) = self::site_value( (string) $setting_key, $module );
+			$has_override                 = $has_own && $site_value !== $network_default;
+		}
 
 		restore_current_blog();
 
