@@ -1095,7 +1095,7 @@ npm run env:stop                 # stop both wp-env sites
   quota period's first day the quota alert's throttle lasts that day only.
 - `.htaccess` on a network (6.0.1): only the main site writes it
   (`Utilities::refresh_htaccess()` returns false on a subsite); every site
-  blocks in PHP whatever its IP Block Method.
+  blocks in PHP whatever its IP block method.
 - `DavidWalsh::validate_token()` caches accepted tokens in a function-level
   `static $accepted`, which tests cannot reset; use a fresh token per test.
 - The `zerospam_blacklist` table is defined but never created.
