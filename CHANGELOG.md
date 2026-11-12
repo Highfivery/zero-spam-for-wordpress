@@ -4,6 +4,9 @@ The `readme.txt` changelog (shown on WordPress.org) carries only the current min
 
 ## v6.0.1
 
+- **fix(api-monitoring):** the alert email's "Queries used" and "Queries left" come from the latest report the API made, so they add up (they took the day's highest counts from different reports: "0 of 10 used" when the API left out its count, and pre- and post-reset figures mixed on the reset day). Without a Quota Reset Date, quota alerts judge today's latest report instead of the day's highest remaining count, which understated use.
+- **fix(api-monitoring):** a critical alert other than the quota (High Error Rate) is sent at most every 6 hours instead of on every hourly check; warnings stay at once a day.
+- **fix(multisite):** a subsite in an .htaccess IP Block Method no longer rewrites the network's shared .htaccess with only its own addresses after every block change; only the main site writes it, and the subsite's setting says it blocks in PHP. Every site still blocks its addresses in PHP.
 - **fix(activity):** when the log switches between table and cards at 1,200px (resizing, zooming), the focused checkbox, Details or Block button of an entry keeps focus on the same entry instead of falling to the page.
 - **fix(network):** the network page's "Spam by site" and "Multi-site attackers" tables can be scrolled sideways with the keyboard (focusable regions with a name), as the comparison table already could.
 - **fix(protection):** the Stop Forum Spam card says it also checks the email addresses entered in comments and registrations, as its setting and the readme do.

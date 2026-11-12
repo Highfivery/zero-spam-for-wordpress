@@ -349,4 +349,111 @@ class Test_API_Usage_Thresholds extends TestCase {
 
 		$this->assertCount( 2, $this->sent_mail() );
 	}
+
+	/**
+	 * Rows recorded at given times today (site time), oldest first.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Columns of each row, with `at` (H:i:s).
+	 */
+	private function usage_today( array $rows ): void {
+		global $wpdb;
+
+		$day = substr( current_time( 'mysql' ), 0, 10 );
+		foreach ( $rows as $row ) {
+			$when = $day . ' ' . $row['at'];
+			unset( $row['at'] );
+			$wpdb->insert(
+				$wpdb->base_prefix . DB::$tables['api_usage'],
+				array_merge(
+					array(
+						'site_id'       => get_current_blog_id(),
+						'event_type'    => 'api_call',
+						'endpoint'      => 'v3/query',
+						'response_code' => 200,
+						'date_recorded' => $when,
+						'hour_bucket'   => substr( $when, 0, 13 ) . ':00:00',
+						'day_bucket'    => $day,
+					),
+					$row
+				)
+			);
+		}
+
+		API_Usage_Tracker::clear_usage_cache();
+	}
+
+	/**
+	 * Without a reset date, the quota is judged by today's latest report, not
+	 * the highest count of the day (which understated what was used).
+	 */
+	public function test_quota_without_a_reset_date_reads_the_latest_report(): void {
+		$this->usage_today(
+			array(
+				array(
+					'at'                => '00:00:01',
+					'queries_limit'     => 1000,
+					'queries_remaining' => 900,
+				),
+				array(
+					'at'                => '00:00:02',
+					'queries_limit'     => 1000,
+					'queries_remaining' => 5,
+				),
+			)
+		);
+
+		$this->assertContains( 'quota_critical', $this->detected() );
+	}
+
+	/**
+	 * The alert email's "Queries used" comes from one report: what the limit
+	 * allows minus what remains (the API may leave queries_made out).
+	 */
+	public function test_alert_email_counts_from_the_latest_report(): void {
+		$this->set_setting( 'api_monitoring', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_quota_critical', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_email', 'enabled', 'api-monitoring' );
+		$this->usage_today(
+			array(
+				array(
+					'at'                => '00:00:01',
+					'queries_limit'     => 10,
+					'queries_made'      => 9,
+					'queries_remaining' => 1,
+				),
+				array(
+					'at'                => '00:00:02',
+					'queries_limit'     => 10,
+					'queries_remaining' => 0,
+				),
+			)
+		);
+		reset_phpmailer_instance();
+
+		( new API_Usage_Alerts() )->check_anomalies();
+
+		$mail = $this->sent_mail();
+		$this->assertCount( 1, $mail );
+		$this->assertStringContainsString( '10 of 10', $mail[0]->body );
+		$this->assertStringNotContainsString( '9 of 10', $mail[0]->body );
+	}
+
+	/**
+	 * A critical alert other than the quota (High Error Rate) is not sent on
+	 * every hourly check: at most once every 6 hours.
+	 */
+	public function test_high_error_rate_is_not_sent_every_hour(): void {
+		$this->set_setting( 'api_monitoring', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_high_error_rate', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_email', 'enabled', 'api-monitoring' );
+		$this->usage( 5, array( 'event_type' => 'error' ) );
+		reset_phpmailer_instance();
+		$alerts = new API_Usage_Alerts();
+
+		$alerts->check_anomalies();
+		API_Usage_Tracker::clear_usage_cache();
+		$alerts->check_anomalies();
+
+		$this->assertCount( 1, $this->sent_mail() );
+	}
 }

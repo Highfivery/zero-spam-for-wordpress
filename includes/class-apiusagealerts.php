@@ -220,16 +220,16 @@ class API_Usage_Alerts {
 				return;
 			}
 			set_transient( $quota['key'], true, $quota['ttl'] );
-		} elseif ( 'critical' !== $anomaly['severity'] ) {
-			// Other alerts: at most one per type per 24 hours, except critical ones.
+		} else {
+			// Other alerts: at most one per type every 24 hours, or every 6 hours
+			// when critical (High Error Rate was sent on every hourly check).
 			$throttle_key = "zerospam_alert_sent_{$site_id}_{$anomaly['type']}";
 			if ( get_transient( $throttle_key ) ) {
 				// Alert already sent recently.
 				return;
 			}
 
-			// Set throttle for 24 hours.
-			set_transient( $throttle_key, true, DAY_IN_SECONDS );
+			set_transient( $throttle_key, true, 'critical' === $anomaly['severity'] ? 6 * HOUR_IN_SECONDS : DAY_IN_SECONDS );
 		}
 
 		// Send email alert if enabled.
@@ -339,17 +339,26 @@ class API_Usage_Alerts {
 			array( __( 'Errors', 'zero-spam' ), number_format_i18n( (int) $stats['errors'] ) ),
 		);
 
-		if ( ! empty( $stats['current_limit'] ) ) {
+		// One report's figures (a site's latest in its quota period): the day's
+		// highest counts came from different reports and could not add up.
+		$quota = $is_network ? null : API_Usage_Tracker::quota_snapshot( (int) $site_id, $stats );
+		if ( null === $quota && $is_network && ! empty( $stats['current_limit'] ) && is_numeric( $stats['current_remaining'] ) ) {
+			$quota = array(
+				'limit'     => (int) $stats['current_limit'],
+				'remaining' => max( 0, min( (int) $stats['current_remaining'], (int) $stats['current_limit'] ) ),
+			);
+		}
+		if ( null !== $quota ) {
 			$rows[] = array(
 				__( 'Queries used', 'zero-spam' ),
 				sprintf(
 					/* translators: 1: queries used, 2: queries allowed */
 					__( '%1$s of %2$s', 'zero-spam' ),
-					number_format_i18n( (int) $stats['current_made'] ),
-					number_format_i18n( (int) $stats['current_limit'] )
+					number_format_i18n( $quota['limit'] - $quota['remaining'] ),
+					number_format_i18n( $quota['limit'] )
 				),
 			);
-			$rows[] = array( __( 'Queries left', 'zero-spam' ), number_format_i18n( (int) $stats['current_remaining'] ) );
+			$rows[] = array( __( 'Queries left', 'zero-spam' ), number_format_i18n( $quota['remaining'] ) );
 		}
 
 		return array(

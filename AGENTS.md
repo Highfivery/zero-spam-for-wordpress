@@ -992,12 +992,6 @@ npm run env:stop                 # stop both wp-env sites
   `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
-  - `core/class-utilities.php` `refresh_htaccess()`: a subsite admin in
-    `.htaccess` mode writes the network-root `.htaccess` (with only that
-    subsite's addresses) after every block change. The 6.0 Refresh
-    .htaccess action (`settings/actions/refresh-htaccess`) refuses subsites
-    with 403 `zerospam_htaccess_subsite` and the Rules screen hides its
-    button there; the writes after block changes remain.
   - Subsites rarely followed the network's IP Allowlist: 5.x saves and
     Recommended settings stored `ip_whitelist` (`false` or `''`) on the
     site, and a stored value is a site override. Decided by Ben
@@ -1088,12 +1082,16 @@ npm run env:stop                 # stop both wp-env sites
   registry title in one PR (translated strings, so a content change in each
   module). Until then the shared field
   renderer hides a row title that repeats its card's title (`cardTitle`).
-- API alerts (follow-ups from the PR 8 review, not fixed yet): only quota
-  alerts are throttled once per quota period; other critical alerts (High
-  Error Rate) are still sent on every hourly check. Without a Quota Reset
-  Date the quota check reads `MAX(queries_remaining)` of the day (the
-  earliest, highest reading) and understates use; it should read the
-  latest row, as `quota_snapshot()` does with a date.
+- API alerts (6.0.1): quota alerts once per quota period; other alerts once
+  per type every 24 hours, or every 6 hours when critical. The quota check
+  and the alert email's "Queries used" read one report,
+  `API_Usage_Tracker::quota_snapshot()` (the latest of the quota period, or
+  of today without a Quota Reset Date), never the day's `MAX()` columns,
+  which come from different reports. The network quota alert still reads
+  `get_network_usage_stats()` (`MAX()` across sites).
+- `.htaccess` on a network (6.0.1): only the main site writes it
+  (`Utilities::refresh_htaccess()` returns false on a subsite); every site
+  blocks in PHP whatever its IP Block Method.
 - `DavidWalsh::validate_token()` caches accepted tokens in a function-level
   `static $accepted`, which tests cannot reset; use a fresh token per test.
 - The `zerospam_blacklist` table is defined but never created.

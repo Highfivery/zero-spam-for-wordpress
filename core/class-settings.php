@@ -448,7 +448,9 @@ class Settings {
 
 		self::$settings['block_method'] = array(
 			'title'       => __( 'IP Block Method', 'zero-spam' ),
-			'desc'        => __( 'How the plugin blocks bad visitors. PHP is safer and recommended.', 'zero-spam' ),
+			'desc'        => is_multisite() && ! is_main_site()
+				? __( 'How the plugin blocks bad visitors. PHP is safer and recommended. On a network only the main site writes .htaccess, so this site blocks in PHP whichever you choose.', 'zero-spam' )
+				: __( 'How the plugin blocks bad visitors. PHP is safer and recommended.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'radio',

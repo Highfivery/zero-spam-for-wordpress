@@ -507,10 +507,11 @@ class API_Usage_Tracker {
 	/**
 	 * The quota the API last reported for a site: its limit and what remained.
 	 *
-	 * With a Quota Reset Date set (API Monitoring), the latest report since
-	 * the current quota period started (License_Status::quota_period()), so
-	 * a report from before the last reset no longer counts. Without one,
-	 * today's reports, as before 6.0.0.
+	 * The latest report since the current quota period started
+	 * (License_Status::quota_period(), from the Quota Reset Date in API
+	 * Monitoring), so a report from before the last reset no longer counts;
+	 * without a date, today's latest report (since 6.0.1: before, the day's
+	 * highest remaining count, which understated what was used).
 	 *
 	 * @since 6.0.0
 	 *
@@ -521,26 +522,25 @@ class API_Usage_Tracker {
 	public static function quota_snapshot( int $site_id, array $today_stats ): ?array {
 		global $wpdb;
 
+		unset( $today_stats ); // Kept for callers; the latest report is read below.
+
+		// Since the last reset, or today without a Quota Reset Date.
 		$period = \ZeroSpam\Core\License_Status::quota_period();
+		$start  = null === $period ? substr( current_time( 'mysql' ), 0, 10 ) : $period['start'];
 
-		if ( null === $period ) {
-			$limit     = $today_stats['current_limit'] ?? null;
-			$remaining = $today_stats['current_remaining'] ?? null;
-		} else {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One row of the plugin's own table, read by the hourly cron.
-			$row = $wpdb->get_row(
-				$wpdb->prepare(
-					'SELECT queries_limit, queries_remaining FROM %i WHERE site_id = %d AND queries_limit IS NOT NULL AND date_recorded >= %s ORDER BY date_recorded DESC, usage_id DESC LIMIT 1',
-					$wpdb->base_prefix . DB::$tables['api_usage'],
-					$site_id,
-					$period['start'] . ' 00:00:00'
-				),
-				ARRAY_A
-			);
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One row of the plugin's own table, read by the hourly cron.
+		$row = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT queries_limit, queries_remaining FROM %i WHERE site_id = %d AND queries_limit IS NOT NULL AND queries_remaining IS NOT NULL AND date_recorded >= %s ORDER BY date_recorded DESC, usage_id DESC LIMIT 1',
+				$wpdb->base_prefix . DB::$tables['api_usage'],
+				$site_id,
+				$start . ' 00:00:00'
+			),
+			ARRAY_A
+		);
 
-			$limit     = is_array( $row ) ? $row['queries_limit'] : null;
-			$remaining = is_array( $row ) ? $row['queries_remaining'] : null;
-		}
+		$limit     = is_array( $row ) ? $row['queries_limit'] : null;
+		$remaining = is_array( $row ) ? $row['queries_remaining'] : null;
 
 		// Nothing to judge without a limit or a remaining count (0 remaining is a used-up quota).
 		if ( ! is_numeric( $limit ) || (int) $limit <= 0 || ! is_numeric( $remaining ) ) {
