@@ -163,7 +163,7 @@ Because `resolve_all_settings()` treats any key stored in a site's `zero-spam-{m
 - **Unlocked setting, different value:** stored as a site override.
 - **Setting the network has not configured:** stored as on a single site.
 
-`blocked_email_domains` lives in its own option, `zerospam_blocked_email_domains`; while it is locked, `pre_update_option_zerospam_blocked_email_domains` keeps the stored value whichever path writes it.
+`blocked_email_domains` lives in its own option, `zerospam_blocked_email_domains`; while it is locked, `pre_update_option_zerospam_blocked_email_domains` keeps the stored value whichever path writes it. Since 6.0.1 a site's own list overrides an unlocked network list, as every other unlocked setting does (`Network_Settings::own_list()`); an empty or whitespace-only own list, or one identical to the network's, does not count, so the site keeps the network's.
 
 Writes made inside `switch_to_blog()` (for example "Apply to All Sites") are not filtered.
 
@@ -360,6 +360,7 @@ add_filter('zerospam_settings', function($settings) {
 - **Apply to all sites.** `POST network-settings/apply-all` takes `mode` (and `force`, `sites`):
   - `follow` (since 6.0.0; what the 6.0 network page's "Apply to all sites" sends): each site drops its own values of the unlocked settings the network sets, so it follows the network value again, and every later change to it. Locked settings are not touched (a site's earlier value applies again if the setting is unlocked). A site's own secrets (license and API keys, the webhook address) are kept: they are write-only, so nobody could see what was lost. No mode writes an empty network secret over a site's own.
   - `all` (default), `locked_only`, `defaults_only` (unchanged from 5.x; what `wp zerospam network-settings apply` and the deprecated `zerospam_network_apply_all` AJAX shim use): copy the network values into each site's own settings (`all` skips values a site changed unless `force`; `locked_only` writes locked settings only; `defaults_only` writes settings a site does not store). A copied value is a site value: the site no longer follows later network changes to it.
+  - Lists stored in their own option (`blocked_email_domains`) are never copied into a site by any mode. Since 6.0.1, `follow` and `all` delete a site's own list of an unlocked setting the network sets (the site follows the network's list again), and `network-settings/site/{id}/reset` deletes it too.
 
 ## Support
 
