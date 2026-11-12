@@ -4,6 +4,7 @@ The `readme.txt` changelog (shown on WordPress.org) carries only the current min
 
 ## v6.0.1
 
+- **perf(admin):** the plugin's admin pages share one stylesheet URL (`zerospam-admin-styles`, versioned by its content), so the browser downloads it once for every Zero Spam page instead of once per page, and keeps it across releases that do not change it.
 - **chore(copy):** setting titles are in sentence case, like the rest of the 6.0 screens ("Blocked email domains", "Delete data on uninstall"); product and feature names keep their capitals. Translations of these titles need updating.
 - **docs(readme):** the description says Zero Spam protects more than 30,000 sites (the Zero Spam service also serves sites outside WordPress, so this is not the WordPress.org install count).
 - **fix(api-monitoring):** the alert email's "Queries used" and "Queries left" come from the latest report the API made, so they add up (they took the day's highest counts from different reports: "0 of 10 used" when the API left out its count, and pre- and post-reset figures mixed on the reset day). Without a Quota Reset Date, quota alerts judge today's latest report instead of the day's highest remaining count, which understated use.

@@ -50,6 +50,30 @@ final class Admin_App {
 	const FONTS_HANDLE = 'zerospam-fonts';
 
 	/**
+	 * Style handle of the admin's stylesheet, shared by every area.
+	 *
+	 * Every area's built CSS is the same file (styles/index.css), so every
+	 * page enqueues one of them under one URL, versioned by its content: the
+	 * browser downloads it once for all the plugin's pages, and a release that
+	 * does not change it keeps it cached. Split per area, each page would
+	 * enqueue its own again (AGENTS.md section 8).
+	 *
+	 * @since 6.0.1
+	 *
+	 * @var string
+	 */
+	const STYLES_HANDLE = 'zerospam-admin-styles';
+
+	/**
+	 * The entry whose stylesheet is the shared one.
+	 *
+	 * @since 6.0.1
+	 *
+	 * @var string
+	 */
+	const STYLES_ENTRY = 'admin-overview';
+
+	/**
 	 * Menu position: directly below Comments (25).
 	 *
 	 * @var int
@@ -444,13 +468,14 @@ final class Admin_App {
 			Utilities::asset_version( 'assets/fonts/fonts.css' )
 		);
 
+		$css = ZEROSPAM_PATH . 'assets/dist/' . self::STYLES_ENTRY . '.css';
 		wp_enqueue_style(
-			$handle,
-			$base . 'assets/dist/' . $entry . '.css',
+			self::STYLES_HANDLE,
+			$base . 'assets/dist/' . self::STYLES_ENTRY . '.css',
 			array( self::FONTS_HANDLE ),
-			$asset['version']
+			is_readable( $css ) ? substr( (string) md5_file( $css ), 0, 20 ) : ZEROSPAM_VERSION
 		);
-		wp_style_add_data( $handle, 'rtl', 'replace' );
+		wp_style_add_data( self::STYLES_HANDLE, 'rtl', 'replace' );
 
 		wp_enqueue_script(
 			$handle,

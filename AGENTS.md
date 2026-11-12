@@ -1055,12 +1055,13 @@ npm run env:stop                 # stop both wp-env sites
   `templates`, `status`, `compare` and `apply-all`; the blocked table's
   `key_type` enum no longer differs from what dbDelta reads (it re-ran an
   ALTER on every DB version bump).
-- Admin CSS per entry (follow-up from the #453 review): every
-  `admin-{area}.css` is the same stylesheet (styles/index.css), versioned
-  with its area's JS, so a browser caches it once per page. Either one
-  shared `zerospam-admin-styles` style handle (CSS has no translations) so
-  it is cached once and not re-versioned with each area's JS, or the
-  per-area CSS split.
+- Admin CSS (6.0.1): every area's built CSS is the same file
+  (`styles/index.css`), so every page enqueues one of them,
+  `Admin_App::STYLES_ENTRY`, under `Admin_App::STYLES_HANDLE`, versioned by
+  its content: cached once for all pages and across releases that do not
+  change it (`test_area_stylesheets_are_identical` fails if they differ).
+  Splitting the CSS per area (next entries) means enqueueing each area's own
+  file again.
 - Network page (PR 9) limits and follow-ups: the overview's site-change
   counts, the statistics and the multi-site attackers read at most 1,000
   sites (the page says so when a network has more); network-wide blocks
