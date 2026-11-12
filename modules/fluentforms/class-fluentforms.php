@@ -18,6 +18,7 @@ class FluentForms {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -26,7 +27,6 @@ class FluentForms {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -256,7 +256,7 @@ class FluentForms {
 		$options = get_option( 'zero-spam-fluent_form' );
 
 		$settings['verify_fluentforms'] = array(
-			'title'       => __( 'Protect Fluent Form Submissions', 'zero-spam' ),
+			'title'       => __( 'Protect Fluent Form submissions', 'zero-spam' ),
 			'desc'        => __( 'Stop spam from Fluent Forms.', 'zero-spam' ),
 			'section'     => 'fluent_form',
 			'module'      => 'fluent_form',
@@ -271,7 +271,7 @@ class FluentForms {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['fluentforms_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when Fluent Forms detects spam.', 'zero-spam' ),
 			'section'     => 'fluent_form',
 			'module'      => 'fluent_form',
@@ -283,7 +283,7 @@ class FluentForms {
 		);
 
 		$settings['verify_fluentforms_disallowed_words'] = array(
-			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'title'       => __( 'Check disallowed words', 'zero-spam' ),
 			'desc'        => __( 'Block Fluent Forms submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
 			'section'     => 'fluent_form',
 			'module'      => 'fluent_form',
@@ -296,7 +296,7 @@ class FluentForms {
 		);
 
 		$settings['log_blocked_fluentforms'] = array(
-			'title'       => __( 'Log Blocked Fluent Form Submissions', 'zero-spam' ),
+			'title'       => __( 'Log blocked Fluent Form submissions', 'zero-spam' ),
 			'section'     => 'fluent_form',
 			'module'      => 'fluent_form',
 			'type'        => 'checkbox',

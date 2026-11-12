@@ -139,7 +139,7 @@ test.describe( '6.0 Protection', () => {
 		await open( page );
 		const card = page.locator( '#zs-card-security' );
 		const xmlrpc = card.getByRole( 'switch', { name: 'Disable XML-RPC' } );
-		const version = card.getByRole( 'switch', { name: 'Hide the WordPress Version' } );
+		const version = card.getByRole( 'switch', { name: 'Hide the WordPress version' } );
 		await expect( xmlrpc ).toHaveAttribute( 'aria-checked', 'true' );
 		await expect( version ).toHaveAttribute( 'aria-checked', 'true' );
 
@@ -204,7 +204,7 @@ test.describe( '6.0 Protection', () => {
 		await open( page );
 		const card = page.locator( '#zs-card-davidwalsh' );
 		await card.locator( '.zs-fine > summary' ).click();
-		const field = card.getByLabel( 'Custom Form Selectors' );
+		const field = card.getByLabel( 'Custom form selectors' );
 		await expect( field ).toHaveAttribute( 'type', 'text' );
 		await field.fill( '.e2e-form, #e2e-signup' );
 		await expect( card.locator( '.zs-help > summary', { hasText: /How to Find Your Form/i } ) ).toBeVisible();
@@ -450,8 +450,8 @@ test.describe( '6.0 Protection on a subsite', { tag: '@multisite' }, () => {
 
 		const dw = asSiteAdmin.locator( '#zs-card-davidwalsh' );
 		await dw.locator( '.zs-fine > summary' ).click();
-		await expect( dw.getByLabel( 'Custom Form Selectors' ) ).toBeDisabled();
-		await expect( dw.getByLabel( 'Custom Form Selectors' ) ).toHaveValue( '.network-form' );
+		await expect( dw.getByLabel( 'Custom form selectors' ) ).toBeDisabled();
+		await expect( dw.getByLabel( 'Custom form selectors' ) ).toHaveValue( '.network-form' );
 
 		// The route refuses it too (the UI never sends it).
 		const response = await asSiteAdmin.evaluate( async () => {

@@ -29,6 +29,7 @@ import {
 	initialValues,
 } from './block-data';
 import { NetworkBlockNote, findNetworkBlock } from './network-block-note';
+import { focusIfEnabled, useFocusAfterRender } from './use-focus-after-render';
 
 /**
  * An example value for a location type (the Location field's placeholder).
@@ -56,6 +57,9 @@ export const locationTypes = () => ( {
 	city: __( 'City name', 'zero-spam' ),
 	zip: __( 'Zip/Postal code', 'zero-spam' ),
 } );
+
+/** The server's answer when a block would lock the administrator out. */
+const WOULD_LOCK_OUT = 'rest_would_lock_out';
 
 /**
  * Finds an address's block, if it has one.
@@ -107,6 +111,11 @@ export function BlockForm( {
 			: initialValues( block, ip, nowLocal(), zone )
 	);
 	const [ errors, setErrors ] = useState( {} );
+	// The server's question when the block would lock the administrator out.
+	const [ asking, setAsking ] = useState( '' );
+	// The question's safe answer, where focus goes when it opens.
+	const dontBlock = useRef( null );
+	const focusAfterRender = useFocusAfterRender();
 	const [ failure, setFailure ] = useState( '' );
 	const [ saving, setSaving ] = useState( false );
 	const [ networkBlock, setNetworkBlock ] = useState( null );
@@ -151,8 +160,19 @@ export function BlockForm( {
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- Once per opening.
 	}, [] );
 
-	const set = ( key ) => ( event ) =>
+	const set = ( key ) => ( event ) => {
 		setValues( { ...values, [ key ]: event.target.value } );
+		// A question about the address or location no longer applies once it changes.
+		if ( [ 'ip', 'key', 'key_type' ].includes( key ) ) {
+			setAsking( '' );
+		}
+	};
+
+	/** The address or location field, where focus goes when the question closes. */
+	const keyField = () =>
+		form.current?.querySelector(
+			`[name="${ isLocation ? 'key' : 'ip' }"]`
+		);
 
 	const focusField = ( key ) =>
 		window.requestAnimationFrame( () =>
@@ -161,6 +181,22 @@ export function BlockForm( {
 
 	const submit = ( event ) => {
 		event.preventDefault();
+		save( false );
+	};
+
+	/**
+	 * Checks and saves the block.
+	 *
+	 * @param {boolean} confirm Whether the administrator said to block their own address or location anyway.
+	 */
+	const save = ( confirm ) => {
+		if ( confirm && saving ) {
+			return;
+		}
+		// The question stays while "Block it anyway" saves, so focus stays on it.
+		if ( ! confirm ) {
+			setAsking( '' );
+		}
 		const local = {};
 		const checked = isLocation
 			? checkLocation( values.key_type, values.key )
@@ -186,13 +222,16 @@ export function BlockForm( {
 				? `${ NS }/rules/blocks/${ record.id }`
 				: `${ NS }/rules/blocks`,
 			method: record ? 'PUT' : 'POST',
-			data: blockBody(
-				{
-					...values,
-					[ isLocation ? 'key' : 'ip' ]: checked.value,
-				},
-				editBaseline( record, zone )
-			),
+			data: {
+				...blockBody(
+					{
+						...values,
+						[ isLocation ? 'key' : 'ip' ]: checked.value,
+					},
+					editBaseline( record, zone )
+				),
+				...( confirm ? { confirm: true } : {} ),
+			},
 			parse: false,
 		} )
 			.then( ( response ) =>
@@ -209,10 +248,32 @@ export function BlockForm( {
 						: Promise.resolve( error );
 				read.then(
 					( data ) => {
+						if ( confirm ) {
+							setAsking( '' );
+							focusAfterRender( () =>
+								focusIfEnabled( keyField() )
+							);
+						}
 						const params = data?.data?.params;
-						if ( params && 'object' === typeof params ) {
+						if ( WOULD_LOCK_OUT === data?.code ) {
+							setAsking( data.message );
+							// The safe answer: a held or repeated Enter must not confirm a lock-out.
+							focusAfterRender(
+								() => focusIfEnabled( dontBlock.current ),
+								() => focusIfEnabled( keyField() )
+							);
+						} else if ( params && 'object' === typeof params ) {
 							setErrors( params );
-							focusField( Object.keys( params )[ 0 ] );
+							// After the errors render: a confirm also asked for the address field above, and this request replaces it.
+							focusAfterRender( () =>
+								focusIfEnabled(
+									form.current?.querySelector(
+										`[name="${
+											Object.keys( params )[ 0 ]
+										}"]`
+									)
+								)
+							);
 						} else {
 							setFailure(
 								data?.message ||
@@ -324,6 +385,40 @@ export function BlockForm( {
 				noValidate
 				onSubmit={ submit }
 			>
+				{ asking && (
+					<div
+						className="zs-confirm-q zs-lockout-q"
+						role="group"
+						aria-labelledby="zs-bf-lockout"
+					>
+						<span id="zs-bf-lockout">{ asking }</span>
+						<span className="zs-inline-row">
+							<Button
+								variant="secondary"
+								size="sm"
+								aria-describedby="zs-bf-lockout"
+								aria-disabled={ saving ? 'true' : undefined }
+								onClick={ () => save( true ) }
+							>
+								{ __( 'Block it anyway', 'zero-spam' ) }
+							</Button>
+							<Button
+								ref={ dontBlock }
+								variant="ghost"
+								size="sm"
+								aria-describedby="zs-bf-lockout"
+								onClick={ () => {
+									setAsking( '' );
+									focusAfterRender( () =>
+										focusIfEnabled( keyField() )
+									);
+								} }
+							>
+								{ __( 'Don’t block', 'zero-spam' ) }
+							</Button>
+						</span>
+					</div>
+				) }
 				{ failure && (
 					<p className="zs-notice zs-notice-err" role="alert">
 						{ failure }

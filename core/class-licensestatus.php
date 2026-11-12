@@ -91,6 +91,9 @@ final class License_Status {
 		'ZEROSPAMBUSINESSYR'   => 'Business',
 		'ZEROSPAMPLATFORM'     => 'Platform',
 		'ZEROSPAMPLATFORMYR'   => 'Platform',
+		'ZEROSPAMTIERI'        => 'Multi-License Tier I',
+		'ZEROSPAMPREMIUM'      => 'Premium',
+		'ZEROSPAMUNLIMITED'    => 'Unlimited',
 	);
 
 	/**

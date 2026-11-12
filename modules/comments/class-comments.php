@@ -27,6 +27,7 @@ class Comments {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -35,7 +36,6 @@ class Comments {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -221,7 +221,7 @@ class Comments {
 		$options = get_option( 'zero-spam-comments' );
 
 		$settings['verify_comments'] = array(
-			'title'       => __( 'Protect Comments', 'zero-spam' ),
+			'title'       => __( 'Protect comments', 'zero-spam' ),
 			'desc'        => __( 'Stop spam comments on your blog posts.', 'zero-spam' ),
 			'section'     => 'comments',
 			'module'      => 'comments',
@@ -236,7 +236,7 @@ class Comments {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['comment_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown to people trying to post spam comments.', 'zero-spam' ),
 			'section'     => 'comments',
 			'module'      => 'comments',
@@ -248,7 +248,7 @@ class Comments {
 		);
 
 		$settings['log_blocked_comments'] = array(
-			'title'       => __( 'Log Blocked Comments', 'zero-spam' ),
+			'title'       => __( 'Log blocked comments', 'zero-spam' ),
 			'section'     => 'comments',
 			'module'      => 'comments',
 			'type'        => 'checkbox',

@@ -18,6 +18,8 @@ class Debug {
 	 * Constructor
 	 */
 	public function __construct() {
+		// Before the other modules' settings, in the order they have in the admin.
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 8, 1 );
 		add_action( 'init', array( $this, 'init' ), -1 );
 	}
 
@@ -26,7 +28,6 @@ class Debug {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_get_ip', array( $this, 'debug_ip' ), 10, 1 );
 	}
 

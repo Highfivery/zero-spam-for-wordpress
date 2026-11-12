@@ -30,12 +30,27 @@ class Settings {
 	public static $sections = array();
 
 	/**
+	 * The registry without lists kept for the request, by blog ID.
+	 *
+	 * @var array<int, array{signature: string, settings: array<string, array<string, mixed>>}>
+	 */
+	private static array $without_lists = array();
+
+	/**
+	 * The lists' values (Settings_Schema::OWN_OPTIONS), read once per request
+	 * and site, by key: blog id => key => signature and value.
+	 *
+	 * @var array<int, array<string, array{signature: string, value: mixed}>>
+	 */
+	private static array $lists = array();
+
+	/**
 	 * Returns the plugin setting sections
 	 */
 	public static function get_sections() {
 		// Deprecated.
 		self::$sections['general'] = array(
-			'title' => __( 'General Settings', 'zero-spam' ),
+			'title' => __( 'General settings', 'zero-spam' ),
 		);
 
 		// Since v5.4.
@@ -227,13 +242,115 @@ class Settings {
 	/**
 	 * Returns the plugin settings.
 	 *
+	 * Reading one setting uses the registry kept for the request
+	 * (get_settings_without_lists()); only the whole registry and the blocked
+	 * email domains read that list, which can be about 1.1 MB (since 6.0.1).
+	 *
 	 * @param string $key Setting key to retrieve.
 	 */
 	public static function get_settings( $key = false ) {
+		if ( $key && ! isset( Settings_Schema::OWN_OPTIONS[ $key ] ) ) {
+			$settings = self::get_settings_without_lists();
+
+			return ! empty( $settings[ $key ]['value'] ) ? $settings[ $key ]['value'] : false;
+		}
+
+		if ( $key ) {
+			// A list: the whole registry has to be built to resolve it, so keep
+			// the answer for the request (a form may check several addresses, #404).
+			$blog_id   = get_current_blog_id();
+			$signature = self::filters_signature();
+
+			if ( isset( self::$lists[ $blog_id ][ $key ] ) && $signature === self::$lists[ $blog_id ][ $key ]['signature'] ) {
+				return self::$lists[ $blog_id ][ $key ]['value'];
+			}
+
+			$settings = self::build( true );
+			$value    = ! empty( $settings[ $key ]['value'] ) ? $settings[ $key ]['value'] : false;
+
+			self::$lists[ $blog_id ][ $key ] = array(
+				'signature' => $signature,
+				'value'     => $value,
+			);
+
+			return $value;
+		}
+
+		return self::build( true );
+	}
+
+	/**
+	 * The settings registry without the value of the blocked email domains,
+	 * built once per request.
+	 *
+	 * For whatever runs on every request and does not need that list; the
+	 * entry has no `value`, on a network too. It is built
+	 * again when a settings option changes (Settings_Schema::reset_cache()), on
+	 * another site, and when filters_signature() changes.
+	 *
+	 * @since 6.0.1
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function get_settings_without_lists(): array {
+		$blog_id   = get_current_blog_id();
+		$signature = self::filters_signature();
+
+		if ( isset( self::$without_lists[ $blog_id ] ) && $signature === self::$without_lists[ $blog_id ]['signature'] ) {
+			return self::$without_lists[ $blog_id ]['settings'];
+		}
+
+		$settings = self::build( false );
+
+		self::$without_lists[ $blog_id ] = array(
+			'signature' => $signature,
+			'settings'  => $settings,
+		);
+
+		return $settings;
+	}
+
+	/**
+	 * Forgets the registry kept for the request.
+	 *
+	 * @since 6.0.1
+	 */
+	public static function reset_cache(): void {
+		self::$without_lists = array();
+		self::$lists         = array();
+	}
+
+	/**
+	 * Identifies what a `zerospam_settings` filter's answer may depend on: the
+	 * filters in place, the current user (the developer guide's example) and
+	 * how far the request got (conditional tags work once the query has run).
+	 */
+	private static function filters_signature(): string {
+		global $wp_filter;
+
+		$signature = (int) did_action( 'wp_loaded' ) . (int) did_action( 'wp' ) . '.' . did_action( 'set_current_user' );
+		$hook      = $wp_filter['zerospam_settings'] ?? null;
+
+		if ( $hook instanceof \WP_Hook ) {
+			foreach ( $hook->callbacks as $priority => $callbacks ) {
+				$signature .= '|' . $priority . ':' . implode( ',', array_keys( $callbacks ) );
+			}
+		}
+
+		return $signature;
+	}
+
+	/**
+	 * Builds the settings registry.
+	 *
+	 * @param bool $with_lists Whether to read the blocked email domains.
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function build( bool $with_lists ): array {
 		$options = get_option( 'zero-spam-settings' );
 
 		self::$settings['use_recommended_settings'] = array(
-			'title'   => __( 'Use Recommended Settings', 'zero-spam' ),
+			'title'   => __( 'Use recommended settings', 'zero-spam' ),
 			'desc'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
@@ -269,7 +386,7 @@ class Settings {
 
 		// On unless stored: a settings form stores an unticked checkbox as false, which turns it off.
 		self::$settings['show_news'] = array(
-			'title'       => __( 'Zero Spam News', 'zero-spam' ),
+			'title'       => __( 'Zero Spam news', 'zero-spam' ),
 			'desc'        => __( 'Shows the latest articles and security notices from zerospam.org in the Zero Spam admin. Your site only downloads the public news feed; no site data is sent.', 'zero-spam' ),
 			'module'      => 'settings',
 			'section'     => 'general',
@@ -291,7 +408,7 @@ class Settings {
 		}
 
 		self::$settings['widget_enabled'] = array(
-			'title'       => __( 'Dashboard Widget', 'zero-spam' ),
+			'title'       => __( 'Dashboard widget', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'checkbox',
@@ -304,7 +421,7 @@ class Settings {
 		);
 
 		self::$settings['widget_visibility'] = array(
-			'title'       => __( 'Dashboard Widget Visibility', 'zero-spam' ),
+			'title'       => __( 'Dashboard widget visibility', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'select',
@@ -316,7 +433,7 @@ class Settings {
 		);
 
 		self::$settings['block_handler'] = array(
-			'title'       => __( 'IP Block Handler', 'zero-spam' ),
+			'title'       => __( 'IP block handler', 'zero-spam' ),
 			'desc'        => __( 'What happens when we block someone from visiting your site.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -330,8 +447,10 @@ class Settings {
 		);
 
 		self::$settings['block_method'] = array(
-			'title'       => __( 'IP Block Method', 'zero-spam' ),
-			'desc'        => __( 'How the plugin blocks bad visitors. PHP is safer and recommended.', 'zero-spam' ),
+			'title'       => __( 'IP block method', 'zero-spam' ),
+			'desc'        => is_multisite() && ! is_main_site()
+				? __( 'How the plugin blocks bad visitors. PHP is safer and recommended. On a network only the main site writes .htaccess, so this site blocks in PHP whichever you choose.', 'zero-spam' )
+				: __( 'How the plugin blocks bad visitors. PHP is safer and recommended.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'radio',
@@ -347,7 +466,7 @@ class Settings {
 		$message = __( 'Your IP address has been blocked due to detected spam/malicious activity.', 'zero-spam' );
 
 		self::$settings['blocked_message'] = array(
-			'title'       => __( 'Blocked Message', 'zero-spam' ),
+			'title'       => __( 'Blocked message', 'zero-spam' ),
 			'desc'        => __( 'The message blocked visitors see if you chose "Show them an error message" above.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -359,7 +478,7 @@ class Settings {
 		);
 
 		self::$settings['blocked_redirect_url'] = array(
-			'title'       => __( 'Blocked Users Redirect', 'zero-spam' ),
+			'title'       => __( 'Blocked users redirect', 'zero-spam' ),
 			'desc'        => __( 'The website address to send blocked visitors to if you chose "Send them to another website" above.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -371,7 +490,7 @@ class Settings {
 		);
 
 		self::$settings['log_blocked_ips'] = array(
-			'title'       => __( 'Log Blocked IPs', 'zero-spam' ),
+			'title'       => __( 'Log blocked IPs', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'checkbox',
@@ -384,7 +503,7 @@ class Settings {
 		);
 
 		self::$settings['max_logs'] = array(
-			'title'       => __( 'Maximum Log Entries', 'zero-spam' ),
+			'title'       => __( 'Maximum log entries', 'zero-spam' ),
 			'desc'        => __( 'How many blocked visitor records to keep. When this number is reached, the oldest records get deleted automatically.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -407,7 +526,7 @@ class Settings {
 		);
 
 		self::$settings['trusted_proxies'] = array(
-			'title'       => __( 'Trusted Proxy IPs', 'zero-spam' ),
+			'title'       => __( 'Trusted proxy IPs', 'zero-spam' ),
 			'desc'        => __( 'If your site sits behind a CDN, load balancer or reverse proxy (for example Cloudflare, Hostinger CDN, Sucuri, a Kubernetes ingress), list its IP addresses or ranges here, one per line, e.g. 203.0.113.5 or 203.0.113.0/24. Zero Spam will then read the real visitor address that the proxy forwards, so the proxy must send it in an X-Forwarded-For or X-Real-IP header. If your proxy sits behind Cloudflare, it must also pass on Cloudflare\'s CF-Connecting-IP header. List internal hops between the proxy and your site too, such as a load balancer on 10.0.0.0/8. Cloudflare is recognised automatically. Leave empty if your site is not behind a proxy.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -418,18 +537,21 @@ class Settings {
 		);
 
 		self::$settings['blocked_email_domains'] = array(
-			'title'       => __( 'Blocked Email Domains', 'zero-spam' ),
+			'title'       => __( 'Blocked email domains', 'zero-spam' ),
 			'desc'        => __( 'Block email addresses from these domains (like "spam.com"). Put one per line.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'textarea',
 			'field_class' => 'regular-text code',
 			'placeholder' => '',
-			'value'       => get_option( 'zerospam_blocked_email_domains', ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false ),
 		);
 
+		if ( $with_lists ) {
+			self::$settings['blocked_email_domains']['value'] = get_option( 'zerospam_blocked_email_domains', ! empty( $options['blocked_email_domains'] ) ? trim( $options['blocked_email_domains'] ) : false );
+		}
+
 		self::$settings['update_blocked_email_domains'] = array(
-			'title'   => __( 'Use Blocked Email Domains Recommendation', 'zero-spam' ),
+			'title'   => __( 'Use blocked email domains recommendation', 'zero-spam' ),
 			'desc'    => sprintf(
 				wp_kses(
 					__( '<strong>WARNING:</strong> This will override all existing blocked email domains with Zero Spam\'s recommended domains.', 'zero-spam' ),
@@ -445,7 +567,7 @@ class Settings {
 		);
 
 		self::$settings['regenerate_honeypot'] = array(
-			'title'   => __( 'Regenerate Honeypot ID', 'zero-spam' ),
+			'title'   => __( 'Regenerate honeypot ID', 'zero-spam' ),
 			'desc'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
@@ -463,7 +585,7 @@ class Settings {
 		);
 
 		self::$settings['allowed_words'] = array(
-			'title'       => __( 'Allowed Words', 'zero-spam' ),
+			'title'       => __( 'Allowed words', 'zero-spam' ),
 			'desc'        => __( 'Sometimes a word in the spam list accidentally matches part of your name, email, or website. Add those words here (one per line) so they won\'t be treated as spam. For example, if your email contains "ugg" and it keeps getting blocked, add "ugg" here to fix it.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -474,7 +596,7 @@ class Settings {
 		);
 
 		self::$settings['disallowed_min_length'] = array(
-			'title'       => __( 'Minimum Disallowed Word Length', 'zero-spam' ),
+			'title'       => __( 'Minimum disallowed word length', 'zero-spam' ),
 			'desc'        => __( 'Only check spam words that are at least this many characters long. Very short words (like 3-4 characters) can accidentally match normal text and cause false alarms. Set to 0 to check all words. We recommend 4 or 5 if you\'re seeing false positives.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -485,7 +607,7 @@ class Settings {
 		);
 
 		self::$settings['update_disallowed_words'] = array(
-			'title'   => __( 'Override &amp; Update Core Disallowed Words', 'zero-spam' ),
+			'title'   => __( 'Override &amp; update core disallowed words', 'zero-spam' ),
 			'desc'    => __( 'Update WP core\'s disallowed words option with <a href="https://github.com/splorp/wordpress-comment-blacklist/" target="_blank" rel="noreferrer noopener">splorp\'s Comment Blacklist for WordPress</a>. <strong>WARNING:</strong> This will override any existing words.', 'zero-spam' ),
 			'section' => 'general',
 			'module'  => 'settings',
@@ -512,14 +634,6 @@ class Settings {
 			}
 		}
 		unset( $s );
-
-		if ( $key ) {
-			if ( ! empty( $settings[ $key ]['value'] ) ) {
-				return $settings[ $key ]['value'];
-			}
-
-			return false;
-		}
 
 		return $settings;
 	}

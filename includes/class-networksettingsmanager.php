@@ -264,6 +264,16 @@ class Network_Settings_Manager {
 			foreach ( $network_settings['settings'] as $key => $config ) {
 				$should_apply = false;
 
+				// A list lives in its own option and is never copied into a site:
+				// a copy would stop later network changes from reaching it. Following
+				// the network ("follow", or "all") means removing the site's own list.
+				if ( Network_Settings::is_list( (string) $key ) ) {
+					if ( in_array( $mode, array( 'follow', 'all' ), true ) && empty( $config['locked'] ) && delete_option( \ZeroSpam\Core\Settings_Schema::OWN_OPTIONS[ $key ] ) ) {
+						$site_updated = true;
+					}
+					continue;
+				}
+
 				// Get the module for this setting.
 				$module = $all_plugin_settings[ $key ]['module'] ?? null;
 				if ( ! $module ) {
@@ -399,10 +409,15 @@ class Network_Settings_Manager {
 			}
 		}
 
-		// Delete all module-specific options.
+		// Delete all module-specific options, and the lists kept in options of their own.
 		$deleted_count = 0;
 		foreach ( $modules as $module ) {
 			if ( delete_option( "zero-spam-{$module}" ) ) {
+				++$deleted_count;
+			}
+		}
+		foreach ( \ZeroSpam\Core\Settings_Schema::OWN_OPTIONS as $own_option ) {
+			if ( delete_option( $own_option ) ) {
 				++$deleted_count;
 			}
 		}

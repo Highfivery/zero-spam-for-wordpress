@@ -105,13 +105,17 @@ class Test_Sanitize_Settings_Option_Network extends TestCase {
 	}
 
 	/**
-	 * Apply to sites (5.x mode `all`, forced).
+	 * Apply to sites (5.x mode `all`, forced) never copies the list into a
+	 * site, where it would stop later network changes from reaching it
+	 * (since 6.0.1, a site's own list overrides an unlocked network list).
 	 */
-	public function test_apply_all_moves_the_domains_to_their_own_option(): void {
+	public function test_apply_all_does_not_copy_the_domains_into_the_site(): void {
 		$result = ( new Network_Settings_Manager() )->apply_to_sites( true, array( self::$site ), 'all' );
 		$this->assertTrue( $result['success'] );
 
-		$this->assert_moved( $this->site_state() );
+		$state = $this->site_state();
+		$this->assertFalse( $state['domains'] );
+		$this->assertFalse( is_array( $state['settings'] ) && array_key_exists( 'blocked_email_domains', $state['settings'] ) );
 	}
 
 	/**
@@ -133,8 +137,11 @@ class Test_Sanitize_Settings_Option_Network extends TestCase {
 	public function test_without_the_filter_the_domains_stay_in_the_module_option(): void {
 		remove_filter( 'sanitize_option_zero-spam-settings', array( Settings_Schema::class, 'sanitize_settings_option' ), 5 );
 
+		$templates = new Network_Templates();
+		$this->assertNotFalse( $templates->save_current_as_template( 'Domains', 'e2e-domains-raw', '' ) );
+
 		try {
-			( new Network_Settings_Manager() )->apply_to_sites( true, array( self::$site ), 'all' );
+			$templates->apply_to_sites( 'e2e-domains-raw', array( self::$site ), true );
 		} finally {
 			add_filter( 'sanitize_option_zero-spam-settings', array( Settings_Schema::class, 'sanitize_settings_option' ), 5, 1 );
 		}
@@ -142,5 +149,75 @@ class Test_Sanitize_Settings_Option_Network extends TestCase {
 		$state = $this->site_state();
 		$this->assertSame( self::DOMAINS, $state['settings']['blocked_email_domains'] ?? null );
 		$this->assertFalse( $state['domains'] );
+	}
+
+	/**
+	 * With the list locked, a site's save filter keeps what the site stores:
+	 * the migration writes as the network, or the older copy would stay
+	 * autoloaded for as long as the lock is on.
+	 */
+	public function test_migration_removes_the_copy_while_the_list_is_locked(): void {
+		$this->set_network_setting( 'blocked_email_domains', self::DOMAINS, true );
+		delete_option( 'zerospam_blocked_email_domains' );
+		update_option( 'zero-spam-settings', array( 'share_data' => 'enabled' ) );
+
+		// Stored as 5.x left it: 6.0 writers cannot put the key there.
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Writes the row an old version left.
+		$wpdb->update(
+			$wpdb->options,
+			array(
+				'option_value' => maybe_serialize(
+					array(
+						'share_data'            => 'enabled',
+						'blocked_email_domains' => 'old.example',
+					)
+				),
+			),
+			array( 'option_name' => 'zero-spam-settings' )
+		);
+		wp_cache_delete( 'zero-spam-settings', 'options' );
+		wp_cache_delete( 'alloptions', 'options' );
+
+		( new \ZeroSpam\Includes\Migrations() )->blocked_domains_own_option();
+
+		$this->assertSame( array( 'share_data' => 'enabled' ), get_option( 'zero-spam-settings' ) );
+		$this->assertFalse( ms_is_switched() );
+	}
+
+	/**
+	 * Reading settings without the list keeps each site's values and the network's.
+	 */
+	public function test_cached_settings_follow_the_site_and_the_network(): void {
+		$options                    = (array) get_option( 'zero-spam-settings', array() );
+		$options['blocked_message'] = 'main-site';
+		update_option( 'zero-spam-settings', $options );
+
+		$this->assertSame( 'main-site', \ZeroSpam\Core\Settings::get_settings( 'blocked_message' ) );
+
+		switch_to_blog( self::$site );
+		$this->assertNotSame( 'main-site', \ZeroSpam\Core\Settings::get_settings( 'blocked_message' ) );
+		restore_current_blog();
+
+		$this->assertSame( 'main-site', \ZeroSpam\Core\Settings::get_settings( 'blocked_message' ) );
+
+		$this->set_network_setting( 'blocked_message', 'locked-by-network', true );
+		Settings_Schema::reset_cache();
+
+		$this->assertSame( 'locked-by-network', \ZeroSpam\Core\Settings::get_settings( 'blocked_message' ) );
+	}
+
+	/**
+	 * A form check uses the list the network locks, read on demand.
+	 */
+	public function test_form_check_uses_the_locked_network_list(): void {
+		$this->set_network_setting( 'blocked_email_domains', self::DOMAINS, true );
+		update_option( 'zerospam_blocked_email_domains', 'site-list.example', false );
+		Settings_Schema::reset_cache();
+
+		\ZeroSpam\Core\Settings::get_settings_without_lists();
+
+		$this->assertTrue( \ZeroSpam\Core\Utilities::is_email_domain_blocked( 'jane@spam-network.example' ) );
+		$this->assertFalse( \ZeroSpam\Core\Utilities::is_email_domain_blocked( 'jane@site-list.example' ) );
 	}
 }

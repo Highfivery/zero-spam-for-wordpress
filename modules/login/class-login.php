@@ -65,6 +65,7 @@ class Login {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -73,7 +74,6 @@ class Login {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -489,7 +489,7 @@ class Login {
 	 */
 	public function sections( $sections ) {
 		$sections['login'] = array(
-			'title'    => __( 'User Login', 'zero-spam' ),
+			'title'    => __( 'User login', 'zero-spam' ),
 			'supports' => array( 'honeypot', 'davidwalsh' ),
 		);
 
@@ -505,7 +505,7 @@ class Login {
 		$options = get_option( 'zero-spam-login' );
 
 		$settings['verify_login'] = array(
-			'title'       => __( 'Protect Login Attempts', 'zero-spam' ),
+			'title'       => __( 'Protect login attempts', 'zero-spam' ),
 			'desc'        => __( 'Stop spam bots from trying to login to your website.', 'zero-spam' ),
 			'section'     => 'login',
 			'module'      => 'login',
@@ -520,7 +520,7 @@ class Login {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['login_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown to spam bots trying to login.', 'zero-spam' ),
 			'section'     => 'login',
 			'module'      => 'login',
@@ -532,7 +532,7 @@ class Login {
 		);
 
 		$settings['log_blocked_logins'] = array(
-			'title'       => __( 'Log Blocked Login Attempts', 'zero-spam' ),
+			'title'       => __( 'Log blocked login attempts', 'zero-spam' ),
 			'section'     => 'login',
 			'module'      => 'login',
 			'type'        => 'checkbox',

@@ -50,11 +50,14 @@ in the same PR.
 | `CHANGELOG.md` | Full release history, newest first (`readme.txt` keeps only the current minor series). Not shipped: listed in `.distignore`. |
 | `.wordpress-org/`, `bin/render-listing-assets.mjs` | WordPress.org listing art, not shipped (`.distignore`): `icon.svg` (flat), `icon-256x256.png`, `icon-128x128.png`, `banner-1544x500.png`, `banner-772x250.png` and `-rtl` twins, rendered from the HTML in `.wordpress-org/src/` (Playwright Chromium, no network). The banner ("Bots bounce. People get through.", a 1544 × 500 stage at half size; its `-rtl` twin mirrors the scene but keeps the English lines and the tick in reading order) reads `tokens.css` (dark surfaces and text colours), the fonts and the mark; the scene's colours are written out in `src/banner.html`, and `src/icon.html` and `icon.svg` (the mark on a white tile) hold every colour and brick themselves, so a token or mark change does not reach the icons. Re-render with `node bin/render-listing-assets.mjs` and commit the PNGs after changing any of these (section 5, Front-end build, has the two checks). `README.md` there has the SVN steps, `screenshots.md` how the readme screenshots in `screenshots/` are captured, with their captions. |
 | `uninstall.php` | Removes options, tables, transients and cron events. Keep it in sync when adding any of those. |
+| `.claude/settings.json`, `.claude/hooks/`, `.claude/agents/`, `docs/superpowers/` | Agent tooling (section 3, Agent workflow and Guardrails): the committed Claude Code project settings and permission rules, the guard hook (`guard.py`) and its tests (`test_guard.py`), the read-only reviewer agents, and committed designs and plans. `.claude/worktrees/` and `.claude/settings.local.json` are git-ignored. None of it ships (`.distignore`). |
 | `bin/`, `.githooks/`, `tests/`, `phpstan*.neon*`, `phpcs*.xml.dist`, `phpunit*.xml.dist` | Quality gate and test suite (section 5). `bin/test.sh` and `bin/test-matrix.sh` run PHPUnit; `tests/phpunit/` holds the suites (`unit/`, `integration/`, `multisite/`), the harness (`includes/`) and the pinned versions (`versions.env`); `tests/phpstan/` holds the PHPStan bootstrap and stubs; `tests/e2e/` holds the Playwright suite (with `package.json`, `.nvmrc` and `.wp-env*.json` at the root). Never shipped: see `.distignore`. |
 
 ### How a module works
-Constructor hooks `init`; adds its sections, settings and types through the
-`zerospam_setting_sections`, `zerospam_settings`, `zerospam_types` and
+Constructor adds its `zerospam_settings` filter (there, not in `init()`: each
+filter added later makes the next read build the registry again) and hooks
+`init`; `init()` adds its sections and types through the
+`zerospam_setting_sections`, `zerospam_types` and
 `zerospam_failed_types` filters; when its own setting is `'enabled'` and
 `Access::process()` is true it hooks the relevant form (`zerospam_preprocess_*`
 filters, `zerospam_access_checks`), logs with `DB::log()` and fires
@@ -65,8 +68,16 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 - Core settings live in option `zero-spam-settings`; each module in
   `zero-spam-{module}`. `blocked_email_domains` has its own non-autoloaded
   option. Read through `Settings::get_settings( $key )`.
-- `Settings::get_settings()` rebuilds the whole registry on every call and is
-  expensive. Do not call it in loops or hot paths; read once and reuse.
+- `Settings::get_settings()` with no key rebuilds the whole registry on every
+  call and reads the blocked email domains (about 1.1 MB with the recommended
+  list). Do not call it in loops or hot paths. On what runs for visitors use
+  `Settings::get_settings( $key )`, `Settings_Schema::value( $key )` or
+  `Settings::get_settings_without_lists()`: these share one registry per
+  request and site, without that list's value, built again when a settings
+  option changes, a `zerospam_settings` filter is added or removed, the user
+  changes, WordPress finishes loading or the query has run
+  (`test-settings-front-end-read.php` holds a page view to one build and no
+  read of the list). Only the blocked email domains' own key reads the list.
 - A switch that is on unless turned off declares `'default' => 'enabled'`
   (its own "on" choice) and reads an absent key as `enabled`; turning it off
   stores `disabled` (the settings form and `PATCH /settings` do this through
@@ -120,6 +131,17 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   write-only on all of them: a network value reads `{ set, hint }`, a
   site's `{ set, source }`; `test-network-settings-secrets.php` sweeps every
   GET of `network-settings/*` and fails when a new one is not in its list.
+
+### Registrations on a network
+A network registers through `wp-signup.php` (main site only; core redirects
+subsites and `wp-login.php?action=register` there), which fires neither
+`registration_errors` nor `register_form` and never `template_redirect`.
+`Registration` checks it from `before_signup_header`, which is what scopes
+the `wpmu_validate_user_signup` filter to that page: core runs that filter for
+`wp user create`, REST and Add User as well, and those have no honeypot or
+David Walsh key. Both steps of the form validate the user again, so a
+token counts one use per step. `Access` runs its block check on the same
+action. `Registration::is_spam()` is the shared check, log and share.
 
 ### Data
 - Per-site tables `{prefix}wpzerospam_log`, `{prefix}wpzerospam_blocked`;
@@ -270,7 +292,7 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 - **Versions:** `Version:` header, `ZEROSPAM_VERSION` and `Stable tag` must
   agree and never go backwards (`composer version:check`). Bump
   `Tested up to` only after testing on that WordPress release.
-- **WordPress.org SVN `assets/`:** the directory's listing art lives in the SVN working copy's top-level `assets/`, not in `trunk/`, and goes live on commit, without a release. The sources are in `.wordpress-org/`; the maintainer copies and commits them by hand (`.wordpress-org/README.md`). Agents never run SVN commits or change that working copy's `assets/`.
+- **WordPress.org SVN `assets/`:** the directory's listing art lives in the SVN working copy's top-level `assets/`, not in `trunk/`, and goes live on commit, without a release. The sources are in `.wordpress-org/`; copy them as `.wordpress-org/README.md` describes. Claude Code may prepare that working copy; the commit is an SVN write and waits for the maintainer's yes (section 3, Guardrails).
 - **Docs:** when behavior changes, update `readme.txt` (description, FAQ) and
   the in-admin docs in `includes/templates/docs/`. The 6.0 Help screen shows
   them through `Core\Admin\Documentation` (`zero-spam/v1/ui/help/docs`): keep
@@ -282,6 +304,112 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
 - **Public contract:** option keys, table names, hook names and REST routes are
   public API for site owners and developers. Changing or removing one needs a
   migration, a changelog entry and, ideally, a deprecation period.
+
+### Agent workflow (Superpowers and the reviewer agents)
+
+Claude Code sessions in this repository use the
+[Superpowers](https://github.com/obra/superpowers) plugin, enabled in the
+committed `.claude/settings.json` (from the official marketplace, with its
+telemetry turned off). Its skills run the work; this file still sets the
+rules, and where the two differ this file wins:
+
+- **Questions:** brainstorming asks one question at a time, each with a
+  recommendation (section 7).
+- **Designs and plans** go to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+  and `docs/superpowers/plans/YYYY-MM-DD-<feature>.md`, committed on the
+  feature branch and linked from the PR. `docs/` is in `.distignore`, so
+  they never ship. Plans that change settings, multisite behaviour or a
+  release still need the maintainer's approval before editing (section 7).
+- **Worktrees** live in `.claude/worktrees/<branch>` (git-ignored; WPCS and
+  compat already exclude `.claude/`), never `.worktrees/`. Branch from
+  `develop` with the prefixes above.
+- **Tests first:** test-driven development is this file's failing-first
+  rule; a known defect loses its `known-defect` tag in the PR that fixes it
+  (section 5, PHPUnit).
+- **Finishing a branch** always means push and open a PR against `develop`
+  with the section 5 evidence. Never merge locally: `develop` and `main`
+  are PR-only. The agent may merge its own verified PR into `develop` when
+  the maintainer has said so; merging to `main`, tagging and SVN commits
+  pause for the maintainer's yes at the prompt (section 3, Guardrails;
+  section 7).
+- **Verification before completion** means section 5's "Done means proven".
+
+Reviewer agents in `.claude/agents/` (read-only; adapted from
+[ECC](https://github.com/affaan-m/ECC), MIT, see
+`.claude/agents/LICENSE-ECC.md`) run before a PR is opened, alongside
+Superpowers' code review, on the parts they cover:
+
+| Agent | When |
+|---|---|
+| `php-reviewer` | Every PHP change. |
+| `security-reviewer` | Input, output, REST, admin actions, SQL, files, outgoing HTTP, secrets or visitor data. |
+| `performance-optimizer` | Anything on a visitor's request, settings reads, queries, caches, multisite paths or admin bundles. |
+| `a11y-architect` | Any UI change (admin, widget, blocked pages, emails). |
+| `silent-failure-hunter` | Calls to outside services, the database, the filesystem or WordPress APIs that can fail. |
+
+Their findings, and what was done about each, go in the PR. ECC's
+installer, hooks, commands and rules are not used; never send code or
+diffs to another AI service (for example ECC's `/astra-review`).
+
+### Guardrails (what Claude Code may do on its own)
+
+Claude Code does the coding and runs releases end to end (develop → main
+PR, tag, GitHub release, WordPress.org SVN, deploys), pausing for the
+maintainer at each outward step (decided 2026-11-11). The committed
+`.claude/settings.json` and its guard hook enforce that in the tool:
+
+- **Never** (denied): force or mirror pushes (`--force`, `-f` in any flag
+  bundle, `--force-with-lease`, `--mirror`, `+refspec`, abbreviations such
+  as `--forc`) and `git push --no-verify`, which skips the quality gate.
+- **Stop and ask the maintainer at the prompt** (his approval there is the
+  yes, each time): SVN writes to the repository (`svn commit`/`ci`/`import`,
+  `svnmucc`, `git svn dcommit`, copy/move/delete/mkdir/propedit against a
+  repository URL, including `^/`, and revision properties); pushing to
+  `main` or `develop` and local changes on them; creating, deleting or
+  pushing tags; GitHub releases, PRs into `main`, merges whose base is not
+  `develop`, PR reviews, and any other GitHub write (`gh api` writes,
+  GraphQL other than a literal query, repo settings, issues, secrets,
+  workflows, `curl` writes to GitHub, WordPress.org or zerospam.org) and
+  anything acting on another repository; deploys, `ssh`/`scp`/remote
+  `rsync`, remote WP-CLI and npm/composer/make deploy, release or publish
+  tasks; `SKIP_QUALITY_GATE`, `GIT_*`/`GH_*` variables, git settings other
+  than name, email and display options, remotes and aliases; and any change
+  to `.claude/settings*.json`, `.claude/hooks/`, `.githooks/` or
+  `.git/config`.
+- **Allowed without a prompt** (once the folder is trusted): the quality gate
+  (`composer`, `npm run`, `bin/` checks, `vendor/bin/` tools, wp-env), git
+  work on feature branches (including `git push -u origin <branch>`), opening
+  PRs into `develop`, merging PRs whose base is `develop`, commenting on PRs,
+  local SVN work (`svn up`, `status`, `diff`, `add`, `cp` inside the working
+  copy), and the guard's own tests.
+
+The prompts are a speed bump, not the boundary. The boundary is the
+maintainer's credentials: keep the WordPress.org SVN password in the macOS
+Keychain (never cached in plaintext) and the deploy SSH key behind Touch ID
+or a passphrase, so an outward step also waits for him there.
+
+Permission rules only match the literal command text, so
+`.claude/hooks/guard.py`, a `PreToolUse` hook on every Bash call, reads each
+command itself and **fails closed**: a command that uses git, gh, svn, a
+remote shell, a deploy, a network client or the guardrails must match a
+known-safe shape, or the guard asks. It follows separators, comments, line
+continuations, heredocs and here-strings, subshells and substitutions,
+`bash -c`, `eval`, `env -S`, `find -exec`, `flock`, wrappers,
+`git -C`/`-c`/`--git-dir`, `cd` and branch switches earlier in the same
+command, inline Python/Node/PHP/Perl code, push settings that push more than
+one branch, and new or changed scripts (run by path, by a shell or an
+interpreter, or through `npm`/`composer`/`make` when `package.json`,
+`composer.json`, a `Makefile` or `bin/` changed; committed scripts were
+reviewed in a PR). It asks when a program or target comes from a variable or
+a pattern, when commands come from input it can't see, when it can't parse a
+command, when a lookup fails, and after 20 seconds. The hook entry runs
+`python3 guard.py || exit 2`, so a missing interpreter or a crash blocks the
+command instead of letting it through. The guard is standard-library
+Python 3; its tests are
+`python3 -m unittest discover -s .claude/hooks -p 'test_*.py'`. It is not a
+sandbox: a committed program that runs git or svn by itself is not seen.
+Never weaken, skip or work around a guardrail; when one stops something
+that should be allowed, say so and propose the change in a PR.
 
 ## 4. Engineering standards (non-negotiable)
 
@@ -349,8 +477,10 @@ composer lint:fix    # apply the WPCS fixes phpcbf can make
   recordings for any UI change, the `readme.txt` changelog entry, and a note
   of anything not verified and why. Do not claim something works without
   having run it.
-- Do not create markdown process files (`NOTES.md`, `PLAN.md`, "what I did"
-  files). Plans and findings go in the PR or in the conversation.
+- Designs and plans are committed under `docs/superpowers/` (section 3,
+  Agent workflow) and linked from the PR. Do not create other markdown
+  process files (`NOTES.md`, `PLAN.md`, "what I did" files) anywhere else;
+  findings go in the PR or in the conversation.
 
 ### Front-end build (`@wordpress/scripts`)
 
@@ -817,7 +947,8 @@ npm run env:stop                 # stop both wp-env sites
   acceptance criteria) and get approval before editing.
 - Outward-facing actions need explicit approval each time: merging to `main`,
   tagging, SVN commits, WordPress.org changes, vulnerability-program
-  submissions, anything that posts or emails.
+  submissions, anything that posts or emails. Claude Code runs these steps
+  itself and stops at the prompt for that approval (section 3, Guardrails).
 - When reviewing or touching code, also report nearby cleanup, performance,
   security and bug opportunities, each as its own suggestion.
 - Report outcomes faithfully: failing checks with their output, skipped steps
@@ -827,8 +958,8 @@ npm run env:stop                 # stop both wp-env sites
 
 - WPCS backlog: 0 errors / 0 warnings since the 6.0 cutover (PR 13; 44 / 54
   in 18 files before it, 143 / 172 in 32 files at 5.7.14, 293 / 292 in 52
-  at 5.7.13): keep `composer lint` clean. PHPStan level 5 baseline: 48
-  findings in 39 entries after the cutover (81 in 53 after PR 9, 135 in 93
+  at 5.7.13): keep `composer lint` clean. PHPStan level 5 baseline: 38
+  findings in 33 entries after 6.0.1 session 2 (48 in 39 after the cutover, 81 in 53 after PR 9, 135 in 93
   at 5.7.14, 144 in 99 at 5.7.13), with no unmatched entries; shrink it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
@@ -861,27 +992,6 @@ npm run env:stop                 # stop both wp-env sites
   `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
-  - Multisite registrations are never checked: a network registers
-    through `wp-signup.php`, which fires neither `registration_errors` nor
-    `zerospam_preprocess_registration_submission`, so the Registration
-    module and the Stop Forum Spam registration check never run there
-    (hook `wpmu_validate_user_signup` to cover it; its own PR).
-  - Cache group mismatch (`wp_cache_get()` default group vs `wp_cache_set()`
-    group) in `modules/class-projecthoneypot.php` (~92),
-    `modules/ipbase/class-ipbase.php` (~203), `modules/class-ipinfomodule.php`
-    (~293) and `modules/class-ipstack.php` (~173).
-  - ipstack is queried over plain `http://`.
-  - `modules/security/class-security.php`: the emoji setting is incomplete
-    since WordPress 6.4 (`wp_enqueue_emoji_styles` on
-    `wp_enqueue_scripts`/`admin_enqueue_scripts` and the `embed_head` script
-    are not unhooked);
-    `remove_resource_query_params` is hooked with 2 arguments but takes 1.
-  - `core/class-utilities.php` `refresh_htaccess()`: a subsite admin in
-    `.htaccess` mode writes the network-root `.htaccess` (with only that
-    subsite's addresses) after every block change. The 6.0 Refresh
-    .htaccess action (`settings/actions/refresh-htaccess`) refuses subsites
-    with 403 `zerospam_htaccess_subsite` and the Rules screen hides its
-    button there; the writes after block changes remain.
   - Subsites rarely followed the network's IP Allowlist: 5.x saves and
     Recommended settings stored `ip_whitelist` (`false` or `''`) on the
     site, and a stored value is a site override. Decided by Ben
@@ -891,10 +1001,6 @@ npm run env:stop                 # stop both wp-env sites
     only settings with a `recommended` value (and keeps what a site already
     stores), so applying the recommended settings no longer makes them site
     overrides again (`test-auto-configure-network.php`).
-  - `Network_Settings` is
-    instantiated in several places, each registering its own resolver;
-    `Network_Settings::is_using_default()` rebuilds the settings registry per
-    call.
 - Fixed by the 6.0 cutover (PR 13), with the 5.x screens: the blocked
   table's bulk delete, capability check and location search; the Log
   table's N+1 query and page past the end; the block modal's focus; the
@@ -949,12 +1055,13 @@ npm run env:stop                 # stop both wp-env sites
   `templates`, `status`, `compare` and `apply-all`; the blocked table's
   `key_type` enum no longer differs from what dbDelta reads (it re-ran an
   ALTER on every DB version bump).
-- Admin CSS per entry (follow-up from the #453 review): every
-  `admin-{area}.css` is the same stylesheet (styles/index.css), versioned
-  with its area's JS, so a browser caches it once per page. Either one
-  shared `zerospam-admin-styles` style handle (CSS has no translations) so
-  it is cached once and not re-versioned with each area's JS, or the
-  per-area CSS split.
+- Admin CSS (6.0.1): every area's built CSS is the same file
+  (`styles/index.css`), so every page enqueues one of them,
+  `Admin_App::STYLES_ENTRY`, under `Admin_App::STYLES_HANDLE`, versioned by
+  its content: cached once for all pages and across releases that do not
+  change it (`test_area_stylesheets_are_identical` fails if they differ).
+  Splitting the CSS per area (next entries) means enqueueing each area's own
+  file again.
 - Network page (PR 9) limits and follow-ups: the overview's site-change
   counts, the statistics and the multi-site attackers read at most 1,000
   sites (the page says so when a network has more); network-wide blocks
@@ -971,21 +1078,31 @@ npm run env:stop                 # stop both wp-env sites
   per affected site, in the request that changed the setting; the
   Activity drawer does not say when an address is blocked by the network
   (only Rules and the block drawer do).
-- Copy pass (chore, one PR): setting titles in the registry are Title Case
-  (5.x); 6.0 cards and headings use sentence case. Sentence-case every
-  registry title in one PR (translated strings, so a content change in each
-  module). Until then the shared field
-  renderer hides a row title that repeats its card's title (`cardTitle`).
-- API alerts (follow-ups from the PR 8 review, not fixed yet): only quota
-  alerts are throttled once per quota period; other critical alerts (High
-  Error Rate) are still sent on every hourly check. Without a Quota Reset
-  Date the quota check reads `MAX(queries_remaining)` of the day (the
-  earliest, highest reading) and understates use; it should read the
-  latest row, as `quota_snapshot()` does with a date.
+- Setting titles are sentence case since 6.0.1 (product and feature names
+  keep their capitals: WordPress, Stop Forum Spam, Enhanced Protection, IP
+  Allowlist, Usage Data Sharing, Rescue Mode, Contact Form 7 …). Write new
+  titles the same way. The shared field renderer still hides a row title
+  that repeats its card's title (`cardTitle`).
+- API alerts (6.0.1): quota alerts once per quota period; other alerts once
+  per type every 24 hours, or every 6 hours when critical. The quota check
+  and the alert email's "Queries used" read one report,
+  `API_Usage_Tracker::quota_snapshot()` (the latest of the quota period, or
+  of today without a Quota Reset Date), never the day's `MAX()` columns,
+  which come from different reports. The network quota alert still reads
+  `get_network_usage_stats()` (`MAX()` across sites). Refused lookups
+  (`exceeded_requests`, `subscription_inactive`) are `api_call` rows with
+  that word in `error_message`; the spike check counts answered lookups only,
+  against the 7 days before today, and needs lookups on 3 of them. On a
+  quota period's first day the quota alert's throttle lasts that day only.
+- `.htaccess` on a network (6.0.1): only the main site writes it
+  (`Utilities::refresh_htaccess()` returns false on a subsite); every site
+  blocks in PHP whatever its IP block method.
 - `DavidWalsh::validate_token()` caches accepted tokens in a function-level
   `static $accepted`, which tests cannot reset; use a fresh token per test.
-- `core/class-cli.php` is dead code; the `zerospam_blacklist` table is defined
-  but never created.
+- The `zerospam_blacklist` table is defined but never created.
+- `Utilities::detection_title()` (with `zerospam_detection_title`) and
+  `Utilities::country_flag_url()` are deprecated since 6.0.1; remove them
+  in 7.0.0.
 - A 5.x multi-network install moves every audit entry and custom template
   to the main network on the DB 1.6 upgrade (`DB::upgrade_network_tables()`,
   `UPDATE IGNORE`: a template whose slug the main network already has stays
@@ -1015,23 +1132,51 @@ npm run env:stop                 # stop both wp-env sites
   A development copy that already ran DB 1.6 before audit and templates got
   `network_id` (the PR's commits up to 7342b62) does not upgrade by itself: set
   `zerospam_db_version` back to 1.5 on each site once.
-- `GET network-settings/{key}` still counts sites through
-  `Network_Settings::get_application_status()`, one registry build per site.
-- Follow-ups from the Rules review (#452):
-  - Rules: IPv6 addresses sort as text; sort them numerically with
-    `INET6_ATON()` where the database has it.
-  - The no-lockout 409 only considers IP blocks: blocking the country or
-    city of the administrator's own address is a soft lockout in PHP mode
-    (the emailed rescue link still works).
-  - A block's `reason` is stored entity-encoded (`a<b` becomes `a&lt;b`)
-    and Rules shows it literally.
-  - No e2e covers the focus moves of the no-lockout inline confirmation
-    (Remove anyway / Cancel).
-- Activity's switch at 1,200px loses focus (AGENTS section 5's focus note):
-  a focused row control falls to `<body>` when the layout changes, and a
-  drawer opened on the table and closed on the cards has no opener to return
-  to. Rules handles both (`rules/use-table-fit.js`, `drawerReturn` in
-  `rules/blocks.js`); Activity is left as it is for now.
+- `GET network-settings/{key}` counts sites through
+  `Network_Settings::get_application_status()`: one `switch_to_blog()` and
+  option read per site (no registry build since 6.0.1); `Network_Report`
+  reads them in chunks and could serve it instead. `Network_Settings` adds
+  its hooks once per request (`$hooked`), however many instances exist.
+- Blocked email domains (#404): a visitor's page view reads the list neither
+  from the site's own option nor, on a network, from
+  `zerospam_network_settings`: the network settings cache leaves each list's
+  value in the store (`Network_Settings::without_lists()`, marked
+  `VALUE_IN_STORE`; read it with `list_value()` or `get_network_settings()`,
+  never by reading the store on a per-request path), and a form reads and
+  parses the list once per request. On a network, a site's own list
+  (`zerospam_blocked_email_domains`) overrides an unlocked network list
+  since 6.0.1, as every other unlocked setting does (Ben, 2026-11-12;
+  `Network_Settings::own_list()`); an empty or whitespace-only stored
+  list, or one identical to the network's, does not count, so the site keeps
+  the network's. Apply `follow`/`all` and `reset_site()` delete a site's own
+  list (Apply never copies a list into a site), and `is_using_default()`
+  compares lists by `MD5()` in the database, never loading them. The network page's override counts
+  (`Network_Report`) read only `zero-spam-{module}` options, so they do not
+  count a site's own list (reading every site's list would cost up to
+  1.1 MB each). `ip_whitelist` and `allowed_words` stay in the autoloaded
+  `zero-spam-settings` (3,000 addresses are 32 KB; the 100,000 a list may hold
+  are 1.4 MB). `zerospam_settings_audit` keeps a list's old and new
+  values summarised above 2 KB (`Settings_Controller::AUDIT_VALUE_MAX_BYTES`)
+  and stays under 256 KB (`AUDIT_MAX_BYTES`), oldest entries dropped first.
+- Rules lockout questions (6.0.1): creating or changing a site block of
+  the administrator's own address, or of a location their address is in
+  (`Utilities::geolocation()`), answers 409 `rest_would_lock_out` unless
+  `confirm: true` (`Rules_Controller::lockout_question()`), and nothing is
+  asked while the address is on the no-lockout list or the IP Allowlist,
+  or when an edit keeps the block's address or location. `rules/blocks/bulk`
+  never blocks the administrator's own address (it is listed in `invalid`).
+  Every lock-out question puts focus on its safe answer ("Don't block" or
+  Cancel, described by the question; `Confirm` in `network/parts.js` takes
+  `safe`), never on the button that locks the administrator out (Ben,
+  2026-11-12).
+  A block's reason is stored entity-encoded and answered decoded
+  (`Rules_Controller::reason_text()`): plain text, which clients escape.
+- Activity's switch at 1,200px keeps focus (6.0.1), as Rules does: every
+  log control carries `data-zs-ctl` (rows `data-zs-row`); `log.js` notes the
+  focused one in `useMedia()`'s before-change callback and asks
+  `useFocusAfterRender()` for its twin (`app/row-focus.js`:
+  `rowControlOf()`, `findControl()`, shared with Rules); its drawers return
+  by entry id.
 - Follow-up (6.0 admin build): split the area CSS per entry point. Every
   `admin-{area}.css` is still all of `styles/index.css` (the same file under
   seven URLs, so pages cannot share a cached copy). `settings.css` and

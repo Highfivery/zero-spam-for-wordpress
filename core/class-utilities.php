@@ -277,36 +277,62 @@ class Utilities {
 	 * @param string $email Email address.
 	 */
 	public static function is_email_domain_blocked( $email ) {
-		$blocked_domains = self::get_blocked_email_domains();
-		$domain          = explode( '@', $email );
-		$domain          = trim( array_pop( $domain ) );
+		$blocked_domains = self::blocked_email_domain_index();
+		$domain          = explode( '@', (string) $email );
+		$domain          = trim( (string) array_pop( $domain ) );
 
-		if ( $blocked_domains && in_array( $domain, $blocked_domains, true ) ) {
-			return true;
-		}
-
-		return false;
+		return '' !== $domain && isset( $blocked_domains[ $domain ] );
 	}
 
 	/**
 	 * Returns the saved blocked email domains.
+	 *
+	 * @return string[]|false
 	 */
 	public static function get_blocked_email_domains() {
-		$blocked_email_domains = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
-		if ( ! $blocked_email_domains ) {
-			return false;
+		$domains = array_keys( self::blocked_email_domain_index() );
+
+		return empty( $domains ) ? false : array_map( 'strval', $domains );
+	}
+
+	/**
+	 * The blocked email domains as a lookup (domain => true), parsed once per
+	 * request for each list value: a form may check several addresses, and
+	 * the list can hold tens of thousands of domains (#404).
+	 *
+	 * @return array<string, true>
+	 */
+	private static function blocked_email_domain_index(): array {
+		static $source = null;
+		static $index  = array();
+
+		$raw = \ZeroSpam\Core\Settings::get_settings( 'blocked_email_domains' );
+		if ( is_array( $raw ) ) {
+			$raw = implode( "\n", array_filter( $raw, 'is_scalar' ) ); // A list stored as an array still blocks.
+		}
+		if ( ! is_string( $raw ) || '' === trim( $raw ) ) {
+			return array();
 		}
 
-		$domains = explode( "\n", $blocked_email_domains );
-		$domains = array_map( 'trim', $domains );
-		$domains = self::sanitize_array( $domains );
-		$domains = array_filter( $domains );
-
-		if ( empty( $domains ) ) {
-			return false;
+		// Settings keeps the value for the request, so an unchanged list is the
+		// same string and this comparison is immediate; a changed list is parsed again.
+		if ( $raw !== $source ) {
+			$index = array();
+			foreach ( explode( "\n", $raw ) as $line ) {
+				$line = trim( $line );
+				// A plain domain is what sanitize_text_field() would return anyway;
+				// only other lines need it (it costs regular expressions per line).
+				if ( '' !== $line && ! preg_match( '/^[A-Za-z0-9.-]+$/', $line ) ) {
+					$line = sanitize_text_field( $line );
+				}
+				if ( '' !== $line && '0' !== $line ) {
+					$index[ $line ] = true;
+				}
+			}
+			$source = $raw;
 		}
 
-		return $domains;
+		return $index;
 	}
 
 	/**
@@ -339,6 +365,13 @@ class Utilities {
 		$settings = \ZeroSpam\Core\Settings::get_settings( 'block_method' );
 
 		if ( ! $settings || 'php' === $settings ) {
+			return false;
+		}
+
+		// A network shares one .htaccess at its root, which only the main site
+		// writes: a subsite's own addresses would replace the main site's.
+		// Every site still blocks its addresses in PHP.
+		if ( is_multisite() && ! is_main_site() ) {
 			return false;
 		}
 
@@ -420,7 +453,7 @@ class Utilities {
 	 * @param string $value Setting value.
 	 */
 	public static function update_setting( $key, $value ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 		if ( empty( $settings[ $key ] ) ) {
 			self::log( $key . ' is not a valid setting key.' );
 			return false;
@@ -844,12 +877,20 @@ class Utilities {
 	/**
 	 * Returns the default detection meta title.
 	 *
+	 * Nothing in the plugin has called it since 6.0.0 (the 5.x screens that
+	 * showed it are gone), so the `zerospam_detection_title` filter no longer
+	 * fires on its own. Removed in 7.0.0.
+	 *
+	 * @deprecated 6.0.1 No replacement.
+	 *
 	 * @param string $setting_msg_key Optional. Setting message key.
 	 */
 	public static function detection_title( $setting_msg_key = false ) {
+		_deprecated_function( __METHOD__, '6.0.1' );
+
 		$title = __( 'Blocked for Suspected Malicious IP/Spam', 'zero-spam' );
 
-		return apply_filters( 'zerospam_detection_title', $title, $setting_msg_key );
+		return apply_filters_deprecated( 'zerospam_detection_title', array( $title, $setting_msg_key ), '6.0.1' );
 	}
 
 	/**
@@ -1149,11 +1190,16 @@ class Utilities {
 	/**
 	 * Returns a country flag image URL.
 	 *
-	 * @access public
+	 * Unused since 6.0.0: the admin builds flag URLs from its bootstrap
+	 * (`boot.urls.flags`). Removed in 7.0.0.
+	 *
+	 * @deprecated 6.0.1 No replacement.
 	 *
 	 * @param string $country_code Two-character country code.
 	 */
 	public static function country_flag_url( $country_code ) {
+		_deprecated_function( __METHOD__, '6.0.1' );
+
 		return plugins_url( 'assets/img/flags/' . strtolower( $country_code ) . '.svg', ZEROSPAM );
 	}
 
@@ -1275,7 +1321,7 @@ class Utilities {
 			return false;
 		}
 
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$settings = ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		if ( empty( $settings['ip_whitelist']['value'] ) || ! is_string( $settings['ip_whitelist']['value'] ) ) {
 			return false;
@@ -1674,8 +1720,12 @@ class Utilities {
 				}
 			}
 		}
-		// 2. Query ipbase
-		$location_details = apply_filters( 'zero_spam_ip_address_details', $ip, $location_details );
+		// 2. Query ipbase. The filter's first argument is the IP (historical); a
+		// callback that returns anything but an array leaves the details as they are.
+		$filtered = apply_filters( 'zero_spam_ip_address_details', $ip, $location_details );
+		if ( is_array( $filtered ) ) {
+			$location_details = $filtered;
+		}
 
 		// 3. Query the IPinfo API.
 		$ipinfo_location = ZeroSpam\Modules\IPinfoModule::get_geolocation( $ip );
@@ -1723,8 +1773,10 @@ class Utilities {
 			}
 		}
 
-		// Cache the result.
-		set_transient( $cache_key, $location_details, WEEK_IN_SECONDS );
+		// Cache the result: a week when a provider answered, 15 minutes when
+		// none did (a refused key, a timeout), so location rules apply again soon.
+		$answered = array() !== array_filter( $location_details );
+		set_transient( $cache_key, $location_details, $answered ? WEEK_IN_SECONDS : 15 * MINUTE_IN_SECONDS );
 
 		return self::add_proxy_country( $location_details );
 	}

@@ -79,6 +79,7 @@ export function SortButton( { sort, column, onSort, children } ) {
 			type="button"
 			className="zs-thsort"
 			data-zs-sort={ column }
+			data-zs-ctl="sort"
 			onClick={ () => onSort( column ) }
 		>
 			{ children }
@@ -166,6 +167,7 @@ export function LocationSort( { sort, onSort } ) {
 				ref={ button }
 				type="button"
 				className="zs-thsort"
+				data-zs-ctl="sort"
 				aria-haspopup="menu"
 				aria-expanded={ open ? 'true' : 'false' }
 				aria-controls="zs-loc-menu"

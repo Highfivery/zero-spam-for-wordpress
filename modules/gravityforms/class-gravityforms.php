@@ -23,6 +23,7 @@ class GravityForms {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -31,7 +32,6 @@ class GravityForms {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 2 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -223,7 +223,7 @@ class GravityForms {
 		$options = get_option( 'zero-spam-gravityforms' );
 
 		$settings['verify_gravityforms'] = array(
-			'title'       => __( 'Protect Gravity Forms Submissions', 'zero-spam' ),
+			'title'       => __( 'Protect Gravity Forms submissions', 'zero-spam' ),
 			'desc'        => __( 'Stop spam from Gravity Forms (requires version 2.7 or newer).', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
@@ -237,7 +237,7 @@ class GravityForms {
 
 		$message                               = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
 		$settings['gravityforms_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when Gravity Forms detects spam.', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
@@ -249,7 +249,7 @@ class GravityForms {
 		);
 
 		$settings['verify_gravityforms_blocked_email_domains'] = array(
-			'title'       => __( 'Check Blocked Email Domains', 'zero-spam' ),
+			'title'       => __( 'Check blocked email domains', 'zero-spam' ),
 			'desc'        => __( 'Block Gravity Forms submissions containing email addresses from blocked domains.', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
@@ -262,7 +262,7 @@ class GravityForms {
 		);
 
 		$settings['verify_gravityforms_disallowed_words'] = array(
-			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'title'       => __( 'Check disallowed words', 'zero-spam' ),
 			'desc'        => __( 'Block Gravity Forms submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
@@ -275,7 +275,7 @@ class GravityForms {
 		);
 
 		$settings['log_blocked_gravityforms'] = array(
-			'title'       => __( 'Log Blocked Gravity Form Submissions', 'zero-spam' ),
+			'title'       => __( 'Log blocked Gravity Form submissions', 'zero-spam' ),
 			'section'     => 'gravityforms',
 			'module'      => 'gravityforms',
 			'type'        => 'checkbox',

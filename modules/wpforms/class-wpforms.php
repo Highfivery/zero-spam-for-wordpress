@@ -23,6 +23,7 @@ class WPForms {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -31,7 +32,6 @@ class WPForms {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -188,7 +188,7 @@ class WPForms {
 		$options = get_option( 'zero-spam-wpforms' );
 
 		$settings['verify_wpforms'] = array(
-			'title'       => __( 'Protect WPForms Submissions', 'zero-spam' ),
+			'title'       => __( 'Protect WPForms submissions', 'zero-spam' ),
 			'desc'        => __( 'Stop spam from WPForms.', 'zero-spam' ),
 			'section'     => 'wpforms',
 			'module'      => 'wpforms',
@@ -203,7 +203,7 @@ class WPForms {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['wpforms_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when WPForms detects spam.', 'zero-spam' ),
 			'section'     => 'wpforms',
 			'module'      => 'wpforms',
@@ -215,7 +215,7 @@ class WPForms {
 		);
 
 		$settings['log_blocked_wpforms'] = array(
-			'title'       => __( 'Log Blocked WPForms Submissions', 'zero-spam' ),
+			'title'       => __( 'Log blocked WPForms submissions', 'zero-spam' ),
 			'section'     => 'wpforms',
 			'module'      => 'wpforms',
 			'type'        => 'checkbox',

@@ -34,6 +34,20 @@ defined( 'ABSPATH' ) || die();
 class Settings_Controller extends Base_Controller {
 
 	/**
+	 * Largest old or new value the settings audit keeps as it is (bytes).
+	 *
+	 * @since 6.0.1
+	 */
+	const AUDIT_VALUE_MAX_BYTES = 2048;
+
+	/**
+	 * Most the settings audit (`zerospam_settings_audit`) may hold, serialised.
+	 *
+	 * @since 6.0.1
+	 */
+	const AUDIT_MAX_BYTES = 262144;
+
+	/**
 	 * REST API namespace.
 	 *
 	 * @var string
@@ -1205,10 +1219,79 @@ class Settings_Controller extends Base_Controller {
 		// Add entry to beginning of array.
 		array_unshift( $audit, $entry );
 
-		// Keep only last 100 entries.
-		$audit = array_slice( $audit, 0, 100 );
+		// Keep the last 100 entries within the byte budget. Entries saved before
+		// 6.0.1 may hold whole lists, so every entry is summarised, and sized once.
+		$kept  = array();
+		$total = 0;
+		foreach ( array_slice( $audit, 0, 100 ) as $item ) {
+			$item = self::compact_audit_entry( $item );
+			$size = strlen( serialize( $item ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Measures the size the option is stored at.
+			if ( array() !== $kept && $total + $size > self::AUDIT_MAX_BYTES ) {
+				break;
+			}
+			$kept[] = $item;
+			$total += $size;
+		}
 
-		update_option( 'zerospam_settings_audit', $audit, false );
+		update_option( 'zerospam_settings_audit', $kept, false );
+	}
+
+	/**
+	 * An audit entry with every change's old and new value as the audit keeps
+	 * them (`audit_value()`); also shrinks entries saved before 6.0.1.
+	 *
+	 * @since 6.0.1
+	 *
+	 * @param mixed $entry Audit entry.
+	 * @return mixed
+	 */
+	private static function compact_audit_entry( mixed $entry ): mixed {
+		if ( ! is_array( $entry ) || ! isset( $entry['changes'] ) || ! is_array( $entry['changes'] ) ) {
+			return $entry;
+		}
+		foreach ( $entry['changes'] as $key => $change ) {
+			if ( ! is_array( $change ) ) {
+				continue;
+			}
+			foreach ( array( 'old', 'new' ) as $side ) {
+				if ( array_key_exists( $side, $change ) ) {
+					$entry['changes'][ $key ][ $side ] = self::audit_value( $change[ $side ] );
+				}
+			}
+		}
+		return $entry;
+	}
+
+	/**
+	 * A value as the audit keeps it: as it is when short, otherwise a summary
+	 * (lines, bytes and a SHA-1 to tell versions apart), so saving a list of
+	 * tens of thousands of entries does not store it twice per entry (#404).
+	 *
+	 * @since 6.0.1
+	 *
+	 * @param mixed $value Old or new value of a change.
+	 * @return mixed
+	 */
+	private static function audit_value( mixed $value ): mixed {
+		$text = null;
+		if ( is_string( $value ) ) {
+			$text = $value;
+		} elseif ( is_array( $value ) ) {
+			$json = wp_json_encode( $value );
+			$text = false === $json ? serialize( $value ) : $json; // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Only sizes a value JSON cannot encode.
+		}
+		if ( null === $text || strlen( $text ) <= self::AUDIT_VALUE_MAX_BYTES ) {
+			return $value;
+		}
+
+		$lines = is_array( $value ) ? count( $value ) : count( array_filter( explode( "\n", str_replace( "\r", '', $text ) ), static fn( string $line ): bool => '' !== trim( $line ) ) );
+
+		return array(
+			'summary' => true,
+			'lines'   => $lines,
+			'bytes'   => strlen( $text ),
+			'sha1'    => sha1( $text ),
+		);
 	}
 
 	/**

@@ -195,7 +195,9 @@ final class Settings_Schema {
 	 * templates, imports and Utilities::update_setting().
 	 *
 	 * - `blocked_email_domains` is moved to its own option, which is never
-	 *   autoloaded (OWN_OPTIONS), and removed from the module option;
+	 *   autoloaded (OWN_OPTIONS), and removed from the module option. An old
+	 *   copy a writer only carried along (the value this option already stores)
+	 *   never replaces the list's own option, which is the one read;
 	 * - `trusted_proxies` keeps only valid IP addresses and CIDR ranges, one
 	 *   per line (the REST route refuses invalid entries before this).
 	 *
@@ -214,7 +216,7 @@ final class Settings_Schema {
 			$domains = $value['blocked_email_domains'];
 			unset( $value['blocked_email_domains'] );
 
-			if ( is_string( $domains ) ) {
+			if ( is_string( $domains ) && ! self::is_carried_copy( $domains ) ) {
 				update_option( self::OWN_OPTIONS['blocked_email_domains'], $domains, false );
 			}
 		}
@@ -224,6 +226,21 @@ final class Settings_Schema {
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Whether a blocked email domains value only repeats the copy 5.x left in
+	 * `zero-spam-settings` while the list's own option holds the current list.
+	 *
+	 * @param string $domains Value being written.
+	 */
+	private static function is_carried_copy( string $domains ): bool {
+		$stored = get_option( 'zero-spam-settings' );
+
+		return is_array( $stored )
+			&& isset( $stored['blocked_email_domains'] )
+			&& $stored['blocked_email_domains'] === $domains
+			&& false !== get_option( self::OWN_OPTIONS['blocked_email_domains'] );
 	}
 
 	/**
@@ -338,9 +355,25 @@ final class Settings_Schema {
 	 * @return mixed
 	 */
 	public static function value( string $key ) {
-		$registry = self::registry();
+		if ( isset( self::OWN_OPTIONS[ $key ] ) ) {
+			// A list: Settings keeps it for the request, so a form reads it once (#404).
+			return Settings::get_settings( $key );
+		}
+
+		$registry = self::registry_for_values();
 
 		return ! empty( $registry[ $key ]['value'] ) ? $registry[ $key ]['value'] : false;
+	}
+
+	/**
+	 * The registry to read one setting from: the one already built for this
+	 * request if there is one, so a request builds it once, otherwise the one
+	 * without lists.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function registry_for_values(): array {
+		return self::$cache[ get_current_blog_id() ]['registry'] ?? Settings::get_settings_without_lists();
 	}
 
 	/**
@@ -489,6 +522,7 @@ final class Settings_Schema {
 	 */
 	public static function reset_cache(): void {
 		self::$cache = array();
+		Settings::reset_cache();
 	}
 
 	/**
@@ -755,6 +789,7 @@ final class Settings_Schema {
 						remove_filter( $hook, $callback, PHP_INT_MAX );
 					}
 					Settings::$settings = $core;
+					Settings::reset_cache(); // Nothing read under the empty options stays cached.
 				}
 
 				$defaults = array();
@@ -783,17 +818,26 @@ final class Settings_Schema {
 		$network = self::remember(
 			'network',
 			static function (): array {
-				$stored = get_site_transient( Network_Settings::cache_key() );
-
-				if ( false === $stored ) {
-					$stored = get_site_option( Network_Settings::META_KEY, array() );
-				}
-
-				return self::normalize_network_store( $stored );
+				// The cached copy (lists' values stay in the store, read below when asked for).
+				return self::normalize_network_store( Network_Settings::cached_without_lists() );
 			}
 		);
 
-		return isset( $network['settings'][ $key ] ) && is_array( $network['settings'][ $key ] ) ? $network['settings'][ $key ] : null;
+		if ( ! isset( $network['settings'][ $key ] ) || ! is_array( $network['settings'][ $key ] ) ) {
+			return null;
+		}
+
+		$entry = $network['settings'][ $key ];
+		if ( ! empty( $entry[ Network_Settings::VALUE_IN_STORE ] ) ) {
+			// The cache leaves a list's value in the store; read it only when asked for.
+			unset( $entry[ Network_Settings::VALUE_IN_STORE ] );
+			$value = Network_Settings::list_value( $key );
+			if ( null !== $value ) {
+				$entry['value'] = $value;
+			}
+		}
+
+		return $entry;
 	}
 
 	/**
@@ -820,7 +864,7 @@ final class Settings_Schema {
 	}
 
 	/**
-	 * Whether the site's module option stores the key (the test
+	 * Whether the site stores its own value for the key (the test
 	 * Network_Settings uses for a site override), and the stored value.
 	 *
 	 * @param string $key    Setting key.
@@ -828,6 +872,24 @@ final class Settings_Schema {
 	 * @return array{stored: bool, value: mixed}
 	 */
 	private static function site_value( string $key, string $module ): array {
+		// A list lives in its own option; on a network the site's own list is
+		// an override unless it is empty or the same as the network's
+		// (Network_Settings::resolve_all_settings()).
+		if ( isset( self::OWN_OPTIONS[ $key ] ) && is_multisite() ) {
+			$own     = \ZeroSpam\Includes\Network_Settings::own_list( $key );
+			$network = \ZeroSpam\Includes\Network_Settings::list_value( $key );
+
+			return null !== $own && $own !== $network
+				? array(
+					'stored' => true,
+					'value'  => $own,
+				)
+				: array(
+					'stored' => false,
+					'value'  => null,
+				);
+		}
+
 		$option = get_option( "zero-spam-{$module}", array() );
 
 		if ( is_array( $option ) && isset( $option[ $key ] ) ) {

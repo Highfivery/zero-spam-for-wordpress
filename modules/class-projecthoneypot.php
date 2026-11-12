@@ -18,6 +18,7 @@ class ProjectHoneypot {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -26,7 +27,6 @@ class ProjectHoneypot {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 
 		if ( \ZeroSpam\Core\Access::process() ) {
 			add_filter( 'zerospam_access_checks', array( $this, 'access_check' ), 10, 2 );
@@ -40,7 +40,7 @@ class ProjectHoneypot {
 	 * @param string $user_ip       IP address to check.
 	 */
 	public function access_check( $access_checks, $user_ip ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		$access_checks['project_honeypot'] = array(
 			'blocked' => false,
@@ -75,41 +75,49 @@ class ProjectHoneypot {
 	 * @param string $ip IP address to query.
 	 */
 	public function query( $ip ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
 		// Check that an access key has been provided.
-		if ( empty( $settings['project_honeypot_access_key']['value'] ) || ! $ip ) {
+		// http:BL answers for IPv4 addresses only.
+		if ( empty( $settings['project_honeypot_access_key']['value'] ) || ! filter_var( (string) $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {
 			return false;
 		}
 
 		$cache_key = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'project_honeypot',
-				$ip,
+				md5( $ip ),
 			)
 		);
 
-		$response = wp_cache_get( $cache_key );
+		$response = wp_cache_get( $cache_key, 'zerospam' );
+		if ( is_array( $response ) && isset( $response['listed'] ) ) {
+			// An address http:BL does not list, cached as such.
+			return false;
+		}
 		if ( false === $response ) {
 			$octets = explode( '.', $ip );
 			krsort( $octets );
 
 			$reversed_ip = implode( '.', $octets );
-			if ( strlen( $reversed_ip ) > 16 ) {
-				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Warning: IPv6 ip addresses not supported: ' . $ip );
-				return false;
-			}
 
 			$endpoint  = $settings['project_honeypot_access_key']['value'] . '.' . $reversed_ip . '.dnsbl.httpbl.org';
 			$dns_array = dns_get_record( $endpoint, DNS_A );
 
-			if ( ! isset( $dns_array[0]['ip'] ) ) {
-				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Error: could not get DNS information for ' . $endpoint . ': ' . wp_json_encode( $dns_array ) );
+			if ( false === $dns_array ) {
+				// The lookup itself failed. Never log the host name: it holds the access key.
+				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Error: the DNS lookup failed.' );
 				return false;
 			}
 
-			$results = explode( '.', $dns_array[0]['ip'] );
-			if ( '127' !== $results[0] ) {
+			if ( ! isset( $dns_array[0]['ip'] ) ) {
+				// No record: http:BL does not list the address. Remember that for a day.
+				wp_cache_set( $cache_key, array( 'listed' => false ), 'zerospam', DAY_IN_SECONDS );
+				return false;
+			}
+
+			$results = explode( '.', (string) $dns_array[0]['ip'] );
+			if ( '127' !== $results[0] || count( $results ) < 4 ) {
 				\ZeroSpam\Core\Utilities::log( 'Project Honeypot Error: query error' );
 				return false;
 			}
@@ -154,7 +162,7 @@ class ProjectHoneypot {
 
 			$expiration = 14 * DAY_IN_SECONDS;
 			if ( ! empty( $settings['project_honeypot_cache']['value'] ) ) {
-				$expiration = $settings['project_honeypot_cache']['value'] * DAY_IN_SECONDS;
+				$expiration = absint( $settings['project_honeypot_cache']['value'] ) * DAY_IN_SECONDS;
 			}
 			wp_cache_set( $cache_key, $response, 'zerospam', $expiration );
 		}
@@ -210,7 +218,7 @@ class ProjectHoneypot {
 		);
 
 		$settings['project_honeypot_access_key'] = array(
-			'title'       => __( 'HTTP:BL Access Key', 'zero-spam' ),
+			'title'       => __( 'HTTP:BL access key', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: URL to sign up, %2$s: URL to HTTP:BL configuration page */
@@ -235,7 +243,7 @@ class ProjectHoneypot {
 		);
 
 		$settings['project_honeypot_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zero-spam' ),
+			'title'       => __( 'Cache expiration', 'zero-spam' ),
 			'section'     => 'project_honeypot',
 			'module'      => 'project_honeypot',
 			'type'        => 'number',
@@ -249,7 +257,7 @@ class ProjectHoneypot {
 		);
 
 		$settings['project_honeypot_score_min'] = array(
-			'title'       => __( 'Threat Score Minimum', 'zero-spam' ),
+			'title'       => __( 'Threat score minimum', 'zero-spam' ),
 			'section'     => 'project_honeypot',
 			'module'      => 'project_honeypot',
 			'type'        => 'number',

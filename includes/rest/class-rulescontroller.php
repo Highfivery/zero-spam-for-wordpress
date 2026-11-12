@@ -407,8 +407,10 @@ class Rules_Controller extends Base_Controller {
 		$by        = '%i';
 		$by_values = array( $orderby );
 		if ( 'user_ip' === $orderby ) {
-			// Addresses by number: IPv4 (INET_ATON) before IPv6, then as stored.
-			$by        = "INSTR( `user_ip`, ':' ) > 0 {$order}, INET_ATON( `user_ip` ) {$order}, `user_ip`";
+			// Addresses by number: IPv4 (INET_ATON) before IPv6 (INET6_ATON where the
+			// database has it: MySQL 5.6.3+, MariaDB 10.0.12+), then as stored.
+			$by_v6     = self::has_inet6_aton() ? " INET6_ATON( `user_ip` ) {$order}," : '';
+			$by        = "INSTR( `user_ip`, ':' ) > 0 {$order}, INET_ATON( `user_ip` ) {$order},{$by_v6} `user_ip`";
 			$by_values = array();
 		} elseif ( 'blocked_key' === $orderby ) {
 			$names = self::blocked_country_names( $table );
@@ -435,6 +437,17 @@ class Rules_Controller extends Base_Controller {
 				),
 				ARRAY_A
 			);
+
+			// A database without INET_ATON()/INET6_ATON(): addresses as text rather than an empty page.
+			if ( null === $rows && 'user_ip' === $orderby ) {
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT * FROM %i{$where} ORDER BY `user_ip` {$order}, `blocked_id` {$order} LIMIT %d OFFSET %d",
+						array_merge( array( $table ), $values, array( $per_page, ( $page - 1 ) * $per_page ) )
+					),
+					ARRAY_A
+				);
+			}
 		}
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
@@ -476,10 +489,16 @@ class Rules_Controller extends Base_Controller {
 	public function create_block( $request ) {
 		global $wpdb;
 
-		$record = $this->check_block( $this->body( $request ), null );
+		$body   = $this->body( $request );
+		$record = $this->check_block( $body, null );
 
 		if ( is_wp_error( $record ) ) {
 			return $record;
+		}
+
+		$question = self::lockout_question( $record, $body );
+		if ( $question ) {
+			return $question;
 		}
 
 		$existing = 'ip' === $record['key_type']
@@ -554,6 +573,12 @@ class Rules_Controller extends Base_Controller {
 				}
 
 				$invalid[ $ip ] = (string) ( $params['ip'] ?? $record->get_error_message() );
+				continue;
+			}
+
+			// Your own address is never blocked in passing: block it from the drawer, which asks.
+			if ( self::lockout_question( $record, $body ) ) {
+				$invalid[ $ip ] = __( 'This is your own address, so it was not blocked: blocking it can lock you out. Block it on its own if you mean to.', 'zero-spam' );
 				continue;
 			}
 
@@ -672,7 +697,8 @@ class Rules_Controller extends Base_Controller {
 			return $this->block_not_found();
 		}
 
-		$record = $this->check_block( $this->body( $request ), $row );
+		$body   = $this->body( $request );
+		$record = $this->check_block( $body, $row );
 
 		if ( is_wp_error( $record ) ) {
 			return $record;
@@ -691,6 +717,16 @@ class Rules_Controller extends Base_Controller {
 					'block_id' => (int) $other['blocked_id'],
 				)
 			);
+		}
+
+		// Only when the address or location changes: editing the reason or dates of
+		// a block already in place does not ask again.
+		$same     = 'ip' === $record['key_type']
+			? User::normalize_ip( (string) $record['user_ip'] ) === User::normalize_ip( (string) ( $row['user_ip'] ?? '' ) )
+			: 0 === strcasecmp( (string) $record['blocked_key'], (string) ( $row['blocked_key'] ?? '' ) ) && ( $row['key_type'] ?? '' ) === $record['key_type'];
+		$question = $same ? null : self::lockout_question( $record, $body );
+		if ( $question ) {
+			return $question;
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Updates the plugin's own row.
@@ -1050,10 +1086,113 @@ class Rules_Controller extends Base_Controller {
 			'type'       => 'temporary' === ( $row['blocked_type'] ?? '' ) ? 'temporary' : 'permanent',
 			'start'      => self::utc_date( $row['start_block'] ?? null ),
 			'end'        => 'temporary' === ( $row['blocked_type'] ?? '' ) ? self::utc_date( $row['end_block'] ?? null ) : null,
-			'reason'     => isset( $row['reason'] ) && '' !== (string) $row['reason'] ? (string) $row['reason'] : null,
+			'reason'     => self::reason_text( $row['reason'] ?? null ),
 			'date_added' => isset( $row['date_added'] ) && '' !== (string) $row['date_added'] ? mysql_to_rfc3339( (string) $row['date_added'] ) : null,
 			'active'     => ! empty( Access::get_blocked_details( $row )['blocked'] ),
 		);
+	}
+
+	/**
+	 * Asks before a block that would lock the administrator out: their own
+	 * address, or a location their address is in (as Zero Spam looks it up),
+	 * while the address is not on the no-lockout list or the IP Allowlist.
+	 * Answers 409 `rest_would_lock_out` unless the body says `confirm: true`.
+	 * Advisory: when no location service answers, nothing is asked. The
+	 * location lookup uses only the services the owner set up, cached a week.
+	 *
+	 * @since 6.0.1
+	 *
+	 * @param array<string, mixed> $record Checked block.
+	 * @param array<string, mixed> $body   Request body.
+	 */
+	private static function lockout_question( array $record, array $body ): ?WP_Error {
+		if ( rest_sanitize_boolean( $body['confirm'] ?? false ) ) {
+			return null;
+		}
+
+		$current = User::get_ip();
+		$current = is_string( $current ) ? User::normalize_ip( $current ) : '';
+		// The no-lockout list and the IP Allowlist both keep this address in.
+		if ( '' === $current || Admin_Safe_IPs::contains( $current ) || self::is_allowed_ip( $current ) ) {
+			return null;
+		}
+
+		if ( 'ip' === $record['key_type'] ) {
+			if ( ! self::is_current_ip( (string) $record['user_ip'] ) ) {
+				return null;
+			}
+
+			return new WP_Error(
+				'rest_would_lock_out',
+				sprintf(
+					/* translators: %s: IP address */
+					__( '%s is your own address. Blocking it can lock you out of this site. Add it to the no-lockout addresses first, or block it anyway.', 'zero-spam' ),
+					$current
+				),
+				array(
+					'status' => 409,
+					'ip'     => $current,
+				)
+			);
+		}
+
+		$location = Utilities::geolocation( $current );
+		$yours    = is_array( $location ) ? (string) ( $location[ (string) $record['key_type'] ] ?? '' ) : '';
+		// Compared as the database matches it at login: case and accents ignored.
+		$fold = static fn( string $text ): string => mb_strtolower( remove_accents( trim( $text ) ), 'UTF-8' );
+		if ( '' === $yours || $fold( $yours ) !== $fold( (string) $record['blocked_key'] ) ) {
+			return null;
+		}
+
+		return new WP_Error(
+			'rest_would_lock_out',
+			sprintf(
+				/* translators: %s: IP address */
+				__( 'Your own address (%s) is in this location. Blocking it can lock you out of this site. Add your address to the no-lockout addresses first, or block it anyway.', 'zero-spam' ),
+				$current
+			),
+			array(
+				'status' => 409,
+				'ip'     => $current,
+			)
+		);
+	}
+
+	/**
+	 * A block's reason as it was typed, or null when there is none. Stored
+	 * reasons are entity-encoded (sanitising turns "<" into "&lt;"); clients
+	 * show the answer as text, never as markup.
+	 *
+	 * @since 6.0.1
+	 *
+	 * @param mixed $reason Stored reason.
+	 */
+	public static function reason_text( mixed $reason ): ?string {
+		if ( ! is_scalar( $reason ) || '' === (string) $reason ) {
+			return null;
+		}
+
+		return html_entity_decode( (string) $reason, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+	}
+
+	/**
+	 * Whether the database has INET6_ATON() (MySQL 5.6.3+, MariaDB 10.0.12+).
+	 *
+	 * @since 6.0.1
+	 */
+	private static function has_inet6_aton(): bool {
+		global $wpdb;
+
+		if ( defined( 'DB_ENGINE' ) && 'sqlite' === DB_ENGINE ) {
+			return false;
+		}
+
+		$info = (string) $wpdb->db_server_info();
+		if ( preg_match( '/(\d+\.\d+\.\d+)-MariaDB/i', $info, $match ) ) {
+			return version_compare( $match[1], '10.0.12', '>=' );
+		}
+
+		return version_compare( (string) $wpdb->db_version(), '5.6.3', '>=' );
 	}
 
 	/**
@@ -1178,7 +1317,11 @@ class Rules_Controller extends Base_Controller {
 			if ( null !== $reason && ! is_string( $reason ) ) {
 				$errors['reason'] = __( 'Must be text.', 'zero-spam' );
 			} else {
-				$reason = sanitize_text_field( (string) $reason );
+				// A reason sent back as it was answered keeps its stored form (sanitising
+				// the decoded text again could change a reason nobody edited).
+				$reason = null !== $existing && self::reason_text( $existing['reason'] ?? null ) === $reason
+					? (string) $existing['reason']
+					: sanitize_text_field( (string) $reason );
 
 				if ( strlen( $reason ) > 255 ) {
 					$errors['reason'] = __( 'Must be at most 255 characters.', 'zero-spam' );

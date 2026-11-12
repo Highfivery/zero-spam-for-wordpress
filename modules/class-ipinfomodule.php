@@ -18,6 +18,7 @@ class IPinfoModule {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -26,7 +27,6 @@ class IPinfoModule {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_log_record', array( $this, 'log_record' ) );
 	}
 
@@ -68,7 +68,7 @@ class IPinfoModule {
 		}
 
 		$settings['ipinfo_how_it_works'] = array(
-			'title'   => __( 'How It Works', 'zero-spam' ),
+			'title'   => __( 'How it works', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'ipinfo',
 			'module'  => 'ipinfo',
@@ -99,7 +99,7 @@ class IPinfoModule {
 		}
 
 		$settings['ipinfo_why_use'] = array(
-			'title'   => __( 'Why Use IPinfo?', 'zero-spam' ),
+			'title'   => __( 'Why use IPinfo?', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'ipinfo',
 			'module'  => 'ipinfo',
@@ -115,7 +115,7 @@ class IPinfoModule {
 
 		// Access Token field.
 		$settings['ipinfo_access_token'] = array(
-			'title'       => __( 'Access Token', 'zero-spam' ),
+			'title'       => __( 'Access token', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the IPInfo URL, %2$s: Replaced with the IPinfo signup URL */
@@ -142,7 +142,7 @@ class IPinfoModule {
 
 		// Cache Expiration field.
 		$settings['ipinfo_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zero-spam' ),
+			'title'       => __( 'Cache expiration', 'zero-spam' ),
 			'section'     => 'ipinfo',
 			'module'      => 'ipinfo',
 			'type'        => 'number',
@@ -203,7 +203,7 @@ class IPinfoModule {
 		}
 
 		$settings['ipinfo_testing'] = array(
-			'title'   => __( 'How to Test', 'zero-spam' ),
+			'title'   => __( 'How to test', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'ipinfo',
 			'module'  => 'ipinfo',
@@ -273,9 +273,9 @@ class IPinfoModule {
 	 * @return array|false Normalized location array or false on failure.
 	 */
 	public static function get_geolocation( $ip ) {
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 
-		if ( empty( $settings['ipinfo_access_token']['value'] ) ) {
+		if ( empty( $settings['ipinfo_access_token']['value'] ) || ! rest_is_ip_address( (string) $ip ) ) {
 			return false;
 		}
 
@@ -283,13 +283,13 @@ class IPinfoModule {
 		$cache_key     = \ZeroSpam\Core\Utilities::cache_key(
 			array(
 				'ipinfo',
-				$ip,
+				md5( $ip ),
 			)
 		);
 		$transient_key = 'zerospam_ipinfo_' . md5( $ip );
 
 		// Check object cache first (non-persistent, fastest).
-		$result = wp_cache_get( $cache_key );
+		$result = wp_cache_get( $cache_key, 'zerospam' );
 		if ( false !== $result ) {
 			return $result;
 		}
@@ -300,7 +300,7 @@ class IPinfoModule {
 			// Store in object cache for this request.
 			$expiration = 14 * DAY_IN_SECONDS;
 			if ( ! empty( $settings['ipinfo_cache']['value'] ) ) {
-				$expiration = $settings['ipinfo_cache']['value'] * DAY_IN_SECONDS;
+				$expiration = absint( $settings['ipinfo_cache']['value'] ) * DAY_IN_SECONDS;
 			}
 			wp_cache_set( $cache_key, $result, 'zerospam', $expiration );
 			return $result;
@@ -387,7 +387,7 @@ class IPinfoModule {
 		// Cache the result in both transient and object cache.
 		$expiration = 14 * DAY_IN_SECONDS;
 		if ( ! empty( $settings['ipinfo_cache']['value'] ) ) {
-			$expiration = $settings['ipinfo_cache']['value'] * DAY_IN_SECONDS;
+			$expiration = absint( $settings['ipinfo_cache']['value'] ) * DAY_IN_SECONDS;
 		}
 
 		set_transient( $transient_key, $result, $expiration );

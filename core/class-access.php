@@ -64,6 +64,9 @@ class Access {
 		// Protect login.
 		add_action( 'login_init', array( $this, 'login_access_check' ) );
 
+		// Protect a network's sign-up page, which never fires template_redirect.
+		add_action( 'before_signup_header', array( $this, 'login_access_check' ) );
+
 		// Protect XML-RPC.
 		add_action( 'xmlrpc_call', array( $this, 'xmlrpc_access_check' ) );
 	}
@@ -367,7 +370,7 @@ class Access {
 		$access = self::get_access();
 
 		if ( ! empty( $access['blocked'] ) ) {
-			$settings = ZeroSpam\Core\Settings::get_settings();
+			$settings = ZeroSpam\Core\Settings::get_settings_without_lists();
 
 			// The first log row written for this block, shown on the page as its reference.
 			$reference = 0;
@@ -552,7 +555,7 @@ class Access {
 	 * Gets the current user's access
 	 */
 	public function get_access() {
-		$settings = ZeroSpam\Core\Settings::get_settings();
+		$settings = ZeroSpam\Core\Settings::get_settings_without_lists();
 		$user_ip  = ZeroSpam\Core\User::get_ip();
 
 		$access = array(

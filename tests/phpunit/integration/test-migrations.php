@@ -40,6 +40,7 @@ class Test_Migrations extends TestCase {
 		'v6_remove_google_api',
 		'v6_spam_message_wording',
 		'v6_usage_endpoint_privacy',
+		'v6_blocked_domains_option',
 	);
 
 	/**

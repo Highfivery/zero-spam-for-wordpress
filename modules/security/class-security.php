@@ -20,6 +20,7 @@ class Security {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -36,13 +37,12 @@ class Security {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 
 		// Fired on detections.
-		add_action( 'zero_spam_detection', array( $this, 'handle_detection' ), 10, 2 );
+		add_action( 'zero_spam_detection', array( $this, 'handle_detection' ) );
 
-		// The registry is rebuilt on every Settings::get_settings() call: read it once.
-		$settings = \ZeroSpam\Core\Settings::get_settings();
+		// Without the blocked email domains list, which this module does not need.
+		$settings = \ZeroSpam\Core\Settings::get_settings_without_lists();
 		$enabled  = static function ( string $key ) use ( $settings ): bool {
 			return isset( $settings[ $key ]['value'] ) && 'enabled' === $settings[ $key ]['value'];
 		};
@@ -60,19 +60,26 @@ class Security {
 		// and brute force your WordPress logins among other vectors.
 		if ( $enabled( 'disable_xmlrpc' ) ) {
 			add_filter( 'xmlrpc_enabled', '__return_false' );
-			add_action( 'init', array( $this, 'block_xmlrpc' ) );
+			// Called now: this runs on `init`, and a callback added to `init` at
+			// the priority that is running would be skipped.
+			$this->block_xmlrpc();
 		}
 
 		if ( $enabled( 'remove_resource_query_parameters' ) ) {
-			add_filter( 'style_loader_src', array( $this, 'remove_resource_query_params' ), 10, 2 );
-			add_filter( 'script_loader_src', array( $this, 'remove_resource_query_params' ), 10, 2 );
+			add_filter( 'style_loader_src', array( $this, 'remove_resource_query_params' ) );
+			add_filter( 'script_loader_src', array( $this, 'remove_resource_query_params' ) );
 		}
 
 		if ( $enabled( 'disable_emojis' ) ) {
 			remove_action( 'wp_head', 'print_emoji_detection_script', 7 );
-			remove_action( 'admin_print_scripts', 'print_emoji_detection_script' );
+			remove_action( 'embed_head', 'print_emoji_detection_script' );
+			// Since WordPress 6.4 the styles are enqueued; the print_* hooks are kept for older code.
+			remove_action( 'wp_enqueue_scripts', 'wp_enqueue_emoji_styles' );
+			remove_action( 'enqueue_embed_scripts', 'wp_enqueue_emoji_styles' );
 			remove_action( 'wp_print_styles', 'print_emoji_styles' );
-			remove_action( 'admin_print_styles', 'print_emoji_styles' );
+			// The admin's emoji hooks are added by wp-admin/includes/admin-filters.php,
+			// which loads after `init`: remove them once the admin has loaded.
+			add_action( 'admin_init', array( $this, 'disable_admin_emojis' ) );
 			remove_filter( 'the_content_feed', 'wp_staticize_emoji' );
 			remove_filter( 'comment_text_rss', 'wp_staticize_emoji' );
 			remove_filter( 'wp_mail', 'wp_staticize_emoji_for_email' );
@@ -146,7 +153,7 @@ class Security {
 		);
 
 		$settings['hide_wp_version'] = array(
-			'title'       => __( 'Hide the WordPress Version', 'zero-spam' ),
+			'title'       => __( 'Hide the WordPress version', 'zero-spam' ),
 			'desc'        => __( 'Removes the WordPress version from your pages and feeds, so scanners cannot easily tell which known weaknesses to try.', 'zero-spam' ),
 			'module'      => 'security',
 			'type'        => 'checkbox',
@@ -159,7 +166,7 @@ class Security {
 		);
 
 		$settings['remove_resource_query_parameters'] = array(
-			'title'   => __( 'Remove Resource Query Parameters', 'zero-spam' ),
+			'title'   => __( 'Remove resource query parameters', 'zero-spam' ),
 			'desc'    => wp_kses(
 				__( 'Web scanners love the <code>&ver=x.x.x</code> type arguments that are appended to your CSS and JS files. This is useful for caching systems and implementing this change could affect the quality of your cache. As long as you are aware of the effects or risks, there really shouldn’t be any other detrimental effects.', 'zero-spam' ),
 				array(
@@ -181,7 +188,7 @@ class Security {
 		);
 
 		$settings['disable_emojis'] = array(
-			'title'       => __( 'Disable WordPress Emojis', 'zero-spam' ),
+			'title'       => __( 'Disable WordPress emojis', 'zero-spam' ),
 			'desc'        => wp_kses(
 				__( 'WordPress emoji’s are one of the vectors scanners use in order to enumerate version information, disable them if you\'re not using them.', 'zero-spam' ),
 				array(
@@ -204,7 +211,7 @@ class Security {
 		);
 
 		$settings['disable_rss_feed'] = array(
-			'title'   => __( 'Disable WordPress RSS Feed', 'zero-spam' ),
+			'title'   => __( 'Disable WordPress RSS feed', 'zero-spam' ),
 			'desc'    => wp_kses(
 				__( 'Having the RSS feed exposed is another way that scanners use to detect your WordPress version as well as other pertinent information such as authors, disable it if you\'re not using it.', 'zero-spam' ),
 				array(
@@ -243,6 +250,17 @@ class Security {
 	}
 
 	/**
+	 * Removes the emoji script and styles from the admin (the `admin_init` callback).
+	 *
+	 * @since 6.0.1
+	 */
+	public function disable_admin_emojis(): void {
+		remove_action( 'admin_print_scripts', 'print_emoji_detection_script' );
+		remove_action( 'admin_enqueue_scripts', 'wp_enqueue_emoji_styles' );
+		remove_action( 'admin_print_styles', 'print_emoji_styles' );
+	}
+
+	/**
 	 * Disables RSS feeds
 	 */
 	public function disable_rss() {
@@ -256,7 +274,10 @@ class Security {
 	 * @return string URL without a ver argument that matches the WordPress version.
 	 */
 	public function remove_resource_query_params( $src ) {
-		if ( strpos( $src, 'ver=' . get_bloginfo( 'version' ) ) ) {
+		// Only the exact WordPress version: a plugin's own 6.9.1 must keep its value.
+		$query = (string) wp_parse_url( (string) $src, PHP_URL_QUERY );
+		parse_str( $query, $args );
+		if ( isset( $args['ver'] ) && get_bloginfo( 'version' ) === $args['ver'] ) {
 			$src = remove_query_arg( 'ver', $src );
 		}
 

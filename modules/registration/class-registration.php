@@ -2,6 +2,9 @@
 /**
  * Registration integration module
  *
+ * Covers wp-login.php's registration form on a single site and wp-signup.php
+ * on a network, which fires none of that form's hooks.
+ *
  * Malicious user detection techniques available:
  *
  * 1. Zero Spam honeypot field
@@ -25,6 +28,7 @@ class Registration {
 	 * Constructor
 	 */
 	public function __construct() {
+		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_action( 'init', array( $this, 'init' ) );
 	}
 
@@ -33,7 +37,6 @@ class Registration {
 	 */
 	public function init() {
 		add_filter( 'zerospam_setting_sections', array( $this, 'sections' ) );
-		add_filter( 'zerospam_settings', array( $this, 'settings' ), 10, 1 );
 		add_filter( 'zerospam_types', array( $this, 'types' ), 10, 1 );
 
 		if (
@@ -43,6 +46,11 @@ class Registration {
 			add_action( 'register_form', array( $this, 'add_scripts' ) );
 			add_action( 'register_form', array( $this, 'add_honeypot_field' ) );
 			add_filter( 'registration_errors', array( $this, 'process_form' ), 10, 3 );
+
+			// A network's sign-up page. Both of its steps print and check the fields.
+			add_action( 'before_signup_form', array( $this, 'add_scripts' ) );
+			add_action( 'signup_hidden_fields', array( $this, 'add_honeypot_field' ) );
+			add_action( 'before_signup_header', array( $this, 'watch_signup' ) );
 		}
 	}
 
@@ -80,15 +88,63 @@ class Registration {
 	 * @param string   $user_email User's email.
 	 */
 	public function process_form( $errors, $sanitized_user_login, $user_email ) {
+		if ( $this->is_spam( (string) $sanitized_user_login, (string) $user_email ) ) {
+			$errors->add( 'zerospam_error', \ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' ) );
+		}
+
+		return $errors;
+	}
+
+	/**
+	 * Starts checking sign-ups, on wp-signup.php only.
+	 *
+	 * Core also runs `wpmu_validate_user_signup` for callers with no form of
+	 * ours (wp user create, the REST API, Add User, other plugins' forms), which
+	 * have no honeypot field or David Walsh key and must not be refused for it.
+	 */
+	public function watch_signup() {
+		add_filter( 'wpmu_validate_user_signup', array( $this, 'process_signup' ) );
+	}
+
+	/**
+	 * Preprocess a network's sign-ups.
+	 *
+	 * Runs on both steps of wp-signup.php: the second validates the user again,
+	 * and a bot can post it directly. The page prints the `generic` error
+	 * above the form, without escaping it.
+	 *
+	 * @param array $result The sign-up: user_name, orig_username, user_email and errors.
+	 * @return array
+	 */
+	public function process_signup( $result ) {
+		if ( ! is_array( $result ) || ! isset( $result['errors'] ) || ! is_wp_error( $result['errors'] ) ) {
+			return $result;
+		}
+
+		$user_login = isset( $result['user_name'] ) && is_string( $result['user_name'] ) ? $result['user_name'] : '';
+		$user_email = isset( $result['user_email'] ) && is_string( $result['user_email'] ) ? $result['user_email'] : '';
+
+		if ( $this->is_spam( $user_login, $user_email ) ) {
+			$result['errors']->add( 'generic', wp_kses_post( \ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' ) ) );
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Checks a registration, then logs and shares each reason it failed.
+	 *
+	 * @param string $user_login Username, after WordPress sanitized it.
+	 * @param string $user_email Email address.
+	 * @return bool True when the registration must be refused.
+	 */
+	private function is_spam( string $user_login, string $user_email ): bool {
 		// @codingStandardsIgnoreLine
 		$post = \ZeroSpam\Core\Utilities::sanitize_array( $_POST );
 
-		// Get the error message.
-		$error_message = \ZeroSpam\Core\Utilities::detection_message( 'registration_spam_message' );
-
 		// Create the details array for logging & sharing data.
 		$details = array(
-			'user_login' => $sanitized_user_login,
+			'user_login' => $user_login,
 			'user_email' => $user_email,
 			'type'       => 'registration',
 		);
@@ -132,26 +188,22 @@ class Registration {
 			}
 		}
 
-		if ( ! empty( $validation_errors ) ) {
-			// Failed validations, log & send details if enabled.
-			foreach ( $validation_errors as $key => $fail ) {
-				$details['failed'] = $fail;
+		// Failed validations, log & send details if enabled.
+		foreach ( $validation_errors as $fail ) {
+			$details['failed'] = $fail;
 
-				// Log the detection if enabled.
-				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
-					\ZeroSpam\Includes\DB::log( 'registration', $details );
-				}
-
-				// Share the detection if enabled.
-				if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
-					do_action( 'zerospam_share_detection', $details );
-				}
+			// Log the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'log_blocked_registrations' ) ) {
+				\ZeroSpam\Includes\DB::log( 'registration', $details );
 			}
 
-			$errors->add( 'zerospam_error', $error_message );
+			// Share the detection if enabled.
+			if ( 'enabled' === \ZeroSpam\Core\Settings::get_settings( 'share_data' ) ) {
+				do_action( 'zerospam_share_detection', $details );
+			}
 		}
 
-		return $errors;
+		return ! empty( $validation_errors );
 	}
 
 	/**
@@ -185,7 +237,7 @@ class Registration {
 		$options = get_option( 'zero-spam-registration' );
 
 		$settings['verify_registrations'] = array(
-			'title'       => __( 'Protect Registrations', 'zero-spam' ),
+			'title'       => __( 'Protect registrations', 'zero-spam' ),
 			'desc'        => __( 'Stop spam bots from creating fake user accounts.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
@@ -200,7 +252,7 @@ class Registration {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['registration_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown to spam bots trying to register.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
@@ -212,7 +264,7 @@ class Registration {
 		);
 
 		$settings['log_blocked_registrations'] = array(
-			'title'       => __( 'Log Blocked Registrations', 'zero-spam' ),
+			'title'       => __( 'Log blocked registrations', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'checkbox',

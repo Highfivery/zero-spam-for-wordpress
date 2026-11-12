@@ -236,6 +236,7 @@ function NetworkBlocks( { blocks, page, setPage, onChanged, remove } ) {
 			{ asking && (
 				<Confirm
 					id="zs-nbl-own"
+					safe
 					question={ asking }
 					yes={ __( 'Block it anyway', 'zero-spam' ) }
 					busy={ busy }
@@ -689,7 +690,17 @@ export function NetworkStats() {
 						</span>
 					</div>
 					{ wide ? (
-						<div className="zs-tbl-wrap">
+						// It can scroll sideways: focusable, so the keyboard can scroll it (WCAG 2.1.1).
+						<div
+							className="zs-tbl-wrap"
+							role="region"
+							aria-label={ sprintf(
+								/* translators: %s: time period, such as Last 30 days */
+								__( 'Spam by site, %s', 'zero-spam' ),
+								names[ period ]
+							) }
+							tabIndex={ 0 }
+						>
 							<table
 								className="zs-t zs-nstats-t"
 								aria-busy={ stats.loading ? 'true' : undefined }
@@ -860,6 +871,7 @@ export function NetworkStats() {
 					{ ownAddress && (
 						<Confirm
 							id="zs-nma-own"
+							safe
 							question={ ownAddress.message }
 							yes={ __( 'Block it anyway', 'zero-spam' ) }
 							onYes={ () => {

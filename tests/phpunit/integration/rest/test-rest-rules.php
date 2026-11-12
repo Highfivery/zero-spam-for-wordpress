@@ -553,6 +553,72 @@ class Test_Rest_Rules extends TestCase {
 	}
 
 	/**
+	 * Saving a long list keeps the audit small: an entry records a summary of
+	 * the list instead of its whole old and new values, and the audit log
+	 * stays within its byte budget however many lists are saved (#404).
+	 */
+	public function test_long_list_changes_keep_the_audit_small(): void {
+		$route   = '/zero-spam/v1/rules/lists/email-domains';
+		$domains = array();
+		for ( $i = 0; $i < 20000; $i++ ) {
+			$domains[] = "spam-{$i}.example";
+		}
+
+		for ( $round = 0; $round < 8; $round++ ) {
+			$this->assertSame( 200, $this->rest( 'PUT', $route, array( 'items' => array_slice( $domains, $round, 19000 ) ) )->get_status() );
+		}
+
+		$audit = get_option( 'zerospam_settings_audit' );
+		$this->assertIsArray( $audit );
+		$this->assertLessThan( 256 * KB_IN_BYTES, strlen( serialize( $audit ) ), 'The audit log stays within its budget.' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Measures the stored size.
+
+		$change = $audit[0]['changes']['blocked_email_domains'];
+		$this->assertSame( 19000, $change['new']['lines'], 'The new list is summarised.' );
+		$this->assertSame( 19000, $change['old']['lines'], 'The old list is summarised.' );
+		$this->assertArrayHasKey( 'sha1', $change['new'] );
+		$this->assertLessThan( 1 * KB_IN_BYTES, strlen( (string) wp_json_encode( $change ) ) );
+	}
+
+	/**
+	 * A short value is still audited as it is.
+	 */
+	public function test_short_values_are_audited_as_they_are(): void {
+		$this->rest( 'PUT', '/zero-spam/v1/rules/lists/email-domains', array( 'items' => array( 'one.example' ) ) );
+
+		$this->assertSame( 'one.example', get_option( 'zerospam_settings_audit' )[0]['changes']['blocked_email_domains']['new'] );
+	}
+
+	/**
+	 * Entries saved before 6.0.1 that hold whole lists are summarised on the
+	 * next save, and recent entries are kept rather than dropped for them.
+	 */
+	public function test_old_audit_entries_are_shrunk_on_the_next_save(): void {
+		$list = implode( "\n", array_map( static fn( int $i ): string => "old-{$i}.example", range( 1, 30000 ) ) );
+		$old  = array();
+		for ( $i = 0; $i < 6; $i++ ) {
+			$old[] = array(
+				'timestamp' => '2026-01-0' . ( $i + 1 ) . ' 00:00:00',
+				'scope'     => 'site',
+				'changes'   => array(
+					'blocked_email_domains' => array(
+						'old' => $list,
+						'new' => $list . "\nextra-{$i}.example",
+					),
+				),
+			);
+		}
+		update_option( 'zerospam_settings_audit', $old, false );
+
+		$this->rest( 'PUT', '/zero-spam/v1/rules/lists/email-domains', array( 'items' => array( 'one.example' ) ) );
+
+		$audit = get_option( 'zerospam_settings_audit' );
+		$this->assertCount( 7, $audit, 'No entry is dropped once the old ones are summarised.' );
+		$this->assertLessThan( 256 * KB_IN_BYTES, strlen( serialize( $audit ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Measures the stored size.
+		$this->assertSame( 30000, $audit[1]['changes']['blocked_email_domains']['old']['lines'] );
+		$this->assertSame( 30001, $audit[1]['changes']['blocked_email_domains']['new']['lines'] );
+	}
+
+	/**
 	 * Blocked email domains live in their own non-autoloaded option, can be
 	 * searched and paged, and are lower-cased.
 	 */
@@ -862,6 +928,193 @@ class Test_Rest_Rules extends TestCase {
 
 		$desc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'orderby' => 'key', 'order' => 'desc' ) )->get_data(), 'ip' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
 		$this->assertSame( array( '2001:db8::1', '192.0.2.100', '192.0.2.10', '192.0.2.9' ), $desc );
+	}
+
+	/**
+	 * IPv6 addresses sort by number too (2001:db8::9 before 2001:db8::10),
+	 * where the database has INET6_ATON().
+	 */
+	public function test_ipv6_blocks_sort_by_number(): void {
+		foreach ( array( '2001:db8::a', '2001:db8::10', '2001:db8::9', '2001:db8:1::' ) as $ip ) {
+			$this->block( $ip );
+		}
+
+		$asc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'orderby' => 'key', 'order' => 'asc' ) )->get_data(), 'ip' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( array( '2001:db8::9', '2001:db8::a', '2001:db8::10', '2001:db8:1::' ), $asc );
+	}
+
+	/**
+	 * A reason is answered as it was typed: sanitising stored "a<b" as "a&lt;b",
+	 * which the screen showed literally.
+	 */
+	public function test_reason_is_answered_as_typed(): void {
+		$response = $this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'kind'   => 'ip',
+				'ip'     => '192.0.2.55',
+				'type'   => 'permanent',
+				'reason' => 'Score < 10 & "rude"',
+			)
+		);
+		$this->assertSame( 201, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+		$this->assertSame( 'Score < 10 & "rude"', $response->get_data()['reason'] );
+	}
+
+	/**
+	 * Blocking your own country asks first: you could not reach the site
+	 * afterwards (the no-lockout list did not cover location blocks).
+	 */
+	public function test_blocking_your_own_location_asks_first(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		set_transient( 'zerospam_geo_' . md5( self::DEFAULT_IP ), array( 'country_code' => 'NL' ), HOUR_IN_SECONDS );
+		$body = array(
+			'kind'     => 'location',
+			'key_type' => 'country_code',
+			'key'      => 'NL',
+			'type'     => 'permanent',
+		);
+
+		$asked = $this->rest( 'POST', self::BLOCKS, $body );
+		$this->assertSame( 409, $asked->get_status() );
+		$this->assertSame( 'rest_would_lock_out', $asked->get_data()['code'] );
+		$this->assertNull( \ZeroSpam\Includes\DB::blocked( 'NL', 'country_code' ) );
+
+		$this->assertSame( 201, $this->rest( 'POST', self::BLOCKS, $body + array( 'confirm' => true ) )->get_status() );
+	}
+
+	/**
+	 * Blocking your own address asks first too.
+	 */
+	public function test_blocking_your_own_address_asks_first(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		$body = array(
+			'kind' => 'ip',
+			'ip'   => self::DEFAULT_IP,
+			'type' => 'permanent',
+		);
+
+		$this->assertSame( 409, $this->rest( 'POST', self::BLOCKS, $body )->get_status() );
+		$this->assertSame( 201, $this->rest( 'POST', self::BLOCKS, $body + array( 'confirm' => true ) )->get_status() );
+	}
+
+	/**
+	 * Editing a block of your own address without changing the address does not ask again.
+	 */
+	public function test_editing_your_own_block_does_not_ask_again(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		$id = $this->block( self::DEFAULT_IP );
+
+		$response = $this->rest( 'PUT', self::BLOCKS . '/' . $id, array( 'reason' => 'Edited' ) );
+
+		$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+		$this->assertSame( 'Edited', $response->get_data()['reason'] );
+	}
+
+	/**
+	 * Blocking several addresses never blocks your own in passing: it is listed as not blocked.
+	 */
+	public function test_bulk_block_leaves_your_own_address_out(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+
+		$response = $this->rest(
+			'POST',
+			self::BLOCKS . '/bulk',
+			array(
+				'ips'  => array( self::DEFAULT_IP, '198.51.100.31' ),
+				'type' => 'permanent',
+			)
+		);
+
+		$this->assertSame( 200, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+		$this->assertSame( 1, $response->get_data()['created'] );
+		$this->assertArrayHasKey( self::DEFAULT_IP, (array) $response->get_data()['invalid'] );
+		$this->assertNull( \ZeroSpam\Includes\DB::blocked( self::DEFAULT_IP ) );
+	}
+
+	/**
+	 * Your location is matched as the database matches it at login: case and accents ignored.
+	 */
+	public function test_your_own_city_is_matched_without_accents(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		set_transient( 'zerospam_geo_' . md5( self::DEFAULT_IP ), array( 'city' => 'São Paulo' ), HOUR_IN_SECONDS );
+
+		$response = $this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'kind'     => 'location',
+				'key_type' => 'city',
+				'key'      => 'sao paulo',
+				'type'     => 'permanent',
+			)
+		);
+
+		$this->assertSame( 409, $response->get_status() );
+	}
+
+	/**
+	 * No question for an address on the IP Allowlist (it is never blocked).
+	 */
+	public function test_no_question_for_an_allowed_address(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		$this->set_setting( 'ip_whitelist', self::DEFAULT_IP );
+
+		$response = $this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'kind' => 'ip',
+				'ip'   => self::DEFAULT_IP,
+				'type' => 'permanent',
+			)
+		);
+
+		$this->assertSame( 201, $response->get_status() );
+	}
+
+	/**
+	 * A reason sent back unchanged keeps its stored form, and the answer is plain text.
+	 */
+	public function test_unchanged_reason_keeps_its_stored_form(): void {
+		global $wpdb;
+
+		$id = $this->block( '198.51.100.32' );
+		$wpdb->update( $wpdb->prefix . 'wpzerospam_blocked', array( 'reason' => '&lt;b&gt;x&lt;/b&gt;' ), array( 'blocked_id' => $id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Fixture.
+
+		$read = $this->rest( 'GET', self::BLOCKS . '/' . $id )->get_data();
+		$this->assertSame( '<b>x</b>', $read['reason'], 'Answered as plain text; clients escape it.' );
+
+		$this->rest( 'PUT', self::BLOCKS . '/' . $id, array( 'reason' => $read['reason'] ) );
+
+		$this->assertSame( '&lt;b&gt;x&lt;/b&gt;', $wpdb->get_var( $wpdb->prepare( 'SELECT reason FROM %i WHERE blocked_id = %d', $wpdb->prefix . 'wpzerospam_blocked', $id ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Reads the fixture back.
+	}
+
+	/**
+	 * No question when your address is on the no-lockout list, or the location is not yours.
+	 */
+	public function test_no_question_when_you_cannot_be_locked_out(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		set_transient( 'zerospam_geo_' . md5( self::DEFAULT_IP ), array( 'country_code' => 'NL' ), HOUR_IN_SECONDS );
+
+		$other = array(
+			'kind'     => 'location',
+			'key_type' => 'country_code',
+			'key'      => 'DE',
+			'type'     => 'permanent',
+		);
+		$this->assertSame( 201, $this->rest( 'POST', self::BLOCKS, $other )->get_status() );
+
+		// On the no-lockout list (TEST-NET addresses are not public, so set it directly).
+		update_option( Admin_Safe_IPs::OPTION, array( self::DEFAULT_IP ), false );
+		$own = array(
+			'kind'     => 'location',
+			'key_type' => 'country_code',
+			'key'      => 'NL',
+			'type'     => 'permanent',
+		);
+		$this->assertSame( 201, $this->rest( 'POST', self::BLOCKS, $own )->get_status() );
 	}
 
 	/**

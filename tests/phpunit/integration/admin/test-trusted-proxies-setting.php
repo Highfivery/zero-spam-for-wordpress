@@ -43,7 +43,7 @@ class Test_Trusted_Proxies_Setting extends TestCase {
 		$this->assertSame( 'textarea', $settings['trusted_proxies']['type'] );
 		$this->assertSame( 'settings', $settings['trusted_proxies']['module'] );
 		$this->assertSame( 'general', $settings['trusted_proxies']['section'] );
-		$this->assertSame( 'Trusted Proxy IPs', $settings['trusted_proxies']['title'] );
+		$this->assertSame( 'Trusted proxy IPs', $settings['trusted_proxies']['title'] );
 		$this->assertStringContainsString( 'Cloudflare is recognised automatically', $settings['trusted_proxies']['desc'] );
 
 		$keys = array_keys( $settings );
