@@ -208,13 +208,26 @@ class Network_Settings {
 
 	/**
 	 * Whether the current site stores its own value for a setting (a site
-	 * override) in its module option, and that value.
+	 * override), and that value.
+	 *
+	 * A list (is_list()) is stored in its own option, not in the module
+	 * option; since 6.0.1 a site's own list overrides an unlocked network
+	 * list, as every other setting does. An empty stored list (left by old
+	 * saves) is not counted, so the site keeps the network's list.
 	 *
 	 * @param string      $setting_key Setting key.
 	 * @param string|null $module      The setting's module.
 	 * @return array{0: bool, 1: mixed}
 	 */
 	private static function site_value( string $setting_key, ?string $module ): array {
+		if ( self::is_list( $setting_key ) ) {
+			$own = get_option( \ZeroSpam\Core\Settings_Schema::OWN_OPTIONS[ $setting_key ], false );
+
+			return is_string( $own ) && '' !== trim( $own )
+				? array( true, $own )
+				: array( false, null );
+		}
+
 		if ( ! $module ) {
 			return array( false, null );
 		}
