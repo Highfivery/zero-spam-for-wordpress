@@ -1144,9 +1144,16 @@ npm run env:stop                 # stop both wp-env sites
   `VALUE_IN_STORE`; read it with `list_value()` or `get_network_settings()`,
   never by reading the store on a per-request path), and a form reads and
   parses the list once per request. On a network, a site's own list
-  (`zerospam_blocked_email_domains`) does not override an unlocked network
-  list, although the admin reports it as the site's value (decision pending
-  with Ben). `ip_whitelist` and `allowed_words` stay in the autoloaded
+  (`zerospam_blocked_email_domains`) overrides an unlocked network list
+  since 6.0.1, as every other unlocked setting does (Ben, 2026-11-12;
+  `Network_Settings::own_list()`); an empty or whitespace-only stored
+  list, or one identical to the network's, does not count, so the site keeps
+  the network's. Apply `follow`/`all` and `reset_site()` delete a site's own
+  list (Apply never copies a list into a site), and `is_using_default()`
+  compares lists by `MD5()` in the database, never loading them. The network page's override counts
+  (`Network_Report`) read only `zero-spam-{module}` options, so they do not
+  count a site's own list (reading every site's list would cost up to
+  1.1 MB each). `ip_whitelist` and `allowed_words` stay in the autoloaded
   `zero-spam-settings` (3,000 addresses are 32 KB; the 100,000 a list may hold
   are 1.4 MB). `zerospam_settings_audit` keeps a list's old and new
   values summarised above 2 KB (`Settings_Controller::AUDIT_VALUE_MAX_BYTES`)
@@ -1158,6 +1165,10 @@ npm run env:stop                 # stop both wp-env sites
   asked while the address is on the no-lockout list or the IP Allowlist,
   or when an edit keeps the block's address or location. `rules/blocks/bulk`
   never blocks the administrator's own address (it is listed in `invalid`).
+  Every lock-out question puts focus on its safe answer ("Don't block" or
+  Cancel, described by the question; `Confirm` in `network/parts.js` takes
+  `safe`), never on the button that locks the administrator out (Ben,
+  2026-11-12).
   A block's reason is stored entity-encoded and answered decoded
   (`Rules_Controller::reason_text()`): plain text, which clients escape.
 - Activity's switch at 1,200px keeps focus (6.0.1), as Rules does: every

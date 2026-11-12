@@ -211,4 +211,30 @@ class Test_Network_List_Read extends TestCase {
 
 		$this->assertSame( 'locked.example', Settings::get_settings( 'blocked_email_domains' ) );
 	}
+
+	/**
+	 * A site's own list wins over an unlocked network list, as every other
+	 * unlocked setting does, and is what its form checks use (Ben, 2026-11-12).
+	 */
+	public function test_site_list_wins_over_an_unlocked_network_list(): void {
+		update_option( 'zerospam_blocked_email_domains', 'site.example', false );
+		self::reset_static_caches();
+
+		$this->assertSame( 'site.example', Settings::get_settings( 'blocked_email_domains' ) );
+		$this->assertTrue( Utilities::is_email_domain_blocked( 'jane@site.example' ) );
+		$this->assertFalse( Utilities::is_email_domain_blocked( 'jane@listed.example' ) );
+		$this->assertSame( 'site.example', ( new Network_Settings() )->get_site_override( 'blocked_email_domains' ) );
+	}
+
+	/**
+	 * An empty stored list (left by old saves) is not the site's choice: the
+	 * site keeps the network's list, so it never silently loses it.
+	 */
+	public function test_empty_site_list_follows_the_network_list(): void {
+		update_option( 'zerospam_blocked_email_domains', '', false );
+		self::reset_static_caches();
+
+		$this->assertTrue( Utilities::is_email_domain_blocked( 'jane@listed.example' ) );
+		$this->assertNull( ( new Network_Settings() )->get_site_override( 'blocked_email_domains' ) );
+	}
 }

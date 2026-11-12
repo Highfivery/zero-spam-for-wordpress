@@ -258,7 +258,7 @@ test.describe( '6.0 Network', { tag: '@multisite' }, () => {
 		} );
 	} );
 
-	test( 'blocking your own address on every site asks first', async ( { newRoleContext, zs } ) => {
+	test( 'blocking your own address on every site asks first, with focus on Cancel', async ( { newRoleContext, zs } ) => {
 		const ip = '203.0.113.88';
 		const page = await ( await newRoleContext( 'admin', { ip } ) ).newPage();
 		await openNetwork( page, 'stats' );
@@ -267,7 +267,8 @@ test.describe( '6.0 Network', { tag: '@multisite' }, () => {
 		await page.getByRole( 'button', { name: 'Block on every site' } ).click();
 		const question = page.getByRole( 'group', { name: /is your own address/ } );
 		const yes = question.getByRole( 'button', { name: 'Block it anyway' } );
-		await expect( yes ).toBeFocused();
+		// Focus goes to the safe answer, so a held Enter cannot confirm a lock-out.
+		await expect( question.getByRole( 'button', { name: 'Cancel' } ) ).toBeFocused();
 		await expect( page.locator( '.zs-nblocks' ) ).toHaveCount( 0 );
 
 		await test.step( 'Cancel goes back to the address, and nothing is blocked', async () => {

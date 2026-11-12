@@ -864,7 +864,7 @@ final class Settings_Schema {
 	}
 
 	/**
-	 * Whether the site's module option stores the key (the test
+	 * Whether the site stores its own value for the key (the test
 	 * Network_Settings uses for a site override), and the stored value.
 	 *
 	 * @param string $key    Setting key.
@@ -872,6 +872,24 @@ final class Settings_Schema {
 	 * @return array{stored: bool, value: mixed}
 	 */
 	private static function site_value( string $key, string $module ): array {
+		// A list lives in its own option; on a network the site's own list is
+		// an override unless it is empty or the same as the network's
+		// (Network_Settings::resolve_all_settings()).
+		if ( isset( self::OWN_OPTIONS[ $key ] ) && is_multisite() ) {
+			$own     = \ZeroSpam\Includes\Network_Settings::own_list( $key );
+			$network = \ZeroSpam\Includes\Network_Settings::list_value( $key );
+
+			return null !== $own && $own !== $network
+				? array(
+					'stored' => true,
+					'value'  => $own,
+				)
+				: array(
+					'stored' => false,
+					'value'  => null,
+				);
+		}
+
 		$option = get_option( "zero-spam-{$module}", array() );
 
 		if ( is_array( $option ) && isset( $option[ $key ] ) ) {
