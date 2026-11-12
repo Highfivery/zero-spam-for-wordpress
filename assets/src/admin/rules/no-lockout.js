@@ -44,6 +44,7 @@ export function NoLockout( { onCount, panel } ) {
 
 	// The address waiting for "Remove anyway", and what removing it does.
 	const [ asking, setAsking ] = useState( null );
+	// Its safe answer (Cancel), where focus goes when the question opens.
 	const confirmRef = useRef( null );
 
 	useEffect( () => {
@@ -143,9 +144,9 @@ export function NoLockout( { onCount, panel } ) {
 											</span>
 											<span className="zs-inline-row">
 												<Button
-													ref={ confirmRef }
 													variant="secondary"
 													size="sm"
+													aria-describedby={ `zs-nl-q-${ item.ip }` }
 													onClick={ () =>
 														remove( item, true )
 													}
@@ -156,8 +157,10 @@ export function NoLockout( { onCount, panel } ) {
 													) }
 												</Button>
 												<Button
+													ref={ confirmRef }
 													variant="ghost"
 													size="sm"
+													aria-describedby={ `zs-nl-q-${ item.ip }` }
 													onClick={ () => {
 														setAsking( null );
 														window.requestAnimationFrame(
