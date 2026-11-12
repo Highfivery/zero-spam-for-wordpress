@@ -211,11 +211,12 @@ When you enter an API key for one of these services, the IP address of visitors 
 
 = v6.0.1 =
 
-* **feat(rules):** blocking your own IP address, or a location your address is in, now asks first, so you can't lock yourself out by accident.
+* **feat(rules):** blocking your own IP address, or a location your address is in, now asks first, so you can't lock yourself out by accident. The question's safe answer ("Don't block") is selected, so a held Enter can't confirm it.
 * **fix(security):** "Disable XML-RPC" now really turns XML-RPC off (it only turned off its login methods before), and "Disable emojis" also removes the emoji styles and works in the admin.
 * **fix(api-monitoring):** fewer, more accurate API alerts: the email's usage figures add up, there are no false "Usage spike" alerts when your quota resets, and the same error alert is no longer sent every hour.
 * **fix(rules):** block reasons show exactly as you typed them, and IPv6 addresses sort in number order.
 * **fix(multisite):** a subsite no longer overwrites the network's shared .htaccess file with only its own blocked addresses.
+* **fix(multisite):** a site's own blocked email domains list is now used instead of the network's, unless the network locks its list (the site's Rules screen already showed it as in use).
 * **fix(geolocation):** location lookups are cached properly, so repeated checks don't call the service again; ipstack is always asked over HTTPS, and a failed lookup is retried after 15 minutes instead of a week.
 * **perf:** faster page views, especially with a long blocked email domain list or on a multisite network, and every Zero Spam admin page shares one stylesheet your browser downloads once.
 * **fix(admin):** keyboard focus stays where you are when the activity log switches between table and cards, lands on the right control after saving, and the network statistics tables scroll with the keyboard.
