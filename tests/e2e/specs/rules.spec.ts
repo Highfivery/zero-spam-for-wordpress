@@ -416,7 +416,7 @@ test.describe( '6.0 Rules', () => {
 		await expect( page.locator( '.zs-safelist li' ) ).toHaveCount( 2 );
 	} );
 
-	test( 'blocking your own address asks first; Don\'t block returns to the field, Block it anyway blocks it', async ( { newRoleContext, zs } ) => {
+	test( 'blocking your own address asks first with focus on Don\'t block, which returns to the field; Block it anyway blocks it', async ( { newRoleContext, zs } ) => {
 		const ip = '203.0.113.87';
 		const page = await ( await newRoleContext( 'admin', { ip } ) ).newPage();
 		await openTab( page );
@@ -428,11 +428,12 @@ test.describe( '6.0 Rules', () => {
 
 		const question = drawer( page ).getByRole( 'group', { name: /is your own address/ } );
 		const yes = question.getByRole( 'button', { name: 'Block it anyway' } );
-		await expect( yes ).toBeFocused();
+		// Focus goes to the safe answer, so a held Enter cannot confirm a lock-out.
+		const no = question.getByRole( 'button', { name: 'Don’t block' } );
+		await expect( no ).toBeFocused();
 		expect( await zs.plugin< unknown[] >( 'GET', 'rules/blocks', undefined, { kind: 'ip' } ) ).toEqual( [] );
 
 		await test.step( 'Don\'t block (keyboard) closes the question and returns to the address', async () => {
-			await question.getByRole( 'button', { name: 'Don’t block' } ).focus();
 			await page.keyboard.press( 'Space' );
 			await expect( question ).toHaveCount( 0 );
 			await expect( field ).toBeFocused();
@@ -440,7 +441,7 @@ test.describe( '6.0 Rules', () => {
 
 		await test.step( 'editing the address drops the question', async () => {
 			await drawer( page ).getByRole( 'button', { name: 'Block IP' } ).click();
-			await expect( yes ).toBeFocused();
+			await expect( no ).toBeFocused();
 			await field.fill( '203.0.113.85' );
 			await expect( question ).toHaveCount( 0 );
 			await field.fill( ip );
@@ -448,6 +449,8 @@ test.describe( '6.0 Rules', () => {
 
 		await test.step( 'Block it anyway (keyboard) blocks it and closes the drawer', async () => {
 			await drawer( page ).getByRole( 'button', { name: 'Block IP' } ).click();
+			await expect( no ).toBeFocused();
+			await page.keyboard.press( 'Shift+Tab' );
 			await expect( yes ).toBeFocused();
 			await page.keyboard.press( 'Enter' );
 			await expect( drawer( page ) ).toBeHidden();
@@ -457,7 +460,7 @@ test.describe( '6.0 Rules', () => {
 		await page.context().close();
 	} );
 
-	test( 'No-lockout: removing your own blocked address asks first; Cancel returns to Remove, Remove anyway removes it', async ( { newRoleContext, zs } ) => {
+	test( 'No-lockout: removing your own blocked address asks first; focus on Cancel, which returns to Remove; Remove anyway removes it', async ( { newRoleContext, zs } ) => {
 		const ip = '203.0.113.86';
 		await zs.noLockout( [ ip ] );
 		await zs.block( ip );
@@ -468,9 +471,11 @@ test.describe( '6.0 Rules', () => {
 		await remove.click();
 		const question = page.locator( '.zs-lockout-q' );
 		const anyway = question.getByRole( 'button', { name: 'Remove anyway' } );
-		await expect( anyway ).toBeFocused();
+		const cancel = question.getByRole( 'button', { name: 'Cancel' } );
+		// Focus goes to the safe answer, so a held Enter cannot confirm a lock-out.
+		await expect( cancel ).toBeFocused();
 
-		await question.getByRole( 'button', { name: 'Cancel' } ).click();
+		await page.keyboard.press( 'Enter' );
 		await expect( question ).toHaveCount( 0 );
 		await expect( remove ).toBeFocused();
 

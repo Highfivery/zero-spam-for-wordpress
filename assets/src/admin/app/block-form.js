@@ -113,7 +113,8 @@ export function BlockForm( {
 	const [ errors, setErrors ] = useState( {} );
 	// The server's question when the block would lock the administrator out.
 	const [ asking, setAsking ] = useState( '' );
-	const anyway = useRef( null );
+	// The question's safe answer, where focus goes when it opens.
+	const dontBlock = useRef( null );
 	const focusAfterRender = useFocusAfterRender();
 	const [ failure, setFailure ] = useState( '' );
 	const [ saving, setSaving ] = useState( false );
@@ -256,8 +257,9 @@ export function BlockForm( {
 						const params = data?.data?.params;
 						if ( WOULD_LOCK_OUT === data?.code ) {
 							setAsking( data.message );
+							// The safe answer: a held or repeated Enter must not confirm a lock-out.
 							focusAfterRender(
-								() => focusIfEnabled( anyway.current ),
+								() => focusIfEnabled( dontBlock.current ),
 								() => focusIfEnabled( keyField() )
 							);
 						} else if ( params && 'object' === typeof params ) {
@@ -392,7 +394,6 @@ export function BlockForm( {
 						<span id="zs-bf-lockout">{ asking }</span>
 						<span className="zs-inline-row">
 							<Button
-								ref={ anyway }
 								variant="secondary"
 								size="sm"
 								aria-describedby="zs-bf-lockout"
@@ -402,8 +403,10 @@ export function BlockForm( {
 								{ __( 'Block it anyway', 'zero-spam' ) }
 							</Button>
 							<Button
+								ref={ dontBlock }
 								variant="ghost"
 								size="sm"
+								aria-describedby="zs-bf-lockout"
 								onClick={ () => {
 									setAsking( '' );
 									focusAfterRender( () =>

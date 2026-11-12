@@ -236,6 +236,7 @@ function NetworkBlocks( { blocks, page, setPage, onChanged, remove } ) {
 			{ asking && (
 				<Confirm
 					id="zs-nbl-own"
+					safe
 					question={ asking }
 					yes={ __( 'Block it anyway', 'zero-spam' ) }
 					busy={ busy }
@@ -870,6 +871,7 @@ export function NetworkStats() {
 					{ ownAddress && (
 						<Confirm
 							id="zs-nma-own"
+							safe
 							question={ ownAddress.message }
 							yes={ __( 'Block it anyway', 'zero-spam' ) }
 							onYes={ () => {
