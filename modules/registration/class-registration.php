@@ -237,7 +237,7 @@ class Registration {
 		$options = get_option( 'zero-spam-registration' );
 
 		$settings['verify_registrations'] = array(
-			'title'       => __( 'Protect Registrations', 'zero-spam' ),
+			'title'       => __( 'Protect registrations', 'zero-spam' ),
 			'desc'        => __( 'Stop spam bots from creating fake user accounts.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
@@ -252,7 +252,7 @@ class Registration {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['registration_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown to spam bots trying to register.', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
@@ -264,7 +264,7 @@ class Registration {
 		);
 
 		$settings['log_blocked_registrations'] = array(
-			'title'       => __( 'Log Blocked Registrations', 'zero-spam' ),
+			'title'       => __( 'Log blocked registrations', 'zero-spam' ),
 			'section'     => 'registration',
 			'module'      => 'registration',
 			'type'        => 'checkbox',

@@ -364,14 +364,14 @@ wp zerospam api_usage --format=csv > usage.csv</code></pre>
 		<div class="zerospam-docs-accordion-content">
 			<h3><?php esc_html_e( 'Dashboard widget not showing', 'zero-spam' ); ?></h3>
 			<ul>
-				<li><?php esc_html_e( 'Check that "Enable API Usage Monitoring" is turned ON in settings', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'Check that "Enable API usage monitoring" is turned ON in settings', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Verify you have the "manage_options" capability', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Check Dashboard → Screen Options to ensure the widget is not hidden', 'zero-spam' ); ?></li>
 			</ul>
 
 			<h3><?php esc_html_e( 'Not receiving email alerts', 'zero-spam' ); ?></h3>
 			<ul>
-				<li><?php esc_html_e( 'Verify "Email Alerts" is enabled in API Monitoring settings', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'Verify "Email alerts" is enabled in API Monitoring settings', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Check that the specific alert type is enabled (e.g., "Quota Warning")', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Confirm your threshold hasn\'t been exceeded recently (alerts throttled to 1 per 24 hours)', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Check your spam folder or email server logs', 'zero-spam' ); ?></li>
@@ -380,7 +380,7 @@ wp zerospam api_usage --format=csv > usage.csv</code></pre>
 
 			<h3><?php esc_html_e( 'Data not being tracked', 'zero-spam' ); ?></h3>
 			<ul>
-				<li><?php esc_html_e( 'Ensure "Enable API Usage Monitoring" is turned ON', 'zero-spam' ); ?></li>
+				<li><?php esc_html_e( 'Ensure "Enable API usage monitoring" is turned ON', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Verify Enhanced Protection is enabled with a valid license key', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Check that your site is making API calls (browse your site to trigger checks)', 'zero-spam' ); ?></li>
 				<li><?php esc_html_e( 'Review error logs for any database issues', 'zero-spam' ); ?></li>
@@ -410,7 +410,7 @@ wp zerospam api_usage --format=csv > usage.csv</code></pre>
 			<p><?php esc_html_e( 'Zero Spam API will stop accepting new requests until your quota resets (monthly or yearly depending on your plan). Your site will continue to work, but Enhanced Protection checks will be temporarily disabled. Cached results will still be used.', 'zero-spam' ); ?></p>
 
 			<h3><?php esc_html_e( 'Can I pause monitoring temporarily?', 'zero-spam' ); ?></h3>
-			<p><?php esc_html_e( 'Yes, simply disable "Enable API Usage Monitoring" in settings. Existing data will be preserved, but new API calls won\'t be tracked.', 'zero-spam' ); ?></p>
+			<p><?php esc_html_e( 'Yes, simply disable "Enable API usage monitoring" in settings. Existing data will be preserved, but new API calls won\'t be tracked.', 'zero-spam' ); ?></p>
 
 			<h3><?php esc_html_e( 'Can I export usage data for reports?', 'zero-spam' ); ?></h3>
 			<p><?php esc_html_e( 'Yes! Use the REST API export endpoint or WP-CLI commands to export data in CSV or JSON format. Perfect for creating custom reports or analysis.', 'zero-spam' ); ?></p>

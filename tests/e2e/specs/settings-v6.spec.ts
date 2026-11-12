@@ -215,7 +215,7 @@ test.describe( '6.0 Settings', () => {
 
 	test( 'the quota reset date is a keyboard-usable date control with its next reset', async ( { page } ) => {
 		await openSettings( page, 'api' );
-		const date = page.getByLabel( 'Quota Reset Date (Override)' );
+		const date = page.getByLabel( 'Quota reset date (override)' );
 		await expect( date ).toHaveAttribute( 'type', 'date' );
 		await expect( page.locator( '#zs-quota-next' ) ).toContainText( 'No reset date set' );
 
@@ -247,7 +247,7 @@ test.describe( '6.0 Settings', () => {
 	test( 'Delete Data on Uninstall is on by default and can be turned off', async ( { page, zs } ) => {
 		await openSettings( page, 'data' );
 		await expect( page.locator( '#zs-card-uninstall' ) ).toBeVisible();
-		const toggle = page.getByRole( 'switch', { name: 'Delete Data on Uninstall' } );
+		const toggle = page.getByRole( 'switch', { name: 'Delete data on uninstall' } );
 		await expect( toggle ).toHaveAttribute( 'aria-checked', 'true' );
 		await toggle.click();
 		await page.locator( '.zs-savebar' ).getByRole( 'button', { name: 'Save changes' } ).click();

@@ -85,7 +85,7 @@ class Formidable {
 		$options = get_option( 'zero-spam-formidable' );
 
 		$settings['verify_formidable'] = array(
-			'title'       => __( 'Protect Formidable Submissions', 'zero-spam' ),
+			'title'       => __( 'Protect Formidable submissions', 'zero-spam' ),
 			'desc'        => __( 'Stop spam from Formidable Forms.', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
@@ -100,7 +100,7 @@ class Formidable {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['formidable_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when Formidable Forms detects spam.', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
@@ -112,7 +112,7 @@ class Formidable {
 		);
 
 		$settings['verify_formidable_blocked_email_domains'] = array(
-			'title'       => __( 'Check Blocked Email Domains', 'zero-spam' ),
+			'title'       => __( 'Check blocked email domains', 'zero-spam' ),
 			'desc'        => __( 'Block Formidable submissions containing email addresses from blocked domains.', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
@@ -125,7 +125,7 @@ class Formidable {
 		);
 
 		$settings['verify_formidable_disallowed_words'] = array(
-			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'title'       => __( 'Check disallowed words', 'zero-spam' ),
 			'desc'        => __( 'Block Formidable submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
@@ -138,7 +138,7 @@ class Formidable {
 		);
 
 		$settings['log_blocked_formidable'] = array(
-			'title'       => __( 'Log Blocked Formidable Submissions', 'zero-spam' ),
+			'title'       => __( 'Log blocked Formidable submissions', 'zero-spam' ),
 			'section'     => 'formidable',
 			'module'      => 'formidable',
 			'type'        => 'checkbox',

@@ -133,7 +133,7 @@ class WooCommerce {
 		$options = get_option( 'zero-spam-woocommerce' );
 
 		$settings['verify_woocommerce_registrations'] = array(
-			'title'       => __( 'Protect Registrations', 'zero-spam' ),
+			'title'       => __( 'Protect registrations', 'zero-spam' ),
 			'desc'        => __( 'Stop spam accounts from being created through WooCommerce.', 'zero-spam' ),
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
@@ -148,7 +148,7 @@ class WooCommerce {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['woocommerce_registration_spam_message'] = array(
-			'title'       => __( 'Registration Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Registration flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when WooCommerce detects a spam registration.', 'zero-spam' ),
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
@@ -160,7 +160,7 @@ class WooCommerce {
 		);
 
 		$settings['log_blocked_woocommerce_registrations'] = array(
-			'title'       => __( 'Log Blocked Registrations', 'zero-spam' ),
+			'title'       => __( 'Log blocked registrations', 'zero-spam' ),
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
 			'type'        => 'checkbox',
@@ -173,7 +173,7 @@ class WooCommerce {
 		);
 
 		$settings['verify_woocommerce_checkout'] = array(
-			'title'       => __( 'Protect Checkout', 'zero-spam' ),
+			'title'       => __( 'Protect checkout', 'zero-spam' ),
 			'desc'        => __( 'Stop spam orders from being placed through WooCommerce checkout.', 'zero-spam' ),
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
@@ -188,7 +188,7 @@ class WooCommerce {
 		$checkout_message = __( 'Your order could not be processed. Please contact us for assistance.', 'zero-spam' );
 
 		$settings['woocommerce_checkout_spam_message'] = array(
-			'title'       => __( 'Checkout Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Checkout flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when WooCommerce detects a spam checkout attempt.', 'zero-spam' ),
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
@@ -200,7 +200,7 @@ class WooCommerce {
 		);
 
 		$settings['log_blocked_woocommerce_checkouts'] = array(
-			'title'       => __( 'Log Blocked Checkouts', 'zero-spam' ),
+			'title'       => __( 'Log blocked checkouts', 'zero-spam' ),
 			'section'     => 'woocommerce',
 			'module'      => 'woocommerce',
 			'type'        => 'checkbox',

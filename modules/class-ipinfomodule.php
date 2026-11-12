@@ -68,7 +68,7 @@ class IPinfoModule {
 		}
 
 		$settings['ipinfo_how_it_works'] = array(
-			'title'   => __( 'How It Works', 'zero-spam' ),
+			'title'   => __( 'How it works', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'ipinfo',
 			'module'  => 'ipinfo',
@@ -99,7 +99,7 @@ class IPinfoModule {
 		}
 
 		$settings['ipinfo_why_use'] = array(
-			'title'   => __( 'Why Use IPinfo?', 'zero-spam' ),
+			'title'   => __( 'Why use IPinfo?', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'ipinfo',
 			'module'  => 'ipinfo',
@@ -115,7 +115,7 @@ class IPinfoModule {
 
 		// Access Token field.
 		$settings['ipinfo_access_token'] = array(
-			'title'       => __( 'Access Token', 'zero-spam' ),
+			'title'       => __( 'Access token', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the IPInfo URL, %2$s: Replaced with the IPinfo signup URL */
@@ -142,7 +142,7 @@ class IPinfoModule {
 
 		// Cache Expiration field.
 		$settings['ipinfo_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zero-spam' ),
+			'title'       => __( 'Cache expiration', 'zero-spam' ),
 			'section'     => 'ipinfo',
 			'module'      => 'ipinfo',
 			'type'        => 'number',
@@ -203,7 +203,7 @@ class IPinfoModule {
 		}
 
 		$settings['ipinfo_testing'] = array(
-			'title'   => __( 'How to Test', 'zero-spam' ),
+			'title'   => __( 'How to test', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'ipinfo',
 			'module'  => 'ipinfo',

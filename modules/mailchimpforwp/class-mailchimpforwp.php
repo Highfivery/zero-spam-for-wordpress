@@ -192,7 +192,7 @@ class MailchimpForWP {
 		$options = get_option( 'zero-spam-mailchimp4wp' );
 
 		$settings['verify_mailchimp4wp'] = array(
-			'title'       => __( 'Protect Forms', 'zero-spam' ),
+			'title'       => __( 'Protect forms', 'zero-spam' ),
 			'section'     => 'mailchimp4wp',
 			'module'      => 'mailchimp4wp',
 			'type'        => 'checkbox',
@@ -206,7 +206,7 @@ class MailchimpForWP {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['mailchimp4wp_spam_message'] = array(
-			'title'       => __( 'Mailchimp Spam/Malicious Message', 'zero-spam' ),
+			'title'       => __( 'Mailchimp spam/malicious message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when Mailchimp forms detect spam.', 'zero-spam' ),
 			'section'     => 'mailchimp4wp',
 			'module'      => 'mailchimp4wp',
@@ -218,7 +218,7 @@ class MailchimpForWP {
 		);
 
 		$settings['log_blocked_mailchimp4wp'] = array(
-			'title'       => __( 'Log Blocked Registrations', 'zero-spam' ),
+			'title'       => __( 'Log blocked registrations', 'zero-spam' ),
 			'section'     => 'mailchimp4wp',
 			'module'      => 'mailchimp4wp',
 			'type'        => 'checkbox',

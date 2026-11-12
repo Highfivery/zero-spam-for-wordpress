@@ -50,7 +50,7 @@ class Settings {
 	public static function get_sections() {
 		// Deprecated.
 		self::$sections['general'] = array(
-			'title' => __( 'General Settings', 'zero-spam' ),
+			'title' => __( 'General settings', 'zero-spam' ),
 		);
 
 		// Since v5.4.
@@ -350,7 +350,7 @@ class Settings {
 		$options = get_option( 'zero-spam-settings' );
 
 		self::$settings['use_recommended_settings'] = array(
-			'title'   => __( 'Use Recommended Settings', 'zero-spam' ),
+			'title'   => __( 'Use recommended settings', 'zero-spam' ),
 			'desc'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
@@ -386,7 +386,7 @@ class Settings {
 
 		// On unless stored: a settings form stores an unticked checkbox as false, which turns it off.
 		self::$settings['show_news'] = array(
-			'title'       => __( 'Zero Spam News', 'zero-spam' ),
+			'title'       => __( 'Zero Spam news', 'zero-spam' ),
 			'desc'        => __( 'Shows the latest articles and security notices from zerospam.org in the Zero Spam admin. Your site only downloads the public news feed; no site data is sent.', 'zero-spam' ),
 			'module'      => 'settings',
 			'section'     => 'general',
@@ -408,7 +408,7 @@ class Settings {
 		}
 
 		self::$settings['widget_enabled'] = array(
-			'title'       => __( 'Dashboard Widget', 'zero-spam' ),
+			'title'       => __( 'Dashboard widget', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'checkbox',
@@ -421,7 +421,7 @@ class Settings {
 		);
 
 		self::$settings['widget_visibility'] = array(
-			'title'       => __( 'Dashboard Widget Visibility', 'zero-spam' ),
+			'title'       => __( 'Dashboard widget visibility', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'select',
@@ -433,7 +433,7 @@ class Settings {
 		);
 
 		self::$settings['block_handler'] = array(
-			'title'       => __( 'IP Block Handler', 'zero-spam' ),
+			'title'       => __( 'IP block handler', 'zero-spam' ),
 			'desc'        => __( 'What happens when we block someone from visiting your site.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -447,7 +447,7 @@ class Settings {
 		);
 
 		self::$settings['block_method'] = array(
-			'title'       => __( 'IP Block Method', 'zero-spam' ),
+			'title'       => __( 'IP block method', 'zero-spam' ),
 			'desc'        => is_multisite() && ! is_main_site()
 				? __( 'How the plugin blocks bad visitors. PHP is safer and recommended. On a network only the main site writes .htaccess, so this site blocks in PHP whichever you choose.', 'zero-spam' )
 				: __( 'How the plugin blocks bad visitors. PHP is safer and recommended.', 'zero-spam' ),
@@ -466,7 +466,7 @@ class Settings {
 		$message = __( 'Your IP address has been blocked due to detected spam/malicious activity.', 'zero-spam' );
 
 		self::$settings['blocked_message'] = array(
-			'title'       => __( 'Blocked Message', 'zero-spam' ),
+			'title'       => __( 'Blocked message', 'zero-spam' ),
 			'desc'        => __( 'The message blocked visitors see if you chose "Show them an error message" above.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -478,7 +478,7 @@ class Settings {
 		);
 
 		self::$settings['blocked_redirect_url'] = array(
-			'title'       => __( 'Blocked Users Redirect', 'zero-spam' ),
+			'title'       => __( 'Blocked users redirect', 'zero-spam' ),
 			'desc'        => __( 'The website address to send blocked visitors to if you chose "Send them to another website" above.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -490,7 +490,7 @@ class Settings {
 		);
 
 		self::$settings['log_blocked_ips'] = array(
-			'title'       => __( 'Log Blocked IPs', 'zero-spam' ),
+			'title'       => __( 'Log blocked IPs', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
 			'type'        => 'checkbox',
@@ -503,7 +503,7 @@ class Settings {
 		);
 
 		self::$settings['max_logs'] = array(
-			'title'       => __( 'Maximum Log Entries', 'zero-spam' ),
+			'title'       => __( 'Maximum log entries', 'zero-spam' ),
 			'desc'        => __( 'How many blocked visitor records to keep. When this number is reached, the oldest records get deleted automatically.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -526,7 +526,7 @@ class Settings {
 		);
 
 		self::$settings['trusted_proxies'] = array(
-			'title'       => __( 'Trusted Proxy IPs', 'zero-spam' ),
+			'title'       => __( 'Trusted proxy IPs', 'zero-spam' ),
 			'desc'        => __( 'If your site sits behind a CDN, load balancer or reverse proxy (for example Cloudflare, Hostinger CDN, Sucuri, a Kubernetes ingress), list its IP addresses or ranges here, one per line, e.g. 203.0.113.5 or 203.0.113.0/24. Zero Spam will then read the real visitor address that the proxy forwards, so the proxy must send it in an X-Forwarded-For or X-Real-IP header. If your proxy sits behind Cloudflare, it must also pass on Cloudflare\'s CF-Connecting-IP header. List internal hops between the proxy and your site too, such as a load balancer on 10.0.0.0/8. Cloudflare is recognised automatically. Leave empty if your site is not behind a proxy.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -537,7 +537,7 @@ class Settings {
 		);
 
 		self::$settings['blocked_email_domains'] = array(
-			'title'       => __( 'Blocked Email Domains', 'zero-spam' ),
+			'title'       => __( 'Blocked email domains', 'zero-spam' ),
 			'desc'        => __( 'Block email addresses from these domains (like "spam.com"). Put one per line.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -551,7 +551,7 @@ class Settings {
 		}
 
 		self::$settings['update_blocked_email_domains'] = array(
-			'title'   => __( 'Use Blocked Email Domains Recommendation', 'zero-spam' ),
+			'title'   => __( 'Use blocked email domains recommendation', 'zero-spam' ),
 			'desc'    => sprintf(
 				wp_kses(
 					__( '<strong>WARNING:</strong> This will override all existing blocked email domains with Zero Spam\'s recommended domains.', 'zero-spam' ),
@@ -567,7 +567,7 @@ class Settings {
 		);
 
 		self::$settings['regenerate_honeypot'] = array(
-			'title'   => __( 'Regenerate Honeypot ID', 'zero-spam' ),
+			'title'   => __( 'Regenerate honeypot ID', 'zero-spam' ),
 			'desc'    => sprintf(
 				wp_kses(
 					/* translators: %s: url */
@@ -585,7 +585,7 @@ class Settings {
 		);
 
 		self::$settings['allowed_words'] = array(
-			'title'       => __( 'Allowed Words', 'zero-spam' ),
+			'title'       => __( 'Allowed words', 'zero-spam' ),
 			'desc'        => __( 'Sometimes a word in the spam list accidentally matches part of your name, email, or website. Add those words here (one per line) so they won\'t be treated as spam. For example, if your email contains "ugg" and it keeps getting blocked, add "ugg" here to fix it.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -596,7 +596,7 @@ class Settings {
 		);
 
 		self::$settings['disallowed_min_length'] = array(
-			'title'       => __( 'Minimum Disallowed Word Length', 'zero-spam' ),
+			'title'       => __( 'Minimum disallowed word length', 'zero-spam' ),
 			'desc'        => __( 'Only check spam words that are at least this many characters long. Very short words (like 3-4 characters) can accidentally match normal text and cause false alarms. Set to 0 to check all words. We recommend 4 or 5 if you\'re seeing false positives.', 'zero-spam' ),
 			'section'     => 'general',
 			'module'      => 'settings',
@@ -607,7 +607,7 @@ class Settings {
 		);
 
 		self::$settings['update_disallowed_words'] = array(
-			'title'   => __( 'Override &amp; Update Core Disallowed Words', 'zero-spam' ),
+			'title'   => __( 'Override &amp; update core disallowed words', 'zero-spam' ),
 			'desc'    => __( 'Update WP core\'s disallowed words option with <a href="https://github.com/splorp/wordpress-comment-blacklist/" target="_blank" rel="noreferrer noopener">splorp\'s Comment Blacklist for WordPress</a>. <strong>WARNING:</strong> This will override any existing words.', 'zero-spam' ),
 			'section' => 'general',
 			'module'  => 'settings',
