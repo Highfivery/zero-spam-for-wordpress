@@ -7,12 +7,6 @@ parameters:
 			path: core/class-access.php
 
 		-
-			message: '#^Call to static method add_command\(\) on an unknown class ZeroSpam\\Core\\WP_CLI\.$#'
-			identifier: class.notFound
-			count: 1
-			path: core/class-cli.php
-
-		-
 			message: '#^Default value of the parameter \#1 \$key \(false\) of method ZeroSpam\\Core\\Settings\:\:get_settings\(\) is incompatible with type string\.$#'
 			identifier: parameter.defaultValue
 			count: 1
@@ -167,12 +161,6 @@ parameters:
 			identifier: class.notFound
 			count: 1
 			path: modules/registration/class-registration.php
-
-		-
-			message: '#^Callback expects 1 parameter, \$accepted_args is set to 2\.$#'
-			identifier: arguments.count
-			count: 3
-			path: modules/security/class-security.php
 
 		-
 			message: '#^Callback expects 1 parameter, \$accepted_args is set to 2\.$#'

@@ -958,8 +958,8 @@ npm run env:stop                 # stop both wp-env sites
 
 - WPCS backlog: 0 errors / 0 warnings since the 6.0 cutover (PR 13; 44 / 54
   in 18 files before it, 143 / 172 in 32 files at 5.7.14, 293 / 292 in 52
-  at 5.7.13): keep `composer lint` clean. PHPStan level 5 baseline: 48
-  findings in 39 entries after the cutover (81 in 53 after PR 9, 135 in 93
+  at 5.7.13): keep `composer lint` clean. PHPStan level 5 baseline: 38
+  findings in 33 entries after 6.0.1 session 2 (48 in 39 after the cutover, 81 in 53 after PR 9, 135 in 93
   at 5.7.14, 144 in 99 at 5.7.13), with no unmatched entries; shrink it
   file by file with tests, not in one sweep. `phpcs.xml.dist` excludes
   `.claude/` (agent worktrees hold full plugin copies), `artifacts/` and
@@ -992,11 +992,6 @@ npm run env:stop                 # stop both wp-env sites
   `prefers-reduced-motion` rule and button contrast.
 - Confirmed defects awaiting a fix (each gets its own PR with a failing-first
   test tagged `@group known-defect`, run with `composer test:defects`):
-  - `modules/security/class-security.php`: the emoji setting is incomplete
-    since WordPress 6.4 (`wp_enqueue_emoji_styles` on
-    `wp_enqueue_scripts`/`admin_enqueue_scripts` and the `embed_head` script
-    are not unhooked);
-    `remove_resource_query_params` is hooked with 2 arguments but takes 1.
   - `core/class-utilities.php` `refresh_htaccess()`: a subsite admin in
     `.htaccess` mode writes the network-root `.htaccess` (with only that
     subsite's addresses) after every block change. The 6.0 Refresh
@@ -1101,8 +1096,10 @@ npm run env:stop                 # stop both wp-env sites
   latest row, as `quota_snapshot()` does with a date.
 - `DavidWalsh::validate_token()` caches accepted tokens in a function-level
   `static $accepted`, which tests cannot reset; use a fresh token per test.
-- `core/class-cli.php` is dead code; the `zerospam_blacklist` table is defined
-  but never created.
+- The `zerospam_blacklist` table is defined but never created.
+- `Utilities::detection_title()` (with `zerospam_detection_title`) and
+  `Utilities::country_flag_url()` are deprecated since 6.0.1; remove them
+  in 7.0.0.
 - A 5.x multi-network install moves every audit entry and custom template
   to the main network on the DB 1.6 upgrade (`DB::upgrade_network_tables()`,
   `UPDATE IGNORE`: a template whose slug the main network already has stays

@@ -49,6 +49,24 @@ class Network_Settings_CLI {
 	}
 
 	/**
+	 * Stops the command unless it runs on a network as a user who may manage it.
+	 *
+	 * WP-CLI runs as no user unless `--user` is given, and the manager
+	 * refuses every network change without `manage_network_options`.
+	 *
+	 * @since 6.0.1
+	 */
+	private function require_network_admin(): void {
+		if ( ! is_multisite() ) {
+			\WP_CLI::error( 'This command requires a multisite installation.' );
+		}
+
+		if ( ! current_user_can( 'manage_network_options' ) ) {
+			\WP_CLI::error( 'This command needs a super admin. Run it with --user=<login of a super admin>.' );
+		}
+	}
+
+	/**
 	 * List all network settings
 	 *
 	 * ## OPTIONS
@@ -73,9 +91,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function list_settings( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$settings = $this->settings_manager->get_all_with_status();
 
@@ -123,9 +139,7 @@ class Network_Settings_CLI {
 	public function show( $args, $assoc_args ) {
 		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
 
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$key    = $args[0];
 		$status = $this->network_settings->get_application_status( $key );
@@ -160,9 +174,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function set( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$key    = $args[0];
 		$value  = $args[1];
@@ -195,9 +207,7 @@ class Network_Settings_CLI {
 	public function lock( $args, $assoc_args ) {
 		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
 
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$key    = $args[0];
 		$result = $this->settings_manager->lock_setting( $key );
@@ -227,9 +237,7 @@ class Network_Settings_CLI {
 	public function unlock( $args, $assoc_args ) {
 		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
 
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$key    = $args[0];
 		$result = $this->settings_manager->unlock_setting( $key );
@@ -273,9 +281,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function apply_all( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$force = isset( $assoc_args['force'] );
 		$mode  = $assoc_args['mode'] ?? 'all';
@@ -308,9 +314,7 @@ class Network_Settings_CLI {
 	public function reset_site( $args, $assoc_args ) {
 		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
 
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$site_id = absint( $args[0] );
 		$result  = $this->settings_manager->reset_site( $site_id );
@@ -335,9 +339,7 @@ class Network_Settings_CLI {
 	public function status( $args, $assoc_args ) {
 		unset( $args, $assoc_args ); // WP-CLI passes both; this command takes none of them.
 
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$sites           = get_sites( array( 'number' => 0 ) );
 		$total_sites     = count( $sites );
@@ -383,9 +385,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function compare( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$sites    = get_sites( array( 'number' => 100 ) );
 		$settings = $this->settings_manager->get_all_with_status();
@@ -432,9 +432,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function overrides( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$key       = $args[0];
 		$overrides = $this->network_settings->get_sites_with_overrides( $key );
@@ -505,9 +503,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function export( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		// As the REST export (since 6.0.0): secrets (license and API keys, webhook
 		// addresses) and keys the registry does not know are left out, so an
@@ -558,9 +554,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function import( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$file = $args[0];
 
@@ -596,7 +590,7 @@ class Network_Settings_CLI {
 	 * default: 50
 	 * ---
 	 *
-	 * [--user=<user-id>]
+	 * [--user-id=<user-id>]
 	 * : Filter by user ID
 	 *
 	 * [--action=<action>]
@@ -618,16 +612,14 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function audit( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$query_args = array(
 			'limit' => $assoc_args['limit'] ?? 50,
 		);
 
-		if ( ! empty( $assoc_args['user'] ) ) {
-			$query_args['user_id'] = absint( $assoc_args['user'] );
+		if ( ! empty( $assoc_args['user-id'] ) ) {
+			$query_args['user_id'] = absint( $assoc_args['user-id'] );
 		}
 
 		if ( ! empty( $assoc_args['action'] ) ) {
@@ -675,9 +667,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function template_list( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$templates = $this->templates_manager->get_all_templates();
 
@@ -733,9 +723,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function template_apply( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$slug  = $args[0];
 		$scope = $assoc_args['scope'] ?? 'network';
@@ -789,9 +777,7 @@ class Network_Settings_CLI {
 	 * @param array $assoc_args Associative arguments.
 	 */
 	public function template_create( $args, $assoc_args ) {
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$name        = $args[0];
 		$slug        = $args[1];
@@ -824,9 +810,7 @@ class Network_Settings_CLI {
 	public function template_delete( $args, $assoc_args ) {
 		unset( $assoc_args ); // WP-CLI passes it; this command has no options.
 
-		if ( ! is_multisite() ) {
-			\WP_CLI::error( 'This command requires a multisite installation.' );
-		}
+		$this->require_network_admin();
 
 		$slug   = $args[0];
 		$result = $this->templates_manager->delete_template( $slug );
