@@ -46,6 +46,11 @@ class API_Usage_Tracker {
 
 		if ( is_wp_error( $response ) ) {
 			$error_message = $response->get_error_message();
+		} elseif ( is_array( $decoded ) && in_array( $decoded['response'] ?? '', array( 'exceeded_requests', 'subscription_inactive' ), true ) ) {
+			// A refused lookup: still an api_call row (it is not an outage), marked so
+			// usage checks can leave it out (during a used-up quota they arrive about
+			// hourly, and would otherwise make the reset day look like a spike).
+			$error_message = (string) $decoded['response'];
 		} elseif ( $decoded && isset( $decoded['body_response'] ) ) {
 			$queries_limit     = $decoded['body_response']['queries_limit'] ?? null;
 			$queries_made      = $decoded['body_response']['queries_made'] ?? null;
@@ -416,26 +421,30 @@ class API_Usage_Tracker {
 
 		$anomalies = array();
 
-		// Get today's stats vs. last 7 days average.
-		$today_stats    = self::get_usage_stats( $site_id, 'today' );
-		$week_stats     = self::get_usage_stats( $site_id, 'week' );
-		$week_avg_calls = ceil( $week_stats['api_calls'] / 7 );
-		$spike          = API_Usage_Alerts::threshold( 'usage_spike' );
+		$today_stats = self::get_usage_stats( $site_id, 'today' );
+		$spike       = API_Usage_Alerts::threshold( 'usage_spike' );
+		$usage       = self::answered_calls_by_day( (int) $site_id );
 
-		// Spike detection: today's calls above the threshold's share of the weekly average.
-		if ( $week_avg_calls > 0 && $today_stats['api_calls'] > ( $week_avg_calls * $spike / 100 ) ) {
-			$anomalies[] = array(
-				'type'     => 'usage_spike',
-				'severity' => 'warning',
-				'message'  => sprintf(
-					/* translators: 1: today's calls, 2: weekly average */
-					__( 'Usage spike detected: %1$d calls today vs %2$d daily average', 'zero-spam' ),
-					$today_stats['api_calls'],
-					$week_avg_calls
-				),
-				'value'    => $today_stats['api_calls'],
-				'baseline' => $week_avg_calls,
-			);
+		// Spike detection: today's answered lookups above the threshold's share of
+		// the daily average of the 7 days before today, judged only with lookups on
+		// at least 3 of them (a first busy day has no history to compare with).
+		if ( count( $usage['before'] ) >= 3 ) {
+			$week_avg_calls = (int) ceil( array_sum( $usage['before'] ) / count( $usage['before'] ) );
+
+			if ( $week_avg_calls > 0 && $usage['today'] > ( $week_avg_calls * $spike / 100 ) ) {
+				$anomalies[] = array(
+					'type'     => 'usage_spike',
+					'severity' => 'warning',
+					'message'  => sprintf(
+						/* translators: 1: today's calls, 2: weekly average */
+						__( 'Usage spike detected: %1$d calls today vs %2$d daily average', 'zero-spam' ),
+						$usage['today'],
+						$week_avg_calls
+					),
+					'value'    => $usage['today'],
+					'baseline' => $week_avg_calls,
+				);
+			}
 		}
 
 		// Error rate detection.
@@ -505,6 +514,48 @@ class API_Usage_Tracker {
 	}
 
 	/**
+	 * Answered lookups per day: today's, and each of the 7 days before it that
+	 * had any. Refused lookups (a used-up quota, a lapsed subscription) are
+	 * left out, so the day the quota resets is not taken for a spike.
+	 *
+	 * @since 6.0.1
+	 *
+	 * @param int $site_id Site ID.
+	 * @return array{today: int, before: array<string, int>}
+	 */
+	private static function answered_calls_by_day( int $site_id ): array {
+		global $wpdb;
+
+		$today = substr( current_time( 'mysql' ), 0, 10 );
+		$start = ( new \DateTimeImmutable( $today ) )->modify( '-7 days' )->format( 'Y-m-d' );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- At most 8 rows of the plugin's own table, read by the hourly cron.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT DATE(date_recorded) AS day, COUNT(*) AS calls FROM %i WHERE site_id = %d AND event_type = 'api_call' AND error_message IS NULL AND date_recorded >= %s GROUP BY DATE(date_recorded) LIMIT 8",
+				$wpdb->base_prefix . DB::$tables['api_usage'],
+				$site_id,
+				$start . ' 00:00:00'
+			),
+			ARRAY_A
+		);
+
+		$usage = array(
+			'today'  => 0,
+			'before' => array(),
+		);
+		foreach ( (array) $rows as $row ) {
+			if ( $today === $row['day'] ) {
+				$usage['today'] = (int) $row['calls'];
+			} elseif ( $row['day'] < $today ) {
+				$usage['before'][ (string) $row['day'] ] = (int) $row['calls'];
+			}
+		}
+
+		return $usage;
+	}
+
+	/**
 	 * The quota the API last reported for a site: its limit and what remained.
 	 *
 	 * The latest report since the current quota period started
@@ -516,7 +567,7 @@ class API_Usage_Tracker {
 	 * @since 6.0.0
 	 *
 	 * @param int                  $site_id     Site ID.
-	 * @param array<string, mixed> $today_stats get_usage_stats() for today.
+	 * @param array<string, mixed> $today_stats Unused since 6.0.1 (kept for callers).
 	 * @return array{limit: int, remaining: int}|null Null when nothing usable was reported.
 	 */
 	public static function quota_snapshot( int $site_id, array $today_stats ): ?array {

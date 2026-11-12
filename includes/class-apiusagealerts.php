@@ -221,15 +221,16 @@ class API_Usage_Alerts {
 			}
 			set_transient( $quota['key'], true, $quota['ttl'] );
 		} else {
-			// Other alerts: at most one per type every 24 hours, or every 6 hours
-			// when critical (High Error Rate was sent on every hourly check).
-			$throttle_key = "zerospam_alert_sent_{$site_id}_{$anomaly['type']}";
+			// Other alerts: at most one per type every 24 hours, or every 6 hours when
+			// critical (High Error Rate was sent on every hourly check). Critical alerts
+			// have a key of their own, so a warning sent earlier does not hold one back.
+			$critical     = 'critical' === $anomaly['severity'];
+			$throttle_key = "zerospam_alert_sent_{$site_id}_{$anomaly['type']}" . ( $critical ? '_critical' : '' );
 			if ( get_transient( $throttle_key ) ) {
-				// Alert already sent recently.
 				return;
 			}
 
-			set_transient( $throttle_key, true, 'critical' === $anomaly['severity'] ? 6 * HOUR_IN_SECONDS : DAY_IN_SECONDS );
+			set_transient( $throttle_key, true, $critical ? 6 * HOUR_IN_SECONDS : DAY_IN_SECONDS );
 		}
 
 		// Send email alert if enabled.
@@ -348,8 +349,9 @@ class API_Usage_Alerts {
 				'remaining' => max( 0, min( (int) $stats['current_remaining'], (int) $stats['current_limit'] ) ),
 			);
 		}
+		$quota_rows = array();
 		if ( null !== $quota ) {
-			$rows[] = array(
+			$quota_rows[] = array(
 				__( 'Queries used', 'zero-spam' ),
 				sprintf(
 					/* translators: 1: queries used, 2: queries allowed */
@@ -358,54 +360,65 @@ class API_Usage_Alerts {
 					number_format_i18n( $quota['limit'] )
 				),
 			);
-			$rows[] = array( __( 'Queries left', 'zero-spam' ), number_format_i18n( $quota['remaining'] ) );
+			$quota_rows[] = array( __( 'Queries left', 'zero-spam' ), number_format_i18n( $quota['remaining'] ) );
 		}
 
 		return array(
 			'site'    => $name,
 			'heading' => (string) $anomaly['message'],
-			'blocks'  => array(
-				array(
-					'type' => 'text',
-					'text' => $is_network
-						/* translators: 1: severity (Warning or Critical), 2: network name */
-						? __( '%1$s alert: Zero Spam found this while checking API usage across the %2$s network.', 'zero-spam' )
-						/* translators: 1: severity (Warning or Critical), 2: site name */
-						: __( '%1$s alert: Zero Spam found this while checking API usage on %2$s.', 'zero-spam' ),
-					'args' => array(
+			// A block of rows without rows (no quota reported) is left out.
+			'blocks'  => array_values(
+				array_filter(
+					array(
 						array(
-							'text'  => self::severity_label( (string) $anomaly['severity'] ),
-							'style' => 'strong',
+							'type' => 'text',
+							'text' => $is_network
+								/* translators: 1: severity (Warning or Critical), 2: network name */
+								? __( '%1$s alert: Zero Spam found this while checking API usage across the %2$s network.', 'zero-spam' )
+								/* translators: 1: severity (Warning or Critical), 2: site name */
+								: __( '%1$s alert: Zero Spam found this while checking API usage on %2$s.', 'zero-spam' ),
+							'args' => array(
+								array(
+									'text'  => self::severity_label( (string) $anomaly['severity'] ),
+									'style' => 'strong',
+								),
+								array(
+									'text'  => $name,
+									'style' => 'strong',
+								),
+							),
 						),
 						array(
-							'text'  => $name,
-							'style' => 'strong',
+							'type'  => 'rows',
+							'title' => __( 'Today', 'zero-spam' ),
+							'rows'  => $rows,
 						),
-					),
-				),
-				array(
-					'type'  => 'rows',
-					'title' => __( 'Today', 'zero-spam' ),
-					'rows'  => $rows,
-				),
-				array(
-					'type'  => 'button',
-					'label' => __( 'View API usage', 'zero-spam' ),
-					'url'   => \ZeroSpam\Core\Utilities::admin_link( $is_network ? 'network-settings' : 'api-monitoring' ),
-				),
-				array(
-					'type' => 'text',
-					'size' => 'small',
-					/* translators: %s: link to the API monitoring settings */
-					'text' => __( 'To change which alerts you get, go to %s.', 'zero-spam' ),
-					'args' => array(
 						array(
-							'text'  => $is_network ? __( 'Zero Spam network settings', 'zero-spam' ) : __( 'API monitoring settings', 'zero-spam' ),
-							'style' => 'link',
+							'type'  => 'rows',
+							'title' => __( 'This quota period', 'zero-spam' ),
+							'rows'  => $quota_rows,
+						),
+						array(
+							'type'  => 'button',
+							'label' => __( 'View API usage', 'zero-spam' ),
 							'url'   => \ZeroSpam\Core\Utilities::admin_link( $is_network ? 'network-settings' : 'api-monitoring' ),
 						),
+						array(
+							'type' => 'text',
+							'size' => 'small',
+							/* translators: %s: link to the API monitoring settings */
+							'text' => __( 'To change which alerts you get, go to %s.', 'zero-spam' ),
+							'args' => array(
+								array(
+									'text'  => $is_network ? __( 'Zero Spam network settings', 'zero-spam' ) : __( 'API monitoring settings', 'zero-spam' ),
+									'style' => 'link',
+									'url'   => \ZeroSpam\Core\Utilities::admin_link( $is_network ? 'network-settings' : 'api-monitoring' ),
+								),
+							),
+						),
 					),
-				),
+					static fn( array $block ): bool => 'rows' !== $block['type'] || array() !== $block['rows']
+				)
 			),
 		);
 	}
@@ -583,6 +596,16 @@ class API_Usage_Alerts {
 		if ( null === $period ) {
 			return array(
 				'key' => $prefix . '_' . current_time( 'Ymd' ),
+				'ttl' => DAY_IN_SECONDS,
+			);
+		}
+
+		// On the reset day itself, once for the day only: reports from before the
+		// service's own reset (its clock may differ from the site's) can still show
+		// the old period, and an alert from them must not hold back a real one.
+		if ( current_time( 'Y-m-d' ) === $period['start'] ) {
+			return array(
+				'key' => $prefix . '_' . current_time( 'Ymd' ) . '_first_day',
 				'ttl' => DAY_IN_SECONDS,
 			);
 		}

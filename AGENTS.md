@@ -1088,7 +1088,11 @@ npm run env:stop                 # stop both wp-env sites
   `API_Usage_Tracker::quota_snapshot()` (the latest of the quota period, or
   of today without a Quota Reset Date), never the day's `MAX()` columns,
   which come from different reports. The network quota alert still reads
-  `get_network_usage_stats()` (`MAX()` across sites).
+  `get_network_usage_stats()` (`MAX()` across sites). Refused lookups
+  (`exceeded_requests`, `subscription_inactive`) are `api_call` rows with
+  that word in `error_message`; the spike check counts answered lookups only,
+  against the 7 days before today, and needs lookups on 3 of them. On a
+  quota period's first day the quota alert's throttle lasts that day only.
 - `.htaccess` on a network (6.0.1): only the main site writes it
   (`Utilities::refresh_htaccess()` returns false on a subsite); every site
   blocks in PHP whatever its IP Block Method.
