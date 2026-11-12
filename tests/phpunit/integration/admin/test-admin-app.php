@@ -244,10 +244,13 @@ class Test_Admin_App extends TestCase {
 		$this->assertSame( $asset['dependencies'], $script->deps );
 		$this->assertSame( $asset['version'], $script->ver );
 		$this->assertSame( 'zero-spam', $script->textdomain );
-		$this->assertTrue( wp_style_is( $handle, 'enqueued' ) );
-		$this->assertStringEndsWith( 'assets/dist/admin-help.css', wp_styles()->registered[ $handle ]->src );
-		$this->assertSame( $asset['version'], wp_styles()->registered[ $handle ]->ver );
-		$this->assertSame( 'replace', wp_styles()->get_data( $handle, 'rtl' ) );
+		// One stylesheet for every area, under one URL and a version of its own
+		// content, so the browser caches it once for all the plugin's pages.
+		$styles = wp_styles()->registered[ Admin_App::STYLES_HANDLE ];
+		$this->assertTrue( wp_style_is( Admin_App::STYLES_HANDLE, 'enqueued' ) );
+		$this->assertStringEndsWith( 'assets/dist/' . Admin_App::STYLES_ENTRY . '.css', $styles->src );
+		$this->assertSame( substr( md5_file( ZEROSPAM_PATH . 'assets/dist/' . Admin_App::STYLES_ENTRY . '.css' ), 0, 20 ), $styles->ver );
+		$this->assertSame( 'replace', wp_styles()->get_data( Admin_App::STYLES_HANDLE, 'rtl' ) );
 		$this->assertTrue( wp_style_is( Admin_App::FONTS_HANDLE, 'enqueued' ) );
 
 		$boot = $this->inline( $handle, 'before' );
@@ -296,7 +299,7 @@ class Test_Admin_App extends TestCase {
 		$handle = "zerospam-admin-{$area}";
 		$this->assertSame( $handle, Admin_App::handle( $area ) );
 		$this->assertSame( array( $handle ), $this->app_handles( 'script' ), "Only the page's own script is enqueued." );
-		$this->assertSame( array( $handle ), $this->app_handles( 'style' ), "Only the page's own stylesheet is enqueued." );
+		$this->assertSame( array( Admin_App::STYLES_HANDLE ), $this->app_handles( 'style' ), 'Only the shared stylesheet is enqueued.' );
 
 		$asset  = require ZEROSPAM_PATH . "assets/dist/admin-{$area}.asset.php";
 		$script = wp_scripts()->registered[ $handle ];
@@ -304,7 +307,6 @@ class Test_Admin_App extends TestCase {
 		$this->assertSame( $asset['dependencies'], $script->deps );
 		$this->assertSame( $asset['version'], $script->ver );
 		$this->assertSame( 'zero-spam', $script->textdomain, 'wp_set_script_translations() ran for this handle.' );
-		$this->assertStringEndsWith( "assets/dist/admin-{$area}.css", wp_styles()->registered[ $handle ]->src );
 		$this->assertStringContainsString( "\"area\":\"{$area}\"", $this->inline( $handle, 'before' ), "The bootstrap is printed before the page's own script." );
 	}
 
@@ -328,6 +330,21 @@ class Test_Admin_App extends TestCase {
 		$asset = Admin_App::asset_file( $area );
 		$this->assertContains( 'wp-i18n', $asset['dependencies'] );
 		$this->assertNotSame( ZEROSPAM_VERSION, $asset['version'], 'The version comes from the asset file.' );
+	}
+
+	/**
+	 * Every area's stylesheet is the same file (styles/index.css), so the
+	 * shared one serves them all. When the CSS is split per area, enqueue
+	 * each area's own file again (AGENTS.md section 8).
+	 */
+	public function test_area_stylesheets_are_identical(): void {
+		foreach ( array( '.css', '-rtl.css' ) as $suffix ) {
+			$shared = md5_file( ZEROSPAM_PATH . 'assets/dist/' . Admin_App::STYLES_ENTRY . $suffix );
+			foreach ( array_keys( Admin_App::AREAS ) as $area ) {
+				$this->assertSame( $shared, md5_file( ZEROSPAM_PATH . 'assets/dist/' . Admin_App::entry( $area ) . $suffix ), $area . $suffix );
+			}
+			$this->assertSame( $shared, md5_file( ZEROSPAM_PATH . 'assets/dist/admin-network' . $suffix ), 'network' . $suffix );
+		}
 	}
 
 	/**
