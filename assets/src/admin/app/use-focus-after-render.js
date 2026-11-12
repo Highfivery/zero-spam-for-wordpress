@@ -22,12 +22,15 @@ import { useCallback, useEffect, useRef, useState } from '@wordpress/element';
  */
 export function useFocusAfterRender() {
 	const pending = useRef( null );
-	const [ , setTick ] = useState( 0 );
+	const requests = useRef( 0 );
+	const [ tick, setTick ] = useState( 0 );
 
 	// After every commit: a request made with a state change runs once that change is on screen.
 	useEffect( () => {
 		const request = pending.current;
-		if ( ! request ) {
+		// A request made after this commit (before its effects ran) waits for
+		// the commit that carries its own change.
+		if ( ! request || request.tick > tick ) {
 			return;
 		}
 		pending.current = null;
@@ -37,8 +40,9 @@ export function useFocusAfterRender() {
 	} );
 
 	return useCallback( ( run, fallback ) => {
-		pending.current = { run, fallback };
-		setTick( ( tick ) => tick + 1 );
+		requests.current += 1;
+		pending.current = { run, fallback, tick: requests.current };
+		setTick( requests.current );
 	}, [] );
 }
 

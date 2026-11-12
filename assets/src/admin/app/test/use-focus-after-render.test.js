@@ -16,7 +16,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 /**
  * Internal dependencies
  */
-import { useState } from '@wordpress/element';
+import { useLayoutEffect, useState } from '@wordpress/element';
 import { focusIfEnabled, useFocusAfterRender } from '../use-focus-after-render';
 
 let container;
@@ -95,6 +95,48 @@ describe( 'useFocusAfterRender', () => {
 			api.missing();
 		} );
 		expect( container.querySelector( '#fell' ) ).not.toBeNull();
+	} );
+
+	it( 'waits for its own change when asked between a commit and that commit’s effects', async () => {
+		// A server answer can arrive after React committed an earlier update
+		// (the busy flag cleared) but before that commit's effects ran. The
+		// earlier commit must not take the request: its target is not on
+		// screen yet, so the fallback would move focus elsewhere.
+		let fellBack = false;
+		let request = null;
+		function Late() {
+			const [ phase, setPhase ] = useState( 0 );
+			const [ shown, setShown ] = useState( false );
+			const focusAfterRender = useFocusAfterRender();
+			request = () => setPhase( 1 );
+			useLayoutEffect( () => {
+				if ( 1 === phase ) {
+					setShown( true );
+					focusAfterRender(
+						() =>
+							focusIfEnabled(
+								document.getElementById( 'late-target' )
+							),
+						() => {
+							fellBack = true;
+						}
+					);
+				}
+			}, [ phase, focusAfterRender ] );
+			return shown ? <button id="late-target">Go</button> : null;
+		}
+		const host = document.createElement( 'div' );
+		document.body.appendChild( host );
+		const lateRoot = createRoot( host );
+		act( () => lateRoot.render( <Late /> ) );
+		await act( async () => {
+			await Promise.resolve();
+			request();
+		} );
+		expect( fellBack ).toBe( false );
+		expect( document.activeElement?.id ).toBe( 'late-target' );
+		act( () => lateRoot.unmount() );
+		host.remove();
 	} );
 
 	it( 'focusIfEnabled refuses a disabled control', () => {
