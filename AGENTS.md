@@ -1157,11 +1157,12 @@ npm run env:stop                 # stop both wp-env sites
   never blocks the administrator's own address (it is listed in `invalid`).
   A block's reason is stored entity-encoded and answered decoded
   (`Rules_Controller::reason_text()`): plain text, which clients escape.
-- Activity's switch at 1,200px loses focus (AGENTS section 5's focus note):
-  a focused row control falls to `<body>` when the layout changes, and a
-  drawer opened on the table and closed on the cards has no opener to return
-  to. Rules handles both (`rules/use-table-fit.js`, `drawerReturn` in
-  `rules/blocks.js`); Activity is left as it is for now.
+- Activity's switch at 1,200px keeps focus (6.0.1), as Rules does: every
+  log control carries `data-zs-ctl` (rows `data-zs-row`); `log.js` notes the
+  focused one in `useMedia()`'s before-change callback and asks
+  `useFocusAfterRender()` for its twin (`app/row-focus.js`:
+  `rowControlOf()`, `findControl()`, shared with Rules); its drawers return
+  by entry id.
 - Follow-up (6.0 admin build): split the area CSS per entry point. Every
   `admin-{area}.css` is still all of `styles/index.css` (the same file under
   seven URLs, so pages cannot share a cached copy). `settings.css` and

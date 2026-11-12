@@ -409,6 +409,28 @@ test.describe( '6.0 Activity', () => {
 		await expect( page.locator( '#zs-rp-ev' ) ).toHaveText( 'Enhanced vs Basic' );
 		await expect( page.locator( '#zs-evc-sum' ) ).toContainText( 'caught 15 more' );
 	} );
+
+	test( 'focus stays on the same entry\'s control when the layout switches at 1,200px', async ( { page, zs } ) => {
+		await zs.seedLog( 5 );
+		await page.setViewportSize( { width: 1280, height: 900 } );
+		await openLog( page );
+		const row = await page.locator( '.zs-log [data-zs-row]' ).nth( 2 ).getAttribute( 'data-zs-row' );
+		const inRow = ( selector: string ) => page.locator( `.zs-log [data-zs-row="${ row }"] ${ selector }` );
+
+		for ( const [ name, selector ] of [ [ 'select', 'input[type="checkbox"]' ], [ 'details', '[data-zs-open]' ], [ 'block', '[data-zs-block]' ] ] ) {
+			await test.step( `${ name }: table to cards and back`, async () => {
+				await page.setViewportSize( { width: 1280, height: 900 } );
+				await expect( rows( page ) ).toHaveCount( 5 );
+				await inRow( selector ).focus();
+				await page.setViewportSize( { width: 1100, height: 900 } );
+				await expect( page.locator( '.zs-log-t' ) ).toHaveCount( 0 );
+				await expect( inRow( selector ) ).toBeFocused();
+				await page.setViewportSize( { width: 1280, height: 900 } );
+				await expect( rows( page ) ).toHaveCount( 5 );
+				await expect( inRow( selector ) ).toBeFocused();
+			} );
+		}
+	} );
 } );
 
 test.describe( '6.0 Activity on a network', { tag: '@multisite' }, () => {

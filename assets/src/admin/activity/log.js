@@ -23,6 +23,7 @@ import { useApp, useMedia } from '../app/context';
 import { Badge, Button, Icon, cx } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { BlockForm } from '../app/block-form';
+import { focusIfEnabled } from '../app/use-focus-after-render';
 import { blockAll, bulkBlockPlan, initialValues } from '../app/block-data';
 import { NS, nowLocal, request } from '../data/api';
 import { ago, dayTime, minutesAgo, num } from '../data/format';
@@ -94,7 +95,46 @@ const opener = ( id ) =>
 export function Log( { onChanged, summary } ) {
 	const { enhanced, prefs } = useApp();
 	const { toast, announce } = useFeedback();
-	const wide = useMedia( TABLE_QUERY );
+	const logRef = useRef( null );
+	// The row control that has focus when the layout switches, to focus its twin after.
+	const switchFocus = useRef( null );
+	const wide = useMedia( TABLE_QUERY, () => {
+		const active = logRef.current?.ownerDocument.activeElement;
+		const row = active?.closest?.( '[data-zs-row]' );
+		if ( ! row || ! logRef.current.contains( row ) ) {
+			return;
+		}
+		let control = 'open';
+		if ( active.matches( 'input[type="checkbox"]' ) ) {
+			control = 'select';
+		} else if ( active.closest( '[data-zs-block]' ) ) {
+			control = 'block';
+		}
+		switchFocus.current = { row: row.dataset.zsRow, control };
+	} );
+
+	// After the switch, the same row's matching control takes focus (it was removed with the old layout).
+	useEffect( () => {
+		const noted = switchFocus.current;
+		if ( ! noted ) {
+			return;
+		}
+		switchFocus.current = null;
+		const scope = logRef.current?.querySelector(
+			`[data-zs-row="${ noted.row }"]`
+		);
+		const targets = {
+			select: 'input[type="checkbox"]',
+			block: '[data-zs-block]',
+			open: '[data-zs-open]',
+		};
+		// The effect runs once the new layout is committed, so it can focus now.
+		if (
+			! focusIfEnabled( scope?.querySelector( targets[ noted.control ] ) )
+		) {
+			focusIfEnabled( scope?.querySelector( targets.open ) );
+		}
+	}, [ wide ] );
 	const first = useMemo( () => readView( window.location.search ), [] );
 	const [ view, setView ] = useState( () => ( {
 		filters: first.filters,
@@ -802,6 +842,7 @@ export function Log( { onChanged, summary } ) {
 					{ rows.map( ( row ) => (
 						<tr
 							key={ row.id }
+							data-zs-row={ row.id }
 							className={ cx(
 								( selected.has( row.id ) ||
 									openId === row.id ) &&
@@ -922,6 +963,7 @@ export function Log( { onChanged, summary } ) {
 					{ rows.map( ( row ) => (
 						<li
 							key={ row.id }
+							data-zs-row={ row.id }
 							className={ cx(
 								( selected.has( row.id ) ||
 									openId === row.id ) &&
@@ -990,7 +1032,7 @@ export function Log( { onChanged, summary } ) {
 	);
 
 	return (
-		<div className="zs-log" id="zs-log-top">
+		<div className="zs-log" id="zs-log-top" ref={ logRef }>
 			{ feed.queuedCount > 0 && (
 				<div className="zs-newbar">
 					<Button variant="secondary" size="sm" onClick={ showNew }>
