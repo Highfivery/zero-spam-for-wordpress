@@ -375,7 +375,7 @@ class DavidWalsh {
 		}
 
 		$settings['davidwalsh_howto'] = array(
-			'title'   => __( 'How It Works', 'zero-spam' ),
+			'title'   => __( 'How it works', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'davidwalsh',
 			'module'  => 'davidwalsh',
@@ -400,7 +400,7 @@ class DavidWalsh {
 		);
 
 		$settings['davidwalsh'] = array(
-			'title'       => __( 'Enable Protection', 'zero-spam' ),
+			'title'       => __( 'Enable protection', 'zero-spam' ),
 			'desc'        => sprintf(
 				/* translators: %s: External link (opens in a new tab). */
 				__( 'Enable or disable the David Walsh spam detection technique. When enabled, a security key is automatically added to protected forms. %s', 'zero-spam' ),
@@ -420,7 +420,7 @@ class DavidWalsh {
 		$ttl_hours = (int) ( self::KEY_TTL / HOUR_IN_SECONDS );
 
 		$settings['davidwalsh_status'] = array(
-			'title'   => __( 'Security Key Status', 'zero-spam' ),
+			'title'   => __( 'Security key status', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'davidwalsh',
 			'module'  => 'davidwalsh',
@@ -482,7 +482,7 @@ class DavidWalsh {
 		}
 
 		$settings['davidwalsh_testing'] = array(
-			'title'   => __( 'How to Test', 'zero-spam' ),
+			'title'   => __( 'How to test', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'davidwalsh',
 			'module'  => 'davidwalsh',
@@ -501,7 +501,7 @@ class DavidWalsh {
 		$pills_html    = '<ul class="zerospam-list zerospam-list--pills"><li>' . implode( '</li><li>', array_map( 'esc_html', $all_selectors ) ) . '</li></ul>';
 
 		$settings['davidwalsh_protected_forms'] = array(
-			'title'   => __( 'Currently Protected Forms', 'zero-spam' ),
+			'title'   => __( 'Currently protected forms', 'zero-spam' ),
 			'desc'    => esc_html__(
 				'The following form types are automatically protected when the David Walsh technique is enabled. These selectors are built-in and managed by the plugin:',
 				'zero-spam'
@@ -546,7 +546,7 @@ class DavidWalsh {
 		// A plain text setting (since 6.0.0; it was an html field before), so a
 		// network can lock it. The stored value is unchanged.
 		$settings['davidwalsh_form_selectors'] = array(
-			'title'       => __( 'Custom Form Selectors', 'zero-spam' ),
+			'title'       => __( 'Custom form selectors', 'zero-spam' ),
 			'desc'        => sprintf(
 				/* translators: %s: example CSS selectors */
 				__( 'For advanced users: the CSS selectors of custom-built forms to protect, separated by commas, for example %s. Most popular form plugins are already protected automatically.', 'zero-spam' ),
@@ -561,7 +561,7 @@ class DavidWalsh {
 		);
 
 		$settings['davidwalsh_form_selectors_help'] = array(
-			'title'   => __( 'How to Find Your Form\'s Selector', 'zero-spam' ),
+			'title'   => __( 'How to find your form\'s selector', 'zero-spam' ),
 			'desc'    => '',
 			'section' => 'davidwalsh',
 			'module'  => 'davidwalsh',

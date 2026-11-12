@@ -79,7 +79,7 @@ class Elementor {
 		$options = get_option( 'zero-spam-elementor' );
 
 		$settings['elementor_enabled'] = array(
-			'title'       => __( 'Protect Form Submissions', 'zero-spam' ),
+			'title'       => __( 'Protect form submissions', 'zero-spam' ),
 			'desc'        => __( 'Stop spam from Elementor Pro forms.', 'zero-spam' ),
 			'section'     => 'elementor',
 			'module'      => 'elementor',
@@ -94,7 +94,7 @@ class Elementor {
 		$message = __( 'We were unable to process your submission due to possible malicious activity.', 'zero-spam' );
 
 		$settings['elementor_flagged_msg'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when Elementor forms detect spam.', 'zero-spam' ),
 			'section'     => 'elementor',
 			'module'      => 'elementor',
@@ -107,7 +107,7 @@ class Elementor {
 
 		// The key must stay "{module}_log_flagged_attempts": Plugin::flagged_attempt() reads it.
 		$settings['elementor_log_flagged_attempts'] = array(
-			'title'       => __( 'Log Flagged Attempts', 'zero-spam' ),
+			'title'       => __( 'Log flagged attempts', 'zero-spam' ),
 			'section'     => 'elementor',
 			'module'      => 'elementor',
 			'type'        => 'checkbox',

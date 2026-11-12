@@ -1077,11 +1077,11 @@ npm run env:stop                 # stop both wp-env sites
   per affected site, in the request that changed the setting; the
   Activity drawer does not say when an address is blocked by the network
   (only Rules and the block drawer do).
-- Copy pass (chore, one PR): setting titles in the registry are Title Case
-  (5.x); 6.0 cards and headings use sentence case. Sentence-case every
-  registry title in one PR (translated strings, so a content change in each
-  module). Until then the shared field
-  renderer hides a row title that repeats its card's title (`cardTitle`).
+- Setting titles are sentence case since 6.0.1 (product and feature names
+  keep their capitals: WordPress, Stop Forum Spam, Enhanced Protection, IP
+  Allowlist, Usage Data Sharing, Rescue Mode, Contact Form 7 …). Write new
+  titles the same way. The shared field renderer still hides a row title
+  that repeats its card's title (`cardTitle`).
 - API alerts (6.0.1): quota alerts once per quota period; other alerts once
   per type every 24 hours, or every 6 hours when critical. The quota check
   and the alert email's "Queries used" read one report,

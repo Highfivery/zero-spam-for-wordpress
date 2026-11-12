@@ -103,7 +103,7 @@ class ipbase {
 		$options = get_option( 'zero-spam-ipbase' );
 
 		$settings['ipbase_api_key'] = array(
-			'title'       => __( 'API Key', 'zero-spam' ),
+			'title'       => __( 'API key', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the ipbase URL */
@@ -127,7 +127,7 @@ class ipbase {
 		);
 
 		$settings['ipbase_api_timeout'] = array(
-			'title'       => __( 'API Timeout', 'zero-spam' ),
+			'title'       => __( 'API timeout', 'zero-spam' ),
 			'module'      => 'ipbase',
 			'type'        => 'number',
 			'field_class' => 'small-text',
@@ -139,7 +139,7 @@ class ipbase {
 		);
 
 		$settings['ipbase_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zero-spam' ),
+			'title'       => __( 'Cache expiration', 'zero-spam' ),
 			'module'      => 'ipbase',
 			'type'        => 'number',
 			'field_class' => 'small-text',

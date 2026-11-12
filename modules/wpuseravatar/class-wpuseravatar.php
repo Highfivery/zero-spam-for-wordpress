@@ -184,7 +184,7 @@ class WPUserAvatar {
 		$options = get_option( 'zero-spam-wp-user-avatar' );
 
 		$settings['verify_wp_user_avatar_registrations'] = array(
-			'title'       => __( 'Protect Registrations', 'zero-spam' ),
+			'title'       => __( 'Protect registrations', 'zero-spam' ),
 			'desc'        => __( 'Stop spam user registrations from WP User Avatar plugin.', 'zero-spam' ),
 			'section'     => 'wp-user-avatar',
 			'module'      => 'wp-user-avatar',
@@ -197,7 +197,7 @@ class WPUserAvatar {
 		);
 
 		$settings['log_blocked_wp_user_avatar_registrations'] = array(
-			'title'       => __( 'Log Blocked Registrations', 'zero-spam' ),
+			'title'       => __( 'Log blocked registrations', 'zero-spam' ),
 			'section'     => 'wp-user-avatar',
 			'module'      => 'wp-user-avatar',
 			'type'        => 'checkbox',
@@ -215,7 +215,7 @@ class WPUserAvatar {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['wp_user_avatar_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when WP User Avatar detects spam.', 'zero-spam' ),
 			'section'     => 'wp-user-avatar',
 			'module'      => 'wp-user-avatar',

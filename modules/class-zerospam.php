@@ -157,7 +157,7 @@ class Zero_Spam {
 		);
 
 		$settings['zerospam_license'] = array(
-			'title'       => __( 'License Key', 'zero-spam' ),
+			'title'       => __( 'License key', 'zero-spam' ),
 			'desc'        => __( 'Enter your Zero Spam license key to unlock spam protection features.', 'zero-spam' ),
 			'section'     => 'zerospam',
 			'module'      => 'zerospam',
@@ -172,7 +172,7 @@ class Zero_Spam {
 		}
 
 		$settings['zerospam_timeout'] = array(
-			'title'       => __( 'API Timeout', 'zero-spam' ),
+			'title'       => __( 'API timeout', 'zero-spam' ),
 			'section'     => 'zerospam',
 			'module'      => 'zerospam',
 			'type'        => 'number',
@@ -186,7 +186,7 @@ class Zero_Spam {
 		);
 
 		$settings['zerospam_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zero-spam' ),
+			'title'       => __( 'Cache expiration', 'zero-spam' ),
 			'section'     => 'zerospam',
 			'module'      => 'zerospam',
 			'type'        => 'number',
@@ -200,7 +200,7 @@ class Zero_Spam {
 		);
 
 		$settings['zerospam_confidence_min'] = array(
-			'title'       => __( 'Confidence Minimum', 'zero-spam' ),
+			'title'       => __( 'Confidence minimum', 'zero-spam' ),
 			'section'     => 'zerospam',
 			'module'      => 'zerospam',
 			'type'        => 'number',

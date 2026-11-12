@@ -13,7 +13,7 @@ Free anti-spam for WordPress comments, logins, registrations and forms. No captc
 
 == Description ==
 
-**Zero Spam is a free anti-spam plugin for WordPress that stops spam bots before they post: no captchas, no moderation queue, nothing to clean up.** It protects your comments, logins, registrations and the forms you already use, and it runs on more than 20,000 WordPress sites.
+**Zero Spam is a free anti-spam plugin for WordPress that stops spam bots before they post: no captchas, no moderation queue, nothing to clean up.** It protects your comments, logins, registrations and the forms you already use, and Zero Spam protects more than 30,000 sites.
 
 = Bots bounce. People get through. =
 
@@ -87,7 +87,7 @@ The plugin's complete source code is on GitHub: [Highfivery/zero-spam-for-wordpr
 
 = What is Zero Spam for WordPress? =
 
-Zero Spam is a free WordPress plugin that blocks spam and malicious bots on comments, logins, registrations and forms without captchas. It checks each submission in the background, refuses the ones that come from bots or addresses known for spam, and lets real people through. It has been on WordPress.org since 2014 and runs on more than 20,000 sites.
+Zero Spam is a free WordPress plugin that blocks spam and malicious bots on comments, logins, registrations and forms without captchas. It checks each submission in the background, refuses the ones that come from bots or addresses known for spam, and lets real people through. It has been on WordPress.org since 2014, and Zero Spam protects more than 30,000 sites.
 
 = How do I stop spam comments in WordPress without a captcha? =
 
@@ -151,7 +151,7 @@ Yes. Settings can be read and changed through the REST API (with Application Pas
 
 = Does deleting Zero Spam remove its data? =
 
-Yes, by default: its settings, activity log, blocks and statistics are removed. To keep them for a later reinstall, turn off "Delete Data on Uninstall" under Zero Spam › Settings › Logging & data first. On a network, each site follows its own setting unless the network locks it.
+Yes, by default: its settings, activity log, blocks and statistics are removed. To keep them for a later reinstall, turn off "Delete data on uninstall" under Zero Spam › Settings › Logging & data first. On a network, each site follows its own setting unless the network locks it.
 
 = How do I report a security issue? =
 
@@ -163,7 +163,7 @@ Zero Spam works without any external service. The services below are only contac
 
 = Zero Spam news (zerospam.org) =
 
-When the "Zero Spam News" setting is on (it is by default), the Zero Spam admin screens show the latest articles and security notices from zerospam.org. Your server downloads the public feed at https://www.zerospam.org/articles/feed/ at most once every six hours (once for a whole network), and at most once an hour after a failed download. The request carries only a generic user agent ("Zero Spam for WordPress/" and the plugin version): no site address, no user or visitor data. Turn it off under Settings, or with the `zerospam_news_feed_enabled` filter. [Terms of use](https://www.zerospam.org/terms/), [privacy policy](https://www.zerospam.org/privacy/).
+When the "Zero Spam news" setting is on (it is by default), the Zero Spam admin screens show the latest articles and security notices from zerospam.org. Your server downloads the public feed at https://www.zerospam.org/articles/feed/ at most once every six hours (once for a whole network), and at most once an hour after a failed download. The request carries only a generic user agent ("Zero Spam for WordPress/" and the plugin version): no site address, no user or visitor data. Turn it off under Settings, or with the `zerospam_news_feed_enabled` filter. [Terms of use](https://www.zerospam.org/terms/), [privacy policy](https://www.zerospam.org/privacy/).
 
 = Zero Spam API (zerospam.org) =
 
@@ -176,7 +176,7 @@ Used for Enhanced Protection and for sharing detections. [Terms of use](https://
 
 = Stop Forum Spam =
 
-When the Stop Forum Spam check is on, the following are sent to https://api.stopforumspam.org/ to check their reputation, unless the visitor is logged in or on your allowlist: the visitor's IP address (on page requests, the login, registration and sign-up forms and XML-RPC), the email address of a comment author (when comments are protected), and the email address and IP address of a new registration (when registrations are protected, on a single site's registration form and a network's sign-up page; usernames are never sent). Running "Test my protection" sends a fixed test IP address instead. Like every WordPress request, these also carry your site's address in the user agent. Answers are cached on your site: for a day when nothing is listed, otherwise for the Cache Expiration you set (14 days by default). After repeated failures, lookups pause for 10 minutes. [Terms of use](https://www.stopforumspam.com/legal), [privacy policy](https://www.stopforumspam.com/privacy).
+When the Stop Forum Spam check is on, the following are sent to https://api.stopforumspam.org/ to check their reputation, unless the visitor is logged in or on your allowlist: the visitor's IP address (on page requests, the login, registration and sign-up forms and XML-RPC), the email address of a comment author (when comments are protected), and the email address and IP address of a new registration (when registrations are protected, on a single site's registration form and a network's sign-up page; usernames are never sent). Running "Test my protection" sends a fixed test IP address instead. Like every WordPress request, these also carry your site's address in the user agent. Answers are cached on your site: for a day when nothing is listed, otherwise for the cache expiration you set (14 days by default). After repeated failures, lookups pause for 10 minutes. [Terms of use](https://www.stopforumspam.com/legal), [privacy policy](https://www.stopforumspam.com/privacy).
 
 = Project Honeypot =
 
@@ -184,7 +184,7 @@ When a Project Honeypot http:BL access key is set, the visitor's IPv4 address (r
 
 = Geolocation: ipbase, IPinfo and ipstack =
 
-When you enter an API key for one of these services, the IP address of visitors who are not logged in (on page requests, and for each logged detection) is sent with your key to look up its location (country, region, city), which is used for location blocks and stored with detections in the log. Answers are cached on your site for the Cache Expiration you set (14 days by default, or 30 days for ipbase with the recommended settings).
+When you enter an API key for one of these services, the IP address of visitors who are not logged in (on page requests, and for each logged detection) is sent with your key to look up its location (country, region, city), which is used for location blocks and stored with detections in the log. Answers are cached on your site for the cache expiration you set (14 days by default, or 30 days for ipbase with the recommended settings).
 
 * ipbase: https://api.ipbase.com/. [Terms of service](https://ipbase.com/terms-of-service/), [privacy policy](https://ipbase.com/privacy-policy/).
 * IPinfo: https://api.ipinfo.io/. [Terms](https://ipinfo.io/terms), [privacy policy](https://ipinfo.io/privacy).
@@ -221,10 +221,10 @@ When you enter an API key for one of these services, the IP address of visitors 
 * **feat(help):** every guide, the developer reference, and Zero Spam news and security notices (you can turn the news off under Settings).
 * **feat(multisite):** a new network page: network defaults and locks, templates, an audit log, a site comparison, network statistics, and blocking an address on every site at once.
 * **feat(alerts):** the API alert thresholds and the Quota Reset Date now take effect, a used-up quota now sends an alert, and quota alerts come once per period instead of every hour.
-* **feat(uninstall):** "Delete Data on Uninstall" now decides whether deleting the plugin removes its data. It is on, as before.
+* **feat(uninstall):** "Delete data on uninstall" now decides whether deleting the plugin removes its data. It is on, as before.
 * **fix(privacy):** on new installs, sharing blocked attempts with Zero Spam is now off unless you turn it on (sites that already share keep sharing; turn it off under Settings), Stop Forum Spam lookups are a choice in setup, and "Use Recommended Settings" no longer turns on either. The setup and settings say exactly what each one sends.
 * **fix(privacy):** API Monitoring no longer keeps your license key or visitors' addresses in its usage records, and removes them from records it already has. Sharing a report no longer counts as an API call.
-* **fix(enhanced):** when your plan's lookups are used up, visitors no longer wait for a lookup that can't succeed; a refused lookup pauses them for an hour at a time, so they start again by themselves soon after the reset, and "Test my protection" checks at once. Enhanced answers are now kept for the Cache Expiration you set (they used the Confidence Minimum by mistake).
+* **fix(enhanced):** when your plan's lookups are used up, visitors no longer wait for a lookup that can't succeed; a refused lookup pauses them for an hour at a time, so they start again by themselves soon after the reset, and "Test my protection" checks at once. Enhanced answers are now kept for the cache expiration you set (they used the Confidence Minimum by mistake).
 * **fix(license):** if your subscription lapses, Zero Spam now says so, with a link to renew, instead of "Not reachable right now". Enhanced lookups pause so visitors don't wait for them, every other check keeps working, and they start again by themselves once you renew.
 * **fix(forms):** on form plugins, real people are no longer refused because their email address happens to contain an entry of the disallowed words list ("123@" in jane123@example.com, "ugg" in hugg@example.com). Inside an email address an entry now has to match whole. Comments still use WordPress's own check.
 * **fix(messages):** a blocked form, comment, login or sign-up no longer says "Your IP has been flagged", which was usually not what happened. The default now says it looks like spam and what to do; a message you wrote yourself stays.

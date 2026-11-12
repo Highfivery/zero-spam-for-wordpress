@@ -39,7 +39,7 @@ class API_Monitoring {
 	 */
 	public function sections( $sections ) {
 		$sections['api-monitoring'] = array(
-			'title' => __( 'API Monitoring', 'zero-spam' ),
+			'title' => __( 'API monitoring', 'zero-spam' ),
 		);
 
 		return $sections;
@@ -55,7 +55,7 @@ class API_Monitoring {
 		$options = get_option( 'zero-spam-api-monitoring' );
 
 		$settings['api_monitoring'] = array(
-			'title'       => __( 'Enable API Usage Monitoring', 'zero-spam' ),
+			'title'       => __( 'Enable API usage monitoring', 'zero-spam' ),
 			'section'     => 'api-monitoring',
 			'module'      => 'api-monitoring',
 			'type'        => 'checkbox',
@@ -68,7 +68,7 @@ class API_Monitoring {
 		);
 
 		$settings['api_retention'] = array(
-			'title'       => __( 'Data Retention Period', 'zero-spam' ),
+			'title'       => __( 'Data retention period', 'zero-spam' ),
 			'desc'        => __( 'How long to keep detailed API usage data before automatic cleanup (days).', 'zero-spam' ),
 			'section'     => 'api-monitoring',
 			'module'      => 'api-monitoring',
@@ -84,7 +84,7 @@ class API_Monitoring {
 
 		// Alert Settings Section.
 		$settings['alert_email'] = array(
-			'title'       => __( 'Email Alerts', 'zero-spam' ),
+			'title'       => __( 'Email alerts', 'zero-spam' ),
 			'section'     => 'api-monitoring',
 			'module'      => 'api-monitoring',
 			'type'        => 'checkbox',
@@ -101,7 +101,7 @@ class API_Monitoring {
 		);
 
 		$settings['alert_admin_notice'] = array(
-			'title'       => __( 'Admin Dashboard Notices', 'zero-spam' ),
+			'title'       => __( 'Admin dashboard notices', 'zero-spam' ),
 			'section'     => 'api-monitoring',
 			'module'      => 'api-monitoring',
 			'type'        => 'checkbox',
@@ -126,7 +126,7 @@ class API_Monitoring {
 
 		if ( is_multisite() ) {
 			$settings['alert_network'] = array(
-				'title'       => __( 'Network-Wide Alerts', 'zero-spam' ),
+				'title'       => __( 'Network-wide alerts', 'zero-spam' ),
 				'section'     => 'api-monitoring',
 				'module'      => 'api-monitoring',
 				'type'        => 'checkbox',
@@ -184,7 +184,7 @@ class API_Monitoring {
 
 		// Test alert buttons: the Settings screen renders them (POST settings/actions/test-alert-{channel}).
 		$settings['test_alerts'] = array(
-			'title'   => __( 'Test Alerts', 'zero-spam' ),
+			'title'   => __( 'Test alerts', 'zero-spam' ),
 			'desc'    => __( 'Send a test alert to verify your configuration is working correctly.', 'zero-spam' ),
 			'section' => 'api-monitoring',
 			'module'  => 'api-monitoring',
@@ -194,7 +194,7 @@ class API_Monitoring {
 
 		// Quota reset date setting (read by License_Status::quota_period() since 6.0.0).
 		$settings['quota_reset_date'] = array(
-			'title'       => __( 'Quota Reset Date (Override)', 'zero-spam' ),
+			'title'       => __( 'Quota reset date (override)', 'zero-spam' ),
 			'desc'        => __( 'The day your Enhanced Protection quota resets. Zero Spam repeats it every month to show your next reset, and quota alerts count only what the API reported since the last reset. Leave empty if you don\'t know it.', 'zero-spam' ),
 			'section'     => 'api-monitoring',
 			'module'      => 'api-monitoring',
@@ -206,7 +206,7 @@ class API_Monitoring {
 
 		// Uninstall data cleanup setting (read by uninstall.php since 6.0.0). On unless turned off: before 6.0.0 uninstalling always deleted everything.
 		$settings['delete_data_on_uninstall'] = array(
-			'title'       => __( 'Delete Data on Uninstall', 'zero-spam' ),
+			'title'       => __( 'Delete data on uninstall', 'zero-spam' ),
 			'section'     => 'api-monitoring',
 			'module'      => 'api-monitoring',
 			// It covers all of the plugin's data: the 6.0 admin shows it with the data settings (option key unchanged).

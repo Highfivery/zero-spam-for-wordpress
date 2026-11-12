@@ -183,7 +183,7 @@ class ContactForm7 {
 		$options = get_option( 'zero-spam-contactform7' );
 
 		$settings['verify_contactform7'] = array(
-			'title'       => __( 'Protect CF7 Submissions', 'zero-spam' ),
+			'title'       => __( 'Protect CF7 submissions', 'zero-spam' ),
 			'desc'        => __( 'Stop spam from Contact Form 7 forms.', 'zero-spam' ),
 			'module'      => 'contactform7',
 			'section'     => 'contactform7',
@@ -198,7 +198,7 @@ class ContactForm7 {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['contactform7_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when Contact Form 7 detects spam.', 'zero-spam' ),
 			'module'      => 'contactform7',
 			'section'     => 'contactform7',
@@ -210,7 +210,7 @@ class ContactForm7 {
 		);
 
 		$settings['verify_contactform7_blocked_email_domains'] = array(
-			'title'       => __( 'Check Blocked Email Domains', 'zero-spam' ),
+			'title'       => __( 'Check blocked email domains', 'zero-spam' ),
 			'desc'        => __( 'Block CF7 submissions containing email addresses from blocked domains.', 'zero-spam' ),
 			'module'      => 'contactform7',
 			'section'     => 'contactform7',
@@ -223,7 +223,7 @@ class ContactForm7 {
 		);
 
 		$settings['verify_contactform7_disallowed_words'] = array(
-			'title'       => __( 'Check Disallowed Words', 'zero-spam' ),
+			'title'       => __( 'Check disallowed words', 'zero-spam' ),
 			'desc'        => __( 'Block CF7 submissions containing words from the WordPress disallowed words list.', 'zero-spam' ),
 			'module'      => 'contactform7',
 			'section'     => 'contactform7',
@@ -236,7 +236,7 @@ class ContactForm7 {
 		);
 
 		$settings['log_blocked_contactform7'] = array(
-			'title'       => __( 'Log Blocked CF7 Submissions', 'zero-spam' ),
+			'title'       => __( 'Log blocked CF7 submissions', 'zero-spam' ),
 			'module'      => 'contactform7',
 			'section'     => 'contactform7',
 			'type'        => 'checkbox',

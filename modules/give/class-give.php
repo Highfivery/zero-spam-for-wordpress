@@ -189,7 +189,7 @@ class Give {
 		$message = \ZeroSpam\Core\Utilities::spam_message();
 
 		$settings['givewp_spam_message'] = array(
-			'title'       => __( 'Flagged Message', 'zero-spam' ),
+			'title'       => __( 'Flagged message', 'zero-spam' ),
 			'desc'        => __( 'The message shown when Give detects spam in a donation form.', 'zero-spam' ),
 			'section'     => 'givewp',
 			'module'      => 'givewp',
@@ -201,7 +201,7 @@ class Give {
 		);
 
 		$settings['log_blocked_givewp'] = array(
-			'title'       => __( 'Log Blocked GiveWP Submissions', 'zero-spam' ),
+			'title'       => __( 'Log blocked GiveWP submissions', 'zero-spam' ),
 			'section'     => 'givewp',
 			'module'      => 'givewp',
 			'type'        => 'checkbox',

@@ -153,7 +153,7 @@ class Security {
 		);
 
 		$settings['hide_wp_version'] = array(
-			'title'       => __( 'Hide the WordPress Version', 'zero-spam' ),
+			'title'       => __( 'Hide the WordPress version', 'zero-spam' ),
 			'desc'        => __( 'Removes the WordPress version from your pages and feeds, so scanners cannot easily tell which known weaknesses to try.', 'zero-spam' ),
 			'module'      => 'security',
 			'type'        => 'checkbox',
@@ -166,7 +166,7 @@ class Security {
 		);
 
 		$settings['remove_resource_query_parameters'] = array(
-			'title'   => __( 'Remove Resource Query Parameters', 'zero-spam' ),
+			'title'   => __( 'Remove resource query parameters', 'zero-spam' ),
 			'desc'    => wp_kses(
 				__( 'Web scanners love the <code>&ver=x.x.x</code> type arguments that are appended to your CSS and JS files. This is useful for caching systems and implementing this change could affect the quality of your cache. As long as you are aware of the effects or risks, there really shouldn’t be any other detrimental effects.', 'zero-spam' ),
 				array(
@@ -188,7 +188,7 @@ class Security {
 		);
 
 		$settings['disable_emojis'] = array(
-			'title'       => __( 'Disable WordPress Emojis', 'zero-spam' ),
+			'title'       => __( 'Disable WordPress emojis', 'zero-spam' ),
 			'desc'        => wp_kses(
 				__( 'WordPress emoji’s are one of the vectors scanners use in order to enumerate version information, disable them if you\'re not using them.', 'zero-spam' ),
 				array(
@@ -211,7 +211,7 @@ class Security {
 		);
 
 		$settings['disable_rss_feed'] = array(
-			'title'   => __( 'Disable WordPress RSS Feed', 'zero-spam' ),
+			'title'   => __( 'Disable WordPress RSS feed', 'zero-spam' ),
 			'desc'    => wp_kses(
 				__( 'Having the RSS feed exposed is another way that scanners use to detect your WordPress version as well as other pertinent information such as authors, disable it if you\'re not using it.', 'zero-spam' ),
 				array(

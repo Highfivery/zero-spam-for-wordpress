@@ -218,7 +218,7 @@ class ProjectHoneypot {
 		);
 
 		$settings['project_honeypot_access_key'] = array(
-			'title'       => __( 'HTTP:BL Access Key', 'zero-spam' ),
+			'title'       => __( 'HTTP:BL access key', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: URL to sign up, %2$s: URL to HTTP:BL configuration page */
@@ -243,7 +243,7 @@ class ProjectHoneypot {
 		);
 
 		$settings['project_honeypot_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zero-spam' ),
+			'title'       => __( 'Cache expiration', 'zero-spam' ),
 			'section'     => 'project_honeypot',
 			'module'      => 'project_honeypot',
 			'type'        => 'number',
@@ -257,7 +257,7 @@ class ProjectHoneypot {
 		);
 
 		$settings['project_honeypot_score_min'] = array(
-			'title'       => __( 'Threat Score Minimum', 'zero-spam' ),
+			'title'       => __( 'Threat score minimum', 'zero-spam' ),
 			'section'     => 'project_honeypot',
 			'module'      => 'project_honeypot',
 			'type'        => 'number',

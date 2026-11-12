@@ -120,7 +120,7 @@ class StopForumSpam {
 		);
 
 		$settings['stop_forum_spam_timeout'] = array(
-			'title'       => __( 'API Timeout', 'zero-spam' ),
+			'title'       => __( 'API timeout', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
 			'module'      => 'stop_forum_spam',
 			'type'        => 'number',
@@ -134,7 +134,7 @@ class StopForumSpam {
 		);
 
 		$settings['stop_forum_spam_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zero-spam' ),
+			'title'       => __( 'Cache expiration', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
 			'module'      => 'stop_forum_spam',
 			'type'        => 'number',
@@ -148,7 +148,7 @@ class StopForumSpam {
 		);
 
 		$settings['stop_forum_spam_confidence_min'] = array(
-			'title'       => __( 'Confidence Minimum', 'zero-spam' ),
+			'title'       => __( 'Confidence minimum', 'zero-spam' ),
 			'section'     => 'stop_forum_spam',
 			'module'      => 'stop_forum_spam',
 			'type'        => 'number',

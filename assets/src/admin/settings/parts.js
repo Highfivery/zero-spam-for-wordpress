@@ -410,7 +410,7 @@ export function TestAlerts( { entry, disabled } ) {
 		<div className="zs-setrow" id="zs-row-test_alerts">
 			<div className="zs-desc">
 				<b className="zs-st-t" id="zs-t-test_alerts">
-					{ entry?.title || __( 'Test Alerts', 'zero-spam' ) }
+					{ entry?.title || __( 'Test alerts', 'zero-spam' ) }
 				</b>
 				<p id="zs-d-test_alerts">
 					{ __(

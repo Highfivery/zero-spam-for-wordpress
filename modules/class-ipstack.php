@@ -55,7 +55,7 @@ class ipstack {
 		$options = get_option( 'zero-spam-ipstack' );
 
 		$settings['ipstack_api'] = array(
-			'title'       => __( 'API Key', 'zero-spam' ),
+			'title'       => __( 'API key', 'zero-spam' ),
 			'desc'        => sprintf(
 				wp_kses(
 					/* translators: %1$s: Replaced with the ipstack URL, %2$s: Replaced with the ipstack product URL */
@@ -81,7 +81,7 @@ class ipstack {
 		);
 
 		$settings['ipstack_timeout'] = array(
-			'title'       => __( 'API Timeout', 'zero-spam' ),
+			'title'       => __( 'API timeout', 'zero-spam' ),
 			'section'     => 'ipstack',
 			'module'      => 'ipstack',
 			'type'        => 'number',
@@ -94,7 +94,7 @@ class ipstack {
 		);
 
 		$settings['ipstack_cache'] = array(
-			'title'       => __( 'Cache Expiration', 'zero-spam' ),
+			'title'       => __( 'Cache expiration', 'zero-spam' ),
 			'section'     => 'ipstack',
 			'module'      => 'ipstack',
 			'type'        => 'number',
