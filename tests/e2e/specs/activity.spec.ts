@@ -410,27 +410,61 @@ test.describe( '6.0 Activity', () => {
 		await expect( page.locator( '#zs-evc-sum' ) ).toContainText( 'caught 15 more' );
 	} );
 
-	test( 'focus stays on the same entry\'s control when the layout switches at 1,200px', async ( { page, zs } ) => {
+	test( 'focus stays on the same control when the layout switches at 1,200px, and a drawer returns across it', async ( { page, zs } ) => {
 		await zs.seedLog( 5 );
 		await page.setViewportSize( { width: 1280, height: 900 } );
 		await openLog( page );
 		const row = await page.locator( '.zs-log [data-zs-row]' ).nth( 2 ).getAttribute( 'data-zs-row' );
-		const inRow = ( selector: string ) => page.locator( `.zs-log [data-zs-row="${ row }"] ${ selector }` );
+		const inRow = ( control: string ) => page.locator( `.zs-log [data-zs-row="${ row }"] [data-zs-ctl="${ control }"]` );
+		const list = ( control: string ) => page.locator( `.zs-log [data-zs-ctl="${ control }"]` ).first();
+		const toCards = async () => {
+			await page.setViewportSize( { width: 1100, height: 900 } );
+			await expect( page.locator( '.zs-log-t' ) ).toHaveCount( 0 );
+		};
+		const toTable = async () => {
+			await page.setViewportSize( { width: 1280, height: 900 } );
+			await expect( rows( page ) ).toHaveCount( 5 );
+		};
 
-		for ( const [ name, selector ] of [ [ 'select', 'input[type="checkbox"]' ], [ 'details', '[data-zs-open]' ], [ 'block', '[data-zs-block]' ] ] ) {
-			await test.step( `${ name }: table to cards and back`, async () => {
-				await page.setViewportSize( { width: 1280, height: 900 } );
-				await expect( rows( page ) ).toHaveCount( 5 );
-				await inRow( selector ).focus();
-				await page.setViewportSize( { width: 1100, height: 900 } );
-				await expect( page.locator( '.zs-log-t' ) ).toHaveCount( 0 );
-				await expect( inRow( selector ) ).toBeFocused();
-				await page.setViewportSize( { width: 1280, height: 900 } );
-				await expect( rows( page ) ).toHaveCount( 5 );
-				await expect( inRow( selector ) ).toBeFocused();
+		for ( const control of [ 'select', 'main', 'block' ] ) {
+			await test.step( `${ control }: table to cards and back`, async () => {
+				await inRow( control ).focus();
+				await toCards();
+				await expect( inRow( control ) ).toBeFocused();
+				await expect( inRow( control ) ).toBeInViewport();
+				await toTable();
+				await expect( inRow( control ) ).toBeFocused();
 			} );
 		}
+
+		for ( const control of [ 'select-all', 'sort' ] ) {
+			await test.step( `${ control } (the list's own control): table to cards and back`, async () => {
+				await list( control ).focus();
+				await toCards();
+				await expect( list( control ) ).toBeFocused();
+				await toTable();
+				await expect( list( control ) ).toBeFocused();
+			} );
+		}
+
+		await test.step( 'focus outside the list stays where it is', async () => {
+			const search = page.locator( '#zs-lq' );
+			await search.focus();
+			await toCards();
+			await toTable();
+			await expect( search ).toBeFocused();
+		} );
+
+		await test.step( 'a drawer opened on the table and closed on the cards returns to the entry', async () => {
+			await inRow( 'main' ).click();
+			await expect( page.locator( '.zs-drawer' ) ).toBeVisible();
+			await toCards();
+			await page.keyboard.press( 'Escape' );
+			await expect( page.locator( '.zs-drawer' ) ).toBeHidden();
+			await expect( inRow( 'main' ) ).toBeFocused();
+		} );
 	} );
+
 } );
 
 test.describe( '6.0 Activity on a network', { tag: '@multisite' }, () => {

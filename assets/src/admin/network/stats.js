@@ -880,15 +880,7 @@ export function NetworkStats() {
 						/>
 					) }
 					{ attackers.length > 0 && wide && (
-						<div
-							className="zs-tbl-wrap"
-							role="region"
-							aria-label={ __(
-								'Multi-site attackers',
-								'zero-spam'
-							) }
-							tabIndex={ 0 }
-						>
+						<div className="zs-tbl-wrap">
 							<table className="zs-t">
 								<caption className="zs-sr-only">
 									{ __(

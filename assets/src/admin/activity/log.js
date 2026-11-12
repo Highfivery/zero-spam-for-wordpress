@@ -23,7 +23,11 @@ import { useApp, useMedia } from '../app/context';
 import { Badge, Button, Icon, cx } from '../app/primitives';
 import { useFeedback } from '../app/primitives/feedback';
 import { BlockForm } from '../app/block-form';
-import { focusIfEnabled } from '../app/use-focus-after-render';
+import {
+	focusIfEnabled,
+	useFocusAfterRender,
+} from '../app/use-focus-after-render';
+import { findControl, rowControlOf } from '../app/row-focus';
 import { blockAll, bulkBlockPlan, initialValues } from '../app/block-data';
 import { NS, nowLocal, request } from '../data/api';
 import { ago, dayTime, minutesAgo, num } from '../data/format';
@@ -55,6 +59,9 @@ import {
 } from './query';
 import { errorMessage, runUndoable } from './undo';
 import { useQuery } from './use-query';
+
+/** What a control becomes across the table/cards switch (the first one present wins). */
+const SWITCH_TARGETS = { block: [ 'block', 'main' ] };
 
 /** @return {Array<[string, string]>} Sort keys and names (the Sort menu). */
 const sortOptions = () => [
@@ -96,45 +103,33 @@ export function Log( { onChanged, summary } ) {
 	const { enhanced, prefs } = useApp();
 	const { toast, announce } = useFeedback();
 	const logRef = useRef( null );
-	// The row control that has focus when the layout switches, to focus its twin after.
-	const switchFocus = useRef( null );
+	const focusAfter = useFocusAfterRender();
+	// The switch between table and cards replaces the log's controls: the
+	// focused one's twin (same row, same data-zs-ctl) takes focus after it.
 	const wide = useMedia( TABLE_QUERY, () => {
-		const active = logRef.current?.ownerDocument.activeElement;
-		const row = active?.closest?.( '[data-zs-row]' );
-		if ( ! row || ! logRef.current.contains( row ) ) {
-			return;
-		}
-		let control = 'open';
-		if ( active.matches( 'input[type="checkbox"]' ) ) {
-			control = 'select';
-		} else if ( active.closest( '[data-zs-block]' ) ) {
-			control = 'block';
-		}
-		switchFocus.current = { row: row.dataset.zsRow, control };
-	} );
-
-	// After the switch, the same row's matching control takes focus (it was removed with the old layout).
-	useEffect( () => {
-		const noted = switchFocus.current;
+		const noted = rowControlOf(
+			logRef.current,
+			logRef.current?.ownerDocument.activeElement
+		);
 		if ( ! noted ) {
 			return;
 		}
-		switchFocus.current = null;
-		const scope = logRef.current?.querySelector(
-			`[data-zs-row="${ noted.row }"]`
+		focusAfter(
+			() =>
+				focusIfEnabled(
+					findControl( logRef.current, noted, SWITCH_TARGETS )
+				),
+			() =>
+				null !== noted.row &&
+				focusIfEnabled(
+					findControl(
+						logRef.current,
+						{ ...noted, control: 'main' },
+						SWITCH_TARGETS
+					)
+				)
 		);
-		const targets = {
-			select: 'input[type="checkbox"]',
-			block: '[data-zs-block]',
-			open: '[data-zs-open]',
-		};
-		// The effect runs once the new layout is committed, so it can focus now.
-		if (
-			! focusIfEnabled( scope?.querySelector( targets[ noted.control ] ) )
-		) {
-			focusIfEnabled( scope?.querySelector( targets.open ) );
-		}
-	}, [ wide ] );
+	} );
 	const first = useMemo( () => readView( window.location.search ), [] );
 	const [ view, setView ] = useState( () => ( {
 		filters: first.filters,
@@ -649,6 +644,7 @@ export function Log( { onChanged, summary } ) {
 			variant="ghost"
 			size="sm"
 			data-zs-block={ row.id }
+			data-zs-ctl="block"
 			aria-label={
 				row.blocked
 					? sprintf(
@@ -714,6 +710,7 @@ export function Log( { onChanged, summary } ) {
 					<Button
 						variant="secondary"
 						size="sm"
+						data-zs-ctl="clear"
 						onClick={ clearFilters }
 					>
 						{ __( 'Clear filters', 'zero-spam' ) }
@@ -766,6 +763,7 @@ export function Log( { onChanged, summary } ) {
 						<th scope="col" className="zs-c-cb">
 							<input
 								type="checkbox"
+								data-zs-ctl="select-all"
 								aria-label={ __(
 									'Select all shown',
 									'zero-spam'
@@ -863,6 +861,7 @@ export function Log( { onChanged, summary } ) {
 								<label className="zs-cbhit">
 									<input
 										type="checkbox"
+										data-zs-ctl="select"
 										checked={ selected.has( row.id ) }
 										onChange={ ( e ) =>
 											toggle( row.id, e.target.checked )
@@ -926,6 +925,7 @@ export function Log( { onChanged, summary } ) {
 										variant="ghost"
 										size="sm"
 										data-zs-open={ row.id }
+										data-zs-ctl="main"
 										aria-label={ sprintf(
 											/* translators: 1: IP address, 2: relative time */ __(
 												'Details for %1$s, %2$s',
@@ -974,6 +974,7 @@ export function Log( { onChanged, summary } ) {
 							<label className="zs-cbhit">
 								<input
 									type="checkbox"
+									data-zs-ctl="select"
 									checked={ selected.has( row.id ) }
 									onChange={ ( e ) =>
 										toggle( row.id, e.target.checked )
@@ -992,6 +993,7 @@ export function Log( { onChanged, summary } ) {
 								type="button"
 								className="zs-cardmain"
 								data-zs-open={ row.id }
+								data-zs-ctl="main"
 								onClick={ () => openDetails( row.id ) }
 							>
 								<span className="zs-cm-t zs-mono">
@@ -1154,6 +1156,7 @@ export function Log( { onChanged, summary } ) {
 						<input
 							id="zs-lallm"
 							type="checkbox"
+							data-zs-ctl="select-all"
 							checked={ allShown }
 							disabled={ ! rows.length }
 							onChange={ ( e ) => toggleAll( e.target.checked ) }
@@ -1205,6 +1208,7 @@ export function Log( { onChanged, summary } ) {
 						</label>
 						<select
 							id="zs-lsort"
+							data-zs-ctl="sort"
 							className="zs-select zs-select-auto"
 							value={
 								sortOptions().some(

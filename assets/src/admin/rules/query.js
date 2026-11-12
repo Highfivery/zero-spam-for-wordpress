@@ -8,6 +8,7 @@
  */
 
 import { NS } from '../data/api';
+import { findControl as findInLayout } from '../app/row-focus';
 
 /** Tabs, in order (?tab=). */
 export const TABS = [
@@ -92,21 +93,8 @@ export function controlTargets( control ) {
 
 /**
  * The block-list control an element is, to find its match after a switch.
- *
- * @param {Element|null}      root    The list's root.
- * @param {Element|null|void} element Focused element.
- * @return {{row: string|null, control: string}|null} Row (none for the list's own controls) and control.
  */
-export function rowControlOf( root, element ) {
-	const control = element?.closest?.( '[data-zs-ctl]' );
-	if ( ! root || ! control || ! root.contains( control ) ) {
-		return null;
-	}
-	return {
-		row: control.closest( '[data-zs-row]' )?.dataset.zsRow ?? null,
-		control: control.dataset.zsCtl,
-	};
-}
+export { rowControlOf } from '../app/row-focus';
 
 /**
  * Finds the control that matches a noted one in the current layout.
@@ -115,16 +103,8 @@ export function rowControlOf( root, element ) {
  * @param {{row: string|null, control: string}} noted From rowControlOf().
  * @return {Element|null} The control.
  */
-export function findControl( root, { row, control } ) {
-	const scope =
-		null === row ? root : root?.querySelector( `[data-zs-row="${ row }"]` );
-	for ( const name of controlTargets( control ) ) {
-		const found = scope?.querySelector( `[data-zs-ctl="${ name }"]` );
-		if ( found ) {
-			return found;
-		}
-	}
-	return null;
+export function findControl( root, noted ) {
+	return findInLayout( root, noted, CONTROL_TARGETS );
 }
 
 /** The list each list tab edits (rules/lists/{list}). */
