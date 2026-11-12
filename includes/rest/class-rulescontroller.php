@@ -437,6 +437,17 @@ class Rules_Controller extends Base_Controller {
 				),
 				ARRAY_A
 			);
+
+			// A database without INET_ATON()/INET6_ATON(): addresses as text rather than an empty page.
+			if ( null === $rows && 'user_ip' === $orderby ) {
+				$rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT * FROM %i{$where} ORDER BY `user_ip` {$order}, `blocked_id` {$order} LIMIT %d OFFSET %d",
+						array_merge( array( $table ), $values, array( $per_page, ( $page - 1 ) * $per_page ) )
+					),
+					ARRAY_A
+				);
+			}
 		}
 		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
@@ -565,6 +576,12 @@ class Rules_Controller extends Base_Controller {
 				continue;
 			}
 
+			// Your own address is never blocked in passing: block it from the drawer, which asks.
+			if ( self::lockout_question( $record, $body ) ) {
+				$invalid[ $ip ] = __( 'This is your own address, so it was not blocked: blocking it can lock you out. Block it on its own if you mean to.', 'zero-spam' );
+				continue;
+			}
+
 			$records[ $record['user_ip'] ] = $record;
 		}
 
@@ -687,11 +704,6 @@ class Rules_Controller extends Base_Controller {
 			return $record;
 		}
 
-		$question = self::lockout_question( $record, $body );
-		if ( $question ) {
-			return $question;
-		}
-
 		$other = 'ip' === $record['key_type']
 			? DB::blocked( $record['user_ip'] )
 			: DB::blocked( (string) $record['blocked_key'], $record['key_type'] );
@@ -705,6 +717,16 @@ class Rules_Controller extends Base_Controller {
 					'block_id' => (int) $other['blocked_id'],
 				)
 			);
+		}
+
+		// Only when the address or location changes: editing the reason or dates of
+		// a block already in place does not ask again.
+		$same     = 'ip' === $record['key_type']
+			? User::normalize_ip( (string) $record['user_ip'] ) === User::normalize_ip( (string) ( $row['user_ip'] ?? '' ) )
+			: 0 === strcasecmp( (string) $record['blocked_key'], (string) ( $row['blocked_key'] ?? '' ) ) && ( $row['key_type'] ?? '' ) === $record['key_type'];
+		$question = $same ? null : self::lockout_question( $record, $body );
+		if ( $question ) {
+			return $question;
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Updates the plugin's own row.
@@ -1073,8 +1095,10 @@ class Rules_Controller extends Base_Controller {
 	/**
 	 * Asks before a block that would lock the administrator out: their own
 	 * address, or a location their address is in (as Zero Spam looks it up),
-	 * while the address is not on the no-lockout list. Answers 409
-	 * `rest_would_lock_out` unless the body says `confirm: true`.
+	 * while the address is not on the no-lockout list or the IP Allowlist.
+	 * Answers 409 `rest_would_lock_out` unless the body says `confirm: true`.
+	 * Advisory: when no location service answers, nothing is asked. The
+	 * location lookup uses only the services the owner set up, cached a week.
 	 *
 	 * @since 6.0.1
 	 *
@@ -1088,7 +1112,8 @@ class Rules_Controller extends Base_Controller {
 
 		$current = User::get_ip();
 		$current = is_string( $current ) ? User::normalize_ip( $current ) : '';
-		if ( '' === $current || Admin_Safe_IPs::contains( $current ) ) {
+		// The no-lockout list and the IP Allowlist both keep this address in.
+		if ( '' === $current || Admin_Safe_IPs::contains( $current ) || self::is_allowed_ip( $current ) ) {
 			return null;
 		}
 
@@ -1113,7 +1138,9 @@ class Rules_Controller extends Base_Controller {
 
 		$location = Utilities::geolocation( $current );
 		$yours    = is_array( $location ) ? (string) ( $location[ (string) $record['key_type'] ] ?? '' ) : '';
-		if ( '' === $yours || 0 !== strcasecmp( $yours, (string) $record['blocked_key'] ) ) {
+		// Compared as the database matches it at login: case and accents ignored.
+		$fold = static fn( string $text ): string => mb_strtolower( remove_accents( trim( $text ) ), 'UTF-8' );
+		if ( '' === $yours || $fold( $yours ) !== $fold( (string) $record['blocked_key'] ) ) {
 			return null;
 		}
 
@@ -1156,9 +1183,13 @@ class Rules_Controller extends Base_Controller {
 	private static function has_inet6_aton(): bool {
 		global $wpdb;
 
+		if ( defined( 'DB_ENGINE' ) && 'sqlite' === DB_ENGINE ) {
+			return false;
+		}
+
 		$info = (string) $wpdb->db_server_info();
-		if ( str_contains( strtolower( $info ), 'mariadb' ) ) {
-			return true; // Every MariaDB WordPress supports (10.1+) has it.
+		if ( preg_match( '/(\d+\.\d+\.\d+)-MariaDB/i', $info, $match ) ) {
+			return version_compare( $match[1], '10.0.12', '>=' );
 		}
 
 		return version_compare( (string) $wpdb->db_version(), '5.6.3', '>=' );
@@ -1286,7 +1317,11 @@ class Rules_Controller extends Base_Controller {
 			if ( null !== $reason && ! is_string( $reason ) ) {
 				$errors['reason'] = __( 'Must be text.', 'zero-spam' );
 			} else {
-				$reason = sanitize_text_field( (string) $reason );
+				// A reason sent back as it was answered keeps its stored form (sanitising
+				// the decoded text again could change a reason nobody edited).
+				$reason = null !== $existing && self::reason_text( $existing['reason'] ?? null ) === $reason
+					? (string) $existing['reason']
+					: sanitize_text_field( (string) $reason );
 
 				if ( strlen( $reason ) > 255 ) {
 					$errors['reason'] = __( 'Must be at most 255 characters.', 'zero-spam' );

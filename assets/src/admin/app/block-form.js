@@ -29,7 +29,7 @@ import {
 	initialValues,
 } from './block-data';
 import { NetworkBlockNote, findNetworkBlock } from './network-block-note';
-import { useFocusAfterRender } from './use-focus-after-render';
+import { focusIfEnabled, useFocusAfterRender } from './use-focus-after-render';
 
 /**
  * An example value for a location type (the Location field's placeholder).
@@ -159,8 +159,19 @@ export function BlockForm( {
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- Once per opening.
 	}, [] );
 
-	const set = ( key ) => ( event ) =>
+	const set = ( key ) => ( event ) => {
 		setValues( { ...values, [ key ]: event.target.value } );
+		// A question about the address or location no longer applies once it changes.
+		if ( [ 'ip', 'key', 'key_type' ].includes( key ) ) {
+			setAsking( '' );
+		}
+	};
+
+	/** The address or location field, where focus goes when the question closes. */
+	const keyField = () =>
+		form.current?.querySelector(
+			`[name="${ isLocation ? 'key' : 'ip' }"]`
+		);
 
 	const focusField = ( key ) =>
 		window.requestAnimationFrame( () =>
@@ -178,7 +189,13 @@ export function BlockForm( {
 	 * @param {boolean} confirm Whether the administrator said to block their own address or location anyway.
 	 */
 	const save = ( confirm ) => {
-		setAsking( '' );
+		if ( confirm && saving ) {
+			return;
+		}
+		// The question stays while "Block it anyway" saves, so focus stays on it.
+		if ( ! confirm ) {
+			setAsking( '' );
+		}
 		const local = {};
 		const checked = isLocation
 			? checkLocation( values.key_type, values.key )
@@ -230,18 +247,19 @@ export function BlockForm( {
 						: Promise.resolve( error );
 				read.then(
 					( data ) => {
+						if ( confirm ) {
+							setAsking( '' );
+							focusAfterRender( () =>
+								focusIfEnabled( keyField() )
+							);
+						}
 						const params = data?.data?.params;
 						if ( WOULD_LOCK_OUT === data?.code ) {
 							setAsking( data.message );
-							focusAfterRender( () => {
-								const button = anyway.current;
-								button?.focus();
-								return (
-									!! button &&
-									button.ownerDocument.activeElement ===
-										button
-								);
-							} );
+							focusAfterRender(
+								() => focusIfEnabled( anyway.current ),
+								() => focusIfEnabled( keyField() )
+							);
 						} else if ( params && 'object' === typeof params ) {
 							setErrors( params );
 							focusField( Object.keys( params )[ 0 ] );
@@ -368,7 +386,8 @@ export function BlockForm( {
 								ref={ anyway }
 								variant="secondary"
 								size="sm"
-								disabled={ saving }
+								aria-describedby="zs-bf-lockout"
+								aria-disabled={ saving ? 'true' : undefined }
 								onClick={ () => save( true ) }
 							>
 								{ __( 'Block it anyway', 'zero-spam' ) }
@@ -378,10 +397,12 @@ export function BlockForm( {
 								size="sm"
 								onClick={ () => {
 									setAsking( '' );
-									focusField( isLocation ? 'key' : 'ip' );
+									focusAfterRender( () =>
+										focusIfEnabled( keyField() )
+									);
 								} }
 							>
-								{ __( 'Cancel', 'zero-spam' ) }
+								{ __( 'Don’t block', 'zero-spam' ) }
 							</Button>
 						</span>
 					</div>

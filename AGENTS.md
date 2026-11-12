@@ -1152,9 +1152,11 @@ npm run env:stop                 # stop both wp-env sites
   the administrator's own address, or of a location their address is in
   (`Utilities::geolocation()`), answers 409 `rest_would_lock_out` unless
   `confirm: true` (`Rules_Controller::lockout_question()`), and nothing is
-  asked while the address is on the no-lockout list. `rules/blocks/bulk`
-  does not ask. A block's reason is stored entity-encoded and answered
-  decoded (`Rules_Controller::reason_text()`); clients show it as text.
+  asked while the address is on the no-lockout list or the IP Allowlist,
+  or when an edit keeps the block's address or location. `rules/blocks/bulk`
+  never blocks the administrator's own address (it is listed in `invalid`).
+  A block's reason is stored entity-encoded and answered decoded
+  (`Rules_Controller::reason_text()`): plain text, which clients escape.
 - Activity's switch at 1,200px loses focus (AGENTS section 5's focus note):
   a focused row control falls to `<body>` when the layout changes, and a
   drawer opened on the table and closed on the cards has no opener to return

@@ -416,12 +416,14 @@ test.describe( '6.0 Rules', () => {
 		await expect( page.locator( '.zs-safelist li' ) ).toHaveCount( 2 );
 	} );
 
-	test( 'blocking your own address asks first; Cancel returns to the field, Block it anyway blocks it', async ( { newRoleContext, zs } ) => {
+	test( 'blocking your own address asks first; Don\'t block returns to the field, Block it anyway blocks it', async ( { newRoleContext, zs } ) => {
 		const ip = '203.0.113.87';
 		const page = await ( await newRoleContext( 'admin', { ip } ) ).newPage();
 		await openTab( page );
-		await page.getByRole( 'button', { name: 'Block an IP' } ).click();
-		await drawer( page ).getByLabel( 'IP address' ).fill( ip );
+		const add = page.getByRole( 'button', { name: 'Block an IP' } );
+		await add.click();
+		const field = drawer( page ).getByLabel( 'IP address' );
+		await field.fill( ip );
 		await drawer( page ).getByRole( 'button', { name: 'Block IP' } ).click();
 
 		const question = drawer( page ).getByRole( 'group', { name: /is your own address/ } );
@@ -429,13 +431,30 @@ test.describe( '6.0 Rules', () => {
 		await expect( yes ).toBeFocused();
 		expect( await zs.plugin< unknown[] >( 'GET', 'rules/blocks', undefined, { kind: 'ip' } ) ).toEqual( [] );
 
-		await question.getByRole( 'button', { name: 'Cancel' } ).click();
-		await expect( question ).toHaveCount( 0 );
-		await expect( drawer( page ).getByLabel( 'IP address' ) ).toBeFocused();
+		await test.step( 'Don\'t block (keyboard) closes the question and returns to the address', async () => {
+			await question.getByRole( 'button', { name: 'Don’t block' } ).focus();
+			await page.keyboard.press( 'Space' );
+			await expect( question ).toHaveCount( 0 );
+			await expect( field ).toBeFocused();
+		} );
 
-		await drawer( page ).getByRole( 'button', { name: 'Block IP' } ).click();
-		await yes.click();
-		await expect.poll( async () => ( await zs.plugin< Array< { ip: string } > >( 'GET', 'rules/blocks', undefined, { kind: 'ip' } ) ).map( ( b ) => b.ip ) ).toEqual( [ ip ] );
+		await test.step( 'editing the address drops the question', async () => {
+			await drawer( page ).getByRole( 'button', { name: 'Block IP' } ).click();
+			await expect( yes ).toBeFocused();
+			await field.fill( '203.0.113.85' );
+			await expect( question ).toHaveCount( 0 );
+			await field.fill( ip );
+		} );
+
+		await test.step( 'Block it anyway (keyboard) blocks it and closes the drawer', async () => {
+			await drawer( page ).getByRole( 'button', { name: 'Block IP' } ).click();
+			await expect( yes ).toBeFocused();
+			await page.keyboard.press( 'Enter' );
+			await expect( drawer( page ) ).toBeHidden();
+			await expect.poll( async () => ( await zs.plugin< Array< { ip: string } > >( 'GET', 'rules/blocks', undefined, { kind: 'ip' } ) ).map( ( b ) => b.ip ) ).toEqual( [ ip ] );
+			await expect( add ).toBeFocused();
+		} );
+		await page.context().close();
 	} );
 
 	test( 'No-lockout: removing your own blocked address asks first; Cancel returns to Remove, Remove anyway removes it', async ( { newRoleContext, zs } ) => {
@@ -458,6 +477,7 @@ test.describe( '6.0 Rules', () => {
 		await remove.click();
 		await anyway.click();
 		await expect( page.locator( '.zs-safelist li' ) ).toHaveCount( 0 );
+		await page.context().close();
 	} );
 
 	for ( const [ tab, seeded ] of [ [ 'ips', 7 ], [ 'locations', 7 ] ] as Array< [ string, number ] > ) {

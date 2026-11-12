@@ -115,7 +115,7 @@ export const cardMeta = () => ( {
 		icon: 'globe',
 		title: __( 'Stop Forum Spam', 'zero-spam' ),
 		blurb: __(
-			'Check IPs against the Stop Forum Spam database. Free, no key needed.',
+			'Check visitors’ IP addresses, and the email addresses entered in comments and registrations, against the Stop Forum Spam database. Free, no key needed.',
 			'zero-spam'
 		),
 	},
