@@ -1148,16 +1148,13 @@ npm run env:stop                 # stop both wp-env sites
   are 1.4 MB). `zerospam_settings_audit` keeps a list's old and new
   values summarised above 2 KB (`Settings_Controller::AUDIT_VALUE_MAX_BYTES`)
   and stays under 256 KB (`AUDIT_MAX_BYTES`), oldest entries dropped first.
-- Follow-ups from the Rules review (#452):
-  - Rules: IPv6 addresses sort as text; sort them numerically with
-    `INET6_ATON()` where the database has it.
-  - The no-lockout 409 only considers IP blocks: blocking the country or
-    city of the administrator's own address is a soft lockout in PHP mode
-    (the emailed rescue link still works).
-  - A block's `reason` is stored entity-encoded (`a<b` becomes `a&lt;b`)
-    and Rules shows it literally.
-  - No e2e covers the focus moves of the no-lockout inline confirmation
-    (Remove anyway / Cancel).
+- Rules lockout questions (6.0.1): creating or changing a site block of
+  the administrator's own address, or of a location their address is in
+  (`Utilities::geolocation()`), answers 409 `rest_would_lock_out` unless
+  `confirm: true` (`Rules_Controller::lockout_question()`), and nothing is
+  asked while the address is on the no-lockout list. `rules/blocks/bulk`
+  does not ask. A block's reason is stored entity-encoded and answered
+  decoded (`Rules_Controller::reason_text()`); clients show it as text.
 - Activity's switch at 1,200px loses focus (AGENTS section 5's focus note):
   a focused row control falls to `<body>` when the layout changes, and a
   drawer opened on the table and closed on the cards has no opener to return

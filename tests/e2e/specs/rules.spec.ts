@@ -416,6 +416,50 @@ test.describe( '6.0 Rules', () => {
 		await expect( page.locator( '.zs-safelist li' ) ).toHaveCount( 2 );
 	} );
 
+	test( 'blocking your own address asks first; Cancel returns to the field, Block it anyway blocks it', async ( { newRoleContext, zs } ) => {
+		const ip = '203.0.113.87';
+		const page = await ( await newRoleContext( 'admin', { ip } ) ).newPage();
+		await openTab( page );
+		await page.getByRole( 'button', { name: 'Block an IP' } ).click();
+		await drawer( page ).getByLabel( 'IP address' ).fill( ip );
+		await drawer( page ).getByRole( 'button', { name: 'Block IP' } ).click();
+
+		const question = drawer( page ).getByRole( 'group', { name: /is your own address/ } );
+		const yes = question.getByRole( 'button', { name: 'Block it anyway' } );
+		await expect( yes ).toBeFocused();
+		expect( await zs.plugin< unknown[] >( 'GET', 'rules/blocks', undefined, { kind: 'ip' } ) ).toEqual( [] );
+
+		await question.getByRole( 'button', { name: 'Cancel' } ).click();
+		await expect( question ).toHaveCount( 0 );
+		await expect( drawer( page ).getByLabel( 'IP address' ) ).toBeFocused();
+
+		await drawer( page ).getByRole( 'button', { name: 'Block IP' } ).click();
+		await yes.click();
+		await expect.poll( async () => ( await zs.plugin< Array< { ip: string } > >( 'GET', 'rules/blocks', undefined, { kind: 'ip' } ) ).map( ( b ) => b.ip ) ).toEqual( [ ip ] );
+	} );
+
+	test( 'No-lockout: removing your own blocked address asks first; Cancel returns to Remove, Remove anyway removes it', async ( { newRoleContext, zs } ) => {
+		const ip = '203.0.113.86';
+		await zs.noLockout( [ ip ] );
+		await zs.block( ip );
+		const page = await ( await newRoleContext( 'admin', { ip } ) ).newPage();
+		await openTab( page, 'no-lockout' );
+
+		const remove = page.locator( `[data-zs-remove="${ ip }"]` );
+		await remove.click();
+		const question = page.locator( '.zs-lockout-q' );
+		const anyway = question.getByRole( 'button', { name: 'Remove anyway' } );
+		await expect( anyway ).toBeFocused();
+
+		await question.getByRole( 'button', { name: 'Cancel' } ).click();
+		await expect( question ).toHaveCount( 0 );
+		await expect( remove ).toBeFocused();
+
+		await remove.click();
+		await anyway.click();
+		await expect( page.locator( '.zs-safelist li' ) ).toHaveCount( 0 );
+	} );
+
 	for ( const [ tab, seeded ] of [ [ 'ips', 7 ], [ 'locations', 7 ] ] as Array< [ string, number ] > ) {
 		test( `${ tab }: a table from 1,440px with nothing clipped, even with the widest content; cards at 1,439px`, async ( { page, zs, wpcli, gallery } ) => {
 			await seedWidest( zs, wpcli );

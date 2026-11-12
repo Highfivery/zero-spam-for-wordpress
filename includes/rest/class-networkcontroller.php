@@ -601,7 +601,7 @@ class Network_Controller extends Base_Controller {
 			'type'       => $temporary ? 'temporary' : 'permanent',
 			'start'      => Rules_Controller::utc_date( $row['start_block'] ?? null ),
 			'end'        => $temporary ? Rules_Controller::utc_date( $row['end_block'] ?? null ) : null,
-			'reason'     => isset( $row['reason'] ) && '' !== (string) $row['reason'] ? (string) $row['reason'] : null,
+			'reason'     => Rules_Controller::reason_text( $row['reason'] ?? null ),
 			'date_added' => isset( $row['date_added'] ) && '' !== (string) $row['date_added'] ? mysql_to_rfc3339( (string) $row['date_added'] ) : null,
 			'active'     => ! empty( Access::get_blocked_details( $row )['blocked'] ),
 		);

@@ -29,6 +29,7 @@ import {
 	initialValues,
 } from './block-data';
 import { NetworkBlockNote, findNetworkBlock } from './network-block-note';
+import { useFocusAfterRender } from './use-focus-after-render';
 
 /**
  * An example value for a location type (the Location field's placeholder).
@@ -56,6 +57,9 @@ export const locationTypes = () => ( {
 	city: __( 'City name', 'zero-spam' ),
 	zip: __( 'Zip/Postal code', 'zero-spam' ),
 } );
+
+/** The server's answer when a block would lock the administrator out. */
+const WOULD_LOCK_OUT = 'rest_would_lock_out';
 
 /**
  * Finds an address's block, if it has one.
@@ -107,6 +111,10 @@ export function BlockForm( {
 			: initialValues( block, ip, nowLocal(), zone )
 	);
 	const [ errors, setErrors ] = useState( {} );
+	// The server's question when the block would lock the administrator out.
+	const [ asking, setAsking ] = useState( '' );
+	const anyway = useRef( null );
+	const focusAfterRender = useFocusAfterRender();
 	const [ failure, setFailure ] = useState( '' );
 	const [ saving, setSaving ] = useState( false );
 	const [ networkBlock, setNetworkBlock ] = useState( null );
@@ -161,6 +169,16 @@ export function BlockForm( {
 
 	const submit = ( event ) => {
 		event.preventDefault();
+		save( false );
+	};
+
+	/**
+	 * Checks and saves the block.
+	 *
+	 * @param {boolean} confirm Whether the administrator said to block their own address or location anyway.
+	 */
+	const save = ( confirm ) => {
+		setAsking( '' );
 		const local = {};
 		const checked = isLocation
 			? checkLocation( values.key_type, values.key )
@@ -186,13 +204,16 @@ export function BlockForm( {
 				? `${ NS }/rules/blocks/${ record.id }`
 				: `${ NS }/rules/blocks`,
 			method: record ? 'PUT' : 'POST',
-			data: blockBody(
-				{
-					...values,
-					[ isLocation ? 'key' : 'ip' ]: checked.value,
-				},
-				editBaseline( record, zone )
-			),
+			data: {
+				...blockBody(
+					{
+						...values,
+						[ isLocation ? 'key' : 'ip' ]: checked.value,
+					},
+					editBaseline( record, zone )
+				),
+				...( confirm ? { confirm: true } : {} ),
+			},
 			parse: false,
 		} )
 			.then( ( response ) =>
@@ -210,7 +231,18 @@ export function BlockForm( {
 				read.then(
 					( data ) => {
 						const params = data?.data?.params;
-						if ( params && 'object' === typeof params ) {
+						if ( WOULD_LOCK_OUT === data?.code ) {
+							setAsking( data.message );
+							focusAfterRender( () => {
+								const button = anyway.current;
+								button?.focus();
+								return (
+									!! button &&
+									button.ownerDocument.activeElement ===
+										button
+								);
+							} );
+						} else if ( params && 'object' === typeof params ) {
 							setErrors( params );
 							focusField( Object.keys( params )[ 0 ] );
 						} else {
@@ -324,6 +356,36 @@ export function BlockForm( {
 				noValidate
 				onSubmit={ submit }
 			>
+				{ asking && (
+					<div
+						className="zs-confirm-q zs-lockout-q"
+						role="group"
+						aria-labelledby="zs-bf-lockout"
+					>
+						<span id="zs-bf-lockout">{ asking }</span>
+						<span className="zs-inline-row">
+							<Button
+								ref={ anyway }
+								variant="secondary"
+								size="sm"
+								disabled={ saving }
+								onClick={ () => save( true ) }
+							>
+								{ __( 'Block it anyway', 'zero-spam' ) }
+							</Button>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={ () => {
+									setAsking( '' );
+									focusField( isLocation ? 'key' : 'ip' );
+								} }
+							>
+								{ __( 'Cancel', 'zero-spam' ) }
+							</Button>
+						</span>
+					</div>
+				) }
 				{ failure && (
 					<p className="zs-notice zs-notice-err" role="alert">
 						{ failure }

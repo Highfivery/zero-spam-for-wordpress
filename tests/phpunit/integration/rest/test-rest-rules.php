@@ -931,6 +931,101 @@ class Test_Rest_Rules extends TestCase {
 	}
 
 	/**
+	 * IPv6 addresses sort by number too (2001:db8::9 before 2001:db8::10),
+	 * where the database has INET6_ATON().
+	 */
+	public function test_ipv6_blocks_sort_by_number(): void {
+		foreach ( array( '2001:db8::a', '2001:db8::10', '2001:db8::9', '2001:db8:1::' ) as $ip ) {
+			$this->block( $ip );
+		}
+
+		$asc = array_column( $this->rest( 'GET', self::BLOCKS, array(), array( 'orderby' => 'key', 'order' => 'asc' ) )->get_data(), 'ip' ); // phpcs:ignore WordPress.Arrays.ArrayDeclarationSpacing.AssociativeArrayFound -- Short query.
+		$this->assertSame( array( '2001:db8::9', '2001:db8::a', '2001:db8::10', '2001:db8:1::' ), $asc );
+	}
+
+	/**
+	 * A reason is answered as it was typed: sanitising stored "a<b" as "a&lt;b",
+	 * which the screen showed literally.
+	 */
+	public function test_reason_is_answered_as_typed(): void {
+		$response = $this->rest(
+			'POST',
+			self::BLOCKS,
+			array(
+				'kind'   => 'ip',
+				'ip'     => '192.0.2.55',
+				'type'   => 'permanent',
+				'reason' => 'Score < 10 & "rude"',
+			)
+		);
+		$this->assertSame( 201, $response->get_status(), (string) wp_json_encode( $response->get_data() ) );
+		$this->assertSame( 'Score < 10 & "rude"', $response->get_data()['reason'] );
+	}
+
+	/**
+	 * Blocking your own country asks first: you could not reach the site
+	 * afterwards (the no-lockout list did not cover location blocks).
+	 */
+	public function test_blocking_your_own_location_asks_first(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		set_transient( 'zerospam_geo_' . md5( self::DEFAULT_IP ), array( 'country_code' => 'NL' ), HOUR_IN_SECONDS );
+		$body = array(
+			'kind'     => 'location',
+			'key_type' => 'country_code',
+			'key'      => 'NL',
+			'type'     => 'permanent',
+		);
+
+		$asked = $this->rest( 'POST', self::BLOCKS, $body );
+		$this->assertSame( 409, $asked->get_status() );
+		$this->assertSame( 'rest_would_lock_out', $asked->get_data()['code'] );
+		$this->assertNull( \ZeroSpam\Includes\DB::blocked( 'NL', 'country_code' ) );
+
+		$this->assertSame( 201, $this->rest( 'POST', self::BLOCKS, $body + array( 'confirm' => true ) )->get_status() );
+	}
+
+	/**
+	 * Blocking your own address asks first too.
+	 */
+	public function test_blocking_your_own_address_asks_first(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		$body = array(
+			'kind' => 'ip',
+			'ip'   => self::DEFAULT_IP,
+			'type' => 'permanent',
+		);
+
+		$this->assertSame( 409, $this->rest( 'POST', self::BLOCKS, $body )->get_status() );
+		$this->assertSame( 201, $this->rest( 'POST', self::BLOCKS, $body + array( 'confirm' => true ) )->get_status() );
+	}
+
+	/**
+	 * No question when your address is on the no-lockout list, or the location is not yours.
+	 */
+	public function test_no_question_when_you_cannot_be_locked_out(): void {
+		$this->set_request( '/wp-json/', self::DEFAULT_IP );
+		set_transient( 'zerospam_geo_' . md5( self::DEFAULT_IP ), array( 'country_code' => 'NL' ), HOUR_IN_SECONDS );
+
+		$other = array(
+			'kind'     => 'location',
+			'key_type' => 'country_code',
+			'key'      => 'DE',
+			'type'     => 'permanent',
+		);
+		$this->assertSame( 201, $this->rest( 'POST', self::BLOCKS, $other )->get_status() );
+
+		// On the no-lockout list (TEST-NET addresses are not public, so set it directly).
+		update_option( Admin_Safe_IPs::OPTION, array( self::DEFAULT_IP ), false );
+		$own = array(
+			'kind'     => 'location',
+			'key_type' => 'country_code',
+			'key'      => 'NL',
+			'type'     => 'permanent',
+		);
+		$this->assertSame( 201, $this->rest( 'POST', self::BLOCKS, $own )->get_status() );
+	}
+
+	/**
 	 * The counts the Rules tabs show: blocked addresses and locations, the
 	 * three lists and the no-lockout addresses.
 	 */
