@@ -529,6 +529,8 @@ final class Legacy_Endpoints {
 			}
 		}
 
+		// 5.x never asked before blocking your own address or location.
+		$body['confirm'] = true;
 		self::dispatch( 'POST', 'rules/blocks', $body );
 
 		wp_safe_redirect( admin_url( 'admin.php?page=zero-spam-rules&tab=' . ( $location ? 'locations' : 'ips' ) ) );
