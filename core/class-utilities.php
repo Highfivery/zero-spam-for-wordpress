@@ -368,6 +368,13 @@ class Utilities {
 			return false;
 		}
 
+		// A network shares one .htaccess at its root, which only the main site
+		// writes: a subsite's own addresses would replace the main site's.
+		// Every site still blocks its addresses in PHP.
+		if ( is_multisite() && ! is_main_site() ) {
+			return false;
+		}
+
 		// Also called outside wp-admin (the update migration runs on any request).
 		if ( ! function_exists( 'get_home_path' ) || ! function_exists( 'insert_with_markers' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/file.php';

@@ -138,15 +138,58 @@ class Test_API_Usage_Thresholds extends TestCase {
 	 */
 	public function test_usage_spike_follows_its_threshold(): void {
 		for ( $day = 1; $day <= 6; $day++ ) {
-			$this->usage( 1, array(), $day );
+			$this->usage( 2, array(), $day );
 		}
-		$this->usage( 10 );
+		$this->usage( 7 );
 
-		// Week: 16 calls, a daily average of 3; today 10 > 300% of 3.
+		// The 6 days before today: 2 calls a day; today 7 > 300% of 2.
 		$this->assertContains( 'usage_spike', $this->detected() );
 
 		$this->threshold( 'usage_spike', 400 );
-		$this->assertNotContains( 'usage_spike', $this->detected(), '10 is not above 400% of 3.' );
+		$this->assertNotContains( 'usage_spike', $this->detected(), '7 is not above 400% of 2.' );
+	}
+
+	/**
+	 * The day a used-up quota resets is not a spike: refused lookups (about one
+	 * an hour while the quota was used up) are not counted.
+	 */
+	public function test_reset_day_is_not_a_spike(): void {
+		for ( $day = 1; $day <= 7; $day++ ) {
+			$this->usage( 24, array( 'error_message' => 'exceeded_requests' ), $day );
+		}
+		$this->usage( 150 );
+
+		// Before: (168 + 150) / 7 = 46 a day, and 150 > 300% of 46 was a "spike".
+		$this->assertNotContains( 'usage_spike', $this->detected() );
+	}
+
+	/**
+	 * A first busy day, with no history before it, is not a spike.
+	 */
+	public function test_first_day_is_not_a_spike(): void {
+		$this->usage( 200 );
+		$this->usage( 1, array(), 1 );
+
+		$this->assertNotContains( 'usage_spike', $this->detected() );
+	}
+
+	/**
+	 * A refused lookup is recorded as one, so usage checks can leave it out.
+	 */
+	public function test_refused_lookup_is_marked(): void {
+		global $wpdb;
+
+		$this->set_setting( 'api_monitoring', 'enabled', 'api-monitoring' );
+		API_Usage_Tracker::track_api_call(
+			'https://www.zerospam.org/wp-json/v3/query',
+			array(
+				'headers'  => array(),
+				'body'     => (string) wp_json_encode( array( 'response' => 'exceeded_requests' ) ),
+				'response' => array( 'code' => 200 ),
+			)
+		);
+
+		$this->assertSame( 'exceeded_requests', $wpdb->get_var( $wpdb->prepare( 'SELECT error_message FROM %i WHERE site_id = %d ORDER BY usage_id DESC LIMIT 1', $wpdb->base_prefix . DB::$tables['api_usage'], get_current_blog_id() ) ) );
 	}
 
 	/**
@@ -348,5 +391,152 @@ class Test_API_Usage_Thresholds extends TestCase {
 		$alerts->check_anomalies();
 
 		$this->assertCount( 2, $this->sent_mail() );
+	}
+
+	/**
+	 * Rows recorded at given times today (site time), oldest first.
+	 *
+	 * @param array<int, array<string, mixed>> $rows Columns of each row, with `at` (H:i:s).
+	 */
+	private function usage_today( array $rows ): void {
+		global $wpdb;
+
+		$day = substr( current_time( 'mysql' ), 0, 10 );
+		foreach ( $rows as $row ) {
+			$when = $day . ' ' . $row['at'];
+			unset( $row['at'] );
+			$wpdb->insert(
+				$wpdb->base_prefix . DB::$tables['api_usage'],
+				array_merge(
+					array(
+						'site_id'       => get_current_blog_id(),
+						'event_type'    => 'api_call',
+						'endpoint'      => 'v3/query',
+						'response_code' => 200,
+						'date_recorded' => $when,
+						'hour_bucket'   => substr( $when, 0, 13 ) . ':00:00',
+						'day_bucket'    => $day,
+					),
+					$row
+				)
+			);
+		}
+
+		API_Usage_Tracker::clear_usage_cache();
+	}
+
+	/**
+	 * Without a reset date, the quota is judged by today's latest report, not
+	 * the highest count of the day (which understated what was used).
+	 */
+	public function test_quota_without_a_reset_date_reads_the_latest_report(): void {
+		$this->usage_today(
+			array(
+				array(
+					'at'                => '00:00:01',
+					'queries_limit'     => 1000,
+					'queries_remaining' => 900,
+				),
+				array(
+					'at'                => '00:00:02',
+					'queries_limit'     => 1000,
+					'queries_remaining' => 5,
+				),
+			)
+		);
+
+		$this->assertContains( 'quota_critical', $this->detected() );
+	}
+
+	/**
+	 * The alert email's "Queries used" comes from one report: what the limit
+	 * allows minus what remains (the API may leave queries_made out).
+	 */
+	public function test_alert_email_counts_from_the_latest_report(): void {
+		$this->set_setting( 'api_monitoring', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_quota_critical', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_email', 'enabled', 'api-monitoring' );
+		$this->usage_today(
+			array(
+				array(
+					'at'                => '00:00:01',
+					'queries_limit'     => 10,
+					'queries_made'      => 9,
+					'queries_remaining' => 1,
+				),
+				array(
+					'at'                => '00:00:02',
+					'queries_limit'     => 10,
+					'queries_remaining' => 0,
+				),
+			)
+		);
+		reset_phpmailer_instance();
+
+		( new API_Usage_Alerts() )->check_anomalies();
+
+		$mail = $this->sent_mail();
+		$this->assertCount( 1, $mail );
+		$this->assertStringContainsString( '10 of 10', $mail[0]->body );
+		$this->assertStringNotContainsString( '9 of 10', $mail[0]->body );
+	}
+
+	/**
+	 * A critical alert other than the quota (High Error Rate) is not sent on
+	 * every hourly check: at most once every 6 hours.
+	 */
+	public function test_high_error_rate_is_not_sent_every_hour(): void {
+		$this->set_setting( 'api_monitoring', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_high_error_rate', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_email', 'enabled', 'api-monitoring' );
+		$this->usage( 5, array( 'event_type' => 'error' ) );
+		reset_phpmailer_instance();
+		$alerts = new API_Usage_Alerts();
+
+		$alerts->check_anomalies();
+		API_Usage_Tracker::clear_usage_cache();
+		$alerts->check_anomalies();
+
+		$this->assertCount( 1, $this->sent_mail() );
+	}
+
+	/**
+	 * On the reset day, a quota alert is throttled for that day only: one sent
+	 * from reports before the service's own reset does not hold back the month.
+	 */
+	public function test_reset_day_quota_alert_does_not_hold_back_the_period(): void {
+		$this->set_setting( 'api_monitoring', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_quota_critical', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_email', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'quota_reset_date', substr( current_time( 'mysql' ), 0, 10 ), 'api-monitoring' );
+		$this->usage(
+			1,
+			array(
+				'queries_limit'     => 1000,
+				'queries_remaining' => 0,
+			)
+		);
+		reset_phpmailer_instance();
+
+		( new API_Usage_Alerts() )->check_anomalies();
+
+		$this->assertCount( 1, $this->sent_mail() );
+		$this->assertFalse( get_transient( 'zerospam_alert_sent_' . get_current_blog_id() . '_quota_critical_' . str_replace( '-', '', substr( current_time( 'mysql' ), 0, 10 ) ) ), 'The period key is left free.' );
+	}
+
+	/**
+	 * A warning sent earlier does not hold back a critical alert of the same type.
+	 */
+	public function test_warning_does_not_hold_back_a_critical_alert(): void {
+		$this->set_setting( 'api_monitoring', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_high_error_rate', 'enabled', 'api-monitoring' );
+		$this->set_setting( 'alert_email', 'enabled', 'api-monitoring' );
+		set_transient( 'zerospam_alert_sent_' . get_current_blog_id() . '_high_error_rate', true, DAY_IN_SECONDS );
+		$this->usage( 5, array( 'event_type' => 'error' ) );
+		reset_phpmailer_instance();
+
+		( new API_Usage_Alerts() )->check_anomalies();
+
+		$this->assertCount( 1, $this->sent_mail() );
 	}
 }
