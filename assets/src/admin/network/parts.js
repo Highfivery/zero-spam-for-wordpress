@@ -113,7 +113,8 @@ export function LoadState( { res, what, retry } ) {
 
 /**
  * A question with Yes and Cancel, shown in place of the button that asked
- * it (prototype `.confirm-q`); the Yes button takes focus.
+ * it (prototype `.confirm-q`); the Yes button takes focus, or Cancel when Yes
+ * could lock the administrator out (a held Enter must not confirm that).
  *
  * @param {Object}                          props          Props.
  * @param {string}                          props.question Question.
@@ -122,6 +123,7 @@ export function LoadState( { res, what, retry } ) {
  * @param {(...args: unknown[]) => unknown} props.onCancel Cancel.
  * @param {boolean}                         [props.busy]   Working.
  * @param {string}                          [props.id]     ID of the question.
+ * @param {boolean}                         [props.safe]   Focus Cancel, not Yes.
  */
 export function Confirm( {
 	question,
@@ -130,10 +132,13 @@ export function Confirm( {
 	onCancel,
 	busy = false,
 	id = 'zs-nconfirm',
+	safe = false,
 } ) {
 	const button = useRef( null );
+	const cancel = useRef( null );
 	useEffect( () => {
-		button.current?.focus();
+		( safe ? cancel : button ).current?.focus();
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- Only when the question opens.
 	}, [] );
 	return (
 		<div
@@ -150,7 +155,13 @@ export function Confirm( {
 			>
 				{ yes }
 			</Button>
-			<Button variant="ghost" size="sm" onClick={ onCancel }>
+			<Button
+				ref={ cancel }
+				variant="ghost"
+				size="sm"
+				aria-describedby={ safe ? id : undefined }
+				onClick={ onCancel }
+			>
 				{ __( 'Cancel', 'zero-spam' ) }
 			</Button>
 		</div>

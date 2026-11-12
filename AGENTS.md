@@ -1165,6 +1165,10 @@ npm run env:stop                 # stop both wp-env sites
   asked while the address is on the no-lockout list or the IP Allowlist,
   or when an edit keeps the block's address or location. `rules/blocks/bulk`
   never blocks the administrator's own address (it is listed in `invalid`).
+  Every lock-out question puts focus on its safe answer ("Don't block" or
+  Cancel, described by the question; `Confirm` in `network/parts.js` takes
+  `safe`), never on the button that locks the administrator out (Ben,
+  2026-11-12).
   A block's reason is stored entity-encoded and answered decoded
   (`Rules_Controller::reason_text()`): plain text, which clients escape.
 - Activity's switch at 1,200px keeps focus (6.0.1), as Rules does: every
