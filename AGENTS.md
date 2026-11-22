@@ -105,7 +105,13 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   quota: the license route's numbers can lag behind what lookups answer.
 - REST controllers extend `Includes\Rest\Base_Controller` (permission
   helpers, `rest_invalid_param` with `data.params`, `per_page` ≤ 100, paging
-  headers, `_fields`). Secrets are write-only over REST.
+  headers, `_fields`). Secrets are write-only over REST. A route that takes a
+  site ID reads it only through `requested_site_id()` (argument schema
+  `site_id_arg()`), in its permission callback and its callback: the current
+  site by default; another site needs `manage_network_options` and must be on
+  the current network (403, or 404 `rest_site_not_found`). Never pass a
+  client's site ID to a query or `switch_to_blog()` without it (6.0.2: the API
+  usage export read any site).
 - Multisite precedence, as implemented in
   `includes/class-networksettings.php`: **locked network value → site
   override → network default → plugin default.** Network values live in the

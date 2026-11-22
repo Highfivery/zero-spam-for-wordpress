@@ -71,7 +71,7 @@ class API_Usage_Controller extends Base_Controller {
 	 */
 	public function get_usage( $request ) {
 		$period  = $request->get_param( 'period' ) ? $request->get_param( 'period' ) : 'today';
-		$site_id = $request->get_param( 'site_id' );
+		$site_id = get_current_blog_id();
 		$scope   = $request->get_param( 'scope' ) ? $request->get_param( 'scope' ) : 'site';
 
 		// For network requests, check network admin permission.
@@ -88,20 +88,10 @@ class API_Usage_Controller extends Base_Controller {
 			$hourly    = array(); // Network hourly data not yet implemented.
 			$breakdown = \ZeroSpam\Includes\API_Usage_Tracker::get_per_site_breakdown( $period );
 		} else {
-			// Site-level request.
-			if ( null === $site_id ) {
-				$site_id = get_current_blog_id();
-			}
+			$site_id = $this->requested_site_id( $request );
 
-			// Verify user has access to requested site.
-			if ( is_multisite() && get_current_blog_id() !== $site_id ) {
-				if ( ! current_user_can( 'manage_network_options' ) ) {
-					return new \WP_Error(
-						'rest_forbidden',
-						__( 'You do not have permission to view usage for other sites.', 'zero-spam' ),
-						array( 'status' => 403 )
-					);
-				}
+			if ( is_wp_error( $site_id ) ) {
+				return $site_id;
 			}
 
 			$stats     = \ZeroSpam\Includes\API_Usage_Tracker::get_usage_stats( $site_id, $period );
@@ -135,7 +125,11 @@ class API_Usage_Controller extends Base_Controller {
 	public function export_usage( $request ) {
 		$format  = $request->get_param( 'format' ) ? $request->get_param( 'format' ) : 'json';
 		$period  = $request->get_param( 'period' ) ? $request->get_param( 'period' ) : 'today';
-		$site_id = $request->get_param( 'site_id' ) ? $request->get_param( 'site_id' ) : get_current_blog_id();
+		$site_id = $this->requested_site_id( $request );
+
+		if ( is_wp_error( $site_id ) ) {
+			return $site_id;
+		}
 
 		// Get stats.
 		$stats  = \ZeroSpam\Includes\API_Usage_Tracker::get_usage_stats( $site_id, $period );
@@ -202,7 +196,16 @@ class API_Usage_Controller extends Base_Controller {
 			);
 		}
 
-		return true;
+		// The network's usage: a network administrator. Another site's: a network administrator, a site of this network.
+		if ( 'network' === $request->get_param( 'scope' ) && is_multisite() ) {
+			return current_user_can( 'manage_network_options' )
+				? true
+				: $this->forbidden_error( __( 'You do not have permission to view network-wide usage.', 'zero-spam' ) );
+		}
+
+		$site_id = $this->requested_site_id( $request );
+
+		return is_wp_error( $site_id ) ? $site_id : true;
 	}
 
 	/**
@@ -226,11 +229,7 @@ class API_Usage_Controller extends Base_Controller {
 				'default'           => 'site',
 				'sanitize_callback' => 'sanitize_text_field',
 			),
-			'site_id' => array(
-				'description'       => __( 'Site ID for multisite installations', 'zero-spam' ),
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
-			),
+			'site_id' => $this->site_id_arg(),
 		);
 	}
 
@@ -255,11 +254,7 @@ class API_Usage_Controller extends Base_Controller {
 				'default'           => 'today',
 				'sanitize_callback' => 'sanitize_text_field',
 			),
-			'site_id' => array(
-				'description'       => __( 'Site ID for multisite installations', 'zero-spam' ),
-				'type'              => 'integer',
-				'sanitize_callback' => 'absint',
-			),
+			'site_id' => $this->site_id_arg(),
 		);
 	}
 

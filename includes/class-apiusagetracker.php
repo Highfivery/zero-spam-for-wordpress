@@ -157,9 +157,9 @@ class API_Usage_Tracker {
 			$site_id = get_current_blog_id();
 		}
 
-		// Check cache first (1 hour cache).
+		// One copy per site for the whole install (site IDs are unique), so a network administrator reading another site and that site's own clear_usage_cache() share it.
 		$cache_key = "zerospam_usage_stats_{$site_id}_{$period}";
-		$cached    = get_transient( $cache_key );
+		$cached    = get_site_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
@@ -204,13 +204,13 @@ class API_Usage_Tracker {
 		}
 
 		// Cache for 1 hour.
-		set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
+		set_site_transient( $cache_key, $stats, HOUR_IN_SECONDS );
 
 		return $stats;
 	}
 
 	/**
-	 * Gets network-wide usage statistics (for multisite super admins)
+	 * Gets network-wide usage statistics (for multisite super admins): the current network's sites only.
 	 *
 	 * @param string $period Period: 'today', 'yesterday', 'week', 'month', 'all'.
 	 * @return array Network-wide usage statistics.
@@ -218,9 +218,14 @@ class API_Usage_Tracker {
 	public static function get_network_usage_stats( $period = 'today' ) {
 		global $wpdb;
 
-		// Check cache first (1 hour cache).
-		$cache_key = "zerospam_network_usage_stats_{$period}";
-		$cached    = get_transient( $cache_key );
+		// One site, no sites table: its own figures.
+		if ( ! is_multisite() ) {
+			return self::get_usage_stats( get_current_blog_id(), $period ) + array( 'total_sites' => 1 );
+		}
+
+		// One copy per network (core keys site transients by name alone under a persistent object cache).
+		$cache_key = self::network_stats_key( $period );
+		$cached    = get_site_transient( $cache_key );
 
 		if ( false !== $cached ) {
 			return $cached;
@@ -241,10 +246,13 @@ class API_Usage_Tracker {
 					MAX(queries_limit) as current_limit,
 					MAX(queries_made) as current_made,
 					MAX(queries_remaining) as current_remaining,
-					COUNT(DISTINCT site_id) as total_sites
-				FROM %i
-				WHERE date_recorded >= %s AND date_recorded < %s",
+					COUNT(DISTINCT u.site_id) as total_sites
+				FROM %i u
+				INNER JOIN %i b ON b.blog_id = u.site_id
+				WHERE b.site_id = %d AND u.date_recorded >= %s AND u.date_recorded < %s",
 				$table,
+				$wpdb->blogs,
+				get_current_network_id(),
 				$range[0],
 				$range[1]
 			),
@@ -266,19 +274,23 @@ class API_Usage_Tracker {
 		}
 
 		// Cache for 1 hour.
-		set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
+		set_site_transient( $cache_key, $stats, HOUR_IN_SECONDS );
 
 		return $stats;
 	}
 
 	/**
-	 * Gets per-site breakdown for network admin
+	 * Gets per-site breakdown for network admin: the current network's sites only, at most Network_Report::MAX_SITES.
 	 *
 	 * @param string $period Period filter.
 	 * @return array Array of per-site statistics.
 	 */
 	public static function get_per_site_breakdown( $period = 'today' ) {
 		global $wpdb;
+
+		if ( ! is_multisite() ) {
+			return array();
+		}
 
 		$table = $wpdb->base_prefix . DB::$tables['api_usage'];
 		$range = self::date_range( $period );
@@ -287,18 +299,23 @@ class API_Usage_Tracker {
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT
-					site_id,
+					u.site_id,
 					COUNT(*) as total_events,
 					SUM(CASE WHEN event_type = 'api_call' THEN 1 ELSE 0 END) as api_calls,
 					SUM(CASE WHEN event_type = 'cache_hit' THEN 1 ELSE 0 END) as cache_hits,
 					SUM(CASE WHEN event_type = 'error' THEN 1 ELSE 0 END) as errors
-				FROM %i
-				WHERE date_recorded >= %s AND date_recorded < %s
-				GROUP BY site_id
-				ORDER BY api_calls DESC",
+				FROM %i u
+				INNER JOIN %i b ON b.blog_id = u.site_id
+				WHERE b.site_id = %d AND u.date_recorded >= %s AND u.date_recorded < %s
+				GROUP BY u.site_id
+				ORDER BY api_calls DESC
+				LIMIT %d",
 				$table,
+				$wpdb->blogs,
+				get_current_network_id(),
 				$range[0],
-				$range[1]
+				$range[1],
+				Network_Report::MAX_SITES
 			),
 			ARRAY_A
 		);
@@ -347,9 +364,20 @@ class API_Usage_Tracker {
 		$periods = array( 'today', 'yesterday', 'week', 'month', 'all' );
 
 		foreach ( $periods as $period ) {
-			delete_transient( "zerospam_usage_stats_{$site_id}_{$period}" );
-			delete_transient( "zerospam_network_usage_stats_{$period}" );
+			delete_site_transient( "zerospam_usage_stats_{$site_id}_{$period}" );
+			delete_site_transient( self::network_stats_key( $period ) );
 		}
+	}
+
+	/**
+	 * The cache key of a period's network-wide statistics, per network.
+	 *
+	 * @since 6.0.2
+	 *
+	 * @param string $period Period.
+	 */
+	private static function network_stats_key( string $period ): string {
+		return Network_Settings::network_key( "zerospam_network_usage_stats_{$period}" );
 	}
 
 	/**
