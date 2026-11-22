@@ -12,3 +12,7 @@ newer tag and update the version above.
 `elementor-pro-stubs.php` is hand-written: it declares only the Elementor Pro
 forms classes and methods that `modules/elementor/class-elementor.php` calls.
 Add to it when the module starts using more of that API.
+
+`woocommerce-stubs.php` is hand-written too: the Store API's `RouteException`
+and `CheckoutSchema`, which `modules/woocommerce/` uses. Add to it when the
+module starts using more of that API.

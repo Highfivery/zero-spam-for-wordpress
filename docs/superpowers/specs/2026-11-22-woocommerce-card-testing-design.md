@@ -1,6 +1,6 @@
 # WooCommerce card-testing defence: design
 
-Status: **draft, waiting for Ben's approval** (AGENTS.md §7: new settings).
+Status: **approved and built** (Ben, 2026-11-22: "EVERYTHING should be done and included in 6.0.2"). Section 9 lists where the build differs from this draft.
 Issue: [#396](https://github.com/Highfivery/zero-spam-for-wordpress/issues/396).
 Target: 6.0.2 (Ben, 2026-11-22).
 
@@ -229,3 +229,27 @@ protects its checkout, and turning it off stores `disabled`.
    the whole site?
 3. Should the WooCommerce card show the Enhanced Protection line as described in
    section 2?
+
+## 9. As built (2026-11-22)
+
+- **Pauses are kept in the `zerospam_card_testing` option**, not as Rules blocks with a new `checkout` key type. A new key type would change `wpzerospam_blocked` (DB version, migration) and every reader of it, including `DB::blocked()`, which `Access` uses for site-wide blocks. In the option, a pause can only ever affect checkout. Pauses end by themselves. An administrator lets a customer in at once by adding their address to the IP Allowlist, and every refusal is in Activity with its IP address.
+- **No WooCommerce rate limit during a surge.** `woocommerce_store_api_rate_limit_options` applies to every Store API POST, including add-to-cart, so it would slow down real shoppers. Refusing unverified orders already stops bots that post straight to the API.
+- **The Enhanced Protection line** is the "Stop card testing" description, with one link to the Enhanced Protection card. That needs no admin build, and there is no count (none is kept yet).
+- **Logged-in customers** were never checked at checkout (`Access::process()` skips them). Failed payments only count against customers without a paid order.
+- **The questions in section 8** were settled by Ben: everything ships in 6.0.2, and the recommendations stand (pause at checkout only, the Enhanced Protection line).
+- **After review (security-reviewer, silent-failure-hunter):**
+  - logged-in customers are checked;
+  - the pay-for-order page and its Store API route are checked;
+  - a retry of a failed order counts;
+  - pauses are per-key transients and counters are written under a lock;
+  - private, reserved and shared IPs don't count;
+  - an email-only pause refuses only unverified orders, and a paid email never counts;
+  - there is no fallback to WooCommerce's customer IP;
+  - the surge email goes through cron;
+  - card-testing refusals are always logged and never share an email;
+  - the token script sets the token again when it is lost.
+- **Checked on WooCommerce 11.3.1** in wp-env with a gateway that declines every payment:
+  - a card tester retrying in one cart is refused from the third attempt;
+  - the Checkout block's token reaches the order (`_zerospam_unverified` empty);
+  - surge mode refuses a direct API order and lets a checkout-page order through;
+  - the log holds only the allowlisted fields.

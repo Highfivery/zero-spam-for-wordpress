@@ -95,7 +95,7 @@ class Protection_Controller extends Base_Controller {
 		'formidable'       => array( 'verify_formidable' ),
 		'fluent_form'      => array( 'verify_fluentforms' ),
 		'mailchimp4wp'     => array( 'verify_mailchimp4wp' ),
-		'woocommerce'      => array( 'verify_woocommerce_registrations', 'verify_woocommerce_checkout' ),
+		'woocommerce'      => array( 'verify_woocommerce_registrations', 'verify_woocommerce_checkout', 'woocommerce_card_testing' ),
 		'gravityforms'     => array( 'verify_gravityforms' ),
 		'wp-user-avatar'   => array( 'verify_wp_user_avatar_registrations' ),
 		'elementor'        => array( 'elementor_enabled' ),
