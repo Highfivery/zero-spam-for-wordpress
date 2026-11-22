@@ -820,6 +820,15 @@ class Test_Admin_App extends TestCase {
 	}
 
 	/**
+	 * IP lookups link to zerospam.org's lookup page, /lookup/{ip}/ (#499: /ip-lookup/ never existed).
+	 */
+	public function test_ip_lookup_url_is_the_lookup_page(): void {
+		$this->as_role( 'administrator' );
+
+		$this->assertSame( ZEROSPAM_URL . 'lookup/', $this->registered_app()->bootstrap( 'activity' )['urls']['ipLookup'] );
+	}
+
+	/**
 	 * The area of the current page comes from the page slug.
 	 */
 	public function test_current_area(): void {
