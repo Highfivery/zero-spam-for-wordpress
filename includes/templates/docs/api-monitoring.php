@@ -237,7 +237,7 @@ defined( 'ABSPATH' ) || die();
 					<tr>
 						<td><code>site_id</code></td>
 						<td><?php esc_html_e( 'integer', 'zero-spam' ); ?></td>
-						<td><?php esc_html_e( 'Specific site ID (multisite only)', 'zero-spam' ); ?></td>
+						<td><?php esc_html_e( 'Another site of the network (multisite only; network administrators only, and only sites of the current network). Also accepted by the export route.', 'zero-spam' ); ?></td>
 					</tr>
 				</tbody>
 			</table>

@@ -2,6 +2,10 @@
 
 The `readme.txt` changelog (shown on WordPress.org) carries only the current minor series. This file carries the full release history, newest first.
 
+## v6.0.2
+
+- **security(api-monitoring):** `GET api-usage/export` no longer answers for any `site_id` it is given: a subsite administrator could read another site's API usage figures (counts, response times, quota numbers; no visitor data). Reported by Swan Htet Naing. Both API usage routes now read their site through `Base_Controller::requested_site_id()`, the one check for routes that take a site ID: the current site by default; another site needs a network administrator and must be on the current network (a network administrator of one network could read another network's sites through `api-usage` too), otherwise 403 or 404 `rest_site_not_found`. The check runs in the permission callback as well as the route, and checks the ID itself as well as through the route's schema. `site_id` must be a positive integer (0 read as "this site" before, now 400; so does an empty or non-numeric value); on a single site another ID is a 404. `scope=network` needs a network administrator in the permission callback too, and on a network with several networks counts only the current network's sites (`get_network_usage_stats()` and `get_per_site_breakdown()` read every network's; the breakdown is also capped at `Network_Report::MAX_SITES`), which also scopes the network quota alerts. The per-site usage cache is one site transient per site (it was a transient of whichever site read it, so a network administrator could see another site's figures an hour late) and the network cache is per network.
+
 ## v6.0.1
 
 - **fix(rules):** when Zero Spam asks before blocking your own address (the block drawer, the network page) or removing it from the no-lockout addresses, focus goes to the safe answer ("Don't block" or Cancel), which is described by the question, so a held or repeated Enter can no longer confirm a lock-out; the risky answer is one Tab away. The network page's `Confirm` takes `safe` for this.

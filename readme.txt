@@ -209,6 +209,10 @@ When you enter an API key for one of these services, the IP address of visitors 
 
 == Changelog ==
 
+= v6.0.2 =
+
+* **security(api-monitoring):** on a multisite network, a site's administrator can no longer read another site's API usage figures through the usage export. Thanks to Swan Htet Naing for the report.
+
 = v6.0.1 =
 
 * **feat(rules):** blocking your own IP address, or a location your address is in, now asks first, so you can't lock yourself out by accident. The question's safe answer ("Don't block") is selected, so a held Enter can't confirm it.
