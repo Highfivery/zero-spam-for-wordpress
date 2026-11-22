@@ -554,7 +554,7 @@ class Access {
 	/**
 	 * Gets the current user's access
 	 */
-	public function get_access() {
+	public static function get_access() {
 		$settings = ZeroSpam\Core\Settings::get_settings_without_lists();
 		$user_ip  = ZeroSpam\Core\User::get_ip();
 
