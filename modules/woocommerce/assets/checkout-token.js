@@ -10,17 +10,22 @@
 ( function () {
 	'use strict';
 
-	var config = window.zeroSpamCheckout;
-	var data = window.wp && window.wp.data;
+	const config = window.zeroSpamCheckout;
+	const data = window.wp && window.wp.data;
 
-	if ( ! config || ! config.token || ! data || 'function' !== typeof data.subscribe ) {
+	if (
+		! config ||
+		! config.token ||
+		! data ||
+		'function' !== typeof data.subscribe
+	) {
 		return;
 	}
 
 	function current() {
 		try {
-			var checkout = data.select( 'wc/store/checkout' );
-			var extensions =
+			const checkout = data.select( 'wc/store/checkout' );
+			const extensions =
 				checkout && 'function' === typeof checkout.getExtensionData
 					? checkout.getExtensionData()
 					: null;
@@ -28,7 +33,7 @@
 			return extensions && extensions[ config.namespace ]
 				? extensions[ config.namespace ].token
 				: undefined;
-		} catch ( error ) {
+		} catch {
 			return undefined;
 		}
 	}
@@ -39,14 +44,14 @@
 		}
 
 		try {
-			var actions = data.dispatch( 'wc/store/checkout' );
+			const actions = data.dispatch( 'wc/store/checkout' );
 
 			if ( actions && 'function' === typeof actions.setExtensionData ) {
 				actions.setExtensionData( config.namespace, {
 					token: config.token,
 				} );
 			}
-		} catch ( error ) {
+		} catch {
 			// The checkout store is not registered yet.
 		}
 	}
