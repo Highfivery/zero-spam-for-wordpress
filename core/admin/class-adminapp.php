@@ -845,7 +845,7 @@ final class Admin_App {
 				'network'   => is_multisite() && current_user_can( 'manage_network_options' ) ? network_admin_url( 'admin.php?page=' . self::NETWORK_SLUG ) : '',
 				'siteAdmin' => admin_url( 'admin.php?page=' . self::AREAS['overview'] ),
 				'flags'     => plugins_url( 'assets/img/flags/', ZEROSPAM ),
-				'ipLookup'  => ZEROSPAM_URL . 'ip-lookup/',
+				'ipLookup'  => ZEROSPAM_URL . 'lookup/',
 			),
 			'isMultisite'       => is_multisite(),
 			// Subsites cannot refresh the network's shared .htaccess (the Rules screen hides the button).

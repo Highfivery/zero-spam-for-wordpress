@@ -10,6 +10,7 @@ declare( strict_types=1 );
 namespace ZeroSpam\Includes\Rest;
 
 use WP_Error;
+use ZeroSpam\Includes\Network_Report;
 use WP_REST_Controller;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -142,6 +143,88 @@ abstract class Base_Controller extends WP_REST_Controller {
 				'status'      => 403,
 				'locked_keys' => array_values( $keys ),
 			)
+		);
+	}
+
+	/**
+	 * The site a request may read, from its optional `site_id` parameter.
+	 *
+	 * The one place a route that takes a site ID decides whose data it answers
+	 * with. No `site_id`, or the current site's, is the current site (the route's
+	 * own permission check already applies). Any other site needs a network
+	 * administrator (`manage_network_options`) and must be on the current network:
+	 * a network administrator of one network never reads a site of another.
+	 *
+	 * @since 6.0.2
+	 *
+	 * @param WP_REST_Request $request Request.
+	 * @return int|WP_Error The site ID; 403 for a site the user may not read, 404 for one that is not on this network.
+	 */
+	protected function requested_site_id( WP_REST_Request $request ): int|WP_Error {
+		$current = get_current_blog_id();
+		$site_id = $request->get_param( 'site_id' );
+
+		if ( null === $site_id ) {
+			return $current;
+		}
+
+		// Checked here as well as by site_id_arg(), so a route that forgets the schema cannot read site 0 or "1abc" as a site.
+		if ( ! is_int( $site_id ) && ! ( is_string( $site_id ) && ctype_digit( $site_id ) ) ) {
+			return $this->invalid_params_error( array( 'site_id' => __( 'A site ID is a positive whole number.', 'zero-spam' ) ) );
+		}
+
+		$site_id = (int) $site_id;
+
+		if ( $site_id < 1 ) {
+			return $this->invalid_params_error( array( 'site_id' => __( 'A site ID is a positive whole number.', 'zero-spam' ) ) );
+		}
+
+		if ( $site_id === $current ) {
+			return $current;
+		}
+
+		if ( ! is_multisite() ) {
+			return $this->site_not_found_error();
+		}
+
+		if ( ! current_user_can( 'manage_network_options' ) ) {
+			return $this->forbidden_error( __( 'You can only view this site.', 'zero-spam' ) );
+		}
+
+		if ( ! Network_Report::is_on_network( $site_id ) ) {
+			return $this->site_not_found_error();
+		}
+
+		return $site_id;
+	}
+
+	/**
+	 * The 404 error for a site ID that is not a site of the current network.
+	 *
+	 * @since 6.0.2
+	 *
+	 * @return WP_Error `rest_site_not_found`.
+	 */
+	protected function site_not_found_error(): WP_Error {
+		return new WP_Error(
+			'rest_site_not_found',
+			__( 'That site does not exist on this network.', 'zero-spam' ),
+			array( 'status' => 404 )
+		);
+	}
+
+	/**
+	 * The argument schema of an optional `site_id` read through requested_site_id().
+	 *
+	 * @since 6.0.2
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function site_id_arg(): array {
+		return array(
+			'description' => __( 'Site ID on a network (default: the current site). Other sites need a network administrator.', 'zero-spam' ),
+			'type'        => 'integer',
+			'minimum'     => 1,
 		);
 	}
 

@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 6.0.1
+Stable tag: 6.0.2
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -49,7 +49,7 @@ Zero Spam uses layers, so a bot that gets past one meets the next. Every layer c
 = Works with the plugins you already use =
 
 * **Forms:** [Contact Form 7](https://wordpress.org/plugins/contact-form-7/), [WPForms](https://wordpress.org/plugins/wpforms-lite/), [Gravity Forms](https://www.gravityforms.com/), [Formidable Forms](https://wordpress.org/plugins/formidable/), [Fluent Forms](https://wordpress.org/plugins/fluentform/) and [Elementor Pro](https://elementor.com/) forms.
-* **Stores and donations:** [WooCommerce](https://wordpress.org/plugins/woocommerce/) customer registrations, and [GiveWP](https://wordpress.org/plugins/give/) donation forms, where it helps stop card testing with stolen cards.
+* **Stores and donations:** [WooCommerce](https://wordpress.org/plugins/woocommerce/) registrations and checkout (the classic checkout and the Checkout block), with card-testing protection, and [GiveWP](https://wordpress.org/plugins/give/) donation forms, where it helps stop card testing with stolen cards.
 * **Memberships and newsletters:** [ProfilePress](https://wordpress.org/plugins/wp-user-avatar/) registrations and [Mailchimp for WordPress](https://wordpress.org/plugins/mailchimp-for-wp/) sign-ups.
 
 Setup switches on protection for each one it finds; turn on any you add later under Zero Spam › Protection › Integrations.
@@ -96,6 +96,10 @@ Install and activate Zero Spam, then follow its short setup. Comment protection 
 = How do I stop fake user registrations in WordPress? =
 
 Turn on registration protection under Zero Spam › Protection (the setup does this for you). Zero Spam refuses sign-ups from bots, from addresses reported for spam, and from disposable email domains. It also protects WooCommerce and ProfilePress registrations.
+
+= How do I stop card testing on my WooCommerce store without a captcha? =
+
+Turn on "Protect checkout" under Zero Spam › Protection › Integrations › WooCommerce. "Stop card testing" comes with it. When payments from one visitor keep failing (3 in an hour, by default), that visitor can't check out for an hour; the rest of your site stays open to them. When payments fail across the whole store at once, from many addresses, Zero Spam refuses orders that didn't come from your checkout page for 30 minutes and emails you. Someone typing a customer's email can't lock that customer out: an email that has paid before is never counted, and a pause on an email alone never stops a customer ordering on your checkout page. Addresses on your IP Allowlist are never paused. It works on the classic checkout and the Checkout block, with no captcha.
 
 = Is Zero Spam free? =
 
@@ -208,6 +212,13 @@ When you enter an API key for one of these services, the IP address of visitors 
 9. Run a whole multisite network from one place: shared defaults, locked settings and every site's activity.
 
 == Changelog ==
+
+= v6.0.2 =
+
+* **feat(woocommerce):** stops card testing at checkout without a captcha. Visitors whose payments keep failing are paused at checkout, and during an attack from many addresses only orders placed from your checkout page go through. You get an email when that happens ([#396](https://github.com/Highfivery/zero-spam-for-wordpress/issues/396)).
+* **fix(woocommerce):** checkout protection now covers the Checkout block, the pay-for-order page and logged-in customers. A blocked checkout no longer stores the order form in the log, which could hold card details with some payment gateways.
+* **security(api-monitoring):** on a multisite network, a site's administrator can no longer read another site's API usage figures through the usage export. Thanks to Swan Htet Naing for the report.
+* **fix(activity):** "IP lookup" opens zerospam.org's lookup page again ([#499](https://github.com/Highfivery/zero-spam-for-wordpress/issues/499)).
 
 = v6.0.1 =
 

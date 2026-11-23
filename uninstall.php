@@ -66,6 +66,7 @@ $zerospam_site_options = array(
 	'zerospam_api_notices',
 	'zerospam_backup_5x',
 	'zerospam_blocked_email_domains',
+	'zerospam_card_testing',
 	'zerospam_completed_migrations',
 	'zerospam_configured',
 	'zerospam_davidwalsh',

@@ -105,7 +105,13 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   quota: the license route's numbers can lag behind what lookups answer.
 - REST controllers extend `Includes\Rest\Base_Controller` (permission
   helpers, `rest_invalid_param` with `data.params`, `per_page` ≤ 100, paging
-  headers, `_fields`). Secrets are write-only over REST.
+  headers, `_fields`). Secrets are write-only over REST. A route that takes a
+  site ID reads it only through `requested_site_id()` (argument schema
+  `site_id_arg()`), in its permission callback and its callback: the current
+  site by default; another site needs `manage_network_options` and must be on
+  the current network (403, or 404 `rest_site_not_found`). Never pass a
+  client's site ID to a query or `switch_to_blog()` without it (6.0.2: the API
+  usage export read any site).
 - Multisite precedence, as implemented in
   `includes/class-networksettings.php`: **locked network value → site
   override → network default → plugin default.** Network values live in the
@@ -131,6 +137,45 @@ filters, `zerospam_access_checks`), logs with `DB::log()` and fires
   write-only on all of them: a network value reads `{ set, hint }`, a
   site's `{ set, source }`; `test-network-settings-secrets.php` sweeps every
   GET of `network-settings/*` and fails when a new one is not in its list.
+
+### WooCommerce checkout (6.0.2)
+Every checkout goes through `Modules\WooCommerce\Checkout_Guard::check()`,
+also a logged-in customer's; only shop staff (`manage_woocommerce`) and
+IP Allowlist and no-lockout addresses skip it. The checkout is hooked on
+`verify_woocommerce_checkout`, never on `Access::process()`.
+
+The paths:
+- the classic checkout, on `woocommerce_checkout_process`;
+- the classic pay-for-order page, on `woocommerce_before_pay_action`;
+- the Checkout block and the Store API (checkout and pay-for-order routes),
+  on `woocommerce_store_api_checkout_order_processed`. A refusal there throws
+  `RouteException`. That action gets no request, so the token comes from the
+  request kept by `rest_request_before_callbacks`.
+
+The page-view visitor checks never reach these paths, so for guests the
+guard runs `Access::get_access()` itself. A refused checkout logs
+`log_fields()` only, never the request: gateways can post card fields.
+
+`Card_Testing`:
+- counts failures per public, unshared IP, per account and per email, as
+  keyed hashes;
+- keeps counters and the surge in the non-autoloaded option
+  `zerospam_card_testing`, under the `add_option()` lock
+  `zerospam_card_testing_lock`, and each pause in its own transient;
+- `clear()` starts a new key generation, because transients can't be listed.
+
+Rules that protect real customers:
+- an email-only pause refuses only unverified orders, and an email with a
+  paid order never counts;
+- a retry of an already failed order counts as one more failure, because
+  WooCommerce reuses the order and no status changes;
+- `Checkout_Token` is a signal, never a refusal on its own, because express
+  payment buttons order from pages without the script. Only during a surge is
+  a missing token refused.
+
+Tests use `ZeroSpam\Tests\FakeOrder` and
+`tests/phpunit/includes/stubs/woocommerce*.php`, because WooCommerce is not
+installed in the suite.
 
 ### Registrations on a network
 A network registers through `wp-signup.php` (main site only; core redirects
