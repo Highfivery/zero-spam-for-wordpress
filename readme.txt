@@ -5,7 +5,7 @@ Donate link: https://www.zerospam.org/subscribe/
 Requires at least: 6.9
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 6.0.1
+Stable tag: 6.0.2
 License: GPL v2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -212,6 +212,13 @@ When you enter an API key for one of these services, the IP address of visitors 
 9. Run a whole multisite network from one place: shared defaults, locked settings and every site's activity.
 
 == Changelog ==
+
+= v6.0.2 =
+
+* **feat(woocommerce):** stops card testing at checkout without a captcha. Visitors whose payments keep failing are paused at checkout, and during an attack from many addresses only orders placed from your checkout page go through. You get an email when that happens ([#396](https://github.com/Highfivery/zero-spam-for-wordpress/issues/396)).
+* **fix(woocommerce):** checkout protection now covers the Checkout block, the pay-for-order page and logged-in customers. A blocked checkout no longer stores the order form in the log, which could hold card details with some payment gateways.
+* **security(api-monitoring):** on a multisite network, a site's administrator can no longer read another site's API usage figures through the usage export. Thanks to Swan Htet Naing for the report.
+* **fix(activity):** "IP lookup" opens zerospam.org's lookup page again ([#499](https://github.com/Highfivery/zero-spam-for-wordpress/issues/499)).
 
 = v6.0.1 =
 
